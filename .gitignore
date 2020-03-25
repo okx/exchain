@@ -1,0 +1,42 @@
+# OS
+.DS_Store
+*.swp
+*.swo
+.vscode
+.idea
+okchain_data
+# Build
+# vendor
+build
+# IDE
+docs
+cache
+.idea
+*.iml
+#vendor/*
+dev/cache
+dev/okdexd
+dev/okdexcli
+cmd/okchaincli/okchaincli
+cmd/okchaind/okchaind
+*.bz2
+Dockerfile
+iavl.1*
+xcache
+statik.go
+built-in-stubs.jar
+press_cache
+*.log
+*.json
+profile.cov
+profile_tmp.cov
+coverage.html
+x/backend/test.db
+*.db
+scripts/load_test/useraccount
+scripts/load_test/*accounts.txt
+doc/statik/statik.go
+unittest/tmp
+tmp/
+nohup.out
+go.sum
