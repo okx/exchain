@@ -10,7 +10,7 @@ Tendermint=0.32.7
 CosmosSDK=0.37.4
 ServerName=okchaind
 ClientName=okchaincli
-#StartBlockHeight=2000
+#StartBlockHeight=200000
 
 # process linker flags
 ifeq ($(VERSION),)
