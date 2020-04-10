@@ -23,6 +23,7 @@ func (k *mockTokenKeeper) TokenExist(ctx sdk.Context, symbol string) bool {
 	return k.exist
 }
 
+// nolint
 func newMockTokenKeeper() *mockTokenKeeper {
 	return &mockTokenKeeper{
 		exist: true,
@@ -69,6 +70,7 @@ func (k *mockSupplyKeeper) MintCoins(ctx sdk.Context, moduleName string, amt sdk
 	return k.behave()
 }
 
+// nolint
 func newMockSupplyKeeper() *mockSupplyKeeper {
 	return &mockSupplyKeeper{
 		behaveEvil:    true,
@@ -160,6 +162,7 @@ type mockApp struct {
 	keySupply    *sdk.KVStoreKey
 }
 
+// nolint
 func newMockApp(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, accountsInGenisis int) (
 	app *mockApp, mockDexKeeper *mockDexKeeper, err error) {
 

@@ -3,11 +3,12 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"time"
 )
 
 func queryTickerFromMarketKeeperV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
@@ -131,7 +132,7 @@ func queryTickerV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 }
 
 func queryTickerListV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	tickers := keeper.GetAllTickers()
+	tickers := keeper.getAllTickers()
 	var tickerList []types.TickerV2
 	for _, t := range tickers {
 		var ticker types.TickerV2
@@ -180,7 +181,7 @@ func queryOrderListV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 		return nil, sdk.ErrInternal(err.Error())
 	}
 
-	orders := keeper.GetOrderListV2(ctx, params.Product, params.Address, params.Side, params.IsOpen, params.After, params.Before, params.Limit)
+	orders := keeper.getOrderListV2(ctx, params.Product, params.Address, params.Side, params.IsOpen, params.After, params.Before, params.Limit)
 
 	var result []types.OrderV2
 
@@ -208,7 +209,7 @@ func queryOrderV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, sdk.ErrInternal(err.Error())
 	}
 
-	order := keeper.GetOrderByIdV2(ctx, params.OrderId)
+	order := keeper.getOrderByIDV2(ctx, params.OrderID)
 
 	if order == nil {
 		return nil, nil
@@ -274,7 +275,7 @@ func queryMatchResultsV2(ctx sdk.Context, path []string, req abci.RequestQuery, 
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
 
-	matches := keeper.GetMatchResultsV2(ctx, params.Product, params.After, params.Before, params.Limit)
+	matches := keeper.getMatchResultsV2(ctx, params.Product, params.After, params.Before, params.Limit)
 	if len(matches) == 0 {
 		return nil, nil
 	}
@@ -297,7 +298,7 @@ func queryFeeDetailsV2(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
 
-	feeDetails := keeper.GetFeeDetailsV2(ctx, params.Address, params.After, params.Before, params.Limit)
+	feeDetails := keeper.getFeeDetailsV2(ctx, params.Address, params.After, params.Before, params.Limit)
 	if len(feeDetails) == 0 {
 		return nil, nil
 	}
@@ -317,7 +318,7 @@ func queryDealsV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
 
-	deals := keeper.GetDealsV2(ctx, params.Address, params.Product, params.Side, params.After, params.Before, params.Limit)
+	deals := keeper.getDealsV2(ctx, params.Address, params.Product, params.Side, params.After, params.Before, params.Limit)
 	if len(deals) == 0 {
 		return nil, nil
 	}
@@ -339,7 +340,7 @@ func queryTxListV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
 
-	txs := keeper.GetTransactionListV2(ctx, params.Address, params.TxType, params.After, params.Before, params.Limit)
+	txs := keeper.getTransactionListV2(ctx, params.Address, params.TxType, params.After, params.Before, params.Limit)
 	if len(txs) == 0 {
 		return nil, nil
 	}

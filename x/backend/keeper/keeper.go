@@ -67,20 +67,25 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	return k
 }
 
+// Stop close database
 func (k Keeper) Stop() {
 	defer types.PrintStackIfPanic()
 	if k.stopChan != nil {
 		close(k.stopChan)
 	}
 	if k.Orm != nil {
-		k.Orm.Close()
+		if err := k.Orm.Close(); err != nil {
+			k.Orm.Error(fmt.Sprintf("failed to close orm because %s ", err.Error()))
+		}
 	}
 }
 
+// Flush temporary cache
 func (k Keeper) Flush() {
 	defer k.Cache.Flush()
 }
 
+// SyncTx generate transaction and add it to cache, called at DeliverTx
 func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
 	if k.Config.EnableBackend && k.Config.EnableMktCompute {
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))
@@ -91,32 +96,32 @@ func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp
 	}
 }
 
-func (k Keeper) MarshalJSON(o interface{}) ([]byte, error) {
-	return k.cdc.MarshalJSON(o)
-}
-
-func (k Keeper) GetMatchResults(ctx sdk.Context, product string, start, end int64, offset, limit int) ([]types.MatchResult, int) {
+func (k Keeper) getMatchResults(ctx sdk.Context, product string, start, end int64, offset, limit int) ([]types.MatchResult, int) {
 	return k.Orm.GetMatchResults(product, start, end, offset, limit)
 }
 
+// nolint
 func (k Keeper) GetDeals(ctx sdk.Context, sender, product, side string, start, end int64, offset, limit int) ([]types.Deal, int) {
 	return k.Orm.GetDeals(sender, product, side, start, end, offset, limit)
 }
 
+// nolint
 func (k Keeper) GetFeeDetails(ctx sdk.Context, addr string, offset, limit int) ([]token.FeeDetail, int) {
 	return k.Orm.GetFeeDetails(addr, offset, limit)
 }
 
+// nolint
 func (k Keeper) GetOrderList(ctx sdk.Context, addr, product, side string, open bool,
 	offset, limit int, startTS, endTS int64, hideNoFill bool) ([]types.Order, int) {
 	return k.Orm.GetOrderList(addr, product, side, open, offset, limit, startTS, endTS, hideNoFill)
 }
 
+// nolint
 func (k Keeper) GetTransactionList(ctx sdk.Context, addr string, txType, startTime, endTime int64, offset, limit int) ([]types.Transaction, int) {
 	return k.Orm.GetTransactionList(addr, txType, startTime, endTime, offset, limit)
 }
 
-func (k Keeper) GetAllProducts(ctx sdk.Context) []string {
+func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
 	for _, tp := range tokenPairs {
@@ -128,8 +133,9 @@ func (k Keeper) GetAllProducts(ctx sdk.Context) []string {
 	return products
 }
 
+// nolint
 func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int64) (r [][]string, err error) {
-	if k.Config.EnableBackend == false {
+	if !k.Config.EnableBackend {
 		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
 	}
 
@@ -151,7 +157,7 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 }
 
 func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) (r [][]string, err error) {
-	if k.Config.EnableBackend == false {
+	if !k.Config.EnableBackend {
 		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
 	}
 
@@ -173,10 +179,12 @@ func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) 
 	return [][]string{}, err
 }
 
+// nolint
 func (k Keeper) GetCandles(product string, granularity, size int) (r [][]string, err error) {
 	return k.GetCandlesWithTime(product, granularity, size, time.Now().Unix())
 }
 
+// nolint
 func (k Keeper) GetTickers(products []string, count int) []types.Ticker {
 	tickers := []types.Ticker{}
 	if len(k.Cache.LatestTicker) > 0 {
@@ -206,6 +214,7 @@ func (k Keeper) GetTickers(products []string, count int) []types.Ticker {
 	}
 }
 
+// UpdateTickersBuffer calculate and update the products ticker
 func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) {
 
 	defer types.PrintStackIfPanic()
@@ -223,7 +232,7 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 		return
 	}
 
-	if tickerMap != nil && len(tickerMap) > 0 {
+	if len(tickerMap) > 0 {
 		for product, ticker := range tickerMap {
 			k.Cache.LatestTicker[product] = ticker
 		}
@@ -250,31 +259,31 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 	}
 }
 
-func (k Keeper) GetOrderListV2(ctx sdk.Context, instrumentId string, address string, side string, open bool, after string, before string, limit int) []types.Order {
-	return k.Orm.GetOrderListV2(instrumentId, address, side, open, after, before, limit)
+func (k Keeper) getOrderListV2(ctx sdk.Context, instrumentID string, address string, side string, open bool, after string, before string, limit int) []types.Order {
+	return k.Orm.GetOrderListV2(instrumentID, address, side, open, after, before, limit)
 }
 
-func (k Keeper) GetOrderByIdV2(ctx sdk.Context, orderId string) *types.Order {
-	return k.Orm.GetOrderById(orderId)
+func (k Keeper) getOrderByIDV2(ctx sdk.Context, orderID string) *types.Order {
+	return k.Orm.GetOrderByID(orderID)
 }
 
-func (k Keeper) GetMatchResultsV2(ctx sdk.Context, instrumentId string, after string, before string, limit int) []types.MatchResult {
-	return k.Orm.GetMatchResultsV2(instrumentId, after, before, limit)
+func (k Keeper) getMatchResultsV2(ctx sdk.Context, instrumentID string, after string, before string, limit int) []types.MatchResult {
+	return k.Orm.GetMatchResultsV2(instrumentID, after, before, limit)
 }
 
-func (k Keeper) GetFeeDetailsV2(ctx sdk.Context, addr string, after string, before string, limit int) []token.FeeDetail {
+func (k Keeper) getFeeDetailsV2(ctx sdk.Context, addr string, after string, before string, limit int) []token.FeeDetail {
 	return k.Orm.GetFeeDetailsV2(addr, after, before, limit)
 }
 
-func (k Keeper) GetDealsV2(ctx sdk.Context, sender, product, side string, after string, before string, limit int) []types.Deal {
+func (k Keeper) getDealsV2(ctx sdk.Context, sender, product, side string, after string, before string, limit int) []types.Deal {
 	return k.Orm.GetDealsV2(sender, product, side, after, before, limit)
 }
 
-func (k Keeper) GetTransactionListV2(ctx sdk.Context, addr string, txType int, after string, before string, limit int) []types.Transaction {
+func (k Keeper) getTransactionListV2(ctx sdk.Context, addr string, txType int, after string, before string, limit int) []types.Transaction {
 	return k.Orm.GetTransactionListV2(addr, txType, after, before, limit)
 }
 
-func (k Keeper) GetAllTickers() []types.Ticker {
+func (k Keeper) getAllTickers() []types.Ticker {
 	var tickers []types.Ticker
 	for _, ticker := range k.Cache.LatestTicker {
 		tickers = append(tickers, *ticker)

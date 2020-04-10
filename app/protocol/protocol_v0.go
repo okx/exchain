@@ -290,7 +290,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.crisisKeeper = crisis.NewKeeper(crisisSubspace, p.invCheckPeriod, p.supplyKeeper, auth.FeeCollectorName)
 
 	p.tokenKeeper = token.NewKeeper(
-		p.bankKeeper, p.paramsKeeper, tokenSubspace, auth.FeeCollectorName, p.supplyKeeper,
+		p.bankKeeper, tokenSubspace, auth.FeeCollectorName, p.supplyKeeper,
 		p.keys[token.StoreKey], p.keys[token.KeyLock],
 		p.cdc, appConfig.BackendConfig.EnableBackend)
 
@@ -298,9 +298,8 @@ func (p *ProtocolV0) produceKeepers() {
 		p.bankKeeper, p.keys[dex.StoreKey], p.keys[dex.TokenPairStoreKey], p.cdc)
 
 	p.orderKeeper = order.NewKeeper(
-		p.tokenKeeper, p.supplyKeeper, p.paramsKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
-		p.keys[order.OrderStoreKey],
-		p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
+		p.tokenKeeper, p.supplyKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
+		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
 	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.accountKeeper, p.cdc, p.logger,

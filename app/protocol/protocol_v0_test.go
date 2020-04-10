@@ -134,13 +134,13 @@ func TestProtocolV0_InitChainer_BeginBlocker_EndBlocker_ExportGenesis_ExportAppS
 	})
 
 	// check the event type "UpgradeAppVersion" in upgrade EndBlock
-	var exsited bool
+	var existed bool
 	for _, event := range endBlockResponse.Events {
 		if event.Type == upgrade.EventTypeUpgradeAppVersion {
-			exsited = true
+			existed = true
 		}
 	}
-	require.True(t, exsited)
+	require.True(t, existed)
 
 	///////////////////////////// test ExportGenesis /////////////////////////////
 	var jsonRawMessageMap map[string]json.RawMessage

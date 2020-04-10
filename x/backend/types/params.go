@@ -2,11 +2,13 @@ package types
 
 import "time"
 
+// nolint
 const (
 	DefaultPage    = 1
 	DefaultPerPage = 50
 )
 
+// nolint
 type QueryDealsParams struct {
 	Address string
 	Product string
@@ -17,6 +19,7 @@ type QueryDealsParams struct {
 	Side    string
 }
 
+// NewQueryDealsParams creates a new instance of QueryDealsParams
 func NewQueryDealsParams(addr, product string, start, end int64, page, perPage int, side string) QueryDealsParams {
 	if page == 0 && perPage == 0 {
 		page = DefaultPage
@@ -33,6 +36,7 @@ func NewQueryDealsParams(addr, product string, start, end int64, page, perPage i
 	}
 }
 
+// nolint
 type QueryMatchParams struct {
 	Product string
 	Start   int64
@@ -41,6 +45,7 @@ type QueryMatchParams struct {
 	PerPage int
 }
 
+// NewQueryMatchParams creates a new instance of QueryMatchParams
 func NewQueryMatchParams(product string, start, end int64, page, perPage int) QueryMatchParams {
 	if page == 0 && perPage == 0 {
 		page = DefaultPage
@@ -55,13 +60,14 @@ func NewQueryMatchParams(product string, start, end int64, page, perPage int) Qu
 	}
 }
 
+// nolint
 type QueryFeeDetailsParams struct {
 	Address string
 	Page    int
 	PerPage int
 }
 
-// creates a new instance of NewQueryOrderListParams
+// NewQueryFeeDetailsParams creates a new instance of QueryFeeDetailsParams
 func NewQueryFeeDetailsParams(addr string, page, perPage int) QueryFeeDetailsParams {
 	if page == 0 && perPage == 0 {
 		page = DefaultPage
@@ -74,12 +80,14 @@ func NewQueryFeeDetailsParams(addr string, page, perPage int) QueryFeeDetailsPar
 	}
 }
 
+// nolint
 type QueryKlinesParams struct {
 	Product     string
 	Granularity int
 	Size        int
 }
 
+// NewQueryKlinesParams creates a new instance of QueryKlinesParams
 func NewQueryKlinesParams(product string, granularity, size int) QueryKlinesParams {
 	return QueryKlinesParams{
 		product,
@@ -88,12 +96,14 @@ func NewQueryKlinesParams(product string, granularity, size int) QueryKlinesPara
 	}
 }
 
+// nolint
 type QueryTickerParams struct {
 	Product string `json:"product"`
 	Count   int    `json:"count"`
 	Sort    bool   `json:"sort"`
 }
 
+// nolint
 type QueryOrderListParams struct {
 	Address    string
 	Product    string
@@ -105,7 +115,7 @@ type QueryOrderListParams struct {
 	HideNoFill bool
 }
 
-// creates a new instance of NewQueryOrderListParams
+// NewQueryOrderListParams creates  a new instance of QueryOrderListParams
 func NewQueryOrderListParams(addr, product, side string, page, perPage int, start, end int64,
 	hideNoFill bool) QueryOrderListParams {
 	if page == 0 && perPage == 0 {
@@ -127,6 +137,7 @@ func NewQueryOrderListParams(addr, product, side string, page, perPage int, star
 	}
 }
 
+// nolint
 type QueryTxListParams struct {
 	Address   string
 	TxType    int64
@@ -136,7 +147,7 @@ type QueryTxListParams struct {
 	PerPage   int
 }
 
-// creates a new instance of NewQueryOrderListParams
+// NewQueryTxListParams creates a new instance of QueryTxListParams
 func NewQueryTxListParams(addr string, txType, startTime, endTime int64, page, perPage int) QueryTxListParams {
 	if page == 0 && perPage == 0 {
 		page = DefaultPage

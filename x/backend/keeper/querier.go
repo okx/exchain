@@ -16,11 +16,11 @@ import (
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
-		if keeper.Config.EnableBackend == false {
+		if !keeper.Config.EnableBackend {
 			response := common.GetErrorResponse(-1, "", "Backend Plugin's Not Enabled")
-			res, eJson := json.Marshal(response)
-			if eJson != nil {
-				return nil, sdk.ErrInternal(eJson.Error())
+			res, eJSON := json.Marshal(response)
+			if eJSON != nil {
+				return nil, sdk.ErrInternal(eJSON.Error())
 			}
 			return res, nil
 		}
@@ -29,12 +29,12 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			if e := recover(); e != nil {
 				errMsg := fmt.Sprintf("%+v", e)
 				response := common.GetErrorResponse(-1, "", errMsg)
-				resJson, eJson := json.Marshal(response)
-				if eJson != nil {
+				resJSON, eJSON := json.Marshal(response)
+				if eJSON != nil {
 					res = nil
-					err = sdk.ErrInternal(eJson.Error())
+					err = sdk.ErrInternal(eJSON.Error())
 				} else {
-					res = resJson
+					res = resJSON
 					err = nil
 				}
 
@@ -103,9 +103,9 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 
 		if err != nil {
 			response := common.GetErrorResponse(-1, "", err.Error())
-			res, eJson := json.Marshal(response)
-			if eJson != nil {
-				return nil, sdk.ErrInternal(eJson.Error())
+			res, eJSON := json.Marshal(response)
+			if eJSON != nil {
+				return nil, sdk.ErrInternal(eJSON.Error())
 			}
 			return res, err
 		}
@@ -150,7 +150,7 @@ func queryMatchResults(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
-	matches, total := keeper.GetMatchResults(ctx, params.Product, params.Start, params.End, offset, limit)
+	matches, total := keeper.getMatchResults(ctx, params.Product, params.Start, params.End, offset, limit)
 	var response *common.ListResponse
 	if len(matches) > 0 {
 		response = common.GetListResponse(total, params.Page, params.PerPage, matches)
@@ -251,7 +251,7 @@ func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	if params.Product != "" {
 		products = append(products, params.Product)
 	} else {
-		products = keeper.GetAllProducts(ctx)
+		products = keeper.getAllProducts(ctx)
 	}
 
 	addedTickers := []types.Ticker{}
@@ -314,7 +314,7 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if params.Product != "" {
 		products = append(products, params.Product)
 	} else {
-		products = keeper.GetAllProducts(ctx)
+		products = keeper.getAllProducts(ctx)
 	}
 
 	var addedTickers []map[string]string

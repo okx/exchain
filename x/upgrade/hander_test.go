@@ -25,7 +25,7 @@ func TestEndBlocker(t *testing.T) {
 	description := staking.NewDescription("moniker1", "identity1", "website1", "details1")
 	validator := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description)
 	validator.Status = sdk.Bonded
-	validator.Tokens = reserve
+	validator.DelegatorShares = sdk.OneDec()
 
 	// local setting
 	ctx = ctx.WithBlockHeader(abci.Header{ProposerAddress: validator.GetConsAddr()})
@@ -73,7 +73,7 @@ func TestEndBlockerTallySuccess(t *testing.T) {
 	// get validator && proposer
 	validatorPro := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description)
 	validatorPro.Status = sdk.Bonded
-	validatorPro.Tokens = reserve
+	validatorPro.DelegatorShares = sdk.OneDec()
 	stakingKeeper.SetValidator(ctx, validatorPro)
 	stakingKeeper.SetValidatorByPowerIndex(ctx, validatorPro)
 	stakingKeeper.SetValidatorByConsAddr(ctx, validatorPro)
@@ -84,7 +84,7 @@ func TestEndBlockerTallySuccess(t *testing.T) {
 	for i := 1; i < 4; i++ {
 		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
 		validator.Status = sdk.Bonded
-		validator.Tokens = reserve
+		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)
 		stakingKeeper.SetValidatorByPowerIndex(ctx, validator)
 		keeper.SetSignal(ctx, 1, validator.GetConsAddr().String())

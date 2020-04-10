@@ -16,7 +16,7 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (PrettyParams, er
 		return PrettyParams{}, err
 	}
 
-	return NewPrettyParams(retWithdrawAddrEnabled), nil
+	return newPrettyParams(retWithdrawAddrEnabled), nil
 }
 
 // QueryValidatorCommission returns a validator's commission.

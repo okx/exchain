@@ -9,6 +9,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+// DumpStore dumps all key-value message from KVStore
 func (k Keeper) DumpStore(ctx sdk.Context) {
 
 	logger := ctx.Logger().With("module", "order")
@@ -41,7 +42,7 @@ func (k Keeper) DumpStore(ctx sdk.Context) {
 	dumpKvs(orderStore, types.OrderKey, "OrderKey", &order, unmarshalHandler, dumpStringHandler)
 
 	var depthBook types.DepthBook
-	dumpKvs(orderStore, types.DepthbookKey, "DepthbookKey", &depthBook, unmarshalHandler, dumpStringHandler)
+	dumpKvs(orderStore, types.DepthBookKey, "DepthbookKey", &depthBook, unmarshalHandler, dumpStringHandler)
 
 	var price sdk.Dec
 	dumpKvs(orderStore, types.PriceKey, "PriceKey", &price, unmarshalHandler, dumpStringHandler)

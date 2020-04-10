@@ -8,7 +8,7 @@ import (
 	govTypes "github.com/okex/okchain/x/gov/types"
 )
 
-// ProposalTypeDexList defines the type for a DexList proposal
+// const
 const (
 	ProposalAppUpgrade = "AppUpgrade"
 )
@@ -18,12 +18,14 @@ func init() {
 	govTypes.RegisterProposalTypeCodec(AppUpgradeProposal{}, "okchain/upgrade/AppUpgradeProposal")
 }
 
+// AppUpgradeProposal implements content interface
 type AppUpgradeProposal struct {
 	Title              string                   `json:"title" yaml:"titile"`
 	Description        string                   `json:"description" yaml:"description"`
 	ProtocolDefinition proto.ProtocolDefinition `json:"protocol_definition" yaml:"protocol_definition"`
 }
 
+// NewAppUpgradeProposal returns the pointer of a new AppUpgradeProposal
 func NewAppUpgradeProposal(title, desc string, definition proto.ProtocolDefinition) *AppUpgradeProposal {
 	proposal := &AppUpgradeProposal{
 		Title:       title,
@@ -37,14 +39,6 @@ func NewAppUpgradeProposal(title, desc string, definition proto.ProtocolDefiniti
 	}
 
 	return proposal
-}
-
-func (apu AppUpgradeProposal) GetProtocolDefinition() proto.ProtocolDefinition {
-	return apu.ProtocolDefinition
-}
-
-func (apu *AppUpgradeProposal) SetProtocolDefinition(protocolDefinition proto.ProtocolDefinition) {
-	apu.ProtocolDefinition = protocolDefinition
 }
 
 // GetTitle returns the title of a dex list proposal.
@@ -61,28 +55,29 @@ func (apu AppUpgradeProposal) ProposalType() string { return ProposalAppUpgrade 
 
 // ValidateBasic validates the parameter change proposal
 func (apu AppUpgradeProposal) ValidateBasic() sdk.Error {
-	err := govTypes.ValidateAbstract(DefaultCodespace, apu)
-	if err != nil {
+	if err := govTypes.ValidateAbstract(DefaultCodespace, apu); err != nil {
 		return err
 	}
 
 	if len(apu.ProtocolDefinition.Software) > 70 || len(apu.ProtocolDefinition.Software) == 0 {
-		return ErrInvalidLength(DefaultCodespace, "software description",
+		return errInvalidLength(DefaultCodespace, "software description",
 			len(apu.ProtocolDefinition.Software), 70)
 	}
 
 	if apu.ProtocolDefinition.Height == 0 {
-		return ErrZeroSwitchHeight(DefaultCodespace)
+		return errZeroSwitchHeight(DefaultCodespace)
 	}
 
 	// if threshold not in [0.75,1), then print error
-	if apu.ProtocolDefinition.Threshold.LT(sdk.NewDecWithPrec(75, 2)) || apu.ProtocolDefinition.Threshold.GTE(sdk.NewDec(1)) {
-		return ErrInvalidUpgradeThreshold(DefaultCodespace, apu.ProtocolDefinition.Threshold)
+	if apu.ProtocolDefinition.Threshold.LT(sdk.NewDecWithPrec(75, 2)) ||
+		apu.ProtocolDefinition.Threshold.GTE(sdk.NewDec(1)) {
+		return errInvalidUpgradeThreshold(DefaultCodespace, apu.ProtocolDefinition.Threshold)
 	}
 
 	return nil
 }
 
+// String returns a human readable string representation of AppUpgradeProposal
 func (apu AppUpgradeProposal) String() string {
 	return fmt.Sprintf(`Proposal:
   Title:              %s

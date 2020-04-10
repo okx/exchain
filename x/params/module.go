@@ -87,11 +87,6 @@ func NewAppModule(keeper Keeper) AppModule {
 	}
 }
 
-// Name returns the module name
-func (AppModule) Name() string {
-	return ModuleName
-}
-
 // Route returns the module route name
 func (AppModule) Route() string {
 	return RouterKey

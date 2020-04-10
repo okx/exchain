@@ -7,8 +7,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// DefaultTokenPairDeposit defines default deposit of token pair
 var DefaultTokenPairDeposit = sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(0))
 
+// TokenPair represents token pair object
 type TokenPair struct {
 	BaseAssetSymbol  string         `json:"base_asset_symbol"`
 	QuoteAssetSymbol string         `json:"quote_asset_symbol"`
@@ -23,10 +25,12 @@ type TokenPair struct {
 	BlockHeight      int64          `json:"block_height"`
 }
 
+// Name returns name of token pair
 func (tp *TokenPair) Name() string {
 	return fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol)
 }
 
+// IsGT returns true if the token pair is greater than the other one
 // 1. compare deposits
 // 2. compare block height
 // 3. compare name
@@ -50,10 +54,14 @@ func (tp *TokenPair) IsGT(other *TokenPair) bool {
 	return strings.Compare(tp.BaseAssetSymbol, other.BaseAssetSymbol) < 0 || strings.Compare(tp.QuoteAssetSymbol, other.QuoteAssetSymbol) < 0
 }
 
+// TokenPairs represents token pair slice, support sorting
 type TokenPairs []*TokenPair
 
+// Len Implements Sort
 func (tp TokenPairs) Len() int { return len(tp) }
 
+// Less Implements Sort
 func (tp TokenPairs) Less(i, j int) bool { return tp[i].IsGT(tp[j]) }
 
+// Swap Implements Sort
 func (tp TokenPairs) Swap(i, j int) { tp[i], tp[j] = tp[j], tp[i] }

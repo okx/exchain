@@ -11,7 +11,7 @@ import (
 // BeginBlocker set the proposer for determining distribution during endblock
 // and distribute rewards for the previous block
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
-	logger := ctx.Logger().With("module", "distr")
+	logger := k.Logger(ctx)
 	// determine the total power signing the block
 	var previousTotalPower int64
 	for _, voteInfo := range req.LastCommitInfo.GetVotes() {

@@ -27,7 +27,7 @@ import (
 	"github.com/okex/okchain/x/token"
 )
 
-type TestInput struct {
+type testInput struct {
 	Ctx       sdk.Context
 	Cdc       *codec.Codec
 	TestAddrs []sdk.AccAddress
@@ -36,7 +36,7 @@ type TestInput struct {
 }
 
 // create a codec used only for testing
-func MakeTestCodec() *codec.Codec {
+func makeTestCodec() *codec.Codec {
 	var cdc = codec.New()
 	bank.RegisterCodec(cdc)
 	auth.RegisterCodec(cdc)
@@ -48,7 +48,7 @@ func MakeTestCodec() *codec.Codec {
 	return cdc
 }
 
-func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) TestInput {
+func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) testInput {
 	db := dbm.NewMemDB()
 
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
@@ -84,7 +84,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	require.Nil(t, err)
 
 	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, false, log.NewTMLogger(os.Stdout))
-	cdc := MakeTestCodec()
+	cdc := makeTestCodec()
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 
@@ -109,61 +109,69 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	supplyKeeper.SetModuleAccount(ctx, feeCollectorAcc)
 
 	// token keeper
-	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper,
+	tokenKeepr := token.NewKeeper(bankKeeper,
 		paramsKeeper.Subspace(token.DefaultParamspace), auth.FeeCollectorName, supplyKeeper,
 		keyToken, keyLock, cdc, true)
 
 	paramsSubspace := paramsKeeper.Subspace(types.DefaultParamspace)
 
-	mockStakingKeeper := &MockStakingKeeper{true}
-	mockBankKeeper := MockBankKeeper{}
+	mockStakingKeeper := &mockStakingKeeper{true}
+	mockBankKeeper := mockBankKeeper{}
 
 	// dex keeper
 	dexKeeper := NewKeeper(auth.FeeCollectorName, supplyKeeper, paramsSubspace, tokenKeepr, mockStakingKeeper, mockBankKeeper, storeKey, keyTokenPair, cdc)
 
 	// init account tokens
-	decCoins, _ := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
+	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
 		initQuantity, common.NativeToken, initQuantity, common.TestToken))
-	initCoins := decCoins
+	if err != nil {
+		panic(err)
+	}
 
 	var testAddrs []sdk.AccAddress
 	for i := int64(0); i < numAddrs; i++ {
 		pk := ed25519.GenPrivKey().PubKey()
 		addr := sdk.AccAddress(pk.Address())
 		testAddrs = append(testAddrs, addr)
-		err := dexKeeper.supplyKeeper.MintCoins(ctx, token.ModuleName, initCoins)
+		err := dexKeeper.supplyKeeper.MintCoins(ctx, token.ModuleName, decCoins)
 		require.Nil(t, err)
-		err = dexKeeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, token.ModuleName, addr, initCoins)
+		err = dexKeeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, token.ModuleName, addr, decCoins)
 		require.Nil(t, err)
 	}
 
-	return TestInput{ctx, cdc, testAddrs, dexKeeper}
+	return testInput{ctx, cdc, testAddrs, dexKeeper}
 }
 
-func CreateTestInput(t *testing.T) TestInput {
-	return CreateTestInputWithBalance(t, 2, 100)
+// nolint
+func createTestInput(t *testing.T) testInput {
+	return createTestInputWithBalance(t, 2, 100)
 }
 
-type MockStakingKeeper struct {
+type mockStakingKeeper struct {
 	getFakeValidator bool
 }
 
-func (m *MockStakingKeeper) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
+func (m *mockStakingKeeper) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
 	return m.getFakeValidator
 }
 
-func (m *MockStakingKeeper) SetFakeValidator(fakeValidator bool) {
+func (m *mockStakingKeeper) SetFakeValidator(fakeValidator bool) {
 	m.getFakeValidator = fakeValidator
 }
 
-type MockBankKeeper struct{}
+type mockBankKeeper struct{}
 
-func (keeper MockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
+// GetCoins returns coins for test
+func (keeper mockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
 	return sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDec(2500))
 }
 
+// GetBuiltInTokenPair returns built in token pair for test
 func GetBuiltInTokenPair() *types.TokenPair {
-	addr, _ := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
+	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
+	if err != nil {
+		panic(err)
+	}
 	return &types.TokenPair{
 		BaseAssetSymbol:  common.TestToken,
 		QuoteAssetSymbol: sdk.DefaultBondDenom,

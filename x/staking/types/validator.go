@@ -387,28 +387,34 @@ func (v Validator) TokensFromSharesTruncated(shares sdk.Dec) sdk.Dec {
 }
 
 // TokensFromSharesRoundUp returns the token worth of provided shares, rounded up
+// No usage found in All Places
 func (v Validator) TokensFromSharesRoundUp(shares sdk.Dec) sdk.Dec {
-	return (shares.MulInt(v.Tokens)).QuoRoundUp(v.DelegatorShares)
+	return sdk.ZeroDec()
+	//return (shares.MulInt(v.Tokens)).QuoRoundUp(v.DelegatorShares)
 }
 
 // SharesFromTokens returns the shares of a delegation given a bond amount
 // It returns an error if the validator has no tokens
+// No usage found in All Places
 func (v Validator) SharesFromTokens(amt sdk.Int) (sdk.Dec, sdk.Error) {
-	if v.Tokens.IsZero() {
-		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
-	}
-
-	return v.GetDelegatorShares().MulInt(amt).QuoInt(v.GetTokens()), nil
+	return sdk.ZeroDec(), nil
+	//if v.Tokens.IsZero() {
+	//	return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
+	//}
+	//
+	//return v.GetDelegatorShares().MulInt(amt).QuoInt(v.GetTokens()), nil
 }
 
 // SharesFromTokensTruncated returns the truncated shares of a delegation given a bond amount
 // It returns an error if the validator has no tokens
+// No usage found in All Places
 func (v Validator) SharesFromTokensTruncated(amt sdk.Int) (sdk.Dec, sdk.Error) {
-	if v.Tokens.IsZero() {
-		return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
-	}
-
-	return v.GetDelegatorShares().MulInt(amt).QuoTruncate(v.GetTokens().ToDec()), nil
+	return sdk.ZeroDec(), nil
+	//if v.Tokens.IsZero() {
+	//	return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
+	//}
+	//
+	//return v.GetDelegatorShares().MulInt(amt).QuoTruncate(v.GetTokens().ToDec()), nil
 }
 
 // BondedTokens gets the bonded tokens which the validator holds

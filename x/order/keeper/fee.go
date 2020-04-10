@@ -10,19 +10,21 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
-const MinFee = "0.00000001"
+const minFee = "0.00000001"
 
+// GetFeeKeeper is an interface for calculating handling fees
 type GetFeeKeeper interface {
 	GetLastPrice(ctx sdk.Context, product string) sdk.Dec
 }
 
-// Currently, placing order does not need any fee, so we only support charging okb if necessary
+// GetOrderNewFee is used to calculate the handling fee that needs to be locked when placing an order
 func GetOrderNewFee(order *types.Order) sdk.DecCoins {
 	orderExpireBlocks := sdk.NewDec(order.OrderExpireBlocks)
 	amount := order.FeePerBlock.Amount.Mul(orderExpireBlocks)
 	return sdk.DecCoins{sdk.NewDecCoinFromDec(order.FeePerBlock.Denom, amount)}
 }
 
+// GetOrderCostFee is used to calculate the handling fee when quiting an order
 func GetOrderCostFee(order *types.Order, ctx sdk.Context) sdk.DecCoins {
 	currentHeight := ctx.BlockHeight()
 	orderHeight := types.GetBlockHeightFromOrderID(order.OrderID)
@@ -39,10 +41,12 @@ func GetOrderCostFee(order *types.Order, ctx sdk.Context) sdk.DecCoins {
 
 }
 
+// GetZeroFee returns zeroFee
 func GetZeroFee() sdk.DecCoins {
 	return sdk.DecCoins{sdk.ZeroFee()}
 }
 
+// GetDealFee is used to calculate the handling fee when matching an order
 func GetDealFee(order *types.Order, fillAmt sdk.Dec, ctx sdk.Context, keeper GetFeeKeeper,
 	feeParams *types.Params) sdk.DecCoins {
 	symbols := strings.Split(order.Product, "_")
@@ -57,5 +61,5 @@ func GetDealFee(order *types.Order, fillAmt sdk.Dec, ctx sdk.Context, keeper Get
 	if feeAmt.IsPositive() {
 		return sdk.DecCoins{sdk.NewDecCoinFromDec(symbol, feeAmt)}
 	}
-	return sdk.DecCoins{sdk.NewDecCoinFromDec(symbol, sdk.MustNewDecFromStr(MinFee))}
+	return sdk.DecCoins{sdk.NewDecCoinFromDec(symbol, sdk.MustNewDecFromStr(minFee))}
 }

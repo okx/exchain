@@ -2,16 +2,22 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/common"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
+const (
+	defaultLimit = "100"
+)
+
+// RegisterRoutesV2 - Central function to define routes for interface version 2
 func RegisterRoutesV2(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 
@@ -59,9 +65,8 @@ func txListHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)
 			return
 		}
-		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -110,7 +115,7 @@ func dealsHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -159,7 +164,7 @@ func feesHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -205,7 +210,7 @@ func matchHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -234,7 +239,7 @@ func candleHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		strSize := r.URL.Query().Get("size")
 
 		if len(strSize) == 0 {
-			strSize = "100"
+			strSize = defaultLimit
 		}
 
 		if len(strGranularity) == 0 {
@@ -326,7 +331,7 @@ func orderOpenListHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -372,7 +377,7 @@ func orderClosedListHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		// default limit 100
 		if limit == "" {
-			limit = "100"
+			limit = defaultLimit
 		}
 		limitInt, err := strconv.Atoi(limit)
 		if err != nil {
@@ -405,16 +410,16 @@ func orderClosedListHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 func orderHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		orderId := vars["order_id"]
+		orderID := vars["order_id"]
 
 		// validate request
-		if orderId == "" {
+		if orderID == "" {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorMissingRequiredParam)
 			return
 		}
 
 		params := types.QueryOrderParamsV2{
-			OrderId: orderId,
+			OrderID: orderID,
 		}
 
 		req := cliCtx.Codec.MustMarshalJSON(params)

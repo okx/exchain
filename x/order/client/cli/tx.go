@@ -23,14 +23,14 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	}
 
 	txCmd.AddCommand(client.PostCommands(
-		GetCmdNewOrder(cdc),
-		GetCmdCancelOrder(cdc),
+		getCmdNewOrder(cdc),
+		getCmdCancelOrder(cdc),
 	)...)
 
 	return txCmd
 }
 
-func GetCmdNewOrder(cdc *codec.Codec) *cobra.Command {
+func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
 	// new order flags
 	var product string
 	var side string
@@ -110,7 +110,7 @@ func handleNewOrder(cdc *codec.Codec, product string, side string, price string,
 	return err
 }
 
-func GetCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
+func getCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "cancel [order-id]",
 		Short: "cancel order",

@@ -1,3 +1,4 @@
+// nolint
 package backend
 
 import (
@@ -14,8 +15,6 @@ const (
 	QuerierRoute = types.QuerierRoute
 	// RouterKey is the msg router key for the backend module
 	RouterKey = types.RouterKey
-
-	EngineTypeMysql = orm.EngineTypeMysql
 )
 
 type (

@@ -6,11 +6,12 @@ import (
 	ordertypes "github.com/okex/okchain/x/order/types"
 )
 
+// IsTokenPairLocked return true if token pair locked
 func (k Keeper) IsTokenPairLocked(product string) bool {
-	return k.GetProductLock(product) != nil
+	return k.getProductLock(product) != nil
 }
 
-func (k Keeper) GetProductLock(product string) *ordertypes.ProductLock {
+func (k Keeper) getProductLock(product string) *ordertypes.ProductLock {
 	l, ok := k.cache.lockMap.Data[product]
 	if ok {
 		return l
@@ -18,18 +19,21 @@ func (k Keeper) GetProductLock(product string) *ordertypes.ProductLock {
 	return nil
 }
 
+// LockTokenPair locks token pair
 func (k Keeper) LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockProductKey(product), k.cdc.MustMarshalBinaryLengthPrefixed(*lock))
 	k.cache.lockMap.Data[product] = lock
 }
 
+// UnlockTokenPair unlocks token pair
 func (k Keeper) UnlockTokenPair(ctx sdk.Context, product string) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetLockProductKey(product))
 	delete(k.cache.lockMap.Data, product)
 }
 
+// LoadProductLocks loads product locked
 func (k Keeper) LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairLockKeyPrefix)
@@ -47,6 +51,7 @@ func (k Keeper) LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap {
 	return lockMap
 }
 
+// GetLockedProductsCopy returns deep copy of product locked
 func (k Keeper) GetLockedProductsCopy() *ordertypes.ProductLockMap {
 	source := k.cache.lockMap
 	copy := ordertypes.NewProductLockMap()
@@ -58,6 +63,7 @@ func (k Keeper) GetLockedProductsCopy() *ordertypes.ProductLockMap {
 	return copy
 }
 
+// IsAnyProductLocked checks if any product is locked
 func (k Keeper) IsAnyProductLocked() bool {
 	return len(k.cache.lockMap.Data) > 0
 }

@@ -6,17 +6,16 @@ import (
 
 	"github.com/okex/okchain/x/common"
 
-	"github.com/tendermint/go-amino"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/dex/types"
 	"github.com/stretchr/testify/require"
+	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func TestQuerier_ProductsAndDepositsAndMatchOrder(t *testing.T) {
 
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
 	require.Nil(t, err)
@@ -93,7 +92,7 @@ func TestQuerier_ProductsAndDepositsAndMatchOrder(t *testing.T) {
 
 func TestQuerier_QueryParams(t *testing.T) {
 
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	testInput.DexKeeper.SetParams(ctx, types.Params{DelistMaxDepositPeriod: time.Second * 123})
@@ -107,7 +106,7 @@ func TestQuerier_QueryParams(t *testing.T) {
 
 func TestQuerier_QueryProductsDelisting(t *testing.T) {
 
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	querier := NewQuerier(testInput.DexKeeper)
@@ -122,4 +121,65 @@ func TestQuerier_QueryProductsDelisting(t *testing.T) {
 	require.True(t, len(res) > 0)
 	require.Nil(t, err)
 
+}
+
+func TestQueryParam(t *testing.T) {
+	// NewQueryDexInfoParams
+	tests := []struct {
+		name    string
+		owner   string
+		page    int
+		perPage int
+		result  bool
+	}{
+		{"new-no-owner", "", 1, 50, true},
+		{"new-with-owner", types.TestTokenPairOwner, 1, 50, true},
+		{"new-wrong-address", "wrong-address", 1, 50, false},
+		{"new-wrong-page", "", -100, 50, false},
+		{"new-wrong-per-page", "", 1, -50, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			params, err := types.NewQueryDexInfoParams(tt.owner, tt.page, tt.perPage)
+			if tt.result {
+				require.Nil(t, err, "test: %v", tt.name)
+				require.NotNil(t, params)
+			} else {
+				require.Error(t, err, "test: %v", tt.name)
+				require.NotNil(t, params)
+			}
+		})
+	}
+
+	// SetPageAndPerPage
+
+	var params types.QueryDexInfoParams
+
+	testSets := []struct {
+		name    string
+		owner   string
+		page    string
+		perPage string
+		result  bool
+	}{
+		{"set-no-owner", "", "1", "50", true},
+		{"set-with-owner", types.TestTokenPairOwner, "1", "50", true},
+		{"set-wrong-address", "wrong-address", "1", "50", false},
+		{"set-wrong-page", "", "-100", "50", false},
+		{"set-page-string", "", "no-number", "50", false},
+		{"set-wrong-per-page", "", "1", "-50", false},
+		{"set-per-page-string", "", "1", "no-number", false},
+	}
+	for _, tt := range testSets {
+		t.Run(tt.name, func(t *testing.T) {
+			err := params.SetPageAndPerPage(tt.owner, tt.page, tt.perPage)
+			if tt.result {
+				require.Nil(t, err, "test: %v", tt.name)
+				require.NotNil(t, params)
+			} else {
+				require.Error(t, err, "test: %v", tt.name)
+				require.NotNil(t, params)
+			}
+		})
+	}
 }

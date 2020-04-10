@@ -30,6 +30,7 @@ import (
 
 var mockOrder = types.MockOrder
 
+// TestInput stores some variables for testing
 type TestInput struct {
 	Ctx       sdk.Context
 	Cdc       *codec.Codec
@@ -42,7 +43,7 @@ type TestInput struct {
 	DexKeeper     dex.Keeper
 }
 
-// create a codec used only for testing
+// MakeTestCodec creates a codec used only for testing
 func MakeTestCodec() *codec.Codec {
 	var cdc = codec.New()
 	bank.RegisterCodec(cdc)
@@ -57,6 +58,7 @@ func MakeTestCodec() *codec.Codec {
 	return cdc
 }
 
+// CreateTestInputWithBalance creates TestInput with the number of account and the quantity
 func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) TestInput {
 
 	db := dbm.NewMemDB()
@@ -118,16 +120,15 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	supplyKeeper.SetModuleAccount(ctx, feeCollectorAcc)
 
 	// token keeper
-	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper,
-		paramsKeeper.Subspace(token.DefaultParamspace), auth.FeeCollectorName, supplyKeeper,
-		keyToken, keyLock, cdc, true)
+	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper.Subspace(token.DefaultParamspace),
+		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, true)
 
 	// dex keeper
 	paramsSubspace := paramsKeeper.Subspace(dex.DefaultParamspace)
 	dexKeeper := dex.NewKeeper(auth.FeeCollectorName, supplyKeeper, paramsSubspace, tokenKeepr, nil, bankKeeper, storeKey, keyTokenPair, cdc)
 
 	// order keeper
-	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, paramsKeeper, dexKeeper,
+	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, dexKeeper,
 		paramsKeeper.Subspace(types.DefaultParamspace), auth.FeeCollectorName, keyOrder,
 		cdc, true, monitor.NopOrderMetrics())
 
@@ -156,6 +157,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	return TestInput{ctx, cdc, testAddrs, orderKeeper, tokenKeepr, accountKeeper, supplyKeeper, dexKeeper}
 }
 
+// CreateTestInput creates TestInput with default params
 func CreateTestInput(t *testing.T) TestInput {
 	return CreateTestInputWithBalance(t, 2, 100)
 }

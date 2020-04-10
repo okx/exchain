@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okchain/x/order"
 	orderKeeper "github.com/okex/okchain/x/order/keeper"
-	orderTypes "github.com/okex/okchain/x/order/types"
 	tokenKeeper "github.com/okex/okchain/x/token"
 	token "github.com/okex/okchain/x/token/types"
 	"github.com/stretchr/testify/require"
@@ -80,7 +79,8 @@ func TestGenerateTx(t *testing.T) {
 		Side:    SellOrder,
 	}
 	keeper.SetOrder(ctx, or.OrderID, or)
-	or.SetExtraInfoWithKeyValue(orderTypes.OrderExtraInfoKeyCancelFee, "1"+common.NativeToken)
+	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
+	or.RecordOrderCancelFee(fee)
 	GenerateTx(&tx, "", ctx, keeper, nil, time.Now().Unix())
 }
 

@@ -1,9 +1,10 @@
 package common
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestEnableSampleSystestAll(t *testing.T) {
@@ -18,6 +19,7 @@ func TestEnableSampleSystestAll(t *testing.T) {
 func TestEnableSampleSystestSingle(t *testing.T) {
 
 	e := os.Setenv("SYS_TEST_ALL", "0")
+	require.Nil(t, e)
 	e = os.Setenv("SAMPLE_SYS_TEST", "1")
 	require.Nil(t, e)
 

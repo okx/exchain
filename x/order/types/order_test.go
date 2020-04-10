@@ -36,7 +36,7 @@ func TestNewOrder(t *testing.T) {
 
 func TestOrderUpdateExtraInfo(t *testing.T) {
 	order := MockOrder("", "", SellOrder, "0.1", "10.0")
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, "0.002"+common.NativeToken)
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, "0.002"+common.NativeToken)
 	expectExtra := `{"cancelFee":"0.002okt"}`
 	require.EqualValues(t, expectExtra, order.ExtraInfo)
 	require.EqualValues(t, "0.002"+common.NativeToken, order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
@@ -57,7 +57,7 @@ func TestOrderUpdateExtraInfo(t *testing.T) {
 	order.RecordOrderCancelFee(fee)
 	require.EqualValues(t, fee.String(), order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
 	// Record expire fee
-	order.RecordOrderExpireFee(fee)
+	order.recordOrderExpireFee(fee)
 	require.EqualValues(t, fee.String(), order.GetExtraInfoWithKey(OrderExtraInfoKeyExpireFee))
 }
 

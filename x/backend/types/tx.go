@@ -8,6 +8,7 @@ import (
 	tokenTypes "github.com/okex/okchain/x/token/types"
 )
 
+// GenerateTx return transaction, called at DeliverTx
 func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, tokenKeeper TokenKeeper,
 	timestamp int64) []*Transaction {
 	txs := make([]*Transaction, 0, 2)

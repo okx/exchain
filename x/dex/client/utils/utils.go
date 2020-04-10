@@ -18,6 +18,7 @@ type DelistProposalJSON struct {
 	Deposit     sdk.DecCoins   `json:"deposit" yaml:"deposit"`
 }
 
+// ParseDelistProposalJSON parse json from proposal file to DelistProposalJSON struct
 func ParseDelistProposalJSON(cdc *codec.Codec, proposalFilePath string) (proposal DelistProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {

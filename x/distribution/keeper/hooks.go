@@ -48,7 +48,7 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 	}
 
 	// remove commission record
-	h.k.DeleteValidatorAccumulatedCommission(ctx, valAddr)
+	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
 }
 
 // AfterValidatorDestroyed nothing to do

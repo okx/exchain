@@ -17,10 +17,10 @@ func TestCache(t *testing.T) {
 	require.Equal(t, 200, cap(cache.ProductsBuf))
 
 	txs := []*types.Transaction{
-		{"hash1", types.TxTypeTransfer, "addr1", common.TestToken, types.TxSideFrom, "10.0", "0.1" + common.NativeToken, 100},
-		{"hash2", types.TxTypeOrderNew, "addr1", types.TestTokenPair, types.TxSideBuy, "10.0", "0.1" + common.NativeToken, 300},
-		{"hash3", types.TxTypeOrderCancel, "addr1", types.TestTokenPair, types.TxSideSell, "10.0", "0.1" + common.NativeToken, 200},
-		{"hash4", types.TxTypeTransfer, "addr2", common.TestToken, types.TxSideTo, "10.0", "0.1" + common.NativeToken, 100},
+		{TxHash: "hash1", Type: types.TxTypeTransfer, Address: "addr1", Symbol: common.TestToken, Side: types.TxSideFrom, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
+		{TxHash: "hash2", Type: types.TxTypeOrderNew, Address: "addr1", Symbol: types.TestTokenPair, Side: types.TxSideBuy, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 300},
+		{TxHash: "hash3", Type: types.TxTypeOrderCancel, Address: "addr1", Symbol: types.TestTokenPair, Side: types.TxSideSell, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 200},
+		{TxHash: "hash4", Type: types.TxTypeTransfer, Address: "addr2", Symbol: common.TestToken, Side: types.TxSideTo, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
 	}
 
 	for _, tx := range txs {

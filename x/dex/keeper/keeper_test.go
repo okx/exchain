@@ -15,7 +15,10 @@ import (
 const TestProductNotExist = "product-not-exist"
 
 func getTestTokenPair() *types.TokenPair {
-	addr, _ := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
+	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
+	if err != nil {
+		panic(err)
+	}
 	return &types.TokenPair{
 		BaseAssetSymbol:  "testToken",
 		QuoteAssetSymbol: common.NativeToken,
@@ -29,7 +32,7 @@ func getTestTokenPair() *types.TokenPair {
 }
 
 func TestGetTokenPair(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -68,7 +71,7 @@ func TestGetTokenPair(t *testing.T) {
 }
 
 func TestDeleteTokenPairByName(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -91,7 +94,7 @@ func TestDeleteTokenPairByName(t *testing.T) {
 }
 
 func TestUpdateTokenPair(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -111,7 +114,7 @@ func TestUpdateTokenPair(t *testing.T) {
 }
 
 func TestDeposit(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 10000)
+	testInput := createTestInputWithBalance(t, 2, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -149,7 +152,7 @@ func TestDeposit(t *testing.T) {
 }
 
 func TestWithdraw(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 10000)
+	testInput := createTestInputWithBalance(t, 2, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -200,7 +203,7 @@ func TestWithdraw(t *testing.T) {
 }
 
 func TestGetTokenPairsOrdered(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 
@@ -256,7 +259,7 @@ func TestGetTokenPairsOrdered(t *testing.T) {
 }
 
 func TestSortProducts(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 
@@ -313,7 +316,7 @@ func TestSortProducts(t *testing.T) {
 }
 
 func TestTransferOwnership(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 30)
+	testInput := createTestInputWithBalance(t, 2, 30)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	tokenPair := getTestTokenPair()
@@ -349,7 +352,7 @@ func TestTransferOwnership(t *testing.T) {
 	require.NotNil(t, err)
 
 	// TransferOwnership successful
-	withdrawAmount, err := sdk.ParseDecCoin(types.DefaultFeeTransferOwnership + sdk.DefaultBondDenom)
+	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom)
 	require.Nil(t, err)
 	withdrawInfo := types.WithdrawInfo{
 		Owner:    owner,
@@ -372,13 +375,13 @@ func TestTransferOwnership(t *testing.T) {
 }
 
 func Test_IterateWithdrawInfo(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 30)
+	testInput := createTestInputWithBalance(t, 2, 30)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
 	owner := testInput.TestAddrs[0]
 	keeper.SetParams(ctx, *types.DefaultParams())
 
-	withdrawAmount, err := sdk.ParseDecCoin(types.DefaultFeeTransferOwnership + sdk.DefaultBondDenom)
+	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom)
 	require.Nil(t, err)
 	withdrawInfo := types.WithdrawInfo{
 		Owner:        owner,
@@ -406,7 +409,7 @@ func Test_IterateWithdrawInfo(t *testing.T) {
 }
 
 func TestKeeper_GetNewTokenPair(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 30)
+	testInput := createTestInputWithBalance(t, 2, 30)
 
 	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
 	require.Nil(t, err)
@@ -414,7 +417,7 @@ func TestKeeper_GetNewTokenPair(t *testing.T) {
 }
 
 func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 30)
+	testInput := createTestInputWithBalance(t, 2, 30)
 
 	// fail case : the product is not exist
 	isDelisting, err := testInput.DexKeeper.CheckTokenPairUnderDexDelist(testInput.Ctx, "no-product")
@@ -434,7 +437,7 @@ func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
 }
 
 func TestKeeper_IsTokenPairChanged(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 2, 30)
+	testInput := createTestInputWithBalance(t, 2, 30)
 
 	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
 	require.Nil(t, err)

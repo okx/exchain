@@ -2,13 +2,16 @@ package backend
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/okex/okchain/x/backend/cache"
 	"github.com/okex/okchain/x/backend/orm"
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func prepareKlineMx(product string, refreshInterval int, open, close, low, high float64, volumes []float64, startTS, endTS int64) []interface{} {
@@ -104,9 +107,10 @@ func baseCaseRunner(t *testing.T, product string, productBuffer []string, startT
 
 	if doCreate {
 		if len(matches) > 0 {
-			orm.AddMatchResults(matches)
+			_, err := orm.AddMatchResults(matches)
+			require.Nil(t, err)
 		}
-		orm.MockCommitKlines(kline15s, kline1s)
+		orm.CommitKlines(kline15s, kline1s)
 	}
 
 	// 2. UpdateTickerBuffer
@@ -149,7 +153,7 @@ func simpleCaseRunner(t *testing.T, product string, productBuffer []string, star
 
 func TestTicker_S1(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := []interface{}{}
 	kline1s := []interface{}{}
@@ -163,7 +167,7 @@ func TestTicker_S1(t *testing.T) {
 
 func TestTicker_S2(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := []interface{}{}
 	kline1s := []interface{}{}
@@ -181,7 +185,7 @@ func TestTicker_S2(t *testing.T) {
 
 func TestTicker_S3(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := []interface{}{}
 	kline1s := []interface{}{}
@@ -195,7 +199,7 @@ func TestTicker_S3(t *testing.T) {
 
 func TestTicker_S4(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := []interface{}{}
 	kline1s := []interface{}{}
@@ -211,7 +215,7 @@ func TestTicker_S4(t *testing.T) {
 
 func TestTicker_S5(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-30m"])
 	kline1s := []interface{}{}
@@ -230,7 +234,7 @@ func TestTicker_S5(t *testing.T) {
 
 func TestTicker_S6(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := []interface{}{}
 	kline1s := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-15m"], timeMap["-2m"])
@@ -249,7 +253,7 @@ func TestTicker_S6(t *testing.T) {
 
 func TestTicker_S7(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-30m"])
 	kline1s := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-30m"], timeMap["-2m"])
@@ -268,7 +272,7 @@ func TestTicker_S7(t *testing.T) {
 
 func TestTicker_S8(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-30m"])
 	kline1s := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-30m"], timeMap["-2m"])
@@ -287,7 +291,7 @@ func TestTicker_S8(t *testing.T) {
 
 func TestTicker_S9(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-15m"])
 
@@ -310,7 +314,7 @@ func TestTicker_S9(t *testing.T) {
 
 func TestTicker_S10(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-15m"])
 
@@ -335,7 +339,7 @@ func TestTicker_S10(t *testing.T) {
 
 func TestTicker_S11(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15sA := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-48h"], timeMap["-24m"])
 	kline15sB := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-24h"], timeMap["-15m"])
@@ -362,7 +366,7 @@ func TestTicker_S11(t *testing.T) {
 
 func TestTicker_S12(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15sA := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-48h"], timeMap["-24h"])
 	kline15sB := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100, 200}, timeMap["-24h"], timeMap["-15m"])
@@ -397,7 +401,7 @@ func TestTicker_S12(t *testing.T) {
 
 func TestTicker_S13(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 220.0, 99.0, 220.0, []float64{100}, timeMap["-48h"], timeMap["-24h"])
 	kline1s := []interface{}{}
@@ -418,26 +422,26 @@ func TestTicker_S13(t *testing.T) {
 
 func TestTicker_S14(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	// open
-	kline15s_1 := prepareKlineMx(product, 15*60, 100.0, 100.0, 100.0, 100.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*5)
-	kline15s_2 := prepareKlineMx(product, 15*60, 99.0, 99.0, 99.0, 99.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*4)
-	kline15s_3 := prepareKlineMx(product, 15*60, 220.0, 220.0, 220.0, 220.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*3)
-	kline15s_4 := prepareKlineMx(product, 15*60, 99.0, 99.0, 99.0, 99.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*2)
+	kline15s1 := prepareKlineMx(product, 15*60, 100.0, 100.0, 100.0, 100.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*5)
+	kline15s2 := prepareKlineMx(product, 15*60, 99.0, 99.0, 99.0, 99.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*4)
+	kline15s3 := prepareKlineMx(product, 15*60, 220.0, 220.0, 220.0, 220.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*3)
+	kline15s4 := prepareKlineMx(product, 15*60, 99.0, 99.0, 99.0, 99.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*2)
 
 	// close
-	kline15s_5 := prepareKlineMx(product, 15*60, 98.0, 98.0, 98.0, 98.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*1)
+	kline15s5 := prepareKlineMx(product, 15*60, 98.0, 98.0, 98.0, 98.0, []float64{100}, timeMap["-24h"], timeMap["-30m"]-60*15*1)
 	kline1s := []interface{}{}
 	matches := []*types.MatchResult{}
 	fakeLatestTickers := &map[string]*types.Ticker{}
 
 	klines15s := []interface{}{}
-	klines15s = append(klines15s, kline15s_1...)
-	klines15s = append(klines15s, kline15s_2...)
-	klines15s = append(klines15s, kline15s_3...)
-	klines15s = append(klines15s, kline15s_4...)
-	klines15s = append(klines15s, kline15s_5...)
+	klines15s = append(klines15s, kline15s1...)
+	klines15s = append(klines15s, kline15s2...)
+	klines15s = append(klines15s, kline15s3...)
+	klines15s = append(klines15s, kline15s4...)
+	klines15s = append(klines15s, kline15s5...)
 
 	err := simpleCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+1, klines15s, kline1s, matches,
 		aTicker(product, 100.0, 98.0, 220.0, 98.0, 98.0, 500.0), fakeLatestTickers)
@@ -450,7 +454,7 @@ func TestTicker_C1(t *testing.T) {
 	latestTickers := map[string]*types.Ticker{}
 	latestTickers["not_exist"] = aTicker("not_exist", 100.0, 230.0, 220.0, 99.0, 230.0, 100.0)
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 220.0, 99.0, 220.0, []float64{100}, timeMap["-48h"], timeMap["-24h"])
 	kline1s := []interface{}{}
@@ -476,44 +480,9 @@ func TestTicker_C1(t *testing.T) {
 	assert.True(t, oldTicker.Volume == 0)
 }
 
-//func TestTicker_C2(t *testing.T) {
-//
-//	product := "flt_" + common.NativeToken
-//	timeMap := GetTimes()
-//	kline15sA := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-48h"], timeMap["-24h"])
-//	kline15sB := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100, 200}, timeMap["-24h"], timeMap["-30m"])
-//	kline15sA = append(kline15sA, kline15sB...)
-//
-//	kline1sB := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-30m"], timeMap["-15m"])
-//	kline1sA := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100, 200}, timeMap["-15m"], timeMap["-2m"])
-//	kline1sA = append(kline1sA, kline1sB...)
-//
-//	dealsA := prepareMatches(product, []float64{100.0, 99.0}, []float64{25, 25}, timeMap["now"])
-//	dealsB := prepareMatches(product, []float64{100.0}, []float64{25}, timeMap["-2m"])
-//	dealsA = append(dealsA, dealsB...)
-//	fakeLatestTickers := &map[string]*Ticker{}
-//
-//	orm, dbPath := MockORM()
-//	defer DeleteDB(dbPath)
-//
-//	err := baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+1, kline15sA, kline1sA, dealsA,
-//		aTicker(product, 100.0, 99.0, 210.0, 99.0, 99.0, 650.0), fakeLatestTickers, orm, true)
-//	k1BufSize1 := len(orm.klineM1sBuffer[product])
-//	k15BufSize1 := len(orm.klineM15sBuffer[product])
-//
-//	err = baseCaseRunner(t, product, nil, timeMap["-24h"]+60, timeMap["now"]+60, kline15sA, kline1sA, dealsA,
-//		aTicker(product, 100.0, 99.0, 210.0, 99.0, 99.0, 750.0), fakeLatestTickers, orm, false)
-//	k1BufSize2 := len(orm.klineM1sBuffer[product])
-//	k15BufSize2 := len(orm.klineM15sBuffer[product])
-//
-//	assert.True(t, err == nil)
-//	assert.True(t, k1BufSize1 == k1BufSize2 && k15BufSize1 == k15BufSize2 && k15BufSize1 > 0 && k1BufSize1 > 0)
-//
-//}
-
 func TestTicker_C3(t *testing.T) {
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-14d"]-types.SecondsInADay, timeMap["-14d"])
 	kline1s := prepareKlineMx(product, 60, 100.0, 200.0, 99.0, 210.0, []float64{100}, timeMap["-14d"]-types.SecondsInADay, timeMap["-14d"])
@@ -531,12 +500,12 @@ func TestTicker_C3(t *testing.T) {
 		aTicker(product, 100.0, 200.0, 210.0, 99.0, 200.0, 100.0), fakeLatestTickers, o, false)
 	assert.True(t, err == nil)
 
-	var SECOND_IN_A_MINUTE int64 = 60
-	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+SECOND_IN_A_MINUTE*2, timeMap["-14d"]+SECOND_IN_A_MINUTE*2+1, kline15s, kline1s, matches,
+	var SecondInAMinute int64 = 60
+	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+SecondInAMinute*2, timeMap["-14d"]+SecondInAMinute*2+1, kline15s, kline1s, matches,
 		aTicker(product, 100.0, 200.0, 210.0, 99.0, 200.0, 100.0), fakeLatestTickers, o, false)
 	assert.True(t, err == nil)
 
-	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+SECOND_IN_A_MINUTE*15, timeMap["-14d"]+SECOND_IN_A_MINUTE*15+1, kline15s, kline1s, matches,
+	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+SecondInAMinute*15, timeMap["-14d"]+SecondInAMinute*15+1, kline15s, kline1s, matches,
 		aTicker(product, 100.0, 200.0, 210.0, 99.0, 200.0, 100.0), fakeLatestTickers, o, false)
 	assert.True(t, err == nil)
 
@@ -544,8 +513,8 @@ func TestTicker_C3(t *testing.T) {
 		aTicker(product, 100.0, 200.0, 210.0, 99.0, 200.0, 100.0), fakeLatestTickers, o, false)
 	assert.True(t, err == nil)
 
-	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+types.SecondsInADay+15*SECOND_IN_A_MINUTE,
-		timeMap["-14d"]+types.SecondsInADay+15*SECOND_IN_A_MINUTE+1, kline15s, kline1s, matches,
+	err = baseCaseRunner(t, product, nil, timeMap["-14d"]+types.SecondsInADay+15*SecondInAMinute,
+		timeMap["-14d"]+types.SecondsInADay+15*SecondInAMinute+1, kline15s, kline1s, matches,
 		aTicker(product, 200.0, 200.0, 200.0, 200.0, 200.0, 0.0), fakeLatestTickers, o, false)
 	assert.True(t, err == nil)
 
@@ -558,15 +527,15 @@ func TestTicker_C3(t *testing.T) {
 func TestTicker_C4(t *testing.T) {
 	//return
 
-	product := "flt_" + common.NativeToken
+	product := "btc_" + common.NativeToken
 	timeMap := GetTimes()
 	kline15s := prepareKlineMx(product, 15*60, 100.0, 100.0, 100.0, 100.0, []float64{100}, timeMap["-24h"], timeMap["-60m"])
-	kline1s_1 := prepareKlineMx(product, 60, 40.0, 40.0, 40.0, 40.0, []float64{40, 60}, timeMap["-15m"], timeMap["-5m"])
-	kline1s_2 := prepareKlineMx(product, 60, 98.0, 99.0, 98.0, 99.0, []float64{100}, timeMap["-5m"], timeMap["now"])
+	kline1s1 := prepareKlineMx(product, 60, 40.0, 40.0, 40.0, 40.0, []float64{40, 60}, timeMap["-15m"], timeMap["-5m"])
+	kline1s2 := prepareKlineMx(product, 60, 98.0, 99.0, 98.0, 99.0, []float64{100}, timeMap["-5m"], timeMap["now"])
 	matches := prepareMatches(product, []float64{98.0, 99.0}, []float64{98, 2}, timeMap["now"])
-	kline1s := []interface{}{}
-	kline1s = append(kline1s, kline1s_1...)
-	kline1s = append(kline1s, kline1s_2...)
+	var kline1s []interface{}
+	kline1s = append(kline1s, kline1s1...)
+	kline1s = append(kline1s, kline1s2...)
 
 	fakeLatestTickers := &map[string]*types.Ticker{}
 
@@ -579,24 +548,29 @@ func TestTicker_C4(t *testing.T) {
 
 	tickerInNext1M := aTicker(product, 100.0, 99.0, 100.0, 40.0, 99.0, 300.0)
 	for i := 1; i <= 60; i++ {
-		baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext1M, fakeLatestTickers, orm, false)
+		err = baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext1M, fakeLatestTickers, orm, false)
+		require.Nil(t, err)
 	}
 
-	tickerInNext_1M_2M := tickerInNext1M
+	tickerInNext1M2M := tickerInNext1M
 	for i := 61; i <= 120; i++ {
-		baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext_1M_2M, fakeLatestTickers, orm, false)
+		err = baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext1M2M, fakeLatestTickers, orm, false)
+		require.Nil(t, err)
+
 	}
 
-	tickerInNext_2M_5M := tickerInNext1M
+	tickerInNext2M5M := tickerInNext1M
 	for i := 121; i <= 300; i++ {
-		baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext_2M_5M, fakeLatestTickers, orm, false)
+		err = baseCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+int64(i), kline15s, kline1s, matches, tickerInNext2M5M, fakeLatestTickers, orm, false)
+		require.Nil(t, err)
 	}
 
-	tickerInNext_5M_15M := tickerInNext1M
+	tickerInNext5M15M := tickerInNext1M
 	for i := 301; i <= 900; i++ {
 		expectTS := timeMap["now"] + int64(i)
-		tickerInNext_5M_15M.Timestamp = expectTS
-		baseCaseRunner(t, product, nil, timeMap["-24h"], expectTS, kline15s, kline1s, matches, tickerInNext_5M_15M, fakeLatestTickers, orm, false)
+		tickerInNext5M15M.Timestamp = expectTS
+		err = baseCaseRunner(t, product, nil, timeMap["-24h"], expectTS, kline15s, kline1s, matches, tickerInNext5M15M, fakeLatestTickers, orm, false)
+		require.Nil(t, err)
 	}
 
 	fmt.Println(dbPath)

@@ -2,9 +2,12 @@ package config
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConf(t *testing.T) {
@@ -14,27 +17,26 @@ func TestConf(t *testing.T) {
 
 	// 1. Dump & Get Non exists config file
 	m := DefaultConfig()
-	err := DumpMaintainConf(m, configDir, configFile)
+	err := dumpMaintainConf(m, configDir, configFile)
 	assert.True(t, err == nil)
 
-	maintainConf, err := LoadMaintainConf(configDir, configFile)
+	maintainConf, err := loadMaintainConf(configDir, configFile)
 	assert.True(t, maintainConf != nil && err == nil)
 
 	fmt.Printf("%+v \n", maintainConf)
 
 	// 2. Dump & Get already exists config file
-	err = DumpMaintainConf(m, configDir, configFile)
+	err = dumpMaintainConf(m, configDir, configFile)
 	assert.True(t, err == nil)
 
-	maintainConf, err = LoadMaintainConf(configDir, configFile)
+	maintainConf, err = loadMaintainConf(configDir, configFile)
 	assert.True(t, maintainConf != nil && err == nil)
 
 	fmt.Printf("%+v \n", maintainConf)
 
 	// 3. SafeLoadMaintainConfig
-	os.RemoveAll(DefaultTestConfig)
-	config := SafeLoadMaintainConfig(DefaultTestConfig)
-	assert.True(t, config != nil)
-	SafeLoadMaintainConfig(DefaultTestConfig)
-
+	err = os.RemoveAll(DefaultTestConfig)
+	require.Nil(t, err)
+	config, err := SafeLoadMaintainConfig(DefaultTestConfig)
+	assert.True(t, config != nil && err == nil)
 }

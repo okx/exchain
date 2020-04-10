@@ -7,11 +7,12 @@ import (
 )
 
 const (
-	TypeMsgDeposit           = "deposit"
-	TypeMsgWithdraw          = "withdraw"
-	TypeMsgTransferOwnership = "transferOwnership"
+	typeMsgDeposit           = "deposit"
+	typeMsgWithdraw          = "withdraw"
+	typeMsgTransferOwnership = "transferOwnership"
 )
 
+// MsgList - high level transaction of the dex module
 type MsgList struct {
 	Owner      sdk.AccAddress `json:"owner"`
 	ListAsset  string         `json:"list_asset"`  //  Symbol of asset listed on Dex.
@@ -19,6 +20,7 @@ type MsgList struct {
 	InitPrice  sdk.Dec        `json:"init_price"`
 }
 
+// NewMsgList creates a new MsgList
 func NewMsgList(owner sdk.AccAddress, listAsset, quoteAsset string, initPrice sdk.Dec) MsgList {
 	return MsgList{
 		Owner:      owner,
@@ -28,30 +30,35 @@ func NewMsgList(owner sdk.AccAddress, listAsset, quoteAsset string, initPrice sd
 	}
 }
 
+// Route Implements Msg
 func (msg MsgList) Route() string { return RouterKey }
 
+// Type Implements Msg
 func (msg MsgList) Type() string { return "list" }
 
+// ValidateBasic Implements Msg
 func (msg MsgList) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
+// GetSignBytes Implements Msg
 func (msg MsgList) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
+// GetSigners Implements Msg
 func (msg MsgList) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
+// MsgDelist - high level transaction of the dex module
 type MsgDelist struct {
 	Owner   sdk.AccAddress `json:"owner"`
 	Product string         `json:"product"`
 }
 
+// NewMsgDelist creates a new MsgDelist
 func NewMsgDelist(owner sdk.AccAddress, product string) MsgDelist {
 	return MsgDelist{
 		Owner:   owner,
@@ -59,10 +66,13 @@ func NewMsgDelist(owner sdk.AccAddress, product string) MsgDelist {
 	}
 }
 
+// Route Implements Msg
 func (msg MsgDelist) Route() string { return RouterKey }
 
+// Type Implements Msg
 func (msg MsgDelist) Type() string { return "delist" }
 
+// ValidateBasic Implements Msg
 func (msg MsgDelist) ValidateBasic() sdk.Error {
 	if msg.Product == "" || len(msg.Product) == 0 {
 		return ErrInvalidProduct(msg.Product)
@@ -70,7 +80,7 @@ func (msg MsgDelist) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
+// GetSignBytes Implements Msg
 func (msg MsgDelist) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -81,23 +91,25 @@ func (msg MsgDelist) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
-// MsgDeposit
+// MsgDeposit - high level transaction of the dex module
 type MsgDeposit struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
 	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
+// NewMsgDeposit creates a new MsgDeposit
 func NewMsgDeposit(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgDeposit {
 	return MsgDeposit{product, amount, depositor}
 }
 
-// Implements Msg.
-// nolint
+// Route Implements Msg
 func (msg MsgDeposit) Route() string { return RouterKey }
-func (msg MsgDeposit) Type() string  { return TypeMsgDeposit }
 
-// Implements Msg.
+// Type Implements Msg
+func (msg MsgDeposit) Type() string { return typeMsgDeposit }
+
+// ValidateBasic Implements Msg
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
@@ -109,34 +121,36 @@ func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// Implements Msg.
+// GetSignBytes Implements Msg
 func (msg MsgDeposit) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// Implements Msg.
+// GetSigners Implements Msg
 func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositor}
 }
 
-// MsgWithdraw
+// MsgWithdraw - high level transaction of the dex module
 type MsgWithdraw struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
 	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
+// NewMsgWithdraw creates a new MsgWithdraw
 func NewMsgWithdraw(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgWithdraw {
 	return MsgWithdraw{product, amount, depositor}
 }
 
-// Implements Msg.
-// nolint
+// Route Implements Msg
 func (msg MsgWithdraw) Route() string { return RouterKey }
-func (msg MsgWithdraw) Type() string  { return TypeMsgWithdraw }
 
-// Implements Msg.
+// Type Implements Msg
+func (msg MsgWithdraw) Type() string { return typeMsgWithdraw }
+
+// ValidateBasic Implements Msg
 func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
@@ -148,18 +162,18 @@ func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// Implements Msg.
+// GetSignBytes Implements Msg
 func (msg MsgWithdraw) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// Implements Msg.
+// GetSigners Implements Msg
 func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositor}
 }
 
-// MsgTransferOwnership - high level transaction of the coin module
+// MsgTransferOwnership - high level transaction of the dex module
 type MsgTransferOwnership struct {
 	FromAddress sdk.AccAddress    `json:"from_address"`
 	ToAddress   sdk.AccAddress    `json:"to_address"`
@@ -167,6 +181,7 @@ type MsgTransferOwnership struct {
 	ToSignature auth.StdSignature `json:"to_signature"`
 }
 
+// NewMsgTransferOwnership create a new MsgTransferOwnership
 func NewMsgTransferOwnership(from, to sdk.AccAddress, product string) MsgTransferOwnership {
 	return MsgTransferOwnership{
 		FromAddress: from,
@@ -176,13 +191,13 @@ func NewMsgTransferOwnership(from, to sdk.AccAddress, product string) MsgTransfe
 	}
 }
 
-// Route Implements Msg.
+// Route Implements Msg
 func (msg MsgTransferOwnership) Route() string { return RouterKey }
 
-// Type Implements Msg.
-func (msg MsgTransferOwnership) Type() string { return TypeMsgTransferOwnership }
+// Type Implements Msg
+func (msg MsgTransferOwnership) Type() string { return typeMsgTransferOwnership }
 
-// ValidateBasic Implements Msg.
+// ValidateBasic Implements Msg
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
 		return sdk.ErrInvalidAddress("missing sender address")
@@ -202,13 +217,13 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
+// GetSignBytes Implements Msg
 func (msg MsgTransferOwnership) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
+// GetSigners Implements Msg
 func (msg MsgTransferOwnership) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }

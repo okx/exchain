@@ -64,22 +64,22 @@ func NewQueryValidatorParams(validatorAddr sdk.ValAddress) QueryValidatorParams 
 	}
 }
 
-// QueryBondsParams defines the params for the following queries:
-// - 'custom/staking/delegation'
-// - 'custom/staking/unbondingDelegation'
-// - 'custom/staking/delegatorValidator'
-type QueryBondsParams struct {
-	DelegatorAddr sdk.AccAddress
-	ValidatorAddr sdk.ValAddress
-}
-
-// NewQueryBondsParams creates a new instance of QueryBondsParams
-func NewQueryBondsParams(delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress) QueryBondsParams {
-	return QueryBondsParams{
-		DelegatorAddr: delegatorAddr,
-		ValidatorAddr: validatorAddr,
-	}
-}
+//// QueryBondsParams defines the params for the following queries:
+//// - 'custom/staking/delegation'
+//// - 'custom/staking/unbondingDelegation'
+//// - 'custom/staking/delegatorValidator'
+//type QueryBondsParams struct {
+//	DelegatorAddr sdk.AccAddress
+//	ValidatorAddr sdk.ValAddress
+//}
+//
+//// NewQueryBondsParams creates a new instance of QueryBondsParams
+//func NewQueryBondsParams(delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress) QueryBondsParams {
+//	return QueryBondsParams{
+//		DelegatorAddr: delegatorAddr,
+//		ValidatorAddr: validatorAddr,
+//	}
+//}
 
 // QueryValidatorsParams defines the params for the following queries:
 // - 'custom/staking/validators'

@@ -10,8 +10,8 @@ type PrettyParams struct {
 	WithdrawAddrEnabled json.RawMessage `json:"withdraw_addr_enabled"`
 }
 
-// NewPrettyParams creates a new PrettyParams
-func NewPrettyParams(withdrawAddrEnabled json.RawMessage) PrettyParams {
+// newPrettyParams creates a new PrettyParams
+func newPrettyParams(withdrawAddrEnabled json.RawMessage) PrettyParams {
 	return PrettyParams{
 		WithdrawAddrEnabled: withdrawAddrEnabled,
 	}

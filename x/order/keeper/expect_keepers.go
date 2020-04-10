@@ -8,22 +8,19 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
-// expected token keeper
+// TokenKeeper : expected token keeper
 type TokenKeeper interface {
 	// Token balance
 	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins
-
 	LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error
 	UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error
-
 	BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins, inputCoins sdk.DecCoins) error
-
 	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error
-
 	// Fee detail
 	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string)
 }
 
+// SupplyKeeper : expected supply keeper
 type SupplyKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string,
 		amt sdk.Coins) sdk.Error
@@ -34,18 +31,16 @@ type SupplyKeeper interface {
 	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
 }
 
-// expected token keeper
+// DexKeeper : expected dex keeper
 type DexKeeper interface {
 	// TokenPair
 	GetTokenPair(ctx sdk.Context, product string) *dex.TokenPair
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
 	SortProducts(ctx sdk.Context, products []string)
-
 	SaveTokenPair(ctx sdk.Context, tokenPair *dex.TokenPair) error
 	UpdateTokenPair(ctx sdk.Context, product string, tokenPair *dex.TokenPair)
 	GetTokenPairsFromStore(ctx sdk.Context) []*dex.TokenPair
 	CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (isDelisting bool, err error)
-
 	LockTokenPair(ctx sdk.Context, product string, lock *types.ProductLock)
 	UnlockTokenPair(ctx sdk.Context, product string)
 	IsTokenPairLocked(product string) bool

@@ -13,7 +13,7 @@ import (
 )
 
 func TestKeeper_GetMinDeposit(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	p := types.Params{
@@ -27,7 +27,7 @@ func TestKeeper_GetMinDeposit(t *testing.T) {
 }
 
 func TestKeeper_GetMaxDepositPeriod(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	p := types.Params{
@@ -40,7 +40,7 @@ func TestKeeper_GetMaxDepositPeriod(t *testing.T) {
 }
 
 func TestKeeper_GetVotingPeriod(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	p := types.Params{
@@ -53,7 +53,7 @@ func TestKeeper_GetVotingPeriod(t *testing.T) {
 }
 
 func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	testInput.DexKeeper.SetParams(ctx, *types.DefaultParams())
@@ -92,7 +92,7 @@ func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
 }
 
 func TestKeeper_RejectedHandler(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
 	testInput.DexKeeper.SetParams(ctx, *types.DefaultParams())
@@ -108,7 +108,7 @@ func TestKeeper_RejectedHandler(t *testing.T) {
 }
 
 func TestKeeper_AfterDepositPeriodPassed(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	testInput.DexKeeper.SetParams(ctx, *types.DefaultParams())
 	tokenPair := GetBuiltInTokenPair()
@@ -126,7 +126,7 @@ func TestKeeper_AfterDepositPeriodPassed(t *testing.T) {
 }
 
 func TestKeeper_AfterSubmitProposalHandler(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	content := types.NewDelistProposal("delist xxb_okb", "delist asset from dex", nil, "", "")
 	proposal := govTypes.Proposal{Content: content}
@@ -135,7 +135,7 @@ func TestKeeper_AfterSubmitProposalHandler(t *testing.T) {
 }
 
 func TestKeeper_VoteHandler(t *testing.T) {
-	testInput := CreateTestInputWithBalance(t, 1, 10000)
+	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	tokenPair := GetBuiltInTokenPair()
 

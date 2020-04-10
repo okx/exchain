@@ -7,6 +7,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
+// const
 const (
 	QueryUpgradeConfig        = "config"
 	QueryUpgradeVersion       = "version"
@@ -24,12 +25,11 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case QueryUpgradeFailedVersion:
 			return queryUpgradeLastFailedVersion(ctx, req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown token query endpoint")
+			return nil, sdk.ErrUnknownRequest("unknown query endpoint")
 		}
 	}
 }
 
-// nolint: unparam
 func queryUpgradeConfig(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	appUpgradeConfig, found := keeper.GetAppUpgradeConfig(ctx)
 
@@ -44,7 +44,6 @@ func queryUpgradeConfig(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	return bz, nil
 }
 
-// nolint: unparam
 func queryUpgradeVersion(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	version := keeper.protocolKeeper.GetCurrentVersion(ctx)
 
@@ -55,7 +54,6 @@ func queryUpgradeVersion(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) 
 	return bz, nil
 }
 
-// nolint: unparam
 func queryUpgradeLastFailedVersion(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	version := keeper.protocolKeeper.GetLastFailedVersion(ctx)
 

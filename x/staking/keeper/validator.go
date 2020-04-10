@@ -224,7 +224,6 @@ func (k Keeper) IterateLastValidatorPowers(ctx sdk.Context,
 	}
 }
 
-
 //_______________________________________________________________________
 // Validator Queue
 

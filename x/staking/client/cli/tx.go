@@ -49,7 +49,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-validator",
-		Short: "create new validator initialized with a self-delegation to it",
+		Short: "create new validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -67,7 +67,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	//cmd.Flags().AddFlagSet(FsAmount)
 	cmd.Flags().AddFlagSet(fsDescriptionCreate)
 	//cmd.Flags().AddFlagSet(FsCommissionCreate)
-	cmd.Flags().AddFlagSet(FsMinSelfDelegation)
+	//cmd.Flags().AddFlagSet(FsMinSelfDelegation)
 
 	cmd.Flags().String(FlagIP, "",
 		fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", client.FlagGenerateOnly))
@@ -135,7 +135,7 @@ var (
 	//defaultCommissionRate          = "0.1"
 	//defaultCommissionMaxRate       = "0.2"
 	//defaultCommissionMaxChangeRate = "0.01"
-	defaultMinSelfDelegation = "1okt"
+	defaultMinSelfDelegation = "0.001okt"
 )
 
 // CreateValidatorMsgHelpers returns the flagset, particular flags, and a description of defaults
@@ -149,15 +149,11 @@ func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, 
 	fsCreateValidator.String(FlagDetails, "", "The validator's (optional) details")
 	fsCreateValidator.String(FlagIdentity, "", "The (optional) identity signature (ex. UPort or Keybase)")
 	//fsCreateValidator.AddFlagSet(FsCommissionCreate)
-	fsCreateValidator.AddFlagSet(FsMinSelfDelegation)
+	//fsCreateValidator.AddFlagSet(FsMinSelfDelegation)
 	//fsCreateValidator.AddFlagSet(FsAmount)
 	fsCreateValidator.AddFlagSet(FsPk)
 
-	defaultsDesc = fmt.Sprintf(`
-	minimum self delegation:     %s
-`, defaultMinSelfDelegation)
-
-	return fsCreateValidator, FlagNodeID, FlagPubKey, FlagMinSelfDelegation, defaultsDesc
+	return fsCreateValidator, FlagNodeID, FlagPubKey, "", ""
 }
 
 // PrepareFlagsForTxCreateValidator prepares flags in config
@@ -200,9 +196,9 @@ func PrepareFlagsForTxCreateValidator(
 	//if viper.GetString(FlagCommissionMaxChangeRate) == "" {
 	//	viper.Set(FlagCommissionMaxChangeRate, defaultCommissionMaxChangeRate)
 	//}
-	if viper.GetString(FlagMinSelfDelegation) == "" {
-		viper.Set(FlagMinSelfDelegation, defaultMinSelfDelegation)
-	}
+	// if viper.GetString(FlagMinSelfDelegation) == "" {
+	//	viper.Set(FlagMinSelfDelegation, defaultMinSelfDelegation)
+	//}
 }
 
 // BuildCreateValidatorMsg makes a new MsgCreateValidator.
@@ -223,8 +219,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	)
 
 	// get the initial validator min self delegation
-	msbStr := viper.GetString(FlagMinSelfDelegation)
-	minSelfDelegation, err := sdk.ParseDecCoin(msbStr)
+	minSelfDelegation, err := sdk.ParseDecCoin(defaultMinSelfDelegation)
 	if err != nil {
 		return txBldr, nil, err
 	}

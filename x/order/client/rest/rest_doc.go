@@ -31,6 +31,7 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+// OrderDetailParam : order detail param
 // swagger:parameters getOrderDetail
 type OrderDetailParam struct {
 	// an id of order
@@ -39,7 +40,7 @@ type OrderDetailParam struct {
 	OrderID string `json:"order_id"`
 }
 
-// Order Info
+// OrderResponse : Order Info
 // swagger:response OrderResponse
 type OrderResponse struct {
 	// in: body
@@ -54,6 +55,7 @@ type OrderResponse struct {
 //     Responses:
 //       200: OrderResponse
 
+// BookParam : order depth book param
 // swagger:parameters getDepthBook
 type BookParam struct {
 	// token pair string
@@ -62,7 +64,7 @@ type BookParam struct {
 	Product string `json:"product"`
 }
 
-// Order depth book
+// BookResponse : Order depth book
 // swagger:response BookResponse
 type BookResponse struct {
 	// in: body

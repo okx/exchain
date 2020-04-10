@@ -118,6 +118,11 @@ func TestQueryAddress(t *testing.T) {
 	require.True(t, err == nil)
 	require.NotNil(t, data)
 
+	ovPairs := types.OVPairs{}
+	e := types.ModuleCdc.UnmarshalJSON(data, &ovPairs)
+	require.Nil(t, e)
+	require.NotNil(t, ovPairs.String())
+
 	data, err = querior(ctx, []string{"wrong path"}, abci.RequestQuery{})
 	require.Error(t, err)
 	require.Nil(t, data)

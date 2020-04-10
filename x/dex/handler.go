@@ -68,7 +68,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		InitPrice:        msg.InitPrice,
 		MaxPriceDigit:    int64(DefaultMaxPriceDigitSize),
 		MaxQuantityDigit: int64(DefaultMaxQuantityDigitSize),
-		MinQuantity:      sdk.NewDecWithPrec(1, 8),
+		MinQuantity:      sdk.MustNewDecFromStr("0.00000001"),
 		Owner:            msg.Owner,
 		Delisting:        false,
 		Deposits:         DefaultTokenPairDeposit,

@@ -17,7 +17,6 @@ import (
 	"github.com/okex/okchain/x/common/version"
 	"github.com/okex/okchain/x/order/keeper"
 	ordertypes "github.com/okex/okchain/x/order/types"
-	"github.com/okex/okchain/x/params"
 	tokentypes "github.com/okex/okchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -59,15 +58,6 @@ type MockApp struct {
 	supplyKeeper  supply.Keeper
 }
 
-var mockBlockHeight int64 = -1
-
-func blockHeight(ctx sdk.Context) int64 {
-	if mockBlockHeight >= 0 {
-		return mockBlockHeight
-	}
-	return ctx.BlockHeight()
-}
-
 func registerCdc(cdc *codec.Codec) {
 	supply.RegisterCodec(cdc)
 }
@@ -105,7 +95,6 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 
 	mockApp.tokenKeeper = token.NewKeeper(
 		mockApp.bankKeeper,
-		params.Keeper{Keeper: mockApp.ParamsKeeper},
 		mockApp.ParamsKeeper.Subspace(token.DefaultParamspace),
 		auth.FeeCollectorName,
 		mockApp.supplyKeeper,
@@ -130,7 +119,6 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.orderKeeper = keeper.NewKeeper(
 		mockApp.tokenKeeper,
 		mockApp.supplyKeeper,
-		params.Keeper{Keeper: mockApp.ParamsKeeper},
 		mockApp.dexKeeper,
 		mockApp.ParamsKeeper.Subspace(ordertypes.DefaultParamspace),
 		auth.FeeCollectorName,
@@ -140,7 +128,8 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		monitor.NopOrderMetrics())
 
 	// CleanUp data
-	cfg := config.SafeLoadMaintainConfig(config.DefaultTestConfig)
+	cfg, err := config.SafeLoadMaintainConfig(config.DefaultTestConfig)
+	require.Nil(t, err)
 	cfg.EnableBackend = enableBackend
 	cfg.EnableMktCompute = enableBackend
 	cfg.OrmEngine.EngineType = orm.EngineTypeSqlite
@@ -223,15 +212,6 @@ func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
 	}
 }
 
-func produceOrderTxs(app *MockApp, ctx sdk.Context, numToGenerate int, addrKeys mock.AddrKeys,
-	orderMsg *ordertypes.MsgNewOrders) []auth.StdTx {
-	txs := make([]auth.StdTx, numToGenerate)
-	for i := 0; i < numToGenerate; i++ {
-		txs[i] = buildTx(app, ctx, addrKeys, orderMsg)
-	}
-	return txs
-}
-
 func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg sdk.Msg) auth.StdTx {
 	accs := app.AccountKeeper.GetAccount(ctx, addrKeys.Address)
 	accNum := accs.GetAccountNumber()
@@ -285,9 +265,9 @@ func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.Addr
 	return
 }
 
-func mockOrder(orderId, product, side, price, quantity string) *ordertypes.Order {
+func mockOrder(orderID, product, side, price, quantity string) *ordertypes.Order {
 	return &ordertypes.Order{
-		OrderID:           orderId,
+		OrderID:           orderID,
 		Product:           product,
 		Side:              side,
 		Price:             sdk.MustNewDecFromStr(price),
@@ -309,8 +289,8 @@ func FireEndBlockerPeriodicMatch(t *testing.T, enableBackend bool) (mockDexApp *
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 
-	mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
-
+	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
 	// mock orders
 	orders = []*ordertypes.Order{
 		mockOrder("", types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),

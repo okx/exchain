@@ -1,3 +1,4 @@
+// nolint
 package types
 
 const (
@@ -30,6 +31,7 @@ const (
 	QueryTxListV2       = "txsV2"
 
 	// kline const
+
 	Kline1GoRoutineWaitInSecond = 5
 	KlinexGoRoutineWaitInSecond = 10
 

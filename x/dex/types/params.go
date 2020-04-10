@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,15 +11,15 @@ import (
 )
 
 var (
-	KeyDexListFee             = []byte("DexListFee")
-	KeyDexDelistFee           = []byte("DexDeListFee")
-	KeyTransferOwnershipFee   = []byte("TransferOwnershipFee")
-	KeyDelistMaxDepositPeriod = []byte("DelistMaxDepositPeriod")
-	KeyDelistMinDeposit       = []byte("DelistMinDeposit")
-	KeyDelistVotingPeriod     = []byte("DelistVotingPeriod")
-	KeyWithdrawPeriod         = []byte("WithdrawPeriod")
+	keyDexListFee             = []byte("DexListFee")
+	keyTransferOwnershipFee   = []byte("TransferOwnershipFee")
+	keyDelistMaxDepositPeriod = []byte("DelistMaxDepositPeriod")
+	keyDelistMinDeposit       = []byte("DelistMinDeposit")
+	keyDelistVotingPeriod     = []byte("DelistVotingPeriod")
+	keyWithdrawPeriod         = []byte("WithdrawPeriod")
 )
 
+// Params defines param object
 type Params struct {
 	ListFee              sdk.DecCoin `json:"list_fee"`
 	TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
@@ -36,14 +35,15 @@ type Params struct {
 	WithdrawPeriod time.Duration `json:"withdraw_period"`
 }
 
+// ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyDexListFee, Value: &p.ListFee},
-		{Key: KeyTransferOwnershipFee, Value: &p.TransferOwnershipFee},
-		{Key: KeyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod},
-		{Key: KeyDelistMinDeposit, Value: &p.DelistMinDeposit},
-		{Key: KeyDelistVotingPeriod, Value: &p.DelistVotingPeriod},
-		{Key: KeyWithdrawPeriod, Value: &p.WithdrawPeriod},
+		{Key: keyDexListFee, Value: &p.ListFee},
+		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee},
+		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod},
+		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit},
+		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod},
+		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod},
 	}
 }
 
@@ -54,10 +54,9 @@ func ParamKeyTable() params.KeyTable {
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() *Params {
-	var defaultListFee = sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeList))
-	//var defaultDeListFee = sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeDelist))
-	var defaultTransferOwnershipFee = sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeTransferOwnership))
-	var defaultDelistMinDeposit = sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultDelistMinDeposit))
+	defaultListFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultFeeList))
+	defaultTransferOwnershipFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultFeeTransferOwnership))
+	defaultDelistMinDeposit := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultDelistMinDeposit))
 	return &Params{
 		ListFee:                defaultListFee,
 		TransferOwnershipFee:   defaultTransferOwnershipFee,
@@ -70,14 +69,7 @@ func DefaultParams() *Params {
 
 // String implements the stringer interface.
 func (p Params) String() string {
-	var sb strings.Builder
-	sb.WriteString("Params: \n")
-	sb.WriteString(fmt.Sprintf("DexListFee:%s\n", p.ListFee))
-	//sb.WriteString(fmt.Sprintf("DexDelistFee:%s\n", p.DelistFee))
-	sb.WriteString(fmt.Sprintf("TransferOwnershipFee:%s\n", p.TransferOwnershipFee))
-	sb.WriteString(fmt.Sprintf("DelistMaxDepositPeriod:%s\n", p.DelistMaxDepositPeriod))
-	sb.WriteString(fmt.Sprintf("DelistMinDeposit:%s\n", p.DelistMinDeposit))
-	sb.WriteString(fmt.Sprintf("DelistVotingPeriod:%s\n", p.DelistMaxDepositPeriod))
-	sb.WriteString(fmt.Sprintf("WithdrawPeriod:%d\n", p.WithdrawPeriod))
-	return sb.String()
+	return fmt.Sprintf("Params: \nDexListFee:%s\nTransferOwnershipFee:%s\nDelistMaxDepositPeriod:%s\n"+
+		"DelistMinDeposit:%s\nDelistVotingPeriod:%s\nWithdrawPeriod:%d\n",
+		p.ListFee, p.TransferOwnershipFee, p.DelistMaxDepositPeriod, p.DelistMinDeposit, p.DelistVotingPeriod, p.WithdrawPeriod)
 }

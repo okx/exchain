@@ -42,7 +42,7 @@ func TestSignal(t *testing.T) {
 	description := staking.NewDescription("moniker1", "identity1", "website1", "details1")
 	validator := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description)
 	validator.Status = sdk.Bonded
-	validator.Tokens = reserve
+	validator.DelegatorShares = sdk.OneDec()
 
 	keeper.SetSignal(ctx, 1, validator.GetConsAddr().String())
 	require.True(t, keeper.GetSignal(ctx, 1, validator.GetConsAddr().String()))
@@ -50,7 +50,7 @@ func TestSignal(t *testing.T) {
 
 	validator = staking.NewValidator(sdk.ValAddress(accAddrs[1]), pubKeys[1], description)
 	validator.Status = sdk.Bonded
-	validator.Tokens = reserve
+	validator.DelegatorShares = sdk.OneDec()
 
 	keeper.SetSignal(ctx, 1, validator.GetConsAddr().String())
 	require.True(t, keeper.DeleteSignal(ctx, 1, validator.GetConsAddr().String()))
@@ -58,11 +58,11 @@ func TestSignal(t *testing.T) {
 
 	keeper.ClearSignals(ctx, 1)
 
-	require.NotEqual(t, len(GetSignalKey(1, validator.GetConsAddr().String())), 0)
-	require.NotEqual(t, len(GetFailedVersionKey(1, 1)), 0)
-	require.NotEqual(t, len(GetProposalIDKey(1)), 0)
-	require.NotEqual(t, len(GetSignalPrefixKey(1)), 0)
-	require.NotEqual(t, len(GetSuccessVersionKey(1)), 0)
+	require.NotEqual(t, len(types.GetSignalKey(1, validator.GetConsAddr().String())), 0)
+	require.NotEqual(t, len(types.GetFailedVersionKey(1, 1)), 0)
+	require.NotEqual(t, len(types.GetProposalIDKey(1)), 0)
+	require.NotEqual(t, len(types.GetSignalPrefixKey(1)), 0)
+	require.NotEqual(t, len(types.GetSuccessVersionKey(1)), 0)
 
 }
 
@@ -74,8 +74,4 @@ func TestKeeper_GetAppUpgradeConfig(t *testing.T) {
 
 	_, found := keeper.GetAppUpgradeConfig(ctx)
 	require.True(t, found)
-}
-
-func TestUintToHexString(t *testing.T) {
-	require.Equal(t, UintToHexString(15), "000000000000000f")
 }

@@ -11,26 +11,25 @@ import (
 	govTypes "github.com/okex/okchain/x/gov/types"
 )
 
-// implement ProposalHandler
+// GetMinDeposit returns min deposit
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.DecCoins) {
-	switch content.(type) {
-	case types.DelistProposal:
+	if _, ok := content.(types.DelistProposal); ok {
 		minDeposit = k.GetParams(ctx).DelistMinDeposit
 	}
 	return
 }
 
+// GetMaxDepositPeriod returns max deposit period
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content gov.Content) (maxDepositPeriod time.Duration) {
-	switch content.(type) {
-	case types.DelistProposal:
+	if _, ok := content.(types.DelistProposal); ok {
 		maxDepositPeriod = k.GetParams(ctx).DelistMaxDepositPeriod
 	}
 	return
 }
 
+// GetVotingPeriod returns voting period
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPeriod time.Duration) {
-	switch content.(type) {
-	case types.DelistProposal:
+	if _, ok := content.(types.DelistProposal); ok {
 		votingPeriod = k.GetParams(ctx).DelistVotingPeriod
 	}
 	return
@@ -53,17 +52,18 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	err := common.HasSufficientCoins(proposer, initialDeposit, localMinDeposit)
 
 	if err != nil {
-		return sdk.NewError(types.DefaultCodespace, types.CodeInvalidAsset, fmt.Sprintf("failed to submit proposal because initial deposit should be more than %s", localMinDeposit.String()))
+		return types.ErrInvalidAsset(fmt.Sprintf("failed to submit proposal because initial deposit should be more than %s", localMinDeposit.String()))
 	}
 
 	// check whether the proposer can afford the initial deposit
 	err = common.HasSufficientCoins(proposer, k.bankKeeper.GetCoins(ctx, proposer), initialDeposit)
 	if err != nil {
-		return sdk.NewError(types.DefaultCodespace, types.CodeInvalidBalanceNotEnough, fmt.Sprintf("failed to submit proposal because proposer %s didn't have enough coins to pay for the initial deposit %s", proposer, initialDeposit))
+		return types.ErrInvalidBalanceNotEnough(fmt.Sprintf("failed to submit proposal because proposer %s didn't have enough coins to pay for the initial deposit %s", proposer, initialDeposit))
 	}
 	return nil
 }
 
+// CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) (sdkErr sdk.Error) {
 	switch content := msg.Content.(type) {
 	case types.DelistProposal:
@@ -87,11 +87,12 @@ func (k Keeper) isTokenPairExisted(ctx sdk.Context, baseAsset, quoteAsset string
 	return false
 }
 
+// nolint
 func (k Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govTypes.Proposal) {}
 
+// VoteHandler handles  delist proposal when voted
 func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote govTypes.Vote) (string, sdk.Error) {
-	switch proposal.Content.(type) {
-	case types.DelistProposal:
+	if _, ok := proposal.Content.(types.DelistProposal); ok {
 		delistProposal := proposal.Content.(types.DelistProposal)
 		tokenPairName := delistProposal.BaseAsset + "_" + delistProposal.QuoteAsset
 		if k.IsTokenPairLocked(tokenPairName) {
@@ -102,10 +103,9 @@ func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote go
 	return "", nil
 }
 
+// RejectedHandler handles delist proposal when rejected
 func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {
-	switch content := content.(type) {
-
-	case types.DelistProposal:
+	if content, ok := content.(types.DelistProposal); ok {
 		tokenPairName := fmt.Sprintf("%s_%s", content.BaseAsset, content.QuoteAsset)
 		//update the token info from the store
 		tokenPair := k.GetTokenPair(ctx, tokenPairName)
@@ -114,9 +114,9 @@ func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {
 	}
 }
 
+// AfterDepositPeriodPassed handles delist proposal when passed
 func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Proposal) {
-	switch content := proposal.Content.(type) {
-	case types.DelistProposal:
+	if content, ok := proposal.Content.(types.DelistProposal); ok {
 		tokenPairName := fmt.Sprintf("%s_%s", content.BaseAsset, content.QuoteAsset)
 		// change the status of the token pair in the store
 		tokenPair := k.GetTokenPair(ctx, tokenPairName)
@@ -125,6 +125,7 @@ func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Prop
 	}
 }
 
+// RemoveFromActiveProposalQueue removes active proposal in queue
 func (k Keeper) RemoveFromActiveProposalQueue(ctx sdk.Context, proposalID uint64, endTime time.Time) {
 	k.govKeeper.RemoveFromActiveProposalQueue(ctx, proposalID, endTime)
 }

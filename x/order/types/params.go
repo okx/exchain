@@ -2,13 +2,13 @@ package types
 
 import (
 	"fmt"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/params"
 )
 
+// nolint
 const (
 	// System param
 	DefaultOrderExpireBlocks = 259200 // order will be expired after 86400 blocks.
@@ -20,7 +20,7 @@ const (
 	DefaultFeeRateTrade      = "0.001" // percentage
 )
 
-// Parameter keys
+// nolint : Parameter keys
 var (
 	KeyOrderExpireBlocks = []byte("OrderExpireBlocks")
 	KeyMaxDealsPerBlock  = []byte("MaxDealsPerBlock")
@@ -29,9 +29,10 @@ var (
 	DefaultFeePerBlock   = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultFeeAmountPerBlock))
 )
 
+// nolint
 var _ params.ParamSet = &Params{}
 
-// order parameters
+// nolint : order parameters
 type Params struct {
 	OrderExpireBlocks int64       `json:"order_expire_blocks"`
 	MaxDealsPerBlock  int64       `json:"max_deals_per_block"`
@@ -68,12 +69,11 @@ func DefaultParams() Params {
 
 // String implements the stringer interface.
 func (p Params) String() string {
-	var sb strings.Builder
-	sb.WriteString("Params: \n")
-	sb.WriteString(fmt.Sprintf("OrderExpireBlocks: %d\n", p.OrderExpireBlocks))
-	sb.WriteString(fmt.Sprintf("MaxDealsPerBlock: %d\n", p.MaxDealsPerBlock))
-	sb.WriteString(fmt.Sprintf("FeePerBlock: %s\n", p.FeePerBlock))
-	sb.WriteString(fmt.Sprintf("TradeFeeRate: %s\n", p.TradeFeeRate))
-
-	return sb.String()
+	return fmt.Sprintf(`Order Params:
+  OrderExpireBlocks: %d
+  MaxDealsPerBlock: %d
+  FeePerBlock: %s
+  TradeFeeRate: %s`, p.OrderExpireBlocks,
+		p.MaxDealsPerBlock, p.FeePerBlock,
+		p.TradeFeeRate)
 }

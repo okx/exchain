@@ -48,28 +48,32 @@ func NewKeeper(feeCollectorName string, supplyKeeper SupplyKeeper, dexParamsSubs
 	return k
 }
 
+// GetSupplyKeeper returns supply Keeper
 func (k Keeper) GetSupplyKeeper() SupplyKeeper {
 	return k.supplyKeeper
 }
 
+// GetFeeCollector returns feeCollectorName
 func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
 }
 
+// GetCDC returns cdc
 func (k Keeper) GetCDC() *codec.Codec {
 	return k.cdc
 }
 
+// GetTokenKeeper returns token Keeper
 func (k Keeper) GetTokenKeeper() TokenKeeper {
 	return k.tokenKeeper
 }
 
-func (k Keeper) DeleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair string) {
+func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair string) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Delete(types.GetUserTokenPairAddress(owner, pair))
 }
 
-// SaveTokenPair save the token pair to db
+// SaveTokenPair saves the token pair to db
 // key is base:quote
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
 	store := ctx.KVStore(k.tokenPairStoreKey)
@@ -94,7 +98,7 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	return nil
 }
 
-// GetTokenPair return all the token pairs
+// GetTokenPair returns all the token pairs
 func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair *types.TokenPair
 	//use cache
@@ -117,7 +121,7 @@ func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	return tokenPair
 }
 
-// get token pair from store without cache
+// GetTokenPairFromStore returns token pair from store without cache
 func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair types.TokenPair
 	store := ctx.KVStore(k.tokenPairStoreKey)
@@ -133,7 +137,7 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 	return &tokenPair
 }
 
-// GetTokenPairs return all the token pairs
+// GetTokenPairs returns all the token pairs
 func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
 	//load from cache, if not exist, load from local db
 	cacheTokenPairs := k.cache.GetAllTokenPairs()
@@ -144,7 +148,7 @@ func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
 	return k.GetTokenPairsFromStore(ctx)
 }
 
-// get all token pairs from store without cache
+// GetTokenPairsFromStore returns all token pairs from store without cache
 func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairKey)
@@ -160,7 +164,7 @@ func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.Tok
 	return tokenPairs
 }
 
-// get all token pairs from store without cache
+// GetUserTokenPairs returns all token pairs from store without cache
 func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	userTokenPairPrefix := types.GetUserTokenPairAddressPrefix(owner)
@@ -179,7 +183,7 @@ func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenP
 	return tokenPairs
 }
 
-// DeleteTokenPairByName drop the token pair
+// DeleteTokenPairByName deletes the token pair by name
 func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, product string) {
 	// get store
 	store := ctx.KVStore(k.tokenPairStoreKey)
@@ -189,16 +193,16 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	k.cache.DeleteTokenPairByName(product)
 
 	// remove the user-tokenpair relationship
-	k.DeleteUserTokenPair(ctx, owner, product)
+	k.deleteUserTokenPair(ctx, owner, product)
 }
 
-func (k Keeper) UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
+func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Delete(types.GetUserTokenPairAddress(owner, product))
 	store.Set(types.GetUserTokenPairAddress(to, product), []byte{})
 }
 
-// set token pair field 'IsUnderDelisting' to be true to the store and cache
+// UpdateTokenPair updates token pair in the store and the cache
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
@@ -218,7 +222,7 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 	return isDelisting, err
 }
 
-// GetNewTokenPair return all the net token pairs
+// GetNewTokenPair returns all the net token pairs
 func (k Keeper) GetNewTokenPair() []*types.TokenPair {
 	return k.cache.GetNewTokenPair()
 }
@@ -242,21 +246,21 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit beacuse non-exist product: %s", product))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", product))
 	}
 
 	if !tokenPair.Owner.Equals(from) {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to deposit beacuse %s is not the owner of product:%s", from.String(), product))
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to deposit because %s is not the owner of product:%s", from.String(), product))
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit beacuse deposits only support %s token", sdk.DefaultBondDenom))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because deposits only support %s token", sdk.DefaultBondDenom))
 	}
 
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits beacuse  insufficient deposit coins(need %s)", depositCoins.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", depositCoins.String()))
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -268,19 +272,19 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws beacuse non-exist product: %s", product))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because non-exist product: %s", product))
 	}
 
 	if !tokenPair.Owner.Equals(to) {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to withdraws beacuse %s is not the owner of product:%s", to.String(), product))
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to withdraws because %s is not the owner of product:%s", to.String(), product))
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws beacuse deposits only support %s token", sdk.DefaultBondDenom))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because deposits only support %s token", sdk.DefaultBondDenom))
 	}
 
 	if tokenPair.Deposits.IsLT(amount) {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraws beacuse deposits:%s is less than withdraw:%s", tokenPair.Deposits.String(), amount.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraws because deposits:%s is less than withdraw:%s", tokenPair.Deposits.String(), amount.String()))
 	}
 
 	completeTime := ctx.BlockHeader().Time.Add(k.GetParams(ctx).WithdrawPeriod)
@@ -371,7 +375,7 @@ func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccA
 	tokenPair.Owner = to
 	tokenPair.Deposits = types.DefaultTokenPairDeposit
 	k.UpdateTokenPair(ctx, product, tokenPair)
-	k.UpdateUserTokenPair(ctx, product, from, to)
+	k.updateUserTokenPair(ctx, product, from, to)
 
 	return nil
 }
@@ -387,7 +391,7 @@ func (k Keeper) GetWithdrawInfo(ctx sdk.Context, addr sdk.AccAddress) (withdrawI
 	return withdrawInfo, true
 }
 
-// SetWithdrawInfo set withdraw address key with withdraw info
+// SetWithdrawInfo sets withdraw address key with withdraw info
 func (k Keeper) SetWithdrawInfo(ctx sdk.Context, withdrawInfo types.WithdrawInfo) {
 	key := types.GetWithdrawAddressKey(withdrawInfo.Owner)
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(withdrawInfo)
@@ -430,7 +434,7 @@ func (k Keeper) IterateWithdrawInfo(ctx sdk.Context, fn func(index int64, withdr
 	}
 }
 
-// IterateWithdrawAddress itreate withdraw time keys, and returns address
+// IterateWithdrawAddress itreates withdraw time keys, and returns address
 func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 	fn func(index int64, key []byte) (stop bool)) {
 	// iterate for all keys of (time+delAddr) from time 0 until the current time
@@ -472,6 +476,7 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
+// GetTokenPairNum returns num of token pair
 func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	b := store.Get(types.TokenPairNumberKey)

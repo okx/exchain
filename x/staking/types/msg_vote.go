@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -136,9 +137,16 @@ func (msg MsgBindProxy) GetSigners() []sdk.AccAddress {
 
 // ValidateBasic gives a quick validity check
 func (msg MsgBindProxy) ValidateBasic() sdk.Error {
-	if msg.DelAddr.Empty() {
+	if msg.DelAddr.Empty() || msg.ProxyAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
+
+	if msg.DelAddr.Equals(msg.ProxyAddress) {
+		return ErrWrongOperationAddr(DefaultCodespace,
+			fmt.Sprintf("ProxyAddress: %s eqauls to DelegatorAddress: %s",
+				msg.ProxyAddress.String(), msg.DelAddr.String()))
+	}
+
 	return nil
 }
 
@@ -173,6 +181,10 @@ func (msg MsgVote) GetSigners() []sdk.AccAddress {
 func (msg MsgVote) ValidateBasic() sdk.Error {
 	if msg.DelAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
+	}
+
+	if msg.ValAddrs == nil || len(msg.ValAddrs) == 0 {
+		return ErrWrongOperationAddr(DefaultCodespace, "ValAddrs is empty")
 	}
 
 	if isValsDuplicate(msg.ValAddrs) {

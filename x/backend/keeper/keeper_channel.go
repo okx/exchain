@@ -34,7 +34,7 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 	ticker := time.NewTicker(interval)
 
 	go CleanUpKlines(stop, o, conf)
-	var klineNotifyChans *map[int]chan struct{} = nil
+	var klineNotifyChans *map[int]chan struct{}
 	work := func() {
 		if o.MaxBlockTimestamp == 0 {
 			return
@@ -81,9 +81,9 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 
 func generateSyncKlineMXChans() *map[int]chan struct{} {
 	notifyChans := map[int]chan struct{}{}
-	kMap := types.GetAllKlineMap()
+	klineMap := types.GetAllKlineMap()
 
-	for freq := range kMap {
+	for freq := range klineMap {
 		if freq > 60 {
 			notifyCh := make(chan struct{}, 1)
 			notifyChans[freq] = notifyCh
@@ -93,13 +93,13 @@ func generateSyncKlineMXChans() *map[int]chan struct{} {
 	return &notifyChans
 }
 
-func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInterval int, o *orm.ORM) error {
+func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInterval int, o *orm.ORM) {
 	o.Debug(fmt.Sprintf("[backend] generateKlineMX-#%d# go routine started", refreshInterval))
 
 	destKName := types.GetKlineTableNameByFreq(refreshInterval)
 	destK, err := types.NewKlineFactory(destKName, nil)
 	if err != nil {
-		return err
+		o.Error(fmt.Sprintf("[backend] NewKlineFactory error: %s", err.Error()))
 	}
 
 	destIKline := destK.(types.IKline)
@@ -107,7 +107,7 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 	startTS, endTS := int64(0), time.Now().Unix()-int64(destIKline.GetFreqInSecond())
 	anchorEndTS, _, err := o.MergeKlineM1(startTS, endTS, destIKline)
 	if err != nil {
-		o.Debug(fmt.Sprintf("[backend] error: %s", err.Error()))
+		o.Error(fmt.Sprintf("[backend] MergeKlineM1 error: %s", err.Error()))
 	}
 
 	//waitInSecond := int(60+KlineX_GOROUTINE_WAIT_IN_SECOND-time.Now().Second()) % 60
@@ -130,7 +130,7 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 
 		anchorStart, _, err := o.MergeKlineM1(anchorEndTS, crrtTS, destIKline)
 		if err != nil {
-			o.Debug(fmt.Sprintf("[backend] error: %s", err.Error()))
+			o.Error(fmt.Sprintf("[backend] error: %s", err.Error()))
 
 		} else {
 			anchorEndTS = anchorStart
@@ -158,6 +158,7 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 	}
 }
 
+// nolint
 func CleanUpKlines(stop chan struct{}, o *orm.ORM, conf *config.Config) {
 	o.Debug(fmt.Sprintf("[backend] cleanUpKlines go routine started. MaintainConf: %+v", *conf))
 	interval := time.Duration(60 * int(time.Second))
@@ -181,7 +182,9 @@ func CleanUpKlines(stop chan struct{}, o *orm.ORM, conf *config.Config) {
 						o.Debug("failed to NewKlineFactory becoz of : " + err.Error())
 						break
 					}
-					o.DeleteKlineBefore(anchorTS, kline)
+					if err = o.DeleteKlineBefore(anchorTS, kline); err != nil {
+						o.Error("failed to DeleteKlineBefore because " + err.Error())
+					}
 				}
 			}
 		}

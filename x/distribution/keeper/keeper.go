@@ -50,7 +50,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace,
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", types.ModuleName)
+	return ctx.Logger().With("module", types.ShortUseByCli)
 }
 
 // SetWithdrawAddr sets a new address that will receive the rewards upon withdrawal

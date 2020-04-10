@@ -2,13 +2,14 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/okchain/x/common"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/okex/okchain/x/common"
 
 	"github.com/stretchr/testify/require"
 
@@ -78,10 +79,10 @@ func TestNewKlinesFactory(t *testing.T) {
 		assert.True(t, err == nil)
 
 		newIKlines := ToIKlinesArray(r, time.Now().Unix(), true)
-		assert.True(t, newIKlines == nil || len(newIKlines) == 0)
+		assert.True(t, len(newIKlines) == 0)
 
 		restData := ToRestfulData(&newIKlines, 100)
-		assert.True(t, restData == nil || len(restData) == 0)
+		assert.True(t, len(restData) == 0)
 	}
 
 	// Bad case

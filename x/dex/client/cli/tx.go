@@ -42,18 +42,18 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	}
 
 	txCmd.AddCommand(client.PostCommands(
-		GetCmdList(cdc),
+		getCmdList(cdc),
 		//GetCmdDelist(cdc),
-		GetCmdDeposit(cdc),
-		GetCmdWithdraw(cdc),
-		GetCmdTransferOwnership(cdc),
-		GetMultiSignsCmd(cdc),
+		getCmdDeposit(cdc),
+		getCmdWithdraw(cdc),
+		getCmdTransferOwnership(cdc),
+		getMultiSignsCmd(cdc),
 	)...)
 
 	return txCmd
 }
 
-func GetCmdList(cdc *codec.Codec) *cobra.Command {
+func getCmdList(cdc *codec.Codec) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -63,7 +63,7 @@ func GetCmdList(cdc *codec.Codec) *cobra.Command {
 
 $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 `),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -86,7 +86,6 @@ $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 			}
 			initPrice := sdk.MustNewDecFromStr(strInitPrice)
 			owner := cliCtx.GetFromAddress()
-
 			listMsg := types.NewMsgList(owner, baseAsset, quoteAsset, initPrice)
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{listMsg})
 		},
@@ -99,7 +98,8 @@ $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 	return cmd
 }
 
-func GetCmdDelist(cdc *codec.Codec) *cobra.Command {
+// nolint
+func getCmdDelist(cdc *codec.Codec) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "delist [product]",
@@ -111,7 +111,7 @@ $ okchaincli tx dex delist mytoken_okt --from mykey
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -122,7 +122,6 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 			product := args[0]
 			owner := cliCtx.GetFromAddress()
 			msg := types.NewMsgDelist(owner, product)
-
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
@@ -130,8 +129,8 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 	return cmd
 }
 
-// GetCmdDeposit implements depositing tokens for a product.
-func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
+// getCmdDeposit implements depositing tokens for a product.
+func getCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "deposit [product] [amount]",
 		Args:  cobra.ExactArgs(2),
@@ -142,7 +141,7 @@ $ okchaincli tx dex deposit mytoken_okt 1000okt --from mykey
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
@@ -158,18 +157,13 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 			}
 
 			msg := types.NewMsgDeposit(product, amount, from)
-			err = msg.ValidateBasic()
-			if err != nil {
-				return err
-			}
-
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
 
-// GetCmdWithdraw implements withdrawing tokens from a product.
-func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
+// getCmdWithdraw implements withdrawing tokens from a product.
+func getCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "withdraw [product] [amount]",
 		Args:  cobra.ExactArgs(2),
@@ -180,7 +174,7 @@ $ okchaincli tx dex withdraw mytoken_okt 1000okt --from mykey
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
@@ -194,24 +188,18 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 			if err != nil {
 				return err
 			}
-
 			msg := types.NewMsgWithdraw(product, amount, from)
-			err = msg.ValidateBasic()
-			if err != nil {
-				return err
-			}
-
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }
 
-// GetCmdTransferOwnership is the CLI command for transfer ownership of product
-func GetCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
+// getCmdTransferOwnership is the CLI command for transfer ownership of product
+func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer-ownership",
 		Short: "change the owner of the product",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			if err := authTypes.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
@@ -235,18 +223,16 @@ func GetCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 			}
 
 			from := cliCtx.GetFromAddress()
-
 			msg := types.NewMsgTransferOwnership(from, toAddr, product)
-
 			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().StringP(FlagProduct, "p", "", "product to be transfered")
-	cmd.Flags().String(FlagTo, "", "the user to be transfered")
+	cmd.Flags().StringP(FlagProduct, "p", "", "product to be transferred")
+	cmd.Flags().String(FlagTo, "", "the user to be transferred")
 	return cmd
 }
 
-func GetMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
+func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "multisign",
 		Short: "append signature to the unsigned tx file of transfer-ownership",
@@ -260,7 +246,7 @@ func GetMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			if len(stdTx.Msgs) <= 0 {
+			if len(stdTx.Msgs) == 0 {
 				return errors.New("msg is empty")
 			}
 
@@ -292,15 +278,13 @@ func GetMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 				Signature: signature,
 			}
 			msg.ToSignature = stdSignature
-
 			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
-
 		},
 	}
 	return cmd
 }
 
-//GetCmdSubmitDelistProposal implememts a command handler for submitting a dex delist proposal transaction
+// GetCmdSubmitDelistProposal implememts a command handler for submitting a dex delist proposal transaction
 func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delist-proposal [proposal-file]",
@@ -329,7 +313,7 @@ Where proposal.json contains:
 }
 `, version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
 			)),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
@@ -340,12 +324,7 @@ Where proposal.json contains:
 
 			from := cliCtx.GetFromAddress()
 			content := types.NewDelistProposal(proposal.Title, proposal.Description, from, proposal.BaseAsset, proposal.QuoteAsset)
-
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

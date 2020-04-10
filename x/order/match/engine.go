@@ -10,15 +10,17 @@ import (
 	"github.com/okex/okchain/x/order/match/periodicauction"
 )
 
+// nolint
 const DefaultAuctionType = "periodicauction"
 
+// nolint
 var (
 	once        sync.Once
 	engine      Engine
 	auctionType = DefaultAuctionType
 )
 
-// periodic auction only today
+// GetEngine : periodic auction only today
 func GetEngine() Engine {
 	once.Do(func() {
 		if auctionType == DefaultAuctionType {
@@ -30,6 +32,7 @@ func GetEngine() Engine {
 	return engine
 }
 
+// nolint
 type Engine interface {
 	Run(ctx sdk.Context, keeper keeper.Keeper)
 }

@@ -20,7 +20,7 @@ var (
 //2. 75% rewards to validators and candidators, by votes' wight
 func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	previousProposer sdk.ConsAddress, previousVotes []abci.VoteInfo) {
-	logger := ctx.Logger().With("module", "distr")
+	logger := k.Logger(ctx)
 	// fetch and clear the collected fees for distribution, since this is
 	// called in BeginBlock, collected fees will be from the previous block
 
@@ -62,8 +62,8 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 
 	fee1, fee2 := feesCollected.MulDecTruncate(valPortion), feesCollected.MulDecTruncate(votePortion)
 	remaining := feesCollected.Sub(fee1.Add(fee2))
-	remain2 := k.allocateByVal(ctx, fee1, previousVotes) //allocate rewards equally between validators
-	remain1 := k.allocateByVotePower(ctx, fee2)          //allocate rewards by votes
+	remain1 := k.allocateByVal(ctx, fee1, previousVotes) //allocate rewards equally between validators
+	remain2 := k.allocateByVotePower(ctx, fee2)          //allocate rewards by votes
 	remaining = remaining.Add(remain1.Add(remain2))
 
 	// if it remains some coins, allocate to proposer
@@ -88,7 +88,7 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 }
 
 func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVotes []abci.VoteInfo) sdk.DecCoins {
-	logger := ctx.Logger().With("module", "distr")
+	logger := k.Logger(ctx)
 
 	//count the total sum of the unJailed val
 	validators := make([]stakingexported.ValidatorI, 0)
@@ -100,7 +100,8 @@ func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVot
 			// block X+1's endblock, then X+2 we need to refer to the previous
 			// validator for X+1, but we've forgotten about them.
 			continue
-		} else if validator.IsJailed() {
+		}
+		if validator.IsJailed() {
 			logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by equal", validator.GetOperator()))
 		} else {
 			validators = append(validators, validator)
@@ -122,7 +123,7 @@ func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVot
 }
 
 func (k Keeper) allocateByVotePower(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
-	logger := ctx.Logger().With("module", "distr")
+	logger := k.Logger(ctx)
 
 	//allocate tokens proportionally by votes to validators and candidators
 	var validators []stakingexported.ValidatorI
@@ -157,11 +158,11 @@ func (k Keeper) allocateByVotePower(ctx sdk.Context, rewards sdk.DecCoins) sdk.D
 	return remaining
 }
 
-// AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commission
+// AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.DecCoins) {
-	// split tokens between validator and delegators according to commission
-	// commission is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
-	// only update current commission
+	// split tokens between validator and delegators according to commissions
+	// commissions is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
+	// only update current commissions
 	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
 	currentCommission = currentCommission.Add(tokens)
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)

@@ -59,11 +59,12 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 
-	if len(tokenPairs) < offset {
+	switch {
+	case len(tokenPairs) < offset:
 		tokenPairs = tokenPairs[0:0]
-	} else if len(tokenPairs) < offset+limit {
+	case len(tokenPairs) < offset+limit:
 		tokenPairs = tokenPairs[offset:]
-	} else {
+	default:
 		tokenPairs = tokenPairs[offset : offset+limit]
 	}
 
@@ -75,7 +76,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 }
 
-type DepositsData struct {
+type depositsData struct {
 	ProductName     string      `json:"product"`
 	ProductDeposits sdk.DecCoin `json:"deposits"`
 }
@@ -100,20 +101,21 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		tokenPairs = keeper.GetTokenPairs(ctx)
 	}
 
-	var deposits []DepositsData
+	var deposits []depositsData
 	for _, product := range tokenPairs {
 		if product.Owner.String() == params.Owner {
-			deposits = append(deposits, DepositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
+			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
 		}
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 
-	if len(deposits) < offset {
+	switch {
+	case len(deposits) < offset:
 		deposits = deposits[0:0]
-	} else if len(deposits) < offset+limit {
+	case len(deposits) < offset+limit:
 		deposits = deposits[offset:]
-	} else {
+	default:
 		deposits = deposits[offset : offset+limit]
 	}
 
@@ -146,11 +148,12 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 
-	if len(products) < offset {
+	switch {
+	case len(products) < offset:
 		products = products[0:0]
-	} else if len(products) < offset+limit {
+	case len(products) < offset+limit:
 		products = products[offset:]
-	} else {
+	default:
 		products = products[offset : offset+limit]
 	}
 
@@ -163,7 +166,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 
 }
 
-func queryParams(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
+func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
 	params := keeper.GetParams(ctx)
 	res, errUnmarshal := codec.MarshalJSONIndent(keeper.GetCDC(), params)
 	if errUnmarshal != nil {

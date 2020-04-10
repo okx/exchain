@@ -37,9 +37,6 @@ var (
 	GetValidatorAccumulatedCommissionKey     = keeper.GetValidatorAccumulatedCommissionKey
 	ParamKeyTable                            = keeper.ParamKeyTable
 	NewQuerier                               = keeper.NewQuerier
-	MakeTestCodec                            = keeper.MakeTestCodec
-	CreateTestInputDefault                   = keeper.CreateTestInputDefault
-	CreateTestInputAdvanced                  = keeper.CreateTestInputAdvanced
 	RegisterCodec                            = types.RegisterCodec
 	ErrNilDelegatorAddr                      = types.ErrNilDelegatorAddr
 	ErrNilWithdrawAddr                       = types.ErrNilWithdrawAddr
@@ -60,7 +57,6 @@ var (
 	DelegatorWithdrawAddrPrefix          = keeper.DelegatorWithdrawAddrPrefix
 	ValidatorAccumulatedCommissionPrefix = keeper.ValidatorAccumulatedCommissionPrefix
 	ParamStoreKeyWithdrawAddrEnabled     = keeper.ParamStoreKeyWithdrawAddrEnabled
-	TestAddrs                            = keeper.TestAddrs
 	ModuleCdc                            = types.ModuleCdc
 	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
 	EventTypeCommission                  = types.EventTypeCommission

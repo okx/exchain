@@ -25,7 +25,9 @@ func TestProposal_NewProposalHandler(t *testing.T) {
 
 	proposalHandler := NewProposalHandler(mDexKeeper.Keeper)
 
-	mDexKeeper.SetParams(ctx, *types.DefaultParams())
+	params := types.DefaultParams()
+	require.NotNil(t, params.String())
+	mDexKeeper.SetParams(ctx, *params)
 	tokenPair := GetBuiltInTokenPair()
 
 	content := types.NewDelistProposal("delist xxb_okb", "delist asset from dex",

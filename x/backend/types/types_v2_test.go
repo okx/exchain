@@ -2,31 +2,32 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/dex"
-	"github.com/stretchr/testify/require"
 	"math"
 	"strings"
 	"testing"
 	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/dex"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDefaultTickerV2(t *testing.T) {
-	instrumentId := "101"
-	defaultTicker := DefaultTickerV2(instrumentId)
-	require.Equal(t, defaultTicker.InstrumentId, instrumentId)
+	instrumentID := "101"
+	defaultTicker := DefaultTickerV2(instrumentID)
+	require.Equal(t, defaultTicker.InstrumentID, instrumentID)
 }
 
 func TestConvertOrderToOrderV2(t *testing.T) {
 	orderV1 := Order{
-		OrderId:        "test-order_id",
+		OrderID:        "test-order_id",
 		Timestamp:      time.Now().Unix(),
 		Quantity:       "100",
 		RemainQuantity: "10",
 		FilledAvgPrice: "5",
 	}
 	orderV2 := ConvertOrderToOrderV2(orderV1)
-	require.Equal(t, orderV1.OrderId, orderV2.OrderId)
+	require.Equal(t, orderV1.OrderID, orderV2.OrderID)
 
 	timeStamp := time.Unix(orderV1.Timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
 	require.Equal(t, timeStamp, orderV2.Timestamp)
@@ -41,8 +42,8 @@ func TestConvertOrderToOrderV2(t *testing.T) {
 func TestConvertTokenPairToInstrumentV2(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	instrumentV2 := ConvertTokenPairToInstrumentV2(tokenPair)
-	instrumentId := tokenPair.Name()
-	require.Equal(t, instrumentId, instrumentV2.InstrumentId)
+	instrumentID := tokenPair.Name()
+	require.Equal(t, instrumentID, instrumentV2.InstrumentID)
 
 	fSizeIncrement := 1 / math.Pow10(int(tokenPair.MaxQuantityDigit))
 	sizeIncrement := strings.TrimRight(fmt.Sprintf("%.10f", fSizeIncrement), "0")

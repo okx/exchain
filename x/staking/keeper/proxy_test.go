@@ -39,6 +39,12 @@ func TestVoteValidatorsAndWithdrawVote(t *testing.T) {
 		require.True(t, vote.GT(lastVotes), vote)
 	}
 
+	// standarlize
+	sVals := valsNew.Standardize()
+	require.NotNil(t, sVals)
+	r, err := sVals.MarshalYAML()
+	require.Nil(t, err)
+	require.Contains(t, r, "Operator Address")
 }
 
 func createVals(ctx sdk.Context, num int, keeper Keeper) types.Validators {

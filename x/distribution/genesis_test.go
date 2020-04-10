@@ -3,46 +3,53 @@ package distribution
 import (
 	"testing"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/distribution/keeper"
 	"github.com/stretchr/testify/require"
 )
 
+type testParam struct {
+	commission sdk.DecCoins
+}
+
+func getTestParams() []testParam {
+	return []testParam{
+		{keeper.NewTestDecCoins(1000, 0)},
+		{keeper.NewTestDecCoins(150, 2)},
+		{keeper.NewTestDecCoins(50, 8)},
+		{nil},
+	}
+}
+
 // InitGenesis sets distribution information for genesis
 func TestInitGenesis(t *testing.T) {
-	ctx, _, keeper, _, supplyKeeper := CreateTestInputDefault(t, false, 1000)
+	tests := getTestParams()
+	length := len(tests)
+	ctx, _, k, _, supplyKeeper := keeper.CreateTestInputDefault(t, false, 1000)
 
-	dwis := make([]DelegatorWithdrawInfo, 2)
-	dwis[0].DelegatorAddress = TestAddrs[0]
-	dwis[0].WithdrawAddress = TestAddrs[1]
-	dwis[1].DelegatorAddress = TestAddrs[2]
-	dwis[1].WithdrawAddress = TestAddrs[3]
+	valOpAddrs, _, valConsAddrs := keeper.GetTestAddrs()
+	dwis := make([]DelegatorWithdrawInfo, length)
+	accs := make([]ValidatorAccumulatedCommissionRecord, length)
+	for i, valAddr := range valOpAddrs {
+		accs[i].ValidatorAddress = valAddr
+		accs[i].Accumulated = tests[i].commission
+		dwis[i].DelegatorAddress, dwis[i].WithdrawAddress = keeper.TestAddrs[i*2], keeper.TestAddrs[i*2+1]
+	}
 
-	pp := sdk.ConsAddress(ed25519.GenPrivKey().PubKey().Address())
+	genesisState := NewGenesisState(true, dwis, valConsAddrs[0], accs)
+	InitGenesis(ctx, k, supplyKeeper, genesisState)
+	require.Equal(t, genesisState.WithdrawAddrEnabled, k.GetWithdrawAddrEnabled(ctx))
+	require.Equal(t, genesisState.PreviousProposer, k.GetPreviousProposerConsAddr(ctx))
+	for i := range accs {
+		require.Equal(t, genesisState.DelegatorWithdrawInfos[i].WithdrawAddress,
+			k.GetDelegatorWithdrawAddr(ctx, dwis[i].DelegatorAddress))
+		require.Equal(t, genesisState.ValidatorAccumulatedCommissions[i].Accumulated,
+			k.GetValidatorAccumulatedCommission(ctx, accs[i].ValidatorAddress))
+		require.Equal(t, tests[i].commission,
+			k.GetValidatorAccumulatedCommission(ctx, accs[i].ValidatorAddress))
+	}
 
-	acc := make([]ValidatorAccumulatedCommissionRecord, 2)
-	acc[0].ValidatorAddress = sdk.ValAddress(ed25519.GenPrivKey().PubKey().Address())
-	acc[0].Accumulated = sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 123)}
-	acc[1].ValidatorAddress = sdk.ValAddress(ed25519.GenPrivKey().PubKey().Address())
-	acc[1].Accumulated = sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 456)}
-
-	genesisState := NewGenesisState(true, dwis, pp, acc)
-	InitGenesis(ctx, keeper, supplyKeeper, genesisState)
-	require.Equal(t, genesisState.WithdrawAddrEnabled,
-		keeper.GetWithdrawAddrEnabled(ctx))
-	require.Equal(t, genesisState.DelegatorWithdrawInfos[0].WithdrawAddress,
-		keeper.GetDelegatorWithdrawAddr(ctx, dwis[0].DelegatorAddress))
-	require.Equal(t, genesisState.DelegatorWithdrawInfos[1].WithdrawAddress,
-		keeper.GetDelegatorWithdrawAddr(ctx, dwis[1].DelegatorAddress))
-	require.Equal(t, genesisState.PreviousProposer,
-		keeper.GetPreviousProposerConsAddr(ctx))
-	require.Equal(t, genesisState.ValidatorAccumulatedCommissions[0].Accumulated,
-		keeper.GetValidatorAccumulatedCommission(ctx, acc[0].ValidatorAddress))
-	require.Equal(t, genesisState.ValidatorAccumulatedCommissions[1].Accumulated,
-		keeper.GetValidatorAccumulatedCommission(ctx, acc[1].ValidatorAddress))
-
-	actualGenesis := ExportGenesis(ctx, keeper)
+	actualGenesis := ExportGenesis(ctx, k)
 	require.Equal(t, genesisState.WithdrawAddrEnabled, actualGenesis.WithdrawAddrEnabled)
 	require.ElementsMatch(t, genesisState.DelegatorWithdrawInfos, actualGenesis.DelegatorWithdrawInfos)
 	require.Equal(t, genesisState.PreviousProposer, actualGenesis.PreviousProposer)

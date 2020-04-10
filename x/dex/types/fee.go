@@ -1,12 +1,12 @@
 package types
 
 const (
-	DefaultFeeList              = "19999.9875"
-	DefaultFeeDelist            = "0.0125"
-	DefaultFeeTransferOwnership = "9.9875"
-	DefaultDelistMinDeposit     = "100"
+	defaultFeeList              = "20000"
+	defaultFeeTransferOwnership = "10"
+	defaultDelistMinDeposit     = "100"
 
-	DefaultMaxPriceDigitSize    = 8
+	// DefaultMaxPriceDigitSize defines default max price digit size
+	DefaultMaxPriceDigitSize = 8
+	// DefaultMaxQuantityDigitSize defines default max quantity digit size
 	DefaultMaxQuantityDigitSize = 8
-	DefaultMinQuantity          = 0
 )

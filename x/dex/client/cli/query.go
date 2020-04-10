@@ -37,7 +37,7 @@ func GetCmdQueryProducts(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "products",
 		Short: "Query the list of token pairs",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			ownerAddress := viper.GetString("owner")
 			page := viper.GetInt("page-number")
@@ -72,7 +72,7 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Use:   "deposits [account-addr]",
 		Short: "Query product deposits",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			ownerAddress := args[0]
 			page := viper.GetInt("page-number")
 			perPage := viper.GetInt("items-per-page")
@@ -99,12 +99,12 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdQueryDeposits queries match order of products
+// GetCmdQueryMatchOrder queries match order of products
 func GetCmdQueryMatchOrder(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "match-order",
 		Short: "Query the match order of token pairs",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			page := viper.GetInt("page-number")
 			perPage := viper.GetInt("items-per-page")
 			queryParams, err := types.NewQueryDexInfoParams("", page, perPage)
@@ -140,7 +140,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 $ okchaincli query dex params
 `),
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryParameters)
@@ -156,7 +156,7 @@ $ okchaincli query dex params
 	}
 }
 
-// GetCmdQueryTokenpairUnderDelisting queries the token pairs involved in dex delisting
+// GetCmdQueryProductsUnderDelisting queries the token pairs involved in dex delisting
 func GetCmdQueryProductsUnderDelisting(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "products-delisting",
@@ -165,7 +165,7 @@ func GetCmdQueryProductsUnderDelisting(queryRoute string, cdc *codec.Codec) *cob
 		Query all the products' names involved in dex delisting:
 
 $ okchaincli query dex products-delisting`),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryProductsDelisting), nil)
 			if err != nil {
@@ -181,7 +181,7 @@ $ okchaincli query dex products-delisting`),
 	}
 }
 
-// just for the object of []string could be inputted into cliCtx.PrintOutput(...)
+// Strings is just for the object of []string could be inputted into cliCtx.PrintOutput(...)
 type Strings []string
 
 func (strs Strings) String() string {

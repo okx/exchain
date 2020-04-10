@@ -1,12 +1,10 @@
+// nolint
 package types
 
 import (
 	"fmt"
 
 	orderTypes "github.com/okex/okchain/x/order/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
@@ -30,19 +28,6 @@ const (
 	FeeTypeOrderReceive = orderTypes.FeeTypeOrderReceive
 )
 
-type EndBlockEvent struct {
-	ctx         sdk.Context
-	blockHeight int64
-	timestamp   int64
-}
-
-type TxEvent struct {
-	ctx       sdk.Context
-	tx        *auth.StdTx
-	txHash    string
-	timestamp int64
-}
-
 type Ticker struct {
 	Symbol           string  `json:"symbol"`
 	Product          string  `json:"product"`
@@ -57,6 +42,7 @@ type Ticker struct {
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
 }
 
+// PrettyString return string of ticker data
 func (t *Ticker) PrettyString() string {
 	return fmt.Sprintf("[Ticker] Symbol: %s, Price: %f, TStr: %s, Timestamp: %d, OCHLV(%f, %f, %f, %f, %f) [%f, %s])",
 		t.Symbol, t.Price, TimeString(t.Timestamp), t.Timestamp, t.Open, t.Close, t.High, t.Low, t.Volume, t.Change, t.ChangePercentage)
@@ -76,14 +62,9 @@ func (tickers Tickers) Less(i, j int) bool {
 	return tickers[i].Change < tickers[j].Change
 }
 
-type KlineSnapShot struct {
-	LastBlockHeight int64 `json:"last_block_height"`
-	LastSyncedTime  int64 `json:"last_synced_time"`
-}
-
 type Order struct {
 	TxHash         string `gorm:"type:varchar(80)" json:"txhash" v2:"txhash"`
-	OrderId        string `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"`
+	OrderID        string `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"`
 	Sender         string `gorm:"index;type:varchar(80)" json:"sender" v2:"sender"`
 	Product        string `gorm:"index;type:varchar(20)" json:"product" v2:"product"`
 	Side           string `gorm:"type:varchar(10)" json:"side" v2:"side"`

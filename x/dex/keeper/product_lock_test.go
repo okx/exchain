@@ -9,7 +9,7 @@ import (
 
 func TestGetLockedProductsCopy(t *testing.T) {
 
-	testInput := CreateTestInput(t)
+	testInput := createTestInput(t)
 	keeper := testInput.DexKeeper
 	ctx := testInput.Ctx
 
@@ -37,9 +37,8 @@ func TestGetLockedProductsCopy(t *testing.T) {
 	require.NotEqual(t, copy.Data["p2"].BlockHeight, copy2.Data["p2"].BlockHeight)
 }
 
-
 func TestProductLockMap(t *testing.T) {
-	testInput := CreateTestInput(t)
+	testInput := createTestInput(t)
 	keeper := testInput.DexKeeper
 	ctx := testInput.Ctx
 

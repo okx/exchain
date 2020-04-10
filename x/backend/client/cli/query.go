@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -21,7 +20,7 @@ import (
 func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:   "backend",
-		Short: "query commands for the backend module",
+		Short: "Querying commands for the backend module",
 	}
 
 	queryCmd.AddCommand(
@@ -129,7 +128,7 @@ func GetCmdDeals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdTradeHistory queries trade history of a block
+// GetCmdCandles queries kline list
 func GetCmdCandles(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "klines",
@@ -158,10 +157,13 @@ func GetCmdCandles(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				fmt.Printf("failed to get klines: %v\n", err)
 				return nil
 			} else {
-				err = json.Indent(&out, res, "", "  ")
+				if err = json.Indent(&out, res, "", "  "); err != nil {
+					fmt.Printf("failed to format by JSON : %v\n", err)
+					return nil
+				}
 			}
 
-			fmt.Println(string(out.Bytes()))
+			fmt.Println(out.String())
 			return nil
 		},
 	}
@@ -171,6 +173,7 @@ func GetCmdCandles(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+// GetCmdTickers queries latest ticker list
 func GetCmdTickers(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tickers",
@@ -204,10 +207,13 @@ func GetCmdTickers(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				fmt.Printf("failed to get tickers: %v\n", err)
 				return nil
 			} else {
-				err = json.Indent(&out, res, "", "  ")
+				if err = json.Indent(&out, res, "", "  "); err != nil {
+					fmt.Printf("failed to format by JSON : %v\n", err)
+					return nil
+				}
 			}
 
-			fmt.Println(string(out.Bytes()))
+			fmt.Println(out.String())
 			return nil
 		},
 	}
@@ -265,7 +271,7 @@ func GetCmdOrderList(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			if args[0] != "open" && args[0] != "closed" {
-				return errors.New(fmt.Sprintf("order status should be open/closed"))
+				return fmt.Errorf(fmt.Sprintf("order status should be open/closed"))
 			}
 			addr := args[1]
 			flags := cmd.Flags()
@@ -354,7 +360,7 @@ func GetCmdTxList(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-//GetBlockTxHashesCommand returns the tx hashes in the block of the given height
+//GetBlockTxHashesCommand queries the tx hashes in the block of the given height
 func GetBlockTxHashesCommand(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "block-tx-hashes [height]",
@@ -384,6 +390,7 @@ func GetBlockTxHashesCommand(queryRoute string, cdc *codec.Codec) *cobra.Command
 	return cmd
 }
 
+// GetBlockTxHashes return tx hashes in the block of the given height
 func GetBlockTxHashes(cliCtx context.CLIContext, height *int64) ([]string, error) {
 	// get the node
 	node, err := cliCtx.GetNode()

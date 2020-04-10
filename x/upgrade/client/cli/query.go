@@ -28,10 +28,11 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return upgradeQueryCmd
 }
 
+// GetCmdQueryUpgradeConfig returns cmd for upgrade config query
 func GetCmdQueryUpgradeConfig(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",
-		Short: "Query app upgrade config",
+		Short: "query app upgrade config",
 		Long: strings.TrimSpace(`Query details about app upgrade config:
 
 $ okchaincli query upgrade config
@@ -53,10 +54,11 @@ $ okchaincli query upgrade config
 	}
 }
 
+// GetCmdQueryUpgradeVersion returns cmd for upgrade version query
 func GetCmdQueryUpgradeVersion(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "Query app upgrade version",
+		Short: "query app upgrade version",
 		Long: strings.TrimSpace(`Query details about current app version:
 
 $ okchaincli query upgrade version
@@ -78,10 +80,11 @@ $ okchaincli query upgrade version
 	}
 }
 
+// GetCmdQueryUpgradeFailedVersion returns cmd for upgrade failed version query
 func GetCmdQueryUpgradeFailedVersion(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "failed-version",
-		Short: "Query app upgrade failed-version",
+		Short: "query app upgrade failed-version",
 		Long: strings.TrimSpace(`Query details about last failed app version:
 
 $ okchaincli query upgrade failed-version
