@@ -1,5 +1,7 @@
 # OKChain
-Infrastructure of Decentralized Exchange
+The Infrastructure of Decentralized Exchange
+
+![banner](./docs/images/okchain-image.jpg)
 
 [![CircleCI](https://circleci.com/gh/okex/okchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okchain/tree/master)
 [![codecov](https://codecov.io/gh/okex/okchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okchain)
