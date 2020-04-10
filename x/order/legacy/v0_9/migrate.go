@@ -1,3 +1,4 @@
+// nolint
 package v0_9
 
 import (
@@ -5,6 +6,7 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+// Migrate : migrate from v08 to v09
 func Migrate(oldGenState v08order.GenesisState) GenesisState {
 	params := types.Params{
 		OrderExpireBlocks: oldGenState.Params.OrderExpireBlocks,

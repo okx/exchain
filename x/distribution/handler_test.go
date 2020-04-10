@@ -12,19 +12,19 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	valOpAddrs, valConsPks, valConsAddrs := keeper.GetAddrs()
-	ctx, ak, k, sk, supplyKeeper := CreateTestInputDefault(t, false, 1000)
-	sh := staking.NewHandler(sk)
+	valOpAddrs, valConsPks, valConsAddrs := keeper.GetTestAddrs()
+	ctx, ak, _, k, sk, _, supplyKeeper := keeper.CreateTestInputAdvanced(t, false, 1000)
 	dh := NewHandler(k)
 
 	// create one validator
-	skMsg := staking.NewMsgCreateValidator(valOpAddrs[0], valConsPks[0], staking.Description{}, keeper.NewDecCoin(1))
+	sh := staking.NewHandler(sk)
+	skMsg := staking.NewMsgCreateValidator(valOpAddrs[0], valConsPks[0],
+		staking.Description{}, keeper.NewTestDecCoin(1, 0))
 	require.True(t, sh(ctx, skMsg).IsOK())
 
 	//send 1okt fee
 	feeCollector := supplyKeeper.GetModuleAccount(ctx, k.GetFeeCollectorName())
-	require.NotNil(t, feeCollector)
-	err := feeCollector.SetCoins(keeper.NewDecCoins(1, 0))
+	err := feeCollector.SetCoins(keeper.NewTestDecCoins(1, 0))
 	require.NoError(t, err)
 	ak.SetAccount(ctx, feeCollector)
 	// crate votes info and allocate tokens
@@ -32,21 +32,21 @@ func TestHandler(t *testing.T) {
 	votes := []abci.VoteInfo{{Validator: abciVal, SignedLastBlock: true}}
 	k.AllocateTokens(ctx, 100, valConsAddrs[0], votes)
 
-	//send withdraw-comssion msg
-	msg := types.NewMsgWithdrawValidatorCommission(valOpAddrs[0])
-	require.True(t, dh(ctx, msg).IsOK())
-	require.False(t, dh(ctx, msg).IsOK())
+	//send withdraw-commission msgWithdrawValCommission
+	msgWithdrawValCommission := types.NewMsgWithdrawValidatorCommission(valOpAddrs[0])
+	require.True(t, dh(ctx, msgWithdrawValCommission).IsOK())
+	require.False(t, dh(ctx, msgWithdrawValCommission).IsOK())
 
-	//send set-withdraw-address msg
-	msg1 := types.NewMsgSetWithdrawAddress(keeper.DelAddr1, keeper.DelAddr2)
-	require.True(t, dh(ctx, msg1).IsOK())
-	msg1 = types.NewMsgSetWithdrawAddress(keeper.DelAddr1, supplyKeeper.GetModuleAddress(ModuleName))
-	require.False(t, dh(ctx, msg1).IsOK())
+	//send set-withdraw-address msgSetWithdrawAddress
+	msgSetWithdrawAddress := types.NewMsgSetWithdrawAddress(keeper.TestAddrs[0], keeper.TestAddrs[1])
+	require.True(t, dh(ctx, msgSetWithdrawAddress).IsOK())
 	k.SetWithdrawAddrEnabled(ctx, false)
-	msg1 = types.NewMsgSetWithdrawAddress(keeper.DelAddr1, keeper.DelAddr2)
-	require.False(t, dh(ctx, msg1).IsOK())
+	require.False(t, dh(ctx, msgSetWithdrawAddress).IsOK())
+	msgSetWithdrawAddress = types.NewMsgSetWithdrawAddress(keeper.TestAddrs[0],
+		supplyKeeper.GetModuleAddress(ModuleName))
+	require.False(t, dh(ctx, msgSetWithdrawAddress).IsOK())
 
-	//send unknown msg
+	//send unknown msgWithdrawValCommission
 	fakeMsg := NewMsgFake()
 	require.False(t, dh(ctx, fakeMsg).IsOK())
 }

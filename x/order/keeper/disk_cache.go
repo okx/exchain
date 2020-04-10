@@ -7,12 +7,14 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+// OrderIDsMap stores orderIDSlice with map.
 // <product:price:side> -> <orderIDs>
 type OrderIDsMap struct {
 	Data         map[string][]string
 	updatedItems map[string]struct{}
 }
 
+// DepthBookMap stores depthBook with map.
 // <product> -> <depthBook>
 type DepthBookMap struct {
 	data         map[string]*types.DepthBook
@@ -20,6 +22,7 @@ type DepthBookMap struct {
 	newItems     map[string]struct{}
 }
 
+// DiskCache stores cache that will persist to disk at endBlock.
 type DiskCache struct {
 	depthBookMap *DepthBookMap
 	orderIDsMap  *OrderIDsMap
@@ -40,18 +43,19 @@ func newDiskCache() *DiskCache {
 	}
 }
 
-// invoked in end block
+// flush is invoked in end block
 func (c *DiskCache) flush() {
 	c.orderIDsMap.updatedItems = make(map[string]struct{})
 	c.depthBookMap.updatedItems = make(map[string]struct{})
 	c.depthBookMap.newItems = make(map[string]struct{})
 }
 
-// invoked in begin block
+// reset is invoked in begin block
 func (c *DiskCache) reset() {
 	c.closedOrderIDs = []string{}
 }
 
+// nolint
 func (c *DiskCache) GetClosedOrderIDs() []string {
 	return c.closedOrderIDs
 }
@@ -67,6 +71,7 @@ func (c *DiskCache) getLastPrice(product string) sdk.Dec {
 	return sdk.ZeroDec()
 }
 
+// GetOrderIDsMapCopy returns a new copy of OrderIDsMap
 func (c *DiskCache) GetOrderIDsMapCopy() *OrderIDsMap {
 	if c.orderIDsMap == nil {
 		return nil
@@ -89,6 +94,7 @@ func (c *DiskCache) setStoreOrderNum(num int64) {
 	c.storeOrderNum = num
 }
 
+// nolint
 func (c *DiskCache) DecreaseStoreOrderNum(num int64) int64 {
 	c.storeOrderNum -= num
 	return c.storeOrderNum
@@ -102,7 +108,7 @@ func (c *DiskCache) getOpenNum() int64 {
 	return c.openNum
 }
 
-// update or remove unfilled order ids
+// setOrderIDs updates or removes unfilled order ids
 func (c *DiskCache) setOrderIDs(key string, orderIDs []string) {
 
 	if len(orderIDs) == 0 {
@@ -114,7 +120,7 @@ func (c *DiskCache) setOrderIDs(key string, orderIDs []string) {
 	c.orderIDsMap.updatedItems[key] = struct{}{}
 }
 
-// update or remove a depth book
+// setDepthBook updates or removes a depth book
 func (c *DiskCache) setDepthBook(product string, book *types.DepthBook) {
 	if book != nil && len(book.Items) > 0 {
 		c.depthBookMap.data[product] = book
@@ -124,6 +130,8 @@ func (c *DiskCache) setDepthBook(product string, book *types.DepthBook) {
 	c.depthBookMap.updatedItems[product] = struct{}{}
 }
 
+// UpdatedOrderIDKeys
+// nolint
 func (c *DiskCache) GetUpdatedOrderIDKeys() []string {
 	updatedKeys := make([]string, 0, len(c.orderIDsMap.updatedItems))
 	for key := range c.orderIDsMap.updatedItems {
@@ -146,6 +154,7 @@ func (c *DiskCache) getProductsFromDepthBookMap() []string {
 	return products
 }
 
+// GetUpdatedDepthbookKeys returns a new copy of UpdatedDepthbookKeys
 func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
 	updatedKeys := make([]string, 0, len(c.depthBookMap.updatedItems))
 	for key := range c.depthBookMap.updatedItems {
@@ -155,7 +164,8 @@ func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
 	return updatedKeys
 }
 
-func (c *DiskCache) GetNewDepthbookKyes() []string {
+// GetNewDepthbookKeys returns a new copy of NewDepthbookKeys
+func (c *DiskCache) GetNewDepthbookKeys() []string {
 	newAddKeys := make([]string, 0, len(c.depthBookMap.newItems))
 	for key := range c.depthBookMap.newItems {
 		newAddKeys = append(newAddKeys, key)
@@ -163,7 +173,7 @@ func (c *DiskCache) GetNewDepthbookKyes() []string {
 	return newAddKeys
 }
 
-// insert a new order into orderIDsMap
+// insertOrder inserts a new order into orderIDsMap
 func (c *DiskCache) insertOrder(order *types.Order) {
 	// 1. update depthBookMap
 	depthBook, ok := c.depthBookMap.data[order.Product]

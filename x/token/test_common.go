@@ -73,7 +73,6 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bk, maccPerms)
 	tk := NewKeeper(bk,
-		pk,
 		pk.Subspace(DefaultParamspace),
 		auth.FeeCollectorName,
 		supplyKeeper,

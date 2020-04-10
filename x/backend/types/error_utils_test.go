@@ -2,14 +2,15 @@ package types
 
 import (
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewErrorsMerged(t *testing.T) {
 	e1 := errors.New("e1")
 	e2 := errors.New("e2")
-	var e3 error = nil
+	var e3 error
 
 	m1 := NewErrorsMerged(e3)
 	require.Nil(t, m1)

@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// nolint
 type ProductLock struct {
 	BlockHeight  int64
 	Price        sdk.Dec
@@ -12,10 +13,12 @@ type ProductLock struct {
 	SellExecuted sdk.Dec
 }
 
+// nolint
 type ProductLockMap struct {
 	Data map[string]*ProductLock
 }
 
+// nolint
 func NewProductLockMap() *ProductLockMap {
 	return &ProductLockMap{
 		Data: make(map[string]*ProductLock),

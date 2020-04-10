@@ -16,13 +16,12 @@ func TestTallyPassed(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
 		validator.Status = sdk.Bonded
-		validator.Tokens = reserve
+		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)
 		stakingKeeper.SetValidatorByPowerIndex(ctx, validator)
 		keeper.SetSignal(ctx, 1, validator.GetConsAddr().String())
 	}
 
-	// sdk.NewDecWithPrec(75, 2) -> get a float 75.00
 	require.True(t, tally(ctx, 1, keeper, sdk.NewDecWithPrec(75, 2)))
 }
 
@@ -32,7 +31,7 @@ func TestTallyNotPassed(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
 		validator.Status = sdk.Bonded
-		validator.Tokens = reserve
+		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)
 		stakingKeeper.SetValidatorByPowerIndex(ctx, validator)
 		if i%2 == 0 {

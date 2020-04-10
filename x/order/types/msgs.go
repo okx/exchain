@@ -9,11 +9,13 @@ import (
 	"strconv"
 )
 
+// nolint
 const (
 	OrderItemLimit            = 200
 	MultiCancelOrderItemLimit = 200
 )
 
+// nolint
 type MsgNewOrder struct {
 	Sender   sdk.AccAddress `json:"sender"`   // order maker address
 	Product  string         `json:"product"`  // product for trading pair in full name of the tokens
@@ -39,6 +41,7 @@ func NewMsgNewOrder(sender sdk.AccAddress, product string, side string, price st
 	}
 }
 
+// nolint
 type MsgCancelOrder struct {
 	Sender  sdk.AccAddress `json:"sender"`
 	OrderID string         `json:"order_id"`
@@ -54,11 +57,13 @@ func NewMsgCancelOrder(sender sdk.AccAddress, orderID string) MsgCancelOrders {
 }
 
 //********************MsgNewOrders*************
+// nolint
 type MsgNewOrders struct {
 	Sender     sdk.AccAddress `json:"sender"` // order maker address
 	OrderItems []OrderItem    `json:"order_items"`
 }
 
+// nolint
 type OrderItem struct {
 	Product  string  `json:"product"`  // product for trading pair in full name of the tokens
 	Side     string  `json:"side"`     // BUY/SELL
@@ -66,6 +71,7 @@ type OrderItem struct {
 	Quantity sdk.Dec `json:"quantity"` // quantity of the order
 }
 
+// nolint
 func NewOrderItem(product string, side string, price string,
 	quantity string) OrderItem {
 	return OrderItem{
@@ -84,13 +90,13 @@ func NewMsgNewOrders(sender sdk.AccAddress, orderItems []OrderItem) MsgNewOrders
 	}
 }
 
-// Name Implements Msg.
+// nolint
 func (msg MsgNewOrders) Route() string { return "order" }
 
-// Type Implements Msg.
+// nolint
 func (msg MsgNewOrders) Type() string { return "new" }
 
-// ValdateBasic Implements Msg.
+// ValidateBasic : Implements Msg.
 func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
@@ -124,7 +130,7 @@ func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes encodes the message for signing
+// GetSignBytes : encodes the message for signing
 func (msg MsgNewOrders) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
@@ -135,12 +141,13 @@ func (msg MsgNewOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// nolint
 type MsgCancelOrders struct {
 	Sender   sdk.AccAddress `json:"sender"` // order maker address
 	OrderIDs []string       `json:"order_ids"`
 }
 
-// NewMsgCancelOrder is a constructor function for MsgCancelOrder
+// NewMsgCancelOrders is a constructor function for MsgCancelOrder
 func NewMsgCancelOrders(sender sdk.AccAddress, orderIDItems []string) MsgCancelOrders {
 	msgCancelOrder := MsgCancelOrders{
 		Sender:   sender,
@@ -149,13 +156,13 @@ func NewMsgCancelOrders(sender sdk.AccAddress, orderIDItems []string) MsgCancelO
 	return msgCancelOrder
 }
 
-// Name Implements Msg.
+// nolint
 func (msg MsgCancelOrders) Route() string { return "order" }
 
-// Type Implements Msg.
+// nolint
 func (msg MsgCancelOrders) Type() string { return "cancel" }
 
-// ValdateBasic Implements Msg.
+// nolint
 func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
@@ -201,6 +208,7 @@ func (msg MsgCancelOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// nolint
 type OrderResult struct {
 	Code    sdk.CodeType `json:"code"`    // order return code
 	Message string       `json:"msg"`     // order return error message

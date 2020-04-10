@@ -9,6 +9,6 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
-	// set accumulated commission
+	// set accumulated commissions
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 }

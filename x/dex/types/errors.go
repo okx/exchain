@@ -8,57 +8,49 @@ import (
 
 // const CodeType
 const (
-	CodeInvalidProduct      = 1
-	CodeTokenPairNotFound   = 2
-	CodeDelistOwnerNotMatch = 3
+	codeInvalidProduct      sdk.CodeType = 1
+	codeTokenPairNotFound   sdk.CodeType = 2
+	codeDelistOwnerNotMatch sdk.CodeType = 3
 
-	CodeInvalidBalanceNotEnough sdk.CodeType = 4
-	CodeInvalidHeight           sdk.CodeType = 5
-	CodeInvalidAsset            sdk.CodeType = 6
-	CodeInvalidCommon           sdk.CodeType = 7
+	codeInvalidBalanceNotEnough sdk.CodeType = 4
+	codeInvalidAsset            sdk.CodeType = 5
 )
 
 // CodeType to Message
-func CodeToDefaultMsg(code sdk.CodeType) string {
+func codeToDefaultMsg(code sdk.CodeType) string {
 	switch code {
-	case CodeInvalidProduct:
+	case codeInvalidProduct:
 		return "invalid product"
-	case CodeTokenPairNotFound:
+	case codeTokenPairNotFound:
 		return "tokenpair not found"
-	case CodeDelistOwnerNotMatch:
+	case codeDelistOwnerNotMatch:
 		return "tokenpair delistor should be it's owner "
 	default:
 		return fmt.Sprintf("unknown code %d", code)
 	}
 }
 
-// SDK Errors Functor
-// All error raised in this module is kept here.
-// Global errors which can be seen outside.
+// ErrInvalidProduct returns invalid product error
 func ErrInvalidProduct(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, CodeInvalidProduct, CodeToDefaultMsg(CodeInvalidProduct)+": %s", msg)
+	return sdk.NewError(DefaultCodespace, codeInvalidProduct, codeToDefaultMsg(codeInvalidProduct)+": %s", msg)
 }
 
+// ErrTokenPairNotFound returns token pair not found error
 func ErrTokenPairNotFound(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, CodeTokenPairNotFound, CodeToDefaultMsg(CodeTokenPairNotFound)+": %s", msg)
+	return sdk.NewError(DefaultCodespace, codeTokenPairNotFound, codeToDefaultMsg(codeTokenPairNotFound)+": %s", msg)
 }
 
+// ErrDelistOwnerNotMatch returns delist owner not match error
 func ErrDelistOwnerNotMatch(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, CodeDelistOwnerNotMatch, CodeToDefaultMsg(CodeDelistOwnerNotMatch)+": %s", msg)
+	return sdk.NewError(DefaultCodespace, codeDelistOwnerNotMatch, codeToDefaultMsg(codeDelistOwnerNotMatch)+": %s", msg)
 }
 
-func ErrInvalidBalanceNotEnough(codespace sdk.CodespaceType, message string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidBalanceNotEnough, message)
+// ErrInvalidBalanceNotEnough returns invalid balance not enough error
+func ErrInvalidBalanceNotEnough(message string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, codeInvalidBalanceNotEnough, message)
 }
 
-func ErrInvalidHeight(codespace sdk.CodespaceType, h, ch, max int64) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidHeight, fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.", h, ch, ch, max))
-}
-
-func ErrInvalidCommon(codespace sdk.CodespaceType, message string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidCommon, message)
-}
-
-func ErrFailToDeleteTokenPair(codespace sdk.CodespaceType, tokenPair string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidCommon, "Failed to delete token pair: %s", tokenPair)
+// ErrInvalidAsset returns invalid asset error
+func ErrInvalidAsset(message string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, codeInvalidAsset, message)
 }

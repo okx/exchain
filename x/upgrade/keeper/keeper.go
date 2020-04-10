@@ -14,6 +14,7 @@ import (
 	"github.com/okex/okchain/x/upgrade/types"
 )
 
+// Keeper is the keeper struct of the upgrade store
 type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      *codec.Codec
@@ -25,8 +26,9 @@ type Keeper struct {
 	paramSpace     params.Subspace
 }
 
-// create a new upgrade keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, pk ProtocolKeeper, sk StakingKeeper, ck BankKeeper, paramSpace params.Subspace) Keeper {
+// NewKeeper creates a new upgrade keeper
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, pk ProtocolKeeper, sk StakingKeeper, ck BankKeeper,
+	paramSpace params.Subspace) Keeper {
 	return Keeper{
 		key,
 		cdc,
@@ -37,70 +39,64 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, pk ProtocolKeeper, sk Staking
 	}
 }
 
-// get app upgrade config
+// GetAppUpgradeConfig gets app upgrade config
 func (k Keeper) GetAppUpgradeConfig(ctx sdk.Context) (proto.AppUpgradeConfig, bool) {
 	return k.protocolKeeper.GetUpgradeConfig(ctx)
 }
 
-// clear upgrade config
+// ClearUpgradeConfig clears upgrade config
 func (k Keeper) ClearUpgradeConfig(ctx sdk.Context) {
 	k.protocolKeeper.ClearUpgradeConfig(ctx)
 }
 
-// get validator by consAddr
-func (k Keeper) GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (validator stakingtypes.Validator, found bool) {
+// GetValidatorByConsAddr gets validator by its consensus address
+func (k Keeper) GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (validator stakingtypes.Validator,
+	found bool) {
 	return k.stakingKeeper.GetValidatorByConsAddr(ctx, consAddr)
 }
 
-// set current version
+// SetCurrentVersion sets current version to store
 func (k Keeper) SetCurrentVersion(ctx sdk.Context, currentVersion uint64) {
 	k.protocolKeeper.SetCurrentVersion(ctx, currentVersion)
 }
 
-//set last failed version
+// SetLastFailedVersion sets last failed version to store
 func (k Keeper) SetLastFailedVersion(ctx sdk.Context, lastFailedVersion uint64) {
 	k.protocolKeeper.SetLastFailedVersion(ctx, lastFailedVersion)
 }
 
-// set signal
+// SetSignal sets signal for upgrade
 func (k Keeper) SetSignal(ctx sdk.Context, protocol uint64, address string) {
 	kvStore := ctx.KVStore(k.storeKey)
-	cmsgBytes, err := k.cdc.MarshalBinaryLengthPrefixed(true)
-	if err != nil {
-		panic(err)
-	}
-	kvStore.Set(GetSignalKey(protocol, address), cmsgBytes)
+	kvStore.Set(types.GetSignalKey(protocol, address), k.cdc.MustMarshalBinaryLengthPrefixed(true))
 }
 
-// get signal
+// GetSignal gets signal
 func (k Keeper) GetSignal(ctx sdk.Context, protocol uint64, address string) bool {
 	kvStore := ctx.KVStore(k.storeKey)
-	flagBytes := kvStore.Get(GetSignalKey(protocol, address))
+	flagBytes := kvStore.Get(types.GetSignalKey(protocol, address))
 	if flagBytes != nil {
 		var flag bool
-		err := k.cdc.UnmarshalBinaryLengthPrefixed(flagBytes, &flag)
-		if err != nil {
-			panic(err)
-		}
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(flagBytes, &flag)
 		return true
 	}
 	return false
 }
 
-// remove signal
+// DeleteSignal removes signal
 func (k Keeper) DeleteSignal(ctx sdk.Context, protocol uint64, address string) bool {
 	if ok := k.GetSignal(ctx, protocol, address); ok {
 		kvStore := ctx.KVStore(k.storeKey)
-		kvStore.Delete(GetSignalKey(protocol, address))
+		kvStore.Delete(types.GetSignalKey(protocol, address))
 		return true
 	}
 	return false
 }
 
-// cleanup signals
+// ClearSignals cleans up signals
 func (k Keeper) ClearSignals(ctx sdk.Context, protocol uint64) {
 	kvStore := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(kvStore, GetSignalPrefixKey(protocol))
+	iterator := sdk.KVStorePrefixIterator(kvStore, types.GetSignalPrefixKey(protocol))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
@@ -108,50 +104,45 @@ func (k Keeper) ClearSignals(ctx sdk.Context, protocol uint64) {
 	}
 }
 
-// add new version info
+// AddNewVersionInfo adds new version info
 func (k Keeper) AddNewVersionInfo(ctx sdk.Context, versionInfo types.VersionInfo) {
 	kvStore := ctx.KVStore(k.storeKey)
 
-	versionInfoBytes, err := k.cdc.MarshalBinaryLengthPrefixed(versionInfo)
-	if err != nil {
-		panic(err)
-	}
-	kvStore.Set(GetProposalIDKey(versionInfo.UpgradeInfo.ProposalID), versionInfoBytes)
-
-	proposalIDBytes, err := k.cdc.MarshalBinaryLengthPrefixed(versionInfo.UpgradeInfo.ProposalID)
-	if err != nil {
-		panic(err)
-	}
+	versionInfoBytes := k.cdc.MustMarshalBinaryLengthPrefixed(versionInfo)
+	kvStore.Set(types.GetProposalIDKey(versionInfo.UpgradeInfo.ProposalID), versionInfoBytes)
+	proposalIDBytes := k.cdc.MustMarshalBinaryLengthPrefixed(versionInfo.UpgradeInfo.ProposalID)
 
 	if versionInfo.Success {
-		kvStore.Set(GetSuccessVersionKey(versionInfo.UpgradeInfo.ProtocolDef.Version), proposalIDBytes)
+		kvStore.Set(types.GetSuccessVersionKey(versionInfo.UpgradeInfo.ProtocolDef.Version), proposalIDBytes)
 	} else {
-		kvStore.Set(GetFailedVersionKey(versionInfo.UpgradeInfo.ProtocolDef.Version, versionInfo.UpgradeInfo.ProposalID), proposalIDBytes)
+		kvStore.Set(types.GetFailedVersionKey(versionInfo.UpgradeInfo.ProtocolDef.Version,
+			versionInfo.UpgradeInfo.ProposalID), proposalIDBytes)
 	}
 }
 
-// get iterate bonded validators by power
-func (k Keeper) IterateBondedValidatorsByPower(ctx sdk.Context, fn func(index int64, validator exported.ValidatorI) (stop bool)) {
+// IterateBondedValidatorsByPower iterates bonded validators by power
+func (k Keeper) IterateBondedValidatorsByPower(ctx sdk.Context,
+	fn func(index int64, validator exported.ValidatorI) (stop bool)) {
 	k.stakingKeeper.IterateBondedValidatorsByPower(ctx, fn)
 }
 
-// get current version
+// GetCurrentVersion gets current version
 func (k Keeper) GetCurrentVersion(ctx sdk.Context) uint64 {
 	return k.protocolKeeper.GetCurrentVersion(ctx)
 }
 
+// SetParams sets upgrade params to store
 func (k Keeper) SetParams(ctx sdk.Context, params types.UpgradeParams) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-// get inflation params from the global param store
+// GetParams gets inflation params from the global param store
 func (k Keeper) GetParams(ctx sdk.Context) (params types.UpgradeParams) {
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
 
-// just 4 test
-// getter
+// GetProtocolKeeper gets proto keeper
 func (k Keeper) GetProtocolKeeper() ProtocolKeeper {
 	return k.protocolKeeper
 }

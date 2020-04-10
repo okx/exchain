@@ -59,7 +59,7 @@ type MockStakingKeeper struct {
 	TkeyStoreKey sdk.StoreKey
 	SupplyKeeper supply.Keeper
 	MountedStore store.MultiStore
-	AccKeeper auth.AccountKeeper
+	AccKeeper    auth.AccountKeeper
 }
 
 func NewMockStakingKeeper(k Keeper, keyStoreKey, tkeyStoreKey sdk.StoreKey, sKeeper supply.Keeper,
@@ -174,7 +174,6 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	keeper := NewKeeper(cdc, keyStaking, tkeyStaking, supplyKeeper, pk.Subspace(DefaultParamspace), types.DefaultCodespace)
 	keeper.SetParams(ctx, types.DefaultParams())
-
 
 	// set module accounts
 	supplyKeeper.SetModuleAccount(ctx, feeCollectorAcc)

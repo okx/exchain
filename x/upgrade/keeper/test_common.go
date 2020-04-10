@@ -50,10 +50,7 @@ func testPrepare(t *testing.T) (ctx sdk.Context, keeper Keeper) {
 		"main",
 		auth.StoreKey,
 		supply.StoreKey,
-		// for staking/distr rollback to cosmos-sdk
-		//staking.StoreKey, staking.DelegatorPoolKey, staking.RedelegationKeyM, staking.RedelegationActonKey, staking.UnbondingKey,
 		staking.StoreKey,
-
 		params.StoreKey,
 		types.StoreKey,
 	)
@@ -70,8 +67,7 @@ func testPrepare(t *testing.T) (ctx sdk.Context, keeper Keeper) {
 		ms.MountStoreWithDB(v, sdk.StoreTypeTransient, db)
 	}
 
-	err := ms.LoadLatestVersion()
-	require.Nil(t, err)
+	require.NoError(t, ms.LoadLatestVersion())
 
 	ctx = sdk.NewContext(ms, abci.Header{}, false, log.NewTMLogger(os.Stdout))
 	cdc := getTestCodec()
@@ -80,10 +76,6 @@ func testPrepare(t *testing.T) (ctx sdk.Context, keeper Keeper) {
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace), bank.DefaultCodespace, nil)
 	supplyKeeper := supply.NewKeeper(cdc, skMap[supply.StoreKey], accountKeeper, bankKeeper, maccPerms)
 
-	// for staking/distr rollback to cosmos-sdk
-	//stakingKeeper := staking.NewKeeper(
-	//	cdc, skMap[staking.StoreKey], skMap[staking.DelegatorPoolKey], skMap[staking.RedelegationKeyM], skMap[staking.RedelegationActonKey], skMap[staking.UnbondingKey], tskMap[staking.TStoreKey],
-	//	supplyKeeper, paramsKeeper.Subspace(staking.DefaultParamspace), staking.DefaultCodespace)
 	stakingKeeper := staking.NewKeeper(
 		cdc, skMap[staking.StoreKey], tskMap[staking.TStoreKey],
 		supplyKeeper, paramsKeeper.Subspace(staking.DefaultParamspace), staking.DefaultCodespace)

@@ -72,10 +72,10 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 // MarshalJSON implements the json.Marshaler interface to provide custom JSON serialization
 func (msg MsgCreateValidator) MarshalJSON() ([]byte, error) {
 	return json.Marshal(msgCreateValidatorJSON{
-		Description: msg.Description,
-		DelegatorAddress: msg.DelegatorAddress,
-		ValidatorAddress: msg.ValidatorAddress,
-		PubKey:           sdk.MustBech32ifyConsPub(msg.PubKey),
+		Description:       msg.Description,
+		DelegatorAddress:  msg.DelegatorAddress,
+		ValidatorAddress:  msg.ValidatorAddress,
+		PubKey:            sdk.MustBech32ifyConsPub(msg.PubKey),
 		MinSelfDelegation: msg.MinSelfDelegation,
 	})
 }

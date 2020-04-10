@@ -63,7 +63,7 @@ func CanWithdrawInvariant(k Keeper) sdk.Invariant {
 		})
 
 		broken := count != 0
-		return sdk.FormatInvariant(types.ModuleName, "can withdraw", msg), broken
+		return sdk.FormatInvariant(types.ModuleName, "withdraw commission", msg), broken
 	}
 }
 

@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// nolint
 type ErrorsMerged struct {
 	errors []error
 }
 
+// nolint
 func (em ErrorsMerged) Error() string {
 
 	errStrs := []string{}
@@ -19,7 +21,7 @@ func (em ErrorsMerged) Error() string {
 	return strings.Join(errStrs, "; ")
 }
 
-// Combine plenty of errors into a single error.
+// NewErrorsMerged plenty of errors into a single error.
 func NewErrorsMerged(args ...error) error {
 
 	filtered := []error{}
@@ -31,11 +33,12 @@ func NewErrorsMerged(args ...error) error {
 
 	if len(filtered) > 0 {
 		return ErrorsMerged{errors: filtered}
-	} else {
-		return nil
 	}
+	return nil
+
 }
 
+// nolint
 func PrintStackIfPanic() {
 	r := recover()
 	if r != nil {

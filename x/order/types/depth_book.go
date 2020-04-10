@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// nolint
 type Deal struct {
 	OrderID  string  `json:"order_id"`
 	Side     string  `json:"side"`
@@ -13,6 +14,7 @@ type Deal struct {
 	Fee      string  `json:"fee"`
 }
 
+// nolint
 type MatchResult struct {
 	BlockHeight int64   `json:"block_height"`
 	Price       sdk.Dec `json:"price"`
@@ -20,23 +22,26 @@ type MatchResult struct {
 	Deals       []Deal  `json:"deals"`
 }
 
+// nolint
 type BlockMatchResult struct {
 	BlockHeight int64                  `json:"block_height"`
 	ResultMap   map[string]MatchResult `json:"result_map"`
 	TimeStamp   int64                  `json:"timestamp"`
 }
 
+// nolint
 type DepthBookItem struct {
 	Price        sdk.Dec `json:"price"`
 	BuyQuantity  sdk.Dec `json:"buy_quantity"`
 	SellQuantity sdk.Dec `json:"sell_quantity"`
 }
 
+// nolint
 type DepthBook struct {
 	Items []DepthBookItem
 }
 
-// Items in depth book are sorted by price desc
+// InsertOrder : Items in depth book are sorted by price desc
 // insert a new order into depth book
 func (depthBook *DepthBook) InsertOrder(order *Order) {
 	bookLength := len(depthBook.Items)
@@ -74,7 +79,7 @@ func (depthBook *DepthBook) InsertOrder(order *Order) {
 	}
 }
 
-// remove an order from depth book when order cancelled/expired
+// RemoveOrder : remove an order from depth book when order cancelled/expired
 func (depthBook *DepthBook) RemoveOrder(order *Order) {
 	bookLen := len(depthBook.Items)
 	// find first index, s.t. order.Price >= depthBook[index].Price
@@ -96,6 +101,7 @@ func (depthBook *DepthBook) RemoveOrder(order *Order) {
 	}
 }
 
+// Sub : subtract the buy or sell quantity
 func (depthBook *DepthBook) Sub(index int, num sdk.Dec, side string) {
 	if side == BuyOrder {
 		depthBook.Items[index].BuyQuantity = depthBook.Items[index].BuyQuantity.Sub(num)
@@ -104,6 +110,7 @@ func (depthBook *DepthBook) Sub(index int, num sdk.Dec, side string) {
 	}
 }
 
+// RemoveIfEmpty : remove the filled or empty item
 func (depthBook *DepthBook) RemoveIfEmpty(index int) bool {
 	res := depthBook.Items[index].BuyQuantity.IsZero() && depthBook.Items[index].SellQuantity.IsZero()
 	if res {
@@ -112,6 +119,7 @@ func (depthBook *DepthBook) RemoveIfEmpty(index int) bool {
 	return res
 }
 
+// Copy : depth copy of depth book
 func (depthBook *DepthBook) Copy() *DepthBook {
 	itemList := make([]DepthBookItem, 0, len(depthBook.Items))
 	itemList = append(itemList, depthBook.Items...)

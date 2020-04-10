@@ -273,7 +273,7 @@ func getValsSet(address string) (valAddrs []sdk.ValAddress, err error) {
 	for i := 0; i < lenVals; i++ {
 		valAddrs[i], err = sdk.ValAddressFromBech32(addrs[i])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid target validator address: %s", addrs[i])
 		}
 	}
 	return

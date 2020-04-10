@@ -20,19 +20,19 @@ func TestMsgCreateValidator(t *testing.T) {
 		name, moniker, identity, website, details string
 		minSelfDelegation                         sdk.Int
 		validatorAddr                             sdk.ValAddress
-		delegatorAddr							  sdk.AccAddress
+		delegatorAddr                             sdk.AccAddress
 		pubkey                                    crypto.PubKey
 		bond                                      sdk.Coin
 		expectPass                                bool
 	}{
-		{"empty bond", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1,pk1, coinZero, true},
-		{"zero min self delegation", "a", "b", "c", "d", sdk.ZeroInt(), addr1, dlgAddr1, pk1,  coinPos, false},
-		{"basic good", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1,  coinPos, true},
-		{"partial description", "", "", "c", "", sdk.OneInt(), addr1, dlgAddr1, pk1,  coinPos, true},
-		{"empty description", "", "", "", "", sdk.OneInt(), addr1, dlgAddr1, pk1,  coinPos, false},
+		{"empty bond", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinZero, true},
+		{"zero min self delegation", "a", "b", "c", "d", sdk.ZeroInt(), addr1, dlgAddr1, pk1, coinPos, false},
+		{"basic good", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
+		{"partial description", "", "", "c", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
+		{"empty description", "", "", "", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, false},
 		{"empty address1", "a", "b", "c", "d", sdk.OneInt(), emptyAddr, dlgAddr1, pk1, coinPos, false},
-		{"empty address2", "a", "b", "c", "d", sdk.OneInt(), nil, nil,pk1, coinPos, false},
-		{"valAddr dlgAddr not equals", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr2,pk1, coinPos, false},
+		{"empty address2", "a", "b", "c", "d", sdk.OneInt(), nil, nil, pk1, coinPos, false},
+		{"valAddr dlgAddr not equals", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr2, pk1, coinPos, false},
 		{"empty pubkey", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, emptyPubkey, coinPos, true},
 		//{"negative min self delegation", "a", "b", "c", "d", commission1, sdk.NewInt(-1), addr1, pk1, coinPos, false},
 		//{"delegation less than min self delegation", "a", "b", "c", "d", commission1, coinPos.Amount.Add(sdk.OneInt()), addr1, pk1, coinPos, false},
@@ -52,6 +52,29 @@ func TestMsgCreateValidator(t *testing.T) {
 
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+}
+
+// test ValidateBasic for MsgDestroyValidator
+func TestMsgDestroyValidator(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		valAddr    sdk.AccAddress
+		expectPass bool
+	}{
+		{"basic good", dlgAddr1, true},
+		{"empty validator", sdk.AccAddress(emptyAddr), false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgDestroyValidator(tc.valAddr)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "destroy_validator")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -99,23 +122,19 @@ func TestMsgEditValidator(t *testing.T) {
 		msg := NewMsgEditValidator(tc.validatorAddr, description)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "edit_validator")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
 }
 
-func TestMsgEditValidator_Smoke(t *testing.T) {
-
-	desc := NewDescription("my moniker", "my identity", "my website", "my details")
-	msg := NewMsgEditValidator(valAddr1, desc)
-
+func checkMsg(t *testing.T, msg sdk.Msg, expType string) {
 	require.Contains(t, msg.Route(), RouterKey)
-	require.Contains(t, msg.Type(), "edit_validator")
+	require.Contains(t, msg.Type(), expType)
 	require.True(t, len(msg.GetSigners()) == 1, msg)
 	require.True(t, len(msg.GetSignBytes()) > 0, msg)
 }
-
 
 // test ValidateBasic for MsgDelegate
 func TestMsgDelegate(t *testing.T) {
@@ -126,7 +145,7 @@ func TestMsgDelegate(t *testing.T) {
 	tests := []struct {
 		name          string
 		delegatorAddr sdk.AccAddress
-		amount		  sdk.DecCoin
+		amount        sdk.DecCoin
 		expectPass    bool
 	}{
 		{"basic good", dlgAddr1, coinPos, true},
@@ -138,21 +157,139 @@ func TestMsgDelegate(t *testing.T) {
 		msg := NewMsgDelegate(tc.delegatorAddr, tc.amount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "delegate")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
 }
 
-func TestMsgDelegate_Smoke(t *testing.T) {
+// test ValidateBasic for MsgDelegate
+func TestMsgUnDelegate(t *testing.T) {
 
-	coinZero := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec())
-	msg := NewMsgDelegate(dlgAddr1, coinZero)
+	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
+	coinNeg := sdk.DecCoin{sdk.DefaultBondDenom, sdk.NewDec(-1)}
 
-	require.Contains(t, msg.Route(), RouterKey)
-	require.Contains(t, msg.Type(), "delegate")
-	require.True(t, len(msg.GetSigners()) == 1, msg)
-	require.True(t, len(msg.GetSignBytes()) > 0, msg)
+	tests := []struct {
+		name          string
+		delegatorAddr sdk.AccAddress
+		amount        sdk.DecCoin
+		expectPass    bool
+	}{
+		{"basic good", dlgAddr1, coinPos, true},
+		{"empty delegator", sdk.AccAddress(emptyAddr), coinPos, false},
+		{"negative bond", sdk.AccAddress(addr1), coinNeg, false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgUndelegate(tc.delegatorAddr, tc.amount)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "undelegate")
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+}
+
+// test ValidateBasic for MsgDestroyValidator
+func TestMsgBindProxy(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		dlgAddr    sdk.AccAddress
+		valAddr    sdk.AccAddress
+		expectPass bool
+	}{
+		{"basic good", dlgAddr1, dlgAddr2, true},
+		{"empty delegator", emptyAddr.Bytes(), dlgAddr2, false},
+		{"bind to self", dlgAddr1, dlgAddr1, false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgBindProxy(tc.dlgAddr, tc.valAddr)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "vote_bind_proxy")
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+}
+
+// test TestMsgUnbindProxy for MsgDestroyValidator
+func TestMsgUnbindProxy(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		valAddr    sdk.AccAddress
+		expectPass bool
+	}{
+		{"basic good", dlgAddr1, true},
+		{"empty validator", sdk.AccAddress(emptyAddr), false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgUnbindProxy(tc.valAddr)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "vote_unbind_proxy")
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+}
+
+func TestMsgRegProxy(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		dlgAddr    sdk.AccAddress
+		doReg      bool
+		expectPass bool
+	}{
+		{"success register", dlgAddr1, true, true},
+		{"success unregister", dlgAddr1, false, true},
+		{"empty delegatotr", sdk.AccAddress(emptyAddr), true, false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgRegProxy(tc.dlgAddr, tc.doReg)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "vote_reg_or_unreg_proxy")
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+
+}
+
+func TestMsgVote(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		dlgAddr    sdk.AccAddress
+		valAddrs   []sdk.ValAddress
+		expectPass bool
+	}{
+		{"basic good", dlgAddr1, []sdk.ValAddress{valAddr1}, true},
+		{"basic good2", dlgAddr1, []sdk.ValAddress{valAddr1, valAddr2}, true},
+		{"duplicate", dlgAddr1, []sdk.ValAddress{valAddr1, valAddr2, valAddr1}, false},
+		{"empty validator", dlgAddr1, nil, false},
+		{"empty delegator", nil, []sdk.ValAddress{valAddr1}, false},
+	}
+
+	for _, tc := range tests {
+		msg := NewMsgVote(tc.dlgAddr, tc.valAddrs)
+		if tc.expectPass {
+			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
+			checkMsg(t, msg, "vote_to_validators")
+		} else {
+			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
+		}
+	}
+
 }
 
 //// test ValidateBasic for MsgUnbond

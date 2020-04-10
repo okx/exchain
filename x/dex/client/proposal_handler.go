@@ -8,5 +8,6 @@ import (
 
 // param change proposal handler
 var (
+	// DelistProposalHandler alias gov NewProposalHandler
 	DelistProposalHandler = govclient.NewProposalHandler(cli.GetCmdSubmitDelistProposal, rest.DelistProposalRESTHandler)
 )

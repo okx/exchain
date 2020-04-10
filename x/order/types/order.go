@@ -9,8 +9,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// nolint
 type OrderStatus int
 
+// nolint
 const (
 	Open OrderStatus = iota
 	Filled
@@ -39,6 +41,7 @@ func (p OrderStatus) String() string {
 	}
 }
 
+// nolint
 const (
 	OrderStatusOpen                   = 0
 	OrderStatusFilled                 = 1
@@ -46,9 +49,10 @@ const (
 	OrderStatusExpired                = 3
 	OrderStatusPartialFilledCancelled = 4
 	OrderStatusPartialFilledExpired   = 5
-	OrderStatusPartialFilled          = 6
+	//OrderStatusPartialFilled          = 6
 )
 
+// nolint
 const (
 	OrderExtraInfoKeyNewFee     = "newFee"
 	OrderExtraInfoKeyCancelFee  = "cancelFee"
@@ -57,6 +61,7 @@ const (
 	OrderExtraInfoKeyReceiveFee = "receiveFee"
 )
 
+// nolint
 type Order struct {
 	TxHash            string         `json:"txhash"`           // txHash of the place order tx
 	OrderID           string         `json:"order_id"`         // order id
@@ -75,6 +80,7 @@ type Order struct {
 	ExtraInfo         string         `json:"extra_info"` // extra info of order in json format
 }
 
+// nolint
 func NewOrder(txHash string, sender sdk.AccAddress, product, side string, price, quantity sdk.Dec,
 	timestamp int64, orderExpireBlocks int64, feePerBlock sdk.DecCoin) *Order {
 	order := &Order{
@@ -106,7 +112,7 @@ func (order *Order) String() string {
 	}
 }
 
-func (order *Order) SetExtraInfo(extra map[string]string) {
+func (order *Order) setExtraInfo(extra map[string]string) {
 	if extra != nil {
 		bz, err := json.Marshal(extra)
 		if err != nil {
@@ -116,7 +122,7 @@ func (order *Order) SetExtraInfo(extra map[string]string) {
 	}
 }
 
-func (order *Order) GetExtraInfo() map[string]string {
+func (order *Order) getExtraInfo() map[string]string {
 	extra := make(map[string]string)
 	if order.ExtraInfo != "" && order.ExtraInfo != "{}" {
 		if err := json.Unmarshal([]byte(order.ExtraInfo), &extra); err != nil {
@@ -126,41 +132,45 @@ func (order *Order) GetExtraInfo() map[string]string {
 	return extra
 }
 
-func (order *Order) SetExtraInfoWithKeyValue(key, value string) {
-	extra := order.GetExtraInfo()
+func (order *Order) setExtraInfoWithKeyValue(key, value string) {
+	extra := order.getExtraInfo()
 	extra[key] = value
-	order.SetExtraInfo(extra)
+	order.setExtraInfo(extra)
 }
 
+// nolint
 func (order *Order) GetExtraInfoWithKey(key string) string {
-	extra := order.GetExtraInfo()
+	extra := order.getExtraInfo()
 	if value, ok := extra[key]; ok {
 		return value
 	}
 	return ""
 }
 
+// nolint
 func (order *Order) RecordOrderNewFee(fee sdk.DecCoins) {
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyNewFee, fee.String())
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyNewFee, fee.String())
 }
 
+// nolint
 func (order *Order) RecordOrderCancelFee(fee sdk.DecCoins) {
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, fee.String())
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, fee.String())
 }
 
-func (order *Order) RecordOrderExpireFee(fee sdk.DecCoins) {
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyExpireFee, fee.String())
+func (order *Order) recordOrderExpireFee(fee sdk.DecCoins) {
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyExpireFee, fee.String())
 }
 
+// nolint
 func (order *Order) RecordOrderReceiveFee(fee sdk.DecCoins) {
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyReceiveFee, fee.String())
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyReceiveFee, fee.String())
 }
 
-// An order may have several deals
+// RecordOrderDealFee : An order may have several deals
 func (order *Order) RecordOrderDealFee(fee sdk.DecCoins) {
 	oldValue := order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee)
 	if oldValue == "" {
-		order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, fee.String())
+		order.setExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, fee.String())
 		return
 	}
 	oldFee, err := sdk.ParseDecCoins(oldValue)
@@ -169,9 +179,10 @@ func (order *Order) RecordOrderDealFee(fee sdk.DecCoins) {
 		return
 	}
 	newFee := oldFee.Add(fee)
-	order.SetExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, newFee.String())
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, newFee.String())
 }
 
+// nolint
 func (order *Order) Fill(price, fillAmount sdk.Dec) {
 	filledSum := order.FilledAvgPrice.Mul(order.Quantity.Sub(order.RemainQuantity))
 	newFilledSum := filledSum.Add(price.Mul(fillAmount))
@@ -187,6 +198,7 @@ func (order *Order) Fill(price, fillAmount sdk.Dec) {
 	}
 }
 
+// nolint
 func (order *Order) Cancel() {
 	if order.RemainQuantity.Equal(order.Quantity) {
 		order.Status = OrderStatusCancelled
@@ -195,6 +207,7 @@ func (order *Order) Cancel() {
 	}
 }
 
+// nolint
 func (order *Order) Expire() {
 	if order.RemainQuantity.Equal(order.Quantity) {
 		order.Status = OrderStatusExpired
@@ -203,7 +216,7 @@ func (order *Order) Expire() {
 	}
 }
 
-// when place a new order, we should lock the coins of sender
+// NeedLockCoins : when place a new order, we should lock the coins of sender
 func (order *Order) NeedLockCoins() sdk.DecCoins {
 	if order.Side == BuyOrder {
 		token := strings.Split(order.Product, "_")[1]
@@ -216,7 +229,7 @@ func (order *Order) NeedLockCoins() sdk.DecCoins {
 
 }
 
-// when order be cancelled/expired, we should unlock the coins of sender
+// NeedUnlockCoins : when order be cancelled/expired, we should unlock the coins of sender
 func (order *Order) NeedUnlockCoins() sdk.DecCoins {
 	if order.Side == BuyOrder {
 		token := strings.Split(order.Product, "_")[1]
@@ -227,10 +240,12 @@ func (order *Order) NeedUnlockCoins() sdk.DecCoins {
 
 }
 
+// nolint
 func (order *Order) Unlock() {
 	order.RemainLocked = sdk.ZeroDec()
 }
 
+// nolint
 func MockOrder(orderID, product, side, price, quantity string) *Order {
 	order := &Order{
 		OrderID:           orderID,
@@ -252,6 +267,7 @@ func MockOrder(orderID, product, side, price, quantity string) *Order {
 	return order
 }
 
+// nolint
 func FormatOrderID(blockHeight, orderNum int64) string {
 	format := "ID%010d-%d"
 	if blockHeight > 9999999999 {
@@ -260,11 +276,16 @@ func FormatOrderID(blockHeight, orderNum int64) string {
 	return fmt.Sprintf(format, blockHeight, orderNum)
 }
 
+// nolint
 func GetBlockHeightFromOrderID(orderID string) int64 {
 	var blockHeight int64
 	var id int64
 	format := "ID%d-%d"
-	fmt.Sscanf(orderID, format, &blockHeight, &id)
+	_, err := fmt.Sscanf(orderID, format, &blockHeight, &id)
+	if err != nil {
+		log.Println(err)
+		return 0
+	}
 
 	return blockHeight
 }

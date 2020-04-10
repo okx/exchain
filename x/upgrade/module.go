@@ -2,6 +2,8 @@ package upgrade
 
 import (
 	"encoding/json"
+
+	"github.com/okex/okchain/x/upgrade/keeper"
 	"github.com/okex/okchain/x/upgrade/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -20,54 +22,41 @@ var (
 	_ module.AppModuleBasic = AppModuleBasic{}
 )
 
-// app module basics object
+// AppModuleBasic is a struct of app module basics object
 type AppModuleBasic struct{}
 
-// module name
+// Name returns module name
 func (AppModuleBasic) Name() string {
 	return ModuleName
 }
 
-// register module codec
+// RegisterCodec registers module codec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
-	// just 4 test
 	types.RegisterCodec(cdc)
 }
 
-// default genesis state
+// DefaultGenesis returns default genesis state
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
-// module validate genesis(nothing 2 do)
-func (AppModuleBasic) ValidateGenesis(_ json.RawMessage) error {
-	return nil
-}
-
-// register rest routes(nothing 2 do)
-func (AppModuleBasic) RegisterRESTRoutes(_ context.CLIContext, _ *mux.Router) {
-	return
-}
-
-// get the root tx command of this module(undone)
-func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	// just 4 test
-	return cli.GetTxCmd(cdc)
-	//return nil
-}
-
-// get the root query command of this module
+// GetQueryCmd gets the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	return cli.GetQueryCmd(StoreKey, cdc)
 }
 
-// app module
+// nolint
+func (AppModuleBasic) ValidateGenesis(_ json.RawMessage) error                { return nil }
+func (AppModuleBasic) RegisterRESTRoutes(_ context.CLIContext, _ *mux.Router) { return }
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command               { return nil }
+
+// AppModule is a struct of app module
 type AppModule struct {
 	AppModuleBasic
 	keeper Keeper
 }
 
-// creates a new AppModule object for upgrade module
+// NewAppModule creates a new AppModule object for upgrade module
 func NewAppModule(keeper Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic{},
@@ -75,56 +64,37 @@ func NewAppModule(keeper Keeper) AppModule {
 	}
 }
 
-// module name
-func (AppModule) Name() string {
-	return ModuleName
-}
-
-//nothing 2 do
+// InitGenesis initializes module genesis
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState GenesisState
+	var genesisState types.GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	InitGenesis(ctx, am.keeper, genesisState)
 	return []abci.ValidatorUpdate{}
 }
 
-// nothing 2 do
-func (AppModule) ExportGenesis(_ sdk.Context) json.RawMessage {
-	return nil
-}
-
-// nothing 2 do
-func (AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {
-	return
-}
-
-// module message route name
+// Route returns module message route name
 func (AppModule) Route() string {
 	return RouterKey
 }
 
-// nothing 2 do
-func (am AppModule) NewHandler() sdk.Handler {
-	// just 4 test
-	return NewHandler(am.keeper)
-	//return nil
-}
-
-// module querier route name
+// QuerierRoute returns module querier route name
 func (AppModule) QuerierRoute() string {
 	return QuerierRoute
 }
 
-// module querier
+// NewQuerierHandler returns module querier
 func (am AppModule) NewQuerierHandler() sdk.Querier {
-	return NewQuerier(am.keeper)
+	return keeper.NewQuerier(am.keeper)
 }
 
-// nothing 2 do
-func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
-
-// module end-block
+// EndBlock is invoked on the end of each block
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	EndBlocker(ctx, am.keeper)
 	return nil
 }
+
+// nolint
+func (AppModule) NewHandler() sdk.Handler                            { return nil }
+func (AppModule) ExportGenesis(_ sdk.Context) json.RawMessage        { return nil }
+func (AppModule) RegisterInvariants(_ sdk.InvariantRegistry)         { return }
+func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}

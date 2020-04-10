@@ -19,18 +19,17 @@ func (orm *DangrousORM) CleanupDataInTestEvn() (err error) {
 
 	tx := orm.db.Begin()
 	defer orm.deferRollbackTx(tx, err)
+	dealDB := tx.Delete(&types.Deal{})
+	orderDB := tx.Delete(&types.Order{})
+	feeDB := tx.Delete(&token.FeeDetail{})
+	txDB := tx.Delete(&types.Transaction{})
+	matchDB := tx.Delete(&types.MatchResult{})
 
-	r := tx.Delete(&types.Deal{})
-	r = tx.Delete(&types.Order{})
-	r = tx.Delete(&token.FeeDetail{})
-	r = tx.Delete(&types.Transaction{})
-	r = tx.Delete(&types.MatchResult{})
-
-	if r.Error == nil {
-		tx.Commit()
-	} else {
-		return r.Error
+	if err = types.NewErrorsMerged(dealDB.Error, orderDB.Error, feeDB.Error, txDB.Error, matchDB.Error); err != nil {
+		return err
 	}
+	tx.Commit()
+
 	return nil
 }
 
@@ -42,7 +41,9 @@ func NewMysqlORM() (orm *ORM, e error) {
 	mysqlOrm, e := New(false, &engineInfo, nil)
 
 	dorm := DangrousORM{mysqlOrm}
-	dorm.CleanupDataInTestEvn()
+	if err := dorm.CleanupDataInTestEvn(); err != nil {
+		return nil, err
+	}
 
 	return mysqlOrm, e
 }

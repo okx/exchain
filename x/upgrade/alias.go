@@ -15,19 +15,19 @@ const (
 
 var (
 	// functions aliases
-	NewQuerier     = keeper.NewQuerier
-	NewKeeper      = keeper.NewKeeper
-	NewVersionInfo = types.NewVersionInfo
+	NewQuerier                   = keeper.NewQuerier
+	NewKeeper                    = keeper.NewKeeper
+	NewVersionInfo               = types.NewVersionInfo
 	NewAppUpgradeProposalHandler = keeper.NewAppUpgradeProposalHandler
 
 	// variable aliases
-	ModuleCdc                    = types.ModuleCdc
-	EventTypeUpgradeAppVersion   = types.EventTypeUpgradeAppVersion
-	EventTypeUpgradeFailure      = types.EventTypeUpgradeFailure
-	AttributeKeyAppVersion       = types.AttributeKeyAppVersion
+	ModuleCdc                  = types.ModuleCdc
+	EventTypeUpgradeAppVersion = types.EventTypeUpgradeAppVersion
+	EventTypeUpgradeFailure    = types.EventTypeUpgradeFailure
+	AttributeKeyAppVersion     = types.AttributeKeyAppVersion
 )
 
 type (
-	Keeper = keeper.Keeper
+	Keeper      = keeper.Keeper
 	VersionInfo = types.VersionInfo
 )

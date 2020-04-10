@@ -137,7 +137,7 @@ func matchOrderHandler(cliContext context.CLIContext) func(http.ResponseWriter, 
 
 }
 
-// TODO: finish the rest handler of Delist
+// DelistProposalRESTHandler defines dex proposal handler
 func DelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }

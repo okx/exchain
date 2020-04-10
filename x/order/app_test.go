@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/okex/okchain/x/common/monitor"
-	"github.com/okex/okchain/x/params"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -87,7 +86,6 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 
 	mockApp.tokenKeeper = token.NewKeeper(
 		mockApp.bankKeeper,
-		params.Keeper{Keeper: mockApp.ParamsKeeper},
 		mockApp.ParamsKeeper.Subspace(token.DefaultParamspace),
 		auth.FeeCollectorName,
 		mockApp.supplyKeeper,
@@ -110,7 +108,6 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	mockApp.orderKeeper = NewKeeper(
 		mockApp.tokenKeeper,
 		mockApp.supplyKeeper,
-		params.Keeper{Keeper: mockApp.ParamsKeeper},
 		mockApp.dexKeeper,
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),
 		auth.FeeCollectorName,

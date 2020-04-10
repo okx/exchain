@@ -9,12 +9,11 @@ import (
 )
 
 const (
-	// ProposalTypeDelist defines the type for a Delist proposal
-	ProposalTypeDelist = "Delist"
+	proposalTypeDelist = "Delist"
 )
 
 func init() {
-	govtypes.RegisterProposalType(ProposalTypeDelist)
+	govtypes.RegisterProposalType(proposalTypeDelist)
 	govtypes.RegisterProposalTypeCodec(DelistProposal{}, "okchain/dex/DelistProposal")
 
 }
@@ -22,6 +21,7 @@ func init() {
 // Assert DelistProposal implements govtypes.Content at compile-time
 var _ govtypes.Content = (*DelistProposal)(nil)
 
+// DelistProposal represents delist proposal object
 type DelistProposal struct {
 	Title       string         `json:"title" yaml:"title"`
 	Description string         `json:"description" yaml:"description"`
@@ -30,6 +30,7 @@ type DelistProposal struct {
 	QuoteAsset  string         `json:"quote_asset" yaml:"quote_asset"`
 }
 
+// NewDelistProposal create a new delist proposal object
 func NewDelistProposal(title, description string, proposer sdk.AccAddress, baseAsset, quoteAsset string) DelistProposal {
 	return DelistProposal{
 		Title:       title,
@@ -39,22 +40,28 @@ func NewDelistProposal(title, description string, proposer sdk.AccAddress, baseA
 		QuoteAsset:  quoteAsset,
 	}
 }
+
+// GetTitle returns title of delist proposal object
 func (drp DelistProposal) GetTitle() string {
 	return drp.Title
 }
 
+// GetDescription returns description of delist proposal object
 func (drp DelistProposal) GetDescription() string {
 	return drp.Description
 }
 
+// ProposalRoute returns route key of delist proposal object
 func (DelistProposal) ProposalRoute() string {
 	return RouterKey
 }
 
+// ProposalType returns type of delist proposal object
 func (DelistProposal) ProposalType() string {
-	return ProposalTypeDelist
+	return proposalTypeDelist
 }
 
+// ValidateBasic validates delist proposal
 func (drp DelistProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(drp.Title)) == 0 {
 		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "failed to submit delist proposal because title is blank")
@@ -71,7 +78,7 @@ func (drp DelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent(DefaultCodespace, fmt.Sprintf("failed to submit delist proposal because  description is longer than max length of %d", govtypes.MaxDescriptionLength))
 	}
 
-	if drp.ProposalType() != ProposalTypeDelist {
+	if drp.ProposalType() != proposalTypeDelist {
 		return govtypes.ErrInvalidProposalType(DefaultCodespace, drp.ProposalType())
 	}
 
@@ -86,6 +93,7 @@ func (drp DelistProposal) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// String converts delist proposal object to string
 func (drp DelistProposal) String() string {
 	return fmt.Sprintf(`DelistProposal:
  Title:               %s

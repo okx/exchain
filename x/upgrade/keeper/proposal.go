@@ -8,12 +8,11 @@ import (
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/common/proto"
 	"github.com/okex/okchain/x/gov"
-	govTypes "github.com/okex/okchain/x/gov/types"
 	"github.com/okex/okchain/x/token"
 	"github.com/okex/okchain/x/upgrade/types"
 )
 
-// implement ProposalHandler interface
+// GetMinDeposit implements ProposalHandler interface
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.DecCoins) {
 	switch content.(type) {
 	case types.AppUpgradeProposal:
@@ -23,6 +22,7 @@ func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit 
 	return
 }
 
+// GetMaxDepositPeriod implements ProposalHandler interface
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content gov.Content) (maxDepositPeriod time.Duration) {
 	switch content.(type) {
 	case types.AppUpgradeProposal:
@@ -32,6 +32,7 @@ func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content gov.Content) (maxDe
 	return
 }
 
+// GetVotingPeriod implements ProposalHandler interface
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPeriod time.Duration) {
 	switch content.(type) {
 	case types.AppUpgradeProposal:
@@ -41,21 +42,21 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPer
 	return
 }
 
-func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
+// CheckMsgSubmitProposal implements ProposalHandler interface
+func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg gov.MsgSubmitProposal) sdk.Error {
 	// check message sender is current validator
 	if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
-		return gov.ErrInvalidProposer(types.DefaultCodespace, fmt.Sprintf("proposer of App Upgrade Proposal must be validator"))
+		return gov.ErrInvalidProposer(types.DefaultCodespace,
+			fmt.Sprintf("proposer of App Upgrade Proposal must be validator"))
 	}
 	// check initial deposit more than or equal to ratio of MinDeposit
 	initDeposit := k.GetParams(ctx).AppUpgradeMinDeposit.MulDec(sdk.NewDecWithPrec(1, 1))
-	err := common.HasSufficientCoins(msg.Proposer, msg.InitialDeposit, initDeposit)
-	if err != nil {
-		return sdk.NewError(types.DefaultCodespace, token.CodeInvalidAsset, fmt.Sprintf("%s", err.Error()))
+	if err := common.HasSufficientCoins(msg.Proposer, msg.InitialDeposit, initDeposit); err != nil {
+		return sdk.NewError(types.DefaultCodespace, token.CodeInvalidAsset, err.Error())
 	}
 	// check proposer has sufficient coins
-	err = common.HasSufficientCoins(msg.Proposer, k.bankKeeper.GetCoins(ctx, msg.Proposer), msg.InitialDeposit)
-	if err != nil {
-		return sdk.NewError(types.DefaultCodespace, token.CodeInvalidAsset, fmt.Sprintf("%s", err.Error()))
+	if err := common.HasSufficientCoins(msg.Proposer, k.bankKeeper.GetCoins(ctx, msg.Proposer), msg.InitialDeposit); err != nil {
+		return sdk.NewError(types.DefaultCodespace, token.CodeInvalidAsset, err.Error())
 	}
 
 	upgradeProposal := msg.Content.(types.AppUpgradeProposal)
@@ -64,7 +65,8 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	}
 
 	if uint64(ctx.BlockHeight()) > upgradeProposal.ProtocolDefinition.Height {
-		return types.ErrInvalidSwitchHeight(types.DefaultCodespace, uint64(ctx.BlockHeight()), upgradeProposal.ProtocolDefinition.Height)
+		return types.ErrInvalidSwitchHeight(types.DefaultCodespace, uint64(ctx.BlockHeight()),
+			upgradeProposal.ProtocolDefinition.Height)
 	}
 
 	if _, ok := k.protocolKeeper.GetUpgradeConfig(ctx); ok {
@@ -73,18 +75,17 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	return nil
 }
 
-func (k Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govTypes.Proposal) {}
-
-func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote govTypes.Vote) (string, sdk.Error) {
+// nolint
+func (Keeper) VoteHandler(_ sdk.Context, _ gov.Proposal, _ gov.Vote) (string, sdk.Error) {
 	return "", nil
 }
+func (Keeper) AfterSubmitProposalHandler(_ sdk.Context, _ gov.Proposal) {}
+func (Keeper) AfterDepositPeriodPassed(_ sdk.Context, _ gov.Proposal)   {}
+func (Keeper) RejectedHandler(_ sdk.Context, _ gov.Content)             {}
 
-func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Proposal) {}
-
-func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {}
-
-func NewAppUpgradeProposalHandler(k *Keeper) govTypes.Handler {
-	return func(ctx sdk.Context, proposal *govTypes.Proposal) sdk.Error {
+// NewAppUpgradeProposalHandler creates a new upgrade handler for gov module
+func NewAppUpgradeProposalHandler(k *Keeper) gov.Handler {
+	return func(ctx sdk.Context, proposal *gov.Proposal) sdk.Error {
 		switch c := proposal.Content.(type) {
 		case types.AppUpgradeProposal:
 			return handleAppUpgradeProposal(ctx, k, proposal)
@@ -96,7 +97,7 @@ func NewAppUpgradeProposalHandler(k *Keeper) govTypes.Handler {
 	}
 }
 
-func handleAppUpgradeProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleAppUpgradeProposal(ctx sdk.Context, k *Keeper, proposal *gov.Proposal) sdk.Error {
 	logger := ctx.Logger().With("module", types.ModuleName)
 	logger.Info("Begin to Execute AppUpgradeProposal")
 	upgradeProposal := proposal.Content.(types.AppUpgradeProposal)
@@ -119,8 +120,8 @@ func handleAppUpgradeProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Pro
 		return nil
 	}
 
-	k.protocolKeeper.SetUpgradeConfig(ctx, proto.NewAppUpgradeConfig(proposal.ProposalID, upgradeProposal.ProtocolDefinition))
-
+	k.protocolKeeper.SetUpgradeConfig(ctx,
+		proto.NewAppUpgradeConfig(proposal.ProposalID, upgradeProposal.ProtocolDefinition))
 	logger.Info("Execute AppUpgradeProposal Success")
 
 	return nil

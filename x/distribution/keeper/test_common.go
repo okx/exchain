@@ -28,9 +28,11 @@ var (
 	delPk1   = ed25519.GenPrivKey().PubKey()
 	delPk2   = ed25519.GenPrivKey().PubKey()
 	delPk3   = ed25519.GenPrivKey().PubKey()
-	DelAddr1 = sdk.AccAddress(delPk1.Address())
-	DelAddr2 = sdk.AccAddress(delPk2.Address())
-	DelAddr3 = sdk.AccAddress(delPk3.Address())
+	delPk4   = ed25519.GenPrivKey().PubKey()
+	delAddr1 = sdk.AccAddress(delPk1.Address())
+	delAddr2 = sdk.AccAddress(delPk2.Address())
+	delAddr3 = sdk.AccAddress(delPk3.Address())
+	delAddr4 = sdk.AccAddress(delPk4.Address())
 
 	valOpPk1    = ed25519.GenPrivKey().PubKey()
 	valOpPk2    = ed25519.GenPrivKey().PubKey()
@@ -57,32 +59,29 @@ var (
 	// TODO move to common testing package for all modules
 	// test addresses
 	TestAddrs = []sdk.AccAddress{
-		DelAddr1, DelAddr2, DelAddr3,
+		delAddr1, delAddr2, delAddr3, delAddr4,
 		valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4,
 	}
 
 	distrAcc = supply.NewEmptyModuleAccount(types.ModuleName)
 )
 
-// GetAddrs returns valOpAddrs, valConsPks, valConsAddrs for test
-func GetAddrs() ([]sdk.ValAddress, []crypto.PubKey, []sdk.ConsAddress) {
+// GetTestAddrs returns valOpAddrs, valConsPks, valConsAddrs for test
+func GetTestAddrs() ([]sdk.ValAddress, []crypto.PubKey, []sdk.ConsAddress) {
 	valOpAddrs := []sdk.ValAddress{valOpAddr1, valOpAddr2, valOpAddr3, valOpAddr4}
 	valConsPks := []crypto.PubKey{valConsPk1, valConsPk2, valConsPk3, valConsPk4}
 	valConsAddrs := []sdk.ConsAddress{valConsAddr1, valConsAddr2, valConsAddr3, valConsAddr4}
 	return valOpAddrs, valConsPks, valConsAddrs
 }
 
-// NewDecCoins returns dec coins
-func NewDecCoins(i int64, precison ...int64) sdk.DecCoins {
-	return sdk.DecCoins{NewDecCoin(i, precison...)}
+// NewTestDecCoins returns dec coins
+func NewTestDecCoins(i int64, precison int64) sdk.DecCoins {
+	return sdk.DecCoins{NewTestDecCoin(i, precison)}
 }
 
-// NewDecCoin returns one dec coin
-func NewDecCoin(i int64, precison ...int64) sdk.DecCoin {
-	if len(precison) == 0 {
-		return sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(i))
-	}
-	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison[0]))
+// NewTestDecCoin returns one dec coin
+func NewTestDecCoin(i int64, precison int64) sdk.DecCoin {
+	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison))
 }
 
 // MakeTestCodec creates a codec used only for testing
@@ -103,6 +102,16 @@ func MakeTestCodec() *codec.Codec {
 func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 	sdk.Context, auth.AccountKeeper, Keeper, staking.Keeper, types.SupplyKeeper) {
 	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, isCheckTx, initPower)
+	sh := staking.NewHandler(sk)
+	valOpAddrs, valConsPks, _ := GetTestAddrs()
+	// create four validators
+	for i := int64(0); i < 4; i++ {
+		msg := staking.NewMsgCreateValidator(valOpAddrs[i], valConsPks[i],
+			staking.Description{}, NewTestDecCoin(i+1, 0))
+		require.True(t, sh(ctx, msg).IsOK())
+		// assert initial state: zero current rewards
+		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())
+	}
 	return ctx, ak, dk, sk, supplyKeeper
 }
 

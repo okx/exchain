@@ -5,6 +5,7 @@ import (
 	"github.com/okex/okchain/x/common"
 )
 
+// nolint
 const (
 	FeeTypeOrderNew     = "new"
 	FeeTypeOrderCancel  = "cancel"

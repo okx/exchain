@@ -56,6 +56,10 @@ func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQueryKlinesParams(product, granularity, size)
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryCandleList), bz)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
@@ -97,6 +101,10 @@ func tickerHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryTickerList), bz)
 
 		if err != nil {

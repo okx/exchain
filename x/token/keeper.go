@@ -20,7 +20,7 @@ type Keeper struct {
 	supplyKeeper     SupplyKeeper
 	feeCollectorName string // name of the FeeCollector ModuleAccount
 	// The reference to the Param Keeper to get and set Global Params
-	paramsKeeper params.Keeper
+	//paramsKeeper params.Keeper
 
 	// The reference to the Paramstore to get and set gov specific params
 	paramSpace    params.Subspace
@@ -38,12 +38,12 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the token Keeper
-func NewKeeper(bankKeeper bank.Keeper, paramsKeeper params.Keeper, paramSpace params.Subspace,
+func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
 	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool) Keeper {
 
 	k := Keeper{
-		bankKeeper:       bankKeeper,
-		paramsKeeper:     paramsKeeper,
+		bankKeeper: bankKeeper,
+		//paramsKeeper:     paramsKeeper,
 		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
 		feeCollectorName: feeCollectorName,
 		supplyKeeper:     supplyKeeper,

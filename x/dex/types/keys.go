@@ -9,45 +9,57 @@ import (
 
 const (
 	// ModuleName is the name of the dex module
-	ModuleName        = "dex"
+	ModuleName = "dex"
+	// DefaultParamspace defines default param space
 	DefaultParamspace = ModuleName
-	DefaultCodespace  = ModuleName
-
+	// DefaultCodespace defines default code space
+	DefaultCodespace = ModuleName
 	// QuerierRoute is the querier route for the dex module
 	QuerierRoute = ModuleName
-
 	// RouterKey is the msg router key for the dex module
 	RouterKey = ModuleName
-
 	// StoreKey is the string store representation
 	StoreKey = ModuleName
+	// TokenPairStoreKey is the token pair store key
+	TokenPairStoreKey = "token_pair"
 
-	TokenPairStoreKey      = "token_pair"
+	// QueryProductsDelisting defines delisting query route path
 	QueryProductsDelisting = "products_delisting"
-
-	QueryProducts   = "products"
-	QueryDeposits   = "deposits"
+	// QueryProducts defines products query route path
+	QueryProducts = "products"
+	// QueryDeposits defines deposits query route path
+	QueryDeposits = "deposits"
+	// QueryMatchOrder defines match-order query route path
 	QueryMatchOrder = "match-order"
+	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters = "params"
 )
 
 var (
 	lenTime = len(sdk.FormatTimeBytes(time.Now()))
 
-	TokenPairKey             = []byte{0x01} // the address prefix of the token pair's symbol
-	TokenPairNumberKey       = []byte{0x02} // key for token pair number address
-	TokenPairLockKeyPrefix   = []byte{0x03}
+	// TokenPairKey is the store key for token pair
+	TokenPairKey = []byte{0x01}
+	// TokenPairNumberKey is the store key for token pair num
+	TokenPairNumberKey = []byte{0x02}
+	// TokenPairLockKeyPrefix is the store key for token pair prefix
+	TokenPairLockKeyPrefix = []byte{0x03}
+	// PrefixWithdrawAddressKey is the store key for withdraw address
 	PrefixWithdrawAddressKey = []byte{0x53}
-	PrefixWithdrawTimeKey    = []byte{0x54}
-	PrefixUserTokenPairKey   = []byte{0x06}
+	// PrefixWithdrawTimeKey is the store key for withdraw time
+	PrefixWithdrawTimeKey = []byte{0x54}
+	// PrefixUserTokenPairKey is the store key for user token pair num
+	PrefixUserTokenPairKey = []byte{0x06}
 )
 
-func GetUserTokenPairAddressPrefix(Owner sdk.AccAddress) []byte {
-	return append(PrefixUserTokenPairKey, Owner.Bytes()...)
+// GetUserTokenPairAddressPrefix returns token pair address prefix key
+func GetUserTokenPairAddressPrefix(owner sdk.AccAddress) []byte {
+	return append(PrefixUserTokenPairKey, owner.Bytes()...)
 }
 
-func GetUserTokenPairAddress(Owner sdk.AccAddress, assertPair string) []byte {
-	return append(GetUserTokenPairAddressPrefix(Owner), []byte(assertPair)...)
+// GetUserTokenPairAddress returns token pair address key
+func GetUserTokenPairAddress(owner sdk.AccAddress, assertPair string) []byte {
+	return append(GetUserTokenPairAddressPrefix(owner), []byte(assertPair)...)
 }
 
 // GetTokenPairAddress returns store key of token pair
@@ -66,7 +78,7 @@ func GetWithdrawTimeKey(completeTime time.Time) []byte {
 	return append(PrefixWithdrawTimeKey, bz...)
 }
 
-// GetWithdrawTimeAddressKey returns
+// GetWithdrawTimeAddressKey returns withdraw time address key
 func GetWithdrawTimeAddressKey(completeTime time.Time, addr sdk.AccAddress) []byte {
 	return append(GetWithdrawTimeKey(completeTime), addr.Bytes()...)
 }
@@ -84,7 +96,7 @@ func SplitWithdrawTimeKey(key []byte) (time.Time, sdk.AccAddress) {
 	return endTime, delAddr
 }
 
-// GetProductKey returns key of token pair
+// GetLockProductKey returns key of token pair
 func GetLockProductKey(product string) []byte {
 	return append(TokenPairLockKeyPrefix, []byte(product)...)
 }

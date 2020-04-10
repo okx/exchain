@@ -1,14 +1,15 @@
 package config
 
 import (
-	"bytes"
 	"encoding/json"
-	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 	"os"
+
+	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 
 	"github.com/tendermint/tendermint/libs/common"
 )
 
+// nolint
 var (
 	DefaultMaintainConfile = "maintain.conf"
 	DefaultNodeHome        = okchaincfg.DefaultBackendNodeHome
@@ -19,9 +20,10 @@ var (
 	DefaultConfig = okchaincfg.DefaultBackendConfig
 )
 
+// nolint
 type Config = okchaincfg.BackendConfig
 
-func LoadMaintainConf(confDir string, fileName string) (*Config, error) {
+func loadMaintainConf(confDir string, fileName string) (*Config, error) {
 	fPath := confDir + string(os.PathSeparator) + fileName
 	if _, err := os.Stat(fPath); err != nil {
 		return nil, err
@@ -34,29 +36,32 @@ func LoadMaintainConf(confDir string, fileName string) (*Config, error) {
 	return &m, err
 }
 
-func DumpMaintainConf(maintainConf *Config, confDir string, fileName string) error {
+func dumpMaintainConf(maintainConf *Config, confDir string, fileName string) (err error) {
 	fPath := confDir + string(os.PathSeparator) + fileName
 
 	if _, err := os.Stat(confDir); err != nil {
-		os.MkdirAll(confDir, os.ModePerm)
+		if err = os.MkdirAll(confDir, os.ModePerm); err != nil {
+			return err
+		}
 	}
 
-	if bs, err := json.Marshal(maintainConf); err != nil {
+	bs, err := json.MarshalIndent(maintainConf, "", "  ")
+	if err != nil {
 		return err
-	} else {
-		var out bytes.Buffer
-		json.Indent(&out, bs, "", "  ")
-		common.MustWriteFile(fPath, out.Bytes(), os.ModePerm)
 	}
+	common.MustWriteFile(fPath, bs, os.ModePerm)
 
 	return nil
 }
 
-func SafeLoadMaintainConfig(configDir string) *Config {
-	maintainConf, err := LoadMaintainConf(configDir, DefaultMaintainConfile)
+// nolint
+func SafeLoadMaintainConfig(configDir string) (conf *Config, err error) {
+	maintainConf, err := loadMaintainConf(configDir, DefaultMaintainConfile)
 	if maintainConf == nil || err != nil {
 		maintainConf = DefaultConfig()
-		DumpMaintainConf(maintainConf, configDir, DefaultMaintainConfile)
+		if err = dumpMaintainConf(maintainConf, configDir, DefaultMaintainConfile); err != nil {
+			return nil, err
+		}
 	}
-	return maintainConf
+	return maintainConf, nil
 }

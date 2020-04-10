@@ -9,10 +9,10 @@ import (
 
 // nolint: deadcode unused
 var (
-	pk1      = ed25519.GenPrivKey().PubKey()
-	pk2      = ed25519.GenPrivKey().PubKey()
-	addr1    = pk1.Address()
-	addr2    = pk2.Address()
+	pk1   = ed25519.GenPrivKey().PubKey()
+	pk2   = ed25519.GenPrivKey().PubKey()
+	addr1 = pk1.Address()
+	addr2 = pk2.Address()
 
 	valAddr1 = sdk.ValAddress(addr1)
 	valAddr2 = sdk.ValAddress(addr2)

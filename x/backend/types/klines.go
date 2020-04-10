@@ -9,6 +9,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	klineM1     = "kline_m1"
+	klineM3     = "kline_m3"
+	klineM5     = "kline_m5"
+	klineM15    = "kline_m15"
+	klineM30    = "kline_m30"
+	klineM60    = "kline_m60"
+	klineM120   = "kline_m120"
+	klineM240   = "kline_m240"
+	klineM360   = "kline_m360"
+	klineM720   = "kline_m720"
+	klineM1440  = "kline_m1440"
+	klineM10080 = "kline_m10080"
+)
+
+// nolint
 type IKline interface {
 	GetFreqInSecond() int
 	GetAnchorTimeTS(ts int64) int64
@@ -24,34 +40,43 @@ type IKline interface {
 	GetBrifeInfo() []string
 }
 
+// nolint
 type IKlines []IKline
 
+// nolint
 func (klines IKlines) Len() int {
 	return len(klines)
 }
 
-func (c IKlines) Swap(i, j int) {
-	c[i], c[j] = c[j], c[i]
+// nolint
+func (klines IKlines) Swap(i, j int) {
+	klines[i], klines[j] = klines[j], klines[i]
 }
 
+// nolint
 func (klines IKlines) Less(i, j int) bool {
 	return klines[i].GetTimestamp() < klines[j].GetTimestamp()
 }
 
+// nolint
 type IKlinesDsc []IKline
 
+// nolint
 func (klines IKlinesDsc) Len() int {
 	return len(klines)
 }
 
+// nolint
 func (c IKlinesDsc) Swap(i, j int) {
 	c[i], c[j] = c[j], c[i]
 }
 
+// nolint
 func (klines IKlinesDsc) Less(i, j int) bool {
 	return klines[i].GetTimestamp() > klines[j].GetTimestamp()
 }
 
+// BaseKline define the basic data of Kine
 type BaseKline struct {
 	Product   string  `gorm:"PRIMARY_KEY;type:varchar(20)" json:"product"`
 	Timestamp int64   `gorm:"PRIMARY_KEY;type:bigint;" json:"timestamp"`
@@ -63,6 +88,7 @@ type BaseKline struct {
 	impl      IKline
 }
 
+// GetFreqInSecond return interval time
 func (b *BaseKline) GetFreqInSecond() int {
 	if b.impl != nil {
 		return b.impl.GetFreqInSecond()
@@ -71,6 +97,7 @@ func (b *BaseKline) GetFreqInSecond() int {
 	}
 }
 
+// GetTableName rerurn database table name
 func (b *BaseKline) GetTableName() string {
 	if b.impl != nil {
 		return b.impl.GetTableName()
@@ -79,39 +106,48 @@ func (b *BaseKline) GetTableName() string {
 	}
 }
 
+// GetAnchorTimeTS return time interval
 func (b *BaseKline) GetAnchorTimeTS(ts int64) int64 {
 	m := (ts / int64(b.GetFreqInSecond())) * int64(b.GetFreqInSecond())
 	return m
 }
 
+// GetProduct return product
 func (b *BaseKline) GetProduct() string {
 	return b.Product
 }
 
+// GetTimestamp return timestamp
 func (b *BaseKline) GetTimestamp() int64 {
 	return b.Timestamp
 }
 
+// GetOpen return open price
 func (b *BaseKline) GetOpen() float64 {
 	return b.Open
 }
 
+// GetClose return close price
 func (b *BaseKline) GetClose() float64 {
 	return b.Close
 }
 
+// GetHigh return high price
 func (b *BaseKline) GetHigh() float64 {
 	return b.High
 }
 
+// GetLow return low price
 func (b *BaseKline) GetLow() float64 {
 	return b.Low
 }
 
+// GetVolume return volume of trade quantity
 func (b *BaseKline) GetVolume() float64 {
 	return b.Volume
 }
 
+// GetBrifeInfo return array of kline data
 func (b *BaseKline) GetBrifeInfo() []string {
 	m := []string{
 		time.Unix(b.GetTimestamp(), 0).UTC().Format("2006-01-02T15:04:05.000Z"),
@@ -124,221 +160,282 @@ func (b *BaseKline) GetBrifeInfo() []string {
 	return m
 }
 
+// TimeString  format time
 func TimeString(ts int64) string {
 	return time.Unix(ts, 0).Local().Format("20060102_150405")
 }
 
+// PrettyTimeString  convert kline data to string
 func (b *BaseKline) PrettyTimeString() string {
 	return fmt.Sprintf("Product: %s, Freq: %d, Time: %s, OCHLV(%.4f, %.4f, %.4f, %.4f, %.4f)",
 		b.Product, b.GetFreqInSecond(), TimeString(b.Timestamp), b.Open, b.Close, b.High, b.Low, b.Volume)
 }
 
+// KlineM1 define kline data in 1 minute
 type KlineM1 struct {
 	*BaseKline
 }
 
+// NewKlineM1 create a instance of KlineM1
 func NewKlineM1(b *BaseKline) *KlineM1 {
 	k := KlineM1{b}
 	k.impl = &k
 	return &k
 }
 
+// GetFreqInSecond return 60
 func (k *KlineM1) GetFreqInSecond() int {
 	return 60
 }
 
+// GetTableName return kline_m1
 func (k *KlineM1) GetTableName() string {
-	return "kline_m1"
+	return klineM1
 }
 
+// KlineM3 define kline data in 3 minutes
 type KlineM3 struct {
 	*BaseKline
 }
 
+// NewKlineM3 create a instance of KlineM3
 func NewKlineM3(b *BaseKline) *KlineM3 {
 	k := KlineM3{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m3
 func (k *KlineM3) GetTableName() string {
-	return "kline_m3"
+	return klineM3
 }
 
+// GetFreqInSecond return 180
 func (k *KlineM3) GetFreqInSecond() int {
 	return 60 * 3
 }
 
+// KlineM5 define kline data in 5 minutes
 type KlineM5 struct {
 	*BaseKline
 }
 
+// NewKlineM5 create a instance of KlineM5
 func NewKlineM5(b *BaseKline) *KlineM5 {
 	k := KlineM5{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m5
 func (k *KlineM5) GetTableName() string {
-	return "kline_m5"
+	return klineM5
 }
 
+// GetFreqInSecond return 300
 func (k *KlineM5) GetFreqInSecond() int {
 	return 60 * 5
 }
 
+// KlineM15 define kline data in 15 minutes
 type KlineM15 struct {
 	*BaseKline
 }
 
+// NewKlineM15 create a instance of KlineM15
 func NewKlineM15(b *BaseKline) *KlineM15 {
 	k := KlineM15{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m15
 func (k *KlineM15) GetTableName() string {
-	return "kline_m15"
+	return klineM15
 }
 
+// GetFreqInSecond return 900
 func (k *KlineM15) GetFreqInSecond() int {
 	return 60 * 15
 }
 
+// KlineM30 define kline data in 30 minutes
 type KlineM30 struct {
 	*BaseKline
 }
 
+// NewKlineM30 create a instance of KlineM30
 func NewKlineM30(b *BaseKline) *KlineM30 {
 	k := KlineM30{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m30
 func (k *KlineM30) GetTableName() string {
-	return "kline_m30"
+	return klineM30
 }
 
+// GetFreqInSecond return 1800
 func (k *KlineM30) GetFreqInSecond() int {
 	return 60 * 30
 }
 
+// KlineM60 define kline data in 1 hour
 type KlineM60 struct {
 	*BaseKline
 }
 
+// NewKlineM60 create a instance of KlineM60
 func NewKlineM60(b *BaseKline) *KlineM60 {
 	k := KlineM60{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m60
 func (k *KlineM60) GetTableName() string {
-	return "kline_m60"
+	return klineM60
 }
+
+// GetFreqInSecond return 3600
 func (k *KlineM60) GetFreqInSecond() int {
 	return 60 * 60
 }
 
+// KlineM120 define kline data in 2 hours
 type KlineM120 struct {
 	*BaseKline
 }
 
+// NewKlineM120 create a instance of KlineM120
 func NewKlineM120(b *BaseKline) *KlineM120 {
 	k := KlineM120{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m120
 func (k *KlineM120) GetTableName() string {
-	return "kline_m120"
+	return klineM120
 }
+
+// GetFreqInSecond return 7200
 func (k *KlineM120) GetFreqInSecond() int {
 	return 60 * 120
 }
 
+// KlineM240 define kline data in 4 hours
 type KlineM240 struct {
 	*BaseKline
 }
 
+// NewKlineM240 create a instance of KlineM240
 func NewKlineM240(b *BaseKline) *KlineM240 {
 	k := KlineM240{b}
 	k.impl = &k
 	return &k
 }
 
+// GetTableName return kline_m240
 func (k *KlineM240) GetTableName() string {
-	return "kline_m240"
+	return klineM240
 }
 
+// GetFreqInSecond return 14400
 func (k *KlineM240) GetFreqInSecond() int {
 	return 14400
 }
 
+// KlineM360 define kline data in 6 hours
 type KlineM360 struct {
 	*BaseKline
 }
 
+// NewKlineM360 create a instance of KlineM360
 func NewKlineM360(b *BaseKline) *KlineM360 {
 	k := KlineM360{b}
 	k.impl = &k
 	return &k
 }
 
+// GetTableName return kline_m360
 func (k *KlineM360) GetTableName() string {
-	return "kline_m360"
+	return klineM360
 }
 
+// GetFreqInSecond return 21600
 func (k *KlineM360) GetFreqInSecond() int {
 	return 21600
 }
 
+// KlineM720 define kline data in 12 hours
 type KlineM720 struct {
 	*BaseKline
 }
 
+// NewKlineM720 create a instance of KlineM720
 func NewKlineM720(b *BaseKline) *KlineM720 {
 	k := KlineM720{b}
 	k.impl = &k
 	return &k
 }
 
+// GetTableName return kline_m720
 func (k *KlineM720) GetTableName() string {
-	return "kline_m720"
+	return klineM720
 }
 
+// GetFreqInSecond return 43200
 func (k *KlineM720) GetFreqInSecond() int {
 	return 43200
 }
 
+// KlineM1440 define kline data in 1 day
 type KlineM1440 struct {
 	*BaseKline
 }
 
+// NewKlineM1440 create a instance of NewKlineM1440
 func NewKlineM1440(b *BaseKline) *KlineM1440 {
 	k := KlineM1440{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m1440
 func (k *KlineM1440) GetTableName() string {
-	return "kline_m1440"
+	return klineM1440
 }
 
+// GetFreqInSecond return 86400
 func (k *KlineM1440) GetFreqInSecond() int {
 	return 86400
 }
 
+// KlineM10080 define kline data in 1 week
 type KlineM10080 struct {
 	*BaseKline
 }
 
+// NewKlineM10080 create a instance of NewKlineM10080
 func NewKlineM10080(b *BaseKline) *KlineM10080 {
 	k := KlineM10080{b}
 	k.impl = &k
 	return &k
 }
+
+// GetTableName return kline_m10080
 func (k *KlineM10080) GetTableName() string {
-	return "kline_m10080"
+	return klineM10080
 }
 
+// GetFreqInSecond return 604800
 func (k *KlineM10080) GetFreqInSecond() int {
 	return 604800
 }
 
+// MustNewKlineFactory will panic when err occurred during  NewKlineFactory
 func MustNewKlineFactory(name string, baseK *BaseKline) (r interface{}) {
 	r, err := NewKlineFactory(name, baseK)
 
@@ -348,6 +445,7 @@ func MustNewKlineFactory(name string, baseK *BaseKline) (r interface{}) {
 	return r
 }
 
+// NewKlineFactory generate kline type by factory pattern
 func NewKlineFactory(name string, baseK *BaseKline) (r interface{}, err error) {
 	b := baseK
 	if b == nil {
@@ -355,53 +453,55 @@ func NewKlineFactory(name string, baseK *BaseKline) (r interface{}, err error) {
 	}
 
 	switch name {
-	case "kline_m1":
+	case klineM1:
 		return NewKlineM1(b), nil
-	case "kline_m3":
+	case klineM3:
 		return NewKlineM3(b), nil
-	case "kline_m5":
+	case klineM5:
 		return NewKlineM5(b), nil
-	case "kline_m15":
+	case klineM15:
 		return NewKlineM15(b), nil
-	case "kline_m30":
+	case klineM30:
 		return NewKlineM30(b), nil
-	case "kline_m60":
+	case klineM60:
 		return NewKlineM60(b), nil
-	case "kline_m120":
+	case klineM120:
 		return NewKlineM120(b), nil
-	case "kline_m240":
+	case klineM240:
 		return NewKlineM240(b), nil
-	case "kline_m360":
+	case klineM360:
 		return NewKlineM360(b), nil
-	case "kline_m720":
+	case klineM720:
 		return NewKlineM720(b), nil
-	case "kline_m1440":
+	case klineM1440:
 		return NewKlineM1440(b), nil
-	case "kline_m10080":
+	case klineM10080:
 		return NewKlineM10080(b), nil
 	}
 
 	return nil, errors.New("No kline constructor function found.")
 }
 
+// GetAllKlineMap return map about kline table names
 func GetAllKlineMap() map[int]string {
 
 	return map[int]string{
-		60:     "kline_m1",
-		180:    "kline_m3",
-		300:    "kline_m5",
-		900:    "kline_m15",
-		1800:   "kline_m30",
-		3600:   "kline_m60",
-		7200:   "kline_m120",
-		14400:  "kline_m240",
-		21600:  "kline_m360",
-		43200:  "kline_m720",
-		86400:  "kline_m1440",
-		604800: "kline_m10080",
+		60:     klineM1,
+		180:    klineM3,
+		300:    klineM5,
+		900:    klineM15,
+		1800:   klineM30,
+		3600:   klineM60,
+		7200:   klineM120,
+		14400:  klineM240,
+		21600:  klineM360,
+		43200:  klineM720,
+		86400:  klineM1440,
+		604800: klineM10080,
 	}
 }
 
+// GetKlineTableNameByFreq return table name
 func GetKlineTableNameByFreq(freq int) string {
 	m := GetAllKlineMap()
 	name := m[freq]
@@ -409,38 +509,40 @@ func GetKlineTableNameByFreq(freq int) string {
 
 }
 
+// NewKlinesFactory generate kline type by type of kline
 func NewKlinesFactory(name string) (r interface{}, err error) {
 
 	switch name {
-	case "kline_m1":
+	case klineM1:
 		return &[]KlineM1{}, nil
-	case "kline_m3":
+	case klineM3:
 		return &[]KlineM3{}, nil
-	case "kline_m5":
+	case klineM5:
 		return &[]KlineM5{}, nil
-	case "kline_m15":
+	case klineM15:
 		return &[]KlineM15{}, nil
-	case "kline_m30":
+	case klineM30:
 		return &[]KlineM30{}, nil
-	case "kline_m60":
+	case klineM60:
 		return &[]KlineM60{}, nil
-	case "kline_m120":
+	case klineM120:
 		return &[]KlineM120{}, nil
-	case "kline_m240":
+	case klineM240:
 		return &[]KlineM240{}, nil
-	case "kline_m360":
+	case klineM360:
 		return &[]KlineM360{}, nil
-	case "kline_m720":
+	case klineM720:
 		return &[]KlineM720{}, nil
-	case "kline_m1440":
+	case klineM1440:
 		return &[]KlineM1440{}, nil
-	case "kline_m10080":
+	case klineM10080:
 		return &[]KlineM10080{}, nil
 	}
 
 	return nil, errors.New("No klines constructor function found.")
 }
 
+// ToIKlinesArray Convert kline data to array for restful interface
 func ToIKlinesArray(klines interface{}, endTS int64, doPadding bool) []IKline {
 
 	originKlines := []IKline{}
@@ -557,6 +659,7 @@ func ToIKlinesArray(klines interface{}, endTS int64, doPadding bool) []IKline {
 	return paddings
 }
 
+// nolint
 func ToRestfulData(klines *[]IKline, limit int) [][]string {
 
 	// Return restful datas

@@ -22,13 +22,16 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+// nolint
 const (
 	EngineTypeSqlite = okchaincfg.BackendOrmEngineTypeSqlite
 	EngineTypeMysql  = okchaincfg.BackendOrmEngineTypeMysql
 )
 
+// nolint
 type OrmEngineInfo = okchaincfg.BackendOrmEngineInfo
 
+// ORM is designed for deal with database by orm
 // http://gorm.io/docs/query.html
 type ORM struct {
 	db                *gorm.DB
@@ -42,6 +45,7 @@ type ORM struct {
 	MaxBlockTimestamp int64
 }
 
+// New return pointer to ORM to deal with database，called at NewKeeper
 func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM, err error) {
 	orm := ORM{}
 	var db *gorm.DB
@@ -64,7 +68,7 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	}
 
 	if db, err = gorm.Open(engineInfo.EngineType, engineInfo.ConnectStr); err != nil {
-		e := errors.New(fmt.Sprintf("ConnectStr: %s, error: %+v", engineInfo.ConnectStr, err))
+		e := fmt.Errorf(fmt.Sprintf("ConnectStr: %s, error: %+v", engineInfo.ConnectStr, err))
 		panic(e)
 	}
 
@@ -89,6 +93,7 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	return &orm, nil
 }
 
+// Debug log  debug info when use orm
 func (orm *ORM) Debug(msg string) {
 	if orm.logger != nil {
 		(*orm.logger).Debug(msg)
@@ -97,6 +102,7 @@ func (orm *ORM) Debug(msg string) {
 	}
 }
 
+// Error log occurred error when use orm
 func (orm *ORM) Error(msg string) {
 	if orm.logger != nil {
 		(*orm.logger).Error(msg)
@@ -117,11 +123,12 @@ func (orm *ORM) deferRollbackTx(trx *gorm.DB, returnErr error) {
 	}
 }
 
+// Close close the database by orm
 func (orm *ORM) Close() error {
 	return orm.db.Close()
 }
 
-// MatchResult
+// nolint
 func (orm *ORM) AddMatchResults(results []*types.MatchResult) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -135,7 +142,7 @@ func (orm *ORM) AddMatchResults(results []*types.MatchResult) (addedCnt int, err
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -143,6 +150,7 @@ func (orm *ORM) AddMatchResults(results []*types.MatchResult) (addedCnt int, err
 	return cnt, nil
 }
 
+// nolint
 func (orm *ORM) GetMatchResults(product string, startTime, endTime int64,
 	offset, limit int) ([]types.MatchResult, int) {
 	var matchResults []types.MatchResult
@@ -172,7 +180,7 @@ func (orm *ORM) GetMatchResults(product string, startTime, endTime int64,
 	return matchResults, total
 }
 
-func (orm *ORM) DeleteMatchResultBefore(timestamp int64) (err error) {
+func (orm *ORM) deleteMatchResultBefore(timestamp int64) (err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
@@ -188,7 +196,7 @@ func (orm *ORM) DeleteMatchResultBefore(timestamp int64) (err error) {
 	return nil
 }
 
-func (orm *ORM) GetMatchResultsByTimeRange(product string, startTime, endTime int64) ([]types.MatchResult, error) {
+func (orm *ORM) getMatchResultsByTimeRange(product string, startTime, endTime int64) ([]types.MatchResult, error) {
 	var matchResults []types.MatchResult
 	r := orm.db.Model(types.MatchResult{}).Where("Product = ? and Timestamp >= ? and Timestamp < ?",
 		product, startTime, endTime).Order("Timestamp desc").Find(&matchResults)
@@ -198,7 +206,7 @@ func (orm *ORM) GetMatchResultsByTimeRange(product string, startTime, endTime in
 	return matchResults, r.Error
 }
 
-func (orm *ORM) GetLatestMatchResults(product string, limit int) ([]types.MatchResult, error) {
+func (orm *ORM) getLatestMatchResults(product string, limit int) ([]types.MatchResult, error) {
 	var matchResults []types.MatchResult
 	r := orm.db.Where("Product = ?", product).Order("Timestamp desc").Limit(limit).Find(&matchResults)
 	if r.Error != nil {
@@ -208,7 +216,7 @@ func (orm *ORM) GetLatestMatchResults(product string, limit int) ([]types.MatchR
 	return matchResults, r.Error
 }
 
-// Deal
+// nolint
 func (orm *ORM) AddDeals(deals []*types.Deal) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -222,7 +230,7 @@ func (orm *ORM) AddDeals(deals []*types.Deal) (addedCnt int, err error) {
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -230,7 +238,7 @@ func (orm *ORM) AddDeals(deals []*types.Deal) (addedCnt int, err error) {
 	return cnt, nil
 }
 
-func (orm *ORM) DeleteDealBefore(timestamp int64) (err error) {
+func (orm *ORM) deleteDealBefore(timestamp int64) (err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
@@ -246,7 +254,7 @@ func (orm *ORM) DeleteDealBefore(timestamp int64) (err error) {
 	return nil
 }
 
-func (orm *ORM) GetLatestDeals(product string, limit int) ([]types.Deal, error) {
+func (orm *ORM) getLatestDeals(product string, limit int) ([]types.Deal, error) {
 	var deals []types.Deal
 	r := orm.db.Where("Product = ?", product).Order("Timestamp desc").Limit(limit).Find(&deals)
 	if r.Error != nil {
@@ -256,6 +264,7 @@ func (orm *ORM) GetLatestDeals(product string, limit int) ([]types.Deal, error) 
 	return deals, r.Error
 }
 
+// nolint
 func (orm *ORM) GetDeals(address, product, side string, startTime, endTime int64, offset, limit int) ([]types.Deal, int) {
 	var deals []types.Deal
 	query := orm.db.Model(types.Deal{})
@@ -291,7 +300,7 @@ func (orm *ORM) GetDeals(address, product, side string, startTime, endTime int64
 	return deals, total
 }
 
-func (orm *ORM) GetDealsByTimestampRange(product string, startTS, endTS int64) ([]types.Deal, error) {
+func (orm *ORM) getDealsByTimestampRange(product string, startTS, endTS int64) ([]types.Deal, error) {
 	var deals []types.Deal
 	r := orm.db.Model(types.Deal{}).Where(
 		"Product = ? and Timestamp >= ? and Timestamp < ?", product, startTS, endTS).Order("Timestamp desc").Find(&deals)
@@ -329,7 +338,9 @@ func (orm *ORM) getMinTimestamp(tbName string) int64 {
 
 	r := orm.db.Raw(sql).Row()
 	if r != nil {
-		r.Scan(&ts)
+		if err := r.Scan(&ts); err != nil {
+			orm.Error("failed to execute scan result, error:" + err.Error())
+		}
 	}
 
 	return ts
@@ -343,85 +354,88 @@ func (orm *ORM) getMaxTimestamp(tbName string) int64 {
 
 	r := orm.db.Raw(sql).Row()
 	if r != nil {
-		r.Scan(&ts)
+		if err := r.Scan(&ts); err != nil {
+			orm.Error("failed to execute scan result, error:" + err.Error())
+		}
 	}
 
 	return ts
 
 }
 
-func (orm *ORM) GetDealsMinTimestamp() int64 {
+func (orm *ORM) getDealsMinTimestamp() int64 {
 	return orm.getMinTimestamp("deals")
 }
 
-func (orm *ORM) GetDealsMaxTimestamp() int64 {
+func (orm *ORM) getDealsMaxTimestamp() int64 {
 	return orm.getMaxTimestamp("deals")
 }
 
-// KlineM1 GetKlineMaxTimestamp
-func (orm *ORM) GetKlineMaxTimestamp(k types.IKline) int64 {
+func (orm *ORM) getKlineMaxTimestamp(k types.IKline) int64 {
 	return orm.getMaxTimestamp(k.GetTableName())
 }
 
-// KlineM1 GetKlineMaxTimestamp
-func (orm *ORM) GetKlineMinTimestamp(k types.IKline) int64 {
+func (orm *ORM) getKlineMinTimestamp(k types.IKline) int64 {
 	return orm.getMinTimestamp(k.GetTableName())
 }
 
-func (orm *ORM) GetMergeResultMinTimestamp() int64 {
+func (orm *ORM) getMergeResultMinTimestamp() int64 {
 	return orm.getMinTimestamp("match_results")
 }
 
-func (orm *ORM) GetMergeResultMaxTimestamp() int64 {
+func (orm *ORM) getMergeResultMaxTimestamp() int64 {
 	return orm.getMaxTimestamp("match_results")
 
 }
 
+// nolint
 type IKline1MDataSource interface {
-	GetDataSourceMinTimestamp() int64
-	GetMaxMinSumByGroupSQL(startTS, endTS int64) string
-	GetOpenClosePrice(startTS, endTS int64, product string) (float64, float64)
+	getDataSourceMinTimestamp() int64
+	getMaxMinSumByGroupSQL(startTS, endTS int64) string
+	getOpenClosePrice(startTS, endTS int64, product string) (float64, float64)
 }
 
+// nolint
 type DealDataSource struct {
 	orm *ORM
 }
 
-func (dm *DealDataSource) GetDataSourceMinTimestamp() int64 {
-	return dm.orm.GetDealsMinTimestamp()
+func (dm *DealDataSource) getDataSourceMinTimestamp() int64 {
+	return dm.orm.getDealsMinTimestamp()
 }
 
-func (dm *DealDataSource) GetMaxMinSumByGroupSQL(startTS, endTS int64) string {
+func (dm *DealDataSource) getMaxMinSumByGroupSQL(startTS, endTS int64) string {
 	sql := fmt.Sprintf("select product, sum(Quantity) as quantity, max(Price) as high, min(Price) as low, count(price) as cnt from deals "+
 		"where Timestamp >= %d and Timestamp < %d and Side = 'BUY' group by product", startTS, endTS)
 	return sql
 }
 
-func (dm *DealDataSource) GetOpenClosePrice(startTS, endTS int64, product string) (float64, float64) {
+func (dm *DealDataSource) getOpenClosePrice(startTS, endTS int64, product string) (float64, float64) {
 	openDeal, closeDeal := dm.orm.getOpenCloseDeals(startTS, endTS, product)
 	return openDeal.Price, closeDeal.Price
 }
 
+// nolint
 type MergeResultDataSource struct {
 	Orm *ORM
 }
 
-func (dm *MergeResultDataSource) GetDataSourceMinTimestamp() int64 {
-	return dm.Orm.GetMergeResultMinTimestamp()
+func (dm *MergeResultDataSource) getDataSourceMinTimestamp() int64 {
+	return dm.Orm.getMergeResultMinTimestamp()
 }
 
-func (dm *MergeResultDataSource) GetMaxMinSumByGroupSQL(startTS, endTS int64) string {
+func (dm *MergeResultDataSource) getMaxMinSumByGroupSQL(startTS, endTS int64) string {
 	sql := fmt.Sprintf("select product, sum(Quantity) as quantity, max(Price) as high, min(Price) as low, count(price) as cnt from match_results "+
 		"where Timestamp >= %d and Timestamp < %d group by product", startTS, endTS)
 	return sql
 }
 
-func (dm *MergeResultDataSource) GetOpenClosePrice(startTS, endTS int64, product string) (float64, float64) {
+func (dm *MergeResultDataSource) getOpenClosePrice(startTS, endTS int64, product string) (float64, float64) {
 	openDeal, closeDeal := dm.Orm.getOpenCloseDeals(startTS, endTS, product)
 	return openDeal.Price, closeDeal.Price
 }
 
-// Rule1. No deals to handle between [startTS, endTS), anchorEndTS <- startTS
+// CreateKline1min batch insert into Kline1M
 func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSource) (anchorEndTS int64, newK int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -432,13 +446,13 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	}
 
 	acTS := startTS
-	maxTSPersistent := orm.GetKlineMaxTimestamp(&types.KlineM1{})
+	maxTSPersistent := orm.getKlineMaxTimestamp(&types.KlineM1{})
 	if maxTSPersistent > 0 && maxTSPersistent > startTS {
 		acTS = maxTSPersistent + 60
 	}
 
 	if acTS == 0 {
-		minDataSourceTS := dataSource.GetDataSourceMinTimestamp()
+		minDataSourceTS := dataSource.getDataSourceMinTimestamp()
 		// No Deals to handle if minDataSourceTS == -1, anchorEndTS <-- startTS
 		if minDataSourceTS == -1 {
 			return startTS, 0, errors.New("No Deals to handled, return without converting job.")
@@ -458,7 +472,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	nextTime := anchorStartTime.Add(time.Minute)
 	nextTimeStamp := nextTime.Unix()
 	for nextTimeStamp <= endTS {
-		sql := dataSource.GetMaxMinSumByGroupSQL(anchorStartTime.Unix(), nextTime.Unix())
+		sql := dataSource.getMaxMinSumByGroupSQL(anchorStartTime.Unix(), nextTime.Unix())
 		rows, err := orm.db.Raw(sql).Rows()
 
 		if rows != nil && err == nil {
@@ -467,10 +481,12 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 				var quantity, high, low float64
 				var cnt int
 
-				rows.Scan(&product, &quantity, &high, &low, &cnt)
+				if err = rows.Scan(&product, &quantity, &high, &low, &cnt); err != nil {
+					orm.Error("failed to execute scan result, error:" + err.Error())
+				}
 				if cnt > 0 {
 
-					openPrice, closePrice := dataSource.GetOpenClosePrice(anchorStartTime.Unix(), nextTime.Unix(), product)
+					openPrice, closePrice := dataSource.getOpenClosePrice(anchorStartTime.Unix(), nextTime.Unix(), product)
 
 					b := types.BaseKline{
 						Product: product, High: high, Low: low, Volume: quantity,
@@ -487,7 +503,9 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 				}
 			}
 
-			rows.Close()
+			if err = rows.Close(); err != nil {
+				orm.Error("failed to execute close rows, error:" + err.Error())
+			}
 		}
 
 		anchorStartTime = nextTime
@@ -548,22 +566,23 @@ func (orm *ORM) deleteKlinesAfter(unixTS int64, product string, kline interface{
 	return nil
 }
 
+// DeleteKlineBefore delete from kline
 func (orm *ORM) DeleteKlineBefore(unixTS int64, kline interface{}) error {
 	return orm.deleteKlinesBefore(unixTS, kline)
 }
 
-func (orm *ORM) DeleteKlineM1Before(unixTS int64) error {
+func (orm *ORM) deleteKlineM1Before(unixTS int64) error {
 	return orm.DeleteKlineBefore(unixTS, &types.KlineM1{})
 }
 
-func (orm *ORM) GetAllUpdatedProducts(anchorStartTS, anchorEndTS int64) ([]string, error) {
+func (orm *ORM) getAllUpdatedProducts(anchorStartTS, anchorEndTS int64) ([]string, error) {
 	midTS := anchorEndTS - int64(16*60)
-	p1, e1 := orm.getAllUpdatedProducts(anchorStartTS, midTS, "kline_m15")
+	p1, e1 := orm.getAllUpdatedProductsFromTable(anchorStartTS, midTS, "kline_m15")
 	if e1 != nil {
 		return nil, e1
 	}
 
-	p2, e2 := orm.getAllUpdatedProducts(midTS, anchorEndTS, "match_results")
+	p2, e2 := orm.getAllUpdatedProductsFromTable(midTS, anchorEndTS, "match_results")
 	if e2 != nil {
 		return nil, e1
 	}
@@ -585,7 +604,7 @@ func (orm *ORM) GetAllUpdatedProducts(anchorStartTS, anchorEndTS int64) ([]strin
 	return mergedKline, nil
 }
 
-func (orm *ORM) getAllUpdatedProducts(anchorStartTS, anchorEndTS int64, tb string) ([]string, error) {
+func (orm *ORM) getAllUpdatedProductsFromTable(anchorStartTS, anchorEndTS int64, tb string) ([]string, error) {
 	sql := fmt.Sprintf("select distinct(Product) from %s where Timestamp >= %d and Timestamp < %d",
 		tb, anchorStartTS, anchorEndTS)
 
@@ -595,11 +614,14 @@ func (orm *ORM) getAllUpdatedProducts(anchorStartTS, anchorEndTS int64, tb strin
 		products := []string{}
 		for rows.Next() {
 			var product string
-			rows.Scan(&product)
+			if err := rows.Scan(&product); err != nil {
+				orm.Error("failed to execute scan result, error:" + err.Error())
+			}
 			products = append(products, product)
 		}
-
-		rows.Close()
+		if err = rows.Close(); err != nil {
+			orm.Error("failed to execute close rows, error:" + err.Error())
+		}
 		return products, nil
 
 	} else {
@@ -607,6 +629,7 @@ func (orm *ORM) getAllUpdatedProducts(anchorStartTS, anchorEndTS int64, tb strin
 	}
 }
 
+// nolint
 func (orm *ORM) GetLatestKlinesByProduct(product string, limit int, anchorTS int64, klines interface{}) error {
 
 	var r *gorm.DB
@@ -619,16 +642,15 @@ func (orm *ORM) GetLatestKlinesByProduct(product string, limit int, anchorTS int
 	return r.Error
 }
 
-func (orm *ORM) GetKlinesByTimeRange(product string, startTS, endTS int64, klines interface{}) error {
+func (orm *ORM) getKlinesByTimeRange(product string, startTS, endTS int64, klines interface{}) error {
 
-	var r *gorm.DB
-	r = orm.db.Where("Timestamp >= ? and Timestamp < ? and Product = ?", startTS, endTS, product).
+	r := orm.db.Where("Timestamp >= ? and Timestamp < ? and Product = ?", startTS, endTS, product).
 		Order("Timestamp desc").Find(klines)
 
 	return r.Error
 }
 
-func (orm *ORM) GetLatestKlineM1ByProduct(product string, limit int) (*[]types.KlineM1, error) {
+func (orm *ORM) getLatestKlineM1ByProduct(product string, limit int) (*[]types.KlineM1, error) {
 	klines := []types.KlineM1{}
 	if err := orm.GetLatestKlinesByProduct(product, limit, -1, &klines); err != nil {
 		return nil, err
@@ -637,14 +659,14 @@ func (orm *ORM) GetLatestKlineM1ByProduct(product string, limit int) (*[]types.K
 	}
 }
 
-// KlineM1 --> KlineM*
+// MergeKlineM1  merge KlineM1 data to KlineM*
 func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anchorEndTS int64, newKCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
-	kM1 := types.MustNewKlineFactory("kline_m1", nil)
+	klineM1 := types.MustNewKlineFactory("kline_m1", nil)
 	// 0. destKline should not be KlineM1 & endTS should be greater than startTS
-	if destKline.GetFreqInSecond() <= kM1.(types.IKline).GetFreqInSecond() {
+	if destKline.GetFreqInSecond() <= klineM1.(types.IKline).GetFreqInSecond() {
 		return startTS, 0, fmt.Errorf("destKline's updating Freq #%d# should be greater than 60", destKline.GetFreqInSecond())
 	}
 	if endTS <= startTS {
@@ -653,13 +675,13 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 
 	// 1. Get anchor start time.
 	acTS := startTS
-	maxTSPersistent := orm.GetKlineMaxTimestamp(destKline)
+	maxTSPersistent := orm.getKlineMaxTimestamp(destKline)
 	if maxTSPersistent > 0 && maxTSPersistent > startTS {
 		acTS = maxTSPersistent
 	}
 
 	if acTS == 0 {
-		minTS := orm.GetKlineMinTimestamp(kM1.(types.IKline))
+		minTS := orm.getKlineMinTimestamp(klineM1.(types.IKline))
 		// No Deals to handle if minDealTS == -1, anchorEndTS <-- startTS
 		if minTS == -1 {
 			return startTS, 0, errors.New("DestKline:" + destKline.GetTableName() + ". No KlineM1 to handled, return without converting job.")
@@ -693,7 +715,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 	for nextTimeStamp <= anchorEndTime {
 
 		sql := fmt.Sprintf("select %d, product, sum(volume) as volume, max(high) as high, min(low) as low, count(*) as cnt from %s "+
-			"where Timestamp >= %d and Timestamp < %d group by product", anchorStartTime.Unix(), kM1.(types.IKline).GetTableName(), anchorStartTime.Unix(), nextTime.Unix())
+			"where Timestamp >= %d and Timestamp < %d group by product", anchorStartTime.Unix(), klineM1.(types.IKline).GetTableName(), anchorStartTime.Unix(), nextTime.Unix())
 
 		rows, err := orm.db.Raw(sql).Rows()
 
@@ -704,13 +726,17 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 				var cnt int
 				var ts int64
 
-				rows.Scan(&ts, &product, &quantity, &high, &low, &cnt)
+				if err = rows.Scan(&ts, &product, &quantity, &high, &low, &cnt); err != nil {
+					orm.Error("failed to execute scan result, error:" + err.Error())
+				}
 				if cnt > 0 {
 
-					openKline := types.MustNewKlineFactory(kM1.(types.IKline).GetTableName(), nil)
-					closeKline := types.MustNewKlineFactory(kM1.(types.IKline).GetTableName(), nil)
-					orm.getOpenCloseKline(anchorStartTime.Unix(), nextTime.Unix(), product, openKline, closeKline)
-
+					openKline := types.MustNewKlineFactory(klineM1.(types.IKline).GetTableName(), nil)
+					closeKline := types.MustNewKlineFactory(klineM1.(types.IKline).GetTableName(), nil)
+					err = orm.getOpenCloseKline(anchorStartTime.Unix(), nextTime.Unix(), product, openKline, closeKline)
+					if err != nil {
+						orm.Error(fmt.Sprintf("failed to get open and close kline, error: %s", err.Error()))
+					}
 					b := types.BaseKline{
 						Product: product, High: high, Low: low, Volume: quantity, Timestamp: anchorStartTime.Unix(),
 						Open: openKline.(types.IKline).GetOpen(), Close: closeKline.(types.IKline).GetClose()}
@@ -726,7 +752,9 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 					productKlines[product] = klines
 				}
 			}
-			rows.Close()
+			if err = rows.Close(); err != nil {
+				orm.Error("failed to execute close rows, error:" + err.Error())
+			}
 		}
 
 		anchorStartTime = nextTime
@@ -753,7 +781,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 	return anchorEndTS, len(productKlines), nil
 }
 
-// Latest 24H KlineM1 to Ticker
+// RefreshTickers Latest 24H KlineM1 to Ticker
 func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m map[string]*types.Ticker, err error) {
 
 	orm.Debug(fmt.Sprintf("[backend] entering RefreshTickers, expected TickerTimeRange: [%d, %d)=[%s, %s), expectedProducts: %+v",
@@ -764,14 +792,14 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 	// 1. Get updated product by Deals & KlineM15 in latest 120 seconds
 	km1 := types.MustNewKlineFactory("kline_m1", nil)
 	km15 := types.MustNewKlineFactory("kline_m15", nil)
-	if productList == nil || len(productList) == 0 {
-		productList, err = orm.GetAllUpdatedProducts(endTS-types.SecondsInADay*14, endTS)
+	if len(productList) == 0 {
+		productList, err = orm.getAllUpdatedProducts(endTS-types.SecondsInADay*14, endTS)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if productList == nil || len(productList) == 0 {
+	if len(productList) == 0 {
 		return nil, nil
 	}
 
@@ -786,13 +814,15 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 	finalStartTS := km15.(types.IKline).GetAnchorTimeTS(endTS) - types.SecondsInADay
 	for _, p := range productList {
 		existsKM15 := orm.klineM15sBuffer[p]
-		if existsKM15 != nil && len(existsKM15) > 0 {
+		if len(existsKM15) > 0 {
 			continue
 		}
 
 		klineM15s := []types.KlineM15{}
 
-		orm.GetKlinesByTimeRange(p, finalStartTS, anchorKM15TS, &klineM15s)
+		if err = orm.getKlinesByTimeRange(p, finalStartTS, anchorKM15TS, &klineM15s); err != nil {
+			orm.Error(fmt.Sprintf("failed to get kline between %d and %d, error: %s", finalStartTS, anchorKM15TS, err.Error()))
+		}
 		if len(klineM15s) > 0 {
 			orm.klineM15sBuffer[p] = klineM15s
 		}
@@ -807,7 +837,7 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 
 	for _, p := range productList {
 		existsKM1 := orm.klineM1sBuffer[p]
-		if existsKM1 != nil && len(existsKM1) > 0 {
+		if len(existsKM1) > 0 {
 			continue
 		}
 
@@ -815,7 +845,9 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 		if anchorKM1TS < anchorKM15TS {
 			anchorKM1TS = anchorKM15TS
 		}
-		orm.GetKlinesByTimeRange(p, anchorKM15TS, anchorKM1TS, &klineM1s)
+		if err = orm.getKlinesByTimeRange(p, anchorKM15TS, anchorKM1TS, &klineM1s); err != nil {
+			orm.Error(fmt.Sprintf("failed to get kline between %d and %d, error: %s", finalStartTS, anchorKM15TS, err.Error()))
+		}
 		if len(klineM1s) > 0 {
 			orm.klineM1sBuffer[p] = klineM1s
 		}
@@ -824,7 +856,7 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 	// 	2.3 For each product, get latest [anchorKM1TS, endTS) MatchResult list
 	matchResultMap := make(map[string][]types.MatchResult)
 	for _, product := range productList {
-		matchResults, err := orm.GetMatchResultsByTimeRange(product, anchorKM1TS, endTS)
+		matchResults, err := orm.getMatchResultsByTimeRange(product, anchorKM1TS, endTS)
 		if err != nil {
 			orm.Error(fmt.Sprintf("failed to GetMatchResultsByTimeRange, error: %s", err.Error()))
 			continue
@@ -857,7 +889,7 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 			iklines = append(iklines, &klinesM15[idx])
 		}
 
-		// [X] 3.1 No klinesM1 & klinesM15 found, contine
+		// [X] 3.1 No klinesM1 & klinesM15 found, continue
 		// FLT. 20190411. Go ahead even if there's no klines.
 
 		// 3.2 Do iklines sort desc by timestamp.
@@ -896,7 +928,7 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 		}
 
 		if len(iklines) == 0 && len(matchResults) == 0 {
-			latestMatches, err := orm.GetLatestMatchResults(p, 1)
+			latestMatches, err := orm.getLatestMatchResults(p, 1)
 			if err != nil {
 				orm.Debug(fmt.Sprintf("failed to GetLatestMatchResults, error: %s", err.Error()))
 			}
@@ -940,7 +972,7 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 	return tickerMap, nil
 }
 
-// FeeDetail
+// AddFeeDetails insert into fees
 func (orm *ORM) AddFeeDetails(feeDetails []*token.FeeDetail) (addedCnt int, err error) {
 
 	orm.singleEntryLock.Lock()
@@ -955,7 +987,7 @@ func (orm *ORM) AddFeeDetails(feeDetails []*token.FeeDetail) (addedCnt int, err 
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -963,6 +995,7 @@ func (orm *ORM) AddFeeDetails(feeDetails []*token.FeeDetail) (addedCnt int, err 
 	return cnt, nil
 }
 
+// nolint
 func (orm *ORM) GetFeeDetails(address string, offset, limit int) ([]token.FeeDetail, int) {
 	var feeDetails []token.FeeDetail
 	query := orm.db.Model(token.FeeDetail{}).Where("address = ?", address)
@@ -976,7 +1009,7 @@ func (orm *ORM) GetFeeDetails(address string, offset, limit int) ([]token.FeeDet
 	return feeDetails, total
 }
 
-// Order
+// AddOrders insert into orders
 func (orm *ORM) AddOrders(orders []*types.Order) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -990,7 +1023,7 @@ func (orm *ORM) AddOrders(orders []*types.Order) (addedCnt int, err error) {
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -998,6 +1031,7 @@ func (orm *ORM) AddOrders(orders []*types.Order) (addedCnt int, err error) {
 	return cnt, nil
 }
 
+// UpdateOrders return count of orders
 func (orm *ORM) UpdateOrders(orders []*types.Order) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -1011,7 +1045,7 @@ func (orm *ORM) UpdateOrders(orders []*types.Order) (addedCnt int, err error) {
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -1019,6 +1053,7 @@ func (orm *ORM) UpdateOrders(orders []*types.Order) (addedCnt int, err error) {
 	return cnt, nil
 }
 
+// nolint
 func (orm *ORM) GetOrderList(address, product, side string, open bool, offset, limit int,
 	startTS, endTS int64, hideNoFill bool) ([]types.Order, int) {
 	var orders []types.Order
@@ -1055,7 +1090,7 @@ func (orm *ORM) GetOrderList(address, product, side string, open bool, offset, l
 	return orders, total
 }
 
-// Transaction
+// AddTransactions insert into transactions, return count
 func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -1069,7 +1104,7 @@ func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int
 		if ret.Error != nil {
 			return cnt, ret.Error
 		} else {
-			cnt += 1
+			cnt++
 		}
 	}
 
@@ -1077,6 +1112,7 @@ func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int
 	return cnt, nil
 }
 
+// nolint
 func (orm *ORM) GetTransactionList(address string, txType, startTime, endTime int64, offset, limit int) ([]types.Transaction, int) {
 	var txs []types.Transaction
 	query := orm.db.Model(types.Transaction{}).Where("address = ?", address)
@@ -1100,6 +1136,7 @@ func (orm *ORM) GetTransactionList(address string, txType, startTime, endTime in
 	return txs, total
 }
 
+// BatchInsertOrUpdate return map mean success or fail
 func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal, mrs []*types.MatchResult, feeDetails []*token.FeeDetail, trxs []*types.Transaction) (resultMap map[string]int, err error) {
 
 	orm.singleEntryLock.Lock()
@@ -1121,7 +1158,7 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	orderVItems := []string{}
 	for _, order := range newOrders {
 		vItem := fmt.Sprintf("('%s','%s','%s','%s','%s','%s','%s','%d','%s','%s','%d')",
-			order.TxHash, order.OrderId, order.Sender, order.Product, order.Side, order.Price, order.Quantity,
+			order.TxHash, order.OrderID, order.Sender, order.Product, order.Side, order.Price, order.Quantity,
 			order.Status, order.FilledAvgPrice, order.RemainQuantity, order.Timestamp)
 		orderVItems = append(orderVItems, vItem)
 
@@ -1143,7 +1180,7 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 		if ret.Error != nil {
 			return resultMap, ret.Error
 		} else {
-			resultMap["updatedOrders"] += 1
+			resultMap["updatedOrders"]++
 		}
 	}
 
@@ -1152,7 +1189,7 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 		if ret.Error != nil {
 			return resultMap, ret.Error
 		} else {
-			resultMap["matchResults"] += 1
+			resultMap["matchResults"]++
 		}
 	}
 
@@ -1160,7 +1197,7 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	dealVItems := []string{}
 	for _, d := range deals {
 		vItem := fmt.Sprintf("('%d','%d','%s','%s','%s','%s','%f','%f','%s')",
-			d.Timestamp, d.BlockHeight, d.OrderId, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee)
+			d.Timestamp, d.BlockHeight, d.OrderID, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee)
 		dealVItems = append(dealVItems, vItem)
 	}
 	if len(dealVItems) > 0 {
@@ -1214,13 +1251,14 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	return resultMap, nil
 }
 
-func (orm *ORM) GetOrderListV2(instrumentId string, address string, side string, open bool, after string, before string, limit int) []types.Order {
+// nolint
+func (orm *ORM) GetOrderListV2(instrumentID string, address string, side string, open bool, after string, before string, limit int) []types.Order {
 	var orders []types.Order
 
 	query := orm.db.Model(types.Order{})
 
-	if instrumentId != "" {
-		query = query.Where("product = ? ", instrumentId)
+	if instrumentID != "" {
+		query = query.Where("product = ? ", instrumentID)
 	}
 
 	if after != "" {
@@ -1249,10 +1287,11 @@ func (orm *ORM) GetOrderListV2(instrumentId string, address string, side string,
 	return orders
 }
 
-func (orm *ORM) GetOrderById(orderId string) *types.Order {
+// nolint
+func (orm *ORM) GetOrderByID(orderID string) *types.Order {
 	var orders []types.Order
 
-	query := orm.db.Model(types.Order{}).Where("order_id = ? ", orderId)
+	query := orm.db.Model(types.Order{}).Where("order_id = ? ", orderID)
 
 	query.Find(&orders)
 
@@ -1262,12 +1301,13 @@ func (orm *ORM) GetOrderById(orderId string) *types.Order {
 	return nil
 }
 
-func (orm *ORM) GetMatchResultsV2(instrumentId string, after string, before string, limit int) []types.MatchResult {
+// nolint
+func (orm *ORM) GetMatchResultsV2(instrumentID string, after string, before string, limit int) []types.MatchResult {
 	var matchResults []types.MatchResult
 	query := orm.db.Model(types.MatchResult{})
 
-	if instrumentId != "" {
-		query = query.Where("product = ?", instrumentId)
+	if instrumentID != "" {
+		query = query.Where("product = ?", instrumentID)
 	}
 
 	if after != "" {
@@ -1281,6 +1321,7 @@ func (orm *ORM) GetMatchResultsV2(instrumentId string, after string, before stri
 	return matchResults
 }
 
+// nolint
 func (orm *ORM) GetFeeDetailsV2(address string, after string, before string, limit int) []token.FeeDetail {
 	var feeDetails []token.FeeDetail
 	query := orm.db.Model(token.FeeDetail{}).Where("address = ?", address)
@@ -1295,6 +1336,7 @@ func (orm *ORM) GetFeeDetailsV2(address string, after string, before string, lim
 	return feeDetails
 }
 
+// nolint
 func (orm *ORM) GetDealsV2(address, product, side string, after string, before string, limit int) []types.Deal {
 	var deals []types.Deal
 	query := orm.db.Model(types.Deal{})
@@ -1319,6 +1361,7 @@ func (orm *ORM) GetDealsV2(address, product, side string, after string, before s
 	return deals
 }
 
+// nolint
 func (orm *ORM) GetTransactionListV2(address string, txType int, after string, before string, limit int) []types.Transaction {
 	var txs []types.Transaction
 	query := orm.db.Model(types.Transaction{}).Where("address = ?", address)

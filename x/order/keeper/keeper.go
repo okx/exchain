@@ -18,8 +18,6 @@ import (
 type Keeper struct {
 	// The reference to the TokenKeeper to modify balances
 	tokenKeeper TokenKeeper
-	// The reference to the Param Keeper to get and set Global Params
-	paramsKeeper params.Keeper
 	// The reference to the Paramstore to get and set gov specific params
 	paramSpace params.Subspace
 
@@ -42,7 +40,7 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, paramsKeeper params.Keeper, dexKeeper DexKeeper,
+func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper DexKeeper,
 	paramSpace params.Subspace, feeCollectorName string, ordersStoreKey sdk.StoreKey,
 	cdc *codec.Codec,
 	enableBackend bool, metrics *monitor.OrderMetric) Keeper {
@@ -55,7 +53,6 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, paramsKeeper 
 
 		tokenKeeper:  tokenKeeper,
 		supplyKeeper: supplyKeeper,
-		paramsKeeper: paramsKeeper,
 		dexKeeper:    dexKeeper,
 		paramSpace:   paramSpace.WithKeyTable(types.ParamKeyTable()),
 
@@ -67,7 +64,7 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, paramsKeeper 
 	}
 }
 
-// Reset cache, called in BeginBlock
+// ResetCache is called in BeginBlock
 func (k Keeper) ResetCache(ctx sdk.Context) {
 	// Reset cache
 	k.cache.reset()
@@ -79,7 +76,7 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 	// init depth book & items cache
 	if len(k.diskCache.depthBookMap.data) == 0 {
 		depthStore := ctx.KVStore(k.orderStoreKey)
-		depthIter := sdk.KVStorePrefixIterator(depthStore, types.DepthbookKey)
+		depthIter := sdk.KVStorePrefixIterator(depthStore, types.DepthBookKey)
 
 		for ; depthIter.Valid(); depthIter.Next() {
 			depthBook := &types.DepthBook{}
@@ -101,7 +98,7 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 	}
 }
 
-// Flush cached data into KVStore, called in EndBlock
+// Cache2Disk flushes cached data into KVStore, called in EndBlock
 func (k Keeper) Cache2Disk(ctx sdk.Context) {
 
 	closedOrderIDs := k.diskCache.GetClosedOrderIDs()
@@ -123,6 +120,7 @@ func (k Keeper) Cache2Disk(ctx sdk.Context) {
 	k.diskCache.flush()
 }
 
+// OrderOperationMetric records the order information in the depthBook
 type OrderOperationMetric struct {
 	FullFillNum    int64
 	OpenNum        int64
@@ -131,6 +129,7 @@ type OrderOperationMetric struct {
 	PartialFillNum int64
 }
 
+// GetOperationMetric gets OperationMetric from keeper
 func (k Keeper) GetOperationMetric() OrderOperationMetric {
 	return OrderOperationMetric{
 		FullFillNum:    k.cache.GetFullFillNum(),
@@ -141,22 +140,27 @@ func (k Keeper) GetOperationMetric() OrderOperationMetric {
 	}
 }
 
+// GetCache returns the memoryCache
 func (k Keeper) GetCache() *Cache {
 	return k.cache
 }
 
+// GetDiskCache returns the diskCache
 func (k Keeper) GetDiskCache() *DiskCache {
 	return k.diskCache
 }
 
+// nolint
 func (k Keeper) GetTokenKeeper() TokenKeeper {
 	return k.tokenKeeper
 }
 
+// nolint
 func (k Keeper) GetDexKeeper() DexKeeper {
 	return k.dexKeeper
 }
 
+// GetExpireBlockHeight gets a slice of ExpireBlockHeight from KVStore
 func (k Keeper) GetExpireBlockHeight(ctx sdk.Context, blockHeight int64) []int64 {
 	store := ctx.KVStore(k.orderStoreKey)
 	orderInfo := store.Get(types.GetExpireBlockHeightKey(blockHeight))
@@ -168,6 +172,7 @@ func (k Keeper) GetExpireBlockHeight(ctx sdk.Context, blockHeight int64) []int64
 	return expireBlockNumbers
 }
 
+// GetOrder gets order from KVStore
 func (k Keeper) GetOrder(ctx sdk.Context, orderID string) *types.Order {
 	store := ctx.KVStore(k.orderStoreKey)
 	orderInfo := store.Get(types.GetOrderKey(orderID))
@@ -179,6 +184,7 @@ func (k Keeper) GetOrder(ctx sdk.Context, orderID string) *types.Order {
 	return order
 }
 
+// nolint
 func (k Keeper) GetLastPrice(ctx sdk.Context, product string) sdk.Dec {
 	// get last price from cache
 	price := k.diskCache.getLastPrice(product)
@@ -204,7 +210,7 @@ func (k Keeper) GetLastPrice(ctx sdk.Context, product string) sdk.Dec {
 	return price
 }
 
-// Get depth book copy from cache, you are supposed to update the Depthbook if you change it
+// GetDepthBookCopy gets depth book copy from cache, you are supposed to update the Depthbook if you change it
 // create if not exist
 func (k Keeper) GetDepthBookCopy(product string) *types.DepthBook {
 	book := k.diskCache.getDepthBook(product)
@@ -217,13 +223,15 @@ func (k Keeper) GetDepthBookCopy(product string) *types.DepthBook {
 	return book.Copy()
 }
 
+// SetDepthBook updates depthBook in diskCache
 func (k Keeper) SetDepthBook(product string, book *types.DepthBook) {
 	k.diskCache.setDepthBook(product, book)
 }
 
+// GetDepthBookFromDB gets depthBook from KVStore
 func (k Keeper) GetDepthBookFromDB(ctx sdk.Context, product string) *types.DepthBook {
 	store := ctx.KVStore(k.orderStoreKey)
-	bookBytes := store.Get(types.GetDepthbookKey(product))
+	bookBytes := store.Get(types.GetDepthBookKey(product))
 	if bookBytes == nil {
 		// Return an empty DepthBook instead of nil
 		return &types.DepthBook{}
@@ -233,6 +241,7 @@ func (k Keeper) GetDepthBookFromDB(ctx sdk.Context, product string) *types.Depth
 	return depthBook
 }
 
+// GetProductPriceOrderIDs gets OrderIDs from diskCache
 func (k Keeper) GetProductPriceOrderIDs(key string) []string {
 	if orderIDs := k.diskCache.getOrderIDs(key); orderIDs != nil {
 		return orderIDs
@@ -240,6 +249,7 @@ func (k Keeper) GetProductPriceOrderIDs(key string) []string {
 	return []string{}
 }
 
+// GetProductPriceOrderIDsFromDB gets OrderIDs from KVStore
 func (k Keeper) GetProductPriceOrderIDsFromDB(ctx sdk.Context, key string) []string {
 	store := ctx.KVStore(k.orderStoreKey)
 	idsBytes := store.Get(types.GetOrderIDsKey(key))
@@ -251,7 +261,7 @@ func (k Keeper) GetProductPriceOrderIDsFromDB(ctx sdk.Context, key string) []str
 	return orderIDs
 }
 
-// get the num of orders in specific block
+// GetBlockOrderNum gets the num of orders in specific block
 func (k Keeper) GetBlockOrderNum(ctx sdk.Context, blockHeight int64) int64 {
 	store := ctx.KVStore(k.orderStoreKey)
 	key := types.GetOrderNumPerBlockKey(blockHeight)
@@ -262,6 +272,9 @@ func (k Keeper) GetBlockOrderNum(ctx sdk.Context, blockHeight int64) int64 {
 	return common.BytesToInt64(numBytes)
 }
 
+// GetLastExpiredBlockHeight gets LastExpiredBlockHeight from KVStore
+// LastExpiredBlockHeight means that the block height of his expired height
+// list has been processed by expired recently
 func (k Keeper) GetLastExpiredBlockHeight(ctx sdk.Context) int64 {
 	store := ctx.KVStore(k.orderStoreKey)
 	numBytes := store.Get(types.LastExpiredBlockHeightKey)
@@ -271,6 +284,8 @@ func (k Keeper) GetLastExpiredBlockHeight(ctx sdk.Context) int64 {
 	return common.BytesToInt64(numBytes)
 }
 
+// GetOpenOrderNum gets OpenOrderNum from KVStore
+// OpenOrderNum means the number of orders currently in the open state
 func (k Keeper) GetOpenOrderNum(ctx sdk.Context) int64 {
 	store := ctx.KVStore(k.orderStoreKey)
 	numBytes := store.Get(types.OpenOrderNumKey)
@@ -280,6 +295,8 @@ func (k Keeper) GetOpenOrderNum(ctx sdk.Context) int64 {
 	return common.BytesToInt64(numBytes)
 }
 
+// StoreOrderNum means the number of orders currently stored
+// nolint
 func (k Keeper) GetStoreOrderNum(ctx sdk.Context) int64 {
 	store := ctx.KVStore(k.orderStoreKey)
 	numBytes := store.Get(types.StoreOrderNumKey)
@@ -289,21 +306,24 @@ func (k Keeper) GetStoreOrderNum(ctx sdk.Context) int64 {
 	return common.BytesToInt64(numBytes)
 }
 
+// GetUpdatedDepthbookKeys gets UpdatedDepthbookKeys from diskCache
 func (k Keeper) GetUpdatedDepthbookKeys() []string {
 	return k.diskCache.GetUpdatedDepthbookKeys()
 }
 
+// GetUpdatedOrderIDs gets UpdatedOrderIDs from memoryCache
 func (k Keeper) GetUpdatedOrderIDs() []string {
 	return k.cache.getUpdatedOrderIDs()
 }
 
+// nolint
 func (k Keeper) addUpdatedOrderID(orderID string) {
 	if k.enableBackend {
 		k.cache.addUpdatedOrderID(orderID)
 	}
 }
 
-// get closed order ids in last block
+// GetLastClosedOrderIDs gets closed order ids in last block
 func (k Keeper) GetLastClosedOrderIDs(ctx sdk.Context) []string {
 	store := ctx.KVStore(k.orderStoreKey)
 	bz := store.Get(types.RecentlyClosedOrderIDsKey)
@@ -315,27 +335,31 @@ func (k Keeper) GetLastClosedOrderIDs(ctx sdk.Context) []string {
 	return orderIDs
 }
 
+// nolint
 func (k Keeper) GetBlockMatchResult() *types.BlockMatchResult {
 	return k.cache.getBlockMatchResult()
 }
 
+// nolint
 func (k Keeper) SetBlockMatchResult(result *types.BlockMatchResult) {
 	if k.enableBackend {
 		k.cache.setBlockMatchResult(result)
 	}
 }
 
-// use TokenKeeper
+// LockCoins locks coins from the specified address,
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
 	return k.tokenKeeper.LockCoins(ctx, addr, coins, lockCoinsType)
 }
 
+// nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) {
 	if err := k.tokenKeeper.UnlockCoins(ctx, addr, coins, lockCoinsType); err != nil {
 		log.Printf("User(%s) unlock coins(%s) failed\n", addr.String(), coins.String())
 	}
 }
 
+// BalanceAccount burns the specified coin and obtains another coin
 func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress,
 	outputCoins sdk.DecCoins, inputCoins sdk.DecCoins) {
 
@@ -344,20 +368,24 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress,
 	}
 }
 
+// nolint
 func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 	return k.tokenKeeper.GetCoins(ctx, addr)
 }
 
+// GetProductOwner gets the OwnerAddress of specified product from dexKeeper
 func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
 	return tokenPair.Owner
 }
 
+// AddFeeDetail adds detail message of fee to tokenKeeper
 func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.DecCoins,
 	feeType string) {
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
 }
 
+// SendFeesToProductOwner sends fees from the specified address to productOwner
 func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
 	feeType string, product string) error {
 	if coins.IsZero() {
@@ -372,8 +400,7 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from
 	return nil
 }
 
-// use feeCollectionKeeper
-// AddCollectedFees - add to the fee pool
+// AddCollectedFees adds fee to the feePool
 func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
 	feeType string, hasFeeDetail bool) error {
 	if coins.IsZero() {
@@ -386,7 +413,7 @@ func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.DecCoins, from sdk.A
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, k.feeCollectorName, baseCoins)
 }
 
-// get inflation params from the global param store
+// GetParams gets inflation params from the global param store
 func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 	// get params from cache
 	cacheParams := k.cache.GetParams()
@@ -401,16 +428,18 @@ func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 	return &param
 }
 
-// set inflation params from the global param store
+// SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
 	k.paramSpace.SetParamSet(ctx, params)
 	k.cache.SetParams(params)
 }
 
+// nolint
 func (k Keeper) GetMetric() *monitor.OrderMetric {
 	return k.metric
 }
 
+// nolint
 func (k Keeper) SetMetric() {
 	k.metric.FullFilledNum.Set(float64(k.cache.fullFillNum))
 	k.metric.PendingNum.Set(float64(k.diskCache.openNum))
@@ -419,6 +448,7 @@ func (k Keeper) SetMetric() {
 	k.metric.PartialFilledNum.Set(float64(k.cache.partialFillNum))
 }
 
+// GetBestBidAndAsk gets the highest bidPrice and the lowest askPrice from depthBook
 func (k Keeper) GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.Dec) {
 	bestBid := sdk.ZeroDec()
 	bestAsk := sdk.ZeroDec()
@@ -439,6 +469,7 @@ func (k Keeper) GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.
 	return bestBid, bestAsk
 }
 
+// RemoveOrderFromDepthBook removes order from depthBook, and updates cancelNum, expireNum, updatedOrderIDs from cache
 func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
 	k.addUpdatedOrderID(order.OrderID)
 	if feeType == types.FeeTypeOrderCancel {
@@ -450,6 +481,7 @@ func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
 	k.diskCache.removeOrder(order)
 }
 
+// nolint
 func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
 	// update order to keeper
 	k.SetOrder(ctx, order.OrderID, order)
@@ -463,10 +495,12 @@ func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
 	}
 }
 
+// nolint
 func (k Keeper) InsertOrderIntoDepthBook(order *types.Order) {
 	k.diskCache.insertOrder(order)
 }
 
+// FilterDelistedProducts deletes non-existent products from the specified products
 func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []string {
 	var cleanProducts []string
 	for _, product := range products {

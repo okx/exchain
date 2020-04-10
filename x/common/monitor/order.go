@@ -35,8 +35,8 @@ func NewOrderMetrics(labelsAndValues ...string) *OrderMetric {
 		FullFilledNum: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: xNameSpace,
 			Subsystem: orderSubSystem,
-			Name:      "fullfilled",
-			Help:      "the number of fullfilled order",
+			Name:      "fulfilled",
+			Help:      "the number of fulfilled order",
 		}, labels).With(labelsAndValues...),
 		PendingNum: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: xNameSpace,

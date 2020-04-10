@@ -11,6 +11,7 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+// nolint
 const (
 	DefaultBookSize = 200
 )
@@ -47,12 +48,13 @@ func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	return bz, nil
 }
 
+// QueryDepthBookParams as input parameters when querying the depthBook
 type QueryDepthBookParams struct {
 	Product string
 	Size    int
 }
 
-// creates a new instance of QueryProposalParams
+// NewQueryDepthBookParams creates a new instance of QueryProposalParams
 func NewQueryDepthBookParams(product string, size int) QueryDepthBookParams {
 	if size == 0 {
 		size = DefaultBookSize
@@ -63,11 +65,13 @@ func NewQueryDepthBookParams(product string, size int) QueryDepthBookParams {
 	}
 }
 
+// nolint
 type BookResItem struct {
 	Price    string `json:"price"`
 	Quantity string `json:"quantity"`
 }
 
+// BookRes is used to return the result of queryDepthBook
 type BookRes struct {
 	Asks []BookResItem `json:"asks"`
 	Bids []BookResItem `json:"bids"`
@@ -113,13 +117,14 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	return bz, nil
 }
 
+// StoreStatistic is used to store the state of depthBook
 type StoreStatistic struct {
 	StoreOrderNum   int64
 	DepthBookNum    map[string]int64
 	BookOrderIDsNum map[string]int64
 }
 
-func GetStoreStatistic(ctx sdk.Context, keeper Keeper) *StoreStatistic {
+func getStoreStatistic(ctx sdk.Context, keeper Keeper) *StoreStatistic {
 	storeOrderNum := keeper.GetStoreOrderNum(ctx)
 	ss := &StoreStatistic{
 		StoreOrderNum: storeOrderNum,
@@ -128,7 +133,7 @@ func GetStoreStatistic(ctx sdk.Context, keeper Keeper) *StoreStatistic {
 	depthBookMap := make(map[string]types.DepthBook)
 
 	depthStore := ctx.KVStore(keeper.orderStoreKey)
-	iter := sdk.KVStorePrefixIterator(depthStore, types.DepthbookKey)
+	iter := sdk.KVStorePrefixIterator(depthStore, types.DepthBookKey)
 
 	defer iter.Close()
 
@@ -160,7 +165,7 @@ func GetStoreStatistic(ctx sdk.Context, keeper Keeper) *StoreStatistic {
 
 func queryStore(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte,
 	sdk.Error) {
-	ss := GetStoreStatistic(ctx, keeper)
+	ss := getStoreStatistic(ctx, keeper)
 	bz := keeper.cdc.MustMarshalJSON(ss)
 	return bz, nil
 }

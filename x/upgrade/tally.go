@@ -2,11 +2,10 @@ package upgrade
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	//"github.com/okex/okchain/x/staking/exported"
 	"github.com/okex/okchain/x/staking/exported"
 )
 
-// endblock at specifi block height
+// endblock at specific block height
 func tally(ctx sdk.Context, versionProtocol uint64, k Keeper, threshold sdk.Dec) (passes bool) {
 
 	totalVotingPower := sdk.ZeroDec()

@@ -4,12 +4,10 @@ import (
 	"github.com/okex/okchain/x/upgrade/types"
 )
 
-const (
-	ModuleName = types.ModuleName
-)
+// ModuleName is a mark of okchain module
+const ModuleName = types.ModuleName
 
-type (
-	GenesisState struct {
-		GenesisVersion types.VersionInfo `json:"genesis_version"`
-	}
-)
+// GenesisState is the strcut of genesis state for migrating
+type GenesisState struct {
+	GenesisVersion types.VersionInfo `json:"genesis_version"`
+}

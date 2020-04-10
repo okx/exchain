@@ -1,12 +1,14 @@
+// nolint
 package types
 
 import (
 	"fmt"
-	"github.com/okex/okchain/x/dex"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/okex/okchain/x/dex"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -22,7 +24,7 @@ type MatchResult struct {
 type Deal struct {
 	Timestamp   int64   `gorm:"index;" json:"timestamp" v2:"timestamp"`
 	BlockHeight int64   `gorm:"PRIMARY_KEY;type:bigint" json:"block_height" v2:"block_height"`
-	OrderId     string  `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"`
+	OrderID     string  `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"`
 	Sender      string  `gorm:"index;type:varchar(80)" json:"sender" v2:"sender"`
 	Product     string  `gorm:"index;type:varchar(20)" json:"product" v2:"product"`
 	Side        string  `gorm:"type:varchar(10)" json:"side" v2:"side"`
@@ -32,7 +34,7 @@ type Deal struct {
 }
 
 type TickerV2 struct {
-	InstrumentId   string `json:"instrument_id"` // name of token pair
+	InstrumentID   string `json:"instrument_id"` // name of token pair
 	Last           string `json:"last"`
 	BestBid        string `json:"best_bid"`
 	BestAsk        string `json:"best_ask"`
@@ -44,10 +46,9 @@ type TickerV2 struct {
 	Timestamp      string `json:"timestamp"`
 }
 
-// DefaultTickerV2 returns default DefaultTickerV2
-func DefaultTickerV2(instrumentId string) TickerV2 {
+func DefaultTickerV2(instrumentID string) TickerV2 {
 	return TickerV2{
-		InstrumentId:   instrumentId,
+		InstrumentID:   instrumentID,
 		Last:           "-1",
 		BestBid:        "0",
 		BestAsk:        "0",
@@ -61,7 +62,7 @@ func DefaultTickerV2(instrumentId string) TickerV2 {
 }
 
 type InstrumentV2 struct {
-	InstrumentId  string `json:"instrument_id"` // name of token pair
+	InstrumentID  string `json:"instrument_id"` // name of token pair
 	BaseCurrency  string `json:"base_currency"`
 	QuoteCurrency string `json:"quote_currency"`
 	MinSize       string `json:"min_size"`
@@ -69,9 +70,10 @@ type InstrumentV2 struct {
 	TickSize      string `json:"tick_size"`
 }
 
+// ConvertTokenPairToInstrumentV2 convert TokenPair to InstrumentV2
 func ConvertTokenPairToInstrumentV2(tokenPair *dex.TokenPair) *InstrumentV2 {
 	res := &InstrumentV2{}
-	res.InstrumentId = tokenPair.Name()
+	res.InstrumentID = tokenPair.Name()
 	res.BaseCurrency = tokenPair.BaseAssetSymbol
 	res.QuoteCurrency = tokenPair.QuoteAssetSymbol
 	res.MinSize = tokenPair.MinQuantity.String()
@@ -85,12 +87,12 @@ func ConvertTokenPairToInstrumentV2(tokenPair *dex.TokenPair) *InstrumentV2 {
 }
 
 type OrderV2 struct {
-	OrderId        string `json:"order_id"`
+	OrderID        string `json:"order_id"`
 	Price          string `json:"price"`
 	Size           string `json:"size"`
 	OrderType      string `json:"order_type"`
 	Notional       string `json:"notional"`
-	InstrumentId   string `json:"instrument_id"`
+	InstrumentID   string `json:"instrument_id"`
 	Side           string `json:"side"`
 	Type           string `json:"type"`
 	Timestamp      string `json:"timestamp"`
@@ -101,12 +103,12 @@ type OrderV2 struct {
 
 func ConvertOrderToOrderV2(order Order) OrderV2 {
 	res := OrderV2{}
-	res.OrderId = order.OrderId
+	res.OrderID = order.OrderID
 	res.Price = order.Price
 	res.Size = order.Quantity
 	res.OrderType = "0"
 	res.Notional = order.FilledAvgPrice
-	res.InstrumentId = order.Product
+	res.InstrumentID = order.Product
 	res.Side = order.Side
 	res.Type = "limit"
 	res.Timestamp = time.Unix(order.Timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
@@ -122,7 +124,7 @@ func ConvertOrderToOrderV2(order Order) OrderV2 {
 }
 
 type QueryOrderParamsV2 struct {
-	OrderId string
+	OrderID string
 	Product string
 	Side    string
 	Address string

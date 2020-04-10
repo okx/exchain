@@ -9,34 +9,37 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const DefaultParamspace = ModuleName
-
 var (
-	KeyAppUpgradeMaxDepositPeriod = []byte("AppUpgradeMaxDepositPeriod")
-	KeyAppUpgradeMinDeposit       = []byte("AppUpgradeMinDeposit")
-	KeyAppUpgradeVotingPeriod     = []byte("AppUpgradeVotingPeriod")
+	keyAppUpgradeMaxDepositPeriod = []byte("AppUpgradeMaxDepositPeriod")
+	keyAppUpgradeMinDeposit       = []byte("AppUpgradeMinDeposit")
+	keyAppUpgradeVotingPeriod     = []byte("AppUpgradeVotingPeriod")
 )
 
-// UpgradeParams parameters
+// UpgradeParams is the struct of upgrade module params
 type UpgradeParams struct {
-	AppUpgradeMaxDepositPeriod time.Duration `json:"app_upgrade_max_deposit_period"` //  Maximum period for okb holders to deposit on a AppUpgrade proposal. Initial value: 2 days
-	AppUpgradeMinDeposit       sdk.DecCoins  `json:"app_upgrade_min_deposit"`        //  Minimum deposit for a critical AppUpgrade proposal to enter voting period.
-	AppUpgradeVotingPeriod     time.Duration `json:"app_upgrade_voting_period"`      //  Length of the critical voting period for AppUpgrade proposal.
+	// Maximum period for okb holders to deposit on a AppUpgrade proposal. Initial value: 2 days
+	AppUpgradeMaxDepositPeriod time.Duration `json:"app_upgrade_max_deposit_period"`
+	// Minimum deposit for a critical AppUpgrade proposal to enter voting period
+	AppUpgradeMinDeposit sdk.DecCoins `json:"app_upgrade_min_deposit"`
+	// Length of the critical voting period for AppUpgrade proposal
+	AppUpgradeVotingPeriod time.Duration `json:"app_upgrade_voting_period"`
 }
 
-// ParamTable for upgrade module
+// ParamKeyTable gets KeyTable for upgrade module params
 func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&UpgradeParams{})
 }
 
+// ParamSetPairs sets upgrade module params
 func (p *UpgradeParams) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyAppUpgradeMaxDepositPeriod, &p.AppUpgradeMaxDepositPeriod},
-		{KeyAppUpgradeMinDeposit, &p.AppUpgradeMinDeposit},
-		{KeyAppUpgradeVotingPeriod, &p.AppUpgradeVotingPeriod},
+		{Key: keyAppUpgradeMaxDepositPeriod, Value: &p.AppUpgradeMaxDepositPeriod},
+		{Key: keyAppUpgradeMinDeposit, Value: &p.AppUpgradeMinDeposit},
+		{Key: keyAppUpgradeVotingPeriod, Value: &p.AppUpgradeVotingPeriod},
 	}
 }
 
+// String returns a human readable string representation of UpgradeParams
 func (p UpgradeParams) String() string {
 	return fmt.Sprintf(`App Upgrade Params:
 	App Upgrade Min Deposit:        %s
@@ -44,7 +47,7 @@ func (p UpgradeParams) String() string {
 	App Upgrade Voting Period:      %s`, p.AppUpgradeMinDeposit, p.AppUpgradeMaxDepositPeriod, p.AppUpgradeVotingPeriod)
 }
 
-// default minting module parameters
+// DefaultParams returns default module parameters
 func DefaultParams() UpgradeParams {
 	var minDeposit = sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
 

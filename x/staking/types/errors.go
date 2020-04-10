@@ -108,6 +108,11 @@ func ErrNilDelegatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "delegator address is nil")
 }
 
+// ErrWrongOperationAddr returns an error when the address is not expected
+func ErrWrongOperationAddr(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "wrong operation address found. msg: %s", msg)
+}
+
 // ErrBadDenom returns an error when the coin denomination is invalid
 func ErrBadDenom(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "invalid coin denomination")
@@ -172,7 +177,7 @@ func ErrDoubleProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 		"failed. proxy isn't allowed to bind with other proxy %s", delegator)
 }
 
-// ErrNotFoundProxy returns an error when the proxy is not exsited
+// ErrNotFoundProxy returns an error when the proxy is not existed
 func ErrNotFoundProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
 		"failed. no proxy with %s", delegator)

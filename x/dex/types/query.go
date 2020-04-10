@@ -8,16 +8,20 @@ import (
 )
 
 const (
-	DefaultPage    = 1
+	// DefaultPage defines default number of page
+	DefaultPage = 1
+	// DefaultPerPage defines default number per page
 	DefaultPerPage = 50
 )
 
+// QueryDexInfoParams defines query params of dex info
 type QueryDexInfoParams struct {
 	Owner   string
 	Page    int
 	PerPage int
 }
 
+// NewQueryDexInfoParams creates query params of dex info
 func NewQueryDexInfoParams(owner string, page, perPage int) (queryDexInfoParams QueryDexInfoParams, err error) {
 	if len(owner) == 0 {
 		owner = ""
@@ -41,6 +45,7 @@ func NewQueryDexInfoParams(owner string, page, perPage int) (queryDexInfoParams 
 	}, nil
 }
 
+// SetPageAndPerPage handles params of page
 func (q *QueryDexInfoParams) SetPageAndPerPage(owner, pageStr, perPageStr string) (err error) {
 
 	if len(owner) == 0 {

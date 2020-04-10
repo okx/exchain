@@ -11,7 +11,7 @@ import (
 	orderTypes "github.com/okex/okchain/x/order/types"
 )
 
-// Called every block, check expired orders
+// EndBlocker called every block, check expired orders
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	if keeper.Config.EnableBackend && keeper.Config.EnableMktCompute {
 		keeper.Logger.Debug(fmt.Sprintf("begin backend endblocker: block---%d", ctx.BlockHeight()))
@@ -109,6 +109,7 @@ func updateOrders(ctx sdk.Context, keeper Keeper) {
 	}
 }
 
+// nolint
 func GetNewDealsAndMatchResultsAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) ([]*types.Deal, []*types.MatchResult, error) {
 	result := orderKeeper.GetBlockMatchResult()
 	if result == nil {
@@ -144,7 +145,7 @@ func GetNewDealsAndMatchResultsAtEndBlock(ctx sdk.Context, orderKeeper types.Ord
 
 				deal := &types.Deal{
 					BlockHeight: blockHeight,
-					OrderId:     record.OrderID,
+					OrderID:     record.OrderID,
 					Side:        record.Side,
 					Sender:      order.Sender.String(),
 					Product:     product,
@@ -161,18 +162,19 @@ func GetNewDealsAndMatchResultsAtEndBlock(ctx sdk.Context, orderKeeper types.Ord
 	return deals, results, nil
 }
 
+// nolint
 func GetNewOrdersAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) ([]*types.Order, error) {
 	blockHeight := ctx.BlockHeight()
 	orderNum := orderKeeper.GetBlockOrderNum(ctx, blockHeight)
 	orders := make([]*types.Order, 0, orderNum)
-	var index int64 = 0
+	var index int64
 	for ; index < orderNum; index++ {
-		orderId := orderTypes.FormatOrderID(blockHeight, index+1)
-		order := orderKeeper.GetOrder(ctx, orderId)
+		orderID := orderTypes.FormatOrderID(blockHeight, index+1)
+		order := orderKeeper.GetOrder(ctx, orderID)
 		if order != nil {
 			orderDb := &types.Order{
 				TxHash:         order.TxHash,
-				OrderId:        order.OrderID,
+				OrderID:        order.OrderID,
 				Sender:         order.Sender.String(),
 				Product:        order.Product,
 				Side:           order.Side,
@@ -185,21 +187,22 @@ func GetNewOrdersAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) ([]*
 			}
 			orders = append(orders, orderDb)
 		} else {
-			return nil, fmt.Errorf("failed to get order with orderId: %+v at blockHeight: %d", orderId, blockHeight)
+			return nil, fmt.Errorf("failed to get order with orderID: %+v at blockHeight: %d", orderID, blockHeight)
 		}
 	}
 	return orders, nil
 }
 
+// nolint
 func GetUpdatedOrdersAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) []*types.Order {
-	orderIds := orderKeeper.GetUpdatedOrderIDs()
-	orders := make([]*types.Order, 0, len(orderIds))
-	for _, orderId := range orderIds {
-		order := orderKeeper.GetOrder(ctx, orderId)
+	orderIDs := orderKeeper.GetUpdatedOrderIDs()
+	orders := make([]*types.Order, 0, len(orderIDs))
+	for _, orderID := range orderIDs {
+		order := orderKeeper.GetOrder(ctx, orderID)
 		if order != nil {
 			orderDb := &types.Order{
 				TxHash:         order.TxHash,
-				OrderId:        order.OrderID,
+				OrderID:        order.OrderID,
 				Sender:         order.Sender.String(),
 				Product:        order.Product,
 				Side:           order.Side,

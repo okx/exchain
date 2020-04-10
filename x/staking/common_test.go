@@ -311,9 +311,6 @@ func (action delegatorsVoteAction) apply(ctx sdk.Context, vaStatus IValidatorSta
 	for _, d := range action.delegators {
 		fmt.Printf("    =========> Delegator: %s vote to Validators: %s\n", d.String(), vaAddrs)
 		voteMsg := NewMsgVote(d, vaAddrs)
-		if err := voteMsg.ValidateBasic(); err != nil {
-			panic(err)
-		}
 
 		res := handler(ctx, voteMsg)
 		if actionResultCtx != nil {
@@ -421,9 +418,6 @@ type proxyBindAction struct {
 func (action proxyBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, result *ActionResultCtx) {
 	fmt.Printf("=========> Applying proxyBindAction[%d]\n", ctx.BlockHeight())
 	msg := types.NewMsgBindProxy(action.dlgAddr, action.proxyAddr)
-	if err := msg.ValidateBasic(); err != nil {
-		panic(err)
-	}
 	handler := NewHandler(action.mStkKeeper.Keeper)
 	res := handler(ctx, msg)
 
@@ -770,6 +764,7 @@ func queryPoolCheck(expBonded *sdk.Dec, expUnbonded *sdk.Dec) actResChecker {
 
 		pool := types.Pool{}
 		require.NoError(t, cdc.UnmarshalJSON(res, &pool))
+		require.NotNil(t, pool.String())
 
 		b1 := true
 		if expBonded != nil {

@@ -2,6 +2,7 @@ package staking
 
 import (
 	"encoding/json"
+
 	"github.com/okex/okchain/x/staking/keeper"
 
 	"github.com/gorilla/mux"
@@ -113,7 +114,6 @@ func NewAppModule(keeper Keeper, accKeeper types.AccountKeeper,
 	}
 }
 
-
 // RegisterInvariants registers invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 	// required by okchain
@@ -140,7 +140,7 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 	return NewQuerier(am.keeper)
 }
 
-// InitGenesis initialize module genesis
+// InitGenesis initializes module genesis
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genesisState)

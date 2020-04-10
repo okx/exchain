@@ -21,12 +21,6 @@ func (k Keeper) SetDelegatorWithdrawAddr(ctx sdk.Context, delAddr, withdrawAddr 
 	store.Set(GetDelegatorWithdrawAddrKey(delAddr), withdrawAddr.Bytes())
 }
 
-// DeleteDelegatorWithdrawAddr deletes a delegator withdraw addr
-func (k Keeper) DeleteDelegatorWithdrawAddr(ctx sdk.Context, delAddr, _ sdk.AccAddress) {
-	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetDelegatorWithdrawAddrKey(delAddr))
-}
-
 // IterateDelegatorWithdrawAddrs iterates over delegator withdraw addrs
 func (k Keeper) IterateDelegatorWithdrawAddrs(ctx sdk.Context,
 	handler func(del sdk.AccAddress, addr sdk.AccAddress) (stop bool)) {
@@ -87,8 +81,8 @@ func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 	store.Set(GetValidatorAccumulatedCommissionKey(val), bz)
 }
 
-// DeleteValidatorAccumulatedCommission deletes accumulated commission for a validator
-func (k Keeper) DeleteValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) {
+// deleteValidatorAccumulatedCommission deletes accumulated commission for a validator
+func (k Keeper) deleteValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(GetValidatorAccumulatedCommissionKey(val))
 }

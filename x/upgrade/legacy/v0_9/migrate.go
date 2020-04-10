@@ -6,6 +6,7 @@ import (
 	"github.com/okex/okchain/x/upgrade/types"
 )
 
+// Migrate converts the app state from an old version to a new one
 func Migrate(oldGenesisState v08upgrade.GenesisState, oldgovParams v08gov.GovParams) GenesisState {
 	params := types.UpgradeParams{
 		AppUpgradeMaxDepositPeriod: oldgovParams.AppUpgradeMaxDepositPeriod,

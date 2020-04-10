@@ -112,8 +112,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 		return sdk.ErrInvalidCoins(fmt.Sprintf("InitialDeposit must not be less than %s", initDeposit.String()))
 	}
 	// check proposer has sufficient coins
-	if err := common.HasSufficientCoins(msg.Proposer, keeper.ck.GetCoins(ctx, msg.Proposer), msg.InitialDeposit);
-		err != nil {
+	if err := common.HasSufficientCoins(msg.Proposer, keeper.ck.GetCoins(ctx, msg.Proposer), msg.InitialDeposit); err != nil {
 		return sdk.ErrInvalidCoins(err.Error())
 	}
 

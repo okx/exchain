@@ -278,7 +278,7 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 
 func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k keeper.Keeper) (result sdk.Result) {
 	valAddr := sdk.ValAddress(msg.DelAddr)
-	// 0.check to see if the validator which belongs to the delegator is exsited
+	// 0.check to see if the validator which belongs to the delegator is existed
 	validator, found := k.GetValidator(ctx, valAddr)
 	if !found {
 		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()

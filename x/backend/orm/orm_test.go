@@ -39,15 +39,14 @@ func TestGorm(t *testing.T) {
 	defer db.Close()
 	db.LogMode(true)
 	p := sdk.NewDecWithPrec(1, 2)
-	p.String()
 
 	fp, _ := strconv.ParseFloat(p.String(), 64)
 
 	d1 := types.Deal{
-		BlockHeight: 1, OrderId: "order0", Product: "abc_bcd", Price: fp, Quantity: 100,
+		BlockHeight: 1, OrderID: "order0", Product: "abc_bcd", Price: fp, Quantity: 100,
 		Sender: "asdlfkjsd", Side: types.SellOrder, Timestamp: time.Now().Unix()}
 	d2 := types.Deal{
-		BlockHeight: 2, OrderId: "order1", Product: "abc_bcd", Price: fp, Quantity: 200,
+		BlockHeight: 2, OrderID: "order1", Product: "abc_bcd", Price: fp, Quantity: 200,
 		Sender: "asdlfkjsd", Side: types.BuyOrder, Timestamp: time.Now().Unix()}
 
 	db.AutoMigrate(&types.Deal{})
@@ -87,7 +86,8 @@ func TestGorm(t *testing.T) {
 		var high float64
 		var low float64
 
-		rows.Scan(&side, &product, &quantity, &high, &low)
+		err = rows.Scan(&side, &product, &quantity, &high, &low)
+		require.Nil(t, err)
 		fmt.Printf("product: %s, quantity: %f, high: %f, low: %f \n", product, quantity, high, low)
 	}
 
@@ -126,11 +126,6 @@ func TestSqlite3_AllInOne(t *testing.T) {
 	testORMAllInOne(t, orm)
 }
 
-//func TestMysql_AllInOne(t *testing.T) {
-//	orm, _ := NewMysqlORM()
-//	testORMAllInOne(t, orm)
-//}
-
 func testORMAllInOne(t *testing.T, orm *ORM) {
 
 	defer func() {
@@ -141,12 +136,13 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 		}
 	}()
 
-	err := orm.DeleteDealBefore(time.Now().Unix() + 1)
-	orm.DeleteMatchResultBefore(time.Now().Unix() + 1)
-	orm.DeleteKlineM1Before(time.Now().Unix() + 1)
-	orm.DeleteKlineBefore(time.Now().Unix()+1, &types.KlineM3{})
-	orm.DeleteKlineBefore(time.Now().Unix()+1, &types.KlineM15{})
-	assert.True(t, err == nil)
+	errDeleteDeal := orm.deleteDealBefore(time.Now().Unix() + 1)
+	errDeleteMatch := orm.deleteMatchResultBefore(time.Now().Unix() + 1)
+	errDeleteKlineM1 := orm.deleteKlineM1Before(time.Now().Unix() + 1)
+	errDeleteKlineM3 := orm.DeleteKlineBefore(time.Now().Unix()+1, &types.KlineM3{})
+	errDeleteKineM15 := orm.DeleteKlineBefore(time.Now().Unix()+1, &types.KlineM15{})
+	err := types.NewErrorsMerged(errDeleteDeal, errDeleteMatch, errDeleteKlineM1, errDeleteKlineM3, errDeleteKineM15)
+	require.Nil(t, err)
 
 	p := sdk.NewDecWithPrec(1, 2)
 	fp, _ := strconv.ParseFloat(p.String(), 64)
@@ -158,16 +154,16 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 
 	ts := time.Now().Unix()
 	d1 := types.Deal{
-		BlockHeight: 1, OrderId: "order0", Product: product, Price: fp, Quantity: 100,
+		BlockHeight: 1, OrderID: "order0", Product: product, Price: fp, Quantity: 100,
 		Sender: adr1, Side: types.BuyOrder, Timestamp: ts - 60*30}
 	d2 := types.Deal{
-		BlockHeight: 2, OrderId: "order1", Product: product, Price: fp + 0.1, Quantity: 200,
+		BlockHeight: 2, OrderID: "order1", Product: product, Price: fp + 0.1, Quantity: 200,
 		Sender: "asdlfkjsd", Side: types.BuyOrder, Timestamp: ts - 60*15}
 	d3 := types.Deal{
-		BlockHeight: 3, OrderId: "order1", Product: product, Price: fp, Quantity: 300,
+		BlockHeight: 3, OrderID: "order1", Product: product, Price: fp, Quantity: 300,
 		Sender: "asdlfkjsd", Side: types.BuyOrder, Timestamp: ts - 60*5}
 	d4 := types.Deal{
-		BlockHeight: 4, OrderId: "order1", Product: product, Price: fp + 0.2, Quantity: 400,
+		BlockHeight: 4, OrderID: "order1", Product: product, Price: fp + 0.2, Quantity: 400,
 		Sender: "asdlfkjsd", Side: types.BuyOrder, Timestamp: ts - 60*3 - 1}
 
 	matches := []*types.MatchResult{
@@ -179,28 +175,29 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	assert.Equal(t, len(matches), addCnt)
 	require.Nil(t, err)
 
-	all_deals := []*types.Deal{&d1, &d2, &d3, &d4}
-	addCnt, err = orm.AddDeals(all_deals)
-	assert.True(t, addCnt == len(all_deals) && err == nil)
+	allDeals := []*types.Deal{&d1, &d2, &d3, &d4}
+	addCnt, err = orm.AddDeals(allDeals)
+	assert.True(t, addCnt == len(allDeals) && err == nil)
 
 	deals, _ := orm.GetDeals(adr1, "", "", 0, 0, 0, 100)
-	assert.True(t, len(deals) == len(all_deals) && deals != nil)
+	assert.True(t, len(deals) == len(allDeals) && deals != nil)
 
-	deals, err = orm.GetLatestDeals(product, 100)
-	assert.True(t, len(deals) == len(all_deals) && deals != nil)
+	deals, err = orm.getLatestDeals(product, 100)
+	require.Nil(t, err)
+	assert.True(t, len(deals) == len(allDeals) && deals != nil)
 	var allDealVolume, allKM1Volume, allKM3Volume float64
 	for _, d := range deals {
 		fmt.Printf("%+v\n", d)
 		allDealVolume += d.Quantity
 	}
 
-	deals, err = orm.GetDealsByTimestampRange(product, 0, time.Now().Unix())
-	assert.True(t, len(deals) == len(all_deals) && deals != nil)
+	deals, err = orm.getDealsByTimestampRange(product, 0, time.Now().Unix())
+	assert.True(t, err == nil && len(deals) == len(allDeals) && deals != nil)
 
 	openDeal, closeDeal := orm.getOpenCloseDeals(0, time.Now().Unix()+1, product)
 	assert.True(t, openDeal != nil && closeDeal != nil)
 
-	minDealTS := orm.GetDealsMinTimestamp()
+	minDealTS := orm.getDealsMinTimestamp()
 	assert.True(t, minDealTS == (ts-60*30))
 
 	ds := DealDataSource{orm: orm}
@@ -208,18 +205,18 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	fmt.Printf("CreateKline1min ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 3)
 
-	products, _ := orm.GetAllUpdatedProducts(0, time.Now().Unix())
-	assert.True(t, products != nil && len(products) > 0)
+	products, _ := orm.getAllUpdatedProducts(0, time.Now().Unix())
+	assert.True(t, len(products) > 0)
 	fmt.Printf("%+v \n", products)
 
-	anchorEndTS, cnt, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
+	_, cnt, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
 	fmt.Printf("CreateKline1min ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 1)
 
-	maxTS := orm.GetKlineMaxTimestamp(&types.KlineM1{})
+	maxTS := orm.getKlineMaxTimestamp(&types.KlineM1{})
 	assert.True(t, maxTS < ts)
 
-	r, e := orm.GetLatestKlineM1ByProduct(product, 100)
+	r, e := orm.getLatestKlineM1ByProduct(product, 100)
 	assert.True(t, r != nil && e == nil)
 	fmt.Printf("NOW : %s\n", types.TimeString(ts))
 	for _, v := range *r {
@@ -227,33 +224,38 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 		allKM1Volume += v.Volume
 	}
 
-	kM3, e := types.NewKlineFactory("kline_m3", nil)
-	kM15, e := types.NewKlineFactory("kline_m15", nil)
-	assert.True(t, kM3 != nil && e == nil)
-	anchorEndTS, cnt, err = orm.MergeKlineM1(0, time.Now().Unix()+1, kM3.(types.IKline))
-
-	orm.MergeKlineM1(0, time.Now().Unix()+1, kM15.(types.IKline))
+	klineM3, e := types.NewKlineFactory("kline_m3", nil)
+	assert.True(t, klineM3 != nil && e == nil)
+	klineM15, e := types.NewKlineFactory("kline_m15", nil)
+	assert.True(t, klineM15 != nil && e == nil)
+	anchorEndTS, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
+	require.Nil(t, err)
+	_, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM15.(types.IKline))
+	require.Nil(t, err)
 	klineM15List := []types.KlineM15{}
-	orm.GetLatestKlinesByProduct(product, 100, -1, &klineM15List)
+	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM15List)
+	require.Nil(t, err)
 
 	tickers, err := orm.RefreshTickers(0, time.Now().Unix()+1, nil)
-	assert.True(t, tickers != nil && len(tickers) > 0)
+	assert.True(t, err == nil && len(tickers) > 0)
 	for _, t := range tickers {
 		fmt.Println((*t).PrettyString())
 	}
 
-	anchorEndTS, cnt, err = orm.MergeKlineM1(anchorEndTS, time.Now().Unix()+1, kM3.(types.IKline))
+	_, _, err = orm.MergeKlineM1(anchorEndTS, time.Now().Unix()+1, klineM3.(types.IKline))
+	require.Nil(t, err)
+	klineM3List := []types.KlineM3{}
+	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM3List)
+	require.Nil(t, err)
+	assert.True(t, len(klineM3List) > 0)
 
-	kM3List := []types.KlineM3{}
-	orm.GetLatestKlinesByProduct(product, 100, -1, &kM3List)
-	assert.True(t, kM3List != nil && len(kM3List) > 0)
-
-	for _, v := range kM3List {
+	for _, v := range klineM3List {
 		//fmt.Printf("%d, %+v\n", v.GetTimestamp(), v.PrettyTimeString())
 		allKM3Volume += v.Volume
 	}
-	orm.GetLatestKlinesByProduct(product, 100, -1, &kM3List)
-	assert.True(t, kM3List != nil && len(kM3List) > 0)
+	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM3List)
+	require.Nil(t, err)
+	assert.True(t, len(klineM3List) > 0)
 
 	assert.True(t, int64(allDealVolume) == int64(allKM1Volume) && int64(allKM3Volume) == int64(allKM1Volume))
 
@@ -262,32 +264,30 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 
 func TestORM_MergeKlineM1(t *testing.T) {
 
-	orm, _ := NewSqlite3ORM(false, "/tmp/", "test.db", nil)
+	orm, err := NewSqlite3ORM(false, "/tmp/", "test.db", nil)
+	require.Nil(t, err)
 	product := "abc_bcd"
 
-	orm.GetLatestKlineM1ByProduct(product, 100)
-	//for _, v := range *klinesM1 {
-	//	fmt.Printf("%d, %+v\n", v.GetTimestamp(), v.PrettyTimeString())
-	//}
+	_, err = orm.getLatestKlineM1ByProduct(product, 100)
+	require.Nil(t, err)
 
-	kM3, e := types.NewKlineFactory("kline_m3", nil)
-	assert.True(t, kM3 != nil && e == nil)
+	klineM3, e := types.NewKlineFactory("kline_m3", nil)
+	assert.True(t, klineM3 != nil && e == nil)
 
-	orm.MergeKlineM1(0, time.Now().Unix()+1, kM3.(types.IKline))
+	_, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
+	require.Nil(t, err)
 
-	kM3List := []types.KlineM3{}
-	orm.GetLatestKlinesByProduct(product, 100, -1, &kM3List)
-	assert.True(t, kM3List != nil && len(kM3List) > 0)
+	klineM3List := []types.KlineM3{}
+	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM3List)
+	require.Nil(t, err)
+	assert.True(t, len(klineM3List) > 0)
 
-	//for _, v := range kM3List {
-	//	fmt.Printf("%d, %+v\n", v.GetTimestamp(), v.PrettyTimeString())
-	//}
 }
 
 func TestORM_KlineM1ToTicker(t *testing.T) {
 	orm, _ := NewSqlite3ORM(false, "/tmp/", "test.db", nil)
 	tickers1, _ := orm.RefreshTickers(0, time.Now().Unix(), nil)
-	assert.True(t, tickers1 != nil && len(tickers1) > 0)
+	assert.True(t, len(tickers1) > 0)
 
 	for _, t := range tickers1 {
 		fmt.Printf("%s\n", t.PrettyString())
@@ -295,7 +295,7 @@ func TestORM_KlineM1ToTicker(t *testing.T) {
 
 	orm2, _ := NewSqlite3ORM(false, "/tmp/", "test_nil.db", nil)
 	tickers2, _ := orm2.RefreshTickers(0, time.Now().Unix(), nil)
-	assert.False(t, tickers2 != nil && len(tickers2) > 0)
+	assert.False(t, len(tickers2) > 0)
 }
 
 func TestMap(t *testing.T) {
@@ -338,7 +338,7 @@ func TestTime(t *testing.T) {
 func TestORM_Get(t *testing.T) {
 
 	orm, _ := NewSqlite3ORM(false, "/tmp/", "test.db", nil)
-	r, e := orm.GetLatestKlineM1ByProduct("abc_bcd", 100)
+	r, e := orm.getLatestKlineM1ByProduct("abc_bcd", 100)
 	assert.True(t, r != nil && e == nil)
 
 	fmt.Printf("%+v\n", r)
@@ -373,33 +373,44 @@ func TestCandles_NewKlinesFactory(t *testing.T) {
 
 	r, _ := json.Marshal(result)
 
-	tcommon.WriteFile("/tmp/k1.txt", r, os.ModePerm)
+	err = tcommon.WriteFile("/tmp/k1.txt", r, os.ModePerm)
+	require.Nil(t, err)
 }
 
-func constructLocalBackendDB(orm *ORM) {
+func constructLocalBackendDB(orm *ORM) (err error) {
 	m := types.GetAllKlineMap()
 	crrTs := time.Now().Unix()
 	ds := DealDataSource{orm: orm}
-	orm.CreateKline1min(0, crrTs, &ds)
+	if _, _, err := orm.CreateKline1min(0, crrTs, &ds); err != nil {
+		return err
+	}
+
 	for freq, tname := range m {
 		if freq == 60 {
 			continue
 		}
 		kline, _ := types.NewKlineFactory(tname, nil)
-		orm.MergeKlineM1(0, crrTs, kline.(types.IKline))
+		if _, _, err = orm.MergeKlineM1(0, crrTs, kline.(types.IKline)); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func TestCandles_FromLocalDB(t *testing.T) {
-	orm, _ := NewSqlite3ORM(false, cases.GetBackendDBDir(), "backend.db", nil)
+	orm, err := NewSqlite3ORM(false, cases.GetBackendDBDir(), "backend.db", nil)
+	require.Nil(t, err)
 	product := types.TestTokenPair
 	limit := 10
 
-	maxKlines, _ := types.NewKlinesFactory("kline_m1440")
-	orm.GetLatestKlinesByProduct(product, limit, time.Now().Unix(), maxKlines)
+	maxKlines, err := types.NewKlinesFactory("kline_m1440")
+	require.Nil(t, err)
+	err = orm.GetLatestKlinesByProduct(product, limit, time.Now().Unix(), maxKlines)
+	require.Nil(t, err)
 	maxIklines := types.ToIKlinesArray(maxKlines, time.Now().Unix(), true)
 	if len(maxIklines) == 0 {
-		constructLocalBackendDB(orm)
+		err := constructLocalBackendDB(orm)
+		require.Nil(t, err)
 	}
 
 	m := types.GetAllKlineMap()
@@ -422,7 +433,7 @@ func TestCandles_FromLocalDB(t *testing.T) {
 		assert.True(t, len(restDatas) <= limit)
 	}
 
-	maxTS := orm.GetDealsMaxTimestamp()
+	maxTS := orm.getDealsMaxTimestamp()
 	assert.True(t, maxTS > 0)
 }
 
@@ -430,10 +441,10 @@ func TestCandles_FromLocalDB(t *testing.T) {
 func testORMDeals(t *testing.T, orm *ORM) {
 
 	addDeals := []*types.Deal{
-		{100, 1, "ID1", "addr1", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
-		{300, 3, "ID2", "addr1", "btc_" + common.NativeToken, types.BuyOrder, 10.0, 1.0, "0"},
-		{200, 2, "ID3", "addr1", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
-		{400, 1, "ID4", "addr2", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
+		{Timestamp: 100, BlockHeight: 1, OrderID: "ID1", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 300, BlockHeight: 3, OrderID: "ID2", Sender: "addr1", Product: "btc_" + common.NativeToken, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 200, BlockHeight: 2, OrderID: "ID3", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 400, BlockHeight: 1, OrderID: "ID4", Sender: "addr2", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
 	}
 	// Test AddDeals
 	cnt, err := orm.AddDeals(addDeals)
@@ -444,20 +455,20 @@ func testORMDeals(t *testing.T, orm *ORM) {
 	deals, total := orm.GetDeals("addr1", "", "", 0, 0, 1, 2)
 	require.EqualValues(t, 3, total)
 	require.EqualValues(t, 2, len(deals))
-	require.EqualValues(t, "ID3", deals[0].OrderId)
-	require.EqualValues(t, "ID1", deals[1].OrderId)
+	require.EqualValues(t, "ID3", deals[0].OrderID)
+	require.EqualValues(t, "ID1", deals[1].OrderID)
 
 	// filtered by address & product & side
 	deals, total = orm.GetDeals("addr1", "btc_"+common.NativeToken, types.BuyOrder, 0, 0, 0, 10)
 	require.EqualValues(t, 1, total)
 	require.EqualValues(t, 1, len(deals))
-	require.EqualValues(t, "ID2", deals[0].OrderId)
+	require.EqualValues(t, "ID2", deals[0].OrderID)
 
 	// filtered by address & start end time
 	deals, total = orm.GetDeals("addr1", "", "", 200, 300, 0, 10)
 	require.EqualValues(t, 1, total)
 	require.EqualValues(t, 1, len(deals))
-	require.EqualValues(t, "ID3", deals[0].OrderId)
+	require.EqualValues(t, "ID3", deals[0].OrderID)
 
 	// too large offset
 	deals, total = orm.GetDeals("addr1", "", "", 0, 0, 3, 2)
@@ -470,7 +481,7 @@ func testORMDeals(t *testing.T, orm *ORM) {
 	require.EqualValues(t, addDeals[2], &dealsV2[0])
 
 	mrds := MergeResultDataSource{orm}
-	oPrice, cPrice := mrds.GetOpenClosePrice(0, time.Now().Unix(), types.TestTokenPair)
+	oPrice, cPrice := mrds.getOpenClosePrice(0, time.Now().Unix(), types.TestTokenPair)
 	require.EqualValues(t, 10, oPrice)
 	require.EqualValues(t, 10, cPrice)
 }
@@ -481,10 +492,10 @@ func TestORMMatches(t *testing.T) {
 	defer DeleteDB(dbPath)
 
 	addMatches := []*types.MatchResult{
-		{100, 1, types.TestTokenPair, 10.0, 1.0},
-		{100, 1, "btc_" + common.NativeToken, 11.0, 2.0},
-		{200, 2, types.TestTokenPair, 12.0, 3.0},
-		{300, 3, types.TestTokenPair, 13.0, 4.0},
+		{Timestamp: 100, BlockHeight: 1, Product: types.TestTokenPair, Price: 10.0, Quantity: 1.0},
+		{Timestamp: 100, BlockHeight: 1, Product: "btc_" + common.NativeToken, Price: 11.0, Quantity: 2.0},
+		{Timestamp: 200, BlockHeight: 2, Product: types.TestTokenPair, Price: 12.0, Quantity: 3.0},
+		{Timestamp: 300, BlockHeight: 3, Product: types.TestTokenPair, Price: 13.0, Quantity: 4.0},
 	}
 	// Test AddMatchResults
 	cnt, err := orm.AddMatchResults(addMatches)
@@ -516,19 +527,20 @@ func TestORMMatches(t *testing.T) {
 	require.EqualValues(t, addMatches[2], &matchesV2[1])
 
 	//
-	matches, err = orm.GetLatestMatchResults(types.TestTokenPair, 1)
+	matches, err = orm.getLatestMatchResults(types.TestTokenPair, 1)
+	require.Nil(t, err)
 	require.EqualValues(t, 1, len(matches))
 	require.EqualValues(t, 3, matches[0].BlockHeight)
 
 	//
-	stamp := orm.GetMergeResultMaxTimestamp()
+	stamp := orm.getMergeResultMaxTimestamp()
 	require.EqualValues(t, 300, stamp)
 
 	//
 	mrds := MergeResultDataSource{orm}
-	require.EqualValues(t, 100, mrds.GetDataSourceMinTimestamp())
+	require.EqualValues(t, 100, mrds.getDataSourceMinTimestamp())
 	sql := `select product, sum(Quantity) as quantity, max(Price) as high, min(Price) as low, count(price) as cnt from match_results where Timestamp >= 0 and Timestamp < 1574406957 group by product`
-	require.EqualValues(t, sql, mrds.GetMaxMinSumByGroupSQL(0, 1574406957))
+	require.EqualValues(t, sql, mrds.getMaxMinSumByGroupSQL(0, 1574406957))
 
 }
 
@@ -542,11 +554,12 @@ func TestSqlite3_ORMDeals(t *testing.T) {
 func testORMFeeDetails(t *testing.T, orm *ORM) {
 
 	feeDetails := []*token.FeeDetail{
-		{"addr1", "0.1" + common.NativeToken, types.FeeTypeOrderCancel, 100},
-		{"addr1", "0.5" + common.NativeToken, types.FeeTypeOrderNew, 300},
-		{"addr1", "0.2" + common.NativeToken, types.FeeTypeOrderDeal, 200},
-		{"addr2", "0.3" + common.NativeToken, types.FeeTypeOrderDeal, 100},
+		{Address: "addr1", Fee: "0.1" + common.NativeToken, FeeType: types.FeeTypeOrderCancel, Timestamp: 100},
+		{Address: "addr1", Fee: "0.5" + common.NativeToken, FeeType: types.FeeTypeOrderNew, Timestamp: 300},
+		{Address: "addr1", Fee: "0.2" + common.NativeToken, FeeType: types.FeeTypeOrderDeal, Timestamp: 200},
+		{Address: "addr2", Fee: "0.3" + common.NativeToken, FeeType: types.FeeTypeOrderDeal, Timestamp: 100},
 	}
+
 	// Test AddFeeDetails
 	cnt, err := orm.AddFeeDetails(feeDetails)
 	require.EqualValues(t, 4, cnt)
@@ -580,10 +593,10 @@ func TestSqlite3_FeeDetails(t *testing.T) {
 func testORMOrders(t *testing.T, orm *ORM) {
 
 	orders := []*types.Order{
-		{"hash1", "ID1", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 100},
-		{"hash2", "ID2", "addr1", "btc_" + common.NativeToken, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 300},
-		{"hash3", "ID3", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 200},
-		{"hash4", "ID4", "addr2", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 150},
+		{TxHash: "hash1", OrderID: "ID1", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 100},
+		{TxHash: "hash2", OrderID: "ID2", Sender: "addr1", Product: "btc_" + common.NativeToken, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 300},
+		{TxHash: "hash3", OrderID: "ID3", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 200},
+		{TxHash: "hash4", OrderID: "ID4", Sender: "addr2", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 150},
 	}
 	// Test AddOrders
 	cnt, err := orm.AddOrders(orders)
@@ -595,14 +608,14 @@ func testORMOrders(t *testing.T, orm *ORM) {
 	getOrders, total := orm.GetOrderList("addr1", "", "", true, 1, 2, 0, 0, false)
 	require.EqualValues(t, 3, total)
 	require.EqualValues(t, 2, len(getOrders))
-	require.EqualValues(t, "ID3", getOrders[0].OrderId)
-	require.EqualValues(t, "ID1", getOrders[1].OrderId)
+	require.EqualValues(t, "ID3", getOrders[0].OrderID)
+	require.EqualValues(t, "ID1", getOrders[1].OrderID)
 
 	// filtered by product & side
 	getOrders, total = orm.GetOrderList("addr1", "btc_"+common.NativeToken, types.BuyOrder, true, 0, 10, 0, 0, false)
 	require.EqualValues(t, 1, total)
 	require.EqualValues(t, 1, len(getOrders))
-	require.EqualValues(t, "ID2", getOrders[0].OrderId)
+	require.EqualValues(t, "ID2", getOrders[0].OrderID)
 
 	//// GetOrderListV2 : open order
 	openOrdersV2 := orm.GetOrderListV2(types.TestTokenPair, "addr1", types.BuyOrder, true, "10", "300", 1)
@@ -611,9 +624,9 @@ func testORMOrders(t *testing.T, orm *ORM) {
 
 	// TestUpdateOrders
 	updateOrders := []*types.Order{
-		{"hash1", "ID1", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 3, "0", "0", 100},
-		{"hash2", "ID2", "addr1", "btc_" + common.NativeToken, types.BuyOrder, "10.0", "1.1", 2, "0", "1.1", 300},
-		{"hash3", "ID3", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 4, "0", "1.1", 200},
+		{TxHash: "hash1", OrderID: "ID1", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 3, FilledAvgPrice: "0", RemainQuantity: "0", Timestamp: 100},
+		{TxHash: "hash2", OrderID: "ID2", Sender: "addr1", Product: "btc_" + common.NativeToken, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 2, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 300},
+		{TxHash: "hash3", OrderID: "ID3", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 4, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 200},
 	}
 	cnt, err = orm.UpdateOrders(updateOrders)
 	require.Nil(t, err)
@@ -623,15 +636,15 @@ func testORMOrders(t *testing.T, orm *ORM) {
 	getOrders, total = orm.GetOrderList("addr1", "", "", false, 0, 10, 0, 0, false)
 	require.EqualValues(t, 3, total)
 	require.EqualValues(t, 3, len(getOrders))
-	require.EqualValues(t, "ID2", getOrders[0].OrderId)
-	require.EqualValues(t, "ID3", getOrders[1].OrderId)
-	require.EqualValues(t, "ID1", getOrders[2].OrderId)
+	require.EqualValues(t, "ID2", getOrders[0].OrderID)
+	require.EqualValues(t, "ID3", getOrders[1].OrderID)
+	require.EqualValues(t, "ID1", getOrders[2].OrderID)
 
 	// hide no fill orders
 	getOrders, total = orm.GetOrderList("addr1", "", "", false, 0, 10, 0, 0, true)
 	require.EqualValues(t, 1, total)
 	require.EqualValues(t, 1, len(getOrders))
-	require.EqualValues(t, "ID3", getOrders[0].OrderId)
+	require.EqualValues(t, "ID3", getOrders[0].OrderID)
 
 	// too large offset
 	getOrders, total = orm.GetOrderList("addr1", "", "", false, 3, 10, 0, 0, false)
@@ -643,11 +656,11 @@ func testORMOrders(t *testing.T, orm *ORM) {
 	require.Equal(t, 1, len(otherOrdersV2))
 	require.Equal(t, updateOrders[2], &otherOrdersV2[0])
 
-	// v2 GetOrderById
-	ordersByExistId := orm.GetOrderById("ID1")
-	require.EqualValues(t, updateOrders[0], ordersByExistId)
-	ordersByNotExistId := orm.GetOrderById("not_exist_ID")
-	require.Nil(t, ordersByNotExistId)
+	// v2 GetOrderByID
+	ordersByExistID := orm.GetOrderByID("ID1")
+	require.EqualValues(t, updateOrders[0], ordersByExistID)
+	ordersByNotExistID := orm.GetOrderByID("not_exist_ID")
+	require.Nil(t, ordersByNotExistID)
 
 }
 
@@ -659,14 +672,12 @@ func TestSqlite3_Orders(t *testing.T) {
 
 // Transactions
 func testORMTransactions(t *testing.T, orm *ORM) {
-	orm, dbPath := MockSqlite3ORM()
-	defer DeleteDB(dbPath)
 
 	txs := []*types.Transaction{
-		{"hash1", types.TxTypeTransfer, "addr1", common.TestToken, types.TxSideFrom, "10.0", "0.1" + common.NativeToken, 100},
-		{"hash2", types.TxTypeOrderNew, "addr1", types.TestTokenPair, types.TxSideBuy, "10.0", "0.1" + common.NativeToken, 300},
-		{"hash3", types.TxTypeOrderCancel, "addr1", types.TestTokenPair, types.TxSideSell, "10.0", "0.1" + common.NativeToken, 200},
-		{"hash4", types.TxTypeTransfer, "addr2", common.TestToken, types.TxSideTo, "10.0", "0.1" + common.NativeToken, 100},
+		{TxHash: "hash1", Type: types.TxTypeTransfer, Address: "addr1", Symbol: common.TestToken, Side: types.TxSideFrom, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
+		{TxHash: "hash2", Type: types.TxTypeOrderNew, Address: "addr1", Symbol: types.TestTokenPair, Side: types.TxSideBuy, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 300},
+		{TxHash: "hash3", Type: types.TxTypeOrderCancel, Address: "addr1", Symbol: types.TestTokenPair, Side: types.TxSideSell, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 200},
+		{TxHash: "hash4", Type: types.TxTypeTransfer, Address: "addr2", Symbol: common.TestToken, Side: types.TxSideTo, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
 	}
 	// Test AddTransactions
 	cnt, err := orm.AddTransactions(txs)
@@ -731,7 +742,7 @@ func TestORM_GetDealsMaxTimestamp(t *testing.T) {
 	orm, dbPath := MockSqlite3ORM()
 	defer DeleteDB(dbPath)
 
-	noTS := orm.GetDealsMaxTimestamp()
+	noTS := orm.getDealsMaxTimestamp()
 	assert.True(t, noTS == -1)
 
 }
@@ -740,34 +751,34 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 
 	for i := 0; i < 2000; i++ {
 		oid := fmt.Sprintf("FAKEID-%04d", i)
-		o := types.Order{"hash1", oid, "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "1.3", "1.5", 100}
+		o := types.Order{TxHash: "hash1", OrderID: oid, Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "1.3", RemainQuantity: "1.5", Timestamp: 100}
 		newOrders = append(newOrders, &o)
 	}
 
 	updatedOrders := []*types.Order{
-		{"hash2", "FAKEID-0002", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "1.4", "1.7", 100},
+		{TxHash: "hash2", OrderID: "FAKEID-0002", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "1.4", RemainQuantity: "1.7", Timestamp: 100},
 	}
 
 	txs := []*types.Transaction{
-		{"FAKEIDHash-1", types.TxTypeTransfer, "addr1", common.TestToken, types.TxSideFrom, "10.0", "0.1" + common.NativeToken, 100},
+		{TxHash: "FAKEIDHash-1", Type: types.TxTypeTransfer, Address: "addr1", Symbol: common.TestToken, Side: types.TxSideFrom, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
 	}
 
 	addDeals := []*types.Deal{
-		{100, 1, "FAKEID-0001", "addr1", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
-		{300, 3, "FAKEID-0002", "addr1", "btc_" + common.NativeToken, types.BuyOrder, 10.0, 1.0, "0"},
-		{200, 2, "FAKEID-0003", "addr1", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
-		{400, 1, "FAKEID-0004", "addr2", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
+		{Timestamp: 100, BlockHeight: 1, OrderID: "FAKEID-0001", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 300, BlockHeight: 3, OrderID: "FAKEID-0002", Sender: "addr1", Product: "btc_" + common.NativeToken, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 200, BlockHeight: 2, OrderID: "FAKEID-0003", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
+		{Timestamp: 400, BlockHeight: 1, OrderID: "FAKEID-0004", Sender: "addr2", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
 	}
 
 	mrs := []*types.MatchResult{
-		{100, 1, types.TestTokenPair, 10.0, 1.0},
+		{Timestamp: 100, BlockHeight: 1, Product: types.TestTokenPair, Price: 10.0, Quantity: 1.0},
 	}
 
 	feeDetails := []*token.FeeDetail{
-		{"addr1", "0.1" + common.NativeToken, types.FeeTypeOrderCancel, 100},
-		{"addr1", "0.5" + common.NativeToken, types.FeeTypeOrderNew, 300},
-		{"addr1", "0.2" + common.NativeToken, types.FeeTypeOrderDeal, 200},
-		{"addr2", "0.3" + common.NativeToken, types.FeeTypeOrderDeal, 100},
+		{Address: "addr1", Fee: "0.1" + common.NativeToken, FeeType: types.FeeTypeOrderCancel, Timestamp: 100},
+		{Address: "addr1", Fee: "0.5" + common.NativeToken, FeeType: types.FeeTypeOrderNew, Timestamp: 300},
+		{Address: "addr1", Fee: "0.2" + common.NativeToken, FeeType: types.FeeTypeOrderDeal, Timestamp: 200},
+		{Address: "addr2", Fee: "0.3" + common.NativeToken, FeeType: types.FeeTypeOrderDeal, Timestamp: 100},
 	}
 
 	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs)
@@ -799,22 +810,22 @@ func TestORM_CloseDB(t *testing.T) {
 	require.Nil(t, err)
 
 	// query after close DB
-	products, err := closeORM.GetAllUpdatedProducts(0, -1)
+	products, err := closeORM.getAllUpdatedProducts(0, -1)
 	require.Error(t, err)
 	require.Nil(t, products)
-	klines, err := closeORM.GetLatestKlineM1ByProduct("abc_bcd", 100)
+	klines, err := closeORM.getLatestKlineM1ByProduct("abc_bcd", 100)
 	require.Nil(t, klines)
 	require.Error(t, err)
-	matches, err := closeORM.GetLatestMatchResults(types.TestTokenPair, 1)
+	matches, err := closeORM.getLatestMatchResults(types.TestTokenPair, 1)
 	require.Equal(t, 0, len(matches))
 	require.Error(t, err)
-	matchResults, err := closeORM.GetMatchResultsByTimeRange("", 100, 500)
+	matchResults, err := closeORM.getMatchResultsByTimeRange("", 100, 500)
 	require.Equal(t, 0, len(matchResults))
 	require.Error(t, err)
-	deals, err := closeORM.GetLatestDeals("", 100)
+	deals, err := closeORM.getLatestDeals("", 100)
 	require.Equal(t, 0, len(deals))
 	require.Error(t, err)
-	deals, err = closeORM.GetDealsByTimestampRange("", 0, time.Now().Unix())
+	deals, err = closeORM.getDealsByTimestampRange("", 0, time.Now().Unix())
 	require.Nil(t, deals)
 	require.Error(t, err)
 
@@ -823,44 +834,44 @@ func TestORM_CloseDB(t *testing.T) {
 	require.Error(t, err)
 	err = closeORM.deleteKlinesAfter(1, "", &types.KlineM15{})
 	require.Error(t, err)
-	err = closeORM.DeleteDealBefore(time.Now().Unix() + 1)
+	err = closeORM.deleteDealBefore(time.Now().Unix() + 1)
 	require.Error(t, err)
-	err = closeORM.DeleteMatchResultBefore(1000)
+	err = closeORM.deleteMatchResultBefore(1000)
 	require.Error(t, err)
 
 	// insert after close DB
 	cnt, err := closeORM.AddMatchResults([]*types.MatchResult{
-		{100, 1, types.TestTokenPair, 10.0, 1.0},
+		{Timestamp: 100, BlockHeight: 1, Product: types.TestTokenPair, Price: 10.0, Quantity: 1.0},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)
 
 	cnt, err = closeORM.AddDeals([]*types.Deal{
-		{100, 1, "FAKEID-0001", "addr1", types.TestTokenPair, types.BuyOrder, 10.0, 1.0, "0"},
+		{Timestamp: 100, BlockHeight: 1, OrderID: "FAKEID-0001", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: 10.0, Quantity: 1.0, Fee: "0"},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)
 
 	cnt, err = closeORM.AddFeeDetails([]*token.FeeDetail{
-		{"addr1", "0.1" + common.NativeToken, types.FeeTypeOrderCancel, 100},
+		{Address: "addr1", Fee: "0.1" + common.NativeToken, FeeType: types.FeeTypeOrderCancel, Timestamp: 100},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)
 
 	cnt, err = closeORM.AddOrders([]*types.Order{
-		{"hash1", "ID1", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 100},
+		{TxHash: "hash1", OrderID: "ID1", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 100},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)
 
 	cnt, err = closeORM.AddTransactions([]*types.Transaction{
-		{"hash1", types.TxTypeTransfer, "addr1", common.TestToken, types.TxSideFrom, "10.0", "0.1" + common.NativeToken, 100},
+		{TxHash: "hash1", Type: types.TxTypeTransfer, Address: "addr1", Symbol: common.TestToken, Side: types.TxSideFrom, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)
 
 	cnt, err = closeORM.UpdateOrders([]*types.Order{
-		{"hash1", "ID1", "addr1", types.TestTokenPair, types.BuyOrder, "10.0", "1.1", 0, "0", "1.1", 100},
+		{TxHash: "hash1", OrderID: "ID1", Sender: "addr1", Product: types.TestTokenPair, Side: types.BuyOrder, Price: "10.0", Quantity: "1.1", Status: 0, FilledAvgPrice: "0", RemainQuantity: "1.1", Timestamp: 100},
 	})
 	require.Error(t, err)
 	require.Equal(t, 0, cnt)

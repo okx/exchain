@@ -19,7 +19,7 @@ const (
 	//FlagCommissionMaxRate       = "commission-max-rate"
 	//FlagCommissionMaxChangeRate = "commission-max-change-rate"
 
-	FlagMinSelfDelegation = "min-self-delegation"
+	//FlagMinSelfDelegation = "min-self-delegation"
 
 	FlagNodeID = "node-id"
 	FlagIP     = "ip"
@@ -31,8 +31,8 @@ var (
 	fsDescriptionCreate = flag.NewFlagSet("", flag.ContinueOnError)
 	//FsCommissionCreate  = flag.NewFlagSet("", flag.ContinueOnError)
 	//fsCommissionUpdate  = flag.NewFlagSet("", flag.ContinueOnError)
-	FsMinSelfDelegation = flag.NewFlagSet("", flag.ContinueOnError)
-	fsDescriptionEdit   = flag.NewFlagSet("", flag.ContinueOnError)
+	//FsMinSelfDelegation = flag.NewFlagSet("", flag.ContinueOnError)
+	fsDescriptionEdit = flag.NewFlagSet("", flag.ContinueOnError)
 )
 
 func init() {
@@ -45,7 +45,7 @@ func init() {
 	//FsCommissionCreate.String(FlagCommissionRate, "", "The initial commission rate percentage")
 	//FsCommissionCreate.String(FlagCommissionMaxRate, "", "The maximum commission rate percentage")
 	//FsCommissionCreate.String(FlagCommissionMaxChangeRate, "", "The maximum commission change rate percentage (per day)")
-	FsMinSelfDelegation.String(FlagMinSelfDelegation, "1okt", "The minimum self delegation required on the validator")
+	//FsMinSelfDelegation.String(FlagMinSelfDelegation, "0.001okt", "The minimum self delegation required on the validator")
 	fsDescriptionEdit.String(FlagMoniker, types.DoNotModifyDesc, "The validator's name")
 	fsDescriptionEdit.String(FlagIdentity, types.DoNotModifyDesc,
 		"The (optional) identity signature (ex. UPort or Keybase)")

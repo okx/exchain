@@ -11,6 +11,7 @@ import (
 	"github.com/okex/okchain/x/params"
 )
 
+// SupplyKeeper defines the expected supply Keeper
 type SupplyKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
 		recipientModule string, amt sdk.Coins) sdk.Error
@@ -21,10 +22,12 @@ type SupplyKeeper interface {
 	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
 }
 
+// TokenKeeper defines the expected token Keeper
 type TokenKeeper interface {
 	TokenExist(ctx sdk.Context, symbol string) bool
 }
 
+// IKeeper defines the expected dex Keeper
 type IKeeper interface {
 	GetTokenPair(ctx sdk.Context, product string) *types.TokenPair
 	GetTokenPairs(ctx sdk.Context) []*types.TokenPair
@@ -60,10 +63,12 @@ type StakingKeeper interface {
 	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
+// BankKeeper defines the expected bank Keeper
 type BankKeeper interface {
 	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
 }
 
+// GovKeeper defines the expected gov Keeper
 type GovKeeper interface {
 	RemoveFromActiveProposalQueue(ctx sdk.Context, proposalID uint64, endTime time.Time)
 }

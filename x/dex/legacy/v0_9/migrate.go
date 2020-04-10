@@ -1,3 +1,4 @@
+// nolint
 package v0_9
 
 import (
@@ -6,14 +7,11 @@ import (
 	v08token "github.com/okex/okchain/x/token/legacy/v0_8"
 )
 
-func Migrate(oldGenState v08token.GenesisState, oldGovParams v08gov.GovParams) GenesisState {
-
+func Migrate(oldGenState v08token.GenesisState, _ v08gov.GovParams) GenesisState {
 	params := types.DefaultParams()
-	//params.DexListFee = oldGovParams.DexListFee
-
-	var tokenPairs []*types.TokenPair
-	for _, pair := range oldGenState.TokenPairs {
-		tokenPairs = append(tokenPairs, &types.TokenPair{
+	tokenPairs := make([]*types.TokenPair, len(oldGenState.TokenPairs))
+	for i, pair := range oldGenState.TokenPairs {
+		tokenPairs[i] = &types.TokenPair{
 			BaseAssetSymbol:  pair.BaseAssetSymbol,
 			QuoteAssetSymbol: pair.QuoteAssetSymbol,
 			InitPrice:        pair.InitPrice,
@@ -25,7 +23,7 @@ func Migrate(oldGenState v08token.GenesisState, oldGovParams v08gov.GovParams) G
 			Owner:            nil,
 			Deposits:         types.DefaultTokenPairDeposit,
 			BlockHeight:      1,
-		})
+		}
 	}
 
 	return GenesisState{

@@ -10,6 +10,6 @@ import (
 type PaEngine struct {
 }
 
-// Run
+// nolint
 func (e *PaEngine) Run(ctx sdk.Context, keeper keeper.Keeper) {
 }

@@ -10,7 +10,7 @@ import (
 	token "github.com/okex/okchain/x/token/types"
 )
 
-// tryPlaceOrder tries to charge fee & lock coins for a new order
+// TryPlaceOrder tries to charge fee & lock coins for a new order
 func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecCoins, err error) {
 	logger := ctx.Logger().With("module", "order")
 	// Trying to lock coins
@@ -33,6 +33,7 @@ func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecC
 	return fee, err
 }
 
+// PlaceOrder updates BlockOrderNum, DepthBook, execute TryPlaceOrder, and set the specified order to keeper
 func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
 	fee, err := k.TryPlaceOrder(ctx, order)
 	if err != nil {
@@ -53,14 +54,17 @@ func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
 	return nil
 }
 
+// ExpireOrder quits the specified order with the expired state
 func (k Keeper) ExpireOrder(ctx sdk.Context, order *types.Order, logger log.Logger) {
 	k.quitOrder(ctx, order, types.FeeTypeOrderExpire, logger)
 }
 
+// CancelOrder quits the specified order with the canceled state
 func (k Keeper) CancelOrder(ctx sdk.Context, order *types.Order, logger log.Logger) sdk.DecCoins {
 	return k.quitOrder(ctx, order, types.FeeTypeOrderCancel, logger)
 }
 
+// quitOrder unlocks & charges fee, unlocks coins, updates order, and updates DepthBook
 func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, logger log.Logger) (fee sdk.DecCoins) {
 	switch feeType {
 	case types.FeeTypeOrderCancel:

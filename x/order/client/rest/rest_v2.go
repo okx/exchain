@@ -16,6 +16,7 @@ import (
 	ordertype "github.com/okex/okchain/x/order/types"
 )
 
+// nolint
 func RegisterRoutesV2(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/instruments/{instrument_id}/book", depthBookHandlerV2(cliCtx)).Methods("GET")
 	r.HandleFunc("/order/placeorder", broadcastPlaceOrderRequest(cliCtx)).Methods("POST")
@@ -64,7 +65,7 @@ type BroadcastReq struct {
 	Mode string     `json:"mode"`
 }
 
-type PlaceCancelOrderResponse struct {
+type placeCancelOrderResponse struct {
 	types.TxResponse
 	OrderID      string `json:"order_id"`
 	ClientOid    string `json:"client_oid"`
@@ -115,7 +116,7 @@ func broadcastPlaceOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 				}
 			}
 		}
-		res2 := PlaceCancelOrderResponse{
+		res2 := placeCancelOrderResponse{
 			res,
 			orderID,
 			"",
@@ -164,7 +165,7 @@ func broadcastCancelOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		res2 := PlaceCancelOrderResponse{
+		res2 := placeCancelOrderResponse{
 			res,
 			req.Tx.Msgs[0].(*ordertype.MsgCancelOrders).OrderIDs[0],
 			"",

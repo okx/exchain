@@ -1,3 +1,4 @@
+// nolint
 package v0_8
 
 import (
@@ -6,10 +7,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// nolint
 const (
 	ModuleName = types.ModuleName
 )
 
+// nolint
 type (
 	Params struct {
 		OrderExpireBlocks   int64   `json:"order_expire_blocks"`

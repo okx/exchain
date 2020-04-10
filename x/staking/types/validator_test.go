@@ -11,7 +11,6 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
-
 func TestValidatorTestEquivalent(t *testing.T) {
 	val1 := NewValidator(valAddr1, pk1, Description{})
 	val2 := NewValidator(valAddr1, pk1, Description{})
@@ -23,35 +22,75 @@ func TestValidatorTestEquivalent(t *testing.T) {
 
 	ok = val1.TestEquivalent(val2)
 	require.False(t, ok)
+
+	// MarshalYAML
+	data, err := val1.MarshalYAML()
+	require.Nil(t, err)
+	require.Contains(t, data, "operatoraddress", data)
+
+	data, err = val2.Standardize().MarshalYAML()
+	require.Nil(t, err)
+	require.Contains(t, data, "Operator Address")
+
+}
+
+func TestValidators(t *testing.T) {
+	val1 := NewValidator(valAddr1, pk1, Description{})
+	val2 := NewValidator(valAddr1, pk1, Description{})
+	valdators := Validators{val1, val2}
+
+	vaStr := valdators.String()
+	require.True(t, len(vaStr) > 0, vaStr)
+	stdVas := valdators.Standardize()
+	require.NotNil(t, stdVas)
+	iVas := valdators.ToSDKValidators()
+	require.NotNil(t, iVas)
+	require.True(t, len(iVas) == len(valdators))
+
+}
+
+func getFixSizeString(size int) string {
+	bytes := make([]byte, size)
+	return string(bytes)
 }
 
 func TestUpdateDescription(t *testing.T) {
-	d1 := Description{
-		Website: "https://validator.cosmos",
-		Details: "Test validator",
-	}
-
+	d1 := Description{Website: "https://validator.cosmos", Details: "Test validator"}
 	d2 := Description{
 		Moniker:  DoNotModifyDesc,
 		Identity: DoNotModifyDesc,
 		Website:  DoNotModifyDesc,
 		Details:  DoNotModifyDesc,
 	}
+	d3 := Description{Moniker: "", Identity: "", Website: "", Details: ""}
+	d4 := Description{Moniker: getFixSizeString(MaxMonikerLength + 1), Identity: "", Website: "", Details: ""}
+	d5 := Description{Moniker: "", Identity: getFixSizeString(MaxIdentityLength + 1), Website: "", Details: ""}
+	d6 := Description{Moniker: "", Identity: "", Website: getFixSizeString(MaxWebsiteLength + 1), Details: ""}
+	d7 := Description{Moniker: "", Identity: "", Website: "", Details: getFixSizeString(MaxDetailsLength + 1)}
 
-	d3 := Description{
-		Moniker:  "",
-		Identity: "",
-		Website:  "",
-		Details:  "",
+	tests := []struct {
+		name       string
+		fromDesc   Description
+		toDesc     Description
+		expectPass bool
+	}{
+		{"success update1", d1, d2, true},
+		{"success update2", d1, d3, true},
+		{"fail update of MaxMonikerLength", d1, d4, false},
+		{"fail update of MaxIdentityLength", d1, d5, false},
+		{"fail update of MaxWebsiteLength", d1, d6, false},
+		{"fail update of MaxDetailsLength", d1, d7, false},
 	}
 
-	d, err := d1.UpdateDescription(d2)
-	require.Nil(t, err)
-	require.Equal(t, d, d1)
+	for _, tc := range tests {
+		_, err := tc.fromDesc.UpdateDescription(tc.toDesc)
 
-	d, err = d1.UpdateDescription(d3)
-	require.Nil(t, err)
-	require.Equal(t, d, d3)
+		if tc.expectPass {
+			require.Nil(t, err, "test: %v", tc.name)
+		} else {
+			require.NotNil(t, err, "test: %v", tc.name)
+		}
+	}
 }
 
 func TestABCIValidatorUpdate(t *testing.T) {
@@ -84,195 +123,6 @@ func TestShareTokens(t *testing.T) {
 	assert.True(sdk.DecEq(t, sdk.NewDec(25), validator.TokensFromShares(sdk.NewDec(50))))
 	assert.True(sdk.DecEq(t, sdk.NewDec(5), validator.TokensFromShares(sdk.NewDec(10))))
 }
-
-//
-//func TestRemoveTokens(t *testing.T) {
-//
-//	validator := Validator{
-//		OperatorAddress: valAddr1,
-//		ConsPubKey:      pk1,
-//		Status:          sdk.Bonded,
-//		Tokens:          sdk.NewInt(100),
-//		DelegatorShares: sdk.NewDec(100),
-//	}
-//
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(10)
-//	pool.BondedTokens = validator.BondedTokens()
-//
-//	validator, pool = validator.UpdateStatus(pool, sdk.Bonded)
-//	require.Equal(t, sdk.Bonded, validator.Status)
-//
-//	// remove tokens and test check everything
-//	validator, pool = validator.RemoveTokens(pool, sdk.NewInt(10))
-//	require.Equal(t, int64(90), validator.Tokens.Int64())
-//	require.Equal(t, int64(90), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(20), pool.NotBondedTokens.Int64())
-//
-//	// update validator to unbonded and remove some more tokens
-//	validator, pool = validator.UpdateStatus(pool, sdk.Unbonded)
-//	require.Equal(t, sdk.Unbonded, validator.Status)
-//	require.Equal(t, int64(0), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(110), pool.NotBondedTokens.Int64())
-//
-//	validator, pool = validator.RemoveTokens(pool, sdk.NewInt(10))
-//	require.Equal(t, int64(80), validator.Tokens.Int64())
-//	require.Equal(t, int64(0), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(110), pool.NotBondedTokens.Int64())
-//}
-//
-//func TestAddTokensValidatorBonded(t *testing.T) {
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(10)
-//	validator := NewValidator(valAddr1, pk1, Description{})
-//	validator, pool = validator.UpdateStatus(pool, sdk.Bonded)
-//	validator, pool, delShares := validator.AddTokensFromDel(pool, sdk.NewInt(10))
-//
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), delShares))
-//	assert.True(sdk.IntEq(t, sdk.NewInt(10), validator.BondedTokens()))
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), validator.DelegatorShares))
-//}
-//
-//func TestAddTokensValidatorUnbonding(t *testing.T) {
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(10)
-//	validator := NewValidator(valAddr1, pk1, Description{})
-//	validator, pool = validator.UpdateStatus(pool, sdk.Unbonding)
-//	validator, pool, delShares := validator.AddTokensFromDel(pool, sdk.NewInt(10))
-//
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), delShares))
-//	assert.Equal(t, sdk.Unbonding, validator.Status)
-//	assert.True(sdk.IntEq(t, sdk.NewInt(10), validator.Tokens))
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), validator.DelegatorShares))
-//}
-//
-//func TestAddTokensValidatorUnbonded(t *testing.T) {
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(10)
-//	validator := NewValidator(valAddr1, pk1, Description{})
-//	validator, pool = validator.UpdateStatus(pool, sdk.Unbonded)
-//	validator, pool, delShares := validator.AddTokensFromDel(pool, sdk.NewInt(10))
-//
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), delShares))
-//	assert.Equal(t, sdk.Unbonded, validator.Status)
-//	assert.True(sdk.IntEq(t, sdk.NewInt(10), validator.Tokens))
-//	assert.True(sdk.DecEq(t, sdk.NewDec(10), validator.DelegatorShares))
-//}
-//
-//// TODO refactor to make simpler like the AddToken tests above
-//func TestRemoveDelShares(t *testing.T) {
-//	valA := Validator{
-//		OperatorAddress: valAddr1,
-//		ConsPubKey:      pk1,
-//		Status:          sdk.Bonded,
-//		Tokens:          sdk.NewInt(100),
-//		DelegatorShares: sdk.NewDec(100),
-//	}
-//	poolA := InitialPool()
-//	poolA.NotBondedTokens = sdk.NewInt(10)
-//	poolA.BondedTokens = valA.BondedTokens()
-//
-//	// Remove delegator shares
-//	valB, poolB, coinsB := valA.RemoveDelShares(poolA, sdk.NewDec(10))
-//	require.Equal(t, int64(10), coinsB.Int64())
-//	require.Equal(t, int64(90), valB.DelegatorShares.RoundInt64())
-//	require.Equal(t, int64(90), valB.BondedTokens().Int64())
-//	require.Equal(t, int64(90), poolB.BondedTokens.Int64())
-//	require.Equal(t, int64(20), poolB.NotBondedTokens.Int64())
-//
-//	// conservation of tokens
-//	require.True(sdk.IntEq(t,
-//		poolB.NotBondedTokens.Add(poolB.BondedTokens),
-//		poolA.NotBondedTokens.Add(poolA.BondedTokens)))
-//
-//	// specific case from random tests
-//	poolTokens := sdk.NewInt(5102)
-//	delShares := sdk.NewDec(115)
-//	validator := Validator{
-//		OperatorAddress: valAddr1,
-//		ConsPubKey:      pk1,
-//		Status:          sdk.Bonded,
-//		Tokens:          poolTokens,
-//		DelegatorShares: delShares,
-//	}
-//	pool := Pool{
-//		BondedTokens:    sdk.NewInt(248305),
-//		NotBondedTokens: sdk.NewInt(232147),
-//	}
-//	shares := sdk.NewDec(29)
-//	_, newPool, tokens := validator.RemoveDelShares(pool, shares)
-//
-//	require.True(sdk.IntEq(t, sdk.NewInt(1286), tokens))
-//
-//	require.True(sdk.IntEq(t,
-//		newPool.NotBondedTokens.Add(newPool.BondedTokens),
-//		pool.NotBondedTokens.Add(pool.BondedTokens)))
-//}
-//
-//func TestAddTokensFromDel(t *testing.T) {
-//	val := NewValidator(valAddr1, pk1, Description{})
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(10)
-//
-//	val, pool, shares := val.AddTokensFromDel(pool, sdk.NewInt(6))
-//	require.True(sdk.DecEq(t, sdk.NewDec(6), shares))
-//	require.True(sdk.DecEq(t, sdk.NewDec(6), val.DelegatorShares))
-//	require.True(sdk.IntEq(t, sdk.NewInt(6), val.Tokens))
-//	require.True(sdk.IntEq(t, sdk.NewInt(0), pool.BondedTokens))
-//	require.True(sdk.IntEq(t, sdk.NewInt(10), pool.NotBondedTokens))
-//
-//	val, pool, shares = val.AddTokensFromDel(pool, sdk.NewInt(3))
-//	require.True(sdk.DecEq(t, sdk.NewDec(3), shares))
-//	require.True(sdk.DecEq(t, sdk.NewDec(9), val.DelegatorShares))
-//	require.True(sdk.IntEq(t, sdk.NewInt(9), val.Tokens))
-//	require.True(sdk.IntEq(t, sdk.NewInt(0), pool.BondedTokens))
-//	require.True(sdk.IntEq(t, sdk.NewInt(10), pool.NotBondedTokens))
-//}
-//
-//func TestUpdateStatus(t *testing.T) {
-//	pool := InitialPool()
-//	pool.NotBondedTokens = sdk.NewInt(100)
-//
-//	validator := NewValidator(valAddr1, pk1, Description{})
-//	validator, pool, _ = validator.AddTokensFromDel(pool, sdk.NewInt(100))
-//	require.Equal(t, sdk.Unbonded, validator.Status)
-//	require.Equal(t, int64(100), validator.Tokens.Int64())
-//	require.Equal(t, int64(0), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(100), pool.NotBondedTokens.Int64())
-//
-//	validator, pool = validator.UpdateStatus(pool, sdk.Bonded)
-//	require.Equal(t, sdk.Bonded, validator.Status)
-//	require.Equal(t, int64(100), validator.Tokens.Int64())
-//	require.Equal(t, int64(100), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(0), pool.NotBondedTokens.Int64())
-//
-//	validator, pool = validator.UpdateStatus(pool, sdk.Unbonding)
-//	require.Equal(t, sdk.Unbonding, validator.Status)
-//	require.Equal(t, int64(100), validator.Tokens.Int64())
-//	require.Equal(t, int64(0), pool.BondedTokens.Int64())
-//	require.Equal(t, int64(100), pool.NotBondedTokens.Int64())
-//}
-//
-//func TestPossibleOverflow(t *testing.T) {
-//	poolTokens := sdk.NewInt(2159)
-//	delShares := sdk.NewDec(391432570689183511).Quo(sdk.NewDec(40113011844664))
-//	validator := Validator{
-//		OperatorAddress: valAddr1,
-//		ConsPubKey:      pk1,
-//		Status:          sdk.Bonded,
-//		Tokens:          poolTokens,
-//		DelegatorShares: delShares,
-//	}
-//	pool := Pool{
-//		NotBondedTokens: sdk.NewInt(100),
-//		BondedTokens:    poolTokens,
-//	}
-//	tokens := int64(71)
-//	newValidator, _, _ := validator.AddTokensFromDel(pool, sdk.NewInt(tokens))
-//
-//	require.False(t, newValidator.DelegatorShares.IsNegative())
-//	require.False(t, newValidator.Tokens.IsNegative())
-//}
 
 func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	validator := NewValidator(valAddr1, pk1, Description{})
