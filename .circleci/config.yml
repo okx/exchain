@@ -1,0 +1,118 @@
+version: 2.1
+
+commands:
+  make:
+    parameters:
+      description:
+        type: string
+      target:
+        type: string
+    steps:
+      - attach_workspace:
+          at: /tmp/bin
+      - restore_cache:
+          name: "Restore source code cache"
+          keys:
+            - go-src-v1-{{ .Revision }}
+      - checkout
+      - restore_cache:
+          name: "Restore go modules cache"
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run:
+          name: << parameters.description >>
+          command: |
+            export BINDIR=/tmp/bin
+            make << parameters.target >>
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore go modules cache
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - run:
+          name: Cache go modules
+          command: make go-mod-cache
+      - run:
+          name: Build
+          command: make build
+      - run:
+          name: Unit Test
+          command: make test-unit
+      - save_cache:
+          name: Save go modules cache
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - save_cache:
+          name: Save source code cache
+          key: go-src-v1-{{ .Revision }}
+          paths:
+            - ".git"
+      - run:
+          name: Run tests with coverage and upload codecov
+          command: |
+            set -ex
+            echo "--> Run tests with coverage:"
+            export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
+            export GO111MODULE=on
+            mkdir -p /tmp/logs /tmp/workspace/profiles
+            for pkg in $(go list ./... | grep -v '/simulation' | circleci tests split); do
+              id=$(echo "$pkg" | sed 's|[/.]|_|g')
+              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+            done
+
+            echo "--> Gather coverage:"
+            ls /tmp/workspace/profiles/
+            echo "mode: atomic" > coverage.txt
+            for prof in $(ls /tmp/workspace/profiles/); do
+              tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+            done
+
+            echo "--> Filter out DONTCOVER:"
+            excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
+            for filename in ${excludelist}; do
+              filename=$(echo $filename | sed 's/^./github.com\/okex\/okchain/g')
+              echo "Excluding ${filename} from coverage report..."
+              sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
+            done
+
+            echo "--> upload codecov:"
+            bash <(curl -s https://codecov.io/bash) -f coverage.txt
+#      - persist_to_workspace:
+#          root: /tmp/workspace
+#          paths:
+#            - "profiles/*"
+#      - store_artifacts:
+#          path: /tmp/logs
+#      - attach_workspace:
+#          at: /tmp/workspace
+#      - run:
+#          name: gather coverage
+#          command: |
+#            set -ex
+#
+#            echo "--> Concatenating profiles:"
+#            ls /tmp/workspace/profiles/
+#            echo "mode: atomic" > coverage.txt
+#            for prof in $(ls /tmp/workspace/profiles/); do
+#              tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+#            done
+#      - run:
+#          name: filter out DONTCOVER
+#          command: |
+#            excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
+#            for filename in ${excludelist}; do
+#              filename=$(echo $filename | sed 's/^./github.com\/okex\/okchain/g')
+#              echo "Excluding ${filename} from coverage report..."
+#              sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
+#            done
+#      - run:
+#          name: upload codecov
+#          command: bash <(curl -s https://codecov.io/bash) -f coverage.txt
