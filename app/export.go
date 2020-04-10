@@ -15,7 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// export the state of okchain for a genesis file
+// ExportAppStateAndValidators exports the state of okchain for a genesis file
 func (app *OKChainApp) ExportAppStateAndValidators(forZeroHeight bool, jailWhiteList []string,
 ) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
 	// as if they could withdraw from the start of the next block
@@ -28,27 +28,23 @@ func (app *OKChainApp) ExportAppStateAndValidators(forZeroHeight bool, jailWhite
 	// Get current protocol from engine
 	curProtocol := protocol.GetEngine().GetCurrentProtocol()
 
-	//genState := app.mm.ExportGenesis(ctx)
 	genesisState := curProtocol.ExportGenesis(ctx)
 
-	//appState, err = codec.MarshalJSONIndent(app.cdc, genState)
 	appState, err = codec.MarshalJSONIndent(curProtocol.GetCodec(), genesisState)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	//validators = staking.WriteValidators(ctx, app.stakingKeeper)
-	validators = staking.WriteValidators(ctx, curProtocol.GetStakingKeeper())
+	validators = staking.GetLatestGenesisValidator(ctx, curProtocol.GetStakingKeeper())
 	return appState, validators, nil
 }
 
 // prepare for fresh start at zero height
-// NOTE zero height genesis is a temporary feature which will be deprecated
-//      in favour of export at a block height
+// NOTE zero height genesis is a temporary feature which will be deprecated in favour of export at a block height
 func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []string) {
 	var applyWhiteList bool
 
-	//Check if there is a whitelist
+	// check if there is a whitelist
 	if len(jailWhiteList) > 0 {
 		applyWhiteList = true
 	}
@@ -63,13 +59,13 @@ func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList [
 		whiteListMap[addr] = true
 	}
 
-	// Get current protocol from engine
+	// get current protocol from engine
 	curProtocol := protocol.GetEngine().GetCurrentProtocol()
 
-	/* Just to be safe, assert the invariants on current state. */
+	// just to be safe, assert the invariants on current state
 	curProtocol.GetCrisisKeeper().AssertInvariants(ctx)
 
-	/* Handle fee distribution state. */
+	// handle fee distribution state
 	// withdraw all validator commission
 	curProtocol.GetStakingKeeper().IterateValidators(ctx, func(_ int64, val staking.ValidatorI) (stop bool) {
 		_, _ = curProtocol.GetDistrKeeper().WithdrawValidatorCommission(ctx, val.GetOperator())
@@ -83,14 +79,12 @@ func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList [
 	// reset context height
 	ctx = ctx.WithBlockHeight(height)
 
-	/* Handle staking state. */
-	// Iterate through validators by power descending, reset bond heights, and
-	// update bond intra-tx counters.
+	// handle staking state
+	// Iterate through validators by power descending, reset bond heights, and update bond intra-tx counters
 	store := ctx.KVStore(curProtocol.GetKVStoreKeysMap()[staking.StoreKey])
 	iter := sdk.KVStoreReversePrefixIterator(store, staking.ValidatorsKey)
 	counter := int16(0)
 
-	var valConsAddrs []sdk.ConsAddress
 	for ; iter.Valid(); iter.Next() {
 		addr := sdk.ValAddress(iter.Key()[1:])
 
@@ -99,7 +93,6 @@ func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList [
 			panic("didn't find the expected validator")
 		}
 		validator.UnbondingHeight = 0
-		valConsAddrs = append(valConsAddrs, validator.ConsAddress())
 		if applyWhiteList && !whiteListMap[addr.String()] {
 			validator.Jailed = true
 		}
@@ -112,7 +105,7 @@ func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList [
 
 	_ = curProtocol.GetStakingKeeper().ApplyAndReturnValidatorSetUpdates(ctx)
 
-	/* Handle slashing state. */
+	// handle slashing state
 	curProtocol.GetSlashingKeeper().IterateValidatorSigningInfos(
 		ctx,
 		func(addr sdk.ConsAddress, info slashing.ValidatorSigningInfo) (stop bool) {

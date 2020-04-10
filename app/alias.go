@@ -5,10 +5,12 @@ import (
 )
 
 var (
-	// functions aliases
+	// MakeCodec is the function alias for codec maker
 	MakeCodec = protocol.MakeCodec
-	// variable aliases
+	// ModuleBasics is the variable alias for NewBasicManager
 	ModuleBasics    = protocol.ModuleBasics
+	// DefaultCLIHome is the directory for okchaincli
 	DefaultCLIHome  = protocol.DefaultCLIHome
+	// DefaultNodeHome is the directory for okchaind
 	DefaultNodeHome = protocol.DefaultNodeHome
 )

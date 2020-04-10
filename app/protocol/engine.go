@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -14,16 +13,17 @@ import (
 )
 
 var (
+	// Singleton Pattern: protocolEngine
 	once            sync.Once
-	protocolsEngine *AppProtocolEngine
+	protocolsEngine *appProtocolEngine
 
 	// init monitor prometheus metrics
 	orderMetrics  = monitor.DefaultOrderMetrics(monitor.DefaultPrometheusConfig())
 	streamMetrics = monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
 )
 
-// get the Singleton application protocol engine
-func GetEngine() *AppProtocolEngine {
+// GetEngine gets the Singleton application protocol engine
+func GetEngine() *appProtocolEngine {
 	once.Do(func() {
 		protocolKeeper := proto.NewProtocolKeeper(GetMainStoreKey())
 		protocolsEngine = NewAppProtocolEngine(protocolKeeper)
@@ -33,25 +33,25 @@ func GetEngine() *AppProtocolEngine {
 	return protocolsEngine
 }
 
-type AppProtocolEngine struct {
+type appProtocolEngine struct {
 	protocols map[uint64]Protocol
 	current   uint64
 	next      uint64
 	keeper    proto.VersionKeeper
 }
 
-func NewAppProtocolEngine(protocolKeeper proto.ProtocolKeeper) *AppProtocolEngine {
-	return &AppProtocolEngine{
+// NewAppProtocolEngine returns a pointer of a new appProtocolEngine object
+func NewAppProtocolEngine(protocolKeeper proto.ProtocolKeeper) *appProtocolEngine {
+	return &appProtocolEngine{
 		make(map[uint64]Protocol),
 		0,
 		0,
 		protocolKeeper,
 	}
-
 }
 
-// add new protocol into engine
-func (ape *AppProtocolEngine) Add(p Protocol) {
+// Add adds new protocol into engine
+func (ape *appProtocolEngine) Add(p Protocol) {
 	if p.GetVersion() != ape.next {
 		panic(fmt.Errorf("wrong version being added to the protocol engine: %d; expecting %d", p.GetVersion(), ape.next))
 	}
@@ -59,13 +59,13 @@ func (ape *AppProtocolEngine) Add(p Protocol) {
 	ape.next++
 }
 
-// get protocol keeper from engine
-func (ape *AppProtocolEngine) GetProtocolKeeper() proto.ProtocolKeeper {
+// GetProtocolKeeper gets protocol keeper from engine
+func (ape *appProtocolEngine) GetProtocolKeeper() proto.ProtocolKeeper {
 	return ape.keeper.(proto.ProtocolKeeper)
 }
 
-// get current protolcol from engine
-func (ape *AppProtocolEngine) GetCurrentProtocol() Protocol {
+// GetCurrentProtocol gets current protolcol from engine
+func (ape *appProtocolEngine) GetCurrentProtocol() Protocol {
 	p, flag := ape.protocols[ape.current]
 	if !flag {
 		panic("Invalid Protocol")
@@ -73,8 +73,8 @@ func (ape *AppProtocolEngine) GetCurrentProtocol() Protocol {
 	return p
 }
 
-// load the status of current protocol from store
-func (ape *AppProtocolEngine) LoadCurrentProtocol(kvStore sdk.KVStore) (bool, uint64) {
+// LoadCurrentProtocol loads the status of current protocol from store
+func (ape *appProtocolEngine) LoadCurrentProtocol(kvStore sdk.KVStore) (bool, uint64) {
 	// find the current version from store
 	current := ape.GetCurrentVersionByStore(kvStore)
 	p, flag := ape.protocols[current]
@@ -86,23 +86,24 @@ func (ape *AppProtocolEngine) LoadCurrentProtocol(kvStore sdk.KVStore) (bool, ui
 	return flag, current
 }
 
-// get current version from Store
-func (ape *AppProtocolEngine) GetCurrentVersionByStore(store sdk.KVStore) uint64 {
+// GetCurrentVersionByStore gets current version from Store
+func (ape *appProtocolEngine) GetCurrentVersionByStore(store sdk.KVStore) uint64 {
 	return ape.keeper.GetCurrentVersionByStore(store)
 }
 
-// get current version from engine
-func (ape *AppProtocolEngine) GetCurrentVersion() uint64 {
+// GetCurrentVersion gets current version from engine
+func (ape *appProtocolEngine) GetCurrentVersion() uint64 {
 	return ape.current
 }
 
-// get upgrade config from store
-func (ape *AppProtocolEngine) GetUpgradeConfigByStore(store sdk.KVStore) (upgradeConfig proto.AppUpgradeConfig, found bool) {
+// GetUpgradeConfigByStore gets upgrade config from store
+func (ape *appProtocolEngine) GetUpgradeConfigByStore(store sdk.KVStore) (upgradeConfig proto.AppUpgradeConfig,
+	found bool) {
 	return ape.keeper.GetUpgradeConfigByStore(store)
 }
 
-// activate new protocol at specific block height
-func (ape *AppProtocolEngine) Activate(version uint64) bool {
+// Activate activates new protocol at specific block height
+func (ape *appProtocolEngine) Activate(version uint64) bool {
 	protocol, flag := ape.protocols[version]
 	if flag {
 		//protocol.Init()
@@ -112,25 +113,18 @@ func (ape *AppProtocolEngine) Activate(version uint64) bool {
 	return flag
 }
 
-// for unittest
-
 // deprecated
-func (ape *AppProtocolEngine) clear() {
+func (ape *appProtocolEngine) Clear() {
 	ape.protocols = make(map[uint64]Protocol)
 	ape.current = 0
 	ape.next = 0
 }
 
-// deprecated
-func (ape *AppProtocolEngine) Clear() {
-	ape.clear()
-}
-
-// set log and app
-func (ape *AppProtocolEngine) FillProtocol(parent Parent, log log.Logger, index uint64) error {
+// FillProtocol sets logger and app
+func (ape *appProtocolEngine) FillProtocol(parent Parent, log log.Logger, index uint64) error {
 	protocol, ok := ape.protocols[index]
 	if !ok {
-		return errors.New(fmt.Sprintf("no protocol with version %d in the engine", index))
+		return fmt.Errorf("no protocol with version %d in the engine", index)
 	}
 	protocol.SetParent(parent).SetLogger(log)
 	return nil

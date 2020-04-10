@@ -1,0 +1,66 @@
+@startuml
+hide empty members
+class BaseApp{
+    ~InitChain(abci.RequestInitChain)(abci.ResponseInitChain)
+}
+
+class "func (*BaseApp)InitChain(abci.RequestInitChain)abci.ResponseInitChain" as M1 << (M,orchid) >>
+
+class "func (*OKChainApp) InitChainer(sdk.Context,abci.RequestInitChain) abci.ResponseInitChain" as M2 << (M,orchid) >>
+
+class "func (*Manager) InitGenesis(sdk.Context, map[string]json.RawMessage) abci.ResponseInitChain" as M3 << (M,orchid) >>
+
+class "每个模块实现的AppModule中InitGenesis" as M4 << (M,orchid) >>
+
+class localClient{
+cmn.BaseService
+mtx *sync.Mutex
+types.Application
+Callback
+~InitChainSync(types.RequestInitChain) (*types.ResponseInitChain, error)
+~InitChainAsync(types.RequestInitChain) *ReqRes
+}
+
+class "func (*localClient) InitChainSync(types.RequestInitChain) (*types.ResponseInitChain, error)" as M5 << (M,orchid) >>
+class "func (*localClient) InitChainAsync(types.RequestInitChain) *ReqRes" as M6 << (M,orchid) >>
+
+class "okchaind -> replay 选项" as M7 << (E,#FF7700) >>
+
+class Handshaker {
+stateDB      dbm.DB
+initialState sm.State
+store        sm.BlockStore
+eventBus     types.BlockEventPublisher
+genDoc       *types.GenesisDoc
+logger       log.Logger
+nBlocks      int
+}
+
+class "func (*Handshaker) ReplayBlocks(sm.State,[]byte,int64,proxy.AppConns) ([]byte, error)" as M8 << (M,orchid) >>
+class "func (*Handshaker) Handshake(proxy.AppConns) error" as M9 << (M,orchid) >>
+
+class "func doHandshake(dbm.DB, sm.State, sm.BlockStore,*types.GenesisDoc, *types.EventBus, proxy.AppConns, log.Logger) error" as M10 << (M,orchid) >>
+class "func NewNode(*cfg.Config, types.PrivValidator, *p2p.NodeKey, proxy.ClientCreator, GenesisDocProvider, DBProvider, MetricsProvider, log.Logger, ...Option) (*Node, error)" as M11 << (M,orchid) >>
+
+class "okchaind -> start 选项" as M12 << (E,#FF7700) >>
+M1 <--* BaseApp:维护
+M2 <-- M1:调用
+M3 <-- M2:调用
+M4 <-- M3:调用
+
+M5 <--* localClient:维护
+M6 <--* localClient:维护
+
+M1 <-- M5:调用
+M1 <-- M6:调用
+
+M5 <-- M7:调用
+
+M8 <--* Handshaker:维护
+M9 <--* Handshaker:维护
+M5 <-- M8:调用
+M8 <-- M9:调用
+M9 <-- M10:调用
+M10 <-- M11:调用
+M11 <-- M12:调用
+@enduml

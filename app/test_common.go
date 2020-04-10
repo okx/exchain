@@ -7,7 +7,7 @@ import (
 )
 
 // function for privateKey
-func slice2Array(s []byte) (byteArray [32]byte, err error) {
+func sliceToArray(s []byte) (byteArray [32]byte, err error) {
 	if len(s) != 32 {
 		return byteArray, errors.New("byte slice's length is not 32")
 	}
@@ -22,7 +22,7 @@ func getPrivateKey(privateKeyStr string) secp256k1.PrivKeySecp256k1 {
 	if err != nil {
 		panic(err)
 	}
-	derivedPriv, err := slice2Array(derivedPrivSlice)
+	derivedPriv, err := sliceToArray(derivedPrivSlice)
 	if err != nil {
 		panic(err)
 	}

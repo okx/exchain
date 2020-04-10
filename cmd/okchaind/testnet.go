@@ -8,16 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-
-	"github.com/okex/okchain/x/genutil"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	tmconfig "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	"github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -28,7 +19,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
+	"github.com/okex/okchain/x/genutil"
 	"github.com/okex/okchain/x/staking"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	tmconfig "github.com/tendermint/tendermint/config"
+	"github.com/tendermint/tendermint/crypto"
+	cmn "github.com/tendermint/tendermint/libs/common"
+	"github.com/tendermint/tendermint/types"
 )
 
 var (
@@ -39,6 +37,8 @@ var (
 	flagNodeCLIHome       = "node-cli-home"
 	flagStartingIPAddress = "starting-ip-address"
 	flagBaseport          = "base-port"
+	flagLocal             = "local"
+	testnetAccountList    []string
 )
 
 // get cmd to initialize all files for tendermint testnet and application
@@ -55,7 +55,7 @@ necessary files (private validator, genesis, config, etc.).
 Note, strict routability for addresses is turned off in the config file.
 
 Example:
-	okchaind testnet --v 4 --output-dir ./output --starting-ip-address 192.168.10.2
+	okchaind testnet --v 4 --output-dir ./output --starting-ip-address 192.168.10.2 -l
 	`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			config := ctx.Config
@@ -68,9 +68,10 @@ Example:
 			nodeCLIHome := viper.GetString(flagNodeCLIHome)
 			startingIPAddress := viper.GetString(flagStartingIPAddress)
 			numValidators := viper.GetInt(flagNumValidators)
+			isLocal := viper.GetBool(flagLocal)
 
 			return InitTestnet(cmd, config, cdc, mbm, genAccIterator, outputDir, chainID,
-				minGasPrices, nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, numValidators)
+				minGasPrices, nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, numValidators, isLocal)
 		},
 	}
 
@@ -89,9 +90,10 @@ Example:
 	cmd.Flags().String(
 		client.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().String(
-		server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", sdk.DefaultBondDenom),
+		server.FlagMinGasPrices, "",
 		"Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photino,0.001stake)")
-	cmd.Flags().Int(flagBaseport, 20056, "testnet base port")
+	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
+	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
 	return cmd
 }
 
@@ -101,7 +103,7 @@ const nodeDirPerm = 0755
 func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 	mbm module.BasicManager, genAccIterator genutil.GenesisAccountsIterator,
 	outputDir, chainID, minGasPrices, nodeDirPrefix, nodeDaemonHome,
-	nodeCLIHome, startingIPAddress string, numValidators int) error {
+	nodeCLIHome, startingIPAddress string, numValidators int, isLocal bool) error {
 
 	if chainID == "" {
 		chainID = "chain-" + cmn.RandStr(6)
@@ -143,6 +145,9 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 		config.Moniker = nodeDirName
 
 		ip, err := getIP(0, startingIPAddress)
+		if !isLocal {
+			ip, err = getIP(i, startingIPAddress)
+		}
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -156,6 +161,9 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 
 		baseport := viper.GetInt(flagBaseport)
 		port := baseport + i*100
+		if !isLocal {
+			port = baseport
+		}
 		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port) //okdex
 		genFiles = append(genFiles, config.GenesisFile())
 
@@ -184,26 +192,21 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 			return err
 		}
 
-		accTokens := sdk.TokensFromConsensusPower(1000)
-		accStakingTokens := sdk.TokensFromConsensusPower(1000000000)
+		coins, err := sdk.ParseDecCoins("9000000" + sdk.DefaultBondDenom)
+		if err != nil {
+			return err
+		}
 		accs = append(accs, genaccounts.GenesisAccount{
 			Address: addr,
-			Coins: sdk.Coins{
-				sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), accTokens),
-				sdk.NewCoin(sdk.DefaultBondDenom, accStakingTokens),
-			},
+			Coins:   coins,
 		})
 
-		/* required by okchain */
-		//valTokens := sdk.TokensFromConsensusPower(100)
-		minSelfDelegation := sdk.NewInt(1000).StandardizeAsc()
+		minSelfDelegation := sdk.NewDec(1000)
 		msg := staking.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			valPubKeys[i],
-			sdk.NewCoin(sdk.DefaultBondDenom, minSelfDelegation),
 			staking.NewDescription(nodeDirName, "", "", ""),
-			staking.NewCommissionRates(sdk.OneDec(), sdk.OneDec(), sdk.ZeroDec()),
-			sdk.NewCoin(sdk.DefaultBondDenom, minSelfDelegation),
+			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, minSelfDelegation),
 		)
 		kb, err := keys.NewKeyBaseFromDir(clientDir)
 		if err != nil {
@@ -285,7 +288,12 @@ func collectGenFiles(
 	genAccIterator genutil.GenesisAccountsIterator) error {
 
 	var appState json.RawMessage
-	genTime := tmtime.Now()
+	genesisTime := "2020-01-01T10:16:17.025816Z"
+	genTime := time.Time{}
+	err := genTime.UnmarshalText([]byte(genesisTime))
+	if err != nil {
+		return nil
+	}
 
 	for i := 0; i < numValidators; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
@@ -364,4 +372,12 @@ func writeFile(name string, dir string, contents []byte) error {
 	}
 
 	return nil
+}
+
+func getTestnetMnemonic(index int) string {
+	if len(testnetAccountList)-1 < index {
+		return ""
+	}
+
+	return testnetAccountList[index]
 }

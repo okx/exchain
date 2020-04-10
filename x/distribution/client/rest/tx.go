@@ -1,0 +1,125 @@
+package rest
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gorilla/mux"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/okchain/x/distribution/client/common"
+	"github.com/okex/okchain/x/distribution/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+)
+
+func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, _ string) {
+	// Replace the rewards withdrawal address
+	r.HandleFunc(
+		"/distribution/delegators/{delegatorAddr}/withdraw_address",
+		setDelegatorWithdrawalAddrHandlerFn(cliCtx),
+	).Methods("POST")
+
+	// Withdraw validator rewards and commission
+	r.HandleFunc(
+		"/distribution/validators/{validatorAddr}/rewards",
+		withdrawValidatorRewardsHandlerFn(cliCtx),
+	).Methods("POST")
+
+}
+
+type (
+	withdrawRewardsReq struct {
+		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
+	}
+
+	setWithdrawalAddrReq struct {
+		BaseReq         rest.BaseReq   `json:"base_req" yaml:"base_req"`
+		WithdrawAddress sdk.AccAddress `json:"withdraw_address" yaml:"withdraw_address"`
+	}
+)
+
+// Replace the rewards withdrawal address
+func setDelegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req setWithdrawalAddrReq
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		// read and validate URL's variables
+		delAddr, ok := checkDelegatorAddressVar(w, r)
+		if !ok {
+			return
+		}
+
+		msg := types.NewMsgSetWithdrawAddress(delAddr, req.WithdrawAddress)
+		if err := msg.ValidateBasic(); err != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+	}
+}
+
+// Withdraw validator rewards and commission
+func withdrawValidatorRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req withdrawRewardsReq
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		// read and validate URL's variable
+		valAddr, ok := checkValidatorAddressVar(w, r)
+		if !ok {
+			return
+		}
+
+		// prepare multi-message transaction
+		msgs, err := common.WithdrawValidatorRewardsAndCommission(valAddr)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, msgs)
+	}
+}
+
+// Auxiliary
+
+func checkDelegatorAddressVar(w http.ResponseWriter, r *http.Request) (sdk.AccAddress, bool) {
+	addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["delegatorAddr"])
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("invalid address：%s", mux.Vars(r)["delegatorAddr"]))
+		return nil, false
+	}
+
+	return addr, true
+}
+
+func checkValidatorAddressVar(w http.ResponseWriter, r *http.Request) (sdk.ValAddress, bool) {
+	addr, err := sdk.ValAddressFromBech32(mux.Vars(r)["validatorAddr"])
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("invalid address：%s", mux.Vars(r)["validatorAddr"]))
+		return nil, false
+	}
+
+	return addr, true
+}

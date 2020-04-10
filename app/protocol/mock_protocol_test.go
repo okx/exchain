@@ -40,11 +40,8 @@ func TestMockProtocol(t *testing.T) {
 
 	testContext := sdk.Context{}
 	require.Nil(t, mockProtocol.ExportGenesis(testContext))
-	appState, validators, err := mockProtocol.ExportAppStateAndValidators(testContext)
-	require.Nil(t, appState)
-	require.Nil(t, validators)
-	require.Nil(t, err)
 }
+
 func TestMockProtocolFunc(t *testing.T) {
 	var version uint64 = 1
 	mockProtocol := NewMockProtocol(version)

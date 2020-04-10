@@ -1,0 +1,63 @@
+@startuml
+
+hide empty members
+class EventManager{
+    events Events
+    ~EmitEvent(Event)
+    ~EmitEvents(Events)
+    ~ABCIEvents() []abci.Event
+}
+
+annotation "Events -> []Event -> []abci.Event" as A1
+
+class Event{
+Type string
+Attributes []common.KVPair
+...
+}
+
+class Attribute {
+Key   string
+Value string
+}
+
+class "func (*EventManager) EmitEvent(Event)" as M1 << (D,orchid) >>
+class "func (*EventManager) EmitEvents(Events)" as M2 << (D,orchid) >>
+class "func NewEvent(string, ...Attribute) Event\nfunc NewAttribute(k, v string) Attribute" as M3 << (D,orchid) >>
+class "func (EventManager) ABCIEvents() []abci.Event" as M4 << (D,orchid) >>
+
+class Manager{
+Modules            map[string]AppModule
+OrderInitGenesis   []string
+OrderExportGenesis []string
+OrderBeginBlockers []string
+OrderEndBlockers   []string
+~BeginBlock(sdk.Context, abci.RequestBeginBlock) abci.ResponseBeginBlock
+~EndBlock(sdk.Context, abci.RequestEndBlock) abci.ResponseEndBlock
+}
+
+class "func (*Manager) BeginBlock\n(sdk.Context, abci.RequestBeginBlock) abci.ResponseBeginBlock" as M5 << (D,orchid) >>
+class "func (*Manager) EndBlock\n(sdk.Context, abci.RequestEndBlock) abci.ResponseEndBlock" as M6 << (D,orchid) >>
+class "func (*Manager) EndBlock\n(sdk.Context, abci.RequestEndBlock) abci.ResponseEndBlock" as M6 << (D,orchid) >>
+
+class "func (*OKChainApp) BeginBlocker(sdk.Context, abci.RequestBeginBlock) abci.ResponseBeginBlock\nfunc (*OKChainApp) EndBlocker(sdk.Context, abci.RequestEndBlock) abci.ResponseEndBlock" as M7 << (D,orchid) >>
+
+
+A1 ... EventManager:说明
+Event .. A1
+Event <--o EventManager
+
+M1 <--* EventManager:添加一个Event
+M2 <--* EventManager:添加一个Event序列
+M1 <.. M3:配合使用
+M2 <.. M3:配合使用
+M4 <--* EventManager:将所有添加进的Event\n转换为abci.Event
+
+M5 <--* Manager
+M6 <--* Manager
+M4 <-- M5:方法结尾调用，\n聚合所用模块发出的Event进\nabci.ResponseBeginBlock
+M4 <-- M6:方法结尾调用，\n聚合所用模块发出的Event进\nabci.ResponseEndBlock
+
+M5 <-- M7:调用
+M6 <-- M7:调用
+@enduml

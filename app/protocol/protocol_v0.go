@@ -13,22 +13,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/types"
-
 	"github.com/okex/okchain/app/utils"
 	"github.com/okex/okchain/x/backend"
 	"github.com/okex/okchain/x/common/proto"
 	"github.com/okex/okchain/x/common/version"
-	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
 	dexClient "github.com/okex/okchain/x/dex/client"
 	distr "github.com/okex/okchain/x/distribution"
@@ -43,21 +37,21 @@ import (
 	"github.com/okex/okchain/x/token"
 	"github.com/okex/okchain/x/upgrade"
 	upgradeClient "github.com/okex/okchain/x/upgrade/client"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 var (
 	// check the implements of ProtocolV0
 	_ Protocol = (*ProtocolV0)(nil)
 
-	// default home directories for okchaincli
+	// DefaultCLIHome is the directory for okchaincli
 	DefaultCLIHome = os.ExpandEnv("$HOME/.okchaincli")
-
-	// default home directories for okchaind
+	// DefaultNodeHome is the directory for okchaind
 	DefaultNodeHome = os.ExpandEnv("$HOME/.okchaind")
 
-	// The module BasicManager is in charge of setting up basic,
-	// non-dependant module elements, such as codec registration
-	// and genesis verification.
+	// ModuleBasics is in charge of setting up basic, non-dependant module elements,
+	// such as codec registration and genesis verification
 	ModuleBasics = module.NewBasicManager(
 		genaccounts.AppModuleBasic{},
 		genutil.AppModuleBasic{},
@@ -82,12 +76,9 @@ var (
 		backend.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
-		//for test
-		debug.AppModuleBasic{},
 	)
 
-	// module account permissions
-	// for bankKeeper and supplyKeeper
+	// module account permissions for bankKeeper and supplyKeeper
 	maccPerms = map[string][]string{
 		auth.FeeCollectorName:     nil,
 		distr.ModuleName:          nil,
@@ -102,13 +93,12 @@ var (
 	}
 )
 
+// ProtocolV0 is the struct of the original protocol of okchain
 type ProtocolV0 struct {
-	parent  Parent
-	version uint64
-	cdc     *codec.Codec
-	logger  log.Logger
-
-	/*----------- necessary part for cm36 --------------*/
+	parent         Parent
+	version        uint64
+	cdc            *codec.Codec
+	logger         log.Logger
 	invCheckPeriod uint
 
 	// keys to access the substores
@@ -126,7 +116,6 @@ type ProtocolV0 struct {
 	govKeeper      gov.Keeper
 	crisisKeeper   crisis.Keeper
 	paramsKeeper   params.Keeper
-
 	tokenKeeper    token.Keeper
 	dexKeeper      dex.Keeper
 	orderKeeper    order.Keeper
@@ -134,12 +123,8 @@ type ProtocolV0 struct {
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
 	upgradeKeeper  upgrade.Keeper
-	/******** for test **********/
-	debugKeeper debug.Keeper
-	/****************************/
 
-	stopped bool
-
+	stopped     bool
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
 	router      sdk.Router      // handle any kind of message
 	queryRouter sdk.QueryRouter // router for redirecting query calls
@@ -148,7 +133,7 @@ type ProtocolV0 struct {
 	mm *module.Manager
 }
 
-// create new protocol_v0
+// NewProtocolV0 creates a new instance of NewProtocolV0
 func NewProtocolV0(
 	parent Parent, version uint64, log log.Logger, invCheckPeriod uint, pk proto.ProtocolKeeper,
 ) *ProtocolV0 {
@@ -165,39 +150,12 @@ func NewProtocolV0(
 	}
 }
 
-// get the version of the protocol
+// GetVersion gets the version of this protocol
 func (p *ProtocolV0) GetVersion() uint64 {
 	return p.version
 }
 
-// export the app state && validators
-func (p *ProtocolV0) ExportAppStateAndValidators(ctx sdk.Context) (appState json.RawMessage,
-	validators []types.GenesisValidator, err error) {
-	// get all exsiting accounts
-	var exportedAccounts []ExportedAccount
-	appendAccFn := func(acc exported.Account) (stop bool) {
-		exportedAcc := NewExportedAccount(acc)
-		exportedAccounts = append(exportedAccounts, exportedAcc)
-		return
-	}
-
-	p.accountKeeper.IterateAccounts(ctx, appendAccFn)
-	// make state 2 export
-	exportedState := ExportState{
-		Accounts: exportedAccounts,
-		AuthData: auth.DefaultGenesisState(),
-		BankData: bank.DefaultGenesisState(),
-		GovData:  gov.DefaultGenesisState(),
-	}
-
-	if appState, err = codec.MarshalJSONIndent(p.cdc, exportedState); err != nil {
-		return nil, nil, err
-	}
-
-	return
-}
-
-// load the protocol 2 the app
+// LoadContext updates the context for the app after the upgrade of protocol
 func (p *ProtocolV0) LoadContext() {
 	p.logger.Debug("Protocol V0: LoadContext")
 	p.setCodec()
@@ -211,10 +169,7 @@ func (p *ProtocolV0) LoadContext() {
 	p.parent.PushEndBlocker(p.EndBlocker)
 }
 
-// nothing 2 do
-func (p *ProtocolV0) Init() {}
-
-// get tx codec
+// GetCodec gets tx codec
 func (p *ProtocolV0) GetCodec() *codec.Codec {
 	if p.cdc == nil {
 		panic("Invalid cdc from ProtocolV0")
@@ -222,7 +177,7 @@ func (p *ProtocolV0) GetCodec() *codec.Codec {
 	return p.cdc
 }
 
-//  gracefully stop OKChain
+// CheckStopped gives a quick check whether okchain needs stopped
 func (p *ProtocolV0) CheckStopped() {
 	if p.stopped {
 		p.logger.Info("OKChain is going to exit")
@@ -232,57 +187,59 @@ func (p *ProtocolV0) CheckStopped() {
 	}
 }
 
-// get backend keeper
+// GetBackendKeeper gets backend keeper
 func (p *ProtocolV0) GetBackendKeeper() backend.Keeper {
 	return p.backendKeeper
 }
 
-// get stream keeper
+// GetStreamKeeper gets stream keeper
 func (p *ProtocolV0) GetStreamKeeper() stream.Keeper {
 	return p.streamKeeper
 }
 
-// get crisis keeper
+// GetCrisisKeeper gets crisis keeper
 func (p *ProtocolV0) GetCrisisKeeper() crisis.Keeper {
 	return p.crisisKeeper
 }
 
-// get staking keeper
+// GetStakingKeeper gets staking keeper
 func (p *ProtocolV0) GetStakingKeeper() staking.Keeper {
 	return p.stakingKeeper
 }
 
-// get distr keeper
+// GetDistrKeeper gets distr keeper
 func (p *ProtocolV0) GetDistrKeeper() distr.Keeper {
 	return p.distrKeeper
 }
 
-// get slashing keeper
+// GetSlashingKeeper gets slashing keeper
 func (p *ProtocolV0) GetSlashingKeeper() slashing.Keeper {
 	return p.slashingKeeper
 }
 
-// get token keeper
+// GetTokenKeeper gets token keeper
 func (p *ProtocolV0) GetTokenKeeper() token.Keeper {
 	return p.tokenKeeper
 }
 
-// get the map of KVStoreKeys
+// GetKVStoreKeysMap gets the map of kv store keys
 func (p *ProtocolV0) GetKVStoreKeysMap() map[string]*sdk.KVStoreKey {
 	return p.keys
 }
 
-// get the map of TransientStoreKeys
+// GetTransientStoreKeysMap gets the map of transient store keys
 func (p *ProtocolV0) GetTransientStoreKeysMap() map[string]*sdk.TransientStoreKey {
 	return p.tkeys
 }
 
-// create the main codec of each module 2 ProtocolV0
+// nolint
+func (p *ProtocolV0) Init() {}
+
 func (p *ProtocolV0) setCodec() {
 	p.cdc = MakeCodec()
 }
 
-// create all keepers declared in the ProtocolV0 struct
+// produceKeepers initializes all keepers declared in the ProtocolV0 struct
 func (p *ProtocolV0) produceKeepers() {
 	// get config
 	appConfig, err := config.ParseConfig()
@@ -313,12 +270,6 @@ func (p *ProtocolV0) produceKeepers() {
 	p.bankKeeper = bank.NewBaseKeeper(p.accountKeeper, bankSubspace, bank.DefaultCodespace, p.moduleAccountAddrs())
 	p.paramsKeeper.SetBankKeeper(p.bankKeeper)
 	p.supplyKeeper = supply.NewKeeper(p.cdc, p.keys[supply.StoreKey], p.accountKeeper, p.bankKeeper, maccPerms)
-	// rollback to cosmos staking module
-	//stakingKeeper := staking.NewKeeper(
-	//	p.cdc, p.keys[staking.StoreKey], p.keys[staking.DelegatorPoolKey], p.keys[staking.RedelegationKeyM],
-	//	p.keys[staking.RedelegationActonKey], p.keys[staking.UnbondingKey], p.tkeys[staking.TStoreKey],
-	//	p.supplyKeeper, stakingSubspace, staking.DefaultCodespace,
-	//)
 	stakingKeeper := staking.NewKeeper(p.cdc, p.keys[staking.StoreKey], p.tkeys[staking.TStoreKey],
 		p.supplyKeeper, stakingSubspace, staking.DefaultCodespace)
 
@@ -327,10 +278,6 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[mint.StoreKey], mintSubspace, &stakingKeeper, p.supplyKeeper, auth.FeeCollectorName,
 	)
 
-	// rollback to cosmos distr module
-	//p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],
-	//	p.keys[distr.ValidatorsSnapshotKey], p.keys[distr.DelegationSnapshotKey],
-	//	distrSubspace, &stakingKeeper, p.supplyKeeper, distr.DefaultCodespace, auth.FeeCollectorName)
 	p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],
 		distrSubspace, &stakingKeeper, p.supplyKeeper,
 		distr.DefaultCodespace, auth.FeeCollectorName, p.moduleAccountAddrs(),
@@ -344,12 +291,11 @@ func (p *ProtocolV0) produceKeepers() {
 
 	p.tokenKeeper = token.NewKeeper(
 		p.bankKeeper, p.paramsKeeper, tokenSubspace, auth.FeeCollectorName, p.supplyKeeper,
-		p.keys[token.StoreKey], p.keys[token.KeyFreeze], p.keys[token.KeyLock],
-		p.cdc, appConfig.BackendConfig.EnableBackend, false,
-	)
+		p.keys[token.StoreKey], p.keys[token.KeyLock],
+		p.cdc, appConfig.BackendConfig.EnableBackend)
 
-	p.dexKeeper = dex.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, dexSubspace, p.tokenKeeper, &stakingKeeper, p.bankKeeper,
-		p.keys[dex.StoreKey], p.keys[dex.TokenPairStoreKey], p.cdc)
+	p.dexKeeper = dex.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, dexSubspace, p.tokenKeeper, &stakingKeeper,
+		p.bankKeeper, p.keys[dex.StoreKey], p.keys[dex.TokenPairStoreKey], p.cdc)
 
 	p.orderKeeper = order.NewKeeper(
 		p.tokenKeeper, p.supplyKeeper, p.paramsKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
@@ -358,7 +304,7 @@ func (p *ProtocolV0) produceKeepers() {
 	)
 
 	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.accountKeeper, p.cdc, p.logger,
-		appConfig.StreamConfig, streamMetrics)
+		appConfig, streamMetrics)
 
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
@@ -367,7 +313,6 @@ func (p *ProtocolV0) produceKeepers() {
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
-		//AddRoute(token.RouterKey, token.NewDexProposalHandler(&p.tokenKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
@@ -380,27 +325,17 @@ func (p *ProtocolV0) produceKeepers() {
 		p.bankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 	p.paramsKeeper.SetGovKeeper(p.govKeeper)
-	//p.tokenKeeper.SetGovKeeper(p.govKeeper)
 	p.dexKeeper.SetGovKeeper(p.govKeeper)
 	// 4.register the staking hooks
-	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	p.stakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(p.distrKeeper.Hooks(), p.slashingKeeper.Hooks()),
 	)
-
 	p.upgradeKeeper = upgrade.NewKeeper(
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
-	// 5.for test
-	p.debugKeeper = debug.NewDebugKeeper(
-		p.cdc, p.keys[debug.StoreKey],
-		p.orderKeeper,
-		p.stakingKeeper, p.tokenKeeper, p.supplyKeeper, auth.FeeCollectorName, p.Stop,
-	)
-
 }
 
-// return all the module account addresses
+// moduleAccountAddrs returns all the module account addresses
 func (p *ProtocolV0) moduleAccountAddrs() map[string]bool {
 	modAccAddrs := make(map[string]bool)
 	for acc := range maccPerms {
@@ -410,10 +345,9 @@ func (p *ProtocolV0) moduleAccountAddrs() map[string]bool {
 	return modAccAddrs
 }
 
-// set module.Manager in protocolV0
+// setManager sets module.Manager in protocolV0
 func (p *ProtocolV0) setManager() {
 
-	// DEMO Manager
 	p.mm = module.NewManager(
 		genaccounts.NewAppModule(p.accountKeeper),
 		genutil.NewAppModule(p.accountKeeper, p.stakingKeeper, p.parent.DeliverTx),
@@ -422,36 +356,23 @@ func (p *ProtocolV0) setManager() {
 		crisis.NewAppModule(&p.crisisKeeper),
 		supply.NewAppModule(p.supplyKeeper, p.accountKeeper),
 		params.NewAppModule(p.paramsKeeper),
-		mint.NewAppModule(p.mintKeeper), // mining disabled
+		mint.NewAppModule(p.mintKeeper),
 		slashing.NewAppModule(p.slashingKeeper, p.stakingKeeper),
-
-		// rollback to staking/distr module
-		staking.NewAppModule(p.stakingKeeper, p.distrKeeper, p.accountKeeper, p.supplyKeeper),
-
-		// rollback to cosmos distr module
-		//distr.NewAppModule(version.ProtocolVersionV0, p.distrKeeper, p.supplyKeeper),
+		staking.NewAppModule(p.stakingKeeper, p.accountKeeper, p.supplyKeeper),
 		distr.NewAppModule(p.distrKeeper, p.supplyKeeper),
 		gov.NewAppModule(version.ProtocolVersionV0, p.govKeeper, p.supplyKeeper),
 		order.NewAppModule(version.ProtocolVersionV0, p.orderKeeper, p.supplyKeeper),
-		// okchain extended
 		token.NewAppModule(version.ProtocolVersionV0, p.tokenKeeper, p.supplyKeeper),
 
 		// TODO
 		dex.NewAppModule(version.ProtocolVersionV0, p.dexKeeper, p.supplyKeeper),
-
 		backend.NewAppModule(p.backendKeeper),
 		stream.NewAppModule(p.streamKeeper),
 		upgrade.NewAppModule(p.upgradeKeeper),
-		/******** for test **********/
-		debug.NewAppModule(p.debugKeeper),
-		/****************************/
 	)
 
 	// ORDER SETTING
 	p.mm.SetOrderBeginBlockers(
-		/******** for test **********/
-		debug.ModuleName,
-		/****************************/
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -473,9 +394,6 @@ func (p *ProtocolV0) setManager() {
 	)
 
 	p.mm.SetOrderInitGenesis(
-		order.ModuleName,
-		token.ModuleName,
-		dex.ModuleName,
 		genaccounts.ModuleName,
 		distr.ModuleName,
 		staking.ModuleName,
@@ -488,18 +406,21 @@ func (p *ProtocolV0) setManager() {
 		crisis.ModuleName,
 		genutil.ModuleName,
 		params.ModuleName,
+		token.ModuleName,
+		dex.ModuleName,
+		order.ModuleName,
 		upgrade.ModuleName,
 	)
 }
 
-// register Routers by Manager
+// registerRouters registers Routers by Manager
 func (p *ProtocolV0) registerRouters() {
 	p.mm.RegisterInvariants(&p.crisisKeeper)
 	p.mm.RegisterRoutes(p.router, p.queryRouter)
 	p.parent.SetRouter(p.router, p.queryRouter)
 }
 
-// set ante handler
+// setAnteHandler sets ante handler
 func (p *ProtocolV0) setAnteHandler() {
 	p.anteHandler = auth.NewAnteHandler(
 		p.accountKeeper,
@@ -511,7 +432,7 @@ func (p *ProtocolV0) setAnteHandler() {
 	p.parent.PushAnteHandler(p.anteHandler)
 }
 
-// InitChainer(hook) initializes application state at genesis
+// InitChainer initializes application state at genesis as a hook
 func (p *ProtocolV0) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState simapp.GenesisState
 	p.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
@@ -531,23 +452,23 @@ func (p *ProtocolV0) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abc
 
 }
 
-// BeginBlocker(hook) set function 2 BaseApp
+// BeginBlocker set function to BaseApp as a hook
 func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	return p.mm.BeginBlock(ctx, req)
 }
 
-// EndBlocker(hook) set function 2 BaseApp
+// EndBlocker sets function to BaseApp as a hook
 func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	return p.mm.EndBlock(ctx, req)
 }
 
-// exit gracefully
+// Stop makes okchain exit gracefully
 func (p *ProtocolV0) Stop() {
-	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoId, "OKChain stops notification."))
+	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoID, "OKChain stops notification."))
 	p.stopped = true
 }
 
-// make codec from all the modules
+// MakeCodec registers codec from all the modules
 func MakeCodec() *codec.Codec {
 	var cdc = codec.New()
 	ModuleBasics.RegisterCodec(cdc)
@@ -558,18 +479,14 @@ func MakeCodec() *codec.Codec {
 }
 
 func validateMsgHook(orderKeeper order.Keeper) auth.ValidateMsgHandler {
-
 	return func(newCtx sdk.Context, msgs []sdk.Msg) sdk.Result {
-
 		for _, msg := range msgs {
-
-			switch msg.(type) {
+			switch assertedMsg := msg.(type) {
 			case order.MsgNewOrders:
-				return order.ValidateMsgNewOrders(newCtx, orderKeeper, msg.(order.MsgNewOrders))
+				return order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
 			case order.MsgCancelOrders:
-				return order.ValidateMsgCancelOrders(newCtx, orderKeeper, msg.(order.MsgCancelOrders))
+				return order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
 			}
-
 		}
 		return sdk.Result{}
 	}
@@ -583,8 +500,6 @@ func isSystemFreeHook(ctx sdk.Context, msgs []sdk.Msg) bool {
 	for _, msg := range msgs {
 		switch msg.(type) {
 		case order.MsgNewOrders, order.MsgCancelOrders:
-		case dex.MsgList, dex.MsgDelist, dex.MsgTransferOwnership:
-			return true
 		default:
 			return false
 		}
@@ -593,23 +508,24 @@ func isSystemFreeHook(ctx sdk.Context, msgs []sdk.Msg) bool {
 	return true
 }
 
-// export
+// ExportGenesis exports the genesis state for whole protocol
 func (p *ProtocolV0) ExportGenesis(ctx sdk.Context) map[string]json.RawMessage {
 	return p.mm.ExportGenesis(ctx)
 }
 
-// set logger
+// SetLogger sets logger
 func (p *ProtocolV0) SetLogger(log log.Logger) Protocol {
 	p.logger = log
 	return p
 }
 
-// set parent implement
+// SetParent sets parent implement
 func (p *ProtocolV0) SetParent(parent Parent) Protocol {
 	p.parent = parent
 	return p
 }
 
+// GetParent gets parent implement
 func (p *ProtocolV0) GetParent() Parent {
 	if p.parent == nil {
 		panic("parent is nil in protocol")

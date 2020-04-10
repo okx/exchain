@@ -4,13 +4,12 @@ SUM := $(shell which shasum)
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
-# this should be the same as the version in go.mod
-Version=0.10.0
-Tendermint=0.32.7
-CosmosSDK=0.37.4
+Version=v0.10.0
+CosmosSDK=v0.37.8
+Tendermint=v0.32.9
+Iavl=v0.12.4
 ServerName=okchaind
 ClientName=okchaincli
-#StartBlockHeight=200
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -32,8 +31,8 @@ ldflags = -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version
   -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.VendorDirHash=$(shell $(SUM) -a 256 go.sum | cut -d ' ' -f1) \
-  -X "github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X "github.com/okex/okchain/vendor/github.com/tendermint/tendermint/types.startBlockHeightStr=$(StartBlockHeight)"
+  -X "github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)"
+
 
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
@@ -41,7 +40,7 @@ ldflags := $(strip $(ldflags))
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
 
-all: check install
+all: install
 
 install: okchain
 
@@ -49,29 +48,6 @@ okchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
 
-check:
-	cd unittest; make $@
-
-checko:
-	cd unittest; make $@
-
-checks:
-	cd unittest; make $@
-
-checkt:
-	cd unittest; make $@
-
-checkd:
-	cd unittest; make $@
-
-checkdi:
-	cd unittest; make $@
-
-verify:
-	cd unittest; make $@
-
-profile:
-	cd unittest; make $@
 
 
 get_vendor_deps:
@@ -91,17 +67,32 @@ cli:
 server:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
 
-
-tiger:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/tiger
-
-launchcmd:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/launch
-
-
-
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
+
+build:
+ifeq ($(OS),Windows_NT)
+	go build $(BUILD_FLAGS) -o build/okchaind.exe ./cmd/okchaind
+	go build $(BUILD_FLAGS) -o build/okchaincli.exe ./cmd/okchaincli
+else
+	go build $(BUILD_FLAGS) -o build/okchaind ./cmd/okchaind
+	go build $(BUILD_FLAGS) -o build/okchaincli ./cmd/okchaincli
+endif
+
+build-linux:
+	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
+
+build-docker-okchainnode:
+	$(MAKE) -C networks/local
+
+# Run a 4-node testnet locally
+localnet-start: build-linux localnet-stop
+	@if ! [ -f build/node0/okchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okchaind:Z okchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
+	docker-compose up -d
+
+# Stop testnet
+localnet-stop:
+	docker-compose down
 
 
 .PHONY: build

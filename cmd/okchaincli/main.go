@@ -7,8 +7,6 @@ import (
 
 	"github.com/okex/okchain/app"
 
-	"github.com/okex/okchain/x/common"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
@@ -81,7 +79,7 @@ func main() {
 	)
 
 	// Add flags and prefix all env exposed with OKCHAIN
-	executor := cli.PrepareMainCmd(rootCmd, "OKDEX", app.DefaultCLIHome)
+	executor := cli.PrepareMainCmd(rootCmd, "OKCHAIN", app.DefaultCLIHome)
 
 	err := executor.Execute()
 	if err != nil {
@@ -143,14 +141,6 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 	}
 
 	txCmd.RemoveCommand(cmdsToRemove...)
-
-	flags := txCmd.PersistentFlags()
-	flags.Uint64P(common.FlagConcurrentNumber, "c", 1, "concurrent thread number")
-	flags.Uint64P(common.FlagTxNumber, "x", 1, "tx number each thread will commit")
-	flags.MarkHidden(common.FlagConcurrentNumber)
-	flags.MarkHidden(common.FlagTxNumber)
-
-	//add default passphrase
 
 	return txCmd
 }

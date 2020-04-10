@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-
+// GoroutineID is the type of goroutine ID
 type GoroutineID int
 
 var goroutineSpace = []byte("goroutine ")
@@ -19,8 +19,10 @@ var littleBuf = sync.Pool{
 	},
 }
 
-var GoId GoroutineID = 0
+// GoID is the global variable for goroutine ID
+var GoID GoroutineID
 
+// String returns a human readable string representation of GoroutineID
 func (base GoroutineID) String() string {
 	bp := littleBuf.Get().(*[]byte)
 	defer littleBuf.Put(bp)
@@ -44,7 +46,7 @@ func (base GoroutineID) String() string {
 	// 0 mean "used as it like"
 	if int(base) == 0 {
 		return s
-	} else {
-		return strconv.FormatUint(n, int(base))
 	}
+	return strconv.FormatUint(n, int(base))
+
 }

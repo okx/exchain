@@ -1,0 +1,68 @@
+version: '3'
+
+services:
+  okchaindnode0:
+    container_name: okchaindnode0
+    image: "okchain/node"
+    ports:
+      - "26656-26657:26656-26657"
+    environment:
+      - ID=0
+      - LOG=${LOG:-okchaind.log}
+    volumes:
+      - ./build:/okchaind:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.2
+
+  okchaindnode1:
+    container_name: okchaindnode1
+    image: "okchain/node"
+    ports:
+      - "26659-26660:26656-26657"
+    environment:
+      - ID=1
+      - LOG=${LOG:-okchaind.log}
+    volumes:
+      - ./build:/okchaind:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.3
+
+  okchaindnode2:
+    container_name: okchaindnode2
+    image: "okchain/node"
+    environment:
+      - ID=2
+      - LOG=${LOG:-okchaind.log}
+    ports:
+      - "26661-26662:26656-26657"
+    volumes:
+      - ./build:/okchaind:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.4
+
+  okchaindnode3:
+    container_name: okchaindnode3
+    image: "okchain/node"
+    environment:
+      - ID=3
+      - LOG=${LOG:-okchaind.log}
+    ports:
+      - "26663-26664:26656-26657"
+    volumes:
+      - ./build:/okchaind:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.5
+
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      -
+        subnet: 192.168.10.0/16
+

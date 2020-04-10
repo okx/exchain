@@ -1,0 +1,107 @@
+package types
+
+import (
+	"fmt"
+
+	orderTypes "github.com/okex/okchain/x/order/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+)
+
+const (
+	TxTypeTransfer    = 1
+	TxTypeOrderNew    = 2
+	TxTypeOrderCancel = 3
+
+	TxSideBuy  = 1
+	TxSideSell = 2
+	TxSideFrom = 3
+	TxSideTo   = 4
+
+	BuyOrder      = orderTypes.BuyOrder
+	SellOrder     = orderTypes.SellOrder
+	TestTokenPair = orderTypes.TestTokenPair
+
+	FeeTypeOrderNew     = orderTypes.FeeTypeOrderNew
+	FeeTypeOrderCancel  = orderTypes.FeeTypeOrderCancel
+	FeeTypeOrderExpire  = orderTypes.FeeTypeOrderExpire
+	FeeTypeOrderDeal    = orderTypes.FeeTypeOrderDeal
+	FeeTypeOrderReceive = orderTypes.FeeTypeOrderReceive
+)
+
+type EndBlockEvent struct {
+	ctx         sdk.Context
+	blockHeight int64
+	timestamp   int64
+}
+
+type TxEvent struct {
+	ctx       sdk.Context
+	tx        *auth.StdTx
+	txHash    string
+	timestamp int64
+}
+
+type Ticker struct {
+	Symbol           string  `json:"symbol"`
+	Product          string  `json:"product"`
+	Timestamp        int64   `json:"timestamp"`
+	Open             float64 `json:"open"`  // Open In 24h
+	Close            float64 `json:"close"` // Close in 24h
+	High             float64 `json:"high"`  // High in 24h
+	Low              float64 `json:"low"`   // Low in 24h
+	Price            float64 `json:"price"`
+	Volume           float64 `json:"volume"`            // Volume in 24h
+	Change           float64 `json:"change"`            // (Close - Open)
+	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
+}
+
+func (t *Ticker) PrettyString() string {
+	return fmt.Sprintf("[Ticker] Symbol: %s, Price: %f, TStr: %s, Timestamp: %d, OCHLV(%f, %f, %f, %f, %f) [%f, %s])",
+		t.Symbol, t.Price, TimeString(t.Timestamp), t.Timestamp, t.Open, t.Close, t.High, t.Low, t.Volume, t.Change, t.ChangePercentage)
+}
+
+type Tickers []Ticker
+
+func (tickers Tickers) Len() int {
+	return len(tickers)
+}
+
+func (c Tickers) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+
+func (tickers Tickers) Less(i, j int) bool {
+	return tickers[i].Change < tickers[j].Change
+}
+
+type KlineSnapShot struct {
+	LastBlockHeight int64 `json:"last_block_height"`
+	LastSyncedTime  int64 `json:"last_synced_time"`
+}
+
+type Order struct {
+	TxHash         string `gorm:"type:varchar(80)" json:"txhash" v2:"txhash"`
+	OrderId        string `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"`
+	Sender         string `gorm:"index;type:varchar(80)" json:"sender" v2:"sender"`
+	Product        string `gorm:"index;type:varchar(20)" json:"product" v2:"product"`
+	Side           string `gorm:"type:varchar(10)" json:"side" v2:"side"`
+	Price          string `gorm:"type:varchar(40)" json:"price" v2:"price"`
+	Quantity       string `gorm:"type:varchar(40)" json:"quantity" v2:"quantity"`
+	Status         int64  `gorm:"index;" json:"status" v2:"status"`
+	FilledAvgPrice string `gorm:"type:varchar(40)" json:"filled_avg_price" v2:"filled_avg_price"`
+	RemainQuantity string `gorm:"type:varchar(40)" json:"remain_quantity" v2:"remain_quantity"`
+	Timestamp      int64  `gorm:"index;" json:"timestamp" v2:"timestamp"`
+}
+
+type Transaction struct {
+	TxHash    string `gorm:"type:varchar(80)" json:"txhash" v2:"txhash"`
+	Type      int64  `gorm:"index;" json:"type" v2:"type"` // 1:Transfer, 2:NewOrder, 3:CancelOrder
+	Address   string `gorm:"index;type:varchar(80)" json:"address" v2:"address"`
+	Symbol    string `gorm:"type:varchar(20)" json:"symbol" v2:"symbol"`
+	Side      int64  `gorm:"" json:"side"` // 1:buy, 2:sell, 3:from, 4:to
+	Quantity  string `gorm:"type:varchar(40)" json:"quantity" v2:"quantity"`
+	Fee       string `gorm:"type:varchar(40)" json:"fee" v2:"fee"`
+	Timestamp int64  `gorm:"index" json:"timestamp" v2:"timestamp"`
+}

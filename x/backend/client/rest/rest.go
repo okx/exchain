@@ -1,0 +1,436 @@
+package rest
+
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/gorilla/mux"
+	"github.com/okex/okchain/x/backend/client/cli"
+	"github.com/okex/okchain/x/backend/types"
+	"github.com/okex/okchain/x/common"
+)
+
+// RegisterRoutes - Central function to define routes that get registered by the main application
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
+	r.HandleFunc("/candles/{product}", candleHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/tickers", tickerHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/tickers/{product}", tickerHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/matches", matchHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/deals", dealHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/fees", feeDetailListHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/order/list/{openOrClosed}", orderListHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
+}
+
+func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		product := vars["product"]
+
+		strGranularity := r.URL.Query().Get("granularity")
+		strSize := r.URL.Query().Get("size")
+
+		if len(strSize) == 0 {
+			strSize = "100"
+		}
+
+		if len(strGranularity) == 0 {
+			strGranularity = "60"
+		}
+
+		size, err0 := strconv.Atoi(strSize)
+		if err0 != nil {
+			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("parameter size %s not correct", strSize))
+			return
+		}
+		granularity, err1 := strconv.Atoi(strGranularity)
+		if err1 != nil {
+			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("parameter granularity %s not correct", strGranularity))
+			return
+		}
+
+		params := types.NewQueryKlinesParams(product, granularity, size)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryCandleList), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func tickerHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		product := vars["product"]
+
+		strCount := r.URL.Query().Get("count")
+		strSort := r.URL.Query().Get("sort")
+
+		if strCount == "" {
+			strCount = "100"
+		}
+
+		if len(strSort) == 0 {
+			strSort = "true"
+		}
+
+		sort, errSort := strconv.ParseBool(strSort)
+		count, errCnt := strconv.Atoi(strCount)
+		mErr := types.NewErrorsMerged(errSort, errCnt)
+		if mErr != nil {
+			common.HandleErrorMsg(w, cliCtx, mErr.Error())
+			return
+		}
+
+		params := types.QueryTickerParams{
+			Product: product,
+			Sort:    sort,
+			Count:   count,
+		}
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryTickerList), bz)
+
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+
+	}
+}
+
+func matchHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		product := r.URL.Query().Get("product")
+		startStr := r.URL.Query().Get("start")
+		endStr := r.URL.Query().Get("end")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+
+		// validate request
+		if product == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: product is empty")
+			return
+		}
+		var page, perPage int
+		var start, end int64
+		var err error
+		if startStr != "" {
+			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if endStr != "" {
+			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+
+		params := types.NewQueryMatchParams(product, start, end, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryMatchResults), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func dealHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addr := r.URL.Query().Get("address")
+		product := r.URL.Query().Get("product")
+		startStr := r.URL.Query().Get("start")
+		endStr := r.URL.Query().Get("end")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+		sideStr := r.URL.Query().Get("side")
+
+		// validate request
+		if addr == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			return
+		}
+		var page, perPage int
+		var start, end int64
+		var err error
+		if startStr != "" {
+			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if endStr != "" {
+			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+
+		params := types.NewQueryDealsParams(addr, product, start, end, page, perPage, sideStr)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDealList), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func feeDetailListHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addr := r.URL.Query().Get("address")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+
+		// validate request
+		if addr == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			return
+		}
+		var page, perPage int
+		var err error
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		params := types.NewQueryFeeDetailsParams(addr, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryFeeDetails), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		openOrClosed := vars["openOrClosed"]
+		if openOrClosed != "open" && openOrClosed != "closed" {
+			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("order status should be open/closed"))
+			return
+		}
+		addr := r.URL.Query().Get("address")
+		product := r.URL.Query().Get("product")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+		startStr := r.URL.Query().Get("start")
+		endStr := r.URL.Query().Get("end")
+		sideStr := r.URL.Query().Get("side")
+		hideNoFillStr := r.URL.Query().Get("hide_no_fill")
+
+		// validate request
+		if addr == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			return
+		}
+		var page, perPage int
+		var start, end int64
+		var err error
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+
+		if startStr == "" {
+			startStr = "0"
+		}
+		if endStr == "" {
+			endStr = "0"
+		}
+		start, errStart := strconv.ParseInt(startStr, 10, 64)
+		end, errEnd := strconv.ParseInt(endStr, 10, 64)
+		mErr := types.NewErrorsMerged(errStart, errEnd)
+		if mErr != nil {
+			common.HandleErrorMsg(w, cliCtx, mErr.Error())
+			return
+		}
+
+		hideNoFill := hideNoFillStr == "1"
+
+		params := types.NewQueryOrderListParams(
+			addr, product, sideStr, page, perPage, start, end, hideNoFill)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%s", types.QueryOrderList, openOrClosed), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func txListHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addr := r.URL.Query().Get("address")
+		txTypeStr := r.URL.Query().Get("type")
+		startStr := r.URL.Query().Get("start")
+		endStr := r.URL.Query().Get("end")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+
+		// validate request
+		if addr == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			return
+		}
+		var page, perPage int
+		var txType, start, end int64
+		var err error
+		if txTypeStr != "" {
+			if txType, err = strconv.ParseInt(txTypeStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if startStr != "" {
+			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if endStr != "" {
+			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		params := types.NewQueryTxListParams(addr, txType, start, end, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryTxList), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		blockHeightStr := vars["blockHeight"]
+		blockHeight, err := strconv.ParseInt(blockHeightStr, 10, 64)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+		res, err := cli.GetBlockTxHashes(cliCtx, &blockHeight)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}

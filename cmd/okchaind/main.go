@@ -12,8 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	genaccscli "github.com/cosmos/cosmos-sdk/x/genaccounts/client/cli"
 	"github.com/okex/okchain/app"
-	"github.com/okex/okchain/x/common/hookmanager"
-	"github.com/okex/okchain/x/common/recover"
 	genutilcli "github.com/okex/okchain/x/genutil/client/cli"
 	"github.com/okex/okchain/x/staking"
 	"github.com/spf13/cobra"
@@ -28,12 +26,6 @@ import (
 const flagInvCheckPeriod = "inv-check-period"
 
 var invCheckPeriod uint
-
-func initializeBeforeExecute() {
-	hookmanager.GetHookManager().RegisterHookInstallation(recover.InstallHook)
-
-	hookmanager.GetHookManager().ExecuteHookInstallation()
-}
 
 func main() {
 	cdc := app.MakeCodec()
@@ -60,20 +52,14 @@ func main() {
 	rootCmd.AddCommand(genaccscli.AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome))
 	rootCmd.AddCommand(client.NewCompletionCmd(rootCmd, true))
 	rootCmd.AddCommand(testnetCmd(ctx, cdc, app.ModuleBasics, genaccounts.AppModuleBasic{}))
-	rootCmd.AddCommand(replayCmd())
 
 	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes)
 	rootCmd.PersistentFlags().String(client.FlagKeyPass, client.DefaultKeyPass, "Pass word of sender")
-	//TODO this flag is for distribution report, shouldn't use in production
-	rootCmd.PersistentFlags().Bool("enable_distr_report", false, "Enable distr report, just for test. (default 'false')")
-	rootCmd.PersistentFlags().String("mysql_url", "root:12345678@tcp(127.0.0.1:3306)/report?charset=utf8", "Mysql url for distr report.")
 
 	// prepare and add flags
-	executor := cli.PrepareBaseCmd(rootCmd, "OKDEX", app.DefaultNodeHome)
+	executor := cli.PrepareBaseCmd(rootCmd, "OKCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
-	//some pre initialize opts
-	initializeBeforeExecute()
 
 	err := executor.Execute()
 	if err != nil {

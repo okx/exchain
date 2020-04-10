@@ -78,7 +78,7 @@ func TestAppProtocolEngine_FillInitialProtocol(t *testing.T) {
 
 func TestEnginePanics(t *testing.T) {
 	// clear engine
-	GetEngine().clear()
+	GetEngine().Clear()
 	testProtocol := NewMockProtocol(1)
 
 	// engine.next==0 && protocol.version==1 panics
@@ -87,7 +87,7 @@ func TestEnginePanics(t *testing.T) {
 	})
 
 	// make engine.current wrong
-	GetEngine().clear()
+	GetEngine().Clear()
 	GetEngine().current = uint64(1)
 	//no protocolv1 in the engine, panics
 	require.Panics(t, func() {

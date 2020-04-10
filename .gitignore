@@ -2,41 +2,68 @@
 .DS_Store
 *.swp
 *.swo
+*.swl
+*.swm
+*.swn
 .vscode
 .idea
-okchain_data
+
 # Build
-# vendor
+vendor
 build
-# IDE
-docs
-cache
-.idea
-*.iml
-#vendor/*
+tools/bin/*
+examples/build/*
+docs/_build
+docs/tutorial
+dist
+tools-stamp
+doc
+
+# Data - ideally these don't exist
+baseapp/data/*
+client/lcd/keys/*
+cmd/okchaincli/statik/statik.go
+mytestnet
+doc/statik/statik.go
 dev/cache
-dev/okdexd
-dev/okdexcli
+cmd/launch/launch
 cmd/okchaincli/okchaincli
 cmd/okchaind/okchaind
-*.bz2
-Dockerfile
-iavl.1*
-xcache
-statik.go
-built-in-stubs.jar
-press_cache
-*.log
-*.json
+cmd/okchaintool/okchaintool
+cmd/tiger/tiger
+dev/testnet/cache
+testnet_okchain.go
+tools
+
+
+# Testing
+coverage.txt
+profile.out
 profile.cov
 profile_tmp.cov
 coverage.html
-x/backend/test.db
-*.db
-scripts/load_test/useraccount
-scripts/load_test/*accounts.txt
-doc/statik/statik.go
-unittest/tmp
-tmp/
-nohup.out
+unittest
+
+# Vagrant
+.vagrant/
+*.box
+*.log
+*.json
+vagrant
+
+# IDE
+.idea/
+*.iml
+*.yaml
+
+# Graphviz
+dependency-graph.png
+
+# Latex
+*.aux
+*.out
+*.synctex.gz
+contract_tests/*
+dev/cache/*
 go.sum
+result.txt

@@ -1,3 +1,4 @@
+// nolint
 package protocol
 
 import (
@@ -9,18 +10,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/backend"
 	distr "github.com/okex/okchain/x/distribution"
 	"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/stream"
 )
 
-// MockProtocol is designed 4 engine test
-
+// MockProtocol is designed for engine test
 var _ Protocol = (*MockProtocol)(nil)
 
 type MockProtocol struct {
@@ -80,10 +78,6 @@ func NewMockProtocol(version uint64) Protocol {
 
 func (mp *MockProtocol) GetVersion() uint64 {
 	return mp.version
-}
-
-func (*MockProtocol) ExportAppStateAndValidators(ctx sdk.Context) (appState json.RawMessage, validators []types.GenesisValidator, err error) {
-	return nil, nil, nil
 }
 
 func (*MockProtocol) LoadContext() {}

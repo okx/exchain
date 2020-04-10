@@ -1,0 +1,32 @@
+@startuml
+start
+:BaseApp的endBlocker执行后，进入postEndBlocker;
+floating note right:在之前的upgrade的endBlock中，都会将当前的版本\n号(从本地MainStore中获取)写入tag。\n升级成功了获得新的版本号，\n失败了或者没有得到通过的升级提案获得当前的版本号。
+if (检查Tags中是否存在key为"app_version") then(no)
+:return,结束postEndBlocker;
+note right:一般是不会出现这个情况只\n要BaseApp的endBlocker\n执行后就会有这个tag
+detach
+else (yes)
+if (将tag中记录的版本号与本地engine中当前的protocol版本号做对比:\n判断:本地版本号>=tag中记录版本号) then(yes)
+:return,结束postEndBlocker;
+note right:说明之前升级没用成功，\n或者根本就没有升级提案通过
+detach
+else (no)
+:通过本地engine激活将要升级到的新版本protocol;
+if (在engine中是否存在将要升级到的新版本protocol) then(no)
+else (yes)
+:1.载入该protocol的设置:\nCodec/各Keeper/各Router/各Params/AnteHandler\n以及该protocol中InitChainer/BeginBlocker/EndBlocker\n等钩子函数反钩进BaseApp;\n2.初始化新版本protocol;\n3.更新engine中当前版本标志;\n4.用新protocol的codec设置BaseApp的txDecoder;
+note left:激活新的protocol
+:return,结束postEndBlocker;
+stop
+endif
+if (从MainStore中看能否取到AppUpgradeConfig) then(no)
+note left:只要有升级提案通过，就会有对应的\nAppUpgradeConfig存入MainStore
+:增添tag:\nkey:"upgrade_failure"\nvalue:"Please install the right application version";
+else (yes)
+:增添tag:\nkey:"upgrade_failure"\nvalue:"Please install the right application version\nfrom "+AppUpgradeConfig.ProtocolDef.Software;
+note right:说明没有添加protocol新版本的.go文件
+endif
+:return,结束postEndBlocker;
+stop
+@enduml

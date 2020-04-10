@@ -12,26 +12,27 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
-// method implement of Application interface
+// DeliverTx implements the Application interface
 func (app *OKChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
 	resp := app.BaseApp.DeliverTx(req)
-	if (protocol.GetEngine().GetCurrentProtocol().GetBackendKeeper().Config.EnableBackend || protocol.GetEngine().GetCurrentProtocol().GetStreamKeeper().AnalysisEnable()) && resp.IsOK() {
+	if (protocol.GetEngine().GetCurrentProtocol().GetBackendKeeper().Config.EnableBackend ||
+		protocol.GetEngine().GetCurrentProtocol().GetStreamKeeper().AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
 	}
 
 	return resp
 }
 
-// method implement of Application interface
+// InitChain implements the Application interface
 func (app *OKChainApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 
 	app.log("[ABCI interface] ---> InitChain")
 	return app.BaseApp.InitChain(req)
 }
 
-// method implement of Application interface
+// BeginBlock implements the Application interface
 func (app *OKChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
@@ -45,7 +46,7 @@ func (app *OKChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Response
 	return app.BaseApp.BeginBlock(req)
 }
 
-// method implement of Application interface
+// EndBlock implements the Application interface
 func (app *OKChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
@@ -55,7 +56,7 @@ func (app *OKChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndB
 	return app.BaseApp.EndBlock(req)
 }
 
-// method implement of Application interface
+// Commit implements the Application interface
 func (app *OKChainApp) Commit() abci.ResponseCommit {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
@@ -73,14 +74,15 @@ func (app *OKChainApp) syncTx(txBytes []byte) {
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetState(baseapp.RunTxModeDeliver()).Context()
-			protocol.GetEngine().GetCurrentProtocol().GetBackendKeeper().SyncTx(ctx, &stdTx, txHash, ctx.BlockHeader().Time.Unix())
-			protocol.GetEngine().GetCurrentProtocol().GetStreamKeeper().SyncTx(ctx, &stdTx, txHash, ctx.BlockHeader().Time.Unix())
+			protocol.GetEngine().GetCurrentProtocol().GetBackendKeeper().SyncTx(ctx, &stdTx, txHash,
+				ctx.BlockHeader().Time.Unix())
+			protocol.GetEngine().GetCurrentProtocol().GetStreamKeeper().SyncTx(ctx, &stdTx, txHash,
+				ctx.BlockHeader().Time.Unix())
 		}
 	}
 }
 
 // log format
 func (app *OKChainApp) log(format string, a ...interface{}) {
-	format = fmt.Sprintf("%s", format)
 	app.Logger().Info(fmt.Sprintf(format, a...))
 }

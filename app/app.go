@@ -23,7 +23,7 @@ import (
 
 const appName = "OKChainApp"
 
-// Extended ABCI application
+// OKChainApp extends BaseApp(ABCI application)
 type OKChainApp struct {
 	*baseapp.BaseApp
 }
@@ -48,25 +48,19 @@ func NewOKChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLates
 	if err := protocol.GetEngine().FillProtocol(app, logger, 0); err != nil {
 		panic(err)
 	}
-	if err := protocol.GetEngine().FillProtocol(app, logger, 1); err != nil {
-		panic(err)
-	}
-	if err := protocol.GetEngine().FillProtocol(app, logger, 2); err != nil {
-		panic(err)
-	}
 
 	// recover the main store
 	app.recoverLocalEnv(loadLatest)
 
-	//	load the status of current protocol from the store
-	isLoaded, current := protocol.GetEngine().LoadCurrentProtocol(app.GetCommitMultiStore().GetKVStore(protocol.GetMainStoreKey()))
-	//isLoaded, current := protocol.GetEngine().LoadCurrentProtocol(mainStore)
+	// load the status of current protocol from the store
+	isLoaded, current := protocol.GetEngine().LoadCurrentProtocol(app.GetCommitMultiStore().GetKVStore(
+		protocol.GetMainStoreKey()))
 	if !isLoaded {
 		cmn.Exit(fmt.Sprintf("Your software doesn't support the required protocol (version %d)!", current))
 	}
 	logger.Debug(fmt.Sprintf("launch app with version: %v", current))
 
-	// set txDecoder 4 BaseApp
+	// set txDecoder for BaseApp
 	app.SetTxDecoder(auth.DefaultTxDecoder(protocol.GetEngine().GetCurrentProtocol().GetCodec()))
 
 	// enable perf
@@ -75,13 +69,13 @@ func NewOKChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLates
 	return app
 }
 
-// load a particular height
+// LoadHeight loads data on a particular height
 func (app *OKChainApp) LoadHeight(height int64) error {
 	//return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 	return app.LoadVersion(height, protocol.GetMainStoreKey())
 }
 
-// hook function 4 BaseApp's EndBlock(upgrade)
+// hook function for BaseApp's EndBlock(upgrade)
 func (app *OKChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
 	var found bool
 	var appVersionBytes []byte
@@ -93,7 +87,6 @@ func (app *OKChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
 			break
 		}
 	}
-
 	if !found {
 		return
 	}
@@ -119,21 +112,15 @@ func (app *OKChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
 	}
 
 	// protocol upgraded failed
-	if upgradeConfig, ok := protocol.GetEngine().GetUpgradeConfigByStore(app.GetCommitMultiStore().GetKVStore(protocol.GetMainStoreKey())); ok {
-		newEvent := sdk.NewEvent(
-			upgrade.EventTypeUpgradeFailure,
-			sdk.NewAttribute(tmstat.UpgradeFailureTagKey,
-				fmt.Sprintf("Please install the right application version from %s", upgradeConfig.ProtocolDef.Software)))
-		res.Events = append(res.Events, abci.Event{
-			Type:       newEvent.Type,
-			Attributes: newEvent.Attributes})
+	if upgradeConfig, ok := protocol.GetEngine().GetUpgradeConfigByStore(app.GetCommitMultiStore().
+		GetKVStore(protocol.GetMainStoreKey())); ok {
+		newEvent := sdk.NewEvent(upgrade.EventTypeUpgradeFailure, sdk.NewAttribute(tmstat.UpgradeFailureTagKey,
+			fmt.Sprintf("Please install the right application version from %s", upgradeConfig.ProtocolDef.Software)))
+		res.Events = append(res.Events, abci.Event{Type: newEvent.Type, Attributes: newEvent.Attributes})
 	} else {
-		newEvent := sdk.NewEvent(
-			upgrade.EventTypeUpgradeFailure,
+		newEvent := sdk.NewEvent(upgrade.EventTypeUpgradeFailure,
 			sdk.NewAttribute(tmstat.UpgradeFailureTagKey, "Please install the right application version"))
-		res.Events = append(res.Events, abci.Event{
-			Type:       newEvent.Type,
-			Attributes: newEvent.Attributes})
+		res.Events = append(res.Events, abci.Event{Type: newEvent.Type, Attributes: newEvent.Attributes})
 	}
 }
 
@@ -150,6 +137,8 @@ func (app *OKChainApp) recoverLocalEnv(loadLatest bool) {
 			cmn.Exit(err.Error())
 		}
 	} else {
-		app.GetCommitMultiStore().LoadVersion(0)
+		if err := app.GetCommitMultiStore().LoadVersion(0); err != nil {
+			cmn.Exit(err.Error())
+		}
 	}
 }
