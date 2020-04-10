@@ -1,8 +1,6 @@
 # OKChain
 Infrastructure of Decentralized Exchange
 
-![banner](./docs/images/okchain-image.jpg)
-
 [![CircleCI](https://circleci.com/gh/okex/okchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okchain/tree/master)
 [![codecov](https://codecov.io/gh/okex/okchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okex/okchain)](https://goreportcard.com/report/github.com/okex/okchain)
@@ -10,7 +8,7 @@ Infrastructure of Decentralized Exchange
 [![LoC](https://tokei.rs/b1/github/okex/okchain)](https://github.com/okex/okchain)
 [![GolangCI](https://golangci.com/badges/github.com/okex/okchain.svg)](https://golangci.com/r/github.com/okex/okchain)
 
-This repository hosts `OKChain`, the first implementation of the OKChain based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
+This repository hosts `OKChain`, the implementation of the OKChain based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
 **Note**: Requires [Go 1.12](https://golang.org/dl/)
 
