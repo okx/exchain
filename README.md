@@ -15,7 +15,7 @@ This repository hosts `OKChain`, the implementation of the OKChain based on the 
 **Note**: Requires [Go 1.12](https://golang.org/dl/)
 
 ## Getting Started
-See the [document](https://okchain-docs.readthedocs.io/en/latest/index.html)
+See the [documentation](https://okchain-docs.readthedocs.io/en/latest/index.html).
 
 ## OKChain Testnet
 
