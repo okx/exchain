@@ -14,11 +14,14 @@ This repository hosts `OKChain`, the implementation of the OKChain based on the 
 
 **Note**: Requires [Go 1.12](https://golang.org/dl/)
 
-## OKChain Mainnet
+## Getting Started
+See the [document](https://okchain-docs.readthedocs.io/en/latest/index.html)
 
-To run a full-node for the mainnet of the OKChain, first [install `okchaind`](./docs/okchain-tutorials/installation.md), then follow [the guide](./docs/okchain-tutorials/join-mainnet.md).
+## OKChain Testnet
 
-For status updates and genesis file, see the [launch repo](https://github.com/okex/launch-okchain).
+To run a full-node for the testnet of the OKChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html).
+
+For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html#genesis).
 
 ## Quick Start
 
@@ -26,7 +29,4 @@ For status updates and genesis file, see the [launch repo](https://github.com/ok
 make install
 ```
 
-## OKChain Archives
-
-Archives of the OKChain can be found on this page [here](./docs/resources/archives.md).
 
