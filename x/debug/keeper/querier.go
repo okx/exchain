@@ -1,11 +1,12 @@
 package keeper
 
 import (
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/debug/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
-	"strings"
 )
 
 // querier for module debug
@@ -21,7 +22,6 @@ func NewDebugger(keeper Keeper) sdk.Querier {
 		}
 	}
 }
-
 
 func dumpStore(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 
@@ -42,5 +42,5 @@ func setLogLevel(paths []string) ([]byte, sdk.Error) {
 	if err := tmlog.UpdateLogLevel(level); err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("log level set failed", err.Error()))
 	}
-	return nil,nil
+	return nil, nil
 }

@@ -16,9 +16,9 @@ var (
 	// functions aliases
 	RegisterCodec  = types.RegisterCodec
 	NewDebugKeeper = keeper.NewDebugKeeper
-	NewDebugger     = keeper.NewDebugger
+	NewDebugger    = keeper.NewDebugger
 )
 
 type (
-	Keeper            = keeper.Keeper
+	Keeper = keeper.Keeper
 )

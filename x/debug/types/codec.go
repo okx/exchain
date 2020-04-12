@@ -6,7 +6,7 @@ import "github.com/cosmos/cosmos-sdk/codec"
 func RegisterCodec(cdc *codec.Codec) {
 }
 
-// generic sealed codec to be used throughout this module
+// nolint
 var ModuleCdc *codec.Codec
 
 func init() {

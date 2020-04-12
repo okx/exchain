@@ -2,12 +2,13 @@ package cli
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okchain/x/debug/types"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 // GetDebugCmd returns the cli query commands for this module
@@ -41,7 +42,7 @@ func CmdDumpStore(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				module = args[0]
 			}
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			bz, err := cdc.MarshalJSON(types.DumpInfoParams{module})
+			bz, err := cdc.MarshalJSON(types.DumpInfoParams{Module: module})
 			if err != nil {
 				return err
 			}
@@ -56,7 +57,6 @@ func CmdDumpStore(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		},
 	}
 }
-
 
 // set log level dynamically
 func CmdSetLogLevel(queryRoute string, cdc *codec.Codec) *cobra.Command {
