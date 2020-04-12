@@ -1,0 +1,310 @@
+{
+  "genesis_time": "2020-01-01T10:16:17.025816Z",
+  "chain_id": "okchain",
+  "consensus_params": {
+    "block": {
+      "max_bytes": "22020096",
+      "max_gas": "-1",
+      "time_iota_ms": "1000"
+    },
+    "evidence": {
+      "max_age": "100000"
+    },
+    "validator": {
+      "pub_key_types": [
+        "ed25519"
+      ]
+    }
+  },
+  "app_hash": "",
+  "app_state": {
+    "accounts": [
+      {
+        "account_number": "0",
+        "address": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+        "coins": [
+          {
+            "amount": "9000000.00000000",
+            "denom": "okt"
+          }
+        ],
+        "delegated_free": [],
+        "delegated_vesting": [],
+        "end_time": "0",
+        "module_name": "",
+        "module_permissions": null,
+        "original_vesting": [],
+        "sequence_number": "0",
+        "start_time": "0"
+      }
+    ],
+    "auth": {
+      "params": {
+        "max_memo_characters": "256",
+        "sig_verify_cost_ed25519": "590",
+        "sig_verify_cost_secp256k1": "1000",
+        "tx_sig_limit": "7",
+        "tx_size_cost_per_byte": "10"
+      }
+    },
+    "backend": null,
+    "bank": {
+      "send_enabled": true
+    },
+    "crisis": {
+      "constant_fee": {
+        "amount": "1000.00000000",
+        "denom": "okt"
+      }
+    },
+    "dex": {
+      "params": {
+        "delist_max_deposit_period": "86400000000000",
+        "delist_min_deposit": [
+          {
+            "amount": "100.00000000",
+            "denom": "okt"
+          }
+        ],
+        "delist_voting_period": "259200000000000",
+        "list_fee": {
+          "amount": "20000.00000000",
+          "denom": "okt"
+        },
+        "transfer_ownership_fee": {
+          "amount": "10.00000000",
+          "denom": "okt"
+        },
+        "withdraw_period": "259200000000000"
+      },
+      "product_locks": {
+        "Data": {}
+      },
+      "token_pairs": null,
+      "withdraw_infos": null
+    },
+    "distribution": {
+      "delegator_withdraw_infos": [],
+      "previous_proposer": "",
+      "validator_accumulated_commissions": [],
+      "withdraw_addr_enabled": true
+    },
+    "genutil": {
+      "gentxs": [
+        {
+          "type": "cosmos-sdk/StdTx",
+          "value": {
+            "memo": "33935a25b0a0806372c93903a15fe73f66752254@127.0.0.1:26656",
+            "msg": [
+              {
+                "type": "okchain/staking/MsgCreateValidator",
+                "value": {
+                  "delegator_address": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+                  "description": {
+                    "details": "",
+                    "identity": "",
+                    "moniker": "node0",
+                    "website": ""
+                  },
+                  "min_self_delegation": {
+                    "amount": "1000.00000000",
+                    "denom": "okt"
+                  },
+                  "pubkey": "okchainvalconspub1zcjduepqqxsxcjjletkq40ypzuqz8n925pk0ycw9h8g4saw27adyf2t93szsvpk77u",
+                  "validator_address": "okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"
+                }
+              }
+            ],
+            "signatures": [
+              {
+                "pub_key": {
+                  "type": "tendermint/PubKeySecp256k1",
+                  "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
+                },
+                "signature": "FDcRetFsUeCwUq2fH4n32xV/K/zoy03CbdLm46NCE2lLom2Aq3bBn9mOwwL3+VdYZY5dno34jMBIAh33QV/vfQ=="
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "gov": {
+      "deposit_params": {
+        "max_deposit_period": "86400000000000",
+        "min_deposit": [
+          {
+            "amount": "100.00000000",
+            "denom": "okt"
+          }
+        ]
+      },
+      "deposits": null,
+      "proposals": [],
+      "starting_proposal_id": "1",
+      "tally_params": {
+        "quorum": "0.33400000",
+        "threshold": "0.50000000",
+        "veto": "0.33400000",
+        "yes_in_vote_period": "0.66700000"
+      },
+      "tendermint_params": {
+        "max_tx_num_per_block": "1000"
+      },
+      "votes": null,
+      "voting_params": {
+        "voting_period": "259200000000000"
+      },
+      "waiting_proposals": {}
+    },
+    "mint": {
+      "minter_custom": {
+        "annual_provisions": "0.00000000",
+        "minted_per_block": [
+          {
+            "amount": "0.00000000",
+            "denom": "okt"
+          }
+        ],
+        "next_block_to_update": "0"
+      },
+      "params": {
+        "blocks_per_year": "10519200",
+        "inflation_rate": "0.01000000",
+        "mint_denom": "okt"
+      }
+    },
+    "order": {
+      "open_orders": null,
+      "params": {
+        "fee_per_block": {
+          "amount": "0.00000100",
+          "denom": "okt"
+        },
+        "max_deals_per_block": "1000",
+        "order_expire_blocks": "259200",
+        "trade_fee_rate": "0.00100000"
+      }
+    },
+    "params": {
+      "params": {
+        "max_block_height": "100000",
+        "max_deposit_period": "86400000000000",
+        "min_deposit": [
+          {
+            "amount": "100.00000000",
+            "denom": "okt"
+          }
+        ],
+        "voting_period": "259200000000000"
+      }
+    },
+    "slashing": {
+      "missed_blocks": {},
+      "params": {
+        "downtime_jail_duration": "600000000000",
+        "max_evidence_age": "120000000000",
+        "min_signed_per_window": "0.05000000",
+        "signed_blocks_window": "10000",
+        "slash_fraction_double_sign": "0.00000000",
+        "slash_fraction_downtime": "0.00000000"
+      },
+      "signing_infos": {}
+    },
+    "staking": {
+      "delegators": null,
+      "exported": false,
+      "last_total_power": "0",
+      "last_validator_powers": null,
+      "params": {
+        "bond_denom": "okt",
+        "epoch": 252,
+        "max_bonded_validators": 21,
+        "max_validators_to_vote": 30,
+        "min_delegation": "0.00010000",
+        "min_self_delegation": "0.00100000",
+        "unbonding_time": "1209600000000000"
+      },
+      "proxy_delegator_keys": null,
+      "unbonding_delegations": null,
+      "validators": null,
+      "votes": null
+    },
+    "stream": null,
+    "supply": {
+      "supply": []
+    },
+    "token": {
+      "locked_asset": null,
+      "params": {
+        "base_fee": {
+          "amount": "0.01250000",
+          "denom": "okt"
+        },
+        "burn_fee": {
+          "amount": "10.00000000",
+          "denom": "okt"
+        },
+        "issue_fee": {
+          "amount": "20000.00000000",
+          "denom": "okt"
+        },
+        "mint_fee": {
+          "amount": "2000.00000000",
+          "denom": "okt"
+        },
+        "modify_fee": {
+          "amount": "0.00000000",
+          "denom": "okt"
+        },
+        "multi_send_fee": {
+          "amount": "0.01000000",
+          "denom": "okt"
+        },
+        "send_fee": {
+          "amount": "0.00000000",
+          "denom": "okt"
+        },
+        "transfer_ownership_fee": {
+          "amount": "10.00000000",
+          "denom": "okt"
+        }
+      },
+      "tokens": [
+        {
+          "description": "OK Group Global Utility Token",
+          "mintable": true,
+          "original_symbol": "OKT",
+          "original_total_supply": "1000000000.00000000",
+          "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+          "symbol": "okt",
+          "total_supply": "1000000000.00000000",
+          "whole_name": "OKT"
+        }
+      ]
+    },
+    "upgrade": {
+      "genesis_version": {
+        "success": true,
+        "upgrade_info": {
+          "proposal_id": "0",
+          "protocol_def": {
+            "height": "1",
+            "software": "https://github.com/okex/okchain/releases/tag/v",
+            "threshold": "0.90000000",
+            "version": "0"
+          }
+        }
+      },
+      "params": {
+        "app_upgrade_max_deposit_period": "86400000000000",
+        "app_upgrade_min_deposit": [
+          {
+            "amount": "100.00000000",
+            "denom": "okt"
+          }
+        ],
+        "app_upgrade_voting_period": "259200000000000"
+      }
+    }
+  }
+}

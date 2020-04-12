@@ -5,8 +5,8 @@ COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
 Version=v0.10.0
-CosmosSDK=v0.37.8
-Tendermint=v0.32.9
+CosmosSDK=v0.37.9
+Tendermint=v0.32.10
 Iavl=v0.12.4
 ServerName=okchaind
 ClientName=okchaincli
