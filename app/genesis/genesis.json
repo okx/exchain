@@ -84,7 +84,11 @@
       "withdraw_infos": null
     },
     "distribution": {
+      "community_tax": "0.02000000",
       "delegator_withdraw_infos": [],
+      "fee_pool": {
+        "community_pool": []
+      },
       "previous_proposer": "",
       "validator_accumulated_commissions": [],
       "withdraw_addr_enabled": true

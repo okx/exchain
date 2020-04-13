@@ -8,6 +8,7 @@ import (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgWithdrawValidatorCommission{}, "okchain/distribution/MsgWithdrawReward", nil)
 	cdc.RegisterConcrete(MsgSetWithdrawAddress{}, "okchain/distribution/MsgModifyWithdrawAddress", nil)
+	cdc.RegisterConcrete(CommunityPoolSpendProposal{}, "okchain/distribution/CommunityPoolSpendProposal", nil)
 }
 
 // ModuleCdc generic sealed codec to be used throughout module

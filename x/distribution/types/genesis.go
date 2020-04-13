@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,6 +21,8 @@ type ValidatorAccumulatedCommissionRecord struct {
 
 // GenesisState - all distribution state that must be provided at genesis
 type GenesisState struct {
+	FeePool                         FeePool                                `json:"fee_pool" yaml:"fee_pool"`
+	CommunityTax                    sdk.Dec                                `json:"community_tax" yaml:"community_tax"`
 	WithdrawAddrEnabled             bool                                   `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
 	DelegatorWithdrawInfos          []DelegatorWithdrawInfo                `json:"delegator_withdraw_infos" yaml:"delegator_withdraw_infos"`
 	PreviousProposer                sdk.ConsAddress                        `json:"previous_proposer" yaml:"previous_proposer"`
@@ -26,9 +30,12 @@ type GenesisState struct {
 }
 
 // NewGenesisState creates a new object of GenesisState
-func NewGenesisState(withdrawAddrEnabled bool, dwis []DelegatorWithdrawInfo, pp sdk.ConsAddress,
+func NewGenesisState(feePool FeePool, communityTax sdk.Dec,
+	withdrawAddrEnabled bool, dwis []DelegatorWithdrawInfo, pp sdk.ConsAddress,
 	acc []ValidatorAccumulatedCommissionRecord) GenesisState {
 	return GenesisState{
+		FeePool:                         feePool,
+		CommunityTax:                    communityTax,
 		WithdrawAddrEnabled:             withdrawAddrEnabled,
 		DelegatorWithdrawInfos:          dwis,
 		PreviousProposer:                pp,
@@ -39,6 +46,8 @@ func NewGenesisState(withdrawAddrEnabled bool, dwis []DelegatorWithdrawInfo, pp 
 // DefaultGenesisState returns default genesis
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
+		FeePool:                         InitialFeePool(),
+		CommunityTax:                    sdk.NewDecWithPrec(2, 2), // 2%
 		WithdrawAddrEnabled:             true,
 		DelegatorWithdrawInfos:          []DelegatorWithdrawInfo{},
 		PreviousProposer:                nil,
@@ -48,5 +57,9 @@ func DefaultGenesisState() GenesisState {
 
 // ValidateGenesis validates the genesis state of distribution genesis input
 func ValidateGenesis(data GenesisState) error {
-	return nil
+	if data.CommunityTax.IsNegative() || data.CommunityTax.GT(sdk.OneDec()) {
+		return fmt.Errorf("mint parameter CommunityTax should non-negative and "+
+			"less than one, is %s", data.CommunityTax.String())
+	}
+	return data.FeePool.ValidateGenesis()
 }
