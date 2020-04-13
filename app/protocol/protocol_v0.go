@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okchain/x/debug"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -123,6 +124,7 @@ type ProtocolV0 struct {
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
 	upgradeKeeper  upgrade.Keeper
+	debugKeeper    debug.Keeper
 
 	stopped     bool
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
@@ -332,6 +334,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.upgradeKeeper = upgrade.NewKeeper(
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
+	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, auth.FeeCollectorName, p.Stop)
 }
 
 // moduleAccountAddrs returns all the module account addresses
@@ -368,6 +371,8 @@ func (p *ProtocolV0) setManager() {
 		backend.NewAppModule(p.backendKeeper),
 		stream.NewAppModule(p.streamKeeper),
 		upgrade.NewAppModule(p.upgradeKeeper),
+
+		debug.NewAppModule(p.debugKeeper),
 	)
 
 	// ORDER SETTING
