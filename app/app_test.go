@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"github.com/tendermint/tendermint/libs/cli/flags"
 	"os"
 	"strconv"
 	"testing"
@@ -17,6 +16,7 @@ import (
 	"github.com/okex/okchain/x/order/types"
 	"github.com/okex/okchain/x/upgrade"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/cli/flags"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	tmsm "github.com/tendermint/tendermint/state"
 	tm "github.com/tendermint/tendermint/types"

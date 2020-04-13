@@ -3,7 +3,6 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okchain/x/debug"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -24,6 +23,7 @@ import (
 	"github.com/okex/okchain/x/backend"
 	"github.com/okex/okchain/x/common/proto"
 	"github.com/okex/okchain/x/common/version"
+	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
 	dexClient "github.com/okex/okchain/x/dex/client"
 	distr "github.com/okex/okchain/x/distribution"
