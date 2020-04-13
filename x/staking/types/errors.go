@@ -213,10 +213,16 @@ func ErrNotInDelegating(codespace sdk.CodespaceType, addr string) sdk.Error {
 		"failed. the addr %s is not in the status of undelegating", addr)
 }
 
-// ErrInvaildQuantity returns an error when the quantity is invalid
-func ErrInvaildQuantity(codespace sdk.CodespaceType, quantity string) sdk.Error {
+// ErrInsufficientDelegation returns an error when the delegation left is not enough for unbonding
+func ErrInsufficientDelegation(codespace sdk.CodespaceType, quantity, delLeft string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
-		"failed. the quantity %s is invaild", quantity)
+		"failed. insufficient delegation. [delegation left]:%s, [quantity to unbond]:%s", delLeft, quantity)
+}
+
+// ErrInsufficientQuantity returns an error when the quantity is less than the min delegation limit
+func ErrInsufficientQuantity(codespace sdk.CodespaceType, quantity, minLimit string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDelegation,
+		"failed. insufficient quantity. [min limit]:%s, [quantity]:%s", minLimit, quantity)
 }
 
 // ErrInsufficientMinSelfDelegation returns an error when the msd is not enough
