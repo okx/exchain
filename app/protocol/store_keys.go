@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/staking"
 
@@ -37,6 +38,7 @@ var (
 		order.OrderStoreKey,
 		upgrade.StoreKey,
 		dex.StoreKey, dex.TokenPairStoreKey,
+		debug.StoreKey,
 	)
 
 	transientStoreKeysMap = sdk.NewTransientStoreKeys(staking.TStoreKey, params.TStoreKey)
