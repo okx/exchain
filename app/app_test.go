@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"github.com/tendermint/tendermint/libs/cli/flags"
 	"os"
 	"strconv"
 	"testing"
@@ -28,16 +29,19 @@ import (
 var (
 	// the genesis file in unittest/ should be modified with this
 	privateKey     = "de0e9d9e7bac1366f7d8719a450dab03c9b704172ba43e0a25a7be1d51c69a87"
-	totalModuleNum = 18
+	totalModuleNum = 19
 )
 
 func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
-	db, logger := dbm.NewMemDB(), log.NewTMLogger(os.Stdout)
+	db := dbm.NewMemDB()
+	logger := log.NewTMLogger(os.Stdout)
+	logger, err := flags.ParseLogLevel("*:error", logger, "error")
+	require.Nil(t, err)
 	defer db.Close()
 	app := NewOKChainApp(logger, db, nil, true, 0)
 
 	// make  simulation of abci.RequestInitChain
-	genDoc, err := tm.GenesisDocFromFile("../unittest/genesis.json")
+	genDoc, err := tm.GenesisDocFromFile("./genesis/genesis.json")
 	require.NoError(t, err)
 	genState, err := tmsm.MakeGenesisState(genDoc)
 	require.NoError(t, err)

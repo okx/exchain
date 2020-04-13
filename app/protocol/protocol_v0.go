@@ -77,6 +77,7 @@ var (
 		backend.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
+		debug.AppModuleBasic{},
 	)
 
 	// module account permissions for bankKeeper and supplyKeeper
