@@ -23,6 +23,7 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 			allLocksCoins = allLocksCoins.Add(accCoins.Coins)
 		}
 
+		// get open orders lock fee
 		products := keeper.GetProductsFromDepthBookMap()
 		for _, product := range products {
 			depthBook := keeper.GetDepthBookCopy(product)
