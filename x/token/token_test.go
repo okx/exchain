@@ -941,3 +941,130 @@ bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "whole name7", true, true, 
 	require.EqualValues(t, "desc2", token.Description)
 	require.EqualValues(t, "whole name1", token.WholeName)
 }
+
+func TestFeeTable(t *testing.T) {
+
+	intQuantity := int64(22100)
+	genAccs, testAccounts := CreateGenAccounts(2,
+		sdk.DecCoins{
+			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
+		})
+
+	app, _, _ := getMockDexApp(t, 0)
+	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
+	app.PushAnteHandler(auth.NewAnteHandler(
+		app.AccountKeeper,
+		app.supplyKeeper,
+		auth.DefaultSigVerificationGasConsumer,
+		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
+			return sdk.Result{}
+
+		},
+		func(ctx sdk.Context, msgs []sdk.Msg) bool {
+			return false
+		},
+	))
+
+	// to
+	toPriKey := secp256k1.GenPrivKey()
+	toPubKey := toPriKey.PubKey()
+	toAddr := sdk.AccAddress(toPubKey.Address())
+
+	ctx := app.BaseApp.NewContext(true, abci.Header{})
+	// successful issue msg
+	successfulIssueMsg := types.NewMsgTokenIssue("xxb", "xxb", "xxb", "xx coin", "500", testAccounts[0].baseAccount.Address, true)
+	// failed issue msg : not enough okbs .
+	failedIssueMsg := types.NewMsgTokenIssue("xmr", "xmr", "xmr", "Monero", "500", testAccounts[0].baseAccount.Address, true)
+	// failed mint msg : no such token
+	decCoin := sdk.NewDecCoinFromDec("nob", sdk.NewDec(200))
+	failedMintMsg := types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
+	// failed burn msg : no such token
+	failedBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
+	// failed edit msg : no such token
+	failedEditMsg := types.NewMsgTokenModify("nob", "desc0", "whole name0", true, true, testAccounts[0].baseAccount.Address)
+	// failed send msg: no such token
+	fialedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
+
+	// failed MultiSend msg: no such token
+	multiSendStr := `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1okt,2` + "nob" + `"}]`
+	transfers, err := types.StrToTransfers(multiSendStr)
+	require.Nil(t, err)
+	failedMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	// failed TransferOwnership msg: no such token
+	failedChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, "nob")
+	bSig, err := toPriKey.Sign(failedChownMsg.GetSignBytes())
+	require.NoError(t, err)
+	failedChownMsg.ToSignature.PubKey = toPubKey
+	failedChownMsg.ToSignature.Signature = bSig
+
+	var blockHeight int64 = 3
+	testSets := []struct {
+		name    string
+		balance string
+		msg     auth.StdTx
+	}{
+		{"success to issue : 20000+0.0125", "2099.98750000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, successfulIssueMsg)},
+		{"fail to issue : 0.0125", "2099.97500000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedIssueMsg)},
+		{"fail to mint  : 0.0125", "2099.96250000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedMintMsg)},
+		{"fail to burn  : 0.0125", "2099.95000000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedBurnMsg)},
+		{"fail to modify :0.0125", "2099.93750000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedEditMsg)},
+		{"fail to send  : 0.0125", "2099.92500000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, fialedSendMsg)},
+		{"fail to multi : 0.0125", "2099.91250000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedMultiSendMsg)},
+		{"fail to chown : 0.0125", "2099.90000000", createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, failedChownMsg)},
+	}
+	for i, tt := range testSets {
+		t.Run(tt.name, func(t *testing.T) {
+			blockHeight = int64(i + 3)
+			ctx = mockApplyBlock(t, app, []auth.StdTx{tt.msg}, blockHeight)
+			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
+
+		})
+	}
+
+	symbolAfterIssue := getTokenSymbol(ctx, app.tokenKeeper, "xxb")
+	decCoin = sdk.NewDecCoinFromDec(symbolAfterIssue, sdk.NewDec(50))
+	successfulMintMsg := types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
+
+	successfulBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
+
+	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
+
+	// multi send
+	multiSendStr = `[{"to":"` + toAddr.String() + `","amount":" 10okt,20` + symbolAfterIssue + `"}]`
+	transfers, err = types.StrToTransfers(multiSendStr)
+	require.Nil(t, err)
+	successfulMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	successfulEditMsg := types.NewMsgTokenModify(symbolAfterIssue, "edit msg", "xxb coin ", true, true, testAccounts[0].baseAccount.Address)
+
+	successfulChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, symbolAfterIssue)
+	bSig, err = toPriKey.Sign(successfulChownMsg.GetSignBytes())
+	require.NoError(t, err)
+	successfulChownMsg.ToSignature.PubKey = toPubKey
+	successfulChownMsg.ToSignature.Signature = bSig
+
+	successfulTestSets := []struct {
+		name     string
+		balance  string
+		tokenMsg sdk.Msg
+		address  sdk.AccAddress
+		priKey   crypto.PrivKey
+	}{
+		{"success to mint : 2000+0.0125", "99.88750000", successfulMintMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+		{"success to burn : 10+0.0125", "89.87500000", successfulBurnMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+		{"success to send : 0.0125", "89.86250000", successfulSendMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+		{"success to multi send 10 +0.01*2", "79.84250000", successfulMultiSendMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+		{"success to modify :0.0125", "79.83000000", successfulEditMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+		{"success to chown : 10+0.0125", "69.81750000", successfulChownMsg, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey},
+	}
+	for _, tt := range successfulTestSets {
+		t.Run(tt.name, func(t *testing.T) {
+			blockHeight += 1
+			msg := createTokenMsg(t, app, ctx, tt.address, tt.priKey, tt.tokenMsg)
+			ctx = mockApplyBlock(t, app, []auth.StdTx{msg}, blockHeight)
+			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
+
+		})
+	}
+}
