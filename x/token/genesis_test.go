@@ -11,10 +11,10 @@ import (
 )
 
 func TestDefault(t *testing.T) {
-	genesisState := DefaultGenesisState()
-	err := ValidateGenesis(genesisState)
+	genesisState := defaultGenesisState()
+	err := validateGenesis(genesisState)
 	require.NoError(t, err)
-	DefaultGenesisStateOKT()
+	defaultGenesisStateOKT()
 }
 
 func TestInitGenesis(t *testing.T) {
@@ -27,7 +27,7 @@ func TestInitGenesis(t *testing.T) {
 	params := keeper.GetParams(ctx)
 
 	var tokens []types.Token
-	tokens = append(tokens, DefaultGenesisStateOKT())
+	tokens = append(tokens, defaultGenesisStateOKT())
 
 	var lockCoins []types.AccCoins
 	decCoin := sdk.NewDecCoinFromDec(tokens[0].Symbol, sdk.NewDec(1234))
@@ -35,7 +35,7 @@ func TestInitGenesis(t *testing.T) {
 		Acc:   tokens[0].Owner,
 		Coins: sdk.DecCoins{decCoin},
 	})
-	initGenesis := GenesisState{
+	initedGenesis := GenesisState{
 		Params:    params,
 		Tokens:    tokens,
 		LockCoins: lockCoins,
@@ -46,17 +46,17 @@ func TestInitGenesis(t *testing.T) {
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	require.NoError(t, err)
 
-	InitGenesis(ctx, keeper, initGenesis)
-	require.Equal(t, initGenesis.Params, keeper.GetParams(ctx))
-	require.Equal(t, initGenesis.Tokens, keeper.GetTokensInfo(ctx))
-	require.Equal(t, initGenesis.LockCoins, keeper.GetAllLockCoins(ctx))
-	require.Equal(t, uint64(len(initGenesis.Tokens)), keeper.GetTokenNum(ctx))
-	require.Equal(t, initGenesis.Tokens[0], keeper.GetUserTokensInfo(ctx, initGenesis.Tokens[0].Owner)[0])
+	initGenesis(ctx, keeper, initedGenesis)
+	require.Equal(t, initedGenesis.Params, keeper.GetParams(ctx))
+	require.Equal(t, initedGenesis.Tokens, keeper.GetTokensInfo(ctx))
+	require.Equal(t, initedGenesis.LockCoins, keeper.GetAllLockCoins(ctx))
+	require.Equal(t, uint64(len(initedGenesis.Tokens)), keeper.getTokenNum(ctx))
+	require.Equal(t, initedGenesis.Tokens[0], keeper.GetUserTokensInfo(ctx, initedGenesis.Tokens[0].Owner)[0])
 
 	exportGenesis := ExportGenesis(ctx, keeper)
-	require.Equal(t, initGenesis.Params, exportGenesis.Params)
-	require.Equal(t, initGenesis.Tokens, exportGenesis.Tokens)
-	require.Equal(t, initGenesis.LockCoins, exportGenesis.LockCoins)
+	require.Equal(t, initedGenesis.Params, exportGenesis.Params)
+	require.Equal(t, initedGenesis.Tokens, exportGenesis.Tokens)
+	require.Equal(t, initedGenesis.LockCoins, exportGenesis.LockCoins)
 
 	newMapp, newKeeper, _ := getMockDexApp(t, 0)
 	newMapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
@@ -72,11 +72,11 @@ func TestInitGenesis(t *testing.T) {
 	err = newKeeper.supplyKeeper.MintCoins(newCtx, types.ModuleName, coins)
 	require.NoError(t, err)
 
-	InitGenesis(newCtx, newKeeper, exportGenesis)
+	initGenesis(newCtx, newKeeper, exportGenesis)
 	require.Equal(t, exportGenesis.Params, newKeeper.GetParams(newCtx))
 	require.Equal(t, exportGenesis.Tokens, newKeeper.GetTokensInfo(newCtx))
 	require.Equal(t, exportGenesis.LockCoins, newKeeper.GetAllLockCoins(newCtx))
-	require.Equal(t, uint64(len(exportGenesis.Tokens)), newKeeper.GetTokenNum(newCtx))
+	require.Equal(t, uint64(len(exportGenesis.Tokens)), newKeeper.getTokenNum(newCtx))
 	require.Equal(t, exportGenesis.Tokens[0], newKeeper.GetUserTokensInfo(newCtx, exportGenesis.Tokens[0].Owner)[0])
 
 	newExportGenesis := ExportGenesis(newCtx, newKeeper)
@@ -91,7 +91,7 @@ func TestIssueToken(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	//ctx, keeper, _, _ := CreateParam(t, false)
-	genesisState := DefaultGenesisState()
+	genesisState := defaultGenesisState()
 	gs := types.ModuleCdc.MustMarshalJSON(genesisState)
 
 	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(genesisState.Tokens[0].Symbol,
@@ -136,6 +136,6 @@ func TestIssueToken(t *testing.T) {
 	err2 = IssueOKT(ctx, keeper, gs, acc[0].ToBaseAccount())
 	require.NoError(t, err2)
 
-	err2 = ValidateGenesis(genesisState)
+	err2 = validateGenesis(genesisState)
 	require.Error(t, err2)
 }

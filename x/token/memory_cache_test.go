@@ -4,5 +4,5 @@ import "testing"
 
 func TestCache_AddFeeDetail(t *testing.T) {
 	cache := NewCache()
-	cache.Reset()
+	cache.reset()
 }

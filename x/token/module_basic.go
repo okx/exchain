@@ -18,32 +18,32 @@ var (
 	_ module.AppModuleBasic = AppModuleBasic{}
 )
 
-// AppModuleBasic app module basics object
+// nolint
 type AppModuleBasic struct{}
 
-// Name module name
+// nolint
 func (AppModuleBasic) Name() string {
 	return tokenTypes.ModuleName
 }
 
-// RegisterCodec register module codec
+// nolint
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	RegisterCodec(cdc)
 }
 
-// DefaultGenesis default genesis state
+// nolint
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return tokenTypes.ModuleCdc.MustMarshalJSON(DefaultGenesisState())
+	return tokenTypes.ModuleCdc.MustMarshalJSON(defaultGenesisState())
 }
 
-// ValidateGenesis module validate genesis
+// validateGenesis module validate genesis from json raw message
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 	var data GenesisState
 	err := tokenTypes.ModuleCdc.UnmarshalJSON(bz, &data)
 	if err != nil {
 		return err
 	}
-	return ValidateGenesis(data)
+	return validateGenesis(data)
 }
 
 // RegisterRESTRoutes register rest routes
