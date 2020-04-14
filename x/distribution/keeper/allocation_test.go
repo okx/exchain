@@ -26,10 +26,10 @@ func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
 }
 
 type testAllocationParam struct {
-	totalPower        int64
-	isVote            []bool
-	isJailed          []bool
-	fee               sdk.DecCoins
+	totalPower int64
+	isVote     []bool
+	isJailed   []bool
+	fee        sdk.DecCoins
 }
 
 func getTestAllocationParams() []testAllocationParam {
@@ -42,17 +42,17 @@ func getTestAllocationParams() []testAllocationParam {
 		{ //test the case where total power is zero
 			0,
 			[]bool{true, true, true, true}, []bool{false, false, false, false},
-			NewTestDecCoins(123,2),
+			NewTestDecCoins(123, 2),
 		},
 		{ //test the case where just the part of vals has voted
 			10,
 			[]bool{true, true, false, false}, []bool{false, false, false, false},
-			NewTestDecCoins(123,2),
+			NewTestDecCoins(123, 2),
 		},
 		{ //test the case where two vals is jailed
 			10,
 			[]bool{true, true, false, false}, []bool{false, true, true, false},
-			NewTestDecCoins(123,2),
+			NewTestDecCoins(123, 2),
 		},
 	}
 }
@@ -71,13 +71,13 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 
 		// allocate the tokens
 		k.AllocateTokens(ctx, test.totalPower, valConsAddrs[0], votes)
-		commissions := NewTestDecCoins(0,0)
+		commissions := NewTestDecCoins(0, 0)
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(val sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
 				commissions = commissions.Add(commission)
 				return false
 			})
-		totalCommissions :=  k.GetDistributionAccount(ctx).GetCoins()
+		totalCommissions := k.GetDistributionAccount(ctx).GetCoins()
 		communityCoins := k.GetFeePoolCommunityCoins(ctx)
 		require.Equal(t, totalCommissions, communityCoins.Add(commissions))
 		require.Equal(t, test.fee, totalCommissions)

@@ -19,7 +19,7 @@ var (
 )
 
 func testProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
-	return govtypes.Proposal{Content:types.NewCommunityPoolSpendProposal(
+	return govtypes.Proposal{Content: types.NewCommunityPoolSpendProposal(
 		"Test",
 		"description",
 		recipient,

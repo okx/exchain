@@ -44,7 +44,7 @@ var (
 	ErrNilValidatorAddr                      = types.ErrNilValidatorAddr
 	ErrNoValidatorCommission                 = types.ErrNoValidatorCommission
 	ErrSetWithdrawAddrDisabled               = types.ErrSetWithdrawAddrDisabled
-	InitialFeePool     						 = types.InitialFeePool
+	InitialFeePool                           = types.InitialFeePool
 	NewGenesisState                          = types.NewGenesisState
 	DefaultGenesisState                      = types.DefaultGenesisState
 	ValidateGenesis                          = types.ValidateGenesis

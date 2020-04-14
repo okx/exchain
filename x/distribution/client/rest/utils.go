@@ -18,4 +18,3 @@ type (
 		Deposit     sdk.DecCoins   `json:"deposit" yaml:"deposit"`
 	}
 )
-
