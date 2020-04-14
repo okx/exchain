@@ -7,6 +7,7 @@
 package distribution
 
 import (
+	"github.com/okex/okchain/x/distribution/client"
 	"github.com/okex/okchain/x/distribution/keeper"
 	"github.com/okex/okchain/x/distribution/types"
 )
@@ -43,6 +44,7 @@ var (
 	ErrNilValidatorAddr                      = types.ErrNilValidatorAddr
 	ErrNoValidatorCommission                 = types.ErrNoValidatorCommission
 	ErrSetWithdrawAddrDisabled               = types.ErrSetWithdrawAddrDisabled
+	InitialFeePool                           = types.InitialFeePool
 	NewGenesisState                          = types.NewGenesisState
 	DefaultGenesisState                      = types.DefaultGenesisState
 	ValidateGenesis                          = types.ValidateGenesis
@@ -53,9 +55,11 @@ var (
 	InitialValidatorAccumulatedCommission    = types.InitialValidatorAccumulatedCommission
 
 	// variable aliases
+	FeePoolKey                           = keeper.FeePoolKey
 	ProposerKey                          = keeper.ProposerKey
 	DelegatorWithdrawAddrPrefix          = keeper.DelegatorWithdrawAddrPrefix
 	ValidatorAccumulatedCommissionPrefix = keeper.ValidatorAccumulatedCommissionPrefix
+	ParamStoreKeyCommunityTax            = keeper.ParamStoreKeyCommunityTax
 	ParamStoreKeyWithdrawAddrEnabled     = keeper.ParamStoreKeyWithdrawAddrEnabled
 	ModuleCdc                            = types.ModuleCdc
 	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
@@ -65,6 +69,7 @@ var (
 	AttributeKeyWithdrawAddress          = types.AttributeKeyWithdrawAddress
 	AttributeKeyValidator                = types.AttributeKeyValidator
 	AttributeValueCategory               = types.AttributeValueCategory
+	ProposalHandler                      = client.ProposalHandler
 )
 
 type (

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 
 	"github.com/okex/okchain/x/distribution/client/common"
@@ -30,6 +31,12 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 	r.HandleFunc(
 		"/distribution/parameters",
 		paramsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
+
+	// Get the amount held in the community pool
+	r.HandleFunc(
+		"/distribution/community_pool",
+		communityPoolHandler(cliCtx, queryRoute),
 	).Methods("GET")
 }
 
@@ -73,6 +80,31 @@ func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerF
 		}
 
 		rest.PostProcessResponse(w, cliCtx, params)
+	}
+}
+
+// HTTP request handler to query the community pool coins
+func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/community_pool", queryRoute), nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var result sdk.DecCoins
+		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, result)
 	}
 }
 

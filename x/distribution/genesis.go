@@ -9,26 +9,28 @@ import (
 
 // InitGenesis sets distribution information for genesis
 func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper, data types.GenesisState) {
-	moduleHoldings := sdk.DecCoins{}
 
+	keeper.SetFeePool(ctx, data.FeePool)
+	keeper.SetCommunityTax(ctx, data.CommunityTax)
 	keeper.SetPreviousProposerConsAddr(ctx, data.PreviousProposer)
 	keeper.SetWithdrawAddrEnabled(ctx, data.WithdrawAddrEnabled)
 	for _, dwi := range data.DelegatorWithdrawInfos {
 		keeper.SetDelegatorWithdrawAddr(ctx, dwi.DelegatorAddress, dwi.WithdrawAddress)
 	}
+	moduleHoldings := sdk.DecCoins{}
 	for _, acc := range data.ValidatorAccumulatedCommissions {
 		keeper.SetValidatorAccumulatedCommission(ctx, acc.ValidatorAddress, acc.Accumulated)
 		moduleHoldings = moduleHoldings.Add(acc.Accumulated)
 	}
 
+	moduleHoldings = moduleHoldings.Add(data.FeePool.CommunityPool)
 	// check if the module account exists
 	moduleAcc := keeper.GetDistributionAccount(ctx)
 	if moduleAcc == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
 	}
-	moduleHoldingsInt, _ := moduleHoldings.TruncateDecimal()
 	if moduleAcc.GetCoins().IsZero() {
-		if err := moduleAcc.SetCoins(moduleHoldingsInt); err != nil {
+		if err := moduleAcc.SetCoins(moduleHoldings); err != nil {
 			panic(err)
 		}
 		supplyKeeper.SetModuleAccount(ctx, moduleAcc)
@@ -37,6 +39,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper
 
 // ExportGenesis returns a GenesisState for a given context and keeper.
 func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
+	feePool := keeper.GetFeePool(ctx)
+	communityTax := keeper.GetCommunityTax(ctx)
 	withdrawAddrEnabled := keeper.GetWithdrawAddrEnabled(ctx)
 	dwi := make([]types.DelegatorWithdrawInfo, 0)
 	keeper.IterateDelegatorWithdrawAddrs(ctx, func(del sdk.AccAddress, addr sdk.AccAddress) (stop bool) {
@@ -58,5 +62,5 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 		},
 	)
 
-	return types.NewGenesisState(withdrawAddrEnabled, dwi, pp, acc)
+	return types.NewGenesisState(feePool, communityTax, withdrawAddrEnabled, dwi, pp, acc)
 }
