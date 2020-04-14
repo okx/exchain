@@ -63,7 +63,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			upgradeClient.ProposalHandler, paramsclient.ProposalHandler,
-			dexClient.DelistProposalHandler,
+			dexClient.DelistProposalHandler, distr.ProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -316,7 +316,8 @@ func (p *ProtocolV0) produceKeepers() {
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
-		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper))
+		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
+		AddRoute(distr.RouterKey,distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).

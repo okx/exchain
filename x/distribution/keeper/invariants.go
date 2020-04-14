@@ -71,18 +71,18 @@ func CanWithdrawInvariant(k Keeper) sdk.Invariant {
 // is consistent with the sum of accumulated commissions
 func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var expectedCoins sdk.DecCoins
+		var accumulatedCommission sdk.DecCoins
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(_ sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
-				expectedCoins = expectedCoins.Add(commission)
+				accumulatedCommission = accumulatedCommission.Add(commission)
 				return false
 			})
-
+		communityPool := k.GetFeePoolCommunityCoins(ctx)
 		macc := k.GetDistributionAccount(ctx)
-		broken := !macc.GetCoins().IsEqual(expectedCoins)
+		broken := !macc.GetCoins().IsEqual(communityPool.Add(accumulatedCommission))
 		return sdk.FormatInvariant(types.ModuleName, "ModuleAccount coins",
 			fmt.Sprintf("\texpected distribution ModuleAccount coins:     %s\n"+
 				"\tacutal distribution ModuleAccount coins: %s\n",
-				expectedCoins, macc.GetCoins())), broken
+				accumulatedCommission, macc.GetCoins())), broken
 	}
 }

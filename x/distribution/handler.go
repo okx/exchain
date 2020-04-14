@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/distribution/keeper"
 	"github.com/okex/okchain/x/distribution/types"
+	govtypes "github.com/okex/okchain/x/gov/types"
 )
 
 // NewHandler manages all distribution tx
@@ -62,4 +63,17 @@ func handleMsgWithdrawValidatorCommission(ctx sdk.Context,
 	)
 
 	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
+	return func(ctx sdk.Context, content *govtypes.Proposal) sdk.Error {
+		switch c := content.Content.(type) {
+		case types.CommunityPoolSpendProposal:
+			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
+
+		default:
+			errMsg := fmt.Sprintf("unrecognized distr proposal content type: %T", c)
+			return sdk.ErrUnknownRequest(errMsg)
+		}
+	}
 }

@@ -23,6 +23,9 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryWithdrawAddr:
 			return queryDelegatorWithdrawAddress(ctx, path[1:], req, k)
 
+		case types.QueryCommunityPool:
+			return queryCommunityPool(ctx, path[1:], req, k)
+
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown distr query endpoint")
 		}
@@ -31,6 +34,12 @@ func NewQuerier(k Keeper) sdk.Querier {
 
 func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
 	switch path[0] {
+	case types.ParamCommunityTax:
+		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetCommunityTax(ctx))
+		if err != nil {
+			return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+		}
+		return bz, nil
 	case types.ParamWithdrawAddrEnabled:
 		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetWithdrawAddrEnabled(ctx))
 		if err != nil {
@@ -72,5 +81,13 @@ func queryDelegatorWithdrawAddress(ctx sdk.Context, _ []string, req abci.Request
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
 
+	return bz, nil
+}
+
+func queryCommunityPool(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+	bz, err := k.cdc.MarshalJSON(k.GetFeePoolCommunityCoins(ctx))
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+	}
 	return bz, nil
 }

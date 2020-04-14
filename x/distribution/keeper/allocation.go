@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingexported "github.com/cosmos/cosmos-sdk/x/staking/exported"
 	"github.com/okex/okchain/x/distribution/types"
 	"github.com/okex/okchain/x/staking/exported"
+	stakingexported "github.com/okex/okchain/x/staking/exported"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -23,10 +23,8 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	logger := k.Logger(ctx)
 	// fetch and clear the collected fees for distribution, since this is
 	// called in BeginBlock, collected fees will be from the previous block
-
-	// get the module account of feeCollector
+	// (and distributed to the previous proposer)
 	feeCollector := k.supplyKeeper.GetModuleAccount(ctx, k.feeCollectorName)
-	// get the total Coins from the module account-feeCollector
 	feesCollected := feeCollector.GetCoins()
 
 	if feesCollected.Empty() {
@@ -35,16 +33,18 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	}
 	logger.Debug("AllocateTokens", "TotalFee", feesCollected.String())
 
-	if totalPreviousPower == 0 {
-		// if the total previous power is zero, just return without allocate the fees util the power recovers
-		logger.Error("totalPreviousPower is 0, skip this allocation of fees")
-		return
-	}
-
 	// transfer collected fees to the distribution module account
 	err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, k.feeCollectorName, types.ModuleName, feesCollected)
 	if err != nil {
 		panic(err)
+	}
+
+	feePool := k.GetFeePool(ctx)
+	if totalPreviousPower == 0 {
+		feePool.CommunityPool = feePool.CommunityPool.Add(feesCollected)
+		k.SetFeePool(ctx, feePool)
+		logger.Debug("totalPreviousPower is zero, send fees to community pool", "fees", feesCollected)
+		return
 	}
 
 	preProposerVal := k.stakingKeeper.ValidatorByConsAddr(ctx, previousProposer)
@@ -60,30 +60,18 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 				"We recommend you investigate immediately.", previousProposer.String()))
 	}
 
-	fee1, fee2 := feesCollected.MulDecTruncate(valPortion), feesCollected.MulDecTruncate(votePortion)
+	feesToVals := feesCollected.MulDecTruncate(sdk.OneDec().Sub(k.GetCommunityTax(ctx)))
+	fee1, fee2 := feesToVals.MulDecTruncate(valPortion), feesToVals.MulDecTruncate(votePortion)
 	remaining := feesCollected.Sub(fee1.Add(fee2))
-	remain1 := k.allocateByVal(ctx, fee1, previousVotes) //allocate rewards equally between validators
-	remain2 := k.allocateByVotePower(ctx, fee2)          //allocate rewards by votes
+	remain1 := k.allocateByVal(ctx, feesToVals.MulDecTruncate(valPortion), previousVotes) //allocate rewards equally between validators
+	remain2 := k.allocateByVotePower(ctx, feesToVals.MulDecTruncate(votePortion))         //allocate rewards by votes
 	remaining = remaining.Add(remain1.Add(remain2))
 
-	// if it remains some coins, allocate to proposer
+	// allocate community funding
 	if !remaining.IsZero() {
-		// if we can't find previous proposer validator from store or being jailed
-		// then transfer the remaining to fee module account back
-		if preProposerVal == nil || preProposerVal.IsJailed() {
-			err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.feeCollectorName, remaining)
-			if err != nil {
-				panic(err)
-			}
-			logger.Debug("No Proposer to receive remaining", "Remainder to feeCollector", remaining)
-			return
-		}
-
-		k.AllocateTokensToValidator(ctx, preProposerVal, remaining)
-		logger.Debug("Send remaining to previous proposer",
-			"previous proposer", preProposerVal.GetOperator().String(),
-			"remaining coins", remaining,
-		)
+		feePool.CommunityPool = feePool.CommunityPool.Add(remaining)
+		k.SetFeePool(ctx, feePool)
+		logger.Debug("Send remaining to community pool", "remaining", remaining)
 	}
 }
 
@@ -91,30 +79,25 @@ func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVot
 	logger := k.Logger(ctx)
 
 	//count the total sum of the unJailed val
-	validators := make([]stakingexported.ValidatorI, 0)
+	var validators []stakingexported.ValidatorI
 	for _, vote := range previousVotes {
 		validator := k.stakingKeeper.ValidatorByConsAddr(ctx, vote.Validator.Address)
-		if validator == nil {
-			// previous validator can be unknown if say, the unbonding period is 1 block, so
-			// e.g. a validator undelegates at block X, it's removed entirely by
-			// block X+1's endblock, then X+2 we need to refer to the previous
-			// validator for X+1, but we've forgotten about them.
-			continue
-		}
-		if validator.IsJailed() {
-			logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by equal", validator.GetOperator()))
-		} else {
-			validators = append(validators, validator)
+		if validator != nil {
+			if validator.IsJailed() {
+				logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by equal", validator.GetOperator()))
+			} else {
+				validators = append(validators, validator)
+			}
 		}
 	}
 
 	//calculate the proportion of every valid validator
 	powerFraction := sdk.NewDec(1).QuoTruncate(sdk.NewDec(int64(len(validators))))
 
-	//beginning allocating rewards
+	//beginning allocating rewards equally
 	remaining := rewards
+	reward := rewards.MulDecTruncate(powerFraction)
 	for _, val := range validators {
-		reward := rewards.MulDecTruncate(powerFraction)
 		k.AllocateTokensToValidator(ctx, val, reward)
 		logger.Debug("allocate by equal", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
@@ -163,9 +146,9 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	// split tokens between validator and delegators according to commissions
 	// commissions is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
 	// only update current commissions
-	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
-	currentCommission = currentCommission.Add(tokens)
-	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)
+	commission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
+	commission = commission.Add(tokens)
+	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), commission)
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeCommission,

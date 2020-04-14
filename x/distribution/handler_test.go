@@ -13,7 +13,8 @@ import (
 
 func TestHandler(t *testing.T) {
 	valOpAddrs, valConsPks, valConsAddrs := keeper.GetTestAddrs()
-	ctx, ak, _, k, sk, _, supplyKeeper := keeper.CreateTestInputAdvanced(t, false, 1000)
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, ak, _, k, sk, _, supplyKeeper := keeper.CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dh := NewHandler(k)
 
 	// create one validator
@@ -22,9 +23,9 @@ func TestHandler(t *testing.T) {
 		staking.Description{}, keeper.NewTestDecCoin(1, 0))
 	require.True(t, sh(ctx, skMsg).IsOK())
 
-	//send 1okt fee
+	//send 100okt fee
 	feeCollector := supplyKeeper.GetModuleAccount(ctx, k.GetFeeCollectorName())
-	err := feeCollector.SetCoins(keeper.NewTestDecCoins(1, 0))
+	err := feeCollector.SetCoins(keeper.NewTestDecCoins(100, 0))
 	require.NoError(t, err)
 	ak.SetAccount(ctx, feeCollector)
 	// crate votes info and allocate tokens
