@@ -93,9 +93,9 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 		queryDelegatorProxyCheck(ProxiedDelegator, false, false, &expZeroDec, nil, nil),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
-	smTestCase.printParticipantSnapshot()
+	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
 }
 
@@ -186,7 +186,7 @@ func TestDelegator(t *testing.T) {
 		noErrorInHandlerResult(false),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.Run(t)
 
 }
@@ -292,8 +292,8 @@ func TestProxy(t *testing.T) {
 		noErrorInHandlerResult(true),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
-	smTestCase.printParticipantSnapshot()
+	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
 }

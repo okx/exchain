@@ -43,6 +43,7 @@ func TestValidatorSMCreateValidator(t *testing.T) {
 		0,
 		nil,
 		nil,
+		t,
 	}
 
 	smTestCase.Run(t)
@@ -77,7 +78,7 @@ func TestValidatorSMCreateValidatorWithValidatorSet(t *testing.T) {
 		validatorStatusChecker(sdk.Bonded.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 }
@@ -128,7 +129,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 		validatorRemoved(true),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 
@@ -177,7 +178,7 @@ func TestValidatorSMEvilFullLifeCircle(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonded.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 }
@@ -235,7 +236,7 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail(t *testing.T) {
 		validatorStatusChecker(sdk.Bonded.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 }
@@ -287,7 +288,7 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail2(t *testing.T) {
 		validatorStatusChecker(sdk.Bonded.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 }
@@ -331,7 +332,7 @@ func TestValidatorSMEpochRotate(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonding.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 
@@ -390,7 +391,7 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonded.String()),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
 	smTestCase.Run(t)
 
@@ -500,9 +501,9 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		undelegateChecker2.GetChecker(),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
-	smTestCase.printParticipantSnapshot()
+	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
 
 }
@@ -582,9 +583,9 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 		dlgUnbondCheck2.GetChecker(),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
-	smTestCase.printParticipantSnapshot()
+	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
 }
 
@@ -662,8 +663,8 @@ func TestValidatorSMDestroyValidatorUnbonding2Removed(t *testing.T) {
 		afterUnbondingTimeExpiredCheck1.GetChecker(),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators), sdk.OneDec().Int64())
-	smTestCase.printParticipantSnapshot()
+	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
 }
