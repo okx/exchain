@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
+	token "github.com/okex/okchain/x/token/types"
 
 	dex "github.com/okex/okchain/x/dex/types"
 	"github.com/okex/okchain/x/order/types"
@@ -18,6 +19,7 @@ type TokenKeeper interface {
 	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error
 	// Fee detail
 	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string)
+	GetAllLockCoins(ctx sdk.Context) (locks []token.AccCoins)
 }
 
 // SupplyKeeper : expected supply keeper
