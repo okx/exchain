@@ -9,8 +9,6 @@ commands:
         type: string
     steps:
       - attach_workspace:
-
-          
           at: /tmp/bin
       - restore_cache:
           name: "Restore source code cache"
