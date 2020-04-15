@@ -84,7 +84,7 @@ func TestProtocolV0_InitChainer_BeginBlocker_EndBlocker_ExportGenesis_ExportAppS
 	/****************************** test InitChainer ******************************/
 
 	// make  simulation of abci.RequestInitChain
-	genDoc, err := tm.GenesisDocFromFile("../../unittest/genesis.json")
+	genDoc, err := tm.GenesisDocFromFile("../genesis/genesis.json")
 	require.NoError(t, err)
 	genState, err := tmsm.MakeGenesisState(genDoc)
 	require.NoError(t, err)

@@ -30,10 +30,9 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 // Delegate handles the process of delegating
 func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) sdk.Error {
 
-	delQuantity := token.Amount
-
-	if delQuantity.LT(k.ParamsMinDelegation(ctx)) {
-		return types.ErrInvaildQuantity(types.DefaultCodespace, delQuantity.String())
+	delQuantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
+	if delQuantity.LT(minDelLimit) {
+		return types.ErrInsufficientQuantity(types.DefaultCodespace, delQuantity.String(), minDelLimit.String())
 	}
 
 	// 1.transfer account's okt into bondPool
@@ -67,10 +66,13 @@ func (k Keeper) Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.De
 	if !found {
 		return time.Time{}, types.ErrNoDelegationVote(types.DefaultCodespace, delAddr.String())
 	}
-	quantity := token.Amount
-	if quantity.LT(k.ParamsMinDelegation(ctx)) || delegator.Tokens.LT(quantity) {
-		return time.Time{}, types.ErrInvaildQuantity(types.DefaultCodespace, quantity.String())
+	quantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
+	if quantity.LT(minDelLimit) {
+		return time.Time{}, types.ErrInsufficientQuantity(types.DefaultCodespace, quantity.String(), minDelLimit.String())
+	} else if delegator.Tokens.LT(quantity) {
+		return time.Time{}, types.ErrInsufficientDelegation(types.DefaultCodespace, quantity.String(), delegator.Tokens.String())
 	}
+
 	// 1.some okt transfer bondPool into unbondPool
 	k.bondedTokensToNotBonded(ctx, token)
 

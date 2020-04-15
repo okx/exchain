@@ -41,7 +41,7 @@ func TestValidatorMultiCreates(t *testing.T) {
 		queryValidatorCheck(sdk.Bonded, false, &expectDelegatorShares, &validMsd, nil),
 	}
 
-	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker)
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 	smTestCase.Run(t)
 }
 
@@ -95,6 +95,7 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 		0,
 		nil,
 		nil,
+		t,
 	}
 
 	smTestCase.Run(t)

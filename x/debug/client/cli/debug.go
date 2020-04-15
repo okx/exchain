@@ -29,7 +29,7 @@ func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 	return queryCmd
 }
 
-// GetCmdQueryParams implements the query params command.
+// CmdDumpStore implements the query params command.
 func CmdDumpStore(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "dump [module]",
@@ -58,7 +58,7 @@ func CmdDumpStore(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// set log level dynamically
+// CmdSetLogLevel sets log level dynamically
 func CmdSetLogLevel(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-loglevel",
