@@ -96,7 +96,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	}
 
 	// generate a random symbol
-	newName, valid := AddTokenSuffix(ctx, keeper, msg.OriginalSymbol)
+	newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
 	if !valid {
 		return sdk.ErrInvalidCoins(fmt.Sprintf(
 			"temporarily failed to generate a unique symbol for %s. Try again.",

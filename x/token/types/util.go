@@ -70,8 +70,8 @@ func ValidOriginalSymbol(name string) bool {
 	return regOriginalSymbol.MatchString(name)
 }
 
-// format: [{"to": "addr", "amount": "1BNB,2BTC"}, ...]
-// to []TransferUnit
+// Convert a formatted json string into a TransferUnit array
+// e.g.) [{"to": "addr", "amount": "1BNB,2BTC"}, ...]
 func StrToTransfers(str string) (transfers []TransferUnit, err error) {
 	var transfer []Transfer
 	err = json.Unmarshal([]byte(str), &transfer)

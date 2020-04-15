@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -61,7 +59,7 @@ func GetLockAddress(addr sdk.AccAddress) []byte {
 	return append(LockKey, addr.Bytes()...)
 }
 
-// Key for getting a specific proposal from the store
-func KeyDexListAsset(asset string) []byte {
-	return []byte(fmt.Sprintf("asset:%s", asset))
-}
+//// Key for getting a specific proposal from the store
+//func keyDexListAsset(asset string) []byte {
+//	return []byte(fmt.Sprintf("asset:%s", asset))
+//}

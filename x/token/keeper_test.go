@@ -44,13 +44,13 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 	require.EqualValues(t, common.NativeToken, info.Symbol)
 	tokens := keeper.GetTokensInfo(ctx)
 	require.Equal(t, info, tokens[0])
-	require.Equal(t, len(tokens), len(keeper.GetCurrencysInfo(ctx)))
+	require.Equal(t, len(tokens), len(keeper.GetCurrenciesInfo(ctx)))
 
-	name, flag := AddTokenSuffix(ctx, keeper, common.NativeToken)
+	name, flag := addTokenSuffix(ctx, keeper, common.NativeToken)
 	require.Equal(t, true, flag)
 	require.NotEqual(t, common.NativeToken, name)
 
-	name, flag = AddTokenSuffix(ctx, keeper, common.NativeToken+"@#$")
+	name, flag = addTokenSuffix(ctx, keeper, common.NativeToken+"@#$")
 	require.Equal(t, false, flag)
 	require.Equal(t, "", name)
 
@@ -117,7 +117,7 @@ func TestKeeper_LockCoins(t *testing.T) {
 	}
 	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, BigCoins, types.LockCoinsTypeQuantity)
 	require.Error(t, err)
-	_, lockStoreKeyNum := keeper.GetNumKeys(ctx)
+	_, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	require.Equal(t, int64(1), lockStoreKeyNum)
 
 	locks := keeper.GetAllLockCoins(ctx)
