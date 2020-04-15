@@ -20,6 +20,7 @@ type TokenKeeper interface {
 	// Fee detail
 	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string)
 	GetAllLockCoins(ctx sdk.Context) (locks []token.AccCoins)
+	IterateLockFee(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool))
 }
 
 // SupplyKeeper : expected supply keeper

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/order/types"
 	token "github.com/okex/okchain/x/token/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/dex"
+	"github.com/okex/okchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,6 +59,27 @@ func TestModuleAccountInvariant(t *testing.T) {
 	msg, broken = invariant(ctx)
 	require.False(t, broken)
 	expectedLockCoins = expectedLockCoins.Sub(order2.NeedLockCoins()).Sub(GetOrderNewFee(order2))
+	require.Equal(t, invariantMsg(expectedLockCoins), msg)
+
+	// lock LockCoinsTypeQuantity
+	lockCoins := sdk.MustParseCoins(sdk.DefaultBondDenom, "1")
+	err = keeper.tokenKeeper.LockCoins(ctx, testInput.TestAddrs[1], lockCoins, token.LockCoinsTypeQuantity)
+	require.NoError(t, err)
+	msg, broken = invariant(ctx)
+	require.False(t, broken)
+	expectedLockCoins = expectedLockCoins.Add(lockCoins)
+	require.Equal(t, invariantMsg(expectedLockCoins), msg)
+
+	// error case: lock LockCoinsTypeFee
+	err = keeper.tokenKeeper.LockCoins(ctx, testInput.TestAddrs[1], expectedLockCoins, token.LockCoinsTypeFee)
+	require.NoError(t, err)
+	_, broken = invariant(ctx)
+	require.True(t, broken)
+
+	err = keeper.tokenKeeper.UnlockCoins(ctx, testInput.TestAddrs[1], expectedLockCoins, token.LockCoinsTypeFee)
+	require.NoError(t, err)
+	msg, broken = invariant(ctx)
+	require.False(t, broken)
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// error case

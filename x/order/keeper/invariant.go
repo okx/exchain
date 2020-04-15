@@ -17,11 +17,17 @@ func RegisterInvariants(ir sdk.InvariantRegistry, keeper Keeper) {
 // locks amounts held on store
 func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var allLocksCoins sdk.DecCoins
+		var lockCoins, lockFee, orderLockFee sdk.DecCoins
 
 		for _, accCoins := range keeper.tokenKeeper.GetAllLockCoins(ctx) {
-			allLocksCoins = allLocksCoins.Add(accCoins.Coins)
+			lockCoins = lockCoins.Add(accCoins.Coins)
 		}
+
+		// lock fee
+		keeper.tokenKeeper.IterateLockFee(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+			lockFee = lockFee.Add(coins)
+			return false
+		})
 
 		// get open orders lock fee
 		products := keeper.GetProductsFromDepthBookMap()
@@ -34,16 +40,21 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 				orderIDList = append(orderIDList, keeper.GetProductPriceOrderIDs(sellKey)...)
 				for _, orderID := range orderIDList {
 					order := keeper.GetOrder(ctx, orderID)
-					allLocksCoins = allLocksCoins.Add(GetOrderNewFee(order))
+					orderLockFee = orderLockFee.Add(GetOrderNewFee(order))
 				}
 			}
 		}
 
-		macc := keeper.supplyKeeper.GetModuleAccount(ctx, token.ModuleName)
-		broken := !macc.GetCoins().IsEqual(allLocksCoins)
+		if !lockFee.IsEqual(orderLockFee) {
+			return sdk.FormatInvariant(types.ModuleName, "locks",
+				fmt.Sprintf("\ttoken LockFee coins: %s\n\tsum of order locks fee amounts:  %s\n",
+					lockFee, orderLockFee)), true
+		}
 
+		macc := keeper.supplyKeeper.GetModuleAccount(ctx, token.ModuleName)
+		broken := !macc.GetCoins().IsEqual(lockCoins.Add(lockFee))
 		return sdk.FormatInvariant(types.ModuleName, "locks",
 			fmt.Sprintf("\ttoken ModuleAccount coins: %s\n\tsum of locks amounts:  %s\n",
-				macc.GetCoins(), allLocksCoins)), broken
+				macc.GetCoins(), lockCoins.Add(lockFee))), broken
 	}
 }
