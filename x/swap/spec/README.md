@@ -1,7 +1,7 @@
 # swap module specification
 
 ## Abstract
-
+swap module is x*y=k market makers for OKChain.
 <!-- TODO: Create a abstract definition of what this module does, what functionality does it enable and how it can be used. -->
 
 ## Contents
