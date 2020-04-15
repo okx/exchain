@@ -2,6 +2,8 @@ package swap
 
 import (
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -72,16 +74,18 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	keeper Keeper
-	// TODO: Add keepers that your application depends on
+	keeper       Keeper
+	bankKeeper   bank.Keeper
+	supplyKeeper supply.Keeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(k Keeper /*TODO: Add Keepers that your application depends on*/) AppModule {
+func NewAppModule(k Keeper, bankKeeper bank.Keeper, supplyKeeper supply.Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
-		// TODO: Add keepers that your application depends on
+		bankKeeper:     bankKeeper,
+		supplyKeeper:   supplyKeeper,
 	}
 }
 

@@ -5,36 +5,33 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okchain/x/swap/types"
 )
 
 // NewQuerier creates a new querier for swap clients.
 func NewQuerier(k Keeper) sdk.Querier {
-	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
+	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
 		switch path[0] {
-		case types.QueryParams:
-			return queryParams(ctx, k)
-			// TODO: Put the modules query routes
+		case types.QuerySwapTokenPair:
+			return querySwapTokenPair(ctx, path[1:], req, k)
+
 		default:
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown swap query endpoint")
+			return nil, sdk.ErrUnknownRequest("unknown swap query endpoint")
 		}
 	}
 }
 
-func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
-	params := k.GetParams(ctx)
-
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+// nolint: unparam
+func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
+	err sdk.Error) {
+	tokenPair, error := keeper.GetSwapTokenPair(ctx, path[0])
+	if error != nil {
+		return nil, sdk.ErrUnknownRequest(err.Error())
 	}
-
-	return res, nil
+	if tokenPair == nil {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("order(%v) does not exist", path[0]))
+	}
+	bz := keeper.cdc.MustMarshalJSON(tokenPair)
+	return bz, nil
 }
-
-// TODO: Add the modules query functions
-// They will be similar to the above one: queryParams()

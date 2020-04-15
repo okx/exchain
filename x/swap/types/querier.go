@@ -1,21 +1,23 @@
 package types
 
-// Query endpoints supported by the swap querier
-const (
-// TODO: Describe query parameters, update <action> with your query
-// Query<Action>    = "<action>"
-)
+import "strings"
 
-/*
-Below you will be able how to set your own queries:
+const QuerySwapTokenPair = "swapTokenPair"
 
-
-// QueryResList Queries Result Payload for a query
-type QueryResList []string
-
-// implement fmt.Stringer
-func (n QueryResList) String() string {
-	return strings.Join(n[:], "\n")
+// QueryResResolve Queries Result Payload for a resolve query
+type QueryResResolve struct {
+	Value string `json:"value"`
 }
 
-*/
+// implement fmt.Stringer
+func (r QueryResResolve) String() string {
+	return r.Value
+}
+
+// QueryResNames Queries Result Payload for a names query
+type QueryResNames []string
+
+// implement fmt.Stringer
+func (n QueryResNames) String() string {
+	return strings.Join(n[:], "\n")
+}
