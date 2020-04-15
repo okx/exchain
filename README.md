@@ -23,7 +23,6 @@ To run a full-node for the testnet of the OKChain, first [install `okchaind`](ht
 
 For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html#genesis).
 
-
 ## Quick Start
 
 ```
