@@ -57,6 +57,7 @@
         "denom": "okt"
       }
     },
+    "debug": null,
     "dex": {
       "params": {
         "delist_max_deposit_period": "86400000000000",
@@ -98,6 +99,10 @@
         {
           "type": "cosmos-sdk/StdTx",
           "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
             "memo": "33935a25b0a0806372c93903a15fe73f66752254@127.0.0.1:26656",
             "msg": [
               {
