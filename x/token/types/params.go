@@ -67,13 +67,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	}
 }
 
-// // Equal returns a boolean determining if two Params types are identical.
-// func (p Params) Equal(p2 Params) bool {
-// 	bz1 := msgCdc.MustMarshalBinaryLengthPrefixed(&p)
-// 	bz2 := msgCdc.MustMarshalBinaryLengthPrefixed(&p2)
-// 	return bytes.Equal(bz1, bz2)
-// }
-
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{

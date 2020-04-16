@@ -339,33 +339,28 @@ func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, account *tes
 }
 
 type MsgFaked struct {
-	Fakeid int
+	FakeID int
 }
 
 func (msg MsgFaked) Route() string { return "token" }
 
 func (msg MsgFaked) Type() string { return "issue" }
 
-// ValidateBasic Implements Msg.
 func (msg MsgFaked) ValidateBasic() sdk.Error {
-	// check owner
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgFaked) GetSignBytes() []byte {
-
 	return sdk.MustSortJSON([]byte("1"))
 }
 
-// GetSigners Implements Msg.
 func (msg MsgFaked) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{}
 }
 
 func newFakeMsg() MsgFaked {
 	return MsgFaked{
-		Fakeid: 0,
+		FakeID: 0,
 	}
 }
 
@@ -380,9 +375,9 @@ func TestMsgTokenChown(t *testing.T) {
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
-		})
-	//	fromPriKey := testAccounts[0].addrKeys.PrivKey
-	//	fromPubKey := testAccounts[0].addrKeys.PubKey
+		},
+	)
+
 	fromAddr := testAccounts[0].addrKeys.Address
 	//gen app and keepper
 	app, keeper, handler := getMockDexAppEx(t, 0)
@@ -436,11 +431,11 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	tokenNotExist.ToSignature.Signature = bSig
 	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenNotExist))
 
-	//test AddTokenSuffix->ValidSymbol
-	AddTokenSuffix(ctx, keeper, "notexist")
+	//test addTokenSuffix->ValidSymbol
+	addTokenSuffix(ctx, keeper, "notexist")
 
 	//normal test
-	symbName := "okb-b85" //AddTokenSuffix(ctx,keeper,common.NativeToken)
+	symbName := "okb-b85" //addTokenSuffix(ctx,keeper,common.NativeToken)
 	//change owner from F to T
 	tokenChownMsg := types.NewMsgTransferOwnership(fromAddr, toAddr, symbName)
 	bSig, err = toPriKey.Sign(tokenChownMsg.GetSignBytes())
@@ -542,7 +537,7 @@ func TestCreateTokenIssue(t *testing.T) {
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity).Sub(feeIssue)),
 	}
 	require.EqualValues(t, coins, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins())
-	tokenStoreKeyNum, lockStoreKeyNum := keeper.GetNumKeys(ctx)
+	tokenStoreKeyNum, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	require.Equal(t, int64(3), tokenStoreKeyNum)
 	require.Equal(t, int64(0), lockStoreKeyNum)
 	//require.Equal(t, int64(0), tokenPairStoreKeyNum)

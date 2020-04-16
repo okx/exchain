@@ -75,7 +75,7 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 }
 
 func queryCurrency(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	tokens := keeper.GetCurrencysInfo(ctx)
+	tokens := keeper.GetCurrenciesInfo(ctx)
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokens)
 	if err != nil {
@@ -151,7 +151,7 @@ func queryParameters(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
-	tokenStoreKeyNum, lockStoreKeyNum := keeper.GetNumKeys(ctx)
+	tokenStoreKeyNum, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	res, err := codec.MarshalJSONIndent(keeper.cdc,
 		map[string]int64{"token": tokenStoreKeyNum,
 			"lock": lockStoreKeyNum})

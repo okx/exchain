@@ -13,10 +13,10 @@ import (
 	"github.com/okex/okchain/x/token/types"
 )
 
-// DefaultTokenOwner default owner for okt
+// default owner of okt
 const DefaultTokenOwner = "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya"
 
-// GenesisState - all slashing state that must be provided at genesis
+// all state that must be provided in genesis file
 type GenesisState struct {
 	Params    types.Params     `json:"params"`
 	Tokens    []types.Token    `json:"tokens"`
@@ -24,18 +24,18 @@ type GenesisState struct {
 	LockFee   []types.AccCoins `json:"locked_fee"`
 }
 
-// DefaultGenesisState - default GenesisState used by Cosmos Hub
-func DefaultGenesisState() GenesisState {
+// default GenesisState used by Cosmos Hub
+func defaultGenesisState() GenesisState {
 	return GenesisState{
 		Params:    types.DefaultParams(),
-		Tokens:    []types.Token{DefaultGenesisStateOKT()},
+		Tokens:    []types.Token{defaultGenesisStateOKT()},
 		LockCoins: nil,
 		LockFee:   nil,
 	}
 }
 
-// DefaultGenesisStateOKT default okt information
-func DefaultGenesisStateOKT() types.Token {
+// default okt information
+func defaultGenesisStateOKT() types.Token {
 	addr, err := sdk.AccAddressFromBech32(DefaultTokenOwner)
 	if err != nil {
 		panic(err)
@@ -54,8 +54,7 @@ func DefaultGenesisStateOKT() types.Token {
 	}
 }
 
-// ValidateGenesis validates the slashing genesis parameters
-func ValidateGenesis(data GenesisState) error {
+func validateGenesis(data GenesisState) error {
 	for _, token := range data.Tokens {
 		msg := types.NewMsgTokenIssue(token.Description,
 			token.Symbol,
@@ -73,9 +72,9 @@ func ValidateGenesis(data GenesisState) error {
 	return nil
 }
 
-// InitGenesis initialize default parameters
+// initGenesis initialize default parameters
 // and the keeper's address to pubkey map
-func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
+func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 
 	for _, token := range data.Tokens {
@@ -96,7 +95,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 
 // ExportGenesis writes the current store values
 // to a genesis file, which can be imported again
-// with InitGenesis
+// with initGenesis
 func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
 	tokens := keeper.GetTokensInfo(ctx)
@@ -120,7 +119,7 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	}
 }
 
-// IssueOKT issue okt in initchain
+// IssueOKT issues okt in initchain
 func IssueOKT(ctx sdk.Context, k Keeper, genesisState json.RawMessage, acc auth.Account) error {
 	var data GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(genesisState, &data)
