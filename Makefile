@@ -76,6 +76,12 @@ update_vendor_deps:
 go-mod-cache: go.sum
 	@echo "--> Download go modules to local cache"
 	@go mod download
+.PHONY: go-mod-cache
+
+go.sum: go.mod
+	@echo "--> Ensure dependencies have not been modified"
+	@go mod verify
+	@go mod tidy
 
 cli:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
