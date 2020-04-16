@@ -173,11 +173,11 @@ func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoi
 		return err
 	}
 	// update lock coins
-	return k.updateLockCoins(ctx, addr, coins, true, lockCoinsType)
+	return k.updateLockedCoins(ctx, addr, coins, true, lockCoinsType)
 }
 
 // nolint
-func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool, lockCoinsType int) error {
+func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool, lockCoinsType int) error {
 	var key []byte
 	switch lockCoinsType {
 	case types.LockCoinsTypeQuantity:
@@ -228,7 +228,7 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 // nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
 	// update lock coins
-	if err := k.updateLockCoins(ctx, addr, coins, false, lockCoinsType); err != nil {
+	if err := k.updateLockedCoins(ctx, addr, coins, false, lockCoinsType); err != nil {
 		return err
 	}
 
@@ -241,7 +241,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecC
 }
 
 // GetLockCoins gets locked coins by address
-func (k Keeper) GetLockCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.DecCoins) {
+func (k Keeper) GetLockedCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.DecCoins) {
 	store := ctx.KVStore(k.lockStoreKey)
 	coinsBytes := store.Get(types.GetLockAddress(addr.Bytes()))
 	if coinsBytes == nil {
@@ -252,7 +252,7 @@ func (k Keeper) GetLockCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.De
 }
 
 // GetAllLockCoins iterates KVStore and gets all of the locked coins
-func (k Keeper) GetAllLockCoins(ctx sdk.Context) (locks []types.AccCoins) {
+func (k Keeper) GetAllLockedCoins(ctx sdk.Context) (locks []types.AccCoins) {
 	store := ctx.KVStore(k.lockStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.LockKey)
 	defer iter.Close()
@@ -270,7 +270,7 @@ func (k Keeper) GetAllLockCoins(ctx sdk.Context) (locks []types.AccCoins) {
 }
 
 // IterateAllDeposits iterates over the all the stored lock fee and performs a callback function
-func (k Keeper) IterateLockFee(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
+func (k Keeper) IterateLockedFee(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
 	store := ctx.KVStore(k.lockStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.LockedFeeKey)
 	defer iter.Close()
@@ -292,7 +292,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins
 	inputCoins sdk.DecCoins) (err error) {
 
 	if !outputCoins.IsZero() {
-		if err = k.updateLockCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
+		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
 			return err
 		}
 	}
@@ -323,10 +323,10 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 // GetCoinsInfo gets all of the coin info by addr
 func (k Keeper) GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) (coinsInfo types.CoinsInfo) {
 	availableCoins := k.GetCoins(ctx, addr)
-	lockCoins := k.GetLockCoins(ctx, addr)
+	lockedCoins := k.GetLockedCoins(ctx, addr)
 
 	// merge coins
-	coinsInfo = types.MergeCoinInfo(availableCoins, lockCoins)
+	coinsInfo = types.MergeCoinInfo(availableCoins, lockedCoins)
 	return coinsInfo
 }
 

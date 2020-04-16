@@ -17,15 +17,15 @@ func RegisterInvariants(ir sdk.InvariantRegistry, keeper Keeper) {
 // locks amounts held on store
 func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var lockCoins, lockFee, orderLockFee sdk.DecCoins
+		var lockedCoins, lockedFee, orderLockedFee sdk.DecCoins
 
-		for _, accCoins := range keeper.tokenKeeper.GetAllLockCoins(ctx) {
-			lockCoins = lockCoins.Add(accCoins.Coins)
+		for _, accCoins := range keeper.tokenKeeper.GetAllLockedCoins(ctx) {
+			lockedCoins = lockedCoins.Add(accCoins.Coins)
 		}
 
 		// lock fee
-		keeper.tokenKeeper.IterateLockFee(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
-			lockFee = lockFee.Add(coins)
+		keeper.tokenKeeper.IterateLockedFee(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+			lockedFee = lockedFee.Add(coins)
 			return false
 		})
 
@@ -40,21 +40,21 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 				orderIDList = append(orderIDList, keeper.GetProductPriceOrderIDs(sellKey)...)
 				for _, orderID := range orderIDList {
 					order := keeper.GetOrder(ctx, orderID)
-					orderLockFee = orderLockFee.Add(GetOrderNewFee(order))
+					orderLockedFee = orderLockedFee.Add(GetOrderNewFee(order))
 				}
 			}
 		}
 
-		if !lockFee.IsEqual(orderLockFee) {
+		if !lockedFee.IsEqual(orderLockedFee) {
 			return sdk.FormatInvariant(types.ModuleName, "locks",
-				fmt.Sprintf("\ttoken LockFee coins: %s\n\tsum of order locks fee amounts:  %s\n",
-					lockFee, orderLockFee)), true
+				fmt.Sprintf("\ttoken LockedFee coins: %s\n\tsum of order locked fee amounts:  %s\n",
+					lockedFee, orderLockedFee)), true
 		}
 
 		macc := keeper.supplyKeeper.GetModuleAccount(ctx, token.ModuleName)
-		broken := !macc.GetCoins().IsEqual(lockCoins.Add(lockFee))
+		broken := !macc.GetCoins().IsEqual(lockedCoins.Add(lockedFee))
 		return sdk.FormatInvariant(types.ModuleName, "locks",
 			fmt.Sprintf("\ttoken ModuleAccount coins: %s\n\tsum of locks amounts:  %s\n",
-				macc.GetCoins(), lockCoins.Add(lockFee))), broken
+				macc.GetCoins(), lockedCoins.Add(lockedFee))), broken
 	}
 }

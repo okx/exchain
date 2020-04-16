@@ -31,8 +31,8 @@ func Migrate(oldGenState v08token.GenesisState, oldgovParams v08gov.GovParams) G
 		}
 	}
 	return GenesisState{
-		Params:    params,
-		Tokens:    tokens,
-		LockCoins: oldGenState.LockCoins,
+		Params:      params,
+		Tokens:      tokens,
+		LockedAsset: oldGenState.LockCoins,
 	}
 }
