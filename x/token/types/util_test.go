@@ -57,12 +57,12 @@ func TestMergeCoinInfo(t *testing.T) {
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(100)),
 	}
 
-	lockCoins := sdk.DecCoins{
+	lockedCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("abc", sdk.NewDec(100)),
 	}
 
-	coinsInfo := MergeCoinInfo(availableCoins, lockCoins)
+	coinsInfo := MergeCoinInfo(availableCoins, lockedCoins)
 	expectedCoinsInfo := CoinsInfo{
 		CoinInfo{"abc", "0", "100.00000000"},
 		CoinInfo{"bnb", "100.00000000", "0"},
