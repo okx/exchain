@@ -1030,7 +1030,7 @@ func TestTxSuccessFeeTable(t *testing.T) {
 	// successful issue msg
 	successfulIssueMsg := types.NewMsgTokenIssue("xxb", "xxb", "xxb", "xx coin", "500", testAccounts[0].baseAccount.Address, true)
 
-	symbolAfterIssue, ok := AddTokenSuffix(ctx, app.tokenKeeper, "xxb")
+	symbolAfterIssue, ok := addTokenSuffix(ctx, app.tokenKeeper, "xxb")
 	require.True(t, ok)
 
 	decCoin := sdk.NewDecCoinFromDec(symbolAfterIssue, sdk.NewDec(50))
