@@ -21,6 +21,7 @@ type GenesisState struct {
 	Params    types.Params     `json:"params"`
 	Tokens    []types.Token    `json:"tokens"`
 	LockCoins []types.AccCoins `json:"locked_asset"`
+	LockFee   []types.AccCoins `json:"locked_fee"`
 }
 
 // default GenesisState used by Cosmos Hub
@@ -29,6 +30,7 @@ func defaultGenesisState() GenesisState {
 		Params:    types.DefaultParams(),
 		Tokens:    []types.Token{defaultGenesisStateOKT()},
 		LockCoins: nil,
+		LockFee:   nil,
 	}
 }
 
@@ -80,7 +82,12 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	}
 
 	for _, lock := range data.LockCoins {
-		if err := keeper.updateLockCoins(ctx, lock.Acc, lock.Coins, true); err != nil {
+		if err := keeper.updateLockCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeQuantity); err != nil {
+			panic(err)
+		}
+	}
+	for _, lock := range data.LockFee {
+		if err := keeper.updateLockCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeFee); err != nil {
 			panic(err)
 		}
 	}
@@ -94,10 +101,21 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	tokens := keeper.GetTokensInfo(ctx)
 	locks := keeper.GetAllLockCoins(ctx)
 
+	var lockFee []types.AccCoins
+	keeper.IterateLockFee(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+		lockFee = append(lockFee,
+			types.AccCoins{
+				Acc:   acc,
+				Coins: coins,
+			})
+		return false
+	})
+
 	return GenesisState{
 		Params:    params,
 		Tokens:    tokens,
 		LockCoins: locks,
+		LockFee:   lockFee,
 	}
 }
 

@@ -169,26 +169,33 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 
 // nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
-	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
-	if err != nil {
+	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
 		return err
 	}
 	// update lock coins
-	if lockCoinsType == types.LockCoinsTypeQuantity {
-		return k.updateLockCoins(ctx, addr, coins, true)
-	}
-	return nil
+	return k.updateLockCoins(ctx, addr, coins, true, lockCoinsType)
 }
 
 // nolint
-func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool) error {
+func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool, lockCoinsType int) error {
+	var key []byte
+	switch lockCoinsType {
+	case types.LockCoinsTypeQuantity:
+		key = types.GetLockAddress(addr.Bytes())
+	case types.LockCoinsTypeFee:
+		key = types.GetLockFeeAddress(addr.Bytes())
+	default:
+		return fmt.Errorf("unrecognized lock coins type: %d", lockCoinsType)
+	}
+
 	var newCoins sdk.DecCoins
 	var oldCoins sdk.DecCoins
 
 	store := ctx.KVStore(k.lockStoreKey)
-	coinsBytes := store.Get(types.GetLockAddress(addr.Bytes()))
+	coinsBytes := store.Get(key)
 
 	if doAdd {
+		// lock coins
 		if coinsBytes == nil {
 			newCoins = coins
 		} else {
@@ -196,6 +203,7 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 			newCoins = oldCoins.Add(coins)
 		}
 	} else {
+		// unlock coins
 		if coinsBytes == nil {
 			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
 		}
@@ -203,15 +211,15 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 		var isNegative bool
 		newCoins, isNegative = oldCoins.SafeSub(coins)
 		if isNegative {
-			return fmt.Errorf("failed to lock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
+			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
 		}
 	}
 
 	sort.Sort(newCoins)
 	if len(newCoins) > 0 {
-		store.Set(types.GetLockAddress(addr.Bytes()), k.cdc.MustMarshalBinaryBare(newCoins))
+		store.Set(key, k.cdc.MustMarshalBinaryBare(newCoins))
 	} else {
-		store.Delete(types.GetLockAddress(addr.Bytes()))
+		store.Delete(key)
 	}
 
 	return nil
@@ -220,16 +228,12 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 // nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
 	// update lock coins
-	if lockCoinsType == types.LockCoinsTypeQuantity {
-		err := k.updateLockCoins(ctx, addr, coins, false)
-		if err != nil {
-			return err
-		}
+	if err := k.updateLockCoins(ctx, addr, coins, false, lockCoinsType); err != nil {
+		return err
 	}
 
 	// update account
-	err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
-	if err != nil {
+	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
 		return errors.New(err.Error())
 	}
 
@@ -265,24 +269,39 @@ func (k Keeper) GetAllLockCoins(ctx sdk.Context) (locks []types.AccCoins) {
 	return locks
 }
 
+// IterateAllDeposits iterates over the all the stored lock fee and performs a callback function
+func (k Keeper) IterateLockFee(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
+	store := ctx.KVStore(k.lockStoreKey)
+	iter := sdk.KVStorePrefixIterator(store, types.LockedFeeKey)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		acc := iter.Key()[len(types.LockKey):]
+
+		var coins sdk.DecCoins
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &coins)
+
+		if cb(acc, coins) {
+			break
+		}
+	}
+}
+
 // BalanceAccount is ONLY expected by the order module to settle an order where outputCoins
 // is used to exchange inputCoins
 func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins,
 	inputCoins sdk.DecCoins) (err error) {
 
 	if !outputCoins.IsZero() {
-		err = k.updateLockCoins(ctx, addr, outputCoins, false)
-	}
-
-	if err != nil {
-		return err
+		if err = k.updateLockCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
+			return err
+		}
 	}
 
 	if !inputCoins.IsZero() {
-		err = k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, inputCoins)
+		return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, inputCoins)
 	}
 
-	return err
+	return nil
 }
 
 // nolint
