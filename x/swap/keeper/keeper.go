@@ -9,12 +9,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/token"
+	tokentypes "github.com/okex/okchain/x/token/types"
 )
 
 // Keeper of the swap store
 type Keeper struct {
 	bankKeeper   bank.Keeper
 	supplyKeeper supply.Keeper
+	tokenKeeper  types.TokenKeeper
 
 	storeKey   sdk.StoreKey
 	cdc        *codec.Codec
@@ -22,10 +25,11 @@ type Keeper struct {
 }
 
 // NewKeeper creates a swap keeper
-func NewKeeper(bankKeeper bank.Keeper, supplyKeeper supply.Keeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
+func NewKeeper(bankKeeper bank.Keeper, supplyKeeper supply.Keeper, tokenKeeper token.Keeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
 	keeper := Keeper{
 		bankKeeper:   bankKeeper,
 		supplyKeeper: supplyKeeper,
+		tokenKeeper:  tokenKeeper,
 		storeKey:     key,
 		cdc:          cdc,
 		paramspace:   paramspace.WithKeyTable(types.ParamKeyTable()),
@@ -43,10 +47,16 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, quote string) (types.SwapToken
 	store := ctx.KVStore(k.storeKey)
 	var item types.SwapTokenPair
 	byteKey := []byte(quote)
-	err := k.cdc.UnmarshalBinaryLengthPrefixed(store.Get(byteKey), &item)
+	rawItem := store.Get(byteKey)
+	if rawItem == nil && quote == types.TestQuotePooledCoin {
+		item = types.GetTestSwapTokenPair()
+		k.SetSwapTokenPair(ctx, quote, item)
+	}
+	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
 		return types.SwapTokenPair{}, err
 	}
+
 	return item, nil
 }
 
@@ -67,4 +77,36 @@ func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, quote string) {
 func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return sdk.KVStorePrefixIterator(store, []byte{})
+}
+
+
+// NewToken new token
+func (k Keeper) NewPoolToken(ctx sdk.Context, token tokentypes.Token) {
+	k.tokenKeeper.NewToken(ctx, token)
+}
+
+// GetTokenInfo gets the token's info
+func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) tokentypes.Token {
+	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
+	if poolToken.Owner == nil {
+		poolToken = types.InitPoolToken(symbol)
+		k.NewPoolToken(ctx, poolToken)
+	}
+	return poolToken
+}
+
+func (k Keeper) UpdatePoolToken(ctx sdk.Context, token tokentypes.Token) {
+	k.tokenKeeper.UpdateToken(ctx, token)
+}
+
+func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
+	if err != nil {
+		return err
+	}
+	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
+}
+
+func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 }

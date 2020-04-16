@@ -40,6 +40,7 @@ import (
 	upgradeClient "github.com/okex/okchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/okchain/x/swap"
 )
 
 var (
@@ -92,6 +93,7 @@ var (
 		order.ModuleName:          nil,
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
+		swap.ModuleName:           {supply.Minter, supply.Burner},
 	}
 )
 
@@ -317,7 +319,7 @@ func (p *ProtocolV0) produceKeepers() {
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
-		AddRoute(distr.RouterKey,distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).

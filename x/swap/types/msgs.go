@@ -26,19 +26,21 @@ type Msg interface {
 }
 
 type MsgAddLiquidity struct {
-	MinLiquidity sdk.Dec        `json:"min_liquidity"` //Minimum number of sender will mint if total pool token supply is greater than 0.
-	MaxTokens    sdk.Dec        `json:"max_tokens"`    //Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
-	Deadline     sdk.Uint       `json:"deadline"`      //Time after which this transaction can no longer be executed.
-	Sender       sdk.AccAddress `json:"sender"`        //sender
+	MinLiquidity  sdk.Dec        `json:"min_liquidity"` //Minimum number of sender will mint if total pool token supply is greater than 0.
+	MaxBaseTokens sdk.DecCoin    `json:"max_tokens"`    //Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
+	QuoteTokens   sdk.DecCoin    `json:"base_tokens"`
+	Deadline      sdk.Uint       `json:"deadline"` //Time after which this transaction can no longer be executed.
+	Sender        sdk.AccAddress `json:"sender"`   //sender
 }
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxTokens sdk.Dec, deadline sdk.Uint, sender sdk.AccAddress) MsgAddLiquidity {
+func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseTokens, quoteTokens sdk.DecCoin, deadline sdk.Uint, sender sdk.AccAddress) MsgAddLiquidity {
 	return MsgAddLiquidity{
-		MinLiquidity: minLiquidity,
-		MaxTokens:    maxTokens,
-		Deadline:     deadline,
-		Sender:       sender,
+		MinLiquidity:  minLiquidity,
+		MaxBaseTokens: maxBaseTokens,
+		QuoteTokens:   quoteTokens,
+		Deadline:      deadline,
+		Sender:        sender,
 	}
 }
 
@@ -53,8 +55,14 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if msg.MinLiquidity.IsPositive() && msg.MaxTokens.IsPositive() {
-		return sdk.ErrUnknownRequest("MinLiquidity/MaxTokens must be positive")
+	if !(msg.MinLiquidity.IsPositive() && msg.MaxBaseTokens.IsPositive() && msg.QuoteTokens.IsPositive()) {
+		return sdk.ErrUnknownRequest("tokens must be positive")
+	}
+	if !msg.MaxBaseTokens.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MaxQuoteTokens")
+	}
+	if !msg.QuoteTokens.IsValid() {
+		return sdk.ErrUnknownRequest("invalid BaseTokens")
 	}
 	return nil
 }
@@ -67,4 +75,8 @@ func (msg MsgAddLiquidity) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+func (msg MsgAddLiquidity) GetSwapTokenPair() string {
+	return msg.MaxBaseTokens.Denom + "_" + msg.QuoteTokens.Denom
 }
