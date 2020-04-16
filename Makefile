@@ -75,7 +75,7 @@ update_vendor_deps:
 
 go-mod-cache:
 	@echo "--> Download go modules to local cache"
-	@go mod edit -replace=github.com/cosmos/cosmos-sdk=github.com/okex/cosmos-sdk@$(COMMIT)
+	@go clean -modcache
 	@go mod download
 
 cli:
