@@ -32,10 +32,10 @@ jobs:
     working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps:
       - checkout
-      - restore_cache:
-          name: Restore go modules cache
-          keys:
-            - go-mod-v1-{{ checksum "go.sum" }}
+#       - restore_cache:
+#           name: Restore go modules cache
+#           keys:
+#             - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Cache go modules
           command: make go-mod-cache
