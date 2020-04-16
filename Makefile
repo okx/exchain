@@ -73,7 +73,7 @@ update_vendor_deps:
 	@rm -rf .vendor-new
 	@dep ensure -v -update
 
-go-mod-cache: go.sum
+go-mod-cache:
 	@echo "--> Download go modules to local cache"
 	@go mod download
 
