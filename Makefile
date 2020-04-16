@@ -76,6 +76,7 @@ update_vendor_deps:
 
 go-mod-cache:
 	@echo "--> Download go modules to local cache"
+	@echo $(GOPATH)
 	@rm -rf $(GOPATH)/pkg/mod
 	@go mod download
 
