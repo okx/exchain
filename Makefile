@@ -1,5 +1,6 @@
 maDEP := $(shell command -v dep 2> /dev/null)
 SUM := $(shell which shasum)
+GOPATH := $(shell echo $(GOPATH))
 
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
