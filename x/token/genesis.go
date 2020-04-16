@@ -18,19 +18,19 @@ const DefaultTokenOwner = "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya"
 
 // all state that must be provided in genesis file
 type GenesisState struct {
-	Params      types.Params     `json:"params"`
-	Tokens      []types.Token    `json:"tokens"`
-	LockedAsset []types.AccCoins `json:"locked_asset"`
-	LockedFee   []types.AccCoins `json:"locked_fee"`
+	Params       types.Params     `json:"params"`
+	Tokens       []types.Token    `json:"tokens"`
+	LockedAssets []types.AccCoins `json:"locked_assets"`
+	LockedFees   []types.AccCoins `json:"locked_fees"`
 }
 
 // default GenesisState used by Cosmos Hub
 func defaultGenesisState() GenesisState {
 	return GenesisState{
-		Params:      types.DefaultParams(),
-		Tokens:      []types.Token{defaultGenesisStateOKT()},
-		LockedAsset: nil,
-		LockedFee:   nil,
+		Params:       types.DefaultParams(),
+		Tokens:       []types.Token{defaultGenesisStateOKT()},
+		LockedAssets: nil,
+		LockedFees:   nil,
 	}
 }
 
@@ -81,12 +81,12 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 		keeper.NewToken(ctx, token)
 	}
 
-	for _, lock := range data.LockedAsset {
+	for _, lock := range data.LockedAssets {
 		if err := keeper.updateLockedCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeQuantity); err != nil {
 			panic(err)
 		}
 	}
-	for _, lock := range data.LockedFee {
+	for _, lock := range data.LockedFees {
 		if err := keeper.updateLockedCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeFee); err != nil {
 			panic(err)
 		}
@@ -101,9 +101,9 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	tokens := keeper.GetTokensInfo(ctx)
 	lockedAsset := keeper.GetAllLockedCoins(ctx)
 
-	var lockedFee []types.AccCoins
-	keeper.IterateLockedFee(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
-		lockedFee = append(lockedFee,
+	var lockedFees []types.AccCoins
+	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+		lockedFees = append(lockedFees,
 			types.AccCoins{
 				Acc:   acc,
 				Coins: coins,
@@ -112,10 +112,10 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	})
 
 	return GenesisState{
-		Params:      params,
-		Tokens:      tokens,
-		LockedAsset: lockedAsset,
-		LockedFee:   lockedFee,
+		Params:       params,
+		Tokens:       tokens,
+		LockedAssets: lockedAsset,
+		LockedFees:   lockedFees,
 	}
 }
 

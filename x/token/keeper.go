@@ -270,7 +270,7 @@ func (k Keeper) GetAllLockedCoins(ctx sdk.Context) (locks []types.AccCoins) {
 }
 
 // IterateAllDeposits iterates over the all the stored lock fee and performs a callback function
-func (k Keeper) IterateLockedFee(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
+func (k Keeper) IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
 	store := ctx.KVStore(k.lockStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.LockedFeeKey)
 	defer iter.Close()
