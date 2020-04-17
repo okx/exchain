@@ -52,10 +52,12 @@ var (
 	InitMsd2000         = sdk.NewDec(2000)
 	// TODO: remove it later
 	DefaultValidInitMsd = InitMsd2000.Add(sdk.NewDec(1))
-	MaxDelegatedToken   = InitMsd2000.MulInt64(4)
+	MaxDelegatedToken   = InitMsd2000.MulInt64(2)
 
 	DefaultMSD          = types.DefaultMinSelfDelegation
 	VotesFromDefaultMSD = sdk.OneDec()
+	DelegatedToken1     = VotesFromDefaultMSD.MulInt64(1024)
+	DelegatedToken2     = VotesFromDefaultMSD.MulInt64(2048)
 )
 
 var (
@@ -784,7 +786,8 @@ func queryPoolCheck(expBonded *sdk.Dec, expUnbonded *sdk.Dec) actResChecker {
 		totalBonded := stkKeeper.TotalBondedTokens(ctx)
 		bonedRatio := stkKeeper.BondedRatio(ctx)
 		require.True(t, totalBonded.GT(sdk.ZeroDec()))
-		require.True(t, bonedRatio.GT(sdk.ZeroDec()))
+		// bonedRatio will be equals to Zero when there is only msd in the pool
+		require.True(t, bonedRatio.GTE(sdk.ZeroDec()))
 
 		return b1 && b2
 
@@ -910,7 +913,6 @@ func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 	return ctx
 }
 
-
 func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator int) {
 
 	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.currentHeight)
@@ -927,17 +929,16 @@ func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator 
 		tc.originVaSet = append(tc.originVaSet, lastStatus)
 	}
 
-	// delegators
+	// two delegators
 	handler := NewHandler(tc.mockKeeper.Keeper)
-	coins := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, MaxDelegatedToken)
 
-	dlgAddrs := []sdk.AccAddress{ValidDelegator1, ValidDelegator2}
-	for _, addr := range dlgAddrs {
-		msgDelegate1 := NewMsgDelegate(addr, coins)
-		handler(ctx, msgDelegate1)
-		delegator, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, addr)
-		tc.originDlgSet[delegator.DelegatorAddress.String()] = &delegator
-	}
+	handler(ctx, NewMsgDelegate(ValidDelegator1, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DelegatedToken1)))
+	delegator1, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, ValidDelegator1)
+	tc.originDlgSet[delegator1.DelegatorAddress.String()] = &delegator1
+
+	handler(ctx, NewMsgDelegate(ValidDelegator2, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DelegatedToken2)))
+	delegator2, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, ValidDelegator2)
+	tc.originDlgSet[delegator2.DelegatorAddress.String()] = &delegator2
 
 	endBlockAction{bAction}.apply(ctx, lastStatus, nil)
 	tc.currentHeight++

@@ -107,7 +107,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 
 		endBlockAction{bAction},
 		// clear the votes on the startUpValidator
-		delegatorUnbondAction{bAction, ValidDelegator1, MaxDelegatedToken, sdk.DefaultBondDenom},
+		delegatorUnbondAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
@@ -354,7 +354,6 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -372,11 +371,12 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
 		endBlockAction{bAction},
+		delegatorsVoteAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
-		delegatorsVoteAction{bAction, false, true, 0, nil},
+		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorUnbondAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
@@ -386,6 +386,7 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Unbonded.String()),
+		validatorDelegatorShareIncreased(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		voteChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
@@ -420,7 +421,6 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -432,56 +432,60 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 	copy(fullVaSet[orgValsLen:], []sdk.ValAddress{startUpStatus.getValidator().GetOperator()})
 
 	expZeroDec := sdk.ZeroDec()
-	expVasBondedToken := DefaultValidInitMsd.MulInt64(int64(len(originVaSet))).Add(
-		startUpValidator.MinSelfDelegation)
-	expDlgGrpBondedToken := MaxDelegatedToken.MulInt64(int64(len(ValidDlgGroup)))
-	expAllBondedToken := expVasBondedToken.Add(expDlgGrpBondedToken)
+	expValsBondedToken := DefaultMSD.MulInt64(int64(len(fullVaSet)))
+	expDlgGrpBondedToken := DelegatedToken1.Add(DelegatedToken2)
+	expAllBondedToken := expValsBondedToken.Add(expDlgGrpBondedToken)
 	startUpCheck := andChecker{[]actResChecker{
 		queryPoolCheck(&expAllBondedToken, &expZeroDec),
 		noErrorInHandlerResult(true),
 	}}
 
-	// after delegator in group finish voting, do following check.
+	// after delegator in group finish voting, do following check
 	voteChecker := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(true),
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryDelegatorCheck(ValidDelegator1, true, fullVaSet, nil, &MaxDelegatedToken, &expZeroDec),
+		queryDelegatorCheck(ValidDelegator2, true, fullVaSet, nil, &DelegatedToken2, &expZeroDec),
 		queryAllValidatorCheck([]sdk.BondStatus{sdk.Unbonded, sdk.Bonded, sdk.Unbonding}, []int{1, 4, 0}),
-		queryVotesToCheck(startUpStatus.getValidator().OperatorAddress, 2, ValidDlgGroup),
+		queryVotesToCheck(startUpStatus.getValidator().OperatorAddress, 1, []sdk.AccAddress{ValidDelegator2}),
 		queryPoolCheck(&expAllBondedToken, &expZeroDec),
 		noErrorInHandlerResult(true),
 	}}
 
-	// All Deleagtor Unbond 4000 okt * 2 (half of original delegated tokens)
-	expDlgBondedTokens1 := MaxDelegatedToken.QuoInt64(2)
+	// All Deleagtor Unbond half of the delegation
+	expDlgBondedTokens1 := DelegatedToken1.QuoInt64(2)
 	expDlgUnbondedToken1 := expDlgBondedTokens1
-	expAllUnBondedToken1 := expDlgUnbondedToken1.MulInt64(2)
-	expAllBondedToken1 := expAllBondedToken.Sub(expAllUnBondedToken1)
+	expDlgBondedTokens2 := DelegatedToken2.QuoInt64(2)
+	expDlgUnbondedToken2 := expDlgBondedTokens2
+	expAllUnBondedToken1 := expDlgUnbondedToken1.Add(expDlgUnbondedToken2)
+	expAllBondedToken1 := DefaultMSD.MulInt64(int64(len(fullVaSet))).Add(expDlgBondedTokens1).Add(expDlgBondedTokens2)
 	undelegateChecker1 := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryDelegatorCheck(ValidDelegator1, true, fullVaSet, nil, &expDlgBondedTokens1, &expDlgUnbondedToken1),
+		queryDelegatorCheck(ValidDelegator1, true, originVaSet, nil, &expDlgBondedTokens1, &expDlgUnbondedToken1),
+		queryDelegatorCheck(ValidDelegator2, true, fullVaSet, nil, &expDlgBondedTokens2, &expDlgUnbondedToken2),
 		queryAllValidatorCheck([]sdk.BondStatus{sdk.Unbonded, sdk.Bonded, sdk.Unbonding}, []int{1, 4, 0}),
-		queryVotesToCheck(startUpStatus.getValidator().OperatorAddress, 2, ValidDlgGroup),
+		queryVotesToCheck(startUpStatus.getValidator().OperatorAddress, 1, []sdk.AccAddress{ValidDelegator2}),
 		queryPoolCheck(&expAllBondedToken1, &expAllUnBondedToken1),
 	}}
 
-	// All Deleagtor left bonded 4000 okt * 2 (another half of original delegated tokens)
-	expDlgGrpUnbonded2 := MaxDelegatedToken.MulInt64(int64(len(ValidDlgGroup)))
-	expAllBondedToken2 := expAllBondedToken.Sub(expDlgGrpUnbonded2)
+	// All Deleagtor Unbond the delegation left
+	expDlgGrpUnbonded2 := expZeroDec
+	expAllBondedToken2 := DefaultMSD.MulInt64(int64(len(fullVaSet)))
 	undelegateChecker2 := andChecker{[]actResChecker{
 		// cannot find unbonding token in GetUnbonding info
 		queryDelegatorCheck(ValidDelegator1, false, []sdk.ValAddress{}, nil, &expZeroDec, nil),
+		queryDelegatorCheck(ValidDelegator2, false, []sdk.ValAddress{}, nil, &expZeroDec, nil),
 		queryAllValidatorCheck([]sdk.BondStatus{sdk.Unbonded, sdk.Bonded, sdk.Unbonding}, []int{1, 4, 0}),
 		queryVotesToCheck(startUpStatus.getValidator().OperatorAddress, 0, []sdk.AccAddress{}),
-		queryPoolCheck(&expAllBondedToken2, &expZeroDec),
+		queryPoolCheck(&expAllBondedToken2, &expDlgGrpUnbonded2),
 	}}
 
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
 		endBlockAction{bAction},
+		delegatorsVoteAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
-		delegatorsVoteAction{bAction, true, true, 0, nil},
+		delegatorsVoteAction{bAction, true, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		delegatorsUnBondAction{bAction, true, false},
@@ -495,6 +499,7 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 	actionsAndChecker := []actResChecker{
 		startUpCheck.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
+		validatorDelegatorShareIncreased(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		voteChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
