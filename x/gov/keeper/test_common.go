@@ -29,6 +29,8 @@ import (
 var (
 	// Addrs store generated addresses for test
 	Addrs = createTestAddrs(500)
+
+	DefaultMSD = sdk.NewDecWithPrec(1, 3)
 )
 
 var (
@@ -79,7 +81,7 @@ func CreateValidators(
 		valCreateMsg := staking.NewMsgCreateValidator(
 			addrs[i], pubkeys[i],
 			testDescription,
-			sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10000),
+			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DefaultMSD),
 		)
 
 		res := stakingHandler(ctx, valCreateMsg)
