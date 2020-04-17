@@ -122,13 +122,13 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if err != nil {
 		return err.Result()
 	}
-	fixedMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), types.FixedMinSelfDelegation)
-	validator.MinSelfDelegation = fixedMinSelfDelegationToken.Amount
+	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), types.DefaultMinSelfDelegation)
+	validator.MinSelfDelegation = defaultMinSelfDelegationToken.Amount
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
 	// vote msd for validator itself
-	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, fixedMinSelfDelegationToken); err != nil {
+	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)

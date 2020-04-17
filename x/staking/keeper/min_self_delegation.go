@@ -16,7 +16,7 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 	}
 
 	// 1.check the remained vote from validator
-	remainVotes := validator.GetDelegatorShares().Sub(k.getVotesFromFixedMinSelfDelegation())
+	remainVotes := validator.GetDelegatorShares().Sub(k.getVotesFromDefaultMinSelfDelegation())
 	if remainVotes.LT(sdk.ZeroDec()) {
 		return completionTime, types.ErrMoreMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
 	}
@@ -78,13 +78,13 @@ func (k Keeper) VoteMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, v
 func (k Keeper) voteMinSelfDelegation(ctx sdk.Context, pValidator *types.Validator) {
 	k.DeleteValidatorByPowerIndex(ctx, *pValidator)
 	//TODO: current rule: any msd -> 1 votes
-	voteDec := k.getVotesFromFixedMinSelfDelegation()
-	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(voteDec)
+	votes := k.getVotesFromDefaultMinSelfDelegation()
+	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(votes)
 	k.SetValidator(ctx, *pValidator)
 	k.SetValidatorByPowerIndex(ctx, *pValidator)
 }
 
 // RULES: any msd -> 1 votes
-func (k Keeper) getVotesFromFixedMinSelfDelegation() sdk.Dec {
+func (k Keeper) getVotesFromDefaultMinSelfDelegation() sdk.Dec {
 	return sdk.OneDec()
 }
