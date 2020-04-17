@@ -59,11 +59,11 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 	return
 }
 
-// VoteMinSelfDelegation votes fixed msd (0.001okt) to validator itself during the creation
+// VoteMinSelfDelegation votes default msd (0.001okt) to validator itself during the creation
 func (k Keeper) VoteMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator *types.Validator,
-	fixedMSDToken sdk.DecCoin) (err sdk.Error) {
-	// 0. transfer account's okt (0.001okt) into bondPool
-	coins := fixedMSDToken.ToCoins()
+	defaultMSDToken sdk.DecCoin) (err sdk.Error) {
+	// 0. transfer account's okt (0.001okt as default) into bondPool
+	coins := defaultMSDToken.ToCoins()
 	err = k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins)
 	if err != nil {
 		return err
