@@ -17,7 +17,6 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -41,10 +40,9 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 		baseProxyRegAction{bAction, ProxiedDelegator, false},
 	}
 
-	//expZeroInt := sdk.ZeroInt()
 	expZeroDec := sdk.ZeroDec()
-	expProxiedToken1 := MaxDelegatedToken
-	expProxiedToken2 := MaxDelegatedToken.MulInt64(2)
+	expProxiedToken1 := DelegatedToken1
+	expProxiedToken2 := expProxiedToken1.Add(DelegatedToken2)
 	prxBindChecker1 := andChecker{[]actResChecker{
 		queryDelegatorProxyCheck(ValidDelegator1, false, true, &expZeroDec, &ProxiedDelegator, nil),
 		queryDelegatorProxyCheck(ValidDelegator2, false, false, &expZeroDec, nil, nil),
@@ -64,16 +62,14 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 		queryDelegatorProxyCheck(ValidDelegator2, false, true, &expZeroDec, &ProxiedDelegator, nil),
 		queryDelegatorProxyCheck(ProxiedDelegator, true, false, &expProxiedToken2, nil, nil),
 
-		queryDelegatorCheck(ValidDelegator1, true,
-			[]sdk.ValAddress{}, nil, &expProxiedToken1, nil),
-		queryDelegatorCheck(ProxiedDelegator, true,
-			[]sdk.ValAddress{startUpValidator.GetOperator()}, nil, &expProxiedToken1, nil),
+		queryDelegatorCheck(ValidDelegator1, true, []sdk.ValAddress{}, nil, &DelegatedToken1, nil),
+		queryDelegatorCheck(ProxiedDelegator, true, []sdk.ValAddress{startUpValidator.GetOperator()}, nil, &proxyOriginTokens, nil),
 		queryVotesToCheck(startUpValidator.GetOperator(), 1, []sdk.AccAddress{ProxiedDelegator}),
 	}}
 
 	prxUnbindChecker4 := andChecker{[]actResChecker{
 		queryDelegatorProxyCheck(ValidDelegator1, false, false, &expZeroDec, nil, nil),
-		queryDelegatorProxyCheck(ProxiedDelegator, true, false, &expProxiedToken1, nil, nil),
+		queryDelegatorProxyCheck(ProxiedDelegator, true, false, &DelegatedToken2, nil, nil),
 		validatorDelegatorShareIncreased(false),
 		delegatorVotesInvariantCheck(),
 		nonNegativePowerInvariantCustomCheck(),
@@ -201,7 +197,6 @@ func TestProxy(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -219,10 +214,11 @@ func TestProxy(t *testing.T) {
 		// failed to register & unregister
 		baseProxyRegAction{bAction, ProxiedDelegator, true},
 		baseProxyRegAction{bAction, ProxiedDelegator, false},
-		newDelegatorAction{bAction, ProxiedDelegator, MaxDelegatedToken.MulInt64(2), sdk.DefaultBondDenom},
+		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
 
 		// successfully regiester
-		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		// delegate again
+		newDelegatorAction{bAction, ProxiedDelegator, MaxDelegatedToken, sdk.DefaultBondDenom},
 		baseProxyRegAction{bAction, ProxiedDelegator, true},
 		baseProxyRegAction{bAction, ProxiedDelegator, true},
 
@@ -240,8 +236,8 @@ func TestProxy(t *testing.T) {
 		delegatorsVoteAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 
 		// redelegate & unbond
-		newDelegatorAction{bAction, ValidDelegator1, MaxDelegatedToken.QuoInt64(10), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator2, MaxDelegatedToken, sdk.DefaultBondDenom},
+		newDelegatorAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		delegatorUnbondAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 
 		// unbind
 		proxyUnBindAction{bAction, InvalidDelegator},
@@ -258,7 +254,7 @@ func TestProxy(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonded.String()),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
-		noErrorInHandlerResult(false),
+		noErrorInHandlerResult(true),
 
 		// register result
 		noErrorInHandlerResult(true),

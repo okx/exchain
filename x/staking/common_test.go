@@ -47,12 +47,11 @@ var (
 	ValidDelegator1     = addrDels[1]
 	ValidDelegator2     = addrDels[2]
 	ProxiedDelegator    = addrDels[3]
-	ValidDlgGroup       = []sdk.AccAddress{ValidDelegator1, ValidDelegator2}
 	SufficientInitPower = int64(10000)
 	InitMsd2000         = sdk.NewDec(2000)
 	// TODO: remove it later
 	DefaultValidInitMsd = InitMsd2000.Add(sdk.NewDec(1))
-	MaxDelegatedToken   = InitMsd2000.MulInt64(2)
+	MaxDelegatedToken   = sdk.NewDec(4096)
 
 	DefaultMSD          = types.DefaultMinSelfDelegation
 	VotesFromDefaultMSD = sdk.OneDec()
