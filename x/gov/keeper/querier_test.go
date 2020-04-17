@@ -363,7 +363,7 @@ func TestQueryTally(t *testing.T) {
 	require.NotNil(t, err)
 	require.Nil(t, bz)
 
-	expectedTally := newTallyResult(t, "10000", "10000", "0.0", "0.0", "0.0", "20000")
+	expectedTally := newTallyResult(t, "1", "1", "0.0", "0.0", "0.0", "2")
 	require.Equal(t, expectedTally, getQueriedTally(t, ctx, cdc, querier, proposal.ProposalID))
 
 	// proposal passed
