@@ -263,14 +263,15 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail2(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000.MulInt64(2)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
 	bAction := baseAction{mk}
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
+		delegatorsVoteAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
+		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		jailValidatorAction{bAction},
 		endBlockAction{bAction},
@@ -289,7 +290,9 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail2(t *testing.T) {
 
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
+		validatorDelegatorShareIncreased(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
+		validatorDelegatorShareIncreased(true),
 		validatorStatusChecker(sdk.Bonded.String()),
 		jailedChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonding.String()),
@@ -315,13 +318,13 @@ func TestValidatorSMEpochRotate(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000.MulInt64(2)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
 	bAction := baseAction{mk}
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
+		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		otherMostPowerfulValidatorEnter{bAction},
@@ -332,6 +335,7 @@ func TestValidatorSMEpochRotate(t *testing.T) {
 	actionsAndChecker := []actResChecker{
 		// startUpValidator created
 		validatorStatusChecker(sdk.Unbonded.String()),
+		validatorDelegatorShareIncreased(true),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Bonded.String()),
 

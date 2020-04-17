@@ -167,18 +167,29 @@ type otherMostPowerfulValidatorEnter struct {
 
 func (a otherMostPowerfulValidatorEnter) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 
-	newMsd := vaStatus.getValidator().MinSelfDelegation.MulInt64(2)
+	val := vaStatus.getValidator()
 
-	resultCtx.t.Logf("====> Apply otherMostPowerfulValidatorEnter[%d], newMsd: %s\n           ",
-		ctx.BlockHeight(), newMsd.String())
+	resultCtx.t.Logf("====> Apply otherMostPowerfulValidatorEnter[%d], msd: %s\n",
+		ctx.BlockHeight(), val.MinSelfDelegation)
 
 	newValidator := NewValidator(MostPowerfulVaAddr, MostPowerfulVaPub, Description{})
-	newValidator.MinSelfDelegation = newMsd
 
 	newVaStatus := baseValidatorStatus{newValidator}
 	cva := createValidatorAction{a.baseAction, nil}
 	cva.apply(ctx, newVaStatus, resultCtx)
-	resultCtx.t.Logf(newVaStatus.desc())
+
+	// increase the voting power by voting
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
+	handler(ctx, NewMsgVote(ValidDelegator2, []sdk.ValAddress{newValidator.OperatorAddress}))
+
+	// get the info of powerful validator
+	validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, newValidator.OperatorAddress)
+	if !found {
+		panic("failed to create a validator")
+	}
+	resultCtx.t.Logf("     ==>>> OtherMostPowerfulValidatorEnter Result: %s msd: %s, votes: %s\n",
+		validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
+
 }
 
 type destroyValidatorAction struct {
@@ -186,10 +197,11 @@ type destroyValidatorAction struct {
 }
 
 func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	val := vaStatus.getValidator()
 	resultCtx.t.Logf("====> Apply destroyValidatorAction[%d], msd: %s\n",
-		ctx.BlockHeight(), vaStatus.getValidator().GetMinSelfDelegation().String())
+		ctx.BlockHeight(), val.MinSelfDelegation)
 
-	msgDestroyValidator := types.NewMsgDestroyValidator(vaStatus.getValidator().GetOperator().Bytes())
+	msgDestroyValidator := types.NewMsgDestroyValidator(val.OperatorAddress.Bytes())
 	if err := msgDestroyValidator.ValidateBasic(); err != nil {
 		panic(err)
 	}
@@ -200,6 +212,13 @@ func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus
 	if resultCtx != nil {
 		resultCtx.txMsgResult = &msgResponse
 		resultCtx.isBlkHeightInc = false
+
+		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
+		if !found {
+			panic("validator is missing")
+		}
+		resultCtx.t.Logf("     ==>>> DestroyValidator Result: %s msd: %s, votes: %s\n",
+			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 }
 
@@ -208,14 +227,22 @@ type jailValidatorAction struct {
 }
 
 func (a jailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	val := vaStatus.getValidator()
 	resultCtx.t.Logf("====> Apply jailValidatorAction[%d], msd: %s\n",
-		ctx.BlockHeight(), vaStatus.getValidator().GetMinSelfDelegation().String())
+		ctx.BlockHeight(), val.MinSelfDelegation)
 
 	// No Response here
-	a.mStkKeeper.Jail(ctx, vaStatus.getValidator().GetConsAddr())
-	a.mStkKeeper.AppendAbandonedValidatorAddrs(ctx, vaStatus.getValidator().GetConsAddr())
+	a.mStkKeeper.Jail(ctx, val.GetConsAddr())
+	a.mStkKeeper.AppendAbandonedValidatorAddrs(ctx, val.GetConsAddr())
 	if resultCtx != nil {
 		resultCtx.isBlkHeightInc = false
+
+		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
+		if !found {
+			panic("validator is missing")
+		}
+		resultCtx.t.Logf("     ==>>> JailValidator Result: %s msd: %s, votes: %s\n",
+			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 }
 
@@ -224,12 +251,20 @@ type unJailValidatorAction struct {
 }
 
 func (a unJailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	val := vaStatus.getValidator()
 	resultCtx.t.Logf("====> Apply unJailValidatorAction[%d], msd: %s\n",
-		ctx.BlockHeight(), vaStatus.getValidator().GetMinSelfDelegation().String())
+		ctx.BlockHeight(), val.MinSelfDelegation)
 
-	a.mStkKeeper.Unjail(ctx, vaStatus.getValidator().GetConsAddr())
+	a.mStkKeeper.Unjail(ctx, val.GetConsAddr())
 	if resultCtx != nil {
 		resultCtx.isBlkHeightInc = false
+
+		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
+		if !found {
+			panic("validator is missing")
+		}
+		resultCtx.t.Logf("     ==>>> UnJailValidator Result: %s msd: %s, votes: %s\n",
+			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 
 }
