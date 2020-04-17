@@ -544,7 +544,6 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000.MulInt64(2)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -570,7 +569,6 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 		delegatorsUnBondAction{bAction, true, true},
 	}
 
-	//expZeroInt := sdk.ZeroInt()
 	expZeroDec := sdk.ZeroDec()
 	dlgVoteCheck1 := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(true),
@@ -591,10 +589,9 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 		queryDelegatorCheck(ValidDelegator1, false, nil, nil, &expZeroDec, nil),
 	}}
 
-	expDlgShare := startUpValidator.MinSelfDelegation
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryValidatorCheck(sdk.Bonded, false, &expDlgShare, &startUpValidator.MinSelfDelegation, nil),
+		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &startUpValidator.MinSelfDelegation, nil),
 		dlgVoteCheck1.GetChecker(),
 		nil,
 		queryValidatorCheck(sdk.Bonded, true, nil, &expZeroDec, nil),
@@ -625,7 +622,6 @@ func TestValidatorSMDestroyValidatorUnbonding2Removed(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000.MulInt64(2)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -671,10 +667,9 @@ func TestValidatorSMDestroyValidatorUnbonding2Removed(t *testing.T) {
 		validatorRemoved(true),
 	}}
 
-	expDlgShare := startUpValidator.MinSelfDelegation
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryValidatorCheck(sdk.Bonded, false, &expDlgShare, &startUpValidator.MinSelfDelegation, nil),
+		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &startUpValidator.MinSelfDelegation, nil),
 		dlgVoteCheck1.GetChecker(),
 		nil,
 		queryValidatorCheck(sdk.Bonded, true, nil, &expZeroDec, nil),
