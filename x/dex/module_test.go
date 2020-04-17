@@ -2,6 +2,7 @@ package dex
 
 import (
 	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"testing"
 
@@ -28,7 +29,7 @@ func TestAppModule_Smoke(t *testing.T) {
 	// RegisterCodec
 	appModule.RegisterCodec(codec.New())
 
-	appModule.RegisterInvariants(nil)
+	appModule.RegisterInvariants(MockInvariantRegistry{})
 	rs := cliLcd.NewRestServer(dexKeeper.GetCDC(), nil)
 	appModule.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	handler := appModule.NewHandler()
@@ -70,3 +71,7 @@ func TestAppModule_Smoke(t *testing.T) {
 	spKeeper.behaveEvil = false
 	appModule.EndBlock(ctx, abci.RequestEndBlock{})
 }
+
+type MockInvariantRegistry struct{}
+
+func (ir MockInvariantRegistry) RegisterRoute(moduleName, route string, invar sdk.Invariant) {}
