@@ -201,7 +201,7 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 			Coins:   coins,
 		})
 
-		minSelfDelegation := sdk.NewDec(1000)
+		minSelfDelegation := sdk.MustNewDecFromStr("0.001")
 		msg := staking.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			valPubKeys[i],
