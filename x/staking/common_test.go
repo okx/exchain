@@ -50,7 +50,6 @@ var (
 	SufficientInitPower = int64(10000)
 	InitMsd2000         = sdk.NewDec(2000)
 	// TODO: remove it later
-	DefaultValidInitMsd = InitMsd2000.Add(sdk.NewDec(1))
 	MaxDelegatedToken   = sdk.NewDec(4096)
 
 	DefaultMSD          = types.DefaultMinSelfDelegation
