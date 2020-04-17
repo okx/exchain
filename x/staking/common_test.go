@@ -43,16 +43,19 @@ var (
 	MostPowerfulVaAddr = addrVals[len(addrVals)-1]
 	MostPowerfulVaPub  = PKs[len(PKs)-1]
 
-	InvalidDelegator         = addrDels[0]
-	ValidDelegator1          = addrDels[1]
-	ValidDelegator2          = addrDels[2]
-	ProxiedDelegator         = addrDels[3]
-	ValidDlgGroup            = []sdk.AccAddress{ValidDelegator1, ValidDelegator2}
-	SufficientInitPower      = int64(10000)
-	MinSelfDelegationLimited = sdk.NewDec(1000)
-	InitMsd2000              = sdk.NewDec(2000)
-	DefaultValidInitMsd      = InitMsd2000.Add(sdk.NewDec(1))
-	MaxDelegatedToken        = InitMsd2000.MulInt64(4)
+	InvalidDelegator    = addrDels[0]
+	ValidDelegator1     = addrDels[1]
+	ValidDelegator2     = addrDels[2]
+	ProxiedDelegator    = addrDels[3]
+	ValidDlgGroup       = []sdk.AccAddress{ValidDelegator1, ValidDelegator2}
+	SufficientInitPower = int64(10000)
+	InitMsd2000         = sdk.NewDec(2000)
+	// TODO: remove it later
+	DefaultValidInitMsd = InitMsd2000.Add(sdk.NewDec(1))
+	MaxDelegatedToken   = InitMsd2000.MulInt64(4)
+
+	DefaultMSD          = types.DefaultMinSelfDelegation
+	VotesFromDefaultMSD = sdk.OneDec()
 )
 
 var (
@@ -518,7 +521,7 @@ func noErrorInHandlerResult(expectNoError bool) actResChecker {
 func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.Dec, expMsd *sdk.Dec, expUnbdHght *int64) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 
 		basicParams := types.NewQueryValidatorParams(afterStatus.getValidator().OperatorAddress)
 		bz, _ := amino.MarshalJSON(basicParams)
@@ -553,7 +556,7 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.ValAddress, expShares *sdk.Dec,
 	expToken *sdk.Dec, expUnbondingToken *sdk.Dec) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 
 		cdc := ModuleCdc
@@ -627,7 +630,7 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 	expTotalDlgTokens *sdk.Dec, expBindedToProxy *sdk.AccAddress, expBindedDelegators []sdk.AccAddress) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 
 		//query delegator from keeper directly
 		dlg, found := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, dlgAddr)
@@ -686,7 +689,7 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 func queryAllValidatorCheck(expStatuses []sdk.BondStatus, expStatusCnt []int) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 		cdc := ModuleCdc
 
@@ -716,7 +719,7 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 		cdc := ModuleCdc
 
@@ -756,7 +759,7 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 func queryPoolCheck(expBonded *sdk.Dec, expUnbonded *sdk.Dec) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 		cdc := ModuleCdc
 
@@ -789,7 +792,7 @@ func queryPoolCheck(expBonded *sdk.Dec, expUnbonded *sdk.Dec) actResChecker {
 }
 
 func baseInVariantCheck(t *testing.T, invariant sdk.Invariant, resultCtx *ActionResultCtx) bool {
-	ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+	ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 	msg, broken := invariant(ctx)
 	if broken {
 		t.Error(msg)
@@ -828,7 +831,7 @@ func moduleAccountInvariantsCustomCheck() actResChecker {
 
 func getLatestGenesisValidatorCheck(expGenValCnt int) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
-		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.crrentHeight)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		genVals := GetLatestGenesisValidator(ctx, resultCtx.tc.mockKeeper.Keeper)
 		ok := assert.NotNil(t, genVals)
 		ok = ok && assert.Equal(t, expGenValCnt, len(genVals), genVals)
@@ -858,9 +861,9 @@ type basicStakingSMTestCase struct {
 	mockKeeper       keeper.MockStakingKeeper
 	stkParams        types.Params
 	startUpVaStatus  IValidatorStatus
-	seqenceActions   []IAction
+	sequenceActions  []IAction
 	actionsResChecks []actResChecker
-	crrentHeight     int64
+	currentHeight    int64
 	originDlgSet     map[string]*Delegator
 	originVaSet      []IValidatorStatus
 	test             *testing.T
@@ -885,7 +888,7 @@ func newValidatorSMTestCase(mk keeper.MockStakingKeeper, params types.Params, st
 
 	//initialization
 	stkKeeper := mk.Keeper
-	ctx := getNewContext(mk.MountedStore, tc.crrentHeight)
+	ctx := getNewContext(mk.MountedStore, tc.currentHeight)
 	stkKeeper.SetParams(ctx, tc.stkParams)
 
 	return tc
@@ -907,14 +910,14 @@ func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 	return ctx
 }
 
-func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator int, addedMsd int64) {
 
-	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.crrentHeight)
+func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator int) {
+
+	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.currentHeight)
 	bAction := baseAction{tc.mockKeeper}
 	var lastStatus IValidatorStatus
 	for i := 0; i < maxValidator; i++ {
 		v := NewValidator(addrVals[i+1], PKs[i+1], Description{})
-		v.MinSelfDelegation = DefaultValidInitMsd
 
 		lastStatus = baseValidatorStatus{v}
 		result := ActionResultCtx{}
@@ -937,11 +940,11 @@ func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator 
 	}
 
 	endBlockAction{bAction}.apply(ctx, lastStatus, nil)
-	tc.crrentHeight++
+	tc.currentHeight++
 }
 
 func (tc *basicStakingSMTestCase) printParticipantSnapshot(t *testing.T) {
-	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.crrentHeight)
+	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.currentHeight)
 
 	allVas := tc.mockKeeper.Keeper.GetAllValidators(ctx)
 	t.Logf("        ==> Debug Validator Set & Delegators info ")
@@ -962,17 +965,17 @@ func (tc *basicStakingSMTestCase) printParticipantSnapshot(t *testing.T) {
 func (tc *basicStakingSMTestCase) Run(t *testing.T) {
 
 	stkKeeper := tc.mockKeeper.Keeper
-	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.crrentHeight)
+	ctx := getNewContext(tc.mockKeeper.MountedStore, tc.currentHeight)
 	stkKeeper.SetParams(ctx, tc.stkParams)
 
-	if len(tc.seqenceActions) != len(tc.actionsResChecks) {
-		panic(fmt.Sprintf("length of seqenceActions(%d) & resultChecker(%d) should be the same", len(tc.seqenceActions), len(tc.actionsResChecks)))
+	if len(tc.sequenceActions) != len(tc.actionsResChecks) {
+		panic(fmt.Sprintf("length of seqenceActions(%d) & resultChecker(%d) should be the same", len(tc.sequenceActions), len(tc.actionsResChecks)))
 	}
 
 	//1. enter validator status and actions loop
 	beforeStatus := tc.startUpVaStatus
-	for i := 0; i < len(tc.seqenceActions); i++ {
-		action := tc.seqenceActions[i]
+	for i := 0; i < len(tc.sequenceActions); i++ {
+		action := tc.sequenceActions[i]
 
 		check := tc.actionsResChecks[i]
 		resultCtx := ActionResultCtx{}
@@ -998,11 +1001,11 @@ func (tc *basicStakingSMTestCase) Run(t *testing.T) {
 		}
 
 		if resultCtx.isBlkHeightInc {
-			tc.crrentHeight++
+			tc.currentHeight++
 			resultCtx.isBlkHeightInc = false
 		}
 
-		ctx = getNewContext(tc.mockKeeper.MountedStore, tc.crrentHeight)
+		ctx = getNewContext(tc.mockKeeper.MountedStore, tc.currentHeight)
 		beforeStatus = afterStatus
 	}
 }
