@@ -105,20 +105,20 @@ func TestDelegator(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000.MulInt64(2)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
 	bAction := baseAction{mk}
 	zeroDec := sdk.ZeroDec()
+	tokenPerTime:=sdk.NewDec(8000)
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
 
 		// send delegate messages
-		newDelegatorAction{bAction, ValidDelegator1, MaxDelegatedToken, "testtoken"},
-		newDelegatorAction{bAction, ValidDelegator1, MaxDelegatedToken, sdk.DefaultBondDenom},
-		newDelegatorAction{bAction, ValidDelegator1, MaxDelegatedToken, sdk.DefaultBondDenom},
-		newDelegatorAction{bAction, ValidDelegator1, MaxDelegatedToken.MulInt64(10), sdk.DefaultBondDenom},
+		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, "testtoken"},
+		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
+		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
+		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(10), sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 
 		// send vote messages
@@ -134,9 +134,9 @@ func TestDelegator(t *testing.T) {
 		// send undelegate message
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), "testtoken"},
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, MaxDelegatedToken.MulInt64(2), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, MaxDelegatedToken.QuoInt64(2), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, MaxDelegatedToken.QuoInt64(2), sdk.DefaultBondDenom},
+		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(2), sdk.DefaultBondDenom},
+		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
+		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
 
