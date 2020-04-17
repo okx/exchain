@@ -135,15 +135,11 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 		vaStatus = a.newVal
 	}
 
-	resultCtx.t.Logf("====> Apply createValidatorAction[%d], addr:%s, msd: %s, maxVA: %d \n",
-		ctx.BlockHeight(), vaStatus.getValidator().GetOperator().String(),
-		vaStatus.getValidator().GetMinSelfDelegation().String(), resultCtx.params.MaxValidators)
+	val := vaStatus.getValidator()
+	resultCtx.t.Logf("====> Apply createValidatorAction[%d], addr:%s, msd: %s, maxVA: %d\n",
+		ctx.BlockHeight(), val.OperatorAddress, val.MinSelfDelegation, resultCtx.params.MaxValidators)
 
-	initMsd := vaStatus.getValidator().MinSelfDelegation
-	validatorAddr := vaStatus.getValidator().GetOperator()
-	pubKey := vaStatus.getValidator().GetConsPubKey()
-
-	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, pubKey, initMsd)
+	msgCreateValidator := NewTestMsgCreateValidator(val.OperatorAddress, val.ConsPubKey, val.MinSelfDelegation)
 	if err := msgCreateValidator.ValidateBasic(); err != nil {
 		panic(err)
 	}
@@ -154,7 +150,15 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 	if resultCtx != nil {
 		resultCtx.txMsgResult = &msgResponse
 		resultCtx.isBlkHeightInc = false
+
+		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
+		if !found {
+			panic("failed to create a validator")
+		}
+		resultCtx.t.Logf("     ==>>> CreateValidator Result: %s msd: %s, votes: %s\n",
+			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
+
 }
 
 type otherMostPowerfulValidatorEnter struct {
@@ -925,6 +929,7 @@ func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator 
 		result := ActionResultCtx{}
 		result.params = tc.stkParams
 		result.t = tc.test
+		result.tc = tc
 		createValidatorAction{bAction, nil}.apply(ctx, lastStatus, &result)
 		tc.originVaSet = append(tc.originVaSet, lastStatus)
 	}
