@@ -30,7 +30,7 @@ var (
 	DefaultMinSelfDelegationLimit = config.DefaultMinSelfDelegationLimit
 	// DefaultMinDelegation is the limit value of delegation or undelegation
 	DefaultMinDelegation = config.DefaultMinDelegation
-	// DefaultMinSelfDelegation is the fixed value of each validator's msd (hard code)
+	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
 	DefaultMinSelfDelegation = sdk.NewDecWithPrec(1, 3)
 )
 
