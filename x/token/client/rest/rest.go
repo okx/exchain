@@ -15,7 +15,8 @@ import (
 	"github.com/okex/okchain/x/common"
 )
 
-// RegisterRoutes - Central function to define routes that get registered by the main application
+// RegisterRoutes, a central function to define routes
+// which is called by the rest module in main application
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) {
 	r.HandleFunc(fmt.Sprintf("/token/{symbol}"), tokenHandler(cliCtx, storeName)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/tokens"), tokensHandler(cliCtx, storeName)).Methods("GET")

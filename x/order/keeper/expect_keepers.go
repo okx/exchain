@@ -6,6 +6,7 @@ import (
 
 	dex "github.com/okex/okchain/x/dex/types"
 	"github.com/okex/okchain/x/order/types"
+	token "github.com/okex/okchain/x/token/types"
 )
 
 // TokenKeeper : expected token keeper
@@ -18,6 +19,8 @@ type TokenKeeper interface {
 	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error
 	// Fee detail
 	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string)
+	GetAllLockedCoins(ctx sdk.Context) (locks []token.AccCoins)
+	IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool))
 }
 
 // SupplyKeeper : expected supply keeper

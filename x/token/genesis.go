@@ -13,27 +13,29 @@ import (
 	"github.com/okex/okchain/x/token/types"
 )
 
-// DefaultTokenOwner default owner for okt
+// default owner of okt
 const DefaultTokenOwner = "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya"
 
-// GenesisState - all slashing state that must be provided at genesis
+// all state that must be provided in genesis file
 type GenesisState struct {
-	Params    types.Params     `json:"params"`
-	Tokens    []types.Token    `json:"tokens"`
-	LockCoins []types.AccCoins `json:"locked_asset"`
+	Params       types.Params     `json:"params"`
+	Tokens       []types.Token    `json:"tokens"`
+	LockedAssets []types.AccCoins `json:"locked_assets"`
+	LockedFees   []types.AccCoins `json:"locked_fees"`
 }
 
-// DefaultGenesisState - default GenesisState used by Cosmos Hub
-func DefaultGenesisState() GenesisState {
+// default GenesisState used by Cosmos Hub
+func defaultGenesisState() GenesisState {
 	return GenesisState{
-		Params:    types.DefaultParams(),
-		Tokens:    []types.Token{DefaultGenesisStateOKT()},
-		LockCoins: nil,
+		Params:       types.DefaultParams(),
+		Tokens:       []types.Token{defaultGenesisStateOKT()},
+		LockedAssets: nil,
+		LockedFees:   nil,
 	}
 }
 
-// DefaultGenesisStateOKT default okt information
-func DefaultGenesisStateOKT() types.Token {
+// default okt information
+func defaultGenesisStateOKT() types.Token {
 	addr, err := sdk.AccAddressFromBech32(DefaultTokenOwner)
 	if err != nil {
 		panic(err)
@@ -52,8 +54,7 @@ func DefaultGenesisStateOKT() types.Token {
 	}
 }
 
-// ValidateGenesis validates the slashing genesis parameters
-func ValidateGenesis(data GenesisState) error {
+func validateGenesis(data GenesisState) error {
 	for _, token := range data.Tokens {
 		msg := types.NewMsgTokenIssue(token.Description,
 			token.Symbol,
@@ -71,17 +72,22 @@ func ValidateGenesis(data GenesisState) error {
 	return nil
 }
 
-// InitGenesis initialize default parameters
+// initGenesis initialize default parameters
 // and the keeper's address to pubkey map
-func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
+func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 
 	for _, token := range data.Tokens {
 		keeper.NewToken(ctx, token)
 	}
 
-	for _, lock := range data.LockCoins {
-		if err := keeper.updateLockCoins(ctx, lock.Acc, lock.Coins, true); err != nil {
+	for _, lock := range data.LockedAssets {
+		if err := keeper.updateLockedCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeQuantity); err != nil {
+			panic(err)
+		}
+	}
+	for _, lock := range data.LockedFees {
+		if err := keeper.updateLockedCoins(ctx, lock.Acc, lock.Coins, true, types.LockCoinsTypeFee); err != nil {
 			panic(err)
 		}
 	}
@@ -89,20 +95,31 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 
 // ExportGenesis writes the current store values
 // to a genesis file, which can be imported again
-// with InitGenesis
+// with initGenesis
 func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
 	tokens := keeper.GetTokensInfo(ctx)
-	locks := keeper.GetAllLockCoins(ctx)
+	lockedAsset := keeper.GetAllLockedCoins(ctx)
+
+	var lockedFees []types.AccCoins
+	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+		lockedFees = append(lockedFees,
+			types.AccCoins{
+				Acc:   acc,
+				Coins: coins,
+			})
+		return false
+	})
 
 	return GenesisState{
-		Params:    params,
-		Tokens:    tokens,
-		LockCoins: locks,
+		Params:       params,
+		Tokens:       tokens,
+		LockedAssets: lockedAsset,
+		LockedFees:   lockedFees,
 	}
 }
 
-// IssueOKT issue okt in initchain
+// IssueOKT issues okt in initchain
 func IssueOKT(ctx sdk.Context, k Keeper, genesisState json.RawMessage, acc auth.Account) error {
 	var data GenesisState
 	types.ModuleCdc.MustUnmarshalJSON(genesisState, &data)

@@ -19,8 +19,6 @@ type Keeper struct {
 	bankKeeper       bank.Keeper
 	supplyKeeper     SupplyKeeper
 	feeCollectorName string // name of the FeeCollector ModuleAccount
-	// The reference to the Param Keeper to get and set Global Params
-	//paramsKeeper params.Keeper
 
 	// The reference to the Paramstore to get and set gov specific params
 	paramSpace    params.Subspace
@@ -37,32 +35,30 @@ type Keeper struct {
 	cache *Cache
 }
 
-// NewKeeper creates new instances of the token Keeper
+// NewKeeper creates a new token keeper
 func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
 	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool) Keeper {
 
 	k := Keeper{
-		bankKeeper: bankKeeper,
-		//paramsKeeper:     paramsKeeper,
+		bankKeeper:       bankKeeper,
 		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
 		feeCollectorName: feeCollectorName,
 		supplyKeeper:     supplyKeeper,
 		tokenStoreKey:    tokenStoreKey,
 		lockStoreKey:     lockStoreKey,
-		//TokenPairNewSignalChan: make(chan types.TokenPair, 100),
-		cdc:           cdc,
-		enableBackend: enableBackend,
-		cache:         NewCache(),
+		cdc:              cdc,
+		enableBackend:    enableBackend,
+		cache:            NewCache(),
 	}
 	return k
 }
 
-// ResetCache reset cache
+// nolint
 func (k Keeper) ResetCache(ctx sdk.Context) {
-	k.cache.Reset()
+	k.cache.reset()
 }
 
-// GetTokenInfo gets the token's info
+// nolint
 func (k Keeper) GetTokenInfo(ctx sdk.Context, symbol string) types.Token {
 	var token types.Token
 	store := ctx.KVStore(k.tokenStoreKey)
@@ -78,19 +74,18 @@ func (k Keeper) GetTokenInfo(ctx sdk.Context, symbol string) types.Token {
 	return token
 }
 
-// TokenExist check whether the token exist
+// TokenExist checks whether the token with symbol exist or not
 func (k Keeper) TokenExist(ctx sdk.Context, symbol string) bool {
 	store := ctx.KVStore(k.tokenStoreKey)
 	bz := store.Get(types.GetTokenAddress(symbol))
 	return bz != nil
 }
 
-// GetTokensInfo gets tokens info
+// nolint
 func (k Keeper) GetTokensInfo(ctx sdk.Context) (tokens []types.Token) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenKey)
 	defer iter.Close()
-	//iter := store.Iterator(nil, nil)
 	for iter.Valid() {
 		var token types.Token
 		tokenBytes := iter.Value()
@@ -105,7 +100,7 @@ func (k Keeper) GetTokensInfo(ctx sdk.Context) (tokens []types.Token) {
 	return tokens
 }
 
-// GetUserTokensInfo gets user token info
+// GetUserTokensInfo gets tokens info by owner address
 func (k Keeper) GetUserTokensInfo(ctx sdk.Context, owner sdk.AccAddress) (tokens []types.Token) {
 	userTokenPrefix := types.GetUserTokenPrefix(owner)
 	userTokenPrefixLen := len(userTokenPrefix)
@@ -123,8 +118,8 @@ func (k Keeper) GetUserTokensInfo(ctx sdk.Context, owner sdk.AccAddress) (tokens
 	return tokens
 }
 
-// GetCurrencysInfo gets currency info
-func (k Keeper) GetCurrencysInfo(ctx sdk.Context) (currencies []types.Currency) {
+// GetCurrenciesInfo returns all of the currencies info
+func (k Keeper) GetCurrenciesInfo(ctx sdk.Context) (currencies []types.Currency) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenKey)
 	defer iter.Close()
@@ -148,53 +143,59 @@ func (k Keeper) GetCurrencysInfo(ctx sdk.Context) (currencies []types.Currency) 
 	return currencies
 }
 
-// DeleteUserToken delete user token
+// DeleteUserToken deletes token by user address and symbol
 func (k Keeper) DeleteUserToken(ctx sdk.Context, owner sdk.AccAddress, symbol string) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	store.Delete(types.GetUserTokenKey(owner, symbol))
 }
 
-// NewToken new token
+// nolint
 func (k Keeper) NewToken(ctx sdk.Context, token types.Token) {
 	// save token info
 	store := ctx.KVStore(k.tokenStoreKey)
-	//store.Set([]byte(token.Symbol), k.cdc.MustMarshalBinaryBare(token))
 	store.Set(types.GetTokenAddress(token.Symbol), k.cdc.MustMarshalBinaryBare(token))
 	store.Set(types.GetUserTokenKey(token.Owner, token.Symbol), []byte{})
 
 	// update token number
-	tokenNumber := k.GetTokenNum(ctx)
+	tokenNumber := k.getTokenNum(ctx)
 	b := k.cdc.MustMarshalBinaryBare(tokenNumber + 1)
 	store.Set(types.TokenNumberKey, b)
 }
 
-// SendCoinsFromAccountToAccount - send token from one account to another account
+// send tokens(one or more coins) from one account to another
 func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error {
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
 }
 
-// LockCoins lock coins
+// nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
-	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
-	if err != nil {
+	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
 		return err
 	}
 	// update lock coins
-	if lockCoinsType == types.LockCoinsTypeQuantity {
-		return k.updateLockCoins(ctx, addr, coins, true)
-	}
-	return nil
+	return k.updateLockedCoins(ctx, addr, coins, true, lockCoinsType)
 }
 
-// updateLockCoins update lock coins
-func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, isAdd bool) error {
+// nolint
+func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool, lockCoinsType int) error {
+	var key []byte
+	switch lockCoinsType {
+	case types.LockCoinsTypeQuantity:
+		key = types.GetLockAddress(addr.Bytes())
+	case types.LockCoinsTypeFee:
+		key = types.GetLockFeeAddress(addr.Bytes())
+	default:
+		return fmt.Errorf("unrecognized lock coins type: %d", lockCoinsType)
+	}
+
 	var newCoins sdk.DecCoins
 	var oldCoins sdk.DecCoins
 
 	store := ctx.KVStore(k.lockStoreKey)
-	coinsBytes := store.Get(types.GetLockAddress(addr.Bytes()))
+	coinsBytes := store.Get(key)
 
-	if isAdd {
+	if doAdd {
+		// lock coins
 		if coinsBytes == nil {
 			newCoins = coins
 		} else {
@@ -202,6 +203,7 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 			newCoins = oldCoins.Add(coins)
 		}
 	} else {
+		// unlock coins
 		if coinsBytes == nil {
 			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
 		}
@@ -209,41 +211,37 @@ func (k Keeper) updateLockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.
 		var isNegative bool
 		newCoins, isNegative = oldCoins.SafeSub(coins)
 		if isNegative {
-			return fmt.Errorf("failed to lock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
+			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
 		}
 	}
 
 	sort.Sort(newCoins)
 	if len(newCoins) > 0 {
-		store.Set(types.GetLockAddress(addr.Bytes()), k.cdc.MustMarshalBinaryBare(newCoins))
+		store.Set(key, k.cdc.MustMarshalBinaryBare(newCoins))
 	} else {
-		store.Delete(types.GetLockAddress(addr.Bytes()))
+		store.Delete(key)
 	}
 
 	return nil
 }
 
-// UnlockCoins unlock coins
+// nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
 	// update lock coins
-	if lockCoinsType == types.LockCoinsTypeQuantity {
-		err := k.updateLockCoins(ctx, addr, coins, false)
-		if err != nil {
-			return err
-		}
+	if err := k.updateLockedCoins(ctx, addr, coins, false, lockCoinsType); err != nil {
+		return err
 	}
 
 	// update account
-	err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
-	if err != nil {
+	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
 		return errors.New(err.Error())
 	}
 
 	return nil
 }
 
-// GetLockCoins gets locked coins
-func (k Keeper) GetLockCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.DecCoins) {
+// GetLockCoins gets locked coins by address
+func (k Keeper) GetLockedCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.DecCoins) {
 	store := ctx.KVStore(k.lockStoreKey)
 	coinsBytes := store.Get(types.GetLockAddress(addr.Bytes()))
 	if coinsBytes == nil {
@@ -253,8 +251,8 @@ func (k Keeper) GetLockCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.De
 	return coins
 }
 
-// GetAllLockCoins gets all locked coins
-func (k Keeper) GetAllLockCoins(ctx sdk.Context) (locks []types.AccCoins) {
+// GetAllLockCoins iterates KVStore and gets all of the locked coins
+func (k Keeper) GetAllLockedCoins(ctx sdk.Context) (locks []types.AccCoins) {
 	store := ctx.KVStore(k.lockStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.LockKey)
 	defer iter.Close()
@@ -271,27 +269,42 @@ func (k Keeper) GetAllLockCoins(ctx sdk.Context) (locks []types.AccCoins) {
 	return locks
 }
 
+// IterateAllDeposits iterates over the all the stored lock fee and performs a callback function
+func (k Keeper) IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
+	store := ctx.KVStore(k.lockStoreKey)
+	iter := sdk.KVStorePrefixIterator(store, types.LockedFeeKey)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		acc := iter.Key()[len(types.LockKey):]
+
+		var coins sdk.DecCoins
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &coins)
+
+		if cb(acc, coins) {
+			break
+		}
+	}
+}
+
 // BalanceAccount is ONLY expected by the order module to settle an order where outputCoins
 // is used to exchange inputCoins
 func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins,
 	inputCoins sdk.DecCoins) (err error) {
 
 	if !outputCoins.IsZero() {
-		err = k.updateLockCoins(ctx, addr, outputCoins, false)
-	}
-
-	if err != nil {
-		return err
+		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
+			return err
+		}
 	}
 
 	if !inputCoins.IsZero() {
-		err = k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, inputCoins)
+		return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, inputCoins)
 	}
 
-	return err
+	return nil
 }
 
-// GetCoins returns the coins at the addr.
+// nolint
 func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 	return k.bankKeeper.GetCoins(ctx, addr)
 }
@@ -307,22 +320,22 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-// GetCoinsInfo gets the user's coin info
+// GetCoinsInfo gets all of the coin info by addr
 func (k Keeper) GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) (coinsInfo types.CoinsInfo) {
 	availableCoins := k.GetCoins(ctx, addr)
-	lockCoins := k.GetLockCoins(ctx, addr)
+	lockedCoins := k.GetLockedCoins(ctx, addr)
 
 	// merge coins
-	coinsInfo = types.MergeCoinInfo(availableCoins, lockCoins)
+	coinsInfo = types.MergeCoinInfo(availableCoins, lockedCoins)
 	return coinsInfo
 }
 
-// GetFeeDetailList gets fee detail list
+// GetFeeDetailList gets fee detail list from cache
 func (k Keeper) GetFeeDetailList() []*FeeDetail {
-	return k.cache.GetFeeDetailList()
+	return k.cache.getFeeDetailList()
 }
 
-// AddFeeDetail add fee detail
+// nolint
 func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string) {
 	if k.enableBackend {
 		feeDetail := &FeeDetail{
@@ -331,12 +344,11 @@ func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, fee
 			FeeType:   feeType,
 			Timestamp: ctx.BlockHeader().Time.Unix(),
 		}
-		k.cache.AddFeeDetail(feeDetail)
+		k.cache.addFeeDetail(feeDetail)
 	}
 }
 
-// GetNumKeys gets number key
-func (k Keeper) GetNumKeys(ctx sdk.Context) (tokenStoreKeyNum, lockStoreKeyNum int64) {
+func (k Keeper) getNumKeys(ctx sdk.Context) (tokenStoreKeyNum, lockStoreKeyNum int64) {
 	{
 		store := ctx.KVStore(k.tokenStoreKey)
 		iter := store.Iterator(nil, nil)
@@ -357,8 +369,7 @@ func (k Keeper) GetNumKeys(ctx sdk.Context) (tokenStoreKeyNum, lockStoreKeyNum i
 	return
 }
 
-// GetTokenNum gets token number
-func (k Keeper) GetTokenNum(ctx sdk.Context) (tokenNumber uint64) {
+func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	b := store.Get(types.TokenNumberKey)
 	if b != nil {
@@ -367,8 +378,8 @@ func (k Keeper) GetTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 	return
 }
 
-// AddTokenSuffix add token suffix
-func AddTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
+// addTokenSuffix add token suffix
+func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
 	hash := fmt.Sprintf("%x", tmhash.Sum(ctx.TxBytes()))
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {
