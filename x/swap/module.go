@@ -2,9 +2,6 @@ package swap
 
 import (
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
@@ -75,17 +72,13 @@ type AppModule struct {
 	AppModuleBasic
 
 	keeper       Keeper
-	bankKeeper   bank.Keeper
-	supplyKeeper supply.Keeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(k Keeper, bankKeeper bank.Keeper, supplyKeeper supply.Keeper) AppModule {
+func NewAppModule(k Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
-		bankKeeper:     bankKeeper,
-		supplyKeeper:   supplyKeeper,
 	}
 }
 

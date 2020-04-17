@@ -2,21 +2,17 @@ package keeper
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/swap/types"
-	"github.com/okex/okchain/x/token"
 	tokentypes "github.com/okex/okchain/x/token/types"
 )
 
 // Keeper of the swap store
 type Keeper struct {
-	bankKeeper   bank.Keeper
-	supplyKeeper supply.Keeper
+	supplyKeeper types.SupplyKeeper
 	tokenKeeper  types.TokenKeeper
 
 	storeKey   sdk.StoreKey
@@ -25,9 +21,8 @@ type Keeper struct {
 }
 
 // NewKeeper creates a swap keeper
-func NewKeeper(bankKeeper bank.Keeper, supplyKeeper supply.Keeper, tokenKeeper token.Keeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
+func NewKeeper(supplyKeeper types.SupplyKeeper, tokenKeeper types.TokenKeeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
 	keeper := Keeper{
-		bankKeeper:   bankKeeper,
 		supplyKeeper: supplyKeeper,
 		tokenKeeper:  tokenKeeper,
 		storeKey:     key,
@@ -43,14 +38,14 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // Get SwapTokenPair with quote token name
-func (k Keeper) GetSwapTokenPair(ctx sdk.Context, quote string) (types.SwapTokenPair, error) {
+func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.SwapTokenPair, error) {
 	store := ctx.KVStore(k.storeKey)
 	var item types.SwapTokenPair
-	byteKey := []byte(quote)
+	byteKey := []byte(tokenPairName)
 	rawItem := store.Get(byteKey)
-	if rawItem == nil && quote == types.TestQuotePooledCoin {
+	if rawItem == nil && tokenPairName == types.TestSwapTokenPairName {
 		item = types.GetTestSwapTokenPair()
-		k.SetSwapTokenPair(ctx, quote, item)
+		k.SetSwapTokenPair(ctx, tokenPairName, item)
 	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
@@ -61,16 +56,16 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, quote string) (types.SwapToken
 }
 
 // Sets the entire SwapTokenPair data struct for a quote token name
-func (k Keeper) SetSwapTokenPair(ctx sdk.Context, quote string, swapTokenPair types.SwapTokenPair) {
+func (k Keeper) SetSwapTokenPair(ctx sdk.Context, tokenPairName string, swapTokenPair types.SwapTokenPair) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(swapTokenPair)
-	store.Set([]byte(quote), bz)
+	store.Set([]byte(tokenPairName), bz)
 }
 
 // Deletes the entire SwapTokenPair data struct for a quote token name
-func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, quote string) {
+func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, tokenPairName string) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete([]byte(quote))
+	store.Delete([]byte(tokenPairName))
 }
 
 // Get an iterator over all SwapTokenPairs in which the keys are the names and the values are the whois

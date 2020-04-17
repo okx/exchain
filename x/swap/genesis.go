@@ -15,17 +15,14 @@ func NewGenesisState(swapTokenPairRecords []SwapTokenPair) GenesisState {
 
 func ValidateGenesis(data GenesisState) error {
 	for _, record := range data.SwapTokenPairRecords {
-		if record.Quote == "" {
-			return fmt.Errorf("invalid SwapTokenPairRecord: Quote: %s. Error: Missing Quote", record.Quote)
+		if !record.QuotePooledCoin.IsValid() {
+			return fmt.Errorf("invalid SwapTokenPairRecord: QuotePooledCoin: %s", record.QuotePooledCoin.String())
 		}
-		if record.QuoteAmount.IsPositive() {
-			return fmt.Errorf("invalid SwapTokenPairRecord: QuoteAmount: %s. Error: Missing QuoteAmount", record.QuoteAmount)
+		if !record.BasePooledCoin.IsValid() {
+			return fmt.Errorf("invalid SwapTokenPairRecord: BasePooledCoin: %s", record.BasePooledCoin)
 		}
-		if record.BaseAmount.IsPositive() {
-			return fmt.Errorf("invalid SwapTokenPairRecord: BaseAmount: %s. Error: Missing BaseAmount", record.BaseAmount)
-		}
-		if record.PoolToken == "" {
-			return fmt.Errorf("invalid SwapTokenPairRecord: PoolToken: %s. Error: Missing PoolToken", record.PoolToken)
+		if record.PoolTokenName == "" {
+			return fmt.Errorf("invalid SwapTokenPairRecord: PoolToken: %s. Error: Missing PoolToken", record.PoolTokenName)
 		}
 	}
 	return nil
@@ -39,7 +36,7 @@ func DefaultGenesisState() GenesisState {
 
 func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	for _, record := range data.SwapTokenPairRecords {
-		keeper.SetSwapTokenPair(ctx, record.Quote, record)
+		keeper.SetSwapTokenPair(ctx, record.TokenPairName(), record)
 	}
 }
 

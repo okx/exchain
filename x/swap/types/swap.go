@@ -9,7 +9,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
-const TestQuotePooledCoin = "xxb"
+const TestBasePooledToken = "xxb"
+const TestQuotePooledToken = common.NativeToken
+const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
 
 type SwapTokenPair struct {
 	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`
@@ -33,10 +35,14 @@ BasePooledCoin: %s
 PoolTokenName: %s`, s.QuotePooledCoin.String(), s.BasePooledCoin.String(), s.PoolTokenName))
 }
 
+func (s SwapTokenPair) TokenPairName() string {
+	return s.BasePooledCoin.Denom + "_" + s.QuotePooledCoin.Denom
+}
+
 func GetTestSwapTokenPair() SwapTokenPair {
 	return SwapTokenPair{
-		QuotePooledCoin: sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(0)),
-		BasePooledCoin:  sdk.NewDecCoinFromDec(TestQuotePooledCoin, sdk.NewDec(0)),
+		QuotePooledCoin: sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0)),
+		BasePooledCoin:  sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(0)),
 		PoolTokenName:   "spt",
 	}
 }

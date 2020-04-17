@@ -19,6 +19,14 @@ type BankKeeper interface {
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 }
 
+type SupplyKeeper interface {
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
+		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
+		recipientModule string, amt sdk.Coins) sdk.Error
+	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
+}
+
 type TokenKeeper interface {
 	GetTokenInfo(ctx sdk.Context, symbol string) token.Token
 	NewToken(ctx sdk.Context, token token.Token)

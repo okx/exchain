@@ -30,10 +30,16 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-// handle<Action> does x
+
 func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
+	if msg.Deadline < ctx.BlockTime().Unix() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  "blockTime exceeded deadline",
+		}
+	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
 	if err != nil {
 		return sdk.Result{

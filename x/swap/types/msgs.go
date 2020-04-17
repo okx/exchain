@@ -1,6 +1,9 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/common"
+)
 
 // Transactions messages must fulfill the Msg
 type Msg interface {
@@ -26,15 +29,15 @@ type Msg interface {
 }
 
 type MsgAddLiquidity struct {
-	MinLiquidity  sdk.Dec        `json:"min_liquidity"` //Minimum number of sender will mint if total pool token supply is greater than 0.
-	MaxBaseTokens sdk.DecCoin    `json:"max_tokens"`    //Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
-	QuoteTokens   sdk.DecCoin    `json:"base_tokens"`
-	Deadline      sdk.Uint       `json:"deadline"` //Time after which this transaction can no longer be executed.
+	MinLiquidity  sdk.Dec        `json:"min_liquidity"`   //Minimum number of sender will mint if total pool token supply is greater than 0.
+	MaxBaseTokens sdk.DecCoin    `json:"max_base_tokens"` //Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
+	QuoteTokens   sdk.DecCoin    `json:"quote_tokens"`
+	Deadline      int64          `json:"deadline"` //Time after which this transaction can no longer be executed.
 	Sender        sdk.AccAddress `json:"sender"`   //sender
 }
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseTokens, quoteTokens sdk.DecCoin, deadline sdk.Uint, sender sdk.AccAddress) MsgAddLiquidity {
+func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseTokens, quoteTokens sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgAddLiquidity {
 	return MsgAddLiquidity{
 		MinLiquidity:  minLiquidity,
 		MaxBaseTokens: maxBaseTokens,
@@ -63,6 +66,9 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	}
 	if !msg.QuoteTokens.IsValid() {
 		return sdk.ErrUnknownRequest("invalid BaseTokens")
+	}
+	if msg.QuoteTokens.Denom != common.NativeToken {
+		return sdk.ErrUnknownRequest("quote token only supports okt")
 	}
 	return nil
 }

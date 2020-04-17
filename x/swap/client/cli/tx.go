@@ -1,59 +1,67 @@
 package cli
 
 import (
-	"bufio"
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/okchain/x/swap/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	swapTxCmd := &cobra.Command{
-		Use:                        types.ModuleName,
-		Short:                      fmt.Sprintf("%s transactions subcommands", types.ModuleName),
-		DisableFlagParsing:         true,
-		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
+	txCmd := &cobra.Command{
+		Use:   "swap",
+		Short: "swap module",
 	}
 
-	swapTxCmd.AddCommand(flags.PostCommands(
-	// TODO: Add tx based commands
-	// GetCmd<Action>(cdc)
+	txCmd.AddCommand(client.PostCommands(
+		getCmdAddLiquidity(cdc),
+
 	)...)
 
-	return swapTxCmd
+	return txCmd
 }
 
-// Example:
-//
-// GetCmd<Action> is the CLI command for doing <Action>
-// func GetCmd<Action>(cdc *codec.Codec) *cobra.Command {
-// 	return &cobra.Command{
-// 		Use:   "/* Describe your action cmd */",
-// 		Short: "/* Provide a short description on the cmd */",
-// 		Args:  cobra.ExactArgs(2), // Does your request require arguments
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-// 			inBuf := bufio.NewReader(cmd.InOrStdin())
-// 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
+	// flags
+	var minLiquidity string
+	var maxBaseTokens string
+	var quoteTokens string
+	var deadline int64
+	cmd := &cobra.Command{
+		Use:   "add-liquidity",
+		Short: "add liquidity",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-// 			msg := types.NewMsg<Action>(/* Action params */)
-// 			err = msg.ValidateBasic()
-// 			if err != nil {
-// 				return err
-// 			}
+			minLiquidityDec, err :=sdk.NewDecFromStr(minLiquidity)
+			if err != nil {
+				return err
+			}
+			maxBaseTokensDecCoin, err2 := sdk.ParseDecCoin(maxBaseTokens)
+			if err2 != nil {
+				return err2
+			}
+			quoteTokensDecCoin, err2 := sdk.ParseDecCoin(quoteTokens)
+			if err2 != nil {
+				return err2
+			}
 
-// 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-// 		},
-// 	}
-// }
+			msg := types.NewMsgAddLiquidity(minLiquidityDec, maxBaseTokensDecCoin, quoteTokensDecCoin, deadline, cliCtx.FromAddress)
+
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().StringVarP(&minLiquidity, "min_liquidity", "l", "", "Minimum number of sender will mint if total pool token supply is greater than 0")
+	cmd.Flags().StringVarP(&maxBaseTokens, "max_base_tokens", "", "", "Maximum number of base tokens deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
+	cmd.Flags().StringVarP(&quoteTokens, "quote_tokens", "q", "", "The number of quote tokens. For example \"100okb\"")
+	cmd.Flags().Int64VarP(&deadline, "deadline", "d", 0, "Time after which this transaction can no longer be executed.")
+	return cmd
+}

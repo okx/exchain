@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -28,9 +26,6 @@ func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, k
 	tokenPair, error := keeper.GetSwapTokenPair(ctx, path[0])
 	if error != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
-	}
-	if tokenPair == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("order(%v) does not exist", path[0]))
 	}
 	bz := keeper.cdc.MustMarshalJSON(tokenPair)
 	return bz, nil
