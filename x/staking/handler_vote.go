@@ -82,7 +82,7 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Re
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrNoDelegationVote(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
 
 	if proxy.IsProxy {
