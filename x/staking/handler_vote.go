@@ -87,10 +87,11 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Re
 	if !found {
 		return types.ErrNoDelegationVote(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
-
 	if proxy.IsProxy {
 		return types.ErrAlreadyProxied(types.DefaultCodespace, proxyAddr.String()).Result()
-
+	}
+	if len(proxy.ProxyAddress) != 0 {
+		return types.ErrAlreadyBinded(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
 	proxy.RegProxy(true)

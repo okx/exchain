@@ -273,9 +273,16 @@ func ErrTargetValsDuplicate(codespace sdk.CodespaceType) sdk.Error {
 		"failed. duplicate target validators")
 }
 
-// ErrDuplicatedProxies returns an error when a delegator binds to another proxy without unbinding first
-func ErrDuplicatedProxies(codespace sdk.CodespaceType, delAddr , proxyAddr string) sdk.Error {
+// ErrDuplicatedProxies returns an error when a delegator binds another proxy without unbinding first
+func ErrDuplicatedProxies(codespace sdk.CodespaceType, delAddr, proxyAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProxy,
 		"failed. %s has binded proxy %s. please unbind the original relationship before the second one",
 		delAddr, proxyAddr)
+}
+
+// ErrAlreadyBinded returns an error when a delegator keeps binding a proxy before proxy register
+func ErrAlreadyBinded(codespace sdk.CodespaceType, delAddr string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProxy,
+		"failed. %s has already binded a proxy. it's necessary to unbind before proxy register",
+		delAddr)
 }
