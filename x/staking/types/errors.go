@@ -272,3 +272,10 @@ func ErrTargetValsDuplicate(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidVote,
 		"failed. duplicate target validators")
 }
+
+// ErrDuplicatedProxies returns an error when a delegator binds to another proxy without unbinding first
+func ErrDuplicatedProxies(codespace sdk.CodespaceType, delAddr , proxyAddr string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProxy,
+		"failed. %s has binded proxy %s. please unbind the original relationship before the second one",
+		delAddr, proxyAddr)
+}

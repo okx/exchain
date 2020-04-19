@@ -14,6 +14,10 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	if !found || delegator.Tokens.IsZero() {
 		return types.ErrNoDelegationVote(types.DefaultCodespace, msg.DelAddr.String()).Result()
 	}
+	if len(delegator.ProxyAddress) != 0 {
+		return types.ErrDuplicatedProxies(types.DefaultCodespace, delegator.DelegatorAddress.String(),
+			delegator.ProxyAddress.String()).Result()
+	}
 
 	if !delegator.Shares.Equal(sdk.ZeroDec()) {
 		return types.ErrAlreadyVoted(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
@@ -47,8 +51,7 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 
 	finalTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
 
-	err := k.UpdateVotes(ctx, proxyDelegator.DelegatorAddress, finalTokens)
-	if err != nil {
+	if err := k.UpdateVotes(ctx, proxyDelegator.DelegatorAddress, finalTokens); err != nil {
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
 	}
 
