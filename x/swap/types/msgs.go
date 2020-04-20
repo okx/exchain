@@ -1,8 +1,16 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common"
+)
+
+// Swap message types and routes
+const (
+	TypeMsgAddLiquidity = "add_liquidity"
+	TypeMsgTokenOKTSwap = "token_okt_swap"
 )
 
 type MsgAddLiquidity struct {
@@ -122,4 +130,111 @@ func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 
 func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
 	return msg.MinBaseAmount.Denom + "_" + msg.MinQuoteAmount.Denom
+}
+
+//Create a new exchange with token
+type MsgCreateExchange struct {
+	Token  string         `json:"token"`  //token
+	Sender sdk.AccAddress `json:"sender"` //sender
+}
+
+func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
+	return MsgCreateExchange{
+		Token:  token,
+		Sender: sender,
+	}
+}
+
+func (msg MsgCreateExchange) Route() string { return RouterKey }
+
+// Type should return the action
+func (msg MsgCreateExchange) Type() string { return "create_exchange" }
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
+	if msg.Sender.Empty() {
+		return sdk.ErrInvalidAddress(msg.Sender.String())
+	}
+	if len(msg.Token) == 0 {
+		return sdk.ErrUnknownRequest("invalid Token")
+	}
+	return nil
+}
+
+func (msg MsgCreateExchange) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Sender}
+}
+
+// MsgTokenOKTSwap define the message for swap between token and DefaultBondDenom
+type MsgTokenOKTSwap struct {
+	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       //Amount of Tokens sold.
+	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` //Minimum token purchased.
+	Deadline             int64          `json:"deadline"`                //Time after which this transaction can no longer be executed.
+	Recipient            sdk.AccAddress `json:"recipient"`               //if give Recipient address,transfers Tokens to recipient.default recipient is sender
+	Sender               sdk.AccAddress `json:"sender"`                  //sender
+}
+
+// NewMsgTokenOKTSwap is a constructor function for MsgTokenOKTSwap
+func NewMsgTokenOKTSwap(
+	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
+) MsgTokenOKTSwap {
+	return MsgTokenOKTSwap{
+		SoldTokenAmount:      soldTokenAmount,
+		MinBoughtTokenAmount: minBoughtTokenAmount,
+		Deadline:             deadline,
+		Recipient:            recipient,
+		Sender:               sender,
+	}
+}
+
+// Route should return the name of the module
+func (msg MsgTokenOKTSwap) Route() string { return RouterKey }
+
+// Type should return the action
+func (msg MsgTokenOKTSwap) Type() string { return TypeMsgTokenOKTSwap }
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgTokenOKTSwap) ValidateBasic() sdk.Error {
+	if msg.Sender.Empty() {
+		return sdk.ErrInvalidAddress(msg.Sender.String())
+	}
+
+	if msg.Recipient.Empty() {
+		return sdk.ErrInvalidAddress(msg.Recipient.String())
+	}
+
+	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("both token to sell and token to buy do not contain %s,"+
+			" quote token only supports okt", sdk.DefaultBondDenom))
+	}
+
+	if !msg.SoldTokenAmount.IsValid() {
+		return sdk.ErrUnknownRequest("invalid SoldTokenAmount")
+	}
+
+	if !msg.MinBoughtTokenAmount.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
+	}
+	return nil
+}
+
+// GetSignBytes encodes the message for signing
+func (msg MsgTokenOKTSwap) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+// GetSigners defines whose signature is required
+func (msg MsgTokenOKTSwap) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Sender}
+}
+
+func (msg MsgTokenOKTSwap) GetSwapTokenPair() string {
+	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
+		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom
+	}
+	return msg.SoldTokenAmount.Denom + "_" + msg.MinBoughtTokenAmount.Denom
 }
