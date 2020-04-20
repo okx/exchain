@@ -3,10 +3,10 @@ package types
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	token "github.com/okex/okchain/x/token/types"
-	"github.com/okex/okchain/x/common"
-	"strings"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/okchain/x/common"
+	token "github.com/okex/okchain/x/token/types"
+	"strings"
 )
 
 const TestBasePooledToken = "xxb"

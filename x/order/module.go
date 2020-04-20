@@ -3,8 +3,6 @@ package order
 import (
 	"encoding/json"
 
-	"github.com/okex/okchain/x/common/version"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"github.com/okex/okchain/x/common/version"
 	"github.com/okex/okchain/x/order/client/cli"
 	"github.com/okex/okchain/x/order/client/rest"
 	"github.com/okex/okchain/x/order/keeper"
@@ -89,7 +88,7 @@ func NewAppModule(v version.ProtocolVersionType, keeper keeper.Keeper, supplyKee
 
 // RegisterInvariants : register invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	//RegisterInvariants(ir, am.keeper)
+	keeper.RegisterInvariants(ir, am.keeper)
 }
 
 // Route : module message route name

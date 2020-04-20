@@ -44,13 +44,13 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 	require.EqualValues(t, common.NativeToken, info.Symbol)
 	tokens := keeper.GetTokensInfo(ctx)
 	require.Equal(t, info, tokens[0])
-	require.Equal(t, len(tokens), len(keeper.GetCurrencysInfo(ctx)))
+	require.Equal(t, len(tokens), len(keeper.GetCurrenciesInfo(ctx)))
 
-	name, flag := AddTokenSuffix(ctx, keeper, common.NativeToken)
+	name, flag := addTokenSuffix(ctx, keeper, common.NativeToken)
 	require.Equal(t, true, flag)
 	require.NotEqual(t, common.NativeToken, name)
 
-	name, flag = AddTokenSuffix(ctx, keeper, common.NativeToken+"@#$")
+	name, flag = addTokenSuffix(ctx, keeper, common.NativeToken+"@#$")
 	require.Equal(t, false, flag)
 	require.Equal(t, "", name)
 
@@ -102,25 +102,25 @@ func TestKeeper_LockCoins(t *testing.T) {
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
-	expectedLockCoins := sdk.DecCoins{
+	expectedLockedCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 	}
 
-	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockCoins, types.LockCoinsTypeQuantity)
+	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockedCoins, types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
-	lockCoins := keeper.GetLockCoins(ctx, testAccounts[0].baseAccount.Address)
-	require.EqualValues(t, expectedLockCoins, lockCoins)
-	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockCoins, types.LockCoinsTypeQuantity)
+	lockedCoins := keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address)
+	require.EqualValues(t, expectedLockedCoins, lockedCoins)
+	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockedCoins, types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 	BigCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100000000000)),
 	}
 	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, BigCoins, types.LockCoinsTypeQuantity)
 	require.Error(t, err)
-	_, lockStoreKeyNum := keeper.GetNumKeys(ctx)
+	_, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	require.Equal(t, int64(1), lockStoreKeyNum)
 
-	locks := keeper.GetAllLockCoins(ctx)
+	locks := keeper.GetAllLockedCoins(ctx)
 	require.NotNil(t, locks)
 	require.EqualValues(t, common.NativeToken, locks[0].Coins[0].Denom)
 }
@@ -170,11 +170,11 @@ func TestKeeper_UnlockCoins(t *testing.T) {
 	expectedCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(90)),
 	}
-	require.EqualValues(t, keeper.GetLockCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
+	require.EqualValues(t, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
 
-	err = keeper.UnlockCoins(ctx, testAccounts[0].baseAccount.Address, keeper.GetLockCoins(ctx, testAccounts[0].baseAccount.Address), types.LockCoinsTypeQuantity)
+	err = keeper.UnlockCoins(ctx, testAccounts[0].baseAccount.Address, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
-	require.EqualValues(t, keeper.GetLockCoins(ctx, testAccounts[0].baseAccount.Address), sdk.DecCoins(nil))
+	require.EqualValues(t, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), sdk.DecCoins(nil))
 }
 
 func TestKeeper_BurnLockedCoins(t *testing.T) {
@@ -202,7 +202,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	expectedCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(95)),
 	}
-	require.EqualValues(t, keeper.GetLockCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
+	require.EqualValues(t, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
 	err = keeper.BalanceAccount(ctx, testAccounts[0].baseAccount.Address, expectedCoins, sdk.ZeroFee().ToCoins())
 	require.Nil(t, err)
 

@@ -72,6 +72,43 @@ func (msg MsgAddLiquidity) GetSwapTokenPair() string {
 	return msg.MaxBaseTokens.Denom + "_" + msg.QuoteTokens.Denom
 }
 
+//Create a new exchange with token
+type MsgCreateExchange struct {
+	Token  string         `json:"token"`  //token
+	Sender sdk.AccAddress `json:"sender"` //sender
+}
+
+func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
+	return MsgCreateExchange{
+		Token:  token,
+		Sender: sender,
+	}
+}
+
+func (msg MsgCreateExchange) Route() string { return RouterKey }
+
+// Type should return the action
+func (msg MsgCreateExchange) Type() string { return "create_exchange" }
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
+	if msg.Sender.Empty() {
+		return sdk.ErrInvalidAddress(msg.Sender.String())
+	}
+	if len(msg.Token) == 0 {
+		return sdk.ErrUnknownRequest("invalid Token")
+	}
+	return nil
+}
+
+func (msg MsgCreateExchange) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Sender}
+}
+
 // MsgTokenOKTSwap define the message for swap between token and DefaultBondDenom
 type MsgTokenOKTSwap struct {
 	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       //Amount of Tokens sold.
@@ -122,7 +159,6 @@ func (msg MsgTokenOKTSwap) ValidateBasic() sdk.Error {
 	if !msg.MinBoughtTokenAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
-
 	return nil
 }
 

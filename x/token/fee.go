@@ -1,6 +1,6 @@
 package token
 
-// FeeDetail fee detail
+// nolint
 type FeeDetail struct {
 	Address   string `gorm:"index;type:varchar(80)" json:"address" v2:"address"`
 	Fee       string `gorm:"type:varchar(40)" json:"fee" v2:"fee"`

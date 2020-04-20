@@ -34,14 +34,13 @@ func NewAppModule(v version.ProtocolVersionType, keeper Keeper, supplyKeeper aut
 	}
 }
 
-// Name module name
+// nolint
 func (AppModule) Name() string {
 	return tokenTypes.ModuleName
 }
 
-// RegisterInvariants register invariants
+// nolint
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	//RegisterInvariants(ir, am.keeper)
 }
 
 // Route module message route name
@@ -49,41 +48,41 @@ func (AppModule) Route() string {
 	return tokenTypes.RouterKey
 }
 
-// NewHandler module handler
+// nolint
 func (am AppModule) NewHandler() sdk.Handler {
 	return NewTokenHandler(am.keeper, am.version)
 }
 
-// QuerierRoute module querier route name
+// nolint
 func (AppModule) QuerierRoute() string {
 	return tokenTypes.QuerierRoute
 }
 
-// NewQuerierHandler module querier
+// nolint
 func (am AppModule) NewQuerierHandler() sdk.Querier {
 	return NewQuerier(am.keeper)
 }
 
-// InitGenesis module init-genesis
+// nolint
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genesisState GenesisState
 	tokenTypes.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
-	InitGenesis(ctx, am.keeper, genesisState)
+	initGenesis(ctx, am.keeper, genesisState)
 	return []abci.ValidatorUpdate{}
 }
 
-// ExportGenesis module export genesis
+// nolint
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
 	return tokenTypes.ModuleCdc.MustMarshalJSON(gs)
 }
 
-// BeginBlock module begin-block
+// nolint
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlocker(ctx, am.keeper)
+	beginBlocker(ctx, am.keeper)
 }
 
-// EndBlock module end-block
+// nolint
 func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
