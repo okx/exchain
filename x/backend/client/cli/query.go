@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okchain/x/backend/types"
@@ -23,7 +24,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Querying commands for the backend module",
 	}
 
-	queryCmd.AddCommand(
+	queryCmd.AddCommand(client.GetCommands(
 		GetCmdMatches(queryRoute, cdc),
 		GetCmdDeals(queryRoute, cdc),
 		GetCmdFeeDetails(queryRoute, cdc),
@@ -32,9 +33,8 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		GetCmdTickers(queryRoute, cdc),
 		GetCmdTxList(queryRoute, cdc),
 		GetBlockTxHashesCommand(queryRoute, cdc),
-	)
+	)...)
 
-	queryCmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
 	return queryCmd
 }
 
