@@ -37,19 +37,20 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
-// Get SwapTokenPair with quote token name
+// GetSwapTokenPair gets SwapTokenPair with quote token name
 func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.SwapTokenPair, error) {
 	store := ctx.KVStore(k.storeKey)
 	var item types.SwapTokenPair
 	byteKey := []byte(tokenPairName)
 	rawItem := store.Get(byteKey)
-	if rawItem == nil && tokenPairName == types.TestSwapTokenPairName {
+	if len(rawItem) == 0 && tokenPairName == types.TestSwapTokenPairName {
 		item = types.GetTestSwapTokenPair()
 		k.SetSwapTokenPair(ctx, tokenPairName, item)
-	}
-	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
-	if err != nil {
-		return types.SwapTokenPair{}, err
+	}else {
+		err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
+		if err != nil {
+			return types.SwapTokenPair{}, err
+		}
 	}
 
 	return item, nil
