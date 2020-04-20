@@ -1,32 +1,17 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common"
 )
 
-// Transactions messages must fulfill the Msg
-type Msg interface {
-	// Return the message type.
-	// Must be alphanumeric or empty.
-	Type() string
-
-	// Returns a human-readable string for the message, intended for utilization
-	// within tags
-	Route() string
-
-	// ValidateBasic does a simple validation check that
-	// doesn't require access to any other information.
-	ValidateBasic() error
-
-	// Get the canonical byte representation of the Msg.
-	GetSignBytes() []byte
-
-	// Signers returns the addrs of signers that must sign.
-	// CONTRACT: All signatures must be present to be valid.
-	// CONTRACT: Returns addrs in some deterministic order.
-	GetSigners() []sdk.AccAddress
-}
+// Swap message types and routes
+const (
+	TypeMsgAddLiquidity = "add_liquidity"
+	TypeMsgTokenOKTSwap = "token_okt_swap"
+)
 
 type MsgAddLiquidity struct {
 	MinLiquidity  sdk.Dec        `json:"min_liquidity"`   //Minimum number of sender will mint if total pool token supply is greater than 0.
@@ -89,18 +74,17 @@ func (msg MsgAddLiquidity) GetSwapTokenPair() string {
 
 //Create a new exchange with token
 type MsgCreateExchange struct {
-	Token string `json:"token"` //token
+	Token  string         `json:"token"`  //token
 	Sender sdk.AccAddress `json:"sender"` //sender
 }
 
 func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		Token:token,
-		Sender:sender,
+		Token:  token,
+		Sender: sender,
 	}
 }
 
-// Route should return the name of the module
 func (msg MsgCreateExchange) Route() string { return RouterKey }
 
 // Type should return the action
@@ -111,18 +95,86 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if len(msg.Token) ==0 {
+	if len(msg.Token) == 0 {
 		return sdk.ErrUnknownRequest("invalid Token")
 	}
 	return nil
 }
 
-// GetSignBytes encodes the message for signing
 func (msg MsgCreateExchange) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
-// GetSigners defines whose signature is required
 func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// MsgTokenOKTSwap define the message for swap between token and DefaultBondDenom
+type MsgTokenOKTSwap struct {
+	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       //Amount of Tokens sold.
+	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` //Minimum token purchased.
+	Deadline             int64          `json:"deadline"`                //Time after which this transaction can no longer be executed.
+	Recipient            sdk.AccAddress `json:"recipient"`               //if give Recipient address,transfers Tokens to recipient.default recipient is sender
+	Sender               sdk.AccAddress `json:"sender"`                  //sender
+}
+
+// NewMsgTokenOKTSwap is a constructor function for MsgTokenOKTSwap
+func NewMsgTokenOKTSwap(
+	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
+) MsgTokenOKTSwap {
+	return MsgTokenOKTSwap{
+		SoldTokenAmount:      soldTokenAmount,
+		MinBoughtTokenAmount: minBoughtTokenAmount,
+		Deadline:             deadline,
+		Recipient:            recipient,
+		Sender:               sender,
+	}
+}
+
+// Route should return the name of the module
+func (msg MsgTokenOKTSwap) Route() string { return RouterKey }
+
+// Type should return the action
+func (msg MsgTokenOKTSwap) Type() string { return TypeMsgTokenOKTSwap }
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgTokenOKTSwap) ValidateBasic() sdk.Error {
+	if msg.Sender.Empty() {
+		return sdk.ErrInvalidAddress(msg.Sender.String())
+	}
+
+	if msg.Recipient.Empty() {
+		return sdk.ErrInvalidAddress(msg.Recipient.String())
+	}
+
+	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("both token to sell and token to buy do not contain %s,"+
+			" quote token only supports okt", sdk.DefaultBondDenom))
+	}
+
+	if !msg.SoldTokenAmount.IsValid() {
+		return sdk.ErrUnknownRequest("invalid SoldTokenAmount")
+	}
+
+	if !msg.MinBoughtTokenAmount.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
+	}
+	return nil
+}
+
+// GetSignBytes encodes the message for signing
+func (msg MsgTokenOKTSwap) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+// GetSigners defines whose signature is required
+func (msg MsgTokenOKTSwap) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Sender}
+}
+
+func (msg MsgTokenOKTSwap) GetSwapTokenPair() string {
+	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
+		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom
+	}
+	return msg.SoldTokenAmount.Denom + "_" + msg.MinBoughtTokenAmount.Denom
 }
