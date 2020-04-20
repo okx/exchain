@@ -3,19 +3,15 @@ package types
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	token "github.com/okex/okchain/x/token/types"
-	"github.com/okex/okchain/x/common"
-	"strings"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/okchain/x/common"
+	token "github.com/okex/okchain/x/token/types"
+	"strings"
 )
 
 const TestBasePooledToken = "xxb"
 const TestQuotePooledToken = common.NativeToken
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
-//
-//type SwapTokenPairPools struct {
-//	SwapTokenPairs []SwapTokenPair `json:"swap_token_pairs"`
-//}
 
 type SwapTokenPair struct {
 	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`
