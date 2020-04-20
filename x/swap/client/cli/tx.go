@@ -1,15 +1,17 @@
 package cli
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/okchain/x/swap/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -21,7 +23,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	txCmd.AddCommand(client.PostCommands(
 		getCmdAddLiquidity(cdc),
-
+		getCmdTokenOKTSwap(cdc),
 	)...)
 
 	return txCmd
@@ -40,7 +42,7 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			minLiquidityDec, err :=sdk.NewDecFromStr(minLiquidity)
+			minLiquidityDec, err := sdk.NewDecFromStr(minLiquidity)
 			if err != nil {
 				return err
 			}
@@ -63,5 +65,54 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().StringVarP(&maxBaseTokens, "max_base_tokens", "", "", "Maximum number of base tokens deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
 	cmd.Flags().StringVarP(&quoteTokens, "quote_tokens", "q", "", "The number of quote tokens. For example \"100okb\"")
 	cmd.Flags().Int64VarP(&deadline, "deadline", "d", 0, "Time after which this transaction can no longer be executed.")
+	return cmd
+}
+
+func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
+	// flags
+	var soldTokenAmount string
+	var minBoughtTokenAmount string
+	var deadline string
+	var recipient string
+	cmd := &cobra.Command{
+		Use:   "token-okt",
+		Short: "swap between token and okt",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			soldTokenAmount, err := sdk.ParseDecCoin(soldTokenAmount)
+			if err != nil {
+				return err
+			}
+			minBoughtTokenAmount, err := sdk.ParseDecCoin(minBoughtTokenAmount)
+			if err != nil {
+				return err
+			}
+			dur, err := time.ParseDuration(deadline)
+			if err != nil {
+				return err
+			}
+			deadline := time.Now().Add(dur).Unix()
+			recipient, err := sdk.AccAddressFromBech32(recipient)
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgTokenOKTSwap(soldTokenAmount, minBoughtTokenAmount,
+				deadline, recipient, cliCtx.FromAddress)
+
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().StringVarP(&soldTokenAmount, "amount to sell", "", "",
+		"amount expected to sell")
+	cmd.Flags().StringVarP(&minBoughtTokenAmount, "minimum amount to buy", "", "",
+		"minimum amount expected to buy.")
+	cmd.Flags().StringVarP(&recipient, "recipient", "", "",
+		"address to receive the amount bought")
+	cmd.Flags().StringVarP(&deadline, "deadline", "", "0s",
+		"time after which this transaction can no longer be executed.")
 	return cmd
 }

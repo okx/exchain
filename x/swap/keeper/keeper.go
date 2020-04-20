@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -74,7 +75,6 @@ func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	return sdk.KVStorePrefixIterator(store, []byte{})
 }
 
-
 // NewToken new token
 func (k Keeper) NewPoolToken(ctx sdk.Context, token tokentypes.Token) {
 	k.tokenKeeper.NewToken(ctx, token)
@@ -104,4 +104,12 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sd
 
 func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
+}
+
+func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
+}
+
+func (k Keeper) GetTokenKeeper() types.TokenKeeper {
+	return k.tokenKeeper
 }
