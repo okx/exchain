@@ -117,7 +117,7 @@ func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionAbstain)
 	require.Nil(t, err)
 
-	expectedTallyResult := newTallyResult(t, "20000", "0.0", "20000", "0.0", "0.0", "20000")
+	expectedTallyResult := newTallyResult(t, "2", "0.0", "2", "0.0", "0.0", "2")
 	// when expire VotingPeriod
 	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
 	require.False(t, dist)
@@ -157,7 +157,7 @@ func TestTallyAllValidatorsMoreThanOneThirdVeto(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNoWithVeto)
 	require.Nil(t, err)
 
-	expectedTallyResult := newTallyResult(t, "10000", "0.0", "0.0", "0.0", "10000", "20000")
+	expectedTallyResult := newTallyResult(t, "1", "0.0", "0.0", "0.0", "1", "2")
 	// when expire VotingPeriod
 	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
 	require.True(t, dist)
@@ -192,7 +192,7 @@ func TestTallyOtherCase(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNo)
 	require.Nil(t, err)
 
-	expectedTallyResult := newTallyResult(t, "10000", "0.0", "0.0", "10000", "0.0", "20000")
+	expectedTallyResult := newTallyResult(t, "1", "0.0", "0.0", "1", "0.0", "2")
 	// when expire VotingPeriod
 	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
 	require.False(t, dist)
@@ -212,7 +212,7 @@ func TestTallyOtherCase(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionYes)
 	require.Nil(t, err)
 
-	expectedTallyResult = newTallyResult(t, "20000", "20000", "0.0", "0.0", "0.0", "20000")
+	expectedTallyResult = newTallyResult(t, "2", "2", "0.0", "0.0", "0.0", "2")
 	// when expire VotingPeriod
 	status, dist, tallyResults = Tally(ctx, keeper, proposal, true)
 	require.False(t, dist)
@@ -259,7 +259,10 @@ func TestTallyDelegatorInherit(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[2], types.OptionYes)
 	require.Nil(t, err)
 
-	expectedTallyResult := newTallyResult(t, "41000", "21000", "0.0", "20000", "0.0", "41000")
+	// there are 3 validators with 1 voting power for each one (0.001okt -> 1 power)
+	//  2 vals -> OptionNo
+	//  1 val -> OptionYes
+	expectedTallyResult := newTallyResult(t, "11003", "11001", "0.0", "2", "0.0", "11003")
 	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
@@ -278,7 +281,7 @@ func TestTallyDelegatorOverride(t *testing.T) {
 	CreateValidators(t, stakingHandler, ctx, valAddrs, []int64{5, 5, 5})
 	staking.EndBlocker(ctx, sk)
 
-	coin, err := sdk.ParseDecCoin("10000okt")
+	coin, err := sdk.ParseDecCoin("1okt")
 	require.Nil(t, err)
 	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
@@ -302,7 +305,7 @@ func TestTallyDelegatorOverride(t *testing.T) {
 	err, _ = keeper.AddVote(ctx, proposalID, Addrs[3], types.OptionNo)
 	require.Nil(t, err)
 
-	expectedTallyResult := newTallyResult(t, "40000", "30000", "0.0", "10000", "0.0", "40000")
+	expectedTallyResult := newTallyResult(t, "4", "3", "0.0", "1", "0.0", "4")
 	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
