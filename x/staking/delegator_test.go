@@ -110,7 +110,7 @@ func TestDelegator(t *testing.T) {
 
 	bAction := baseAction{mk}
 	zeroDec := sdk.ZeroDec()
-	tokenPerTime:=sdk.NewDec(8000)
+	tokenPerTime := sdk.NewDec(8000)
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
 
@@ -292,4 +292,58 @@ func TestProxy(t *testing.T) {
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
 	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
+}
+
+func TestLimitedProxy(t *testing.T) {
+	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
+	params := DefaultParams()
+
+	originVaSet := addrVals[1:]
+	params.MaxValidators = uint16(len(originVaSet))
+	params.Epoch = 2
+	params.UnbondingTime = time.Millisecond * 300
+
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+
+	startUpStatus := baseValidatorStatus{startUpValidator}
+
+	orgValsLen := len(originVaSet)
+	fullVaSet := make([]sdk.ValAddress, orgValsLen+1)
+	copy(fullVaSet, originVaSet)
+	copy(fullVaSet[orgValsLen:], []sdk.ValAddress{startUpStatus.getValidator().GetOperator()})
+
+	bAction := baseAction{mk}
+	proxyOriginTokens := MaxDelegatedToken
+	inputActions := []IAction{
+		createValidatorAction{bAction, nil},
+		endBlockAction{bAction},
+
+		// register proxy
+		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		baseProxyRegAction{bAction, ProxiedDelegator, true},
+
+		// bind proxy
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
+
+		// register proxy without unbinding
+		baseProxyRegAction{bAction, ValidDelegator1, true},
+	}
+
+	actionsAndChecker := []actResChecker{
+		nil,
+		validatorStatusChecker(sdk.Unbonded.String()),
+		// register proxy
+		noErrorInHandlerResult(true),
+		noErrorInHandlerResult(true),
+		// bind proxy
+		noErrorInHandlerResult(true),
+		// register proxy without unbinding (failed)
+		noErrorInHandlerResult(false),
+	}
+
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
+	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
+	smTestCase.printParticipantSnapshot(t)
+	smTestCase.Run(t)
+
 }
