@@ -32,8 +32,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 	// flags
 	var minLiquidity string
-	var maxBaseTokens string
-	var quoteTokens string
+	var maxBaseAmount string
+	var quoteAmount string
 	var deadlineDuration string
 	cmd := &cobra.Command{
 		Use:   "add-liquidity",
@@ -46,11 +46,11 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			maxBaseTokensDecCoin, err2 := sdk.ParseDecCoin(maxBaseTokens)
+			maxBaseAmountDecCoin, err2 := sdk.ParseDecCoin(maxBaseAmount)
 			if err2 != nil {
 				return err2
 			}
-			quoteTokensDecCoin, err2 := sdk.ParseDecCoin(quoteTokens)
+			quoteAmountDecCoin, err2 := sdk.ParseDecCoin(quoteAmount)
 			if err2 != nil {
 				return err2
 			}
@@ -59,15 +59,15 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 				return err3
 			}
 			deadline := time.Now().Add(duration).Unix()
-			msg := types.NewMsgAddLiquidity(minLiquidityDec, maxBaseTokensDecCoin, quoteTokensDecCoin, deadline, cliCtx.FromAddress)
+			msg := types.NewMsgAddLiquidity(minLiquidityDec, maxBaseAmountDecCoin, quoteAmountDecCoin, deadline, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
 	cmd.Flags().StringVarP(&minLiquidity, "min-liquidity", "l", "", "Minimum number of sender will mint if total pool token supply is greater than 0")
-	cmd.Flags().StringVarP(&maxBaseTokens, "max-base-tokens", "", "", "Maximum number of base tokens deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
-	cmd.Flags().StringVarP(&quoteTokens, "quote-tokens", "q", "", "The number of quote tokens. For example \"100okb\"")
+	cmd.Flags().StringVarP(&maxBaseAmount, "max-base-tokens", "", "", "Maximum number of base tokens deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
+	cmd.Flags().StringVarP(&quoteAmount, "quote-tokens", "q", "", "The number of quote tokens. For example \"100okb\"")
 	cmd.Flags().StringVarP(&deadlineDuration, "deadline-duration", "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
 	return cmd
 }

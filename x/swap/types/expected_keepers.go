@@ -25,6 +25,7 @@ type SupplyKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
 		recipientModule string, amt sdk.Coins) sdk.Error
 	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
+	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
 }
 
 type TokenKeeper interface {
