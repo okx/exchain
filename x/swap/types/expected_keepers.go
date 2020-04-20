@@ -31,4 +31,5 @@ type TokenKeeper interface {
 	GetTokenInfo(ctx sdk.Context, symbol string) token.Token
 	NewToken(ctx sdk.Context, token token.Token)
 	UpdateToken(ctx sdk.Context, token token.Token)
+	TokenExist(ctx sdk.Context, symbol string) bool
 }

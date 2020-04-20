@@ -12,6 +12,10 @@ import (
 const TestBasePooledToken = "xxb"
 const TestQuotePooledToken = common.NativeToken
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
+//
+//type SwapTokenPairPools struct {
+//	SwapTokenPairs []SwapTokenPair `json:"swap_token_pairs"`
+//}
 
 type SwapTokenPair struct {
 	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`

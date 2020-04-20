@@ -65,3 +65,23 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().Int64VarP(&deadline, "deadline", "d", 0, "Time after which this transaction can no longer be executed.")
 	return cmd
 }
+
+func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
+	// flags
+	var token string
+	cmd := &cobra.Command{
+		Use:   "create_exchange",
+		Short: "create exchange",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			msg := types.NewMsgCreateExchange(token,cliCtx.FromAddress)
+
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().StringVarP(&token, "token", "t", "", "CreateExchange by token name")
+	return cmd
+}

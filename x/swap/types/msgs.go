@@ -86,3 +86,43 @@ func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 func (msg MsgAddLiquidity) GetSwapTokenPair() string {
 	return msg.MaxBaseTokens.Denom + "_" + msg.QuoteTokens.Denom
 }
+
+//Create a new exchange with token
+type MsgCreateExchange struct {
+	Token string `json:"token"` //token
+	Sender sdk.AccAddress `json:"sender"` //sender
+}
+
+func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
+	return MsgCreateExchange{
+		Token:token,
+		Sender:sender,
+	}
+}
+
+// Route should return the name of the module
+func (msg MsgCreateExchange) Route() string { return RouterKey }
+
+// Type should return the action
+func (msg MsgCreateExchange) Type() string { return "create_exchange" }
+
+// ValidateBasic runs stateless checks on the message
+func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
+	if msg.Sender.Empty() {
+		return sdk.ErrInvalidAddress(msg.Sender.String())
+	}
+	if len(msg.Token) ==0 {
+		return sdk.ErrUnknownRequest("invalid Token")
+	}
+	return nil
+}
+
+// GetSignBytes encodes the message for signing
+func (msg MsgCreateExchange) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
+}
+
+// GetSigners defines whose signature is required
+func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Sender}
+}
