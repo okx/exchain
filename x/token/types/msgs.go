@@ -1,3 +1,4 @@
+// nolint
 package types
 
 import (
@@ -40,7 +41,6 @@ func (msg MsgTokenIssue) Route() string { return RouterKey }
 
 func (msg MsgTokenIssue) Type() string { return "issue" }
 
-// ValidateBasic Implements Msg.
 func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
@@ -75,18 +75,15 @@ func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgTokenIssue) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
 func (msg MsgTokenIssue) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
-// MsgTokenBurn burn coins
 type MsgTokenBurn struct {
 	Amount sdk.DecCoin    `json:"amount"`
 	Owner  sdk.AccAddress `json:"owner"`
@@ -115,13 +112,11 @@ func (msg MsgTokenBurn) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgTokenBurn) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
 func (msg MsgTokenBurn) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
@@ -157,14 +152,12 @@ func (msg MsgTokenMint) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgTokenMint) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
 func (msg MsgTokenMint) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
@@ -206,13 +199,11 @@ func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgMultiSend) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
 func (msg MsgMultiSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.From}
 }
@@ -232,13 +223,10 @@ func NewMsgTokenSend(from, to sdk.AccAddress, coins sdk.DecCoins) MsgSend {
 	}
 }
 
-// Route Implements Msg.
 func (msg MsgSend) Route() string { return RouterKey }
 
-// Type Implements Msg.
 func (msg MsgSend) Type() string { return "send" }
 
-// ValidateBasic Implements Msg.
 func (msg MsgSend) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
 		return sdk.ErrInvalidAddress("failed to check send msg because miss sender address")
@@ -255,14 +243,11 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgSend) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
-	//return sdk.MustSortJSON(msgCdc.MustMarshalJSON(msg))
 }
 
-// GetSigners Implements Msg.
 func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }
@@ -286,13 +271,10 @@ func NewMsgTransferOwnership(from, to sdk.AccAddress, symbol string) MsgTransfer
 	}
 }
 
-// Route Implements Msg.
 func (msg MsgTransferOwnership) Route() string { return RouterKey }
 
-// Type Implements Msg.
 func (msg MsgTransferOwnership) Type() string { return "transfer" }
 
-// ValidateBasic Implements Msg.
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
 		return sdk.ErrInvalidAddress("failed to check transferownership msg because miss sender address")
@@ -314,14 +296,11 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgTransferOwnership) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
-	//return sdk.MustSortJSON(msgCdc.MustMarshalJSON(msg))
 }
 
-// GetSigners Implements Msg.
 func (msg MsgTransferOwnership) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }
@@ -395,13 +374,11 @@ func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgTokenModify) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// GetSigners Implements Msg.
 func (msg MsgTokenModify) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }

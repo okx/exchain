@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/pkg/errors"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okchain/x/token/types"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,16 +26,16 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	queryCmd.AddCommand(client.GetCommands(
-		GetCmdQueryParams(queryRoute, cdc),
-		GetCmdTokenInfo(queryRoute, cdc),
-		//GetAccountCmd(queryRoute, cdc),
+		getCmdQueryParams(queryRoute, cdc),
+		getCmdTokenInfo(queryRoute, cdc),
+		//getAccountCmd(queryRoute, cdc),
 	)...)
 
 	return queryCmd
 }
 
-// GetCmdQueryOrder queries order info by orderId
-func GetCmdTokenInfo(queryRoute string, cdc *codec.Codec) *cobra.Command {
+// getCmdTokenInfo queries token info by address
+func getCmdTokenInfo(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	var owner string
 	cmd := &cobra.Command{
 		Use:   "info [<symbol>]",
@@ -82,7 +81,7 @@ func GetCmdTokenInfo(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func GetAccountCmd(storeName string, cdc *codec.Codec) *cobra.Command {
+func getAccountCmd(storeName string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "account [address]",
 		Short: "Query account balance",
@@ -117,8 +116,8 @@ func GetAccountCmd(storeName string, cdc *codec.Codec) *cobra.Command {
 	return client.GetCommands(cmd)[0]
 }
 
-// GetCmdQueryParams implements the query params command.
-func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
+// getCmdQueryParams implements the query params command.
+func getCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "params",
 		Short: "Query the parameters of the token process",

@@ -18,7 +18,7 @@ func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 
 	queryCmd := &cobra.Command{
 		Use:   "debug",
-		Short: "Debugging commands",
+		Short: "Debugging subcommands",
 	}
 
 	queryCmd.AddCommand(client.GetCommands(

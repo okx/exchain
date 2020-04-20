@@ -70,8 +70,8 @@ func ValidOriginalSymbol(name string) bool {
 	return regOriginalSymbol.MatchString(name)
 }
 
-// format: [{"to": "addr", "amount": "1BNB,2BTC"}, ...]
-// to []TransferUnit
+// Convert a formatted json string into a TransferUnit array
+// e.g.) [{"to": "addr", "amount": "1BNB,2BTC"}, ...]
 func StrToTransfers(str string) (transfers []TransferUnit, err error) {
 	var transfer []Transfer
 	err = json.Unmarshal([]byte(str), &transfer)
@@ -130,7 +130,7 @@ func DecAccountArrToBaseAccountArr(decAccounts []DecAccount) (baseAccountArr []a
 	return baseAccountArr
 }
 
-func MergeCoinInfo(availableCoins, lockCoins sdk.DecCoins) (coinsInfo CoinsInfo) {
+func MergeCoinInfo(availableCoins, lockedCoins sdk.DecCoins) (coinsInfo CoinsInfo) {
 	m := make(map[string]CoinInfo)
 
 	for _, availableCoin := range availableCoins {
@@ -144,17 +144,17 @@ func MergeCoinInfo(availableCoins, lockCoins sdk.DecCoins) (coinsInfo CoinsInfo)
 		}
 	}
 
-	for _, lockCoin := range lockCoins {
-		coinInfo, ok := m[lockCoin.Denom]
+	for _, lockedCoin := range lockedCoins {
+		coinInfo, ok := m[lockedCoin.Denom]
 		if ok {
-			coinInfo.Locked = lockCoin.Amount.String()
-			m[lockCoin.Denom] = coinInfo
+			coinInfo.Locked = lockedCoin.Amount.String()
+			m[lockedCoin.Denom] = coinInfo
 		} else {
-			coinInfo.Symbol = lockCoin.Denom
+			coinInfo.Symbol = lockedCoin.Denom
 			coinInfo.Available = "0"
-			coinInfo.Locked = lockCoin.Amount.String()
+			coinInfo.Locked = lockedCoin.Amount.String()
 
-			m[lockCoin.Denom] = coinInfo
+			m[lockedCoin.Denom] = coinInfo
 		}
 	}
 

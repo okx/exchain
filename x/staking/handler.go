@@ -116,19 +116,18 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 				ctx.ConsensusParams().Validator.PubKeyTypes).Result()
 		}
 	}
-
 	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description)
 	commission := NewCommission(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(0))
 	validator, err := validator.SetInitialCommission(commission)
 	if err != nil {
 		return err.Result()
 	}
-	validator.MinSelfDelegation = msg.MinSelfDelegation.Amount
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
 	// vote msd for validator itself
-	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, msg.MinSelfDelegation); err != nil {
+	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
+	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)

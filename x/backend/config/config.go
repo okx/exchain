@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 
 	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 
@@ -12,12 +13,11 @@ import (
 // nolint
 var (
 	DefaultMaintainConfile = "maintain.conf"
-	DefaultNodeHome        = okchaincfg.DefaultBackendNodeHome
-	DefaultNodeCofig       = DefaultNodeHome + "/config"
-	DefaultTestConfig      = DefaultNodeHome + "/test_config"
-	DefaultTestDataHome    = DefaultNodeHome + "/test_data"
-
-	DefaultConfig = okchaincfg.DefaultBackendConfig
+	DefaultNodeHome        = okchaincfg.GetNodeHome()
+	DefaultNodeCofig       = filepath.Join(DefaultNodeHome, "config")
+	DefaultTestConfig      = filepath.Join(DefaultNodeHome, "test_config")
+	DefaultTestDataHome    = filepath.Join(DefaultNodeHome, "test_data")
+	DefaultConfig          = okchaincfg.DefaultBackendConfig
 )
 
 // nolint

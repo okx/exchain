@@ -61,20 +61,20 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	distTxCmd.AddCommand(client.PostCommands(
-		GetCmdTokenIssue(cdc),
-		GetCmdTokenBurn(cdc),
-		GetCmdTokenMint(cdc),
-		GetCmdTokenMultiSend(cdc),
-		GetCmdTransferOwnership(cdc),
-		GetMultiSignsCmd(cdc),
-		GetCmdTokenEdit(cdc),
+		getCmdTokenIssue(cdc),
+		getCmdTokenBurn(cdc),
+		getCmdTokenMint(cdc),
+		getCmdTokenMultiSend(cdc),
+		getCmdTransferOwnership(cdc),
+		getMultiSignsCmd(cdc),
+		getCmdTokenEdit(cdc),
 	)...)
 
 	return distTxCmd
 }
 
-// GetCmdSetName is the CLI command for sending a SetName transaction
-func GetCmdTokenIssue(cdc *codec.Codec) *cobra.Command {
+// getCmdTokenIssue is the CLI command for sending a IssueToken transaction
+func getCmdTokenIssue(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "issue",
 		Short: "issue a token",
@@ -143,8 +143,8 @@ func GetCmdTokenIssue(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdSetName is the CLI command for sending a SetName transaction
-func GetCmdTokenBurn(cdc *codec.Codec) *cobra.Command {
+// getCmdTokenBurn is the CLI command for sending a BurnToken transaction
+func getCmdTokenBurn(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "burn [amount]",
 		Short: "burn some amount of token",
@@ -179,8 +179,8 @@ func GetCmdTokenBurn(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdSetName is the CLI command for sending a SetName transaction
-func GetCmdTokenMint(cdc *codec.Codec) *cobra.Command {
+// getCmdTokenMint is the CLI command for sending a MintToken transaction
+func getCmdTokenMint(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mint [amount]",
 		Short: "mint tokens for an existing token",
@@ -212,8 +212,8 @@ func GetCmdTokenMint(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdSetName is the CLI command for sending a SetName transaction
-func GetCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
+// getCmdTokenMultiSend is the CLI command for sending a MultiSend transaction
+func getCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "multi-send",
 		Short: "Create and sign a multi send tx",
@@ -279,8 +279,8 @@ func GetCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdSetName is the CLI command for sending a SetName transaction
-func GetCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
+// getCmdTransferOwnership is the CLI command for sending a ChangeOwner transaction
+func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer-ownership",
 		Short: "change the owner of the token",
@@ -324,7 +324,8 @@ func GetCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func GetMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
+// nolint
+func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "multisigns",
 		Short: "append signature to the chown unsignedtx file",
@@ -380,7 +381,7 @@ func GetMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// SendTxCmd will create a send tx and sign it with the given key.
+// SendTxCmd will create a transaction to send and sign
 func SendTxCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send [from_key_or_address] [to_address] [amount]",
@@ -411,8 +412,8 @@ func SendTxCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdTokenEdit is the CLI command for sending a tokenEdit transaction
-func GetCmdTokenEdit(cdc *codec.Codec) *cobra.Command {
+// getCmdTokenEdit is the CLI command for sending a TokenEdit transaction
+func getCmdTokenEdit(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit",
 		Short: "edit a token's whole name and desc",
