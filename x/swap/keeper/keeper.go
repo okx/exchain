@@ -43,13 +43,14 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	var item types.SwapTokenPair
 	byteKey := []byte(tokenPairName)
 	rawItem := store.Get(byteKey)
-	if rawItem == nil && tokenPairName == types.TestSwapTokenPairName {
+	if len(rawItem) == 0 && tokenPairName == types.TestSwapTokenPairName {
 		item = types.GetTestSwapTokenPair()
 		k.SetSwapTokenPair(ctx, tokenPairName, item)
-	}
-	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
-	if err != nil {
-		return types.SwapTokenPair{}, err
+	}else {
+		err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
+		if err != nil {
+			return types.SwapTokenPair{}, err
+		}
 	}
 
 	return item, nil
