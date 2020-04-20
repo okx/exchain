@@ -103,9 +103,6 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	if msdLimit := k.ParamsMinSelfDelegationLimited(ctx); msg.MinSelfDelegation.Amount.LT(msdLimit) {
-		return types.ErrInsufficientMinSelfDelegation(k.Codespace(), msdLimit).Result()
-	}
 	if _, err := msg.Description.EnsureLength(); err != nil {
 		return err.Result()
 	}
