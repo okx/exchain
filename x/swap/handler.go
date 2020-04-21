@@ -67,7 +67,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := "oip3-" + msg.Token
+	poolName := "oip3"
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
