@@ -76,11 +76,6 @@ jobs:
               go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
-#            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
-#              id=$(echo "$pkg" | sed 's|[/.]|_|g')
-#              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
-#            done
-
             echo "--> Gather coverage:"
             ls /tmp/workspace/profiles/
             echo "mode: atomic" > coverage.txt
@@ -98,6 +93,12 @@ jobs:
 
             echo "--> upload codecov:"
             bash <(curl -s https://codecov.io/bash) -f coverage.txt
+
+
+#            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
+#              id=$(echo "$pkg" | sed 's|[/.]|_|g')
+#              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+#            done
 #      - persist_to_workspace:
 #          root: /tmp/workspace
 #          paths:
