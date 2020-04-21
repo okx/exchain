@@ -116,17 +116,17 @@ Where proposal.json contains:
 
 {
   "title": "Community Pool Spend",
-  "description": "Pay me some Atoms!",
+  "description": "Pay me some okt!",
   "recipient": "okchain5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq",
   "amount": [
     {
-      "denom": "stake",
+      "denom": "okt",
       "amount": "10000"
     }
   ],
   "deposit": [
     {
-      "denom": "stake",
+      "denom": "okt",
       "amount": "10000"
     }
   ]
