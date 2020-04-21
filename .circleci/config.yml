@@ -59,14 +59,27 @@ jobs:
           name: Run tests with coverage and upload codecov
           command: |
             set -ex
-            echo "--> Run tests with coverage:"
+            excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)|(x/backend)"
+            included_packages=("./app" "./x/common" "./x/dex" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade")
+
             export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
-            for pkg in $(go list ./... | grep -v -e '/simulation' -e '/backend'  | circleci tests split); do
-              id=$(echo "$pkg" | sed 's|[/.]|_|g')
-              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+
+            echo "--> Run tests with coverage:"
+            for pkg in ${included_packages[@]}; do
+                package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
+                echo "${package_lines[@]}"
+                cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+                packages=`echo ${package_lines[@]}`
+                id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
+                go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
+
+#            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
+#              id=$(echo "$pkg" | sed 's|[/.]|_|g')
+#              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+#            done
 
             echo "--> Gather coverage:"
             ls /tmp/workspace/profiles/
