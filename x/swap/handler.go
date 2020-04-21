@@ -67,7 +67,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := "OIP3-" + msg.Token
+	poolName := "oip3-" + msg.Token
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
@@ -165,7 +165,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
-	swapTokenPair.BasePooledCoin= swapTokenPair.BasePooledCoin.Add(baseTokens)
+	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(baseTokens)
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
 
 	// update poolToken

@@ -74,7 +74,6 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-
 func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 	// flags
 	var liquidity string
@@ -122,7 +121,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	// flags
 	var token string
 	cmd := &cobra.Command{
-		Use:   "create_exchange",
+		Use:   "create-exchange",
 		Short: "create exchange",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -186,7 +185,7 @@ func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
 		"minimum amount expected to buy.")
 	cmd.Flags().StringVarP(&recipient, "recipient", "", "",
 		"address to receive the amount bought")
-	cmd.Flags().StringVarP(&deadline, "deadline", "", "0s",
+	cmd.Flags().StringVarP(&deadline, "deadline", "", "100s",
 		"time after which this transaction can no longer be executed.")
 	return cmd
 }
