@@ -164,8 +164,8 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		}
 	}
 	// update swapTokenPair
-	swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
-	swapTokenPair.BasePooledCoin.Add(baseTokens)
+	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
+	swapTokenPair.BasePooledCoin= swapTokenPair.BasePooledCoin.Add(baseTokens)
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
 
 	// update poolToken
@@ -247,8 +247,8 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		}
 	}
 	// update swapTokenPair
-	swapTokenPair.QuotePooledCoin.Sub(quoteAmount)
-	swapTokenPair.BasePooledCoin.Sub(baseAmount)
+	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(quoteAmount)
+	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Sub(baseAmount)
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
 
 	// update poolToken
