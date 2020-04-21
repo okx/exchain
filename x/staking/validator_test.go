@@ -13,35 +13,31 @@ func TestValidatorMultiCreates(t *testing.T) {
 
 	params := DefaultParams()
 	params.MaxValidators = 1
-	params.MinSelfDelegationLimit = sdk.NewDec(2)
-
-	validMsd := sdk.NewDec(3)
-	invalidMsd := sdk.OneDec()
+	params.Epoch = 1
 
 	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{})
-	startUpValidator.MinSelfDelegation = validMsd
-	expectDelegatorShares := validMsd
-
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
 	invalidVal := NewValidator(addrVals[1], PKs[1], Description{})
-	invalidVal.MinSelfDelegation = invalidMsd
 	invalidVaStatus := baseValidatorStatus{invalidVal}
 
 	bAction := baseAction{mk}
 	inputActions := []IAction{
-		createValidatorAction{bAction, invalidVaStatus},
 		createValidatorAction{bAction, startUpStatus},
+		createValidatorAction{bAction, invalidVaStatus},
+		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 	}
 
 	actionsAndChecker := []actResChecker{
-		noErrorInHandlerResult(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryValidatorCheck(sdk.Bonded, false, &expectDelegatorShares, &validMsd, nil),
+		noErrorInHandlerResult(false),
+		validatorDelegatorShareIncreased(true),
+		validatorStatusChecker(sdk.Bonded.String()),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
+	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
 	smTestCase.Run(t)
 }
 
@@ -55,8 +51,6 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 	params.UnbondingTime = time.Millisecond * 300
 
 	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{})
-	startUpValidator.MinSelfDelegation = InitMsd2000
-	expectDelegatorShares := InitMsd2000
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 	recreateValStatus := baseValidatorStatus{startUpValidator}
@@ -76,14 +70,14 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryValidatorCheck(sdk.Bonded, false, &expectDelegatorShares, &InitMsd2000, nil),
+		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
 		noErrorInHandlerResult(true),
 		validatorKickedOff(true),
 		nil,
 		nil,
 		nil,
-		queryValidatorCheck(sdk.Unbonded, false, &expectDelegatorShares, &InitMsd2000, nil),
-		queryValidatorCheck(sdk.Bonded, false, &expectDelegatorShares, &InitMsd2000, nil),
+		queryValidatorCheck(sdk.Unbonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
+		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
 	}
 
 	smTestCase := basicStakingSMTestCase{

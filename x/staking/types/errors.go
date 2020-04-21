@@ -272,3 +272,10 @@ func ErrTargetValsDuplicate(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidVote,
 		"failed. duplicate target validators")
 }
+
+// ErrAlreadyBinded returns an error when a delegator keeps binding a proxy before proxy register
+func ErrAlreadyBinded(codespace sdk.CodespaceType, delAddr string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProxy,
+		"failed. %s has already binded a proxy. it's necessary to unbind before proxy register",
+		delAddr)
+}
