@@ -24,31 +24,32 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	swapQueryCmd.AddCommand(
 		flags.GetCommands(
-			GetCmdAddLiquidity(queryRoute, cdc),
+			GetCmdSwapTokenPair(queryRoute, cdc),
 		)...,
 	)
 
 	return swapQueryCmd
 }
 
-func GetCmdAddLiquidity(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "add-liquidity [name]",
-		Short: "add liquidity name",
+		Use:   "tokenpair [token]",
+		Short: "TokenPair token name",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			name := args[0]
+			tokenName := args[0]
 
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/resolve/%s", queryRoute, name), nil)
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
 			if err != nil {
-				fmt.Printf("could not resolve name - %s \n", name)
+				fmt.Printf("token piar - %s doesn't exist. error:%s \n", tokenName, err.Error())
 				return nil
 			}
 
-			var out types.QueryResResolve
-			cdc.MustUnmarshalJSON(res, &out)
-			return cliCtx.PrintOutput(out)
+			//var out types.QueryResResolve
+			//cdc.MustUnmarshalJSON(res, &out)
+			fmt.Println(string(res))
+			return nil
 		},
 	}
 }

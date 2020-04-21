@@ -31,4 +31,3 @@ type (
 
 	SwapTokenPair = types.SwapTokenPair
 )
-

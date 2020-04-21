@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/okex/okchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,9 +24,10 @@ func NewQuerier(k Keeper) sdk.Querier {
 // nolint: unparam
 func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
 	err sdk.Error) {
-	tokenPair, error := keeper.GetSwapTokenPair(ctx, path[0])
+	tokenPairName := path[0] + "_" + common.NativeToken
+	tokenPair, error := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if error != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, sdk.ErrUnknownRequest(error.Error())
 	}
 	bz := keeper.cdc.MustMarshalJSON(tokenPair)
 	return bz, nil

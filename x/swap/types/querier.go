@@ -2,8 +2,6 @@ package types
 
 import "strings"
 
-const QuerySwapTokenPair = "swapTokenPair"
-
 // QueryResResolve Queries Result Payload for a resolve query
 type QueryResResolve struct {
 	Value string `json:"value"`

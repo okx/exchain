@@ -57,7 +57,6 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	//TODO keys with prefix byte 0x01
 	tokenPair := msg.Token + "_" + common.NativeToken
 
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPair)
@@ -72,7 +71,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
-	if err == nil {
+	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  "pool token is not exist",

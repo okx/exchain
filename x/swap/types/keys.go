@@ -12,6 +12,9 @@ const (
 
 	// QuerierRoute to be used for querierer msgs
 	QuerierRoute = ModuleName
+
+	// QuerySwapTokenPair query endpoints supported by the swap Querier
+	QuerySwapTokenPair = "swapTokenPair"
 )
 
 var (
