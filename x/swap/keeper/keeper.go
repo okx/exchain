@@ -42,12 +42,12 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.SwapTokenPair, error) {
 	store := ctx.KVStore(k.storeKey)
 	var item types.SwapTokenPair
-	byteKey := []byte(tokenPairName)
+	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
 	if len(rawItem) == 0 && tokenPairName == types.TestSwapTokenPairName {
 		item = types.GetTestSwapTokenPair()
 		k.SetSwapTokenPair(ctx, tokenPairName, item)
-	}else {
+	} else {
 		err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 		if err != nil {
 			return types.SwapTokenPair{}, err
@@ -61,13 +61,13 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 func (k Keeper) SetSwapTokenPair(ctx sdk.Context, tokenPairName string, swapTokenPair types.SwapTokenPair) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(swapTokenPair)
-	store.Set([]byte(tokenPairName), bz)
+	store.Set(types.GetTokenPairKey(tokenPairName), bz)
 }
 
 // Deletes the entire SwapTokenPair data struct for a quote token name
 func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, tokenPairName string) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete([]byte(tokenPairName))
+	store.Delete(types.GetTokenPairKey(tokenPairName))
 }
 
 // Get an iterator over all SwapTokenPairs in which the keys are the names and the values are the whois
@@ -127,4 +127,3 @@ func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.DecCoins, 
 func (k Keeper) GetTokenKeeper() types.TokenKeeper {
 	return k.tokenKeeper
 }
-

@@ -23,6 +23,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	txCmd.AddCommand(client.PostCommands(
 		getCmdAddLiquidity(cdc),
+		getCmdCreateExchange(cdc),
 		getCmdTokenOKTSwap(cdc),
 	)...)
 

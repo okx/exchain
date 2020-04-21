@@ -13,3 +13,12 @@ const (
 	// QuerierRoute to be used for querierer msgs
 	QuerierRoute = ModuleName
 )
+
+var (
+	TokenPairPrefixKey = []byte{0x01}
+)
+
+// nolint
+func GetTokenPairKey(key string) []byte {
+	return append(TokenPairPrefixKey, []byte(key)...)
+}
