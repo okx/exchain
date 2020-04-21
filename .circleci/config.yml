@@ -59,21 +59,21 @@ jobs:
           name: Run tests with coverage and upload codecov
           command: |
             set -ex
-            excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)|(x/backend)"
-            included_packages=("./app" "./x/common" "./x/dex" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade")
-
+            echo "--> Run tests with coverage:"
             export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
-            echo "--> Run tests with coverage:"
+            excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)|(x/backend)"
+            included_packages=("./app" "./x/common" "./x/dex" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade")
+
             for pkg in ${included_packages[@]}; do
-                package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
-                echo "${package_lines[@]}"
-                cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-                packages=`echo ${package_lines[@]}`
-                id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
-                go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+              package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
+              echo "${package_lines[@]}"
+              cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+              packages=`echo ${package_lines[@]}`
+              id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
+              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
 #            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
