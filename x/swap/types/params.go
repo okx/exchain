@@ -3,7 +3,13 @@ package types
 import (
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/cosmos/cosmos-sdk/x/params"
+)
+
+var (
+	FeeRate = sdk.NewDecWithPrec(3, 3)
 )
 
 // Default parameter namespace

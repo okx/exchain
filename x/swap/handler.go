@@ -306,16 +306,15 @@ func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenOKTSwap)
 
 //calculate the amount to buy
 func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenOKTSwap) (sdk.Result, sdk.DecCoin) {
-	product := swapTokenPair.QuotePooledCoin.Amount.Mul(swapTokenPair.BasePooledCoin.Amount)
-	var newSoldTokenInPool, boughtTokenInPool sdk.DecCoin
+	var inputReserve, outputReserve sdk.Dec
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
-		newSoldTokenInPool = swapTokenPair.QuotePooledCoin.Add(msg.SoldTokenAmount)
-		boughtTokenInPool = swapTokenPair.BasePooledCoin
+		inputReserve = swapTokenPair.QuotePooledCoin.Amount
+		outputReserve = swapTokenPair.BasePooledCoin.Amount
 	} else {
-		newSoldTokenInPool = swapTokenPair.BasePooledCoin.Add(msg.SoldTokenAmount)
-		boughtTokenInPool = swapTokenPair.QuotePooledCoin
+		inputReserve = swapTokenPair.BasePooledCoin.Amount
+		outputReserve = swapTokenPair.QuotePooledCoin.Amount
 	}
-	tokenBuyAmt := boughtTokenInPool.Amount.Sub(product.Quo(newSoldTokenInPool.Amount))
+	tokenBuyAmt := getInputPrice(msg.SoldTokenAmount.Amount, inputReserve, outputReserve)
 	tokenBuy := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, tokenBuyAmt)
 	if tokenBuyAmt.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
@@ -350,11 +349,21 @@ func swapTokenOKT(
 	// update swapTokenPair
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.SoldTokenAmount)
-		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(tokenBuy)
+		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Sub(tokenBuy)
 	} else {
-		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(tokenBuy)
+		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(tokenBuy)
 		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(msg.SoldTokenAmount)
 	}
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
 	return sdk.Result{}
+}
+
+func getInputPrice(inputAmount, inputReserve, outputReserve sdk.Dec) sdk.Dec {
+	if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
+		panic("should not happen")
+	}
+	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(types.FeeRate))
+	numerator := inputAmountWithFee.Mul(outputReserve)
+	denominator := inputReserve.Add(inputAmountWithFee)
+	return numerator.Quo(denominator)
 }

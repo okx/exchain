@@ -118,21 +118,26 @@ func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 			deadline := time.Now().Add(dur).Unix()
-			recipient, err := sdk.AccAddressFromBech32(recipient)
-			if err != nil {
-				return err
+			var recip sdk.AccAddress
+			if recipient == "" {
+				recip = cliCtx.FromAddress
+			} else {
+				recip, err = sdk.AccAddressFromBech32(recipient)
+				if err != nil {
+					return err
+				}
 			}
 
 			msg := types.NewMsgTokenOKTSwap(soldTokenAmount, minBoughtTokenAmount,
-				deadline, recipient, cliCtx.FromAddress)
+				deadline, recip, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVarP(&soldTokenAmount, "amount to sell", "", "",
+	cmd.Flags().StringVarP(&soldTokenAmount, "sell-amount", "", "",
 		"amount expected to sell")
-	cmd.Flags().StringVarP(&minBoughtTokenAmount, "minimum amount to buy", "", "",
+	cmd.Flags().StringVarP(&minBoughtTokenAmount, "min-buy-amount", "", "",
 		"minimum amount expected to buy.")
 	cmd.Flags().StringVarP(&recipient, "recipient", "", "",
 		"address to receive the amount bought")
