@@ -26,7 +26,7 @@ func TestHandlerDestroyValidator(t *testing.T) {
 
 	//1. create a validator
 	handler = NewHandler(keeper)
-	createValMsg := NewTestMsgCreateValidator(validatorAddr1, pk1, DefaultMSD)
+	createValMsg := NewTestMsgCreateValidator(validatorAddr1, pk1)
 	response := handler(ctx, createValMsg)
 	require.True(t, response.IsOK())
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)

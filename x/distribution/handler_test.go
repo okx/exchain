@@ -20,7 +20,7 @@ func TestHandler(t *testing.T) {
 	// create one validator
 	sh := staking.NewHandler(sk)
 	skMsg := staking.NewMsgCreateValidator(valOpAddrs[0], valConsPks[0],
-		staking.Description{}, keeper.NewTestDecCoin(1, 0))
+		staking.Description{})
 	require.True(t, sh(ctx, skMsg).IsOK())
 
 	//send 100okt fee

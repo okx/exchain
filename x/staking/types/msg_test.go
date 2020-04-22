@@ -18,36 +18,31 @@ func TestMsgCreateValidator(t *testing.T) {
 	addr1 := valAddr1
 	tests := []struct {
 		name, moniker, identity, website, details string
-		minSelfDelegation                         sdk.Int
 		validatorAddr                             sdk.ValAddress
 		delegatorAddr                             sdk.AccAddress
 		pubkey                                    crypto.PubKey
 		bond                                      sdk.Coin
 		expectPass                                bool
 	}{
-		{"empty bond", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinZero, true},
-		{"zero min self delegation", "a", "b", "c", "d", sdk.ZeroInt(), addr1, dlgAddr1, pk1, coinPos, false},
-		{"basic good", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
-		{"partial description", "", "", "c", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
-		{"empty description", "", "", "", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, false},
-		{"empty address1", "a", "b", "c", "d", sdk.OneInt(), emptyAddr, dlgAddr1, pk1, coinPos, false},
-		{"empty address2", "a", "b", "c", "d", sdk.OneInt(), nil, nil, pk1, coinPos, false},
-		{"valAddr dlgAddr not equals", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr2, pk1, coinPos, false},
-		{"empty pubkey", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, emptyPubkey, coinPos, true},
+		{"empty bond", "a", "b", "c", "d",  addr1, dlgAddr1, pk1, coinZero, true},
+		{"basic good", "a", "b", "c", "d",  addr1, dlgAddr1, pk1, coinPos, true},
+		{"partial description", "", "", "c", "",  addr1, dlgAddr1, pk1, coinPos, true},
+		{"empty description", "", "", "", "",  addr1, dlgAddr1, pk1, coinPos, false},
+		{"empty address1", "a", "b", "c", "d",  emptyAddr, dlgAddr1, pk1, coinPos, false},
+		{"empty address2", "a", "b", "c", "d",  nil, nil, pk1, coinPos, false},
+		{"valAddr dlgAddr not equals", "a", "b", "c", "d", addr1, dlgAddr2, pk1, coinPos, false},
+		{"empty pubkey", "a", "b", "c", "d", addr1, dlgAddr1, emptyPubkey, coinPos, true},
 		//{"negative min self delegation", "a", "b", "c", "d", commission1, sdk.NewInt(-1), addr1, pk1, coinPos, false},
 		//{"delegation less than min self delegation", "a", "b", "c", "d", commission1, coinPos.Amount.Add(sdk.OneInt()), addr1, pk1, coinPos, false},
 	}
 
 	for _, tc := range tests {
 		description := NewDescription(tc.moniker, tc.identity, tc.website, tc.details)
-		coin := sdk.NewDecCoin(sdk.DefaultBondDenom, tc.minSelfDelegation)
-
 		msg := MsgCreateValidator{
 			Description:       description,
 			DelegatorAddress:  tc.delegatorAddr,
 			ValidatorAddress:  tc.validatorAddr,
 			PubKey:            tc.pubkey,
-			MinSelfDelegation: coin,
 		}
 
 		if tc.expectPass {
@@ -82,12 +77,8 @@ func TestMsgDestroyValidator(t *testing.T) {
 }
 
 func TestMsgCreateValidator_Smoke(t *testing.T) {
-
-	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(2000))
-
 	msg := NewMsgCreateValidator(valAddr1, pk1,
-		NewDescription("my moniker", "my identity", "my website", "my details"), msd,
-	)
+		NewDescription("my moniker", "my identity", "my website", "my details"))
 	require.Contains(t, msg.Route(), RouterKey)
 	require.Contains(t, msg.Type(), "create_validator")
 	require.True(t, len(msg.GetSigners()) == 1, msg)

@@ -36,7 +36,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	db := dbm.NewMemDB()
 	logger := log.NewTMLogger(os.Stdout)
 	logger, err := flags.ParseLogLevel("*:error", logger, "error")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer db.Close()
 	app := NewOKChainApp(logger, db, nil, true, 0)
 

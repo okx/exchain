@@ -134,7 +134,7 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 	resultCtx.t.Logf("====> Apply createValidatorAction[%d], addr:%s, msd: %s, maxVA: %d\n",
 		ctx.BlockHeight(), val.OperatorAddress, val.MinSelfDelegation, resultCtx.params.MaxValidators)
 
-	msgCreateValidator := NewTestMsgCreateValidator(val.OperatorAddress, val.ConsPubKey, val.MinSelfDelegation)
+	msgCreateValidator := NewTestMsgCreateValidator(val.OperatorAddress, val.ConsPubKey)
 	if err := msgCreateValidator.ValidateBasic(); err != nil {
 		panic(err)
 	}

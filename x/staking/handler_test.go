@@ -35,7 +35,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	_ = setInstantUnbondPeriod(keeper, ctx)
 
 	// create validator
-	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], DefaultMSD)
+	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0])
 	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)
 
@@ -50,7 +50,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	require.True(t, ValidatorByPowerIndexExists(ctx, mKeeper, power))
 
 	// create a second validator keep it bonded
-	msgCreateValidator = NewTestMsgCreateValidator(validatorAddr2, keep.PKs[2], DefaultMSD)
+	msgCreateValidator = NewTestMsgCreateValidator(validatorAddr2, keep.PKs[2])
 	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)
 
@@ -77,7 +77,7 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	addr1, addr2 := sdk.ValAddress(keep.Addrs[0]), sdk.ValAddress(keep.Addrs[1])
 	pk1, pk2 := keep.PKs[0], keep.PKs[1]
 
-	msgCreateValidator1 := NewTestMsgCreateValidator(addr1, pk1, DefaultMSD)
+	msgCreateValidator1 := NewTestMsgCreateValidator(addr1, pk1)
 	got := handleMsgCreateValidator(ctx, msgCreateValidator1, keeper)
 	require.True(t, got.IsOK(), "%v", got)
 
@@ -95,17 +95,17 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	assert.Equal(t, defaultDescriptionForTest(), validator.Description)
 
 	// two validators can't have the same operator address
-	msgCreateValidator2 := NewTestMsgCreateValidator(addr1, pk2, DefaultMSD)
+	msgCreateValidator2 := NewTestMsgCreateValidator(addr1, pk2)
 	got = handleMsgCreateValidator(ctx, msgCreateValidator2, keeper)
 	require.False(t, got.IsOK(), "%v", got)
 
 	// two validators can't have the same pubkey
-	msgCreateValidator3 := NewTestMsgCreateValidator(addr2, pk1, DefaultMSD)
+	msgCreateValidator3 := NewTestMsgCreateValidator(addr2, pk1)
 	got = handleMsgCreateValidator(ctx, msgCreateValidator3, keeper)
 	require.False(t, got.IsOK(), "%v", got)
 
 	// must have different pubkey and operator
-	msgCreateValidator4 := NewTestMsgCreateValidator(addr2, pk2, DefaultMSD)
+	msgCreateValidator4 := NewTestMsgCreateValidator(addr2, pk2)
 	got = handleMsgCreateValidator(ctx, msgCreateValidator4, keeper)
 	require.True(t, got.IsOK(), "%v", got)
 
@@ -143,7 +143,7 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 	invalidPk := secp256k1.GenPrivKey().PubKey()
 
 	// invalid pukKey type should not be allowed
-	msgCreateValidator := NewTestMsgCreateValidator(addr, invalidPk, DefaultMSD)
+	msgCreateValidator := NewTestMsgCreateValidator(addr, invalidPk)
 	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
 	require.False(t, got.IsOK(), "%v", got)
 
@@ -163,7 +163,7 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	_ = setInstantUnbondPeriod(keeper, ctx)
 
 	// create validator
-	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], DefaultMSD)
+	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0])
 	handler := NewHandler(keeper)
 	got := handler(ctx, msgCreateValidator)
 	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)

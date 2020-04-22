@@ -28,10 +28,9 @@ type MsgCreateValidator struct {
 type msgCreateValidatorJSON struct {
 	Description Description `json:"description" yaml:"description"`
 	//Commission        CommissionRates `json:"commission" yaml:"commission"`
-	MinSelfDelegation sdk.DecCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
-	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
-	PubKey            string         `json:"pubkey" yaml:"pubkey"`
+	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
+	ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
+	PubKey           string         `json:"pubkey" yaml:"pubkey"`
 }
 
 // NewMsgCreateValidator creates a msg of create-validator
