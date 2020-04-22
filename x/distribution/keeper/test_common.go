@@ -108,7 +108,7 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 	// create four validators
 	for i := int64(0); i < 4; i++ {
 		msg := staking.NewMsgCreateValidator(valOpAddrs[i], valConsPks[i],
-			staking.Description{}, NewTestDecCoin(i+1, 0))
+			staking.Description{})
 		require.True(t, sh(ctx, msg).IsOK())
 		// assert initial state: zero current rewards
 		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())

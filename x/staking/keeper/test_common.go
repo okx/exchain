@@ -276,12 +276,9 @@ func ValidatorByPowerIndexExists(ctx sdk.Context, keeper MockStakingKeeper, powe
 	return store.Has(power)
 }
 
-func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, msdAmt sdk.Dec) types.MsgCreateValidator {
-	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, msdAmt)
-
+func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey) types.MsgCreateValidator {
 	return types.NewMsgCreateValidator(address, pubKey,
-		types.NewDescription("my moniker", "my identity", "my website", "my details"), msd,
-	)
+		types.NewDescription("my moniker", "my identity", "my website", "my details"))
 }
 
 func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Dec) types.MsgDelegate {

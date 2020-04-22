@@ -20,10 +20,9 @@ var (
 type MsgCreateValidator struct {
 	Description Description `json:"description" yaml:"description"`
 	//Commission        CommissionRates `json:"commission" yaml:"commission"`
-	MinSelfDelegation sdk.DecCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
-	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
-	PubKey            crypto.PubKey  `json:"pubkey" yaml:"pubkey"`
+	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
+	ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
+	PubKey           crypto.PubKey  `json:"pubkey" yaml:"pubkey"`
 }
 
 type msgCreateValidatorJSON struct {
@@ -39,15 +38,13 @@ type msgCreateValidatorJSON struct {
 // Delegator address and validator address are the same
 func NewMsgCreateValidator(
 	valAddr sdk.ValAddress, pubKey crypto.PubKey,
-	description Description, minSelfDelegation sdk.DecCoin,
-) MsgCreateValidator {
+	description Description) MsgCreateValidator {
 
 	return MsgCreateValidator{
-		Description:       description,
-		DelegatorAddress:  sdk.AccAddress(valAddr),
-		ValidatorAddress:  valAddr,
-		PubKey:            pubKey,
-		MinSelfDelegation: minSelfDelegation,
+		Description:      description,
+		DelegatorAddress: sdk.AccAddress(valAddr),
+		ValidatorAddress: valAddr,
+		PubKey:           pubKey,
 	}
 }
 
@@ -72,11 +69,10 @@ func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
 // MarshalJSON implements the json.Marshaler interface to provide custom JSON serialization
 func (msg MsgCreateValidator) MarshalJSON() ([]byte, error) {
 	return json.Marshal(msgCreateValidatorJSON{
-		Description:       msg.Description,
-		DelegatorAddress:  msg.DelegatorAddress,
-		ValidatorAddress:  msg.ValidatorAddress,
-		PubKey:            sdk.MustBech32ifyConsPub(msg.PubKey),
-		MinSelfDelegation: msg.MinSelfDelegation,
+		Description:      msg.Description,
+		DelegatorAddress: msg.DelegatorAddress,
+		ValidatorAddress: msg.ValidatorAddress,
+		PubKey:           sdk.MustBech32ifyConsPub(msg.PubKey),
 	})
 }
 
@@ -95,7 +91,6 @@ func (msg *MsgCreateValidator) UnmarshalJSON(bz []byte) error {
 	if err != nil {
 		return err
 	}
-	msg.MinSelfDelegation = msgCreateValJSON.MinSelfDelegation
 
 	return nil
 }
@@ -117,9 +112,6 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 	}
 	if !sdk.AccAddress(msg.ValidatorAddress).Equals(msg.DelegatorAddress) {
 		return ErrBadValidatorAddr(DefaultCodespace)
-	}
-	if msg.MinSelfDelegation.Amount.LTE(sdk.ZeroDec()) || !msg.MinSelfDelegation.IsValid() {
-		return ErrMinSelfDelegationInvalid(DefaultCodespace)
 	}
 	if msg.Description == (Description{}) {
 		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")

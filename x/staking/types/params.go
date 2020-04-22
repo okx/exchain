@@ -41,7 +41,6 @@ var (
 	KeyTheEndOfLastEpoch = []byte("TheEndOfLastEpoch") // a block height that is the end of last epoch
 
 	KeyMaxValsToVote          = []byte("MaxValsToVote")
-	KeyMinSelfDelegationLimit = []byte("MinSelfDelegationLimit")
 	KeyMinDelegation          = []byte("MinDelegation")
 )
 

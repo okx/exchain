@@ -99,9 +99,6 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if _, found := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey)); found {
 		return ErrValidatorPubKeyExists(k.Codespace()).Result()
 	}
-	if msg.MinSelfDelegation.Denom != k.BondDenom(ctx) {
-		return ErrBadDenom(k.Codespace()).Result()
-	}
 
 	if _, err := msg.Description.EnsureLength(); err != nil {
 		return err.Result()
@@ -131,7 +128,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.MinSelfDelegation.Amount.String())),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, types.DefaultMinSelfDelegation.String())),
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String())),

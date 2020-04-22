@@ -201,12 +201,10 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 			Coins:   coins,
 		})
 
-		minSelfDelegation := sdk.MustNewDecFromStr("0.001")
 		msg := staking.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			valPubKeys[i],
 			staking.NewDescription(nodeDirName, "", "", ""),
-			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, minSelfDelegation),
 		)
 		kb, err := keys.NewKeyBaseFromDir(clientDir)
 		if err != nil {

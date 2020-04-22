@@ -81,7 +81,6 @@ func CreateValidators(
 		valCreateMsg := staking.NewMsgCreateValidator(
 			addrs[i], pubkeys[i],
 			testDescription,
-			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DefaultMSD),
 		)
 
 		res := stakingHandler(ctx, valCreateMsg)
