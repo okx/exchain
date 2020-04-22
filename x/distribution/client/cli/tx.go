@@ -116,23 +116,23 @@ Where proposal.json contains:
 
 {
   "title": "Community Pool Spend",
-  "description": "Pay me some Atoms!",
+  "description": "Pay me some %s!",
   "recipient": "okchain5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq",
   "amount": [
     {
-      "denom": "stake",
+      "denom": %s,
       "amount": "10000"
     }
   ],
   "deposit": [
     {
-      "denom": "stake",
+      "denom": %s,
       "amount": "10000"
     }
   ]
 }
 `,
-				version.ClientName,
+				version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
