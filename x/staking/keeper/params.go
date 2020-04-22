@@ -44,7 +44,6 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.BondDenom(ctx),
 		k.ParamsEpoch(ctx),
 		k.ParamsMaxValsToVote(ctx),
-		k.ParamsMinSelfDelegationLimited(ctx),
 		k.ParamsMinDelegation(ctx),
 	)
 }
@@ -105,12 +104,6 @@ func (k Keeper) SetTheEndOfLastEpoch(ctx sdk.Context) {
 // ParamsMaxValsToVote returns the param MaxValsToVote
 func (k Keeper) ParamsMaxValsToVote(ctx sdk.Context) (num uint16) {
 	k.paramstore.Get(ctx, types.KeyMaxValsToVote, &num)
-	return
-}
-
-// ParamsMinSelfDelegationLimited returns the param MinSelfDelegationLimit
-func (k Keeper) ParamsMinSelfDelegationLimited(ctx sdk.Context) (num sdk.Dec) {
-	k.paramstore.Get(ctx, types.KeyMinSelfDelegationLimit, &num)
 	return
 }
 
