@@ -3,8 +3,6 @@ package types
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,10 +35,6 @@ func TestParams(t *testing.T) {
 
 	p2 = p1
 	p2.MaxValsToVote = 0
-	require.Error(t, p2.Validate())
-
-	p2 = p1
-	p2.MinSelfDelegationLimit = types.ZeroDec()
 	require.Error(t, p2.Validate())
 
 }

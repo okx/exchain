@@ -86,7 +86,6 @@ type (
 		UnbondingTime time.Duration `json:"unbonding_time" yaml:"unbonding_time"`
 		// maximum number of validators (max uint16 = 65535)
 		MaxValidators          uint16  `json:"max_validators" yaml:"max_validators"`
-		MinSelfDelegationLimit sdk.Dec `json:"min_self_delegation_limit" yaml:"min_self_delegation_limit"`
 		// note: we need to be a bit careful about potential overflow here, since this is user-determined
 		BondDenom     string `json:"bond_denom" yaml:"bond_denom"` // bondable coin denomination
 		Epoch         uint16 `json:"epoch" yaml:"epoch"`           //epoch for validator update
@@ -105,7 +104,6 @@ func NewGenesisState(
 	newParams := Params{
 		UnbondingTime:          params.UnbondingTime,
 		MaxValidators:          params.MaxValidators,
-		MinSelfDelegationLimit: types.DefaultMinSelfDelegationLimit,
 		BondDenom:              params.BondDenom,
 		Epoch:                  types.DefaultEpoch,
 		MaxValsToVote:          types.DefaultMaxValsToVote,
