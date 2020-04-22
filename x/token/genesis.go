@@ -3,6 +3,7 @@ package token
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -75,6 +76,13 @@ func validateGenesis(data GenesisState) error {
 // initGenesis initialize default parameters
 // and the keeper's address to pubkey map
 func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
+	// if module account dosen't exist, it will create automatically
+	moduleAcc := keeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
+	if moduleAcc == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
+	}
+
+	// set params
 	keeper.SetParams(ctx, data.Params)
 
 	for _, token := range data.Tokens {
