@@ -13,12 +13,13 @@ const (
 	TypeMsgTokenOKTSwap = "token_okt_swap"
 )
 
+//MsgAddLiquidity Deposit quote_amount and base_amount at current ratio to mint pool tokens.
 type MsgAddLiquidity struct {
 	MinLiquidity  sdk.Dec        `json:"min_liquidity"`   //Minimum number of sender will mint if total pool token supply is greater than 0.
 	MaxBaseAmount sdk.DecCoin    `json:"max_base_amount"` //Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
-	QuoteAmount   sdk.DecCoin    `json:"quote_amount"`
-	Deadline      int64          `json:"deadline"` //Time after which this transaction can no longer be executed.
-	Sender        sdk.AccAddress `json:"sender"`   //sender
+	QuoteAmount   sdk.DecCoin    `json:"quote_amount"`    //Quote token amount
+	Deadline      int64          `json:"deadline"`        //Time after which this transaction can no longer be executed.
+	Sender        sdk.AccAddress `json:"sender"`          //Sender
 }
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
@@ -84,11 +85,11 @@ type MsgRemoveLiquidity struct {
 // NewMsgRemoveLiquidity is a constructor function for MsgAddLiquidity
 func NewMsgRemoveLiquidity(liquidity sdk.Dec, minBaseAmount, minQuoteAmount sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgRemoveLiquidity {
 	return MsgRemoveLiquidity{
-		Liquidity:  liquidity,
-		MinBaseAmount: minBaseAmount,
-		MinQuoteAmount:   minQuoteAmount,
-		Deadline:      deadline,
-		Sender:        sender,
+		Liquidity:      liquidity,
+		MinBaseAmount:  minBaseAmount,
+		MinQuoteAmount: minQuoteAmount,
+		Deadline:       deadline,
+		Sender:         sender,
 	}
 }
 
@@ -169,8 +170,8 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
-// MsgTokenOKTSwap define the message for swap between token and DefaultBondDenom
-type MsgTokenOKTSwap struct {
+// MsgTokenToNativeToken define the message for swap between token and DefaultBondDenom
+type MsgTokenToNativeToken struct {
 	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       //Amount of Tokens sold.
 	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` //Minimum token purchased.
 	Deadline             int64          `json:"deadline"`                //Time after which this transaction can no longer be executed.
@@ -178,11 +179,11 @@ type MsgTokenOKTSwap struct {
 	Sender               sdk.AccAddress `json:"sender"`                  //sender
 }
 
-// NewMsgTokenOKTSwap is a constructor function for MsgTokenOKTSwap
-func NewMsgTokenOKTSwap(
+// NewMsgTokenToNativeToken is a constructor function for MsgTokenOKTSwap
+func NewMsgTokenToNativeToken(
 	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
-) MsgTokenOKTSwap {
-	return MsgTokenOKTSwap{
+) MsgTokenToNativeToken {
+	return MsgTokenToNativeToken{
 		SoldTokenAmount:      soldTokenAmount,
 		MinBoughtTokenAmount: minBoughtTokenAmount,
 		Deadline:             deadline,
@@ -192,13 +193,13 @@ func NewMsgTokenOKTSwap(
 }
 
 // Route should return the name of the module
-func (msg MsgTokenOKTSwap) Route() string { return RouterKey }
+func (msg MsgTokenToNativeToken) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgTokenOKTSwap) Type() string { return TypeMsgTokenOKTSwap }
+func (msg MsgTokenToNativeToken) Type() string { return TypeMsgTokenOKTSwap }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgTokenOKTSwap) ValidateBasic() sdk.Error {
+func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
@@ -223,16 +224,16 @@ func (msg MsgTokenOKTSwap) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgTokenOKTSwap) GetSignBytes() []byte {
+func (msg MsgTokenToNativeToken) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgTokenOKTSwap) GetSigners() []sdk.AccAddress {
+func (msg MsgTokenToNativeToken) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
-func (msg MsgTokenOKTSwap) GetSwapTokenPair() string {
+func (msg MsgTokenToNativeToken) GetSwapTokenPair() string {
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom
 	}

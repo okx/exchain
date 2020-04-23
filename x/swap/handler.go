@@ -32,7 +32,7 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgCreateExchange(ctx, k, msg)
 			}
-		case types.MsgTokenOKTSwap:
+		case types.MsgTokenToNativeToken:
 			name = "handleMsgTokenOKTSwap"
 			handlerFun = func() sdk.Result {
 				return handleMsgTokenOKTSwap(ctx, k, msg)
@@ -67,7 +67,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := "oip3"
+	poolName := "pooltoken" + tokenPair
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
@@ -83,14 +83,14 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 			Log:  "Failed to create Exchange: Pool Token not exit",
 		}
 	}
-
+	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
 	swapTokenPair.BasePooledCoin = baseToken
 	swapTokenPair.QuotePooledCoin = quoteToken
 	swapTokenPair.PoolTokenName = poolName
 
 	k.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
 
-	event.AppendAttributes(sdk.NewAttribute("tokenpair", tokenPair))
+	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPair))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
@@ -267,7 +267,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenOKTSwap) sdk.Result {
+func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -305,7 +305,7 @@ func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenOKTSwap)
 }
 
 //calculate the amount to buy
-func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenOKTSwap) (sdk.Result, sdk.DecCoin) {
+func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken) (sdk.Result, sdk.DecCoin) {
 	var inputReserve, outputReserve sdk.Dec
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		inputReserve = swapTokenPair.QuotePooledCoin.Amount
@@ -327,7 +327,7 @@ func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenOKTSwap)
 
 func swapTokenOKT(
 	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.DecCoin,
-	msg types.MsgTokenOKTSwap,
+	msg types.MsgTokenToNativeToken,
 ) sdk.Result {
 	// transfer coins
 	err := k.SendCoinsToPool(ctx, sdk.DecCoins{msg.SoldTokenAmount}, msg.Sender)

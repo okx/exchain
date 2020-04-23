@@ -172,7 +172,7 @@ func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			msg := types.NewMsgTokenOKTSwap(soldTokenAmount, minBoughtTokenAmount,
+			msg := types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount,
 				deadline, recip, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})

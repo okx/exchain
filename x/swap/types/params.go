@@ -15,7 +15,8 @@ var (
 // Default parameter namespace
 const (
 	DefaultParamspace = ModuleName
-	// TODO: Define your default parameters
+
+	GenerateTokenType = 2
 )
 
 // Parameter store keys
