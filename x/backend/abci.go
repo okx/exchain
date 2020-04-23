@@ -41,7 +41,7 @@ func storeTransactions(keeper Keeper) {
 
 func storeDealAndMatchResult(ctx sdk.Context, keeper Keeper) {
 	timestamp := ctx.BlockHeader().Time.Unix()
-	keeper.Orm.MaxBlockTimestamp = timestamp
+	keeper.Orm.SetMaxBlockTimestamp(timestamp)
 	deals, results, err := GetNewDealsAndMatchResultsAtEndBlock(ctx, keeper.OrderKeeper)
 
 	if err != nil {
@@ -65,7 +65,7 @@ func storeDealAndMatchResult(ctx sdk.Context, keeper Keeper) {
 		}
 	}
 
-	ts := keeper.Orm.MaxBlockTimestamp
+	ts := keeper.Orm.GetMaxBlockTimestamp()
 	keeper.UpdateTickersBuffer(ts-types.SecondsInADay, ts+1, keeper.Cache.ProductsBuf)
 }
 

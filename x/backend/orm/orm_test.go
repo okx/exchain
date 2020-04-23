@@ -12,7 +12,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/okex/okchain/x/backend/cases"
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/token"
@@ -351,13 +350,14 @@ func TestORM_Get(t *testing.T) {
 
 func TestCandles_NewKlinesFactory(t *testing.T) {
 
-	dbDir := cases.GetBackendDBDir()
+	dbDir, err := os.Getwd()
+	require.Nil(t, err)
 	orm, _ := NewSqlite3ORM(false, dbDir, "backend.db", nil)
 	klines, e := types.NewKlinesFactory("kline_m1")
 	assert.True(t, klines != nil && e == nil)
 
 	product := types.TestTokenPair
-	err := orm.GetLatestKlinesByProduct(product, 100, 0, klines)
+	err = orm.GetLatestKlinesByProduct(product, 100, 0, klines)
 	assert.True(t, err == nil)
 
 	iklines := types.ToIKlinesArray(klines, time.Now().Unix(), true)
@@ -398,7 +398,9 @@ func constructLocalBackendDB(orm *ORM) (err error) {
 }
 
 func TestCandles_FromLocalDB(t *testing.T) {
-	orm, err := NewSqlite3ORM(false, cases.GetBackendDBDir(), "backend.db", nil)
+	dbDir, err := os.Getwd()
+	require.Nil(t, err)
+	orm, err := NewSqlite3ORM(false, dbDir, "backend.db", nil)
 	require.Nil(t, err)
 	product := types.TestTokenPair
 	limit := 10
