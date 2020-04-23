@@ -36,7 +36,7 @@ func TestGorm(t *testing.T) {
 	}
 	defer DeleteDB("test.db")
 	defer db.Close()
-	db.LogMode(true)
+	//db.LogMode(true)
 	p := sdk.NewDecWithPrec(1, 2)
 
 	fp, _ := strconv.ParseFloat(p.String(), 64)
