@@ -49,7 +49,7 @@ func NewHandler(k Keeper) sdk.Handler {
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExits(ctx, msg.Token)
+	err := k.IsTokenExist(ctx, msg.Token)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -67,7 +67,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := "pooltoken" + tokenPair
+	poolName := "oip3" + msg.Token
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
@@ -359,9 +359,9 @@ func swapTokenOKT(
 }
 
 func getInputPrice(inputAmount, inputReserve, outputReserve sdk.Dec) sdk.Dec {
-	if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
-		panic("should not happen")
-	}
+	//if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
+	//	panic("should not happen")
+	//}
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(types.FeeRate))
 	numerator := inputAmountWithFee.Mul(outputReserve)
 	denominator := inputReserve.Add(inputAmountWithFee)

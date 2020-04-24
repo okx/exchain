@@ -10,7 +10,7 @@ import (
 // Swap message types and routes
 const (
 	TypeMsgAddLiquidity = "add_liquidity"
-	TypeMsgTokenOKTSwap = "token_okt_swap"
+	TypeMsgTokenOKTSwap = "token_swap"
 )
 
 //MsgAddLiquidity Deposit quote_amount and base_amount at current ratio to mint pool tokens.

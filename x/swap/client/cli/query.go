@@ -46,8 +46,6 @@ func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return nil
 			}
 
-			//var out types.QueryResResolve
-			//cdc.MustUnmarshalJSON(res, &out)
 			fmt.Println(string(res))
 			return nil
 		},
