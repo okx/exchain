@@ -1,6 +1,7 @@
 package token
 
 import (
+	"github.com/tendermint/tendermint/crypto"
 	"strconv"
 	"strings"
 	"testing"
@@ -323,6 +324,32 @@ func CreateGenAccounts(numAccs int, genCoins sdk.DecCoins) (genAccs []types.DecA
 
 type TestAccounts []*testAccount
 
+// GenTx generates a signed mock transaction.
+func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
+	// Make the transaction free
+	fee := auth.StdFee{
+		Amount: sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.0125")),
+		Gas:    200000,
+	}
+
+	sigs := make([]auth.StdSignature, len(priv))
+	memo := "testmemotestmemo"
+
+	for i, p := range priv {
+		sig, err := p.Sign(auth.StdSignBytes("", accnums[i], seq[i], fee, msgs, memo))
+		if err != nil {
+			panic(err)
+		}
+
+		sigs[i] = auth.StdSignature{
+			PubKey:    p.PubKey(),
+			Signature: sig,
+		}
+	}
+
+	return auth.NewStdTx(msgs, fee, sigs, memo)
+}
+
 func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, account *testAccount, tokenMsg sdk.Msg) auth.StdTx {
 	accs := app.AccountKeeper.GetAccount(ctx, account.baseAccount.Address)
 	accNum := accs.GetAccountNumber()
@@ -330,7 +357,7 @@ func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, account *tes
 
 	// todo:
 	//tokenIssueMsg.Sender = account.addrKeys.Address
-	tx := mock.GenTx([]sdk.Msg{tokenMsg}, []uint64{accNum}, []uint64{seqNum}, account.addrKeys.PrivKey)
+	tx := GenTx([]sdk.Msg{tokenMsg}, []uint64{accNum}, []uint64{seqNum}, account.addrKeys.PrivKey)
 	app.Check(tx)
 	//if !res.IsOK() {
 	//	panic("something wrong in checking transaction")
