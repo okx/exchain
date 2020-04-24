@@ -1,10 +1,11 @@
 package token
 
 import (
-	"github.com/tendermint/tendermint/crypto"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
