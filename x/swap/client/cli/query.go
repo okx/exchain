@@ -31,10 +31,11 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return swapQueryCmd
 }
 
+//GetCmdSwapTokenPair query exchange with token name
 func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "tokenpair [token]",
-		Short: "TokenPair token name",
+		Use:   "exchange [token]",
+		Short: "exchange with token name",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -42,7 +43,7 @@ func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
 			if err != nil {
-				fmt.Printf("token piar - %s doesn't exist. error:%s \n", tokenName, err.Error())
+				fmt.Printf("exchange - %s doesn't exist. error:%s \n", tokenName, err.Error())
 				return nil
 			}
 

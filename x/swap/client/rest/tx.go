@@ -1,38 +1,41 @@
 package rest
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
+	"github.com/okex/okchain/x/common"
+	"github.com/okex/okchain/x/swap/types"
+	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	// r.HandleFunc(
-	// TODO: Define the Rest route ,
-	// Call the function which should be executed for this route),
-	// ).Methods("POST")
+	r.HandleFunc("/swap/exchange", swapExchangeHandler(cliCtx)).Methods("GET")
 }
 
-/*
-// Action TX body
-type <Action>Req struct {
-	BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
-	// TODO: Define more types if needed
-}
-
-func <Action>RequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+func swapExchangeHandler(cliCtx context.CLIContext) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req <Action>Req
 		vars := mux.Vars(r)
+		tokenName := vars["token"]
 
-		baseReq := req.BaseReq.Sanitize()
-		if !baseReq.ValidateBasic(w) {
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/swap/swapTokenPair/%s", tokenName), nil)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
 		}
 
-		// TODO: Define the module tx logic for this action
-
-		utils.WriteGenerateStdTxResponse(w, cliCtx, BaseReq, []sdk.Msg{msg})
+		exchange := types.SwapTokenPair{}
+		codec.Cdc.MustUnmarshalJSON(res, exchange)
+		response := common.GetBaseResponse(exchange)
+		resBytes, err2 := json.Marshal(response)
+		if err2 != nil {
+			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, resBytes)
 	}
 }
-*/
