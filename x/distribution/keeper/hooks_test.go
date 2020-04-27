@@ -3,11 +3,12 @@ package keeper
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHooks(t *testing.T) {
-	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
+	ctx, ak, k, _, supplyKeeper := CreateTestInputDefault(t, false, 1000)
 	hook := k.Hooks()
 
 	// test AfterValidatorCreated
@@ -15,6 +16,11 @@ func TestHooks(t *testing.T) {
 	require.True(t, k.GetValidatorAccumulatedCommission(ctx, valOpAddr1).IsZero())
 
 	// test AfterValidatorRemoved
+	acc := ak.GetAccount(ctx, supplyKeeper.GetModuleAddress(types.ModuleName))
+	err := acc.SetCoins(NewTestDecCoins(123, 2))
+	require.NoError(t, err)
+	ak.SetAccount(ctx, acc)
+	k.SetValidatorAccumulatedCommission(ctx, valOpAddr1, NewTestDecCoins(123,2))
 	hook.AfterValidatorRemoved(ctx, nil, valOpAddr1)
 	require.True(t, ctx.KVStore(k.storeKey).Get(valOpAddr1) == nil)
 

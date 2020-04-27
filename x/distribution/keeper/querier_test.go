@@ -26,6 +26,11 @@ func TestQueryParams(t *testing.T) {
 	err1 := amino.UnmarshalJSON(enabled, &enableData)
 	require.NoError(t, err1)
 	require.Equal(t, true, enableData)
+
+	_, err = querior(ctx, []string{"unknown"}, abci.RequestQuery{})
+	require.Error(t, err)
+	_, err = querior(ctx, []string{types.QueryParams, "unknown"}, abci.RequestQuery{})
+	require.Error(t, err)
 }
 
 func TestQueryValidatorCommission(t *testing.T) {
