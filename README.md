@@ -3,6 +3,7 @@ The Infrastructure of Decentralized Exchange
 
 ![banner](./docs/images/okchain-image.jpg)
 
+[![version](https://img.shields.io/github/tag/okex/okchain.svg)](https://github.com/okex/okchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/okchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okchain/tree/master)
 [![codecov](https://codecov.io/gh/okex/okchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okex/okchain)](https://goreportcard.com/report/github.com/okex/okchain)
