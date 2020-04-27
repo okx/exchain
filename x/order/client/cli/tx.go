@@ -32,7 +32,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	)...)
 
 	// hide the flags related to gas and fees
-	hideFlagsOnChildCmd(txCmd, client.FlagDryRun, client.FlagGasAdjustment, client.FlagGasPrices, flagGas)
+	hideFlagsOnChildCmd(txCmd,
+		client.FlagDryRun, client.FlagGasAdjustment, client.FlagGasPrices, client.FlagFees, flagGas)
 	return txCmd
 }
 
@@ -137,10 +138,10 @@ func getCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-func hideFlagsOnChildCmd(cmds *cobra.Command, flagsToHide ...string) {
-	for _, cmd := range cmds.Commands() {
+func hideFlagsOnChildCmd(cmd *cobra.Command, flagsToHide ...string) {
+	for _, childCmd := range cmd.Commands() {
 		for _, flag := range flagsToHide {
-			if err := cmd.Flags().MarkHidden(flag); err != nil {
+			if err := childCmd.Flags().MarkHidden(flag); err != nil {
 				panic(err)
 			}
 		}
