@@ -73,7 +73,6 @@ func TestKeeper_GetDeposit(t *testing.T) {
 		ProposalID: proposalID,
 		Depositor:  Addrs[0],
 		Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-		DepositID:  0,
 	}
 	deposit, found := keeper.GetDeposit(ctx, proposalID, Addrs[0])
 	require.True(t, found)
@@ -106,13 +105,11 @@ func TestKeeper_GetDeposits(t *testing.T) {
 			ProposalID: proposalID,
 			Depositor:  Addrs[0],
 			Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-			DepositID:  0,
 		},
 		{
 			ProposalID: proposalID,
 			Depositor:  Addrs[1],
 			Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-			DepositID:  1,
 		},
 	}
 	deposits := keeper.GetDeposits(ctx, proposalID)
