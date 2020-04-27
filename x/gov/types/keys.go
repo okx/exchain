@@ -36,7 +36,7 @@ func splitKeyWithHeight(key []byte) (proposalID uint64, height uint64) {
 		panic(fmt.Sprintf("unexpected key length (%d ≠ %d)", len(key[1:]), 16))
 	}
 
-	height = binary.LittleEndian.Uint64(key[1 : 1+8])
+	height = binary.BigEndian.Uint64(key[1 : 1+8])
 	proposalID = binary.LittleEndian.Uint64(key[1+8:])
 	return
 }
