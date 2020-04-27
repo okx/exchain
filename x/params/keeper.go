@@ -4,10 +4,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
+
+	"github.com/okex/okchain/x/params/types"
 )
 
 // Keeper is the struct of params keeper
 type Keeper struct {
+	cdc *codec.Codec
 	sdkparams.Keeper
 	// the reference to the Paramstore to get and set gov specific params
 	paramSpace sdkparams.Subspace
@@ -25,7 +28,8 @@ func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKe
 	k = Keeper{
 		Keeper: sdkparams.NewKeeper(cdc, key, tkey, codespace),
 	}
-	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(ParamKeyTable())
+	k.cdc = cdc
+	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())
 	return k
 }
 
@@ -45,13 +49,13 @@ func (keeper *Keeper) SetGovKeeper(gk GovKeeper) {
 }
 
 // SetParams sets the params into the store
-func (keeper *Keeper) SetParams(ctx sdk.Context, params Params) {
-	keeper.paramSpace.Set(ctx, ParamStoreKeyParamsParams, params)
+func (keeper *Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	keeper.paramSpace.Set(ctx, types.ParamStoreKeyParamsParams, params)
 }
 
 // GetParams gets the params info from the store
-func (keeper Keeper) GetParams(ctx sdk.Context) Params {
-	var params Params
-	keeper.paramSpace.Get(ctx, ParamStoreKeyParamsParams, &params)
+func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
+	var params types.Params
+	keeper.paramSpace.Get(ctx, types.ParamStoreKeyParamsParams, &params)
 	return params
 }
