@@ -34,15 +34,28 @@ type OrmEngineInfo = okchaincfg.BackendOrmEngineInfo
 // ORM is designed for deal with database by orm
 // http://gorm.io/docs/query.html
 type ORM struct {
-	db                *gorm.DB
-	logger            *log.Logger
-	bufferLock        sync.Locker
-	singleEntryLock   sync.Locker
-	lastK15Timestamp  int64
-	klineM15sBuffer   map[string][]types.KlineM15
-	lastK1Timestamp   int64
-	klineM1sBuffer    map[string][]types.KlineM1
-	MaxBlockTimestamp int64
+	db                     *gorm.DB
+	logger                 *log.Logger
+	bufferLock             sync.Locker
+	singleEntryLock        sync.Locker
+	lastK15Timestamp       int64
+	klineM15sBuffer        map[string][]types.KlineM15
+	lastK1Timestamp        int64
+	klineM1sBuffer         map[string][]types.KlineM1
+	maxBlockTimestampMutex *sync.RWMutex
+	maxBlockTimestamp      int64
+}
+
+func (o *ORM) SetMaxBlockTimestamp(maxBlockTimestamp int64) {
+	o.maxBlockTimestampMutex.Lock()
+	defer o.maxBlockTimestampMutex.Unlock()
+	o.maxBlockTimestamp = maxBlockTimestamp
+}
+
+func (o *ORM) GetMaxBlockTimestamp() int64 {
+	o.maxBlockTimestampMutex.RLock()
+	defer o.maxBlockTimestampMutex.RUnlock()
+	return o.maxBlockTimestamp
 }
 
 // New return pointer to ORM to deal with database，called at NewKeeper
@@ -78,6 +91,7 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	orm.lastK15Timestamp = -1
 	orm.bufferLock = new(sync.Mutex)
 	orm.singleEntryLock = new(sync.Mutex)
+	orm.maxBlockTimestampMutex = new(sync.RWMutex)
 	orm.db.LogMode(enableLog)
 	orm.db.AutoMigrate(&types.MatchResult{})
 	orm.db.AutoMigrate(&types.Deal{})

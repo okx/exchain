@@ -417,13 +417,13 @@ func (p *ProtocolV0) setManager() {
 		gov.ModuleName,
 		mint.ModuleName,
 		supply.ModuleName,
-		crisis.ModuleName,
-		genutil.ModuleName,
-		params.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
 		order.ModuleName,
 		upgrade.ModuleName,
+		crisis.ModuleName,
+		genutil.ModuleName,
+		params.ModuleName,
 	)
 }
 
