@@ -308,8 +308,8 @@ func GetCmdOrderList(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().StringP("product", "p", "", "filter orders by product")
 	cmd.Flags().IntP("page", "", 1, "page num")
 	cmd.Flags().IntP("per-page", "", 50, "items per page")
-	cmd.Flags().IntP("start", "", 0, "start timestamp. if start and end is set to 0, it means ignoring time condition.")
-	cmd.Flags().IntP("end", "", 0, "end timestamp. if start and end is set to 0, it means ignoring time condition.")
+	cmd.Flags().Int64P("start", "", 0, "start timestamp. if start and end is set to 0, it means ignoring time condition.")
+	cmd.Flags().Int64P("end", "", 0, "end timestamp. if start and end is set to 0, it means ignoring time condition.")
 	cmd.Flags().StringP("side", "", "", "filter deals by side, support SELL|BUY, default for empty string means all")
 	cmd.Flags().Bool("hideNoFill", false, "hide orders that have no fills")
 	return cmd

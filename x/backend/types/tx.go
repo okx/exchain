@@ -15,7 +15,7 @@ func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper Orde
 	for _, msg := range tx.GetMsgs() {
 		switch msg.Type() {
 		case "send": // token/send
-			txFrom, txTo := buildTransactionsTransfer(msg.(tokenTypes.MsgSend), txHash, ctx, tokenKeeper,
+			txFrom, txTo := buildTransactionsTransfer(tx, msg.(tokenTypes.MsgSend), txHash, ctx, tokenKeeper,
 				timestamp)
 			txs = append(txs, txFrom, txTo)
 		case "new": // order/new
@@ -34,7 +34,7 @@ func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper Orde
 	return txs
 }
 
-func buildTransactionsTransfer(msg tokenTypes.MsgSend, txHash string, ctx sdk.Context, tokenKeeper TokenKeeper,
+func buildTransactionsTransfer(tx *auth.StdTx, msg tokenTypes.MsgSend, txHash string, ctx sdk.Context, tokenKeeper TokenKeeper,
 	timestamp int64) (*Transaction, *Transaction) {
 	decCoins := msg.Amount
 
@@ -45,7 +45,7 @@ func buildTransactionsTransfer(msg tokenTypes.MsgSend, txHash string, ctx sdk.Co
 		Side:      TxSideFrom,
 		Symbol:    decCoins[0].Denom,
 		Quantity:  decCoins[0].Amount.String(),
-		Fee:       tokenKeeper.GetParams(ctx).FeeBase.String(), // TODO: get fee from params
+		Fee:       tx.Fee.Amount.String(),
 		Timestamp: timestamp,
 	}
 	txTo := &Transaction{
