@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	DefaultFeeBase   = "0.0125"
 	DefaultFeeIssue  = "20000"
 	DefaultFeeMint   = "2000"
 	DefaultFeeBurn   = "10"
@@ -22,7 +21,6 @@ const (
 )
 
 var (
-	KeyFeeBase      = []byte("FeeBase")
 	KeyFeeIssue     = []byte("FeeIssue")
 	KeyFeeMint      = []byte("FeeMint")
 	KeyFeeBurn      = []byte("FeeBurn")
@@ -36,7 +34,6 @@ var _ params.ParamSet = &Params{}
 
 // mint parameters
 type Params struct {
-	FeeBase      sdk.DecCoin `json:"base_fee"`
 	FeeIssue     sdk.DecCoin `json:"issue_fee"`
 	FeeMint      sdk.DecCoin `json:"mint_fee"`
 	FeeBurn      sdk.DecCoin `json:"burn_fee"`
@@ -56,7 +53,6 @@ func ParamKeyTable() params.KeyTable {
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyFeeBase, &p.FeeBase},
 		{KeyFeeIssue, &p.FeeIssue},
 		{KeyFeeMint, &p.FeeMint},
 		{KeyFeeBurn, &p.FeeBurn},
@@ -70,7 +66,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{
-		FeeBase:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBase)),
 		FeeIssue:     sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeIssue)),
 		FeeMint:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMint)),
 		FeeBurn:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
@@ -85,7 +80,6 @@ func DefaultParams() Params {
 func (p Params) String() string {
 	var sb strings.Builder
 	sb.WriteString("Params: \n")
-	sb.WriteString(fmt.Sprintf("FeeBase: %s\n", p.FeeBase))
 	sb.WriteString(fmt.Sprintf("FeeIssue: %s\n", p.FeeIssue))
 	sb.WriteString(fmt.Sprintf("FeeMint: %s\n", p.FeeMint))
 	sb.WriteString(fmt.Sprintf("FeeBurn: %s\n", p.FeeBurn))
