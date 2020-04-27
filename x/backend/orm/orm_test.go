@@ -200,7 +200,11 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	assert.True(t, minDealTS == (ts-60*30))
 
 	ds := DealDataSource{orm: orm}
-	anchorEndTS, cnt, err := orm.CreateKline1min(0, time.Now().Unix()+1, &ds)
+	endTS := time.Now().Unix()
+	if endTS%60 == 0 {
+		endTS += 1
+	}
+	anchorEndTS, cnt, err := orm.CreateKline1min(0, endTS, &ds)
 	fmt.Printf("CreateKline1min ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 3)
 
