@@ -9,7 +9,7 @@ import (
 	tmlog "github.com/tendermint/tendermint/libs/log"
 )
 
-// querier for module debug
+// NewDebugger returns query handler for module debug
 func NewDebugger(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
 		switch path[0] {
@@ -35,7 +35,6 @@ func dumpStore(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, s
 	return nil, nil
 }
 
-// query 4 loglevel result
 func setLogLevel(paths []string) ([]byte, sdk.Error) {
 	level := strings.Join(paths, "/")
 

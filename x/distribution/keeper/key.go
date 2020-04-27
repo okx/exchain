@@ -19,10 +19,12 @@ const (
 //
 // - 0x07<valAddr_Bytes>: ValidatorCurrentRewards
 var (
+	FeePoolKey                           = []byte{0x00} // key for global distribution state
 	ProposerKey                          = []byte{0x01} // key for the proposer operator address
 	DelegatorWithdrawAddrPrefix          = []byte{0x03} // key for delegator withdraw address
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
 
+	ParamStoreKeyCommunityTax        = []byte("communitytax")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
 )
 

@@ -42,9 +42,9 @@ jobs:
       - run:
           name: Build
           command: make build
-      - run:
-          name: Unit Test
-          command: make test-unit
+#      - run:
+#          name: Unit Test
+#          command: make test-unit
       - save_cache:
           name: Save go modules cache
           key: go-mod-v1-{{ checksum "go.sum" }}
@@ -63,9 +63,17 @@ jobs:
             export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
-            for pkg in $(go list ./... | grep -v '/simulation' | circleci tests split); do
-              id=$(echo "$pkg" | sed 's|[/.]|_|g')
-              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+
+            excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)"
+            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade")
+
+            for pkg in ${included_packages[@]}; do
+              package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
+              echo "${package_lines[@]}"
+              cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+              packages=`echo ${package_lines[@]}`
+              id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
+              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
             echo "--> Gather coverage:"
@@ -85,6 +93,12 @@ jobs:
 
             echo "--> upload codecov:"
             bash <(curl -s https://codecov.io/bash) -f coverage.txt
+
+
+#            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
+#              id=$(echo "$pkg" | sed 's|[/.]|_|g')
+#              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
+#            done
 #      - persist_to_workspace:
 #          root: /tmp/workspace
 #          paths:

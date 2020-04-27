@@ -101,7 +101,8 @@ func MakeTestCodec() *codec.Codec {
 // CreateTestInputDefault test input with default values
 func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 	sdk.Context, auth.AccountKeeper, Keeper, staking.Keeper, types.SupplyKeeper) {
-	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, isCheckTx, initPower)
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, isCheckTx, initPower, communityTax)
 	sh := staking.NewHandler(sk)
 	valOpAddrs, valConsPks, _ := GetTestAddrs()
 	// create four validators
@@ -116,7 +117,7 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 }
 
 // CreateTestInputAdvanced hogpodge of all sorts of input required for testing
-func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64) (
+func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, communityTax sdk.Dec) (
 	sdk.Context, auth.AccountKeeper, bank.Keeper, Keeper, staking.Keeper, params.Keeper, types.SupplyKeeper) {
 
 	initTokens := sdk.TokensFromConsensusPower(initPower)
@@ -194,6 +195,10 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64) (
 
 	// set the distribution hooks on staking
 	sk.SetHooks(keeper.Hooks())
+
+	// set genesis items required for distribution
+	keeper.SetFeePool(ctx, types.InitialFeePool())
+	keeper.SetCommunityTax(ctx, communityTax)
 
 	return ctx, accountKeeper, bankKeeper, keeper, sk, pk, supplyKeeper
 }

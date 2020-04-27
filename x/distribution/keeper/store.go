@@ -36,6 +36,29 @@ func (k Keeper) IterateDelegatorWithdrawAddrs(ctx sdk.Context,
 	}
 }
 
+// GetFeePool returns the global fee pool distribution info
+func (k Keeper) GetFeePool(ctx sdk.Context) (feePool types.FeePool) {
+	store := ctx.KVStore(k.storeKey)
+	b := store.Get(FeePoolKey)
+	if b == nil {
+		panic("Stored fee pool should not have been nil")
+	}
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &feePool)
+	return
+}
+
+// SetFeePool sets the global fee pool distribution info
+func (k Keeper) SetFeePool(ctx sdk.Context, feePool types.FeePool) {
+	store := ctx.KVStore(k.storeKey)
+	b := k.cdc.MustMarshalBinaryLengthPrefixed(feePool)
+	store.Set(FeePoolKey, b)
+}
+
+// GetFeePoolCommunityCoins returns the community coins
+func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.DecCoins {
+	return k.GetFeePool(ctx).CommunityPool
+}
+
 // GetPreviousProposerConsAddr returns the proposer public key for this block
 func (k Keeper) GetPreviousProposerConsAddr(ctx sdk.Context) (consAddr sdk.ConsAddress) {
 	store := ctx.KVStore(k.storeKey)

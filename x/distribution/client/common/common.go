@@ -10,13 +10,20 @@ import (
 
 // QueryParams actually queries distribution params.
 func QueryParams(cliCtx context.CLIContext, queryRoute string) (PrettyParams, error) {
-	route := fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamWithdrawAddrEnabled)
+	route := fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamCommunityTax)
+
+	retCommunityTax, _, err := cliCtx.QueryWithData(route, []byte{})
+	if err != nil {
+		return PrettyParams{}, err
+	}
+
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamWithdrawAddrEnabled)
 	retWithdrawAddrEnabled, _, err := cliCtx.QueryWithData(route, []byte{})
 	if err != nil {
 		return PrettyParams{}, err
 	}
 
-	return newPrettyParams(retWithdrawAddrEnabled), nil
+	return newPrettyParams(retCommunityTax, retWithdrawAddrEnabled), nil
 }
 
 // QueryValidatorCommission returns a validator's commission.

@@ -39,7 +39,7 @@ func TestVoteValidatorsAndWithdrawVote(t *testing.T) {
 		require.True(t, vote.GT(lastVotes), vote)
 	}
 
-	// standarlize
+	// standardize
 	sVals := valsNew.Standardize()
 	require.NotNil(t, sVals)
 	r, err := sVals.MarshalYAML()

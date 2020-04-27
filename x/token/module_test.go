@@ -16,7 +16,7 @@ func TestAppModule_InitGenesis(t *testing.T) {
 	app, tokenKeeper, _ := getMockDexAppEx(t, 0)
 	module := NewAppModule(version.ProtocolVersionV0, tokenKeeper, app.supplyKeeper)
 	ctx := app.NewContext(true, abci.Header{})
-	gs := DefaultGenesisState()
+	gs := defaultGenesisState()
 	gs.Tokens = nil
 	gsJSON := types.ModuleCdc.MustMarshalJSON(gs)
 

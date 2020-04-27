@@ -12,7 +12,6 @@ func TestHandlerDestroyValidator(t *testing.T) {
 
 	validatorAddr1 := sdk.ValAddress(Addrs[0])
 	pk1 := PKs[0]
-	initMsd := DefaultValidInitMsd
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitPower)
 	keeper := mockKeeper.Keeper
 	_ = setInstantUnbondPeriod(keeper, ctx)
@@ -27,7 +26,7 @@ func TestHandlerDestroyValidator(t *testing.T) {
 
 	//1. create a validator
 	handler = NewHandler(keeper)
-	createValMsg := NewTestMsgCreateValidator(validatorAddr1, pk1, initMsd)
+	createValMsg := NewTestMsgCreateValidator(validatorAddr1, pk1, DefaultMSD)
 	response := handler(ctx, createValMsg)
 	require.True(t, response.IsOK())
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)

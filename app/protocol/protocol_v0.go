@@ -23,6 +23,7 @@ import (
 	"github.com/okex/okchain/x/backend"
 	"github.com/okex/okchain/x/common/proto"
 	"github.com/okex/okchain/x/common/version"
+	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
 	dexClient "github.com/okex/okchain/x/dex/client"
 	distr "github.com/okex/okchain/x/distribution"
@@ -62,7 +63,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			upgradeClient.ProposalHandler, paramsclient.ProposalHandler,
-			dexClient.DelistProposalHandler,
+			dexClient.DelistProposalHandler, distr.ProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -76,6 +77,7 @@ var (
 		backend.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
+		debug.AppModuleBasic{},
 	)
 
 	// module account permissions for bankKeeper and supplyKeeper
@@ -123,6 +125,7 @@ type ProtocolV0 struct {
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
 	upgradeKeeper  upgrade.Keeper
+	debugKeeper    debug.Keeper
 
 	stopped     bool
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
@@ -313,7 +316,8 @@ func (p *ProtocolV0) produceKeepers() {
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
-		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper))
+		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
+		AddRoute(distr.RouterKey,distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
@@ -332,6 +336,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.upgradeKeeper = upgrade.NewKeeper(
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
+	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, auth.FeeCollectorName, p.Stop)
 }
 
 // moduleAccountAddrs returns all the module account addresses
@@ -368,6 +373,8 @@ func (p *ProtocolV0) setManager() {
 		backend.NewAppModule(p.backendKeeper),
 		stream.NewAppModule(p.streamKeeper),
 		upgrade.NewAppModule(p.upgradeKeeper),
+
+		debug.NewAppModule(p.debugKeeper),
 	)
 
 	// ORDER SETTING
@@ -402,13 +409,13 @@ func (p *ProtocolV0) setManager() {
 		gov.ModuleName,
 		mint.ModuleName,
 		supply.ModuleName,
-		crisis.ModuleName,
-		genutil.ModuleName,
-		params.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
 		order.ModuleName,
 		upgrade.ModuleName,
+		crisis.ModuleName,
+		genutil.ModuleName,
+		params.ModuleName,
 	)
 }
 

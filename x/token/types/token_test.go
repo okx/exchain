@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/okex/okchain/x/common"
@@ -105,7 +104,7 @@ func TestKeys(t *testing.T) {
 	b = GetLockAddress(addr)
 	require.EqualValues(t, b, append(LockKey, addr.Bytes()...))
 
-	asset := "btc"
-	b = KeyDexListAsset(asset)
-	require.EqualValues(t, b, []byte(fmt.Sprintf("asset:%s", asset)))
+	//asset := "btc"
+	//b = keyDexListAsset(asset)
+	//require.EqualValues(t, b, []byte(fmt.Sprintf("asset:%s", asset)))
 }

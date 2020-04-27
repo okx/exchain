@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -42,6 +40,7 @@ var (
 	TokenKey           = []byte{0x00} // the address prefix of the token's symbol
 	TokenNumberKey     = []byte{0x01} // key for token number address
 	LockKey            = []byte{0x02} // the address prefix of the locked coins
+	LockedFeeKey       = []byte{0x04} // the address prefix of the locked order fee coins
 	PrefixUserTokenKey = []byte{0x03} // the address prefix of the user-token relationship
 )
 
@@ -61,7 +60,12 @@ func GetLockAddress(addr sdk.AccAddress) []byte {
 	return append(LockKey, addr.Bytes()...)
 }
 
-// Key for getting a specific proposal from the store
-func KeyDexListAsset(asset string) []byte {
-	return []byte(fmt.Sprintf("asset:%s", asset))
+// GetLockFeeAddress gets the key for the lock fee information with address
+func GetLockFeeAddress(addr sdk.AccAddress) []byte {
+	return append(LockedFeeKey, addr.Bytes()...)
 }
+
+//// Key for getting a specific proposal from the store
+//func keyDexListAsset(asset string) []byte {
+//	return []byte(fmt.Sprintf("asset:%s", asset))
+//}

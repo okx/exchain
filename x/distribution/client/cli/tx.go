@@ -12,9 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okchain/x/gov"
+	"github.com/spf13/cobra"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -96,5 +96,65 @@ $ %s tx distr withdraw-rewards okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs5
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
+	return cmd
+}
+
+// GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
+func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "community-pool-spend [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a community pool spend proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a community pool spend proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal community-pool-spend <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title": "Community Pool Spend",
+  "description": "Pay me some %s!",
+  "recipient": "okchain5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq",
+  "amount": [
+    {
+      "denom": %s,
+      "amount": "10000"
+    }
+  ],
+  "deposit": [
+    {
+      "denom": %s,
+      "amount": "10000"
+    }
+  ]
+}
+`,
+				version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := ParseCommunityPoolSpendProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewCommunityPoolSpendProposal(proposal.Title, proposal.Description, proposal.Recipient, proposal.Amount)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
 	return cmd
 }

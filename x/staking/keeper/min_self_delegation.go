@@ -16,7 +16,7 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 	}
 
 	// 1.check the remained vote from validator
-	remainVotes := validator.GetDelegatorShares().Sub(validator.MinSelfDelegation)
+	remainVotes := validator.GetDelegatorShares().Sub(k.getVotesFromDefaultMinSelfDelegation())
 	if remainVotes.LT(sdk.ZeroDec()) {
 		return completionTime, types.ErrMoreMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
 	}
@@ -59,29 +59,32 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 	return
 }
 
-// VoteMinSelfDelegation votes msd to validator itself during the creation
+// VoteMinSelfDelegation votes default msd (0.001okt) to validator itself during the creation
 func (k Keeper) VoteMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator *types.Validator,
-	msdToken sdk.DecCoin) (err sdk.Error) {
-	// 0. transfer account's okt into bondPool
-	coins := msdToken.ToCoins()
+	defaultMSDToken sdk.DecCoin) (err sdk.Error) {
+	// 0. transfer account's okt (0.001okt as default) into bondPool
+	coins := defaultMSDToken.ToCoins()
 	err = k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins)
 	if err != nil {
 		return err
 	}
 
 	// 1. vote to validator itself
-	k.voteMinSelfDelegation(ctx, validator, msdToken.Amount)
+	k.voteMinSelfDelegation(ctx, validator)
 
 	return nil
 }
 
-func (k Keeper) voteMinSelfDelegation(ctx sdk.Context, pValidator *types.Validator, msdAmount sdk.Dec) {
+func (k Keeper) voteMinSelfDelegation(ctx sdk.Context, pValidator *types.Validator) {
 	k.DeleteValidatorByPowerIndex(ctx, *pValidator)
-	//TODO:
-	// 1.suppose that the rate between delegation and votes is 1:1
-	// 2.suppose convert votes from Int to Dec by rate 1:1 temporarily
-	voteDec := msdAmount
-	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(voteDec)
+	//TODO: current rule: any msd -> 1 votes
+	votes := k.getVotesFromDefaultMinSelfDelegation()
+	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(votes)
 	k.SetValidator(ctx, *pValidator)
 	k.SetValidatorByPowerIndex(ctx, *pValidator)
+}
+
+// RULES: any msd -> 1 votes
+func (k Keeper) getVotesFromDefaultMinSelfDelegation() sdk.Dec {
+	return sdk.OneDec()
 }

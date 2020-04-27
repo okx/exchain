@@ -57,6 +57,7 @@
         "denom": "okt"
       }
     },
+    "debug": null,
     "dex": {
       "params": {
         "delist_max_deposit_period": "86400000000000",
@@ -84,7 +85,11 @@
       "withdraw_infos": null
     },
     "distribution": {
+      "community_tax": "0.02000000",
       "delegator_withdraw_infos": [],
+      "fee_pool": {
+        "community_pool": []
+      },
       "previous_proposer": "",
       "validator_accumulated_commissions": [],
       "withdraw_addr_enabled": true
@@ -94,6 +99,10 @@
         {
           "type": "cosmos-sdk/StdTx",
           "value": {
+            "fee": {
+              "amount": [],
+              "gas": "0"
+            },
             "memo": "33935a25b0a0806372c93903a15fe73f66752254@127.0.0.1:26656",
             "msg": [
               {
@@ -107,7 +116,7 @@
                     "website": ""
                   },
                   "min_self_delegation": {
-                    "amount": "1000.00000000",
+                    "amount": "0.00100000",
                     "denom": "okt"
                   },
                   "pubkey": "okchainvalconspub1zcjduepqqxsxcjjletkq40ypzuqz8n925pk0ycw9h8g4saw27adyf2t93szsvpk77u",
@@ -121,7 +130,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "FDcRetFsUeCwUq2fH4n32xV/K/zoy03CbdLm46NCE2lLom2Aq3bBn9mOwwL3+VdYZY5dno34jMBIAh33QV/vfQ=="
+                "signature": "qT4H9ZUrdQGBcywi6f6GJHN3mu5o5BwJiGlt3KX2Vo0QXIEirwVPKkVnlojWObbq7j1omj4eT1455Tsx8QXXRg=="
               }
             ]
           }
@@ -234,7 +243,8 @@
       "supply": []
     },
     "token": {
-      "locked_asset": null,
+      "locked_assets": null,
+      "locked_fees": null,
       "params": {
         "base_fee": {
           "amount": "0.01250000",

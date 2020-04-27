@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tendermint/tendermint/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,7 +24,6 @@ import (
 	"github.com/okex/okchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
@@ -324,14 +325,40 @@ func CreateGenAccounts(numAccs int, genCoins sdk.DecCoins) (genAccs []types.DecA
 
 type TestAccounts []*testAccount
 
-func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, addr sdk.AccAddress, priKey crypto.PrivKey, tokenMsg sdk.Msg) auth.StdTx {
-	accs := app.AccountKeeper.GetAccount(ctx, addr)
+// GenTx generates a signed mock transaction.
+func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
+	// Make the transaction free
+	fee := auth.StdFee{
+		Amount: sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.0125")),
+		Gas:    200000,
+	}
+
+	sigs := make([]auth.StdSignature, len(priv))
+	memo := "testmemotestmemo"
+
+	for i, p := range priv {
+		sig, err := p.Sign(auth.StdSignBytes("", accnums[i], seq[i], fee, msgs, memo))
+		if err != nil {
+			panic(err)
+		}
+
+		sigs[i] = auth.StdSignature{
+			PubKey:    p.PubKey(),
+			Signature: sig,
+		}
+	}
+
+	return auth.NewStdTx(msgs, fee, sigs, memo)
+}
+
+func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, account *testAccount, tokenMsg sdk.Msg) auth.StdTx {
+	accs := app.AccountKeeper.GetAccount(ctx, account.baseAccount.Address)
 	accNum := accs.GetAccountNumber()
 	seqNum := accs.GetSequence()
 
 	// todo:
 	//tokenIssueMsg.Sender = account.addrKeys.Address
-	tx := mock.GenTx([]sdk.Msg{tokenMsg}, []uint64{accNum}, []uint64{seqNum}, priKey)
+	tx := GenTx([]sdk.Msg{tokenMsg}, []uint64{accNum}, []uint64{seqNum}, account.addrKeys.PrivKey)
 	app.Check(tx)
 	//if !res.IsOK() {
 	//	panic("something wrong in checking transaction")
@@ -340,33 +367,28 @@ func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, addr sdk.Acc
 }
 
 type MsgFaked struct {
-	Fakeid int
+	FakeID int
 }
 
 func (msg MsgFaked) Route() string { return "token" }
 
 func (msg MsgFaked) Type() string { return "issue" }
 
-// ValidateBasic Implements Msg.
 func (msg MsgFaked) ValidateBasic() sdk.Error {
-	// check owner
 	return nil
 }
 
-// GetSignBytes Implements Msg.
 func (msg MsgFaked) GetSignBytes() []byte {
-
 	return sdk.MustSortJSON([]byte("1"))
 }
 
-// GetSigners Implements Msg.
 func (msg MsgFaked) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{}
 }
 
 func newFakeMsg() MsgFaked {
 	return MsgFaked{
-		Fakeid: 0,
+		FakeID: 0,
 	}
 }
 
@@ -381,9 +403,9 @@ func TestMsgTokenChown(t *testing.T) {
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
-		})
-	//	fromPriKey := testAccounts[0].addrKeys.PrivKey
-	//	fromPubKey := testAccounts[0].addrKeys.PubKey
+		},
+	)
+
 	fromAddr := testAccounts[0].addrKeys.Address
 	//gen app and keepper
 	app, keeper, handler := getMockDexAppEx(t, 0)
@@ -402,11 +424,11 @@ func TestMsgTokenChown(t *testing.T) {
 
 	//issue token to FromAddress
 	tokenIssueMsg := types.NewMsgTokenIssue(common.NativeToken, common.NativeToken, common.NativeToken, "okcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 
 	//test error supply coin issue(TotalSupply > (9*1e10))
 	MsgErrorSupply := types.NewMsgTokenIssue("okc", "okc", "okc", "okccc", strconv.FormatInt(int64(10*1e10), 10), testAccounts[0].baseAccount.Address, true)
-	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, MsgErrorSupply))
+	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], MsgErrorSupply))
 
 	//test error tokenDesc (length > 256)
 	MsgErrorName := types.NewMsgTokenIssue(`ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
@@ -414,7 +436,7 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b`,
 		common.NativeToken, common.NativeToken, "okcoin", "2100", testAccounts[0].baseAccount.Address, true)
-	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, MsgErrorName))
+	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], MsgErrorName))
 
 	ctx = mockApplyBlock(t, app, TokenIssue, 3)
 
@@ -427,7 +449,7 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	require.NoError(t, err)
 	invalidmsg.ToSignature.PubKey = toPubKey
 	invalidmsg.ToSignature.Signature = bSig
-	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, invalidmsg))
+	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], invalidmsg))
 
 	//test if zzb is not exist
 	tokenNotExist := types.NewMsgTransferOwnership(fromAddr, toAddr, "zzb")
@@ -435,20 +457,20 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	require.NoError(t, err)
 	tokenNotExist.ToSignature.PubKey = toPubKey
 	tokenNotExist.ToSignature.Signature = bSig
-	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenNotExist))
+	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenNotExist))
 
-	//test AddTokenSuffix->ValidSymbol
-	AddTokenSuffix(ctx, keeper, "notexist")
+	//test addTokenSuffix->ValidSymbol
+	addTokenSuffix(ctx, keeper, "notexist")
 
 	//normal test
-	symbName := "okb-b85" //AddTokenSuffix(ctx,keeper,common.NativeToken)
+	symbName := "okb-b85" //addTokenSuffix(ctx,keeper,common.NativeToken)
 	//change owner from F to T
 	tokenChownMsg := types.NewMsgTransferOwnership(fromAddr, toAddr, symbName)
 	bSig, err = toPriKey.Sign(tokenChownMsg.GetSignBytes())
 	require.NoError(t, err)
 	tokenChownMsg.ToSignature.PubKey = toPubKey
 	tokenChownMsg.ToSignature.Signature = bSig
-	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenChownMsg))
+	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenChownMsg))
 
 	ctx = mockApplyBlock(t, app, TokenChown, 4)
 }
@@ -474,7 +496,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 
 	totalSupplyStr := "500"
 	tokenIssueMsg := types.NewMsgTokenIssue("bnb", "", "bnb", "binance coin", totalSupplyStr, testAccounts[0].baseAccount.Address, true)
-	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 
 	ctx = mockApplyBlock(t, app, tokenIssue, 3)
 
@@ -492,7 +514,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 	require.NoError(t, err)
 	chownMsg.ToSignature.PubKey = toPubKey
 	chownMsg.ToSignature.Signature = bSig
-	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, chownMsg))
+	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], chownMsg))
 
 	ctx = mockApplyBlock(t, app, TokenChown, 4)
 
@@ -518,7 +540,7 @@ func TestCreateTokenIssue(t *testing.T) {
 	totalSupply := int64(500)
 	totalSupplyStr := "500"
 	tokenIssueMsg := types.NewMsgTokenIssue("bnb", "", "bnb", "binance coin", totalSupplyStr, testAccounts[0].baseAccount.Address, true)
-	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 
 	// not valid symbol
 	//tokenIssueMsg = types.NewMsgTokenIssue("bnba123451fadfasdf", "bnba123451fadfasdf", "bnba123451fadfasdf", totalSupply, testAccounts[0].baseAccount.Address, true)
@@ -526,11 +548,11 @@ func TestCreateTokenIssue(t *testing.T) {
 
 	// Total exceeds the upper limit
 	tokenIssueMsg = types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", strconv.FormatInt(types.TotalSupplyUpperbound+1, 10), testAccounts[0].baseAccount.Address, true)
-	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 
 	// not enough okbs
 	tokenIssueMsg = types.NewMsgTokenIssue("xmr", "xmr", "xmr", "Monero", totalSupplyStr, testAccounts[0].baseAccount.Address, true)
-	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenIssue = append(tokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 
 	ctx = mockApplyBlock(t, app, tokenIssue, 3)
 
@@ -543,7 +565,7 @@ func TestCreateTokenIssue(t *testing.T) {
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity).Sub(feeIssue)),
 	}
 	require.EqualValues(t, coins, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins())
-	tokenStoreKeyNum, lockStoreKeyNum := keeper.GetNumKeys(ctx)
+	tokenStoreKeyNum, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	require.Equal(t, int64(3), tokenStoreKeyNum)
 	require.Equal(t, int64(0), lockStoreKeyNum)
 	//require.Equal(t, int64(0), tokenPairStoreKeyNum)
@@ -573,7 +595,7 @@ func TestCreateTokenBurn(t *testing.T) {
 	var tokenMsgs []auth.StdTx
 
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
 
 	tokenMsgs = tokenMsgs[:0]
@@ -588,12 +610,12 @@ func TestCreateTokenBurn(t *testing.T) {
 	require.Nil(t, err)
 	// total exceeds the upper limit
 	tokenBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenBurnMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenBurnMsg))
 	//mockApplyBlock(t, app, tokenMsgs)
 
 	// not the token's owner
 	tokenBurnMsg = types.NewMsgTokenBurn(decCoin, testAccounts2[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenBurnMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenBurnMsg))
 
 	tokenSymbol := getTokenSymbol(ctx, keeper, "btc")
 
@@ -601,13 +623,13 @@ func TestCreateTokenBurn(t *testing.T) {
 	require.Nil(t, err)
 	// normal case
 	tokenBurnMsg = types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenBurnMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenBurnMsg))
 
 	decCoin, err = sdk.ParseDecCoin(burnNum + "btc")
 	require.Nil(t, err)
 	// not enough fees
 	tokenBurnMsg = types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenBurnMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenBurnMsg))
 
 	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 
@@ -643,12 +665,12 @@ func TestCreateTokenMint(t *testing.T) {
 	var tokenMsgs []auth.StdTx
 
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
 	tokenMsgs = tokenMsgs[:0]
 
 	tokenIssueMsg = types.NewMsgTokenIssue("xmr", "xmr", "xmr", "monero", "1000", testAccounts[0].baseAccount.Address, false)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 
 	var mintNum int64 = 1000
@@ -657,30 +679,30 @@ func TestCreateTokenMint(t *testing.T) {
 	decCoin := sdk.NewDecCoinFromDec(btcTokenSymbol, sdk.NewDec(mintNum))
 	tokenMintMsg := types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
 
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenMintMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenMintMsg))
 
 	// Total exceeds the upper limit
 	decCoin.Amount = sdk.NewDec(types.TotalSupplyUpperbound)
 	tokenMintMsg = types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenMintMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenMintMsg))
 
 	// not the token's owner
 	decCoin.Amount = sdk.NewDec(mintNum)
 	tokenMintMsg = types.NewMsgTokenMint(decCoin, testAccounts2[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenMintMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenMintMsg))
 
 	// token not mintable
 	xmrTokenSymbol := getTokenSymbol(ctx, keeper, "xmr")
 	decCoin.Denom = xmrTokenSymbol
 	decCoin.Amount = sdk.NewDec(mintNum)
 	tokenMintMsg = types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenMintMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenMintMsg))
 
 	// not enough fees
 	decCoin.Denom = btcTokenSymbol
 	decCoin.Amount = sdk.NewDec(mintNum)
 	tokenMintMsg = types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenMintMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenMintMsg))
 
 	ctx = mockApplyBlock(t, app, tokenMsgs, 5)
 
@@ -708,7 +730,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	var tokenMsgs []auth.StdTx
 
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
 	tokenMsgs = tokenMsgs[:0]
 
@@ -717,14 +739,14 @@ func TestCreateMsgTokenSend(t *testing.T) {
 		sdk.NewDecCoinFromDec(tokenName, sdk.NewDec(100)),
 	}
 	tokenSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, testAccounts[1].baseAccount.Address, coins)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenSendMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenSendMsg))
 
 	coins = sdk.DecCoins{
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(10000)),
 	}
 	// not enough coins
 	tokenSendMsg = types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, testAccounts[1].baseAccount.Address, coins)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenSendMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenSendMsg))
 
 	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 
@@ -749,7 +771,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 	}
 	tokenSendMsg = types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, testAccounts[1].baseAccount.Address, coins)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenSendMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenSendMsg))
 
 	ctx = mockApplyBlock(t, app, tokenMsgs, 5)
 
@@ -822,7 +844,7 @@ func TestCreateMsgMultiSend(t *testing.T) {
 	var tokenMsgs []auth.StdTx
 
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
 	tokenMsgs = tokenMsgs[:0]
 
@@ -832,14 +854,14 @@ func TestCreateMsgMultiSend(t *testing.T) {
 	transfers, err := types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	multiSend := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, multiSend))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], multiSend))
 
 	// not enough coins
 	multiSendStr = `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1okt,2000` + btcSymbol + `"}]`
 	transfers, err = types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	multiSend = types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, multiSend))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], multiSend))
 
 	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 
@@ -873,7 +895,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 	var tokenMsgs []auth.StdTx
 
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenIssueMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
 
 	tokenMsgs = tokenMsgs[:0]
@@ -881,7 +903,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 
 	// normal case
 	tokenEditMsg := types.NewMsgTokenModify(btcTokenSymbol, "desc0", "whole name0", true, true, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 	token := keeper.GetTokenInfo(ctx, btcTokenSymbol)
 	require.EqualValues(t, "desc0", token.Description)
@@ -889,7 +911,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify(btcTokenSymbol, "desc1", "whole name1", false, true, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 5)
 	token = keeper.GetTokenInfo(ctx, btcTokenSymbol)
 	require.EqualValues(t, "desc0", token.Description)
@@ -897,7 +919,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify(btcTokenSymbol, "desc2", "whole name2", true, false, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 6)
 	token = keeper.GetTokenInfo(ctx, btcTokenSymbol)
 	require.EqualValues(t, "desc2", token.Description)
@@ -905,7 +927,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify(btcTokenSymbol, "desc3", "whole name2", false, false, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 7)
 	token = keeper.GetTokenInfo(ctx, btcTokenSymbol)
 	require.EqualValues(t, "desc2", token.Description)
@@ -914,17 +936,17 @@ func TestCreateMsgTokenModify(t *testing.T) {
 	// error case
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify("btcTokenSymbol", "desc4", "whole name4", true, true, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 8)
 
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify(btcTokenSymbol, "desc5", "whole name5", true, true, testAccounts[1].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 9)
 
 	tokenMsgs = tokenMsgs[:0]
 	tokenEditMsg = types.NewMsgTokenModify(btcTokenSymbol, "desc6", "whole nasiangrueinvowfoij;oeasifnroeinagoirengodd   me6", true, true, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 10)
 
 	tokenMsgs = tokenMsgs[:0]
@@ -934,10 +956,151 @@ bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "whole name7", true, true, testAccounts[0].baseAccount.Address)
-	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0].baseAccount.Address, testAccounts[0].addrKeys.PrivKey, tokenEditMsg))
+	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenEditMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 11)
 
 	token = keeper.GetTokenInfo(ctx, btcTokenSymbol)
 	require.EqualValues(t, "desc2", token.Description)
 	require.EqualValues(t, "whole name1", token.WholeName)
+}
+
+func getMockAppToHandleFee(t *testing.T, initBalance int64, numAcc int) (app *MockDexApp, testAccounts TestAccounts) {
+	intQuantity := int64(initBalance)
+	genAccs, testAccounts := CreateGenAccounts(numAcc,
+		sdk.DecCoins{
+			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
+		})
+
+	app, _, _ = getMockDexApp(t, 0)
+	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
+	app.PushAnteHandler(auth.NewAnteHandler(
+		app.AccountKeeper,
+		app.supplyKeeper,
+		auth.DefaultSigVerificationGasConsumer,
+		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
+			return sdk.Result{}
+
+		},
+		func(ctx sdk.Context, msgs []sdk.Msg) bool {
+			return false
+		},
+	))
+
+	return app, testAccounts
+
+}
+
+func TestTxFailedFeeTable(t *testing.T) {
+
+	app, testAccounts := getMockAppToHandleFee(t, 10, 1)
+	ctx := app.BaseApp.NewContext(true, abci.Header{})
+
+	// to
+	toPriKey := secp256k1.GenPrivKey()
+	toPubKey := toPriKey.PubKey()
+	toAddr := sdk.AccAddress(toPubKey.Address())
+
+	// failed issue msg : not enough okbs .
+	failedIssueMsg := types.NewMsgTokenIssue("xmr", "xmr", "xmr", "Monero", "500", testAccounts[0].baseAccount.Address, true)
+	// failed mint msg : no such token
+	decCoin := sdk.NewDecCoinFromDec("nob", sdk.NewDec(200))
+	failedMintMsg := types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
+	// failed burn msg : no such token
+	failedBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
+	// failed edit msg : no such token
+	failedEditMsg := types.NewMsgTokenModify("nob", "desc0", "whole name0", true, true, testAccounts[0].baseAccount.Address)
+	// failed send msg: no such token
+	fialedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
+
+	// failed MultiSend msg: no such token
+	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":"1okt,2` + "nob" + `"}]`
+	transfers, err := types.StrToTransfers(multiSendStr)
+	require.Nil(t, err)
+	failedMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	// failed TransferOwnership msg: no such token
+	failedChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, "nob")
+	bSig, err := toPriKey.Sign(failedChownMsg.GetSignBytes())
+	require.NoError(t, err)
+	failedChownMsg.ToSignature.PubKey = toPubKey
+	failedChownMsg.ToSignature.Signature = bSig
+
+	failTestSets := []struct {
+		name    string
+		balance string
+		msg     auth.StdTx
+	}{
+		{"fail to issue : 0.0125", "9.98750000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
+		{"fail to mint  : 0.0125", "9.97500000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
+		{"fail to burn  : 0.0125", "9.96250000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
+		{"fail to modify :0.0125", "9.95000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
+		{"fail to send  : 0.0125", "9.93750000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
+		{"fail to multi : 0.0125", "9.92500000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
+		{"fail to chown : 0.0125", "9.91250000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
+	}
+	for i, tt := range failTestSets {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx = mockApplyBlock(t, app, []auth.StdTx{tt.msg}, int64(i+3))
+			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
+		})
+	}
+
+}
+
+func TestTxSuccessFeeTable(t *testing.T) {
+	app, testAccounts := getMockAppToHandleFee(t, 30000, 1)
+	ctx := app.BaseApp.NewContext(true, abci.Header{})
+	// to
+	toPriKey := secp256k1.GenPrivKey()
+	toPubKey := toPriKey.PubKey()
+	toAddr := sdk.AccAddress(toPubKey.Address())
+
+	// successful issue msg
+	successfulIssueMsg := types.NewMsgTokenIssue("xxb", "xxb", "xxb", "xx coin", "500", testAccounts[0].baseAccount.Address, true)
+
+	symbolAfterIssue, ok := addTokenSuffix(ctx, app.tokenKeeper, "xxb")
+	require.True(t, ok)
+
+	decCoin := sdk.NewDecCoinFromDec(symbolAfterIssue, sdk.NewDec(50))
+	successfulMintMsg := types.NewMsgTokenMint(decCoin, testAccounts[0].baseAccount.Address)
+
+	successfulBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
+
+	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
+
+	// multi send
+	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":" 10okt,20` + symbolAfterIssue + `"}]`
+	transfers, err := types.StrToTransfers(multiSendStr)
+	require.Nil(t, err)
+	successfulMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	successfulEditMsg := types.NewMsgTokenModify(symbolAfterIssue, "edit msg", "xxb coin ", true, true, testAccounts[0].baseAccount.Address)
+
+	successfulChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, symbolAfterIssue)
+	bSig, err := toPriKey.Sign(successfulChownMsg.GetSignBytes())
+	require.NoError(t, err)
+	successfulChownMsg.ToSignature.PubKey = toPubKey
+	successfulChownMsg.ToSignature.Signature = bSig
+
+	successfulTestSets := []struct {
+		name    string
+		balance string
+		msg     sdk.Msg
+		account *testAccount
+	}{
+		{"success to issue : 20000+0.0125", "9999.98750000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 2000+0.0125", "7999.97500000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.0125", "7989.96250000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.0125", "7989.95000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10 +0.01*2", "7979.93000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify:0.0125", "7979.91750000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.0125", "7969.90500000", successfulChownMsg, testAccounts[0]},
+	}
+	for i, tt := range successfulTestSets {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := createTokenMsg(t, app, ctx, tt.account, tt.msg)
+			ctx = mockApplyBlock(t, app, []auth.StdTx{msg}, int64(i+3))
+			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
+		})
+	}
 }

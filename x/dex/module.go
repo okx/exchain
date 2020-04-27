@@ -3,6 +3,8 @@ package dex
 import (
 	"encoding/json"
 
+	"github.com/okex/okchain/x/dex/keeper"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okchain/x/dex/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -85,6 +87,7 @@ func NewAppModule(version ProtocolVersionType, keeper IKeeper, supplyKeeper Supp
 
 // RegisterInvariants registers invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
+	keeper.RegisterInvariants(ir, am.keeper, am.supplyKeeper)
 }
 
 // Route returns module message route name
