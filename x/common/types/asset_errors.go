@@ -15,7 +15,28 @@ const (
 	codeBadCoinsSendingFromModule CodeType = 61005
 	codeInsufficientFees          CodeType = 61006
 	codeUnauthorizedIdentity      CodeType = 61007
+	codeBadCoinsBurning           CodeType = 61008
+	codeCoinsNotMintable          CodeType = 61009
+	codeInsufficientBalance       CodeType = 61010
 )
+
+// ErrInsufficientBalance returns an error when the balance of an account is insufficient
+func ErrInsufficientBalance(codespace sdk.CodespaceType, expectedAmount string) sdk.Error {
+	return sdk.NewError(codespace, codeInsufficientBalance,
+		"failed. insufficient balance, needs %s", expectedAmount)
+}
+
+// ErrCoinsNotMintable returns an error with the mintage of coins which are not mintable
+func ErrCoinsNotMintable(codespace sdk.CodespaceType, symbol string) sdk.Error {
+	return sdk.NewError(codespace, codeCoinsNotMintable,
+		"failed. token %s is not mintable", symbol)
+}
+
+// ErrBadCoinsBurning returns an error with the bad coins burning
+func ErrBadCoinsBurning(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, codeBadCoinsBurning,
+		"failed. bad coins burning: %s", msg)
+}
 
 // ErrUnauthorizedIdentity returns an error with the unauthorized identity of the owner
 func ErrUnauthorizedIdentity(codespace sdk.CodespaceType, symbol string) sdk.Error {
@@ -32,7 +53,7 @@ func ErrTotalSupplyExceeds(codespace sdk.CodespaceType, totalSupply string, uppe
 // ErrBadSymbolGeneration returns an error with the bad unique symbol generation
 func ErrBadSymbolGeneration(codespace sdk.CodespaceType, originalSymbol string) sdk.Error {
 	return sdk.NewError(codespace, codeBadSymbolGeneration,
-		"failed. bad unique symbol generation for token %s ", originalSymbol)
+		"failed. bad unique symbol generation for token %s", originalSymbol)
 }
 
 // ErrBadCoinsMintage returns an error with the bad coin mintage

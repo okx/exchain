@@ -167,15 +167,14 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 	// set supply
 	err = keeper.supplyKeeper.BurnCoins(ctx, types.ModuleName, subCoins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply burn coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsBurning(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeBurn.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeDecCoins.String())).Result()
+		return common.ErrInsufficientFees(common.AssetCodespace, feeDecCoins.String()).Result()
 	}
 
 	var name = "handleMsgTokenBurn"
@@ -201,34 +200,32 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 	// check owner
 	if !bytes.Equal(token.Owner.Bytes(), msg.Owner.Bytes()) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of token(%s)",
-			msg.Owner.String(), msg.Amount.Denom)).Result()
+		return common.ErrUnauthorizedIdentity(common.AssetCodespace, token.Symbol).Result()
 	}
 
 	// check whether token is mintable
 	if !token.Mintable {
-		return sdk.ErrUnauthorized(fmt.Sprintf("token(%s) is not mintable", token.Symbol)).Result()
+		return common.ErrCoinsNotMintable(common.AssetCodespace, token.Symbol).Result()
 	}
 
 	mintCoins := msg.Amount.ToCoins()
 	// set supply
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, mintCoins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply mint coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsMintage(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// send coins to acc
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Owner, mintCoins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply send coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsSendingFromModule(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeMint.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeDecCoins.String())).Result()
+		return common.ErrInsufficientFees(common.AssetCodespace, feeDecCoins.String()).Result()
 	}
 
 	name := "handleMsgTokenMint"
@@ -257,7 +254,7 @@ func chargeMultiCoinsFee(ctx sdk.Context, keeper Keeper, from sdk.AccAddress,
 	feeCharged = sdk.ZeroFee().ToCoins()
 
 	if coinNum == 1 {
-		return feeCharged, result
+		return
 	}
 
 	fee := keeper.GetParams(ctx).FeeMultiSend.Amount.MulInt64(int64(coinNum))
@@ -265,18 +262,17 @@ func chargeMultiCoinsFee(ctx sdk.Context, keeper Keeper, from sdk.AccAddress,
 
 	if feeAmount.IsNegative() {
 		// charge nothing, since it's already covered by system fee
-		return feeCharged, result
+		return
 	}
 
 	// deduction fee
 	feeCharged = sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, feeAmount)
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, keeper.feeCollectorName, feeCharged)
 	if err != nil {
-		return feeCharged, sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCharged.String())).Result()
+		return feeCharged, common.ErrInsufficientFees(common.AssetCodespace, feeCharged.String()).Result()
 	}
 	keeper.AddFeeDetail(ctx, from.String(), feeCharged, types.FeeTypeTransfer)
-	return feeCharged, sdk.Result{}
+	return
 }
 
 func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) sdk.Result {
@@ -286,8 +282,7 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient coins(need %s)",
-				transferUnit.Coins.String())).Result()
+			return common.ErrInsufficientBalance(common.AssetCodespace, transferUnit.Coins.String()).Result()
 		}
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
@@ -318,11 +313,9 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 }
 
 func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log.Logger) sdk.Result {
-
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient coins(need %s)",
-			msg.Amount.String())).Result()
+		return common.ErrInsufficientBalance(common.AssetCodespace, msg.Amount.String()).Result()
 	}
 
 	actualFee, chargeResult := chargeMultiCoinsFee(ctx, keeper, msg.FromAddress, len(msg.Amount))
