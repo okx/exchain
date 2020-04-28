@@ -1,11 +1,12 @@
 package types
 
 import (
+	"github.com/okex/okchain/x/common"
 	"strconv"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common"
+	commontypes "github.com/okex/okchain/x/common/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
@@ -15,25 +16,41 @@ func TestNewMsgTokenIssue(t *testing.T) {
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 	totalSupply := "20000"
+	excessiveTotalSupplyStr := strconv.FormatInt(int64(99*1e10), 10)
+	excessiveTotalSupplyDec := sdk.MustNewDecFromStr(excessiveTotalSupplyStr)
 
 	testCase := []struct {
 		issueMsg MsgTokenIssue
 		err      sdk.Error
 	}{
-		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", totalSupply, addr, true),
-			nil},
-		{NewMsgTokenIssue("", "", "", "binance coin", totalSupply, addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because original symbol cannot be empty")},
-		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance 278343298$%%^&  coin", totalSupply, addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because invalid wholename")},
-		{NewMsgTokenIssue("bnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbn", "bnb", "bnb", "binance coin", totalSupply, addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because invalid desc")},
-		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", strconv.FormatInt(int64(99*1e10), 10), addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because invalid total supply")},
-		{NewMsgTokenIssue("", "", "", "binance coin", totalSupply, sdk.AccAddress{}, true),
-			sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenIssue("", "", "bnb-asd", "binance coin", totalSupply, addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because invalid original symbol: bnb-asd")},
+		{
+			NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", totalSupply, addr, true),
+			nil,
+		},
+		{
+			NewMsgTokenIssue("", "", "", "binance coin", totalSupply, addr, true),
+			commontypes.ErrEmptyOriginalSymbol(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenIssue("bnb", "bnb", "bnb", "binance 278343298$%%^&  coin", totalSupply, addr, true),
+			commontypes.ErrInvalidWholeName(commontypes.AssetCodespace, "binance 278343298$%%^&  coin"),
+		},
+		{
+			NewMsgTokenIssue("bnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbn", "bnb", "bnb", "binance coin", totalSupply, addr, true),
+			commontypes.ErrTokenDescriptionExceeds(commontypes.AssetCodespace, DescLenLimit),
+		},
+		{
+			NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", excessiveTotalSupplyStr, addr, true),
+			commontypes.ErrTotalSupplyExceeds(commontypes.AssetCodespace, excessiveTotalSupplyDec.String(), TotalSupplyUpperbound),
+		},
+		{
+			NewMsgTokenIssue("", "", "", "binance coin", totalSupply, sdk.AccAddress{}, true),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "owner"),
+		},
+		{
+			NewMsgTokenIssue("", "", "bnb-asd", "binance coin", totalSupply, addr, true),
+			commontypes.ErrInvalidOriginalSymbol(commontypes.AssetCodespace, "bnb-asd"),
+		},
 	}
 
 	for _, msgCase := range testCase {
@@ -67,10 +84,22 @@ func TestNewMsgTokenBurn(t *testing.T) {
 		burnMsg MsgTokenBurn
 		err     sdk.Error
 	}{
-		{NewMsgTokenBurn(decCoin, addr), nil},
-		{NewMsgTokenBurn(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.00000000")},
-		{NewMsgTokenBurn(decCoin, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenBurn(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.000000001okb-ads")},
+		{
+			NewMsgTokenBurn(decCoin, addr),
+			nil,
+		},
+		{
+			NewMsgTokenBurn(decCoin0, addr),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenBurn(decCoin, sdk.AccAddress{}),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "owner"),
+		},
+		{
+			NewMsgTokenBurn(decCoin1, addr),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
 	}
 
 	for _, msgCase := range testCase {
@@ -111,11 +140,26 @@ func TestNewMsgTokenMint(t *testing.T) {
 		mintMsg MsgTokenMint
 		err     sdk.Error
 	}{
-		{NewMsgTokenMint(decCoin, addr), nil},
-		{NewMsgTokenMint(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.00000000")},
-		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenMint(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.0000000011234")},
-		{NewMsgTokenMint(decCoin2, addr), sdk.ErrUnknownRequest("failed to check mint msg because invalid amount")},
+		{
+			NewMsgTokenMint(decCoin, addr),
+			nil,
+		},
+		{
+			NewMsgTokenMint(decCoin0, addr),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenMint(decCoin, sdk.AccAddress{}),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "owner"),
+		},
+		{
+			NewMsgTokenMint(decCoin1, addr),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenMint(decCoin2, addr),
+			commontypes.ErrMintageAmountExceeds(commontypes.AssetCodespace, TotalSupplyUpperbound),
+		},
 	}
 
 	for _, msgCase := range testCase {
@@ -170,12 +214,30 @@ func TestNewTokenMsgSend(t *testing.T) {
 		sendMsg MsgSend
 		err     sdk.Error
 	}{
-		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
-		{NewMsgTokenSend(fromAddr, toAddr, sdk.DecCoins{}), sdk.ErrInsufficientCoins("failed to check send msg because send amount must be positive")},
-		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.00000000okc,100.00000000okc,100.00000000oke")},
-		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), sdk.ErrInvalidAddress("failed to check send msg because miss sender address")},
-		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), sdk.ErrInvalidAddress("failed to check send msg because miss recipient address")},
-		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.00000000")},
+		{
+			NewMsgTokenSend(fromAddr, toAddr, coins),
+			nil,
+		},
+		{
+			NewMsgTokenSend(fromAddr, toAddr, sdk.DecCoins{}),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenSend(fromAddr, toAddr, Errorcoins),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "sender"),
+		},
+		{
+			NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "recipient"),
+		},
+		{
+			NewMsgTokenSend(fromAddr, toAddr, notValidCoins),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.sendMsg.ValidateBasic()
@@ -232,12 +294,28 @@ func TestNewTokenMultiSend(t *testing.T) {
 		multiSendMsg MsgMultiSend
 		err          sdk.Error
 	}{
-		{NewMsgMultiSend(fromAddr, transfers), nil},
-		{NewMsgMultiSend(sdk.AccAddress{}, transfers), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgMultiSend(fromAddr, make([]TransferUnit, MultiSendLimit+1)), sdk.ErrUnknownRequest("failed to check multisend msg because restrictions on the number of transfers")},
-		{NewMsgMultiSend(fromAddr, transfers0), sdk.ErrInvalidCoins("failed to check multisend msg because send amount must be positive")},
-		{NewMsgMultiSend(fromAddr, transfers1), sdk.ErrInvalidAddress("failed to check multisend msg because address is empty, not valid")},
+		{
+			NewMsgMultiSend(fromAddr, transfers),
+			nil,
+		},
+		{
+			NewMsgMultiSend(sdk.AccAddress{}, transfers),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "sender"),
+		},
+		{
+			NewMsgMultiSend(fromAddr, make([]TransferUnit, MultiSendLimit+1)),
+			commontypes.ErrTransfersLengthExceeds(commontypes.AssetCodespace, MultiSendLimit),
+		},
+		{
+			NewMsgMultiSend(fromAddr, transfers0),
+			commontypes.ErrInvalidCoins(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgMultiSend(fromAddr, transfers1),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "recipient"),
+		},
 	}
+
 	for _, msgCase := range testCase {
 		err := msgCase.multiSendMsg.ValidateBasic()
 		require.EqualValues(t, msgCase.err, err)
@@ -273,12 +351,28 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 		transferOwnershipMsg MsgTransferOwnership
 		err                  sdk.Error
 	}{
-		{NewMsgTransferOwnership(fromAddr, toAddr, common.NativeToken), sdk.ErrUnauthorized("failed to check transferownership msg because invalid multi signature")},
-		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), sdk.ErrInvalidAddress("failed to check transferownership msg because miss sender address")},
-		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken), sdk.ErrInvalidAddress("failed to check transferownership msg because miss recipient address")},
-		{NewMsgTransferOwnership(fromAddr, toAddr, ""), sdk.ErrUnknownRequest("failed to check transferownership msg because symbol cannot be empty")},
-		{NewMsgTransferOwnership(fromAddr, toAddr, "1okb-ads"), sdk.ErrUnknownRequest("failed to check transferownership msg because invalid token symbol: 1okb-ads")},
+		{
+			NewMsgTransferOwnership(fromAddr, toAddr, common.NativeToken),
+			commontypes.ErrInvalidMultisignCheck(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "sender"),
+		},
+		{
+			NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "recipient"),
+		},
+		{
+			NewMsgTransferOwnership(fromAddr, toAddr, ""),
+			commontypes.ErrEmptySymbol(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTransferOwnership(fromAddr, toAddr, "1okb-ads"),
+			commontypes.ErrInvalidSymbol(commontypes.AssetCodespace, "1okb-ads"),
+		},
 	}
+
 	for _, msgCase := range testCase {
 		err := msgCase.transferOwnershipMsg.ValidateBasic()
 		require.EqualValues(t, msgCase.err, err)
@@ -314,31 +408,46 @@ func TestNewMsgTokenModify(t *testing.T) {
 		tokenModifyMsg MsgTokenModify
 		err            sdk.Error
 	}{
-		{NewMsgTokenModify("bnb", "bnb", "bnb bnb", true, true, addr),
-			nil},
-		{NewMsgTokenModify("", "bnb", "bnb bnb", true, true, addr),
-			sdk.ErrUnknownRequest("failed to check modify msg because symbol cannot be empty")},
-		{NewMsgTokenModify("bnb", "bnb", "bnb bnb", true, true, sdk.AccAddress{}),
-			sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, true, addr),
-			sdk.ErrUnknownRequest("failed to check modify msg because invalid wholename")},
-		{NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, false, addr),
-			nil},
-		{NewMsgTokenModify("bnb", `bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
+		{
+			NewMsgTokenModify("bnb", "bnb", "bnb bnb", true, true, addr),
+			nil,
+		},
+		{
+			NewMsgTokenModify("", "bnb", "bnb bnb", true, true, addr),
+			commontypes.ErrEmptySymbol(commontypes.AssetCodespace),
+		},
+		{
+			NewMsgTokenModify("bnb", "bnb", "bnb bnb", true, true, sdk.AccAddress{}),
+			commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "owner"),
+		},
+		{
+			NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, true, addr),
+			commontypes.ErrInvalidWholeName(commontypes.AssetCodespace, "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb"),
+		},
+		{
+			NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, false, addr),
+			nil,
+		},
+		{
+			NewMsgTokenModify("bnb", `bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "bnbbbbbbbbbb", true, false, addr),
-			sdk.ErrUnknownRequest("failed to check modify msg because invalid desc")},
-		{NewMsgTokenModify("bnb", `bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
+			commontypes.ErrTokenDescriptionExceeds(commontypes.AssetCodespace, DescLenLimit),
+		},
+		{
+			NewMsgTokenModify("bnb", `bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234
 bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "bnbbbbbbbbbb", false, false, addr),
-			nil},
+			nil,
+		},
 	}
+
 	for _, msgCase := range testCase {
 		err := msgCase.tokenModifyMsg.ValidateBasic()
 		require.EqualValues(t, msgCase.err, err)

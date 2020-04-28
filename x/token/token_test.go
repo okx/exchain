@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okchain/x/common"
+	commontypes "github.com/okex/okchain/x/common/types"
 	"github.com/okex/okchain/x/common/version"
 	"github.com/okex/okchain/x/gov"
 	govKeeper "github.com/okex/okchain/x/gov/keeper"
@@ -809,17 +810,31 @@ func TestChargeMultiCoinsFee(t *testing.T) {
 		feeCharged sdk.DecCoins
 		res        sdk.Result
 	}{
-		{1, testAccounts[0].baseAccount.Address,
-			sdk.ZeroFee().ToCoins(), goodRes},
-		{2, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0075"), goodRes},
-		{3, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0175"), goodRes},
-		{4, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0275"), goodRes},
-		{100, testAccounts[0].baseAccount.Address,
+		{1,
+			testAccounts[0].baseAccount.Address,
+			sdk.ZeroFee().ToCoins(),
+			goodRes,
+		},
+		{2,
+			testAccounts[0].baseAccount.Address,
+			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0075"),
+			goodRes,
+		},
+		{3,
+			testAccounts[0].baseAccount.Address,
+			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0175"),
+			goodRes,
+		},
+		{4,
+			testAccounts[0].baseAccount.Address,
+			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0275"),
+			goodRes,
+		},
+		{100,
+			testAccounts[0].baseAccount.Address,
 			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.9875"),
-			sdk.ErrInsufficientCoins("insufficient fee coins(need 0.98750000okt)").Result()},
+			commontypes.ErrInsufficientFees(commontypes.AssetCodespace, "0.98750000okt").Result(),
+		},
 	}
 
 	for _, tc := range testCases {
