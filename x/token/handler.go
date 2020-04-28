@@ -346,8 +346,7 @@ func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOw
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
 
 	if !tokenInfo.Owner.Equals(msg.FromAddress) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of token(%s)",
-			msg.FromAddress.String(), msg.Symbol)).Result()
+		return common.ErrUnauthorizedIdentity(common.AssetCodespace, msg.Symbol).Result()
 	}
 
 	// first remove it from the raw owner
@@ -360,8 +359,7 @@ func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOw
 	feeDecCoins := keeper.GetParams(ctx).FeeChown.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeDecCoins.String())).Result()
+		return common.ErrInsufficientFees(common.AssetCodespace, feeDecCoins.String()).Result()
 	}
 
 	var name = "handleMsgTokenChown"
@@ -392,7 +390,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 			msg.Owner.String(), msg.Symbol)).Result()
 	}
 	if !msg.IsWholeNameModified && !msg.IsDescriptionModified {
-		return sdk.ErrInternal("nothing modified").Result()
+		return common.ErrInvalidModification(common.AssetCodespace).Result()
 	}
 	// modify
 	if msg.IsWholeNameModified {
@@ -409,8 +407,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 	feeDecCoins := keeper.GetParams(ctx).FeeModify.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeDecCoins.String())).Result()
+		return common.ErrInsufficientFees(common.AssetCodespace, feeDecCoins.String()).Result()
 	}
 
 	name := "handleMsgTokenModify"

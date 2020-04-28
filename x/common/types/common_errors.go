@@ -41,8 +41,8 @@ func ErrDataNotExists(codespace sdk.CodespaceType) sdk.Error {
 }
 
 // ErrInvalidAddress returns an error when the address is invalid
-func ErrInvalidAddress(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, codeInvalidAddress, "failed. invalid address")
+func ErrInvalidAddress(codespace sdk.CodespaceType, kind string) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidAddress, "failed. invalid %s address", kind)
 }
 
 // ErrUnknownQueryEndpoint returns an error when the the query endpoint is unknown

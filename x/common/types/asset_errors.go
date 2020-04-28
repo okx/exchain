@@ -18,7 +18,84 @@ const (
 	codeBadCoinsBurning           CodeType = 61008
 	codeCoinsNotMintable          CodeType = 61009
 	codeInsufficientBalance       CodeType = 61010
+	codeInvalidModificationSet    CodeType = 61011
+	codeEmptyOriginalSymbol       CodeType = 61012
+	codeInvalidOriginalSymbol     CodeType = 61013
+	codeInvalidWholeName          CodeType = 61014
+	codeTokenDescriptionExceeds   CodeType = 61015
+	codeTransfersLengthExceeds    CodeType = 61016
+	codeInvalidMultisignCheck     CodeType = 61017
+	codeInvalidCoins              CodeType = 61018
+	codeMintageAmountExceeds      CodeType = 61019
+	codeEmptySymbol               CodeType = 61020
+	codeInvalidSymbol             CodeType = 61021
 )
+
+// ErrInvalidMultisignCheck returns an error with an invalid check result of multi-sign
+func ErrInvalidMultisignCheck(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidMultisignCheck,
+		"failed. invalid check result of multi-sign")
+}
+
+// ErrInvalidSymbol returns an error with an invalid symbol of token
+func ErrInvalidSymbol(codespace sdk.CodespaceType, symbol string) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidSymbol,
+		"failed. invalid symbol of token: %s", symbol)
+}
+
+// ErrEmptySymbol returns an error with an empty symbol of token
+func ErrEmptySymbol(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeEmptySymbol,
+		"failed. empty symbol of token")
+}
+
+// ErrTransfersLengthExceeds returns an error when the transfers' length of multi-send exceeds the limit
+func ErrTransfersLengthExceeds(codespace sdk.CodespaceType, limit int64) sdk.Error {
+	return sdk.NewError(codespace, codeTransfersLengthExceeds,
+		"failed. the length of transfers in multi-send exceeds the limit: %d", limit)
+}
+
+// ErrMintageAmountExceeds returns an error when the amount of mintage exceeds the limit
+func ErrMintageAmountExceeds(codespace sdk.CodespaceType, limit int64) sdk.Error {
+	return sdk.NewError(codespace, codeMintageAmountExceeds,
+		"failed. the amount of mintage exceeds the limit: %d", limit)
+}
+
+// ErrInvalidCoins returns an error with invalid coins
+func ErrInvalidCoins(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidCoins,
+		"failed. invalid coins with negative amount or illegal denomination")
+}
+
+// ErrTokenDescriptionExceeds returns an error when the token description exceeds the length limit
+func ErrTokenDescriptionExceeds(codespace sdk.CodespaceType, lenLimit int) sdk.Error {
+	return sdk.NewError(codespace, codeTokenDescriptionExceeds,
+		"failed. token description exceeds the length limit: %d", lenLimit)
+}
+
+// ErrInvalidWholeName returns an error with an invalid whole name of token
+func ErrInvalidWholeName(codespace sdk.CodespaceType, wholeName string) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidWholeName,
+		"failed. invalid whole name of token: %s", wholeName)
+}
+
+// ErrInvalidOriginalSymbol returns an error with an invalid original symbol of token
+func ErrInvalidOriginalSymbol(codespace sdk.CodespaceType, symbol string) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidOriginalSymbol,
+		"failed. invalid original symbol of token: %s", symbol)
+}
+
+// ErrEmptyOriginalSymbol returns an error with an empty original symbol of token
+func ErrEmptyOriginalSymbol(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeEmptyOriginalSymbol,
+		"failed. empty original symbol of token")
+}
+
+// ErrInvalidModification returns an error when neither "IsWholeNameModified" nor "IsDescriptionModified" is true
+func ErrInvalidModification(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeInvalidModificationSet,
+		`failed. invalid set for token's modification: neither "IsWholeNameModified" nor "IsDescriptionModified" is true`)
+}
 
 // ErrInsufficientBalance returns an error when the balance of an account is insufficient
 func ErrInsufficientBalance(codespace sdk.CodespaceType, expectedAmount string) sdk.Error {
