@@ -25,7 +25,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		getCmdAddLiquidity(cdc),
 		getCmdRemoveLiquidity(cdc),
 		getCmdCreateExchange(cdc),
-		getCmdTokenOKTSwap(cdc),
+		getCmdTokenSwap(cdc),
 	)...)
 
 	return txCmd
@@ -136,7 +136,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
+func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 	// flags
 	var soldTokenAmount string
 	var minBoughtTokenAmount string
