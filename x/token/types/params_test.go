@@ -10,7 +10,6 @@ import (
 func TestParams(t *testing.T) {
 	param := DefaultParams()
 	expectedString := `Params: 
-FeeBase: 0.01250000okt
 FeeIssue: 20000.00000000okt
 FeeMint: 2000.00000000okt
 FeeBurn: 10.00000000okt
@@ -23,7 +22,6 @@ FeeChown: 10.00000000okt
 	require.EqualValues(t, expectedString, paramStr)
 
 	psp := params.ParamSetPairs{
-		{Key: KeyFeeBase, Value: &param.FeeBase},
 		{Key: KeyFeeIssue, Value: &param.FeeIssue},
 		{Key: KeyFeeMint, Value: &param.FeeMint},
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},

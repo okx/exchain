@@ -15,6 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	flagGas = "gas"
+)
+
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
@@ -27,6 +31,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		getCmdCancelOrder(cdc),
 	)...)
 
+	// hide the flags related to gas and fees
+	hideFlagsOnChildCmd(txCmd, client.FlagDryRun, client.FlagFees, client.FlagGasAdjustment, client.FlagGasPrices, flagGas)
 	return txCmd
 }
 
@@ -128,5 +134,15 @@ func getCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
 			}
 			return err
 		},
+	}
+}
+
+func hideFlagsOnChildCmd(cmd *cobra.Command, flagsToHide ...string) {
+	for _, childCmd := range cmd.Commands() {
+		for _, flag := range flagsToHide {
+			if err := childCmd.Flags().MarkHidden(flag); err != nil {
+				panic(err)
+			}
+		}
 	}
 }
