@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // BaseResponse is the main frame of response
@@ -91,4 +92,11 @@ func GetEmptyListResponse(total, page, perPage int) *ListResponse {
 			ParamPage: ParamPage{page, perPage, total},
 		},
 	}
+}
+
+// ABCILog - structure for JSON marshaling of error detail from abci query result
+type ABCILog struct {
+	Codespace sdk.CodespaceType `json:"codespace"`
+	Code      sdk.CodeType      `json:"code"`
+	Message   string            `json:"message"`
 }

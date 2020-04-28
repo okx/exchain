@@ -2,7 +2,9 @@ package common
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/okex/okchain/x/common/types"
 	"net/http"
 	"os"
 	"runtime"
@@ -36,7 +38,17 @@ func GetPage(page, perPage int) (offset, limit int) {
 
 // HandleErrorMsg handles the error msg
 func HandleErrorMsg(w http.ResponseWriter, cliCtx context.CLIContext, msg string) {
-	response := GetErrorResponseJSON(-1, msg, "")
+	// get infos from msg string
+	var abciLog ABCILog
+	var errCode sdk.CodeType
+	if json.Unmarshal([]byte(msg), &abciLog) == nil {
+		// get the error code from result
+		errCode = abciLog.Code
+	} else {
+		// internal server error
+		errCode = types.CodeInternalServer
+	}
+	response := GetErrorResponseJSON(int(errCode), msg, "")
 	rest.PostProcessResponse(w, cliCtx, response)
 }
 

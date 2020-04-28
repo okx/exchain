@@ -12,7 +12,7 @@ const (
 
 	codeMissingRequiredParam CodeType = 60001
 	codeInvalidRequestParam  CodeType = 60002
-	codeInternalServer       CodeType = 60003
+	CodeInternalServer       CodeType = 60003
 	codeDataNotExists        CodeType = 60004
 	codeInvalidAddress       CodeType = 60005
 	codeUnknownQueryEndpoint CodeType = 60006
@@ -32,7 +32,7 @@ func ErrInvalidRequestParam(codespace sdk.CodespaceType, msg string) sdk.Error {
 
 // ErrInternalServer returns an error when error occurs in internal server
 func ErrInternalServer(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, codeInternalServer, "failed. error occurs in internal server")
+	return sdk.NewError(codespace, CodeInternalServer, "failed. error occurs in internal server")
 }
 
 // ErrDataNotExists returns an error when the target data for request doesn't exist
