@@ -17,7 +17,7 @@ func ErrQuoteOnlySupportsNativeToken(codespace sdk.CodespaceType) sdk.Error {
 
 // nolint
 func ErrSwapTokenPairIsExist(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, 63001, "failed. swapTokenPair is exist")
+	return sdk.NewError(codespace, 63001, "failed. swapTokenPair already exists")
 }
 
 // nolint
@@ -31,13 +31,13 @@ func ErrGetPoolTokenFailed(codespace sdk.CodespaceType, poolToken, msg string) s
 }
 
 // nolint
-func ErrUnexpectedTotalSupply(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, 63001, "failed. unexpected totalSupply in poolToken %s")
+func ErrUnexpectedTotalSupply(codespace sdk.CodespaceType, poolToken string) sdk.Error {
+	return sdk.NewError(codespace, 63001, "failed. unexpected totalSupply in poolToken %s", poolToken)
 }
 
 // nolint
-func ErrInvalidSwapTokenPair(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, 63001, "failed. invalid swapTokenPair %s")
+func ErrInvalidSwapTokenPair(codespace sdk.CodespaceType, tokenPair string) sdk.Error {
+	return sdk.NewError(codespace, 63001, "failed. invalid swapTokenPair %s", tokenPair)
 }
 
 // nolint
