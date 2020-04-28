@@ -21,13 +21,13 @@ func TestNewCommunityPoolSpendProposal(t *testing.T) {
 	require.Equal(t, ProposalTypeCommunityPoolSpend, proposal.ProposalType())
 	require.Nil(t, proposal.ValidateBasic())
 	require.NotPanics(t, func() {
-		proposal.String()
+		_ = proposal.String()
 	})
 
 	proposal.Title = ""
 	require.Error(t, proposal.ValidateBasic())
 	proposal.Title = title
-	proposal.Amount = sdk.NewDecCoinsFromDec("unknown", sdk.OneDec())
+	proposal.Amount = sdk.DecCoins{sdk.DecCoin{Denom: "UNKNOWN", Amount: sdk.OneDec()}}
 	require.Error(t, proposal.ValidateBasic())
 	proposal.Amount = sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.OneDec())
 	proposal.Recipient = nil
