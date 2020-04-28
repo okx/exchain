@@ -78,11 +78,11 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// check upper bound
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("invalid total supply(%s)", msg.TotalSupply)).Result()
+		return common.ErrInvalidRequestParam(common.AssetCodespace,
+			fmt.Sprintf("total supply parses improperly: %s", msg.TotalSupply)).Result()
 	}
 	if totalSupply.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
-		return sdk.ErrInternal(fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)",
-			msg.TotalSupply, types.TotalSupplyUpperbound)).Result()
+		return common.ErrTotalSupplyExceeds(common.AssetCodespace, msg.TotalSupply, types.TotalSupplyUpperbound).Result()
 	}
 
 	token := types.Token{
@@ -99,9 +99,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// generate a random symbol
 	newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
 	if !valid {
-		return sdk.ErrInvalidCoins(fmt.Sprintf(
-			"temporarily failed to generate a unique symbol for %s. Try again.",
-			msg.OriginalSymbol)).Result()
+		return common.ErrBadSymbolGeneration(common.AssetCodespace, msg.OriginalSymbol).Result()
 	}
 
 	token.Symbol = newName
@@ -110,13 +108,13 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// set supply
 	err = keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply mint coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsMintage(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// send coins to owner
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, token.Owner, coins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply send coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsSendingFromModule(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// set token info
@@ -126,8 +124,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, token.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeDecCoins.String())).Result()
+		return common.ErrInsufficientFees(common.AssetCodespace, feeDecCoins.String()).Result()
 	}
 
 	var name = "handleMsgTokenIssue"
@@ -157,14 +154,14 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 
 	// check owner
 	if !bytes.Equal(token.Owner.Bytes(), msg.Owner.Bytes()) {
-		return sdk.ErrUnauthorized("Not the token's owner").Result()
+		return common.ErrUnauthorizedIdentity(common.AssetCodespace, token.Symbol).Result()
 	}
 
 	subCoins := msg.Amount.ToCoins()
 	// send coins to moduleAcc
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, types.ModuleName, subCoins)
 	if err != nil {
-		return sdk.ErrInternal(fmt.Sprintf("supply send coins error:%s", err.Error())).Result()
+		return common.ErrBadCoinsSendingToModule(common.AssetCodespace, err.Error()).Result()
 	}
 
 	// set supply
