@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// const
 const (
-	spotCodespace sdk.CodespaceType = "spot"
+	SpotCodespace sdk.CodespaceType = "spot"
 )

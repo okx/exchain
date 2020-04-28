@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// const
 const (
-	assetCodespace sdk.CodespaceType = "asset"
+	AssetCodespace sdk.CodespaceType = "asset"
 )

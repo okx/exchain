@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// const
 const (
-	swapCodespace sdk.CodespaceType = "swap"
+	SwapCodespace sdk.CodespaceType = "swap"
 )
