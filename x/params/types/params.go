@@ -48,7 +48,7 @@ func (params Params) String() string {
 MaxDepositPeriod: %s,
 MinDeposit:       %s,
 VotingPeriod:     %s,
-MaxBlockHeight:   %s,
+MaxBlockHeight:   %d,
 `, params.MaxDepositPeriod, params.MinDeposit, params.VotingPeriod, params.MaxBlockHeight)
 }
 

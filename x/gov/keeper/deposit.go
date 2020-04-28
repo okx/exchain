@@ -16,12 +16,6 @@ func (keeper Keeper) SetDeposit(ctx sdk.Context, deposit types.Deposit) {
 	store.Set(types.DepositKey(deposit.ProposalID, deposit.Depositor), bz)
 }
 
-func (keeper Keeper) changeOldDeposit(ctx sdk.Context, proposalID uint64, deposit types.Deposit) {
-	store := ctx.KVStore(keeper.StoreKey())
-	bz := keeper.Cdc().MustMarshalBinaryLengthPrefixed(deposit)
-	store.Set(types.DepositKey(proposalID, deposit.Depositor), bz)
-}
-
 func tryEnterVotingPeriod(
 	ctx sdk.Context, keeper Keeper, proposal *types.Proposal, depositAmount sdk.DecCoins, eventType string,
 ) {

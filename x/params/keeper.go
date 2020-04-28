@@ -50,12 +50,12 @@ func (keeper *Keeper) SetGovKeeper(gk GovKeeper) {
 
 // SetParams sets the params into the store
 func (keeper *Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	keeper.paramSpace.Set(ctx, types.ParamStoreKeyParamsParams, params)
+	keeper.paramSpace.SetParamSet(ctx, &params)
 }
 
 // GetParams gets the params info from the store
 func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
-	keeper.paramSpace.Get(ctx, types.ParamStoreKeyParamsParams, &params)
+	keeper.paramSpace.GetParamSet(ctx, &params)
 	return params
 }

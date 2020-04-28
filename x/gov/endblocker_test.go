@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/okchain/x/gov/keeper"
 	"github.com/okex/okchain/x/gov/types"
 	"github.com/okex/okchain/x/params"
+	paramsTypes "github.com/okex/okchain/x/params/types"
+	"github.com/okex/okchain/x/staking"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
 )
 
 func newTextProposal(t *testing.T, ctx sdk.Context, initialDeposit sdk.DecCoins, govHandler sdk.Handler) sdk.Result {
@@ -211,7 +212,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
 	paramsChanges := []params.ParamChange{{Subspace: "staking", Key: "MaxValidators", Value: "105"}}
 	height := uint64(ctx.BlockHeight() + 1000)
-	content := params.NewParameterChangeProposal("Test", "", paramsChanges, height)
+	content := paramsTypes.NewParameterChangeProposal("Test", "", paramsChanges, height)
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
 	res := govHandler(ctx, newProposalMsg)
 	require.True(t, res.IsOK())
