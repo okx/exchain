@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	common "github.com/okex/okchain/x/common/types"
 
 	"github.com/okex/okchain/x/token/types"
 
@@ -33,7 +34,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown token query endpoint")
+			return nil, common.ErrUnknownQueryEndpoint(common.AssetCodespace)
 		}
 	}
 }

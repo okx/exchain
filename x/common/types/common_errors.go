@@ -45,11 +45,11 @@ func ErrInvalidAddress(codespace sdk.CodespaceType) sdk.Error {
 }
 
 // ErrUnknownQueryEndpoint returns an error when the the query endpoint is unknown
-func ErrUnknownQueryEndpoint(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, codeUnknownQueryEndpoint, "failed. unknown query endpoint: %s", msg)
+func ErrUnknownQueryEndpoint(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, codeUnknownQueryEndpoint, "failed. unknown query endpoint")
 }
 
 // ErrUnknownMsgType returns an error when the the msg type is unknown
-func ErrUnknownMsgType(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, codeUnknownMsgType, "failed. unknown msg type: %s", msg)
+func ErrUnknownMsgType(codespace sdk.CodespaceType, msgType string) sdk.Error {
+	return sdk.NewError(codespace, codeUnknownMsgType, "failed. unknown msg type: %s", msgType)
 }

@@ -3,6 +3,7 @@ package token
 import (
 	"bytes"
 	"fmt"
+	common "github.com/okex/okchain/x/common/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
@@ -63,8 +64,8 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 				return handleMsgTokenModify(ctx, keeper, msg, logger)
 			}
 		default:
-			errMsg := fmt.Sprintf("Unrecognized token Msg type: %v", msg.Type())
-			return sdk.ErrUnknownRequest(errMsg).Result()
+
+			return common.ErrUnknownMsgType(common.AssetCodespace, msg.Type()).Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
