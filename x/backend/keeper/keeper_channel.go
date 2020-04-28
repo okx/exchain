@@ -17,8 +17,8 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 
 	startTS, endTS := int64(0), time.Now().Unix()-60
 	time.Sleep(3 * time.Second)
-	if o.MaxBlockTimestamp > 0 {
-		endTS = o.MaxBlockTimestamp
+	if o.GetMaxBlockTimestamp() > 0 {
+		endTS = o.GetMaxBlockTimestamp()
 	}
 
 	//ds := DealDataSource{orm: orm}
@@ -36,11 +36,11 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 	go CleanUpKlines(stop, o, conf)
 	var klineNotifyChans *map[int]chan struct{}
 	work := func() {
-		if o.MaxBlockTimestamp == 0 {
+		if o.GetMaxBlockTimestamp() == 0 {
 			return
 		}
 
-		crrtTS := o.MaxBlockTimestamp
+		crrtTS := o.GetMaxBlockTimestamp()
 		(*log).Debug(fmt.Sprintf("[backend] entering generateKline1M [%d, %d) [%s, %s)",
 			anchorEndTS, crrtTS, types.TimeString(anchorEndTS), types.TimeString(crrtTS)))
 
@@ -119,11 +119,11 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 	ticker := time.NewTicker(interval)
 
 	work := func() {
-		if o.MaxBlockTimestamp == 0 {
+		if o.GetMaxBlockTimestamp() == 0 {
 			return
 		}
 
-		crrtTS := o.MaxBlockTimestamp
+		crrtTS := o.GetMaxBlockTimestamp()
 
 		o.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
 			destIKline.GetFreqInSecond(), anchorEndTS, crrtTS, types.TimeString(anchorEndTS), types.TimeString(crrtTS)))
