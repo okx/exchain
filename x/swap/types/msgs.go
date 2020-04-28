@@ -10,7 +10,7 @@ import (
 // Swap message types and routes
 const (
 	TypeMsgAddLiquidity = "add_liquidity"
-	TypeMsgTokenOKTSwap = "token_swap"
+	TypeMsgTokenSwap    = "token_swap"
 )
 
 //MsgAddLiquidity Deposit quote_amount and base_amount at current ratio to mint pool tokens.
@@ -196,7 +196,7 @@ func NewMsgTokenToNativeToken(
 func (msg MsgTokenToNativeToken) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgTokenToNativeToken) Type() string { return TypeMsgTokenOKTSwap }
+func (msg MsgTokenToNativeToken) Type() string { return TypeMsgTokenSwap }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {

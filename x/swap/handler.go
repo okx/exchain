@@ -33,9 +33,9 @@ func NewHandler(k Keeper) sdk.Handler {
 				return handleMsgCreateExchange(ctx, k, msg)
 			}
 		case types.MsgTokenToNativeToken:
-			name = "handleMsgTokenOKTSwap"
+			name = "handleMsgTokenToNativeToken"
 			handlerFun = func() sdk.Result {
-				return handleMsgTokenOKTSwap(ctx, k, msg)
+				return handleMsgTokenToTokenExchange(ctx, k, msg)
 			}
 		default:
 			errMsg := fmt.Sprintf("Invalid msg type: %v", msg.Type())
@@ -44,6 +44,14 @@ func NewHandler(k Keeper) sdk.Handler {
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
 		return handlerFun()
+	}
+}
+
+func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
+		return handleMsgTokenToToken(ctx, k, msg)
+	} else {
+		return handleMsgTokenToNativeToken(ctx, k, msg)
 	}
 }
 
@@ -156,11 +164,12 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		msg.QuoteAmount,
 		baseTokens,
 	}
+	//TODO another coin connot send to pool
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  fmt.Sprintf("insufficient Coins"),
+			Log:  fmt.Sprintf("insufficient Coins %s", err.Error()),
 		}
 	}
 	// update swapTokenPair
@@ -267,7 +276,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -290,11 +299,15 @@ func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 			Log:  err.Error(),
 		}
 	}
-	res, tokenBuy := calculateTokenToBuy(swapTokenPair, msg)
-	if !res.IsOK() {
-		return res
+	tokenBuy := calculateTokenToBuy(swapTokenPair, msg)
+	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
+		}
 	}
-	res = swapTokenOKT(ctx, k, swapTokenPair, tokenBuy, msg)
+
+	res := swapTokenNativeToken(ctx, k, swapTokenPair, tokenBuy, msg)
 	if !res.IsOK() {
 		return res
 	}
@@ -304,8 +317,68 @@ func handleMsgTokenOKTSwap(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
+func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
+
+	if msg.Deadline < ctx.BlockTime().Unix() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  "blockTime exceeded deadline",
+		}
+	}
+	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
+		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
+		return sdk.Result{
+			Code: sdk.CodeInsufficientCoins,
+			Log:  err.Error(),
+		}
+	}
+	tokenPairOne := msg.SoldTokenAmount.Denom + "_" + sdk.DefaultBondDenom
+	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
+	tokenPairTwo := msg.MinBoughtTokenAmount.Denom + "_" + sdk.DefaultBondDenom
+	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
+	if err != nil {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  err.Error(),
+		}
+	}
+
+	nativeAmount := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, sdk.MustNewDecFromStr("0"))
+
+	msgOne := msg
+	msgOne.MinBoughtTokenAmount = nativeAmount
+	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne)
+
+	msgTwo := msg
+	msgTwo.SoldTokenAmount = tokenNative
+	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo)
+
+	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
+		}
+	}
+
+	res := swapTokenNativeToken(ctx, k, swapTokenPairOne, tokenNative, msgOne)
+	if !res.IsOK() {
+		return res
+	}
+	//TODO if fail,revert last swap
+	res = swapTokenNativeToken(ctx, k, swapTokenPairTwo, tokenBuy, msgTwo)
+	if !res.IsOK() {
+		return res
+	}
+
+	event.AppendAttributes(sdk.NewAttribute("bought_token_amount", tokenBuy.String()))
+	event.AppendAttributes(sdk.NewAttribute("recipient", msg.Recipient.String()))
+	ctx.EventManager().EmitEvent(event)
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
 //calculate the amount to buy
-func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken) (sdk.Result, sdk.DecCoin) {
+func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken) sdk.DecCoin {
 	var inputReserve, outputReserve sdk.Dec
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		inputReserve = swapTokenPair.QuotePooledCoin.Amount
@@ -316,16 +389,11 @@ func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNative
 	}
 	tokenBuyAmt := getInputPrice(msg.SoldTokenAmount.Amount, inputReserve, outputReserve)
 	tokenBuy := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, tokenBuyAmt)
-	if tokenBuyAmt.LT(msg.MinBoughtTokenAmount.Amount) {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
-		}, sdk.DecCoin{}
-	}
-	return sdk.Result{}, tokenBuy
+
+	return tokenBuy
 }
 
-func swapTokenOKT(
+func swapTokenNativeToken(
 	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.DecCoin,
 	msg types.MsgTokenToNativeToken,
 ) sdk.Result {

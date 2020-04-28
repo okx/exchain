@@ -143,8 +143,8 @@ func getCmdTokenOKTSwap(cdc *codec.Codec) *cobra.Command {
 	var deadline string
 	var recipient string
 	cmd := &cobra.Command{
-		Use:   "token-native",
-		Short: "swap between token and native token",
+		Use:   "swap-token",
+		Short: "token exchange",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
