@@ -42,8 +42,15 @@ var (
 	TokenPairKey = []byte{0x01}
 	// TokenPairNumberKey is the store key for token pair num
 	TokenPairNumberKey = []byte{0x02}
-	// TokenPairLockKeyPrefix is the store key for token pair prefix
+	// TokenPairLockKeyPrefix is the store key  prefix for token pair
 	TokenPairLockKeyPrefix = []byte{0x03}
+
+	// DEXOperatorKeyPrefix is the store key prefix for DEXOperator
+	DEXOperatorKeyPrefix = []byte{0x04}
+
+	// DEXOperatorTokenPairCntPrefix is the store key prefix for DEXOperator's tokenpair count
+	DEXOperatorTokenPairCntPrefix = []byte{0x05}
+
 	// PrefixWithdrawAddressKey is the store key for withdraw address
 	PrefixWithdrawAddressKey = []byte{0x53}
 	// PrefixWithdrawTimeKey is the store key for withdraw time

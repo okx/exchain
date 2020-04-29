@@ -244,3 +244,13 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 	toValid := toSignature.VerifyBytes(msg.GetSignBytes(), toSignature.Signature)
 	return toValid
 }
+
+// MsgUpdateOperator register a new DEXOperator or update it
+// Addr represent an DEXOperator
+// if DEXOperator not exist, register a new DEXOperator
+// else update Website or HandlingFeeAddress
+type MsgUpdateOperator struct {
+	Addr               sdk.AccAddress
+	Website            string
+	HandlingFeeAddress sdk.AccAddress
+}
