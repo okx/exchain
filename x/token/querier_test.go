@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/okex/okchain/x/common"
+	commontypes "github.com/okex/okchain/x/common/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -133,7 +134,7 @@ func TestQueryTokens(t *testing.T) {
 	keeper.NewToken(ctx, token)
 	path = []string{types.QueryTokens, "abc"}
 	res, err = querier(ctx, path, abci.RequestQuery{})
-	require.EqualValues(t, sdk.CodeInvalidAddress, err.Code())
+	require.Equal(t, commontypes.CodeInvalidAddress, err.Code())
 	require.Equal(t, []byte(nil), res)
 }
 
