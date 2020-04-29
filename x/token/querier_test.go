@@ -134,7 +134,7 @@ func TestQueryTokens(t *testing.T) {
 	keeper.NewToken(ctx, token)
 	path = []string{types.QueryTokens, "abc"}
 	res, err = querier(ctx, path, abci.RequestQuery{})
-	require.Equal(t, commontypes.ErrInvalidAddress(commontypes.AssetCodespace, "owner"), err)
+	require.Equal(t, commontypes.CodeInvalidAddress, err.Code())
 	require.Equal(t, []byte(nil), res)
 }
 
