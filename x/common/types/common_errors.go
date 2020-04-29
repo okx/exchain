@@ -18,6 +18,7 @@ const (
 	codeUnknownQueryEndpoint CodeType = 60006
 	codeUnknownMsgType       CodeType = 60007
 	codeBadJSONMarshaling    CodeType = 60008
+	codeBadJSONUnmarshaling  CodeType = 60009
 )
 
 // ErrMissingRequiredParam returns an error when the required param is missing
@@ -58,4 +59,9 @@ func ErrUnknownMsgType(codespace sdk.CodespaceType, msgType string) sdk.Error {
 // ErrBadJSONMarshaling returns an error with the bad encoding of JSON
 func ErrBadJSONMarshaling(codespace sdk.CodespaceType, msg string) sdk.Error {
 	return sdk.NewError(codespace, codeBadJSONMarshaling, "failed. marshal JSON unsuccessfully: %s", msg)
+}
+
+// ErrBadJSONUnmarshaling returns an error with the bad decoding of JSON
+func ErrBadJSONUnmarshaling(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, codeBadJSONUnmarshaling, "failed. unmarshal JSON unsuccessfully: %s", msg)
 }
