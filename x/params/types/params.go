@@ -43,13 +43,13 @@ func DefaultParams() Params {
 	}
 }
 
-func (params Params) String() string {
+func (p Params) String() string {
 	return fmt.Sprintf(`
 MaxDepositPeriod: %s,
 MinDeposit:       %s,
 VotingPeriod:     %s,
 MaxBlockHeight:   %d,
-`, params.MaxDepositPeriod, params.MinDeposit, params.VotingPeriod, params.MaxBlockHeight)
+`, p.MaxDepositPeriod, p.MinDeposit, p.VotingPeriod, p.MaxBlockHeight)
 }
 
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
