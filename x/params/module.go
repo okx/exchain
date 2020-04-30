@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/okex/okchain/x/params/client/cli"
+	"github.com/okex/okchain/x/params/types"
+
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
@@ -21,13 +24,13 @@ var (
 
 // GenesisState contains all params state that must be provided at genesis
 type GenesisState struct {
-	Params Params `json:"params" yaml:"params"`
+	Params types.Params `json:"params" yaml:"params"`
 }
 
 // DefaultGenesisState returns the default genesis state of this module
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Params: DefaultParams(),
+		Params: types.DefaultParams(),
 	}
 }
 
@@ -71,7 +74,9 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 // nolint
 func (AppModuleBasic) RegisterRESTRoutes(_ context.CLIContext, _ *mux.Router) {}
 func (AppModuleBasic) GetTxCmd(_ *codec.Codec) *cobra.Command                 { return nil }
-func (AppModuleBasic) GetQueryCmd(_ *codec.Codec) *cobra.Command              { return nil }
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return cli.GetQueryCmd(RouterKey, cdc)
+}
 
 // AppModule is the struct of this app module
 type AppModule struct {
@@ -111,8 +116,8 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 // nolint
 func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry)        {}
 func (AppModule) NewHandler() sdk.Handler                            { return nil }
-func (AppModule) QuerierRoute() string                               { return "" }
-func (AppModule) NewQuerierHandler() sdk.Querier                     { return nil }
+func (AppModule) QuerierRoute() string                               { return RouterKey }
+func (am AppModule) NewQuerierHandler() sdk.Querier                  { return NewQuerier(am.keeper) }
 func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 func (AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}

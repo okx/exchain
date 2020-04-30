@@ -8,6 +8,7 @@ import (
 
 	"github.com/okex/okchain/x/gov/types"
 	"github.com/okex/okchain/x/params"
+	paramsTypes "github.com/okex/okchain/x/params/types"
 )
 
 func TestKeeper_AddDeposit(t *testing.T) {
@@ -48,7 +49,7 @@ func TestKeeper_AddDeposit(t *testing.T) {
 
 	// deposit on proposal which registered proposal handler router
 	paramsChanges := []params.ParamChange{{Subspace: "staking", Key: "MaxValidators", Value: "105"}}
-	content = params.NewParameterChangeProposal("Test", "", paramsChanges, 1)
+	content = paramsTypes.NewParameterChangeProposal("Test", "", paramsChanges, 1)
 	proposal, err = keeper.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposalID = proposal.ProposalID
@@ -73,7 +74,6 @@ func TestKeeper_GetDeposit(t *testing.T) {
 		ProposalID: proposalID,
 		Depositor:  Addrs[0],
 		Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-		DepositID:  0,
 	}
 	deposit, found := keeper.GetDeposit(ctx, proposalID, Addrs[0])
 	require.True(t, found)
@@ -106,13 +106,11 @@ func TestKeeper_GetDeposits(t *testing.T) {
 			ProposalID: proposalID,
 			Depositor:  Addrs[0],
 			Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-			DepositID:  0,
 		},
 		{
 			ProposalID: proposalID,
 			Depositor:  Addrs[1],
 			Amount:     sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)},
-			DepositID:  1,
 		},
 	}
 	deposits := keeper.GetDeposits(ctx, proposalID)

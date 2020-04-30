@@ -7,6 +7,7 @@ import (
 
 	"github.com/okex/okchain/x/common"
 	govtypes "github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okchain/x/params/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
@@ -16,7 +17,7 @@ import (
 func NewParamChangeProposalHandler(k *Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, proposal *govtypes.Proposal) sdk.Error {
 		switch c := proposal.Content.(type) {
-		case ParameterChangeProposal:
+		case types.ParameterChangeProposal:
 			return handleParameterChangeProposal(ctx, k, proposal)
 
 		default:
@@ -29,7 +30,7 @@ func NewParamChangeProposalHandler(k *Keeper) govtypes.Handler {
 func handleParameterChangeProposal(ctx sdk.Context, k *Keeper, proposal *govtypes.Proposal) sdk.Error {
 	logger := ctx.Logger().With("module", ModuleName)
 	logger.Info("Execute ParameterProposal begin")
-	paramProposal := proposal.Content.(ParameterChangeProposal)
+	paramProposal := proposal.Content.(types.ParameterChangeProposal)
 	curHeight := uint64(ctx.BlockHeight())
 	if paramProposal.Height > curHeight {
 		k.gk.InsertWaitingProposalQueue(ctx, paramProposal.Height, proposal.ProposalID)
@@ -40,7 +41,7 @@ func handleParameterChangeProposal(ctx sdk.Context, k *Keeper, proposal *govtype
 	return changeParams(ctx, k, paramProposal)
 }
 
-func changeParams(ctx sdk.Context, k *Keeper, paramProposal ParameterChangeProposal) sdk.Error {
+func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChangeProposal) sdk.Error {
 	for _, c := range paramProposal.Changes {
 		ss, ok := k.GetSubspace(c.Subspace)
 		if !ok {
@@ -71,7 +72,7 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal ParameterChangePropo
 // GetMinDeposit implements ProposalHandler interface
 func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govtypes.Content) (minDeposit sdk.DecCoins) {
 	switch content.(type) {
-	case ParameterChangeProposal:
+	case types.ParameterChangeProposal:
 		minDeposit = keeper.GetParams(ctx).MinDeposit
 	}
 
@@ -81,7 +82,7 @@ func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govtypes.Content) (m
 // GetMaxDepositPeriod implements ProposalHandler interface
 func (keeper Keeper) GetMaxDepositPeriod(ctx sdk.Context, content govtypes.Content) (maxDepositPeriod time.Duration) {
 	switch content.(type) {
-	case ParameterChangeProposal:
+	case types.ParameterChangeProposal:
 		maxDepositPeriod = keeper.GetParams(ctx).MaxDepositPeriod
 	}
 
@@ -91,7 +92,7 @@ func (keeper Keeper) GetMaxDepositPeriod(ctx sdk.Context, content govtypes.Conte
 // GetVotingPeriod implements ProposalHandler interface
 func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) (votingPeriod time.Duration) {
 	switch content.(type) {
-	case ParameterChangeProposal:
+	case types.ParameterChangeProposal:
 		votingPeriod = keeper.GetParams(ctx).VotingPeriod
 	}
 
@@ -100,7 +101,7 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) 
 
 // CheckMsgSubmitProposal implements ProposalHandler interface
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error {
-	paramsChangeProposal := msg.Content.(ParameterChangeProposal)
+	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {
 		return govtypes.ErrInvalidProposer(sdkparams.DefaultCodespace,

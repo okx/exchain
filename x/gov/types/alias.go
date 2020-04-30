@@ -130,12 +130,18 @@ var (
 	NewQueryDepositParams    = sdkGovTypes.NewQueryDepositParams
 
 	NewQueryProposalsParams = sdkGovTypes.NewQueryProposalsParams
+	VoteKey                 = sdkGovTypes.VoteKey
+	DepositKey              = sdkGovTypes.DepositKey
 )
 
 type (
 	// nolint
 	ProposalStatus       = sdkGovTypes.ProposalStatus
 	VoteOption           = sdkGovTypes.VoteOption
+	Vote                 = sdkGovTypes.Vote
+	Votes                = sdkGovTypes.Votes
+	Deposit              = sdkGovTypes.Deposit
+	Deposits             = sdkGovTypes.Deposits
 	DepositParams        = sdkGovTypes.DepositParams
 	VotingParams         = sdkGovTypes.VotingParams
 	TallyParams          = sdkGovTypes.TallyParams
