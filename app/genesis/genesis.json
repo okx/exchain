@@ -130,7 +130,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "qT4H9ZUrdQGBcywi6f6GJHN3mu5o5BwJiGlt3KX2Vo0QXIEirwVPKkVnlojWObbq7j1omj4eT1455Tsx8QXXRg=="
+                "signature": "ZuRwla7Kpt6H3etoJ6peAwzaC6k8m8lu7lQozm4oQKIpYEaoWAIZAqZBbAaqebKmIov3f22Ys4xDOlCt2teHlg=="
               }
             ]
           }
@@ -230,7 +230,6 @@
         "max_bonded_validators": 21,
         "max_validators_to_vote": 30,
         "min_delegation": "0.00010000",
-        "min_self_delegation": "0.00100000",
         "unbonding_time": "1209600000000000"
       },
       "proxy_delegator_keys": null,
