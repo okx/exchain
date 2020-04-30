@@ -26,6 +26,10 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 			return queryParams(ctx, req, keeper)
 		case types.QueryProductsDelisting:
 			return queryProductsDelisting(ctx, keeper)
+		case types.QueryOperator:
+			return queryOperator(ctx, req, keeper)
+		case types.QueryOperators:
+			return queryOperators(ctx, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown dex query endpoint")
 		}
@@ -192,5 +196,39 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 	}
 
 	return res, nil
+}
 
+// nolint
+func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]byte, sdk.Error) {
+	var params types.QueryDexOperatorParams
+	err := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+	}
+
+	operator, isExist := keeper.GetOperator(ctx, params.Addr)
+	if !isExist {
+		return nil, types.ErrUnknownOperator(params.Addr)
+	}
+
+	bz, err := codec.MarshalJSONIndent(keeper.GetCDC(), operator)
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+	}
+	return bz, nil
+}
+
+// nolint
+func queryOperators(ctx sdk.Context, keeper IKeeper) ([]byte, sdk.Error) {
+	var operators types.DEXOperators
+	keeper.IterateOperators(ctx, func(operator types.DEXOperator) bool {
+		operators = append(operators, operator)
+		return false
+	})
+
+	bz, err := codec.MarshalJSONIndent(keeper.GetCDC(), operators)
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+	}
+	return bz, nil
 }

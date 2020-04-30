@@ -33,6 +33,10 @@ const (
 	QueryMatchOrder = "match-order"
 	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters = "params"
+	// QueryOperator defines operator query route path
+	QueryOperator = "operator"
+	// QueryOperators defines operators query route path
+	QueryOperators = "operators"
 )
 
 var (
@@ -111,4 +115,9 @@ func GetLockProductKey(product string) []byte {
 // GetKey returns keys between index 1 to the end
 func GetKey(it sdk.Iterator) string {
 	return string(it.Key()[1:])
+}
+
+// GetOperatorAddressKey returns key of operator address
+func GetOperatorAddressKey(addr sdk.AccAddress) []byte {
+	return append(DEXOperatorKeyPrefix, addr.Bytes()...)
 }

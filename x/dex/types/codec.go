@@ -10,7 +10,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/dex/MsgWithdraw", nil)
 	cdc.RegisterConcrete(MsgTransferOwnership{}, "okchain/dex/MsgTransferTradingPairOwnership", nil)
 	cdc.RegisterConcrete(DelistProposal{}, "okchain/dex/DelistProposal", nil)
-
+	cdc.RegisterConcrete(MsgCreateOperator{}, "okchan/dex/CreateOperator", nil)
+	cdc.RegisterConcrete(MsgUpdateOperator{}, "okchan/dex/UpdateOperator", nil)
 }
 
 // ModuleCdc represents generic sealed codec to be used throughout this module

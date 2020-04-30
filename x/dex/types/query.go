@@ -82,3 +82,14 @@ func (q *QueryDexInfoParams) SetPageAndPerPage(owner, pageStr, perPageStr string
 	q.PerPage = perPage
 	return nil
 }
+
+type QueryDexOperatorParams struct {
+	Addr sdk.AccAddress
+}
+
+// creates a new instance of QueryDexOperatorParams
+func NewQueryDexOperatorParams(addr sdk.AccAddress) QueryDexOperatorParams {
+	return QueryDexOperatorParams{
+		Addr: addr,
+	}
+}

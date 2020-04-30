@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/viper"
-
-	"github.com/okex/okchain/x/dex/types"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/okex/okchain/x/dex/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -27,6 +27,8 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryMatchOrder(queryRoute, cdc),
 		GetCmdQueryParams(queryRoute, cdc),
 		GetCmdQueryProductsUnderDelisting(queryRoute, cdc),
+		GetCmdQueryOperator(queryRoute, cdc),
+		GetCmdQueryOperators(queryRoute, cdc),
 	)...)
 
 	return queryCmd
@@ -179,6 +181,60 @@ $ okchaincli query dex products-delisting`),
 			return cliCtx.PrintOutput(tokenPairNames)
 		},
 	}
+}
+
+// GetCmdQueryOperator queries operator info
+func GetCmdQueryOperator(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "operator [operator-address]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query the operator of the account",
+		RunE: func(_ *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			addr, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", args[0]))
+			}
+
+			params := types.NewQueryDexOperatorParams(addr)
+			bz, err := cliCtx.Codec.MarshalJSON(params)
+			if err != nil {
+				return err
+			}
+
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryOperator), bz)
+			if err != nil {
+				return err
+			}
+			var operator types.DEXOperator
+			cdc.MustUnmarshalJSON(res, &operator)
+			return cliCtx.PrintOutput(operator)
+		},
+	}
+
+	return cmd
+}
+
+// GetCmdQueryOperators queries all operator info
+func GetCmdQueryOperators(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "operators",
+		Short: "Query all operator",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryOperators), nil)
+			if err != nil {
+				return err
+			}
+			var operators types.DEXOperators
+			cdc.MustUnmarshalJSON(res, &operators)
+			return cliCtx.PrintOutput(operators)
+		},
+	}
+
+	return cmd
 }
 
 // Strings is just for the object of []string could be inputted into cliCtx.PrintOutput(...)
