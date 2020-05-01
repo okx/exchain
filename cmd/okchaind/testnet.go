@@ -13,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
+	crykeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
 	srvconfig "github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -121,6 +122,28 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 		genFiles []string
 	)
 
+	// get the banker info
+	bankerInfo, err := crykeys.NewInMemory().CreateAccount("banker", getTestnetMnemonic(0), "",
+		client.DefaultKeyPass, 0, 0)
+	if err != nil {
+		panic("failed. banker missed")
+	}
+	// account info to update
+	// 1. part of validators
+	valCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%s%s", "9000000", sdk.DefaultBondDenom))
+	if err != nil {
+		return err
+	}
+	// 2. part of banker
+	bankerInitalAmount := sdk.MustNewDecFromStr("1000000000")
+	bankerRestAmount := bankerInitalAmount.Sub(valCoins.AmountOf(sdk.DefaultBondDenom).MulInt64(int64(numValidators - 1)))
+	bankerRestCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, bankerRestAmount)}
+
+	accs = append(accs, genaccounts.GenesisAccount{
+		Address: bankerInfo.GetAddress(),
+		Coins:   bankerRestCoins,
+	})
+
 	// generate private keys, node IDs, and initial transactions
 	for i := 0; i < numValidators; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
@@ -192,14 +215,13 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 			return err
 		}
 
-		coins, err := sdk.ParseDecCoins("9000000" + sdk.DefaultBondDenom)
-		if err != nil {
-			return err
+		// skip the banker
+		if i != 0 {
+			accs = append(accs, genaccounts.GenesisAccount{
+				Address: addr,
+				Coins:   valCoins,
+			})
 		}
-		accs = append(accs, genaccounts.GenesisAccount{
-			Address: addr,
-			Coins:   coins,
-		})
 
 		minSelfDelegation := sdk.MustNewDecFromStr("0.001")
 		msg := staking.NewMsgCreateValidator(
@@ -241,11 +263,8 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 		return err
 	}
 
-	err := collectGenFiles(
-		cdc, config, chainID, monikers, nodeIDs, valPubKeys, numValidators,
-		outputDir, nodeDirPrefix, nodeDaemonHome, genAccIterator,
-	)
-	if err != nil {
+	if err := collectGenFiles(cdc, config, chainID, monikers, nodeIDs, valPubKeys, numValidators, outputDir, nodeDirPrefix,
+		nodeDaemonHome, genAccIterator); err != nil {
 		return err
 	}
 
