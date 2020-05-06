@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common"
+	commonType "github.com/okex/okchain/x/common/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -27,7 +28,7 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 		case types.QueryProductsDelisting:
 			return queryProductsDelisting(ctx, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown dex query endpoint")
+			return nil, commonType.ErrUnknownQueryEndpoint(commonType.SpotCodespace)
 		}
 	}
 }
@@ -37,14 +38,14 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	var params types.QueryDexInfoParams
 	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.SpotCodespace, errUnmarshal.Error())
 	}
 
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
 		if err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", params.Owner))
+			return nil, commonType.ErrInvalidAddress(commonType.SpotCodespace, "owner")
 		}
 
 		tokenPairs = keeper.GetUserTokenPairs(ctx, ownerAddr)
@@ -70,7 +71,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), tokenPairs)
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, commonType.ErrBadJSONMarshaling(commonType.SpotCodespace, errMarshal.Error())
 	}
 	return res, nil
 
@@ -86,14 +87,14 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var params types.QueryDexInfoParams
 	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.SpotCodespace, errUnmarshal.Error())
 	}
 
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
 		if err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", params.Owner))
+			return nil, commonType.ErrInvalidAddress(commonType.SpotCodespace, "owner")
 		}
 
 		tokenPairs = keeper.GetUserTokenPairs(ctx, ownerAddr)
@@ -125,7 +126,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), deposits)
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, commonType.ErrBadJSONMarshaling(commonType.SpotCodespace, errMarshal.Error())
 	}
 	return res, nil
 }
@@ -135,7 +136,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	var params types.QueryDexInfoParams
 	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.SpotCodespace, errUnmarshal.Error())
 	}
 
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
@@ -160,7 +161,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), products)
 
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, commonType.ErrBadJSONMarshaling(commonType.SpotCodespace, errMarshal.Error())
 	}
 	return res, nil
 
@@ -170,7 +171,7 @@ func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper IKeeper) (res []by
 	params := keeper.GetParams(ctx)
 	res, errUnmarshal := codec.MarshalJSONIndent(keeper.GetCDC(), params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.SpotCodespace, errUnmarshal.Error())
 	}
 	return res, nil
 }
@@ -188,7 +189,7 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 
 	res, errUnmarshal := codec.MarshalJSONIndent(keeper.GetCDC(), tokenPairNames)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errUnmarshal.Error()))
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.SpotCodespace, errUnmarshal.Error())
 	}
 
 	return res, nil

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	commonType "github.com/okex/okchain/x/common/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
 	"github.com/tendermint/tendermint/libs/log"
@@ -44,8 +46,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 				return handleMsgTransferOwnership(ctx, k, msg, logger)
 			}
 		default:
-			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return commonType.ErrUnknownMsgType(commonType.SpotCodespace, msg.Type()).Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
@@ -58,8 +59,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 
 	if !keeper.GetTokenKeeper().TokenExist(ctx, msg.ListAsset) ||
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
-		return sdk.ErrInvalidCoins(
-			fmt.Sprintf("%s or %s is not valid", msg.ListAsset, msg.QuoteAsset)).Result()
+		return commonType.ErrInvalidCoins(commonType.SpotCodespace).Result()
 	}
 
 	tokenPair := &TokenPair{
@@ -78,21 +78,21 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 	// check tokenpair exist
 	queryTokenPair := keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	if queryTokenPair != nil {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list %s_%s which has been listed before",
-			tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)).Result()
+		return commonType.ErrExistingProduct(commonType.SpotCodespace,
+			fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)).Result()
+
 	}
 
 	// deduction fee
 	feeCoins := keeper.GetParams(ctx).ListFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+		return commonType.ErrInsufficientFees(commonType.SpotCodespace, feeCoins.String()).Result()
 	}
 
 	err2 := keeper.SaveTokenPair(ctx, tokenPair)
 	if err2 != nil {
-		return sdk.ErrInternal(fmt.Sprintf("failed to SaveTokenPair: %s", err2.Error())).Result()
+		return commonType.ErrSaveProduct(commonType.SpotCodespace, err2.Error()).Result()
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgList: "+
@@ -119,21 +119,21 @@ func handleMsgDelist(ctx sdk.Context, keeper IKeeper, msg MsgDelist, logger log.
 
 	tp := keeper.GetTokenPair(ctx, msg.Product)
 	if tp == nil {
-		return ErrTokenPairNotFound(fmt.Sprintf("%+v", msg)).Result()
+		return commonType.ErrNonexistentProduct(commonType.SpotCodespace, msg.Product).Result()
 	}
 
 	if tp.Delisting {
-		return ErrInvalidProduct(fmt.Sprintf("failed to delist product %s which is being delisted", msg.Product)).Result()
+		return commonType.ErrProductUnauthorizedIdentity(commonType.SpotCodespace, msg.Product).Result()
 	}
 
 	if !msg.Owner.Equals(tp.Owner) {
-		return ErrDelistOwnerNotMatch(fmt.Sprintf("TokenPair: %+v, Delistor: %s", tp, msg.Owner.String())).Result()
+		return commonType.ErrProductUnauthorizedIdentity(commonType.SpotCodespace, msg.Product).Result()
 	}
 
 	// Withdraw
 	if tp.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, tp.Name(), tp.Owner, tp.Deposits); err != nil {
-			return sdk.ErrInternal(fmt.Sprintf("withdraw deposits:%s error:%s", tp.Deposits.String(), err.Error())).Result()
+			return commonType.ErrProductWithdraw(commonType.SpotCodespace, tp.Deposits.String(), err.Error()).Result()
 		}
 	}
 
@@ -200,8 +200,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	feeCoins := keeper.GetParams(ctx).TransferOwnershipFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+		return commonType.ErrInsufficientFees(commonType.SpotCodespace, feeCoins.String()).Result()
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgTransferOwnership: "+

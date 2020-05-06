@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	commonType "github.com/okex/okchain/x/common/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -75,7 +76,7 @@ func (msg MsgDelist) Type() string { return "delist" }
 // ValidateBasic Implements Msg
 func (msg MsgDelist) ValidateBasic() sdk.Error {
 	if msg.Product == "" || len(msg.Product) == 0 {
-		return ErrInvalidProduct(msg.Product)
+		return commonType.ErrEmptyProduct(commonType.SpotCodespace)
 	}
 	return nil
 }
@@ -112,10 +113,10 @@ func (msg MsgDeposit) Type() string { return typeMsgDeposit }
 // ValidateBasic Implements Msg
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return sdk.ErrInvalidAddress(msg.Depositor.String())
+		return commonType.ErrInvalidAddress(commonType.SpotCodespace, "depositor")
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return commonType.ErrInvalidCoins(commonType.SpotCodespace)
 	}
 
 	return nil
@@ -153,10 +154,10 @@ func (msg MsgWithdraw) Type() string { return typeMsgWithdraw }
 // ValidateBasic Implements Msg
 func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return sdk.ErrInvalidAddress(msg.Depositor.String())
+		return commonType.ErrInvalidAddress(commonType.SpotCodespace, "depositor")
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return commonType.ErrInvalidCoins(commonType.SpotCodespace)
 	}
 
 	return nil
@@ -200,19 +201,19 @@ func (msg MsgTransferOwnership) Type() string { return typeMsgTransferOwnership 
 // ValidateBasic Implements Msg
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing sender address")
+		return commonType.ErrInvalidAddress(commonType.SpotCodespace, "sender")
 	}
 
 	if msg.ToAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing recipient address")
+		return commonType.ErrInvalidAddress(commonType.SpotCodespace, "recipient")
 	}
 
 	if msg.Product == "" {
-		return sdk.ErrUnknownRequest("product cannot be empty")
+		return commonType.ErrEmptyProduct(commonType.SpotCodespace)
 	}
 
 	if !msg.checkMultiSign() {
-		return sdk.ErrUnauthorized("invalid multi signature")
+		return commonType.ErrInvalidMultisignCheck(commonType.SpotCodespace)
 	}
 	return nil
 }
