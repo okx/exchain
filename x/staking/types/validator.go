@@ -60,7 +60,7 @@ type Validator struct {
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
 }
 
-// MarshalYAML implememts the text format for yaml marshaling due to consensus pubkey
+// MarshalYAML implements the text format for yaml marshaling due to consensus pubkey
 func (v Validator) MarshalYAML() (interface{}, error) {
 	bs, err := yaml.Marshal(struct {
 		Status                  sdk.BondStatus
