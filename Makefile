@@ -32,7 +32,6 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
   -X github.com/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X github.com/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X github.com/cosmos/cosmos-sdk/version.GoSumHash=$(shell $(SUM) -a 256 go.sum | cut -d ' ' -f1) \
   -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)"
 
 
