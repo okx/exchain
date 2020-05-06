@@ -198,6 +198,7 @@ github.com/okex/cosmos-sdk v0.0.0-20200506070250-bb61c2113c48 h1:1BuYe6+3X2sfT56
 github.com/okex/cosmos-sdk v0.0.0-20200506070250-bb61c2113c48/go.mod h1:cevRn9b2Udai+AWMGNe9jIczpZQa6CwrCzZlVMACUuk=
 github.com/okex/iavl v0.12.4-okchain h1:BAFmygzhx6k4KGnLrY87ZrJvRSb+wf8Oo4e2KhUwXcU=
 github.com/okex/iavl v0.12.4-okchain/go.mod h1:8LHakzt8/0G3/I8FUU0ReNx98S/EP6eyPJkAUvEXT/o=
+github.com/okex/tendermint v0.0.0-20200428081627-2d2d3f11e42a/go.mod h1:5/B1XZjNYtVBso8o1l/Eg4A0Mhu42lDcmftoQl95j/E=
 github.com/okex/tendermint v0.32.10-okchain h1:4ZzRPVhDA+fHTQ/hVboAK7PPxL7uA5+Z4wKm8qeheJ0=
 github.com/okex/tendermint v0.32.10-okchain/go.mod h1:5/B1XZjNYtVBso8o1l/Eg4A0Mhu42lDcmftoQl95j/E=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
