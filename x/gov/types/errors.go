@@ -10,12 +10,11 @@ import (
 const (
 	DefaultCodespace sdk.CodespaceType = "gov"
 
-	CodeUnknownProposal          sdk.CodeType = 1
-	CodeProposalHandlerNotExists sdk.CodeType = 11
-	CodeInvalidProposalStatus    sdk.CodeType = 12
-	CodeInitialDepositNotEnough  sdk.CodeType = 13
-	CodeInvalidProposer          sdk.CodeType = 14
-	CodeInvalidHeight            sdk.CodeType = 15
+	CodeUnknownProposal         sdk.CodeType = 1
+	CodeInvalidProposalStatus   sdk.CodeType = 12
+	CodeInitialDepositNotEnough sdk.CodeType = 13
+	CodeInvalidProposer         sdk.CodeType = 14
+	CodeInvalidHeight           sdk.CodeType = 15
 )
 
 func ErrUnknownProposal(codespace sdk.CodespaceType, proposalID uint64) sdk.Error {

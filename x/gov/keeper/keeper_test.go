@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -352,4 +353,16 @@ func TestKeeper_RemoveFromWaitingProposalQueue(t *testing.T) {
 		return
 	})
 	require.Equal(t, 0, len(proposals))
+}
+
+func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
+	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	content := types.ContentFromProposalType("text", "text", types.ProposalTypeText)
+
+	// not satisfy initial deposit
+	amount, err := sdk.ParseDecCoins(fmt.Sprintf("1%s", sdk.DefaultBondDenom))
+	require.Nil(t, err)
+	msg := types.NewMsgSubmitProposal(content, amount, Addrs[0])
+	err = keeper.CheckMsgSubmitProposal(ctx, msg)
+	require.NotNil(t, err)
 }
