@@ -114,7 +114,5 @@ type (
 	VoteOption        = sdkGov.VoteOption
 	Keeper            = keeper.Keeper
 
-	TendermintParams = types.TendermintParams
-
 	Router = sdkGov.Router
 )

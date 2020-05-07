@@ -156,9 +156,6 @@
         "veto": "0.33400000",
         "yes_in_vote_period": "0.66700000"
       },
-      "tendermint_params": {
-        "max_tx_num_per_block": "1000"
-      },
       "votes": null,
       "voting_params": {
         "voting_period": "259200000000000"
@@ -245,10 +242,6 @@
       "locked_assets": null,
       "locked_fees": null,
       "params": {
-        "base_fee": {
-          "amount": "0.01250000",
-          "denom": "okt"
-        },
         "burn_fee": {
           "amount": "10.00000000",
           "denom": "okt"

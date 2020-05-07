@@ -56,7 +56,6 @@ type (
 		DepositParams      sdkGovTypes.DepositParams    `json:"deposit_params" yaml:"deposit_params"`
 		VotingParams       sdkGovTypes.VotingParams     `json:"voting_params" yaml:"voting_params"`
 		TallyParams        sdkGovTypes.TallyParams      `json:"tally_params" yaml:"tally_params"`
-		TendermintParams   sdkGovTypes.TendermintParams `json:"tendermint_params" yaml:"tendermint_params"`
 	}
 )
 

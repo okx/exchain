@@ -52,18 +52,17 @@ func Migrate(oldGenState v08gov.GenesisState) GenesisState {
 		proposals = append(proposals, newProposal)
 	}
 
-	depositParam, voteParam, tallyParams, tendermintParam := migrateParams(oldGenState.Params)
+	depositParam, voteParam, tallyParams := migrateParams(oldGenState.Params)
 
 	return GenesisState{
 		oldGenState.StartingProposalID,
 		deposits, votes, proposals,
 		depositParam, voteParam, tallyParams,
-		tendermintParam,
 	}
 }
 
 func migrateParams(oldParams v08gov.GovParams) (sdkGovTypes.DepositParams, sdkGovTypes.VotingParams,
-	sdkGovTypes.TallyParams, sdkGovTypes.TendermintParams) {
+	sdkGovTypes.TallyParams) {
 
 	depositParam := sdkGovTypes.DepositParams{
 		oldParams.TextMinDeposit,
@@ -81,11 +80,7 @@ func migrateParams(oldParams v08gov.GovParams) (sdkGovTypes.DepositParams, sdkGo
 		oldParams.YesInVotePeriod,
 	}
 
-	tendermintParam := sdkGovTypes.TendermintParams{
-		int(oldParams.MaxTxNumPerBlock),
-	}
-
-	return depositParam, voteParam, tallyParams, tendermintParam
+	return depositParam, voteParam, tallyParams
 }
 
 func migrateContent(proposal v08gov.Proposal) (content sdkGovTypes.Content) {

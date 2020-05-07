@@ -60,7 +60,6 @@ const (
 	ParamDeposit    = sdkGovTypes.ParamDeposit
 	ParamVoting     = sdkGovTypes.ParamVoting
 	ParamTallying   = sdkGovTypes.ParamTallying
-	ParamTendermint = sdkGovTypes.ParamTendermint
 
 	MaxDescriptionLength = sdkGovTypes.MaxDescriptionLength
 )
@@ -93,7 +92,6 @@ var (
 	ParamStoreKeyDepositParams    = sdkGovTypes.ParamStoreKeyDepositParams
 	ParamStoreKeyVotingParams     = sdkGovTypes.ParamStoreKeyVotingParams
 	ParamStoreKeyTallyParams      = sdkGovTypes.ParamStoreKeyTallyParams
-	ParamStoreKeyTendermintParams = sdkGovTypes.ParamStoreKeyTendermintParams
 
 	NewAppModule = sdkGov.NewAppModule
 
@@ -112,7 +110,6 @@ var (
 	NewMsgDeposit           = sdkGov.NewMsgDeposit
 	NewMsgVote              = sdkGov.NewMsgVote
 	NewDepositParams        = sdkGov.NewDepositParams
-	NewTendermintParams     = sdkGov.NewTendermintParams
 	NewTallyParams          = sdkGov.NewTallyParams
 	NewVotingParams         = sdkGov.NewVotingParams
 	NewParams               = sdkGov.NewParams
@@ -152,7 +149,6 @@ type (
 	TextProposal         = sdkGovTypes.TextProposal
 	TallyResult          = sdkGovTypes.TallyResult
 	Handler              = sdkGovTypes.Handler
-	TendermintParams     = sdkGovTypes.TendermintParams
 	MsgSubmitProposal    = sdkGovTypes.MsgSubmitProposal
 	MsgDeposit           = sdkGovTypes.MsgDeposit
 	MsgVote              = sdkGovTypes.MsgVote
