@@ -200,9 +200,6 @@ func TestGenesisState_Equal(t *testing.T) {
 			Veto:            sdk.NewDecWithPrec(334, 3),
 			YesInVotePeriod: sdk.NewDecWithPrec(667, 3),
 		},
-		TendermintParams: TendermintParams{
-			MaxTxNumPerBlock: 1000,
-		},
 	}
 	require.True(t, expected.equal(DefaultGenesisState()))
 }
