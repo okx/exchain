@@ -40,11 +40,6 @@ func ErrTokenPairNotFound(msg string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeTokenPairNotFound, codeToDefaultMsg(codeTokenPairNotFound)+": %s", msg)
 }
 
-// ErrDelistOwnerNotMatch returns delist owner not match error
-func ErrDelistOwnerNotMatch(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeDelistOwnerNotMatch, codeToDefaultMsg(codeDelistOwnerNotMatch)+": %s", msg)
-}
-
 // ErrInvalidBalanceNotEnough returns invalid balance not enough error
 func ErrInvalidBalanceNotEnough(message string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeInvalidBalanceNotEnough, message)

@@ -133,7 +133,7 @@ func handleMsgDelist(ctx sdk.Context, keeper IKeeper, msg MsgDelist, logger log.
 	// Withdraw
 	if tp.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, tp.Name(), tp.Owner, tp.Deposits); err != nil {
-			return commonType.ErrProductWithdraw(commonType.SpotCodespace, tp.Deposits.String(), err.Error()).Result()
+			return err.Result()
 		}
 	}
 
