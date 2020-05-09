@@ -17,6 +17,7 @@ const (
 	CodeInvalidProductOwner CodeType = 62005
 	CodeInvalidWithdraw     CodeType = 62006
 	CodeInvaildToken        CodeType = 62007
+	CodeSaveProductFailed   CodeType = 62008
 )
 
 // ErrEmptySymbol returns an error with an empty symbol of token
@@ -62,5 +63,5 @@ func ErrInvalidWithdrawAmount(codespace sdk.CodespaceType, depositsAmount, withd
 
 // ErrSaveProduct returns an error when save product to db failed
 func ErrSaveProduct(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidProduct, fmt.Sprintf("failed. save product error: %s", msg))
+	return sdk.NewError(codespace, CodeSaveProductFailed, fmt.Sprintf("failed. save product error: %s", msg))
 }
