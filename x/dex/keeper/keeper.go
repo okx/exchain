@@ -255,7 +255,7 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return commonType.ErrInvalidDepositsToken(commonType.SpotCodespace, sdk.DefaultBondDenom)
+		return commonType.ErrInvalidToken(commonType.SpotCodespace, sdk.DefaultBondDenom)
 	}
 
 	depositCoins := amount.ToCoins()
@@ -281,7 +281,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amo
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return commonType.ErrInvalidDepositsToken(commonType.SpotCodespace, sdk.DefaultBondDenom)
+		return commonType.ErrInvalidToken(commonType.SpotCodespace, sdk.DefaultBondDenom)
 	}
 
 	if tokenPair.Deposits.IsLT(amount) {
@@ -368,7 +368,7 @@ func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccA
 	// Withdraw
 	if tokenPair.Deposits.IsPositive() {
 		if err := k.Withdraw(ctx, product, from, tokenPair.Deposits); err != nil {
-			return commonType.ErrProductWithdraw(commonType.SpotCodespace, tokenPair.Deposits.String(), err.Error())
+			return err
 		}
 	}
 
