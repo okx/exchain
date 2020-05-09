@@ -16,7 +16,7 @@ const (
 	CodeInvalidProduct      CodeType = 62004
 	CodeInvalidProductOwner CodeType = 62005
 	CodeInvalidWithdraw     CodeType = 62006
-	CodeInvaildToken        CodeType = 62007
+	CodeInvalidToken        CodeType = 62007
 	CodeSaveProductFailed   CodeType = 62008
 )
 
@@ -51,7 +51,7 @@ func ErrProductUnauthorizedIdentity(codespace sdk.CodespaceType, product string)
 
 // ErrInvalidToken returns an error with the invalid token
 func ErrInvalidToken(codespace sdk.CodespaceType, symbol string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvaildToken,
+	return sdk.NewError(codespace, CodeInvalidToken,
 		fmt.Sprintf("failed. deposits and withdraw only support %s token", symbol))
 }
 
