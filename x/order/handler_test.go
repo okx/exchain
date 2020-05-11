@@ -110,7 +110,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeNonexistentProduct, orderRes[0].Code)
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -132,7 +132,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInsufficientCoins, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeInsufficientCoins, orderRes[0].Code)
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
@@ -160,7 +160,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	// not-exist product
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, commonType.CodeNonexistentProduct, result.Code)
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -180,19 +180,19 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	// insufficient coins
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeInsufficientCoins, result.Code)
+	require.EqualValues(t, commonType.CodeInsufficientCoins, result.Code)
 
 	// busy product
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeInternal, result.Code)
+	require.EqualValues(t, commonType.CodeLockedProduct, result.Code)
 
 	// price * quantity over accuracy
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.000001", "1.0001")
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, commonType.CodeOverAccuracy, result.Code)
 }
 
 // test order cancel without enough okb as fee
@@ -286,20 +286,20 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnauthorized, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeNotOwnerOfOrder, orderRes[0].Code)
 	// invalid orderID
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, "InvalidID-0001")
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeNonexistentOrder, orderRes[0].Code)
 	// busy product
 	keeper.SetProductLock(ctx, order.Product, &types.ProductLock{})
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeLockedProduct, orderRes[0].Code)
 	keeper.UnlockProduct(ctx, order.Product)
 
 	// normal
@@ -327,7 +327,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
+	require.EqualValues(t, commonType.CodeNotOpenOrder, orderRes[0].Code)
 }
 
 func TestHandleInvalidMsg(t *testing.T) {
@@ -434,7 +434,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	result1 := handler(ctx, msg)
 	res1 := parseOrderResult(result1)
-	require.EqualValues(t, sdk.CodeInternal, res1[0].Code)
+	require.EqualValues(t, commonType.CodeLockedProduct, res1[0].Code)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	//check result & order
@@ -643,7 +643,7 @@ func TestValidateMsgMultiNewOrder(t *testing.T) {
 	orderItem = types.NewOrderItem("nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, commonType.CodeNonexistentProduct, result.Code)
 
 	// invalid price precision
 	//orderItem = types.NewMultiNewOrderItem(types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -680,7 +680,7 @@ func TestValidateMsgMultiCancelOrder(t *testing.T) {
 	orderIDItems := []string{""}
 	multiCancelMsg := types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems)
 	result := ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, commonType.CodeNonexistentOrder, result.Code)
 
 	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)

@@ -97,7 +97,7 @@ func (msg MsgNewOrders) Type() string { return "new" }
 // ValidateBasic : Implements Msg.
 func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return commonType.ErrInvalidAddress(commonType.CommonCodespace, msg.Sender.String())
+		return commonType.ErrInvalidAddress(commonType.CommonCodespace, "sender")
 	}
 	if msg.OrderItems == nil || len(msg.OrderItems) == 0 {
 		return commonType.ErrEmptyOrders(commonType.SpotCodespace)
@@ -162,7 +162,7 @@ func (msg MsgCancelOrders) Type() string { return "cancel" }
 // nolint
 func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return commonType.ErrInvalidAddress(commonType.CommonCodespace, msg.Sender.String())
+		return commonType.ErrInvalidAddress(commonType.CommonCodespace, "sender")
 	}
 	if msg.OrderIDs == nil || len(msg.OrderIDs) == 0 {
 		return commonType.ErrEmptyOrderId(commonType.SpotCodespace)

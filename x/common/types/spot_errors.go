@@ -11,28 +11,30 @@ import (
 const (
 	SpotCodespace sdk.CodespaceType = "spot"
 
-	CodeEmptyProduct         CodeType = 62001
-	CodeExistingProduct      CodeType = 62002
-	CodeNonexistentProduct   CodeType = 62003
-	CodeInvalidProduct       CodeType = 62004
-	CodeInvalidProductOwner  CodeType = 62005
-	CodeInvalidWithdraw      CodeType = 62006
-	CodeInvalidToken         CodeType = 62007
-	CodeSaveProductFailed    CodeType = 62008
-	CodeOverAccuracyPrice    CodeType = 62009
-	CodeOverAccuracyQuantity CodeType = 62010
-	CodeOverAccuracy         CodeType = 62011
-	CodeInvaildQuantity      CodeType = 62012
-	CodeLockedProduct        CodeType = 62013
-	CodeEmptyOrders          CodeType = 62014
-	CodeOverLimitedOrders    CodeType = 62015
-	CodeInvaildFormatProduct CodeType = 62016
-	CodeInvaildSideParam     CodeType = 62017
-	CodeNegativeParam        CodeType = 62018
-	CodeEmptyOrderId         CodeType = 62019
+	CodeEmptyProduct            CodeType = 62001
+	CodeExistingProduct         CodeType = 62002
+	CodeNonexistentProduct      CodeType = 62003
+	CodeInvalidProduct          CodeType = 62004
+	CodeInvalidProductOwner     CodeType = 62005
+	CodeInvalidWithdraw         CodeType = 62006
+	CodeInvalidToken            CodeType = 62007
+	CodeSaveProductFailed       CodeType = 62008
+	CodeOverAccuracyPrice       CodeType = 62009
+	CodeOverAccuracyQuantity    CodeType = 62010
+	CodeOverAccuracy            CodeType = 62011
+	CodeInvaildQuantity         CodeType = 62012
+	CodeLockedProduct           CodeType = 62013
+	CodeEmptyOrders             CodeType = 62014
+	CodeOverLimitedOrders       CodeType = 62015
+	CodeInvaildFormatProduct    CodeType = 62016
+	CodeInvaildSideParam        CodeType = 62017
+	CodeNegativeParam           CodeType = 62018
+	CodeEmptyOrderId            CodeType = 62019
 	CodeOverLimitedCancelOrders CodeType = 62020
-	CodeDuplicatedOrderId    CodeType = 62021
-	CodeNonexistentOrder     CodeType = 62022
+	CodeDuplicatedOrderId       CodeType = 62021
+	CodeNonexistentOrder        CodeType = 62022
+	CodeNotOpenOrder            CodeType = 62023
+	CodeNotOwnerOfOrder         CodeType = 62024
 )
 
 // ErrEmptySymbol returns an error with an empty symbol of token
@@ -155,5 +157,15 @@ func ErrDuplicatedOrderId(codespace sdk.CodespaceType) sdk.Error {
 
 func ErrNonexistentOrder(codespace sdk.CodespaceType, id string) sdk.Error {
 	return sdk.NewError(codespace, CodeNonexistentOrder,
-		fmt.Sprintf("failed. order %s does not exist", id))
+		fmt.Sprintf("failed. order %s does not exist or already closed", id))
+}
+
+func ErrNotOpenOrder(codespace sdk.CodespaceType, status int64) sdk.Error {
+	return sdk.NewError(codespace, CodeNotOpenOrder,
+		fmt.Sprintf("failed. order with status(%d) is not allowed to cancel", status))
+}
+
+func ErrNotOwnerOfOrder(codespace sdk.CodespaceType, sender string, id string) sdk.Error {
+	return sdk.NewError(codespace, CodeNotOwnerOfOrder,
+		fmt.Sprintf("failed. %s is not the owner of order(%s)", sender, id))
 }
