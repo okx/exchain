@@ -13,6 +13,6 @@ type (
 	GenesisState struct {
 		Params       types.Params     `json:"params"`
 		Tokens       []types.Token    `json:"tokens"`
-		LockedAssets []types.AccCoins `json:"lock_assets"`
+		LockedAssets []types.AccCoins `json:"locked_assets"`
 	}
 )
