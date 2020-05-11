@@ -1,12 +1,10 @@
 package types
 
 import (
-	"fmt"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"strconv"
+	commonType "github.com/okex/okchain/x/common/types"
 )
 
 // nolint
@@ -99,31 +97,30 @@ func (msg MsgNewOrders) Type() string { return "new" }
 // ValidateBasic : Implements Msg.
 func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return commonType.ErrInvalidAddress(commonType.CommonCodespace, "sender")
 	}
 	if msg.OrderItems == nil || len(msg.OrderItems) == 0 {
-		return sdk.ErrUnknownRequest("invalid OrderItems")
+		return commonType.ErrEmptyOrders(commonType.SpotCodespace)
 	}
 	if len(msg.OrderItems) > OrderItemLimit {
-		return sdk.ErrUnknownRequest("Numbers of NewOrderItem should not be more than " + strconv.Itoa(OrderItemLimit))
+		return commonType.ErrOverLimitedOrders(commonType.SpotCodespace, OrderItemLimit)
 	}
 	for _, item := range msg.OrderItems {
 		if len(item.Product) == 0 {
-			return sdk.ErrUnknownRequest("Product cannot be empty")
+			return commonType.ErrEmptyProduct(commonType.SpotCodespace)
 		}
 		symbols := strings.Split(item.Product, "_")
 		if len(symbols) != 2 {
-			return sdk.ErrUnknownRequest("Product should be in the format of \"base_quote\"")
+			return commonType.ErrInvaildFormatProduct(commonType.SpotCodespace, item.Product)
 		}
 		if symbols[0] == symbols[1] {
-			return sdk.ErrUnknownRequest("invalid product")
+			return commonType.ErrInvalidProduct(commonType.SpotCodespace, item.Product)
 		}
 		if item.Side != BuyOrder && item.Side != SellOrder {
-			return sdk.ErrUnknownRequest(
-				fmt.Sprintf("Side is expected to be \"BUY\" or \"SELL\", but got \"%s\"", item.Side))
+			return commonType.ErrInvaildSideParam(commonType.SpotCodespace, item.Side)
 		}
 		if !(item.Price.IsPositive() && item.Quantity.IsPositive()) {
-			return sdk.ErrUnknownRequest("Price/Quantity must be positive")
+			return commonType.ErrNegativeParam(commonType.SpotCodespace)
 		}
 	}
 
@@ -165,20 +162,21 @@ func (msg MsgCancelOrders) Type() string { return "cancel" }
 // nolint
 func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return commonType.ErrInvalidAddress(commonType.CommonCodespace, "sender")
 	}
 	if msg.OrderIDs == nil || len(msg.OrderIDs) == 0 {
-		return sdk.ErrUnknownRequest("invalid OrderIDs")
+		return commonType.ErrEmptyOrderId(commonType.SpotCodespace)
 	}
 	if len(msg.OrderIDs) > MultiCancelOrderItemLimit {
-		return sdk.ErrUnknownRequest("Numbers of CancelOrderItem should not be more than " + strconv.Itoa(OrderItemLimit))
+		return commonType.ErrOverLimitedCancelOrders(commonType.SpotCodespace, MultiCancelOrderItemLimit)
+
 	}
 	if hasDuplicatedID(msg.OrderIDs) {
-		return sdk.ErrUnknownRequest("Duplicated order ids detected")
+		return commonType.ErrDuplicatedOrderId(commonType.SpotCodespace)
 	}
 	for _, item := range msg.OrderIDs {
 		if item == "" {
-			return sdk.ErrUnauthorized("orderID cannot be empty")
+			return commonType.ErrEmptyOrderId(commonType.SpotCodespace)
 		}
 	}
 

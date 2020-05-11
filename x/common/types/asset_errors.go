@@ -29,6 +29,7 @@ const (
 	CodeMintageAmountExceeds      CodeType = 61019
 	CodeEmptySymbol               CodeType = 61020
 	CodeInvalidSymbol             CodeType = 61021
+	CodeInsufficientCoins         CodeType = 61022
 )
 
 // ErrInvalidMultisignCheck returns an error with an invalid check result of multi-sign
@@ -155,4 +156,9 @@ func ErrBadCoinsSendingFromModule(codespace sdk.CodespaceType, msg string) sdk.E
 func ErrInsufficientFees(codespace sdk.CodespaceType, fees string) sdk.Error {
 	return sdk.NewError(codespace, CodeInsufficientFees,
 		"failed. insufficient fees, needs %s", fees)
+}
+
+func ErrInsufficientCoins(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeInsufficientCoins,
+		"failed. insufficient coins: %s", msg)
 }

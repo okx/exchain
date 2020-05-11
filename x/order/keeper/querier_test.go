@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	commonType "github.com/okex/okchain/x/common/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -215,7 +216,7 @@ func TestQueryStore(t *testing.T) {
 
 	path = []string{types.QueryDepthBookV2}
 	_, sdkErr := querier(ctx, path, abci.RequestQuery{})
-	require.EqualValues(t, sdk.CodeUnknownRequest, sdkErr.Code())
+	require.EqualValues(t, commonType.CodeBadJSONUnmarshaling, sdkErr.Code())
 }
 
 func TestQueryParameters(t *testing.T) {
@@ -249,5 +250,5 @@ func TestQueryInvalidPath(t *testing.T) {
 	path := []string{"invalid-path"}
 	_, err := querier(ctx, path, abci.RequestQuery{})
 	require.NotNil(t, err)
-	require.EqualValues(t, sdk.CodeUnknownRequest, err.Code())
+	require.EqualValues(t, commonType.CodeUnknownQueryEndpoint, err.Code())
 }

@@ -1,10 +1,9 @@
 package keeper
 
 import (
-	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	commonType "github.com/okex/okchain/x/common/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/okchain/x/common"
@@ -32,17 +31,16 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryDepthBookV2:
 			return queryDepthBookV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown order query endpoint")
+			return nil,  commonType.ErrUnknownQueryEndpoint(commonType.CommonCodespace)
 		}
 	}
 }
 
 // nolint: unparam
-func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
-	err sdk.Error) {
+func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
 	order := keeper.GetOrder(ctx, path[0])
 	if order == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("order(%v) does not exist", path[0]))
+		return nil, commonType.ErrNonexistentOrder(commonType.SpotCodespace, path[0])
 	}
 	bz := keeper.cdc.MustMarshalJSON(order)
 	return bz, nil
@@ -78,17 +76,15 @@ type BookRes struct {
 }
 
 // nolint: unparam
-func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte,
-	sdk.Error) {
+func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	var params QueryDepthBookParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(
-			sdk.AppendMsgToErr("incorrectly formatted request Data", err.Error()))
+		return nil, commonType.ErrInvalidRequestParam(commonType.CommonCodespace, err.Error())
 	}
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("Non-exist product: %s", params.Product))
+		return nil,commonType.ErrNonexistentProduct(commonType.SpotCodespace, params.Product)
 	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 
@@ -163,8 +159,7 @@ func getStoreStatistic(ctx sdk.Context, keeper Keeper) *StoreStatistic {
 	return ss
 }
 
-func queryStore(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte,
-	sdk.Error) {
+func queryStore(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	ss := getStoreStatistic(ctx, keeper)
 	bz := keeper.cdc.MustMarshalJSON(ss)
 	return bz, nil
@@ -174,8 +169,7 @@ func queryParameters(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error)
 	params := keeper.GetParams(ctx)
 	res, errRes := codec.MarshalJSONIndent(keeper.cdc, params)
 	if errRes != nil {
-		return nil, sdk.ErrInternal(
-			sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
+		return nil, commonType.ErrBadJSONMarshaling(commonType.CommonCodespace, errRes.Error())
 	}
 	return res, nil
 }
@@ -184,7 +178,7 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 	var params QueryDepthBookParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, commonType.ErrBadJSONUnmarshaling(commonType.CommonCodespace, err.Error())
 	}
 
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
@@ -213,7 +207,7 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 
 	res, err := common.JSONMarshalV2(bookRes)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, commonType.ErrBadJSONMarshaling(commonType.CommonCodespace, err.Error())
 	}
 	return res, nil
 }
