@@ -117,7 +117,6 @@ func (k Keeper) Cache2Disk(ctx sdk.Context) {
 	for _, key := range updatedItemKeys {
 		k.StoreOrderIDsMap(ctx, key, k.diskCache.getOrderIDs(key))
 	}
-	k.diskCache.flush()
 }
 
 // OrderOperationMetric records the order information in the depthBook
