@@ -14,6 +14,7 @@ type GenesisState struct {
 	TokenPairs    []*TokenPair              `json:"token_pairs"`
 	WithdrawInfos WithdrawInfos             `json:"withdraw_infos"`
 	ProductLocks  ordertypes.ProductLockMap `json:"product_locks"`
+	Operators     Operators                 `json:"operators"`
 }
 
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
@@ -24,6 +25,7 @@ func DefaultGenesisState() GenesisState {
 		TokenPairs:    nil,
 		WithdrawInfos: nil,
 		ProductLocks:  *ordertypes.NewProductLockMap(),
+		Operators:     nil,
 	}
 }
 
@@ -43,6 +45,11 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 
 	// set params
 	keeper.SetParams(ctx, data.Params)
+
+	// reset operators
+	for _, operator := range data.Operators {
+		keeper.SetOperator(ctx, operator)
+	}
 
 	// reset token pair
 	for _, pair := range data.TokenPairs {
@@ -68,6 +75,13 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 // with InitGenesis
 func ExportGenesis(ctx sdk.Context, keeper IKeeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
+
+	var operators types.DEXOperators
+	keeper.IterateOperators(ctx, func(operator types.DEXOperator) bool {
+		operators = append(operators, operator)
+		return false
+	})
+
 	tokenPairs := keeper.GetTokenPairsFromStore(ctx)
 	var withdrawInfos WithdrawInfos
 	keeper.IterateWithdrawInfo(ctx, func(_ int64, withdrawInfo WithdrawInfo) (stop bool) {
@@ -79,5 +93,6 @@ func ExportGenesis(ctx sdk.Context, keeper IKeeper) (data GenesisState) {
 		TokenPairs:    tokenPairs,
 		WithdrawInfos: withdrawInfos,
 		ProductLocks:  *keeper.LoadProductLocks(ctx),
+		Operators:     operators,
 	}
 }

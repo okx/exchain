@@ -533,8 +533,8 @@ func (k Keeper) IterateOperators(ctx sdk.Context, cb func(operator types.DEXOper
 	}
 }
 
-// SaveOperator save the operator information
-func (k Keeper) SaveOperator(ctx sdk.Context, operator types.DEXOperator) {
+// SetOperator save the operator information
+func (k Keeper) SetOperator(ctx sdk.Context, operator types.DEXOperator) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetOperatorAddressKey(operator.Address)
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(operator)

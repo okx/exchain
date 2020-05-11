@@ -256,7 +256,7 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 		InitHeight:         ctx.BlockHeight(),
 		TxHash:             fmt.Sprintf("%X", tmhash.Sum(ctx.TxBytes())),
 	}
-	keeper.SaveOperator(ctx, operator)
+	keeper.SetOperator(ctx, operator)
 
 	// deduction fee
 	feeCoins := keeper.GetParams(ctx).RegisterOperatorFee.ToCoins()
@@ -292,7 +292,7 @@ func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOpera
 	operator.HandlingFeeAddress = msg.HandlingFeeAddress
 	operator.Website = msg.Website
 
-	keeper.SaveOperator(ctx, operator)
+	keeper.SetOperator(ctx, operator)
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

@@ -21,6 +21,14 @@ func TestInitGenesis(t *testing.T) {
 	tokenPair := GetBuiltInTokenPair()
 	tokenPairs = append(tokenPairs, tokenPair)
 
+	var operators Operators
+	operators = append(operators, types.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+		Website:            "http://www.okchain.com/operator.json",
+		InitHeight:         100,
+	})
+
 	var withdrawInfos []WithdrawInfo
 	now := time.Now()
 	withdrawInfos = append(withdrawInfos, types.WithdrawInfo{
@@ -45,6 +53,7 @@ func TestInitGenesis(t *testing.T) {
 		TokenPairs:    tokenPairs,
 		WithdrawInfos: withdrawInfos,
 		ProductLocks:  *lockMap,
+		Operators:operators,
 	}
 
 	InitGenesis(ctx, keeper, initGenesis)
