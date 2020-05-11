@@ -23,7 +23,6 @@ type GenesisState struct {
 	DepositParams      DepositParams     `json:"deposit_params" yaml:"deposit_params"`
 	VotingParams       VotingParams      `json:"voting_params" yaml:"voting_params"`
 	TallyParams        TallyParams       `json:"tally_params" yaml:"tally_params"`
-	TendermintParams   TendermintParams  `json:"tendermint_params" yaml:"tendermint_params"`
 }
 
 // DefaultGenesisState get raw genesis raw message for testing
@@ -44,9 +43,6 @@ func DefaultGenesisState() GenesisState {
 			Threshold:       sdk.NewDecWithPrec(5, 1),
 			Veto:            sdk.NewDecWithPrec(334, 3),
 			YesInVotePeriod: sdk.NewDecWithPrec(667, 3),
-		},
-		TendermintParams: TendermintParams{
-			MaxTxNumPerBlock: 1000,
 		},
 	}
 }
@@ -104,7 +100,6 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, supplyKeeper sdkGov.SupplyKee
 	k.SetDepositParams(ctx, data.DepositParams)
 	k.SetVotingParams(ctx, data.VotingParams)
 	k.SetTallyParams(ctx, data.TallyParams)
-	k.SetTendermintParams(ctx, data.TendermintParams)
 
 	// check if the deposits pool account exists
 	moduleAcc := k.GetGovernanceAccount(ctx)
@@ -158,7 +153,6 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) GenesisState {
 	depositParams := k.GetDepositParams(ctx)
 	votingParams := k.GetVotingParams(ctx)
 	tallyParams := k.GetTallyParams(ctx)
-	tendermintParams := k.GetTendermintParams(ctx)
 
 	proposals := k.GetProposalsFiltered(ctx, nil, nil, StatusNil, 0)
 
@@ -187,6 +181,5 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) GenesisState {
 		DepositParams:      depositParams,
 		VotingParams:       votingParams,
 		TallyParams:        tallyParams,
-		TendermintParams:   tendermintParams,
 	}
 }

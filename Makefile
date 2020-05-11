@@ -8,6 +8,7 @@ Version=v0.10.0
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
+Name=okchain
 ServerName=okchaind
 ClientName=okchaincli
 
@@ -24,14 +25,14 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-ldflags = -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.VendorDirHash=$(shell $(SUM) -a 256 go.sum | cut -d ' ' -f1) \
-  -X "github.com/okex/okchain/vendor/github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)"
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
+	-X github.com/cosmos/cosmos-sdk/version.Name=$(Name) \
+  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
+  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
+  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+  -X github.com/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
+  -X github.com/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)"
 
 
 ldflags += $(LDFLAGS)

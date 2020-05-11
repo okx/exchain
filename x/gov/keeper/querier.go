@@ -56,12 +56,6 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 			return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 		}
 		return bz, nil
-	case types.ParamTendermint:
-		bz, err := codec.MarshalJSONIndent(keeper.Cdc(), keeper.GetTendermintParams(ctx).MaxTxNumPerBlock)
-		if err != nil {
-			return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
-		}
-		return bz, nil
 	default:
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("%s is not a valid query request path", req.Path))
 	}

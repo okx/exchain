@@ -5,7 +5,6 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/okchain/x/gov/keeper"
@@ -17,10 +16,10 @@ func TestInitGenesisState(t *testing.T) {
 
 	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
 	deposits := types.Deposits{
-		{ProposalID: 1, Depositor: keeper.Addrs[0], Amount: initialDeposit, DepositID: 0},
+		{ProposalID: 1, Depositor: keeper.Addrs[0], Amount: initialDeposit},
 	}
 	votes := types.Votes{
-		{Vote: sdkGovTypes.Vote{ProposalID: 2, Voter: keeper.Addrs[1], Option: types.OptionYes}, VoteID: 0},
+		{ProposalID: 2, Voter: keeper.Addrs[1], Option: types.OptionYes},
 	}
 	proposals := types.Proposals{
 		types.Proposal{
@@ -200,9 +199,6 @@ func TestGenesisState_Equal(t *testing.T) {
 			Threshold:       sdk.NewDecWithPrec(5, 1),
 			Veto:            sdk.NewDecWithPrec(334, 3),
 			YesInVotePeriod: sdk.NewDecWithPrec(667, 3),
-		},
-		TendermintParams: TendermintParams{
-			MaxTxNumPerBlock: 1000,
 		},
 	}
 	require.True(t, expected.equal(DefaultGenesisState()))
