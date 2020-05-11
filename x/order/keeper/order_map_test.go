@@ -40,6 +40,7 @@ func TestOrderIDsMapInsertAndRemove(t *testing.T) {
 	require.Equal(t, key1, updatedItemKeys[0])
 	require.Equal(t, key2, updatedItemKeys[1])
 	keeper.Cache2Disk(ctx)
+	keeper.diskCache.flush()
 
 	// Test Remove
 	keeper.GetDiskCache().removeOrder(order1)
@@ -80,6 +81,7 @@ func TestRemoveOrderFromDepthBook(t *testing.T) {
 	}
 	keeper.SetDepthBook(types.TestTokenPair, depthBook)
 	keeper.Cache2Disk(ctx)
+	keeper.diskCache.flush()
 	require.Equal(t, 2, len(depthBook.Items))
 	require.Equal(t, sdk.MustNewDecFromStr("10.1"), depthBook.Items[0].Price)
 	require.Equal(t, sdk.MustNewDecFromStr("1.0"), depthBook.Items[0].BuyQuantity)
