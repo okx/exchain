@@ -2,46 +2,86 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-// TODO: Describe your actions, these will implment the interface of `sdk.Msg`
-/*
-verify interface at compile time
-var _ sdk.Msg = &Msg<Action>{}
+const (
+	typeMsgDeposit  = "deposit"
+	typeMsgWithdraw = "withdraw"
+)
 
-Msg<Action> - struct for unjailing jailed validator
-type Msg<Action> struct {
-	ValidatorAddr sdk.ValAddress `json:"address" yaml:"address"` // address of the validator operator
+// MsgDeposit - struct for depositing to saving module
+type MsgDeposit struct {
+	Address sdk.AccAddress `json:"address"`
+	Amount  sdk.DecCoin    `json:"amount"`
 }
 
-NewMsg<Action> creates a new Msg<Action> instance
-func NewMsg<Action>(validatorAddr sdk.ValAddress) Msg<Action> {
-	return Msg<Action>{
-		ValidatorAddr: validatorAddr,
+// NewMsgDeposit creates a new MsgDeposit instance
+func NewMsgDeposit(address sdk.AccAddress, amount sdk.DecCoin) MsgDeposit {
+	return MsgDeposit{
+		Address: address,
+		Amount:  amount,
 	}
 }
 
-const <action>Const = "<action>"
+// Route Implements Msg
+func (msg MsgDeposit) Route() string { return RouterKey }
 
-// nolint
-func (msg Msg<Action>) Route() string { return RouterKey }
-func (msg Msg<Action>) Type() string  { return <action>Const }
-func (msg Msg<Action>) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddr)}
+// Type Implements Msg
+func (msg MsgDeposit) Type() string { return typeMsgDeposit }
+
+// ValidateBasic Implements Msg
+func (msg MsgDeposit) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+
+	return nil
 }
 
-GetSignBytes gets the bytes for the message signer to sign on
-func (msg Msg<Action>) GetSignBytes() []byte {
+// GetSignBytes Implements Msg
+func (msg MsgDeposit) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-ValidateBasic validity check for the AnteHandler
-func (msg Msg<Action>) ValidateBasic() error {
-	if msg.ValidatorAddr.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing validator address"
+// GetSigners Implements Msg
+func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgWithdraw - struct for withdrawing from saving module
+type MsgWithdraw struct {
+	Address sdk.AccAddress `json:"address"`
+	Amount  sdk.DecCoin    `json:"amount"`
+}
+
+// NewMsgWithdraw creates a new MsgWithdraw instance
+func NewMsgWithdraw(address sdk.AccAddress, amount sdk.DecCoin) MsgWithdraw {
+	return MsgWithdraw{address, amount}
+}
+
+// Route Implements Msg
+func (msg MsgWithdraw) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgWithdraw) Type() string { return typeMsgWithdraw }
+
+// ValidateBasic Implements Msg
+func (msg MsgWithdraw) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
+
 	return nil
 }
-*/
+
+// GetSignBytes Implements Msg
+func (msg MsgWithdraw) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}

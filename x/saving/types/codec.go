@@ -6,7 +6,8 @@ import (
 
 // RegisterCodec registers concrete types on codec
 func RegisterCodec(cdc *codec.Codec) {
-	// TODO: Register the modules msgs
+	cdc.RegisterConcrete(MsgDeposit{}, "okchain/saving/MsgDeposit", nil)
+	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/saving/MsgWithdraw", nil)
 }
 
 // ModuleCdc defines the module codec

@@ -3,6 +3,7 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 )
 
 // ParamSubspace defines the expected Subspace interfacace
@@ -13,12 +14,17 @@ type ParamSubspace interface {
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
 }
 
-/*
-When a module wishes to interact with another module, it is good practice to define what it will use
-as an interface so the module cannot use things that are not permitted.
-TODO: Create interfaces of what you expect the other keepers to have to be able to use this module.
-type BankKeeper interface {
-	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, error)
-	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+// SupplyKeeper defines the expected supply keeper
+type SupplyKeeper interface {
+	GetModuleAddress(name string) sdk.AccAddress
+
+	SetModuleAccount(sdk.Context, exported.ModuleAccountI)
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule, recipientModule string, amt sdk.Coins) sdk.Error
+	MintCoins(ctx sdk.Context, name string, amt sdk.Coins) sdk.Error
 }
-*/
+
+// TokenKeeper defines the expected token Keeper
+type TokenKeeper interface {
+	TokenExist(ctx sdk.Context, symbol string) bool
+}
