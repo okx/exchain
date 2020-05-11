@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/pkg/errors"
+	commonType "github.com/okex/okchain/x/common/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -33,8 +33,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 				return handleMsgCancelOrders(ctx, keeper, msg, logger)
 			}
 		default:
-			errMsg := fmt.Sprintf("Invalid msg type: %v", msg.Type())
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return commonType.ErrUnknownMsgType(commonType.SpotCodespace, msg.Type()).Result()
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
@@ -46,7 +45,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return fmt.Errorf("trading pair '%s' does not exist", msg.Product)
+		return commonType.ErrNonexistentProduct(commonType.SpotCodespace, msg.Product)
 	}
 
 	// check if the order is involved with the tokenpair in dex Delist
@@ -55,7 +54,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 		return err
 	}
 	if isDelisting {
-		return errors.Errorf("trading pair '%s' is delisting", msg.Product)
+		return commonType.ErrInDexlistProduct(commonType.SpotCodespace, msg.Product)
 	}
 
 	priceDigit := tokenPair.MaxPriceDigit
@@ -63,19 +62,19 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	roundedPrice := msg.Price.RoundDecimal(priceDigit)
 	roundedQuantity := msg.Quantity.RoundDecimal(quantityDigit)
 	if !roundedPrice.Equal(msg.Price) {
-		return fmt.Errorf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
+		return commonType.ErrOverAccuracyPrice(commonType.SpotCodespace, msg.Price, priceDigit)
 	}
 	if !roundedQuantity.Equal(msg.Quantity) {
-		return fmt.Errorf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
+		return commonType.ErrOverAccuracyQuantity(commonType.SpotCodespace, msg.Quantity, quantityDigit)
 	}
 
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
-		return fmt.Errorf("quantity should be greater than %s", tokenPair.MinQuantity)
+		return commonType.ErrInvaildQuantity(commonType.SpotCodespace,tokenPair.MinQuantity)
 	}
 	var d int64 = 100000000
 	baseQuantity := msg.Price.Mul(msg.Quantity)
 	if !msg.Price.MulInt64(d).Mul(msg.Quantity).Equal(baseQuantity.MulInt64(d)) {
-		return fmt.Errorf("price(%v) * quantity(%v) over accuracy(%d)", msg.Price, msg.Quantity, priceDigit)
+		return commonType.ErrOverAccuracy(commonType.SpotCodespace, msg.Price, msg.Quantity, priceDigit)
 	}
 	return nil
 }
@@ -145,8 +144,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 	return res, cacheItem, err
 }
 
-func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
-	logger log.Logger) sdk.Result {
+func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders, logger log.Logger) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	ratio := "1"
