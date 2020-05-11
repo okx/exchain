@@ -48,12 +48,12 @@ func NewHandler(k IKeeper) sdk.Handler {
 		case MsgCreateOperator:
 			name = "handleMsgCreateOperator"
 			handlerFun = func() sdk.Result {
-				return handleMsgCreateOperator(ctx, k, msg)
+				return handleMsgCreateOperator(ctx, k, msg, logger)
 			}
 		case MsgUpdateOperator:
 			name = "handleMsgUpdateOperator"
 			handlerFun = func() sdk.Result {
-				return handleMsgUpdateOperator(ctx, k, msg)
+				return handleMsgUpdateOperator(ctx, k, msg, logger)
 			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
@@ -72,6 +72,10 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
 		return sdk.ErrInvalidCoins(
 			fmt.Sprintf("%s or %s is not valid", msg.ListAsset, msg.QuoteAsset)).Result()
+	}
+
+	if _, exists := keeper.GetOperator(ctx, msg.Owner); !exists {
+		return types.ErrUnknownOperator(msg.Owner).Result()
 	}
 
 	tokenPair := &TokenPair{
@@ -204,6 +208,15 @@ func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger 
 
 func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransferOwnership,
 	logger log.Logger) sdk.Result {
+
+	if _, exist := keeper.GetOperator(ctx, msg.FromAddress); !exist {
+		return types.ErrUnknownOperator(msg.FromAddress).Result()
+	}
+
+	if _, exist := keeper.GetOperator(ctx, msg.ToAddress); !exist {
+		return types.ErrUnknownOperator(msg.ToAddress).Result()
+	}
+
 	if sdkErr := keeper.TransferOwnership(ctx, msg.Product, msg.FromAddress, msg.ToAddress); sdkErr != nil {
 		return sdkErr.Result()
 	}
@@ -229,7 +242,10 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOperator) sdk.Result {
+func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOperator, logger log.Logger) sdk.Result {
+
+	logger.Debug(fmt.Sprintf("handleMsgCreateOperator msg: %+v", msg))
+
 	if _, isExist := keeper.GetOperator(ctx, msg.Owner); isExist {
 		return types.ErrExistOperator(msg.Owner).Result()
 	}
@@ -261,7 +277,10 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOperator) sdk.Result {
+func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOperator, logger log.Logger) sdk.Result {
+
+	logger.Debug(fmt.Sprintf("handleMsgUpdateOperator msg: %+v", msg))
+
 	operator, isExist := keeper.GetOperator(ctx, msg.Owner)
 	if !isExist {
 		return types.ErrUnknownOperator(msg.Owner).Result()

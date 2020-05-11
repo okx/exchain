@@ -376,7 +376,13 @@ func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 // GetProductOwner gets the OwnerAddress of specified product from dexKeeper
 func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
-	return tokenPair.Owner
+
+	operator, exists := k.GetDexKeeper().GetOperator(ctx, tokenPair.Owner)
+	if !exists {
+		return nil
+	} else {
+		return operator.HandlingFeeAddress
+	}
 }
 
 // AddFeeDetail adds detail message of fee to tokenKeeper

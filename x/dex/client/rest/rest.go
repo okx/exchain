@@ -8,6 +8,7 @@ import (
 
 	"github.com/okex/okchain/x/dex/types"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/okex/okchain/x/common"
 	govRest "github.com/okex/okchain/x/gov/client/rest"
@@ -21,6 +22,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/products", productsHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/deposits", depositsHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/match_order", matchOrderHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dexoperator/{address}", operatorHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dexoperators", operatorsHandler(cliCtx)).Methods("GET")
 }
 
 func productsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
@@ -136,6 +139,58 @@ func matchOrderHandler(cliContext context.CLIContext) func(http.ResponseWriter, 
 	}
 
 }
+
+func operatorHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		vars := mux.Vars(r)
+		address, err := sdk.AccAddressFromBech32(vars["address"])
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
+		}
+
+		params := types.QueryDexOperatorParams{}
+		params.Addr = address
+		bz := cliContext.Codec.MustMarshalJSON(&params)
+		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryOperator), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
+		}
+
+		result := common.GetBaseResponse("hello")
+		result2, err2 := json.Marshal(result)
+		if err2 != nil {
+			common.HandleErrorMsg(w, cliContext, err2.Error())
+			return
+		}
+		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
+		rest.PostProcessResponse(w, cliContext, result2)
+	}
+}
+
+
+func operatorsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res, _, err := cliContext.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryOperators))
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
+		}
+
+		result := common.GetBaseResponse("hello")
+		result2, err2 := json.Marshal(result)
+		if err2 != nil {
+			common.HandleErrorMsg(w, cliContext, err2.Error())
+			return
+		}
+		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
+		rest.PostProcessResponse(w, cliContext, result2)
+
+	}
+}
+
 
 // DelistProposalRESTHandler defines dex proposal handler
 func DelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {

@@ -49,4 +49,5 @@ type DexKeeper interface {
 	IsTokenPairLocked(product string) bool
 	GetLockedProductsCopy() *types.ProductLockMap
 	IsAnyProductLocked() bool
+	GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator dex.DEXOperator, isExist bool)
 }

@@ -207,7 +207,7 @@ func GetCmdQueryOperator(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var operator types.DEXOperator
+			var operator types.DEXOperatorInfo
 			cdc.MustUnmarshalJSON(res, &operator)
 			return cliCtx.PrintOutput(operator)
 		},
@@ -228,7 +228,7 @@ func GetCmdQueryOperators(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var operators types.DEXOperators
+			var operators types.DEXOperatorInfos
 			cdc.MustUnmarshalJSON(res, &operators)
 			return cliCtx.PrintOutput(operators)
 		},

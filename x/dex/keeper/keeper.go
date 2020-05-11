@@ -53,6 +53,13 @@ func (k Keeper) GetSupplyKeeper() SupplyKeeper {
 	return k.supplyKeeper
 }
 
+
+// GetBankKeeper returns bank Keeper
+func (k Keeper) GetBankKeeper() BankKeeper {
+	return k.bankKeeper
+}
+
+
 // GetFeeCollector returns feeCollectorName
 func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
@@ -486,7 +493,7 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 	return
 }
 
-// GetOperator gets the operator info and checks whether the operator with address exist or not
+// GetOperator gets the DEXOperator and checks whether the operator with address exist or not
 func (k Keeper) GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperator, isExist bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.GetOperatorAddressKey(addr))
@@ -495,6 +502,19 @@ func (k Keeper) GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator type
 	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &operator)
 	return operator, true
+}
+
+
+// GetOperatorInfo gets the DEXOperatorInfo and checks whether the operator with address exist or not
+func (k Keeper) GetOperatorInfo(ctx sdk.Context, addr sdk.AccAddress) (
+	operatorInfo types.DEXOperatorInfo, isExist bool) {
+	operator, isExist := k.GetOperator(ctx, addr)
+	operatorInfo = types.NewDEXOperatorInfo(operator)
+
+	if isExist {
+		operatorInfo.HandlingFees = k.bankKeeper.GetCoins(ctx, operatorInfo.HandlingFeeAddress).String()
+	}
+	return operatorInfo, isExist
 }
 
 // IterateOperators iterates over the all the operators and performs a callback function
