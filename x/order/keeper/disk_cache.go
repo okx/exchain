@@ -108,6 +108,14 @@ func (c *DiskCache) getOpenNum() int64 {
 	return c.openNum
 }
 
+func (c *DiskCache) addOrderIDs(key string, orderIDs []string) {
+	c.orderIDsMap.Data[key] = orderIDs
+}
+
+func (c *DiskCache) addDepthBook(product string, book *types.DepthBook) {
+	c.depthBookMap.data[product] = book
+}
+
 // setOrderIDs updates or removes unfilled order ids
 func (c *DiskCache) setOrderIDs(key string, orderIDs []string) {
 

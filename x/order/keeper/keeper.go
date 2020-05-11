@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"log"
+	"sync"
 
 	"github.com/okex/okchain/x/common/monitor"
 
@@ -64,38 +65,41 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper Dex
 	}
 }
 
+var onStartUp sync.Once
+
 // ResetCache is called in BeginBlock
 func (k Keeper) ResetCache(ctx sdk.Context) {
 	// Reset cache
 	k.cache.reset()
-
 	k.diskCache.reset()
 	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
 	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
 
-	// init depth book & items cache
-	if len(k.diskCache.depthBookMap.data) == 0 {
+	onStartUp.Do(func() {
+
+		// init depth book map
 		depthStore := ctx.KVStore(k.orderStoreKey)
 		depthIter := sdk.KVStorePrefixIterator(depthStore, types.DepthBookKey)
 
 		for ; depthIter.Valid(); depthIter.Next() {
 			depthBook := &types.DepthBook{}
 			k.cdc.MustUnmarshalBinaryBare(depthIter.Value(), depthBook)
-			k.SetDepthBook(types.GetKey(depthIter), depthBook)
+			k.diskCache.addDepthBook(types.GetKey(depthIter), depthBook)
 		}
 		depthIter.Close()
-	}
-	if len(k.diskCache.orderIDsMap.Data) == 0 {
+
+		// init OrderIDs map
 		bookStore := ctx.KVStore(k.orderStoreKey)
 		bookIter := sdk.KVStorePrefixIterator(bookStore, types.OrderIDsKey)
 
 		for ; bookIter.Valid(); bookIter.Next() {
 			var orderIDs []string
 			k.cdc.MustUnmarshalJSON(bookIter.Value(), &orderIDs)
-			k.SetOrderIDs(types.GetKey(bookIter), orderIDs) // startup
+			k.diskCache.addOrderIDs(types.GetKey(bookIter), orderIDs)
 		}
 		bookIter.Close()
-	}
+	})
+
 }
 
 // Cache2Disk flushes cached data into KVStore, called in EndBlock
