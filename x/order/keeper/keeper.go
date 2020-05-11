@@ -96,6 +96,7 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		}
 		bookIter.Close()
 	}
+	k.diskCache.flush()
 }
 
 // Cache2Disk flushes cached data into KVStore, called in EndBlock
