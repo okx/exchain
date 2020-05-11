@@ -31,7 +31,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryDepthBookV2:
 			return queryDepthBookV2(ctx, path[1:], req, keeper)
 		default:
-			return nil,  commonType.ErrUnknownQueryEndpoint(commonType.SpotCodespace)
+			return nil,  commonType.ErrUnknownQueryEndpoint(commonType.CommonCodespace)
 		}
 	}
 }

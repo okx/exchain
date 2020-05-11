@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	commonType "github.com/okex/okchain/x/common/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -338,7 +339,7 @@ func TestHandleInvalidMsg(t *testing.T) {
 	handler := NewOrderHandler(keeper)
 	var msg token.MsgSend
 	result := handler(ctx, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, commonType.CodeUnknownMsgType, result.Code)
 }
 
 const orderKey = "orders"
