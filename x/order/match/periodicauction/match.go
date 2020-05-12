@@ -172,7 +172,7 @@ func expireOrdersInExpiredBlock(ctx sdk.Context, k keeper.Keeper, expiredBlockHe
 	}
 }
 
-func markCurBlockToFeatureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) {
+func markCurBlockToFutureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) {
 	curBlockHeight := ctx.BlockHeight()
 	feeParams := keeper.GetParams(ctx)
 
@@ -267,7 +267,7 @@ func cleanOrdersByOrderIDList(ctx sdk.Context, keeper keeper.Keeper, orderIDList
 func cleanupExpiredOrders(ctx sdk.Context, keeper keeper.Keeper) {
 
 	// Look forward to see what height will this block expired
-	markCurBlockToFeatureExpireBlockList(ctx, keeper)
+	markCurBlockToFutureExpireBlockList(ctx, keeper)
 
 	// Clean the expired orders which is collected by the last block
 	cleanLastBlockClosedOrders(ctx, keeper)

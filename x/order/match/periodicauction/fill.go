@@ -150,6 +150,10 @@ func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 
 	index := 0
 	for filledDealsCnt < remainDeals && filledAmount.LT(needFillAmount) {
+		if index >= len(orderIDs){
+			break
+		}
+
 		order := keeper.GetOrder(ctx, orderIDs[index])
 		if filledAmount.Add(order.RemainQuantity).LTE(needFillAmount) {
 			filledAmount = filledAmount.Add(order.RemainQuantity)
