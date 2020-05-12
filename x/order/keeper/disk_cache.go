@@ -43,13 +43,6 @@ func newDiskCache() *DiskCache {
 	}
 }
 
-// flush is invoked in end block
-func (c *DiskCache) flush() {
-	c.orderIDsMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.newItems = make(map[string]struct{})
-}
-
 // reset is invoked in begin block
 func (c *DiskCache) reset() {
 	c.closedOrderIDs = []string{}
@@ -149,6 +142,12 @@ func (c *DiskCache) GetUpdatedOrderIDKeys() []string {
 	return updatedKeys
 }
 
+func (c *DiskCache) fetchUpdatedOrderIDKeys() []string {
+	updatedKeys := c.GetUpdatedOrderIDKeys()
+	c.orderIDsMap.updatedItems = make(map[string]struct{})
+	return updatedKeys
+}
+
 func (c *DiskCache) getDepthBook(product string) *types.DepthBook {
 	res := c.depthBookMap.data[product]
 	return res
@@ -162,6 +161,12 @@ func (c *DiskCache) getProductsFromDepthBookMap() []string {
 	return products
 }
 
+func (c *DiskCache) fetchUpdatedDepthbookKeys() []string {
+	updatedKeys := c.GetUpdatedDepthbookKeys()
+	c.depthBookMap.updatedItems = make(map[string]struct{})
+	return updatedKeys
+}
+
 // GetUpdatedDepthbookKeys returns a new copy of UpdatedDepthbookKeys
 func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
 	updatedKeys := make([]string, 0, len(c.depthBookMap.updatedItems))
@@ -172,13 +177,14 @@ func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
 	return updatedKeys
 }
 
-// GetNewDepthbookKeys returns a new copy of NewDepthbookKeys
-func (c *DiskCache) GetNewDepthbookKeys() []string {
-	newAddKeys := make([]string, 0, len(c.depthBookMap.newItems))
+// FetchNewDepthbookKeys returns all keys of depthBookMap.newItems and resets depthBookMap.newItems
+func (c *DiskCache) FetchNewDepthbookKeys() []string {
+	newAddedKeys := make([]string, 0, len(c.depthBookMap.newItems))
 	for key := range c.depthBookMap.newItems {
-		newAddKeys = append(newAddKeys, key)
+		newAddedKeys = append(newAddedKeys, key)
 	}
-	return newAddKeys
+	c.depthBookMap.newItems = make(map[string]struct{})
+	return newAddedKeys
 }
 
 // insertOrder inserts a new order into orderIDsMap

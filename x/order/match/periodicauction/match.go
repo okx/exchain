@@ -285,7 +285,7 @@ func matchOrders(ctx sdk.Context, keeper keeper.Keeper) {
 	}
 
 	// step0: get active products
-	products := keeper.GetDiskCache().GetNewDepthbookKeys()
+	products := keeper.GetDiskCache().FetchNewDepthbookKeys()
 	products = keeper.FilterDelistedProducts(ctx, products)
 	keeper.GetDexKeeper().SortProducts(ctx, products) // sort products
 
