@@ -155,6 +155,11 @@ func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 		}
 
 		order := keeper.GetOrder(ctx, orderIDs[index])
+		if order == nil {
+			orderIDs = append(orderIDs[:index], orderIDs[index+1:]...)
+			continue
+		}
+
 		if filledAmount.Add(order.RemainQuantity).LTE(needFillAmount) {
 			filledAmount = filledAmount.Add(order.RemainQuantity)
 			deal := fillOrder(order, ctx, keeper, fillPrice, order.RemainQuantity, feeParams)
