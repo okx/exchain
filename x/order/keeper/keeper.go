@@ -1,10 +1,9 @@
 package keeper
 
 import (
+	"github.com/okex/okchain/x/common/monitor"
 	"log"
 	"sync"
-
-	"github.com/okex/okchain/x/common/monitor"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,6 +12,8 @@ import (
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/order/types"
 )
+
+var onStartUp sync.Once
 
 // Keeper maintains the link to data storage and exposes getter/setter methods
 // for the various parts of the state machine
@@ -65,15 +66,8 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper Dex
 	}
 }
 
-var onStartUp sync.Once
-
 // ResetCache is called in BeginBlock
 func (k Keeper) ResetCache(ctx sdk.Context) {
-	// Reset cache
-	k.cache.reset()
-	k.diskCache.reset()
-	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
-	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
 
 	onStartUp.Do(func() {
 
@@ -100,6 +94,15 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		bookIter.Close()
 	})
 
+
+	// Reset cache
+	k.cache.reset()
+
+	// VERY IMPORTANT: always reset disk cache in BeginBlock
+	k.diskCache.reset()
+	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
+	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
+
 }
 
 // Cache2Disk flushes cached data into KVStore, called in EndBlock
@@ -121,7 +124,6 @@ func (k Keeper) Cache2Disk(ctx sdk.Context) {
 	for _, key := range updatedItemKeys {
 		k.StoreOrderIDsMap(ctx, key, k.diskCache.getOrderIDs(key))
 	}
-	k.diskCache.flush()
 }
 
 // OrderOperationMetric records the order information in the depthBook

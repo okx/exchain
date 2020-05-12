@@ -43,16 +43,12 @@ func newDiskCache() *DiskCache {
 	}
 }
 
-// flush is invoked in end block
-func (c *DiskCache) flush() {
-	c.orderIDsMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.newItems = make(map[string]struct{})
-}
-
 // reset is invoked in begin block
 func (c *DiskCache) reset() {
 	c.closedOrderIDs = []string{}
+	c.orderIDsMap.updatedItems = make(map[string]struct{})
+	c.depthBookMap.updatedItems = make(map[string]struct{})
+	c.depthBookMap.newItems = make(map[string]struct{})
 }
 
 // nolint
