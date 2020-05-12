@@ -352,7 +352,7 @@ func TestMarkCurBlockToFeatureExpireBlockList(t *testing.T) {
 	ctx := testInput.Ctx
 	feeParams := types.DefaultParams()
 
-	markCurBlockToFeatureExpireBlockList(ctx, keeper)
+	markCurBlockToFutureExpireBlockList(ctx, keeper)
 	expiredBlocks := keeper.GetExpireBlockHeight(ctx, ctx.BlockHeight()+feeParams.OrderExpireBlocks)
 	require.EqualValues(t, 0, expiredBlocks[0])
 }
