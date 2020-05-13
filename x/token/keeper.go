@@ -14,6 +14,10 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
+const (
+	stdInsufficientErrMsg = "insufficient account funds"
+)
+
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
 	bankKeeper       bank.Keeper
@@ -170,6 +174,10 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 // nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
+		if strings.Contains(err.Error(), stdInsufficientErrMsg) {
+			return errors.New(stdInsufficientErrMsg)
+		}
+
 		return err
 	}
 	// update lock coins
