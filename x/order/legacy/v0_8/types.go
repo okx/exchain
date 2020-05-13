@@ -26,7 +26,7 @@ type (
 
 	Order struct {
 		TxHash         string         `json:"txHash"`         // txHash of the place order tx
-		OrderID        string         `json:"orderID"`        // order id
+		OrderID        string         `json:"orderId"`        // order id
 		Sender         sdk.AccAddress `json:"sender"`         // order maker address
 		Product        string         `json:"product"`        // product for trading pair
 		Side           string         `json:"side"`           // BUY/SELL

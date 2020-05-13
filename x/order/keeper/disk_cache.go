@@ -43,16 +43,12 @@ func newDiskCache() *DiskCache {
 	}
 }
 
-// flush is invoked in end block
-func (c *DiskCache) flush() {
-	c.orderIDsMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.newItems = make(map[string]struct{})
-}
-
 // reset is invoked in begin block
 func (c *DiskCache) reset() {
 	c.closedOrderIDs = []string{}
+	c.orderIDsMap.updatedItems = make(map[string]struct{})
+	c.depthBookMap.updatedItems = make(map[string]struct{})
+	c.depthBookMap.newItems = make(map[string]struct{})
 }
 
 // nolint
@@ -106,6 +102,14 @@ func (c *DiskCache) setOpenNum(num int64) {
 
 func (c *DiskCache) getOpenNum() int64 {
 	return c.openNum
+}
+
+func (c *DiskCache) addOrderIDs(key string, orderIDs []string) {
+	c.orderIDsMap.Data[key] = orderIDs
+}
+
+func (c *DiskCache) addDepthBook(product string, book *types.DepthBook) {
+	c.depthBookMap.data[product] = book
 }
 
 // setOrderIDs updates or removes unfilled order ids
