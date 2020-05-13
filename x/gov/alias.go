@@ -33,53 +33,48 @@ const (
 
 var (
 	// functions aliases
-	RegisterCodec               = types.RegisterCodec
-	RegisterProposalTypeCodec   = types.RegisterProposalTypeCodec
-	ErrUnknownProposal          = types.ErrUnknownProposal
-	ErrInvalidProposer          = types.ErrInvalidProposer
-	ErrInvalidHeight            = types.ErrInvalidHeight
-	ErrAlreadyFinishedProposal  = sdkGov.ErrAlreadyFinishedProposal
-	ErrInvalidProposalContent   = types.ErrInvalidProposalContent
-	ErrInvalidProposalType      = types.ErrInvalidProposalType
-	ErrInvalidVote              = sdkGov.ErrInvalidVote
-	ErrInvalidGenesis           = types.ErrInvalidGenesis
-	ErrNoProposalHandlerExists  = types.ErrNoProposalHandlerExists
-	ErrInvalidateProposalStatus = types.ErrInvalidateProposalStatus
-	ProposalKey                 = types.ProposalKey
-	ActiveProposalByTimeKey     = types.ActiveProposalByTimeKey
-	ActiveProposalQueueKey      = types.ActiveProposalQueueKey
-	InactiveProposalByTimeKey   = types.InactiveProposalByTimeKey
-	InactiveProposalQueueKey    = types.InactiveProposalQueueKey
-	DepositsKey                 = sdkGov.DepositsKey
-	DepositKey                  = types.DepositKey
-	DepositCntKey               = types.DepositCntKey
-	VotesKey                    = sdkGov.VotesKey
-	VoteKey                     = types.VoteKey
-	VoteCntKey                  = types.VoteCntKey
-	NewMsgSubmitProposal        = types.NewMsgSubmitProposal
-	NewMsgDeposit               = types.NewMsgDeposit
-	NewMsgVote                  = types.NewMsgVote
-	ParamKeyTable               = types.ParamKeyTable
-	NewDepositParams            = types.NewDepositParams
-	NewTallyParams              = types.NewTallyParams
-	NewVotingParams             = types.NewVotingParams
-	NewParams                   = types.NewParams
-	ProposalStatusFromString    = sdkGov.ProposalStatusFromString
-	ValidProposalStatus         = sdkGov.ValidProposalStatus
-	NewTallyResultFromMap       = types.NewTallyResultFromMap
-	EmptyTallyResult            = types.EmptyTallyResult
-	NewTextProposal             = types.NewTextProposal
-	RegisterProposalType        = types.RegisterProposalType
-	ContentFromProposalType     = types.ContentFromProposalType
-	IsValidProposalType         = types.IsValidProposalType
-	ProposalHandler             = types.ProposalHandler
-	NewQueryProposalParams      = types.NewQueryProposalParams
-	NewQueryDepositParams       = types.NewQueryDepositParams
-	NewQueryVoteParams          = types.NewQueryVoteParams
-	NewQueryProposalsParams     = types.NewQueryProposalsParams
-	NewVote                     = types.NewVote
-	VoteOptionFromString        = sdkGov.VoteOptionFromString
-	ValidVoteOption             = sdkGov.ValidVoteOption
+	RegisterCodec              = types.RegisterCodec
+	RegisterProposalTypeCodec  = types.RegisterProposalTypeCodec
+	ErrInvalidProposer         = types.ErrInvalidProposer
+	ErrInvalidHeight           = types.ErrInvalidHeight
+	ErrAlreadyFinishedProposal = sdkGov.ErrAlreadyFinishedProposal
+	ErrInvalidProposalContent  = types.ErrInvalidProposalContent
+	ErrInvalidProposalType     = types.ErrInvalidProposalType
+	ErrInvalidVote             = sdkGov.ErrInvalidVote
+	ErrInvalidGenesis          = types.ErrInvalidGenesis
+	ErrNoProposalHandlerExists = types.ErrNoProposalHandlerExists
+	ProposalKey                = types.ProposalKey
+	ActiveProposalByTimeKey    = types.ActiveProposalByTimeKey
+	ActiveProposalQueueKey     = types.ActiveProposalQueueKey
+	InactiveProposalByTimeKey  = types.InactiveProposalByTimeKey
+	InactiveProposalQueueKey   = types.InactiveProposalQueueKey
+	DepositsKey                = sdkGov.DepositsKey
+	DepositKey                 = types.DepositKey
+	VotesKey                   = sdkGov.VotesKey
+	VoteKey                    = types.VoteKey
+	NewMsgSubmitProposal       = types.NewMsgSubmitProposal
+	NewMsgDeposit              = types.NewMsgDeposit
+	NewMsgVote                 = types.NewMsgVote
+	ParamKeyTable              = types.ParamKeyTable
+	NewDepositParams           = types.NewDepositParams
+	NewTallyParams             = types.NewTallyParams
+	NewVotingParams            = types.NewVotingParams
+	NewParams                  = types.NewParams
+	ProposalStatusFromString   = sdkGov.ProposalStatusFromString
+	ValidProposalStatus        = sdkGov.ValidProposalStatus
+	NewTallyResultFromMap      = types.NewTallyResultFromMap
+	EmptyTallyResult           = types.EmptyTallyResult
+	NewTextProposal            = types.NewTextProposal
+	RegisterProposalType       = types.RegisterProposalType
+	ContentFromProposalType    = types.ContentFromProposalType
+	IsValidProposalType        = types.IsValidProposalType
+	ProposalHandler            = types.ProposalHandler
+	NewQueryProposalParams     = types.NewQueryProposalParams
+	NewQueryDepositParams      = types.NewQueryDepositParams
+	NewQueryVoteParams         = types.NewQueryVoteParams
+	NewQueryProposalsParams    = types.NewQueryProposalsParams
+	VoteOptionFromString       = sdkGov.VoteOptionFromString
+	ValidVoteOption            = sdkGov.ValidVoteOption
 
 	// variable aliases
 	ModuleCdc                   = types.ModuleCdc
@@ -118,8 +113,6 @@ type (
 	Votes             = types.Votes
 	VoteOption        = sdkGov.VoteOption
 	Keeper            = keeper.Keeper
-
-	TendermintParams = types.TendermintParams
 
 	Router = sdkGov.Router
 )

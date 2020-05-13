@@ -2,6 +2,7 @@ package params
 
 import (
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/okex/okchain/x/params/types"
 )
 
 // const
@@ -25,10 +26,13 @@ type (
 	ParamSet = sdkparams.ParamSet
 	// ParamChange is the type alias of the one in cmsdk
 	ParamChange = sdkparams.ParamChange
+	// ParameterChangeProposal is alias of ParameterChangeProposal in types
+	ParameterChangeProposal = types.ParameterChangeProposal
 )
 
 var (
 	// nolint
 	NewKeyTable    = sdkparams.NewKeyTable
 	NewParamChange = sdkparams.NewParamChange
+	DefaultParams  = types.DefaultParams
 )

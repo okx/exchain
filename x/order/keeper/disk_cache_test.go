@@ -112,8 +112,6 @@ func TestFlushCache(t *testing.T) {
 	dcache.closeOrder("ID0000000010-1")
 	require.EqualValues(t, 2, len(dcache.GetClosedOrderIDs()))
 
-	//flush
-	dcache.flush()
 	mapdata := dcache.GetOrderIDsMapCopy()
 	require.Equal(t, make(map[string][]string), mapdata.Data)
 

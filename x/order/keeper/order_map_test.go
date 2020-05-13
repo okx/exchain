@@ -46,7 +46,7 @@ func TestOrderIDsMapInsertAndRemove(t *testing.T) {
 	require.EqualValues(t, "ID1-2", orderIDsMap.Data[key1][0])
 	// check update keys
 	updatedItemKeys = keeper.GetDiskCache().GetUpdatedOrderIDKeys()
-	require.Equal(t, 1, len(updatedItemKeys))
+	require.Equal(t, 2, len(updatedItemKeys))
 	require.Equal(t, key1, updatedItemKeys[0])
 
 	// remove all
@@ -111,6 +111,6 @@ func TestRemoveOrderFromDepthBook(t *testing.T) {
 	updatedItemKeys := keeper.GetDiskCache().GetUpdatedOrderIDKeys()
 	require.Equal(t, 1, len(updatedBookKeys))
 	require.Equal(t, types.TestTokenPair, updatedBookKeys[0])
-	require.Equal(t, 1, len(updatedItemKeys))
-	require.Equal(t, keys[2], updatedItemKeys[0])
+	require.Equal(t, 3, len(updatedItemKeys))
+	require.Equal(t, keys[2], updatedItemKeys[2])
 }
