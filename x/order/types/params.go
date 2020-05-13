@@ -15,18 +15,20 @@ const (
 	DefaultMaxDealsPerBlock  = 1000   // deals limit per block
 
 	// Fee param
-	DefaultFeeAmountPerBlock = "0.000001" // okt
-	DefaultFeeDenomPerBlock  = common.NativeToken
-	DefaultFeeRateTrade      = "0.001" // percentage
+	DefaultFeeAmountPerBlock     = "0" // okt
+	DefaultFeeDenomPerBlock      = common.NativeToken
+	DefaultFeeRateTrade          = "0.001"    // percentage
+	DefaultTestFeeAmountPerBlock = "0.000001" // okt
 )
 
 // nolint : Parameter keys
 var (
-	KeyOrderExpireBlocks = []byte("OrderExpireBlocks")
-	KeyMaxDealsPerBlock  = []byte("MaxDealsPerBlock")
-	KeyFeePerBlock       = []byte("FeePerBlock")
-	KeyTradeFeeRate      = []byte("TradeFeeRate")
-	DefaultFeePerBlock   = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultFeeAmountPerBlock))
+	KeyOrderExpireBlocks   = []byte("OrderExpireBlocks")
+	KeyMaxDealsPerBlock    = []byte("MaxDealsPerBlock")
+	KeyFeePerBlock         = []byte("FeePerBlock")
+	KeyTradeFeeRate        = []byte("TradeFeeRate")
+	DefaultFeePerBlock     = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultFeeAmountPerBlock))
+	DefaultTestFeePerBlock = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultTestFeeAmountPerBlock))
 )
 
 // nolint
@@ -63,6 +65,15 @@ func DefaultParams() Params {
 		OrderExpireBlocks: DefaultOrderExpireBlocks,
 		MaxDealsPerBlock:  DefaultMaxDealsPerBlock,
 		FeePerBlock:       DefaultFeePerBlock,
+		TradeFeeRate:      sdk.MustNewDecFromStr(DefaultFeeRateTrade),
+	}
+}
+
+func DefaultTestParams() Params {
+	return Params{
+		OrderExpireBlocks: DefaultOrderExpireBlocks,
+		MaxDealsPerBlock:  DefaultMaxDealsPerBlock,
+		FeePerBlock:       DefaultTestFeePerBlock,
 		TradeFeeRate:      sdk.MustNewDecFromStr(DefaultFeeRateTrade),
 	}
 }

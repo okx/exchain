@@ -176,7 +176,7 @@ func TestProtocolV0_Hooks(t *testing.T) {
 
 	// condition 1
 	mockContext = mockContext.WithBlockHeight(1)
-	require.True(t, isSystemFreeHook(mockContext, mockMsgs1))
+	require.False(t, isSystemFreeHook(mockContext, mockMsgs1))
 
 	// condition 2
 	require.False(t, isSystemFreeHook(mockContext, mockMsgs2))

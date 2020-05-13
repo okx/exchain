@@ -257,7 +257,7 @@ func MockOrder(orderID, product, side, price, quantity string) *Order {
 		RemainQuantity:    sdk.MustNewDecFromStr(quantity),
 		Status:            OrderStatusOpen,
 		OrderExpireBlocks: DefaultOrderExpireBlocks,
-		FeePerBlock:       DefaultFeePerBlock,
+		FeePerBlock:       DefaultTestFeePerBlock,
 	}
 	if side == BuyOrder {
 		order.RemainLocked = order.Price.Mul(order.Quantity)
