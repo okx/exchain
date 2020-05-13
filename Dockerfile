@@ -4,8 +4,8 @@
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okchaind:/root/.okchaind -v ~/.okchaincli:/root/.okchaincli okchain okchaind start
 FROM golang:alpine AS build-env
 
-# Set up dependencies
-ENV PACKAGES curl make git libc-dev bash gcc linux-headers eudev-dev
+# Install minimum necessary dependencies, remove packages
+RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
 
 # Set working directory for the build
 WORKDIR /go/src/github.com/okex/okchain
@@ -13,10 +13,8 @@ WORKDIR /go/src/github.com/okex/okchain
 # Add source files
 COPY . .
 
-# Install minimum necessary dependencies, build OKChain, remove packages
-RUN apk add --no-cache $PACKAGES && \
-    export GO111MODULE=off && \
-    make install
+# Build OKChain
+RUN GOPROXY=http://goproxy.cn make install
 
 # Final image
 FROM alpine:edge
