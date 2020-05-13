@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"github.com/cosmos/cosmos-sdk/client"
@@ -16,10 +16,10 @@ import (
 	tokensrest "github.com/okex/okchain/x/token/client/rest"
 )
 
-// registerRoutes registers the routes from the different modules for the LCD.
+// RegisterRoutes registers the routes from the different modules for the LCD.
 // NOTE: details on the routes added for each module are in the module documentation
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
-func registerRoutes(rs *lcd.RestServer) {
+func RegisterRoutes(rs *lcd.RestServer) {
 	registerRoutesV1(rs)
 	registerRoutesV2(rs)
 }

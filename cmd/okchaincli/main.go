@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/okex/okchain/app"
+	"github.com/okex/okchain/cmd"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -16,8 +17,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	tokencli "github.com/okex/okchain/x/token/client/cli"
 	debugcli "github.com/okex/okchain/x/debug/client/cli"
+	tokencli "github.com/okex/okchain/x/token/client/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -144,6 +145,7 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 func registerRoutes(rs *lcd.RestServer) {
 	client.RegisterRoutes(rs.CliCtx, rs.Mux)
 	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+	cmd.RegisterRoutes(rs)
 }
 
 func initConfig(cmd *cobra.Command) error {

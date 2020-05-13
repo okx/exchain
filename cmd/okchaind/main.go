@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	genaccscli "github.com/cosmos/cosmos-sdk/x/genaccounts/client/cli"
 	"github.com/okex/okchain/app"
+	"github.com/okex/okchain/cmd"
 	genutilcli "github.com/okex/okchain/x/genutil/client/cli"
 	"github.com/okex/okchain/x/staking"
 	"github.com/spf13/cobra"
@@ -53,7 +54,7 @@ func main() {
 	rootCmd.AddCommand(client.NewCompletionCmd(rootCmd, true))
 	rootCmd.AddCommand(testnetCmd(ctx, cdc, app.ModuleBasics, genaccounts.AppModuleBasic{}))
 
-	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, cmd.RegisterRoutes)
 	rootCmd.PersistentFlags().String(client.FlagKeyPass, client.DefaultKeyPass, "Pass word of sender")
 
 	// prepare and add flags
