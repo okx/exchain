@@ -86,13 +86,6 @@ func (keeper Keeper) GetTallyParams(ctx sdk.Context) types.TallyParams {
 	return tallyParams
 }
 
-// GetTendermintParams returns the current TendermintParams from the global param store
-func (keeper Keeper) GetTendermintParams(ctx sdk.Context) types.TendermintParams {
-	var tendermintParams types.TendermintParams
-	keeper.ParamSpace().Get(ctx, types.ParamStoreKeyTendermintParams, &tendermintParams)
-	return tendermintParams
-}
-
 // SetDepositParams sets the current DepositParams to the global param store
 func (keeper Keeper) SetDepositParams(ctx sdk.Context, depositParams types.DepositParams) {
 	keeper.ParamSpace().Set(ctx, types.ParamStoreKeyDepositParams, &depositParams)
@@ -106,11 +99,6 @@ func (keeper Keeper) SetVotingParams(ctx sdk.Context, votingParams types.VotingP
 // SetTallyParams sets the current TallyParams to the global param store
 func (keeper Keeper) SetTallyParams(ctx sdk.Context, tallyParams types.TallyParams) {
 	keeper.ParamSpace().Set(ctx, types.ParamStoreKeyTallyParams, &tallyParams)
-}
-
-// SetTendermintParams sets the current TendermintParams to the global param store
-func (keeper Keeper) SetTendermintParams(ctx sdk.Context, tendermintParams types.TendermintParams) {
-	keeper.ParamSpace().Set(ctx, types.ParamStoreKeyTendermintParams, &tendermintParams)
 }
 
 // ProposalQueues

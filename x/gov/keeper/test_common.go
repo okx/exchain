@@ -76,8 +76,6 @@ func CreateValidators(
 	require.True(t, len(addrs) <= len(pubkeys), "Not enough pubkeys specified at top of file.")
 
 	for i := 0; i < len(addrs); i++ {
-
-		//valTokens := sdk.TokensFromTendermintPower(powerAmt[i])
 		valCreateMsg := staking.NewMsgCreateValidator(
 			addrs[i], pubkeys[i],
 			testDescription,

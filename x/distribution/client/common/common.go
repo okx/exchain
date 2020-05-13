@@ -8,22 +8,25 @@ import (
 	"github.com/okex/okchain/x/distribution/types"
 )
 
-// QueryParams actually queries distribution params.
-func QueryParams(cliCtx context.CLIContext, queryRoute string) (PrettyParams, error) {
+// QueryParams actually queries distribution params
+func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Params, err error) {
 	route := fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamCommunityTax)
-
-	retCommunityTax, _, err := cliCtx.QueryWithData(route, []byte{})
+	var communityTax sdk.Dec
+	var withdrawAddrEnabled bool
+	bytes, _, err := cliCtx.QueryWithData(route, []byte{})
 	if err != nil {
-		return PrettyParams{}, err
+		return
 	}
+	cliCtx.Codec.MustUnmarshalJSON(bytes, &communityTax)
 
 	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamWithdrawAddrEnabled)
-	retWithdrawAddrEnabled, _, err := cliCtx.QueryWithData(route, []byte{})
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
 	if err != nil {
-		return PrettyParams{}, err
+		return
 	}
+	cliCtx.Codec.MustUnmarshalJSON(bytes, &withdrawAddrEnabled)
 
-	return newPrettyParams(retCommunityTax, retWithdrawAddrEnabled), nil
+	return types.NewParams(communityTax, withdrawAddrEnabled), err
 }
 
 // QueryValidatorCommission returns a validator's commission.

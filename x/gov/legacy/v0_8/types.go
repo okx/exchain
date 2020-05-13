@@ -244,6 +244,7 @@ type (
 	}
 )
 
+// nolint
 func (tp BasicProposal) GetProposalID() uint64                      { return tp.ProposalID }
 func (tp *BasicProposal) SetProposalID(proposalID uint64)           { tp.ProposalID = proposalID }
 func (tp BasicProposal) GetTitle() string                           { return tp.Title }
@@ -314,15 +315,15 @@ func ProposalStatusFromString(str string) (ProposalStatus, error) {
 }
 
 // Marshal needed for protobuf compatibility
-func (status ProposalStatus) Marshal() ([]byte, error) {
-	return []byte{byte(status)}, nil
-}
+//func (status ProposalStatus) Marshal() ([]byte, error) {
+//	return []byte{byte(status)}, nil
+//}
 
 // Unmarshal needed for protobuf compatibility
-func (status *ProposalStatus) Unmarshal(data []byte) error {
-	*status = ProposalStatus(data[0])
-	return nil
-}
+//func (status *ProposalStatus) Unmarshal(data []byte) error {
+//	*status = ProposalStatus(data[0])
+//	return nil
+//}
 
 // Marshals to JSON using string
 func (status ProposalStatus) MarshalJSON() ([]byte, error) {
@@ -378,15 +379,15 @@ func ProposalTypeFromString(str string) (ProposalKind, error) {
 }
 
 // Marshal needed for protobuf compatibility
-func (pt ProposalKind) Marshal() ([]byte, error) {
-	return []byte{byte(pt)}, nil
-}
+//func (pt ProposalKind) Marshal() ([]byte, error) {
+//	return []byte{byte(pt)}, nil
+//}
 
 // Unmarshal needed for protobuf compatibility
-func (pt *ProposalKind) Unmarshal(data []byte) error {
-	*pt = ProposalKind(data[0])
-	return nil
-}
+//func (pt *ProposalKind) Unmarshal(data []byte) error {
+//	*pt = ProposalKind(data[0])
+//	return nil
+//}
 
 // Marshals to JSON using string
 func (pt ProposalKind) MarshalJSON() ([]byte, error) {
@@ -442,15 +443,15 @@ func VoteOptionFromString(str string) (VoteOption, error) {
 }
 
 // Marshal needed for protobuf compatibility
-func (vo VoteOption) Marshal() ([]byte, error) {
-	return []byte{byte(vo)}, nil
-}
-
+//func (vo VoteOption) Marshal() ([]byte, error) {
+//	return []byte{byte(vo)}, nil
+//}
+//
 // Unmarshal needed for protobuf compatibility
-func (vo *VoteOption) Unmarshal(data []byte) error {
-	*vo = VoteOption(data[0])
-	return nil
-}
+//func (vo *VoteOption) Unmarshal(data []byte) error {
+//	*vo = VoteOption(data[0])
+//	return nil
+//}
 
 // Marshals to JSON using string
 func (vo VoteOption) MarshalJSON() ([]byte, error) {

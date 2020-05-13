@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/gov"
-	"github.com/okex/okchain/x/params"
+	"github.com/spf13/cobra"
+
+	govTypes "github.com/okex/okchain/x/gov/types"
 	paramscutils "github.com/okex/okchain/x/params/client/utils"
+	"github.com/okex/okchain/x/params/types"
 )
 
 // GetCmdSubmitProposal implements a command handler for submitting a parameter change proposal transaction
@@ -73,14 +73,14 @@ Where proposal.json contains:
 			}
 
 			from := cliCtx.GetFromAddress()
-			content := params.NewParameterChangeProposal(
+			content := types.NewParameterChangeProposal(
 				proposal.Title,
 				proposal.Description,
 				proposal.Changes.ToParamChanges(),
 				proposal.Height,
 			)
 
-			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			msg := govTypes.NewMsgSubmitProposal(content, proposal.Deposit, from)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
