@@ -2,17 +2,16 @@ package cli
 
 import (
 	"fmt"
-	"bufio"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/okchain/x/margin/types"
 )
 
@@ -28,7 +27,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	marginTxCmd.AddCommand(flags.PostCommands(
 		// TODO: Add tx based commands
-		// GetCmd<Action>(cdc)
+		GetCmdMarginDeposit(cdc),
 	)...)
 
 	return marginTxCmd
@@ -57,3 +56,26 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // 		},
 // 	}
 // }
+
+func GetCmdMarginDeposit(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "deposit [product] [amount] [flag]",
+		Short: "add deposit for margin trade product ",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			from := cliCtx.GetFromAddress()
+			product := args[0]
+			amount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
+			msg := types.NewMsgMarginDeposit(from, product, amount)
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
