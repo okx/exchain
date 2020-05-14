@@ -11,7 +11,7 @@ import (
 
 func TestNewOrder(t *testing.T) {
 	// test new order
-	params := DefaultParams()
+	params := DefaultTestParams()
 	order1 := NewOrder("hash1", nil, TestTokenPair, SellOrder, sdk.MustNewDecFromStr("1.1"),
 		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock)
 	order2 := NewOrder("hash2", nil, TestTokenPair, BuyOrder, sdk.MustNewDecFromStr("1.1"),

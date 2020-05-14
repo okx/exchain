@@ -17,7 +17,7 @@ func TestKeeper_Cache2Disk(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -108,7 +108,7 @@ func TestKeeper_LockCoins(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -145,7 +145,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -304,7 +304,7 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 

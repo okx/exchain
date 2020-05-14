@@ -30,7 +30,7 @@ func TestCache_GetCancelNum(t *testing.T) {
 	require.EqualValues(t, 0, cache.GetFullFillNum())
 	require.EqualValues(t, 0, cache.GetPartialFillNum())
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	cache.SetParams(&feeParams)
 
 	require.EqualValues(t, types.DefaultOrderExpireBlocks, cache.params.OrderExpireBlocks)

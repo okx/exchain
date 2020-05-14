@@ -350,7 +350,7 @@ func TestMarkCurBlockToFeatureExpireBlockList(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	markCurBlockToFutureExpireBlockList(ctx, keeper)
 	expiredBlocks := keeper.GetExpireBlockHeight(ctx, ctx.BlockHeight()+feeParams.OrderExpireBlocks)
@@ -420,7 +420,7 @@ func TestCleanupExpiredOrders(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	orders := []*types.Order{
 		mockOrder("", types.TestTokenPair, types.BuyOrder, "10.1", "1.0"),
@@ -608,7 +608,7 @@ func TestExecuteMatchedUpdatedProduct(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
@@ -644,7 +644,7 @@ func TestExecuteMatchedUpdatedProductByLimitedBlockDeals(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
@@ -681,7 +681,7 @@ func TestExecuteLockedProduct(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
@@ -721,7 +721,7 @@ func TestExecuteLockedProductByLimitedBlockDeals(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
@@ -761,7 +761,7 @@ func TestExecuteLockedProductByLargeLockQuantity(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
