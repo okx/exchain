@@ -191,7 +191,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.000001", "1.0001")
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.EqualValues(t, sdk.CodeInternal, result.Code)
 }
 
 // test order cancel without enough okb as fee
