@@ -159,8 +159,8 @@ func TestIssueToken(t *testing.T) {
 	coin := []types.Token{{
 		Description:         "OK Group Global Utility Token",
 		Symbol:              common.NativeToken,
-		OriginalSymbol:      "OKT",
-		WholeName:           "OKT",
+		OriginalSymbol:      common.NativeToken,
+		WholeName:           common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               nil,

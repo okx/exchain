@@ -3,6 +3,8 @@ package keeper
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/common"
+
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/staking/types"
 	"github.com/stretchr/testify/require"
@@ -102,7 +104,7 @@ func TestQueryParams(t *testing.T) {
 
 	params := types.Params{}
 	_ = amino.UnmarshalJSON(data, &params)
-	require.True(t, params.BondDenom == "okt", params)
+	require.True(t, params.BondDenom == common.NativeToken, params)
 
 }
 

@@ -819,7 +819,7 @@ func TestChargeMultiCoinsFee(t *testing.T) {
 			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0275"), goodRes},
 		{100, testAccounts[0].baseAccount.Address,
 			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.9875"),
-			sdk.ErrInsufficientCoins("insufficient fee coins(need 0.98750000okt)").Result()},
+			sdk.ErrInsufficientCoins("insufficient fee coins(need 0.98750000" + common.NativeToken + ")").Result()},
 	}
 
 	for _, tc := range testCases {
@@ -850,14 +850,14 @@ func TestCreateMsgMultiSend(t *testing.T) {
 
 	btcSymbol := getTokenSymbol(ctx, keeper, "btc")
 
-	multiSendStr := `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1okt,2` + btcSymbol + `"}]`
+	multiSendStr := `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1` + common.NativeToken + `,2` + btcSymbol + `"}]`
 	transfers, err := types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	multiSend := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
 	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], multiSend))
 
 	// not enough coins
-	multiSendStr = `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1okt,2000` + btcSymbol + `"}]`
+	multiSendStr = `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1` + common.NativeToken + `,2000` + btcSymbol + `"}]`
 	transfers, err = types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	multiSend = types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
@@ -1013,7 +1013,7 @@ func TestTxFailedFeeTable(t *testing.T) {
 	fialedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
 
 	// failed MultiSend msg: no such token
-	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":"1okt,2` + "nob" + `"}]`
+	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":"1` + common.NativeToken + `,2` + "nob" + `"}]`
 	transfers, err := types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	failedMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
@@ -1069,7 +1069,7 @@ func TestTxSuccessFeeTable(t *testing.T) {
 	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
 
 	// multi send
-	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":" 10okt,20` + symbolAfterIssue + `"}]`
+	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":" 10` + common.NativeToken + `,20` + symbolAfterIssue + `"}]`
 	transfers, err := types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
 	successfulMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
