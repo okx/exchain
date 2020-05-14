@@ -246,28 +246,6 @@ func (order *Order) Unlock() {
 }
 
 // nolint
-func MockOrder(orderID, product, side, price, quantity string) *Order {
-	order := &Order{
-		OrderID:           orderID,
-		Product:           product,
-		Side:              side,
-		Price:             sdk.MustNewDecFromStr(price),
-		FilledAvgPrice:    sdk.ZeroDec(),
-		Quantity:          sdk.MustNewDecFromStr(quantity),
-		RemainQuantity:    sdk.MustNewDecFromStr(quantity),
-		Status:            OrderStatusOpen,
-		OrderExpireBlocks: DefaultOrderExpireBlocks,
-		FeePerBlock:       DefaultFeePerBlock,
-	}
-	if side == BuyOrder {
-		order.RemainLocked = order.Price.Mul(order.Quantity)
-	} else {
-		order.RemainLocked = order.Quantity
-	}
-	return order
-}
-
-// nolint
 func FormatOrderID(blockHeight, orderNum int64) string {
 	format := "ID%010d-%d"
 	if blockHeight > 9999999999 {

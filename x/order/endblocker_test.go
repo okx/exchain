@@ -25,7 +25,7 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -125,7 +125,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.MaxDealsPerBlock = 2
 	k.SetParams(ctx, &feeParams)
 
@@ -255,7 +255,7 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -290,7 +290,7 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	EndBlocker(ctx, k)
 	// call EndBlocker to expire orders
 	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10 + feeParams.OrderExpireBlocks)
-	param := types.DefaultParams()
+	param := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &param)
 	EndBlocker(ctx, k)
 
@@ -319,7 +319,7 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -377,7 +377,7 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -485,7 +485,7 @@ func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	// mock orders

@@ -24,7 +24,7 @@ func TestEventNewOrders(t *testing.T) {
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -53,7 +53,7 @@ func TestFeesNewOrders(t *testing.T) {
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -94,7 +94,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -143,7 +143,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	keeper := mapp.orderKeeper
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	keeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -202,7 +202,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	//feeParams.CancelNative = sdk.MustNewDecFromStr("0.1")
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -263,7 +263,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -411,7 +411,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -502,7 +502,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
-	feeParams = types.DefaultParams()
+	feeParams = types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	require.EqualValues(t, 4, keeper.GetBlockOrderNum(ctx, 10))
@@ -520,7 +520,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -619,7 +619,7 @@ func TestValidateMsgMultiNewOrder(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	keeper := mapp.orderKeeper
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	keeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -668,7 +668,7 @@ func TestValidateMsgMultiCancelOrder(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	keeper := mapp.orderKeeper
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	keeper.SetParams(ctx, &feeParams)
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -713,7 +713,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -930,7 +930,7 @@ func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*t
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
 	//init balance account0 & account1
