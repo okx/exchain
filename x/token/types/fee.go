@@ -1,4 +1,4 @@
-package token
+package types
 
 // nolint
 type FeeDetail struct {

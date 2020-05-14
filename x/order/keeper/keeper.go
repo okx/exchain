@@ -355,11 +355,17 @@ func (k Keeper) SetBlockMatchResult(result *types.BlockMatchResult) {
 
 // LockCoins locks coins from the specified address,
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
+	if coins.IsZero() {
+		return nil
+	}
 	return k.tokenKeeper.LockCoins(ctx, addr, coins, lockCoinsType)
 }
 
 // nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) {
+	if coins.IsZero() {
+		return
+	}
 	if err := k.tokenKeeper.UnlockCoins(ctx, addr, coins, lockCoinsType); err != nil {
 		log.Printf("User(%s) unlock coins(%s) failed\n", addr.String(), coins.String())
 	}
@@ -394,6 +400,9 @@ func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress 
 // AddFeeDetail adds detail message of fee to tokenKeeper
 func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.DecCoins,
 	feeType string) {
+	if coins.IsZero() {
+		return
+	}
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
 }
 

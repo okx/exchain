@@ -44,7 +44,7 @@ func TestParamsString(t *testing.T) {
 	expectString := `Order Params:
   OrderExpireBlocks: 259200
   MaxDealsPerBlock: 1000
-  FeePerBlock: 0.00000100okt
+  FeePerBlock: 0.00000000okt
   TradeFeeRate: 0.00100000`
 	require.EqualValues(t, expectString, param.String())
 }

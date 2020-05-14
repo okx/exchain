@@ -18,7 +18,7 @@ func TestFillDepthBook(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -119,7 +119,7 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -220,7 +220,7 @@ func TestPartialFillDepthBook(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -343,7 +343,7 @@ func TestFillDepthBookByZeroMaxExecution(t *testing.T) {
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -409,7 +409,7 @@ func TestFillBuyOrders(t *testing.T) {
 	buyExecution := sdk.ZeroDec()
 	bestPrice := sdk.NewDec(10.0)
 	blockRemainDeals := int64(1000)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	buyDeals, blockRemainDeals := fillBuyOrders(ctx, keeper, types.TestTokenPair,
 		bestPrice, maxExecution, &buyExecution, blockRemainDeals, &feeParams)
@@ -449,7 +449,7 @@ func TestFillSellOrders(t *testing.T) {
 	sellExecution := sdk.ZeroDec()
 	bestPrice := sdk.NewDec(10.0)
 	blockRemainDeals := int64(1000)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	sellDeals, blockRemainDeals := fillSellOrders(ctx, keeper, types.TestTokenPair,
 		bestPrice, maxExecution, &sellExecution, blockRemainDeals, &feeParams)
@@ -489,7 +489,7 @@ func TestFillSellOrdersByLimitedMaxDeals(t *testing.T) {
 	sellExecution := sdk.ZeroDec()
 	bestPrice := sdk.NewDec(10.0)
 	blockRemainDeals := int64(1)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	_, blockRemainDeals = fillSellOrders(ctx, keeper, types.TestTokenPair,
 		bestPrice, maxExecution, &sellExecution, blockRemainDeals, &feeParams)
@@ -524,7 +524,7 @@ func TestFillOrderByKey(t *testing.T) {
 
 	fillPrice := sdk.NewDec(10.0)
 	needFillAmount := sdk.NewDec(3.0)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	remainDeals := int64(1000)
 	key := types.FormatOrderIDsKey(types.TestTokenPair, orders[0].Price, types.BuyOrder)
 
@@ -563,7 +563,7 @@ func TestFillOrderByKeyByNotExistKey(t *testing.T) {
 
 	fillPrice := sdk.NewDec(10.0)
 	needFillAmount := sdk.NewDec(3.0)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	remainDeals := int64(1000)
 	key := types.FormatOrderIDsKey(types.TestTokenPair+"_test", orders[0].Price, types.BuyOrder)
 
@@ -601,7 +601,7 @@ func TestFillOrder(t *testing.T) {
 
 	fillPrice := sdk.NewDec(10.0)
 	fillQuantity := sdk.NewDec(1.0)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	for _, order := range orders {
 		retDeals := fillOrder(order, ctx, keeper, fillPrice, fillQuantity, &feeParams)
@@ -664,7 +664,7 @@ func TestChargeFee(t *testing.T) {
 	orders[3].Sender = testInput.TestAddrs[1]
 
 	fillQuantity := sdk.NewDec(1.0)
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	for _, order := range orders {
 		retFee := chargeFee(order, ctx, keeper, fillQuantity, &feeParams)

@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/dex"
 	dextypes "github.com/okex/okchain/x/dex/types"
 	"github.com/okex/okchain/x/order"
 	ordertypes "github.com/okex/okchain/x/order/types"
@@ -26,7 +27,9 @@ type TokenKeeper interface {
 
 // DexKeeper expected dex keeper
 type DexKeeper interface {
+	IsTokenPairChanged() bool
 	GetTokenPairs(ctx sdk.Context) []*dextypes.TokenPair
+	GetNewTokenPair() []*dex.TokenPair
 }
 
 // MarketKeeper expected market keeper which would get data from pulsar & redis

@@ -503,15 +503,7 @@ func isSystemFreeHook(ctx sdk.Context, msgs []sdk.Msg) bool {
 		return true
 	}
 
-	for _, msg := range msgs {
-		switch msg.(type) {
-		case order.MsgNewOrders, order.MsgCancelOrders:
-		default:
-			return false
-		}
-	}
-
-	return true
+	return false
 }
 
 // ExportGenesis exports the genesis state for whole protocol
