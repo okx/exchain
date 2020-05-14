@@ -89,7 +89,7 @@ func (k Keeper) Flush() {
 func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
 	if k.Config.EnableBackend && k.Config.EnableMktCompute {
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))
-		txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, k.TokenKeeper, timestamp)
+		txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
 		for _, tx := range txs {
 			k.Cache.AddTransaction(tx)
 		}

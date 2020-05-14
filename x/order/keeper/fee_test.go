@@ -70,7 +70,7 @@ func TestGetOrderCostFee(t *testing.T) {
 func TestOrderDealFee(t *testing.T) {
 	ctx := sdk.Context{}
 	keeper := NewMockGetFeeKeeper()
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 
 	// 1. xxb_okb
 	order := &types.Order{
