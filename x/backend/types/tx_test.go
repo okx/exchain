@@ -43,8 +43,8 @@ func TestGenerateTx(t *testing.T) {
 	}
 	txSigMsg, _ := txbldr.BuildSignMsg([]sdk.Msg{sendMsg})
 	tx := auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
-	ctx0, keeper0, _, _ := tokenKeeper.CreateParam(t, false)
-	GenerateTx(&tx, "", ctx0, nil, keeper0, time.Now().Unix())
+	ctx0, _, _, _ := tokenKeeper.CreateParam(t, false)
+	GenerateTx(&tx, "", ctx0, nil, time.Now().Unix())
 
 	// order/new
 	orderNewMsg := order.NewMsgNewOrder(accFrom, "btc_"+common.NativeToken, SellOrder, "23.76", "289")
@@ -57,7 +57,7 @@ func TestGenerateTx(t *testing.T) {
 	}
 	txSigMsg, _ = txbldr.BuildSignMsg([]sdk.Msg{orderNewMsg})
 	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
-	GenerateTx(&tx, "", sdk.Context{}, nil, nil, time.Now().Unix())
+	GenerateTx(&tx, "", sdk.Context{}, nil, time.Now().Unix())
 
 	// order/cancel
 	orderCancelMsg := order.NewMsgCancelOrder(accFrom, "ORDER-123")
@@ -81,7 +81,7 @@ func TestGenerateTx(t *testing.T) {
 	keeper.SetOrder(ctx, or.OrderID, or)
 	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
 	or.RecordOrderCancelFee(fee)
-	GenerateTx(&tx, "", ctx, keeper, nil, time.Now().Unix())
+	GenerateTx(&tx, "", ctx, keeper, time.Now().Unix())
 }
 
 func TestTicker(t *testing.T) {

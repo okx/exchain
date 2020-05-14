@@ -9,14 +9,12 @@ import (
 )
 
 // GenerateTx return transaction, called at DeliverTx
-func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, tokenKeeper TokenKeeper,
-	timestamp int64) []*Transaction {
+func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, timestamp int64) []*Transaction {
 	txs := make([]*Transaction, 0, 2)
 	for _, msg := range tx.GetMsgs() {
 		switch msg.Type() {
 		case "send": // token/send
-			txFrom, txTo := buildTransactionsTransfer(tx, msg.(tokenTypes.MsgSend), txHash, ctx, tokenKeeper,
-				timestamp)
+			txFrom, txTo := buildTransactionsTransfer(tx, msg.(tokenTypes.MsgSend), txHash, timestamp)
 			txs = append(txs, txFrom, txTo)
 		case "new": // order/new
 			transaction := buildTransactionNew(msg.(orderTypes.MsgNewOrders), txHash, ctx, timestamp)
@@ -34,8 +32,7 @@ func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper Orde
 	return txs
 }
 
-func buildTransactionsTransfer(tx *auth.StdTx, msg tokenTypes.MsgSend, txHash string, ctx sdk.Context, tokenKeeper TokenKeeper,
-	timestamp int64) (*Transaction, *Transaction) {
+func buildTransactionsTransfer(tx *auth.StdTx, msg tokenTypes.MsgSend, txHash string, timestamp int64) (*Transaction, *Transaction) {
 	decCoins := msg.Amount
 
 	txFrom := &Transaction{
