@@ -2,16 +2,14 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/okex/okchain/x/margin/types"
 )
 
@@ -28,11 +26,37 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	marginQueryCmd.AddCommand(
 		flags.GetCommands(
-	// TODO: Add query Cmds
+			GetCmdMarginAccountBalance(queryRoute, cdc),
+			// TODO: Add query Cmds
 		)...,
 	)
 
 	return marginQueryCmd
+}
+
+func GetCmdMarginAccountBalance(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "account",
+		Short: "Query the margin account balance",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			_, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid address：%s", args[0])
+			}
+
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QueryMarginAccount, args[0]), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+
+	return cmd
 }
 
 // TODO: Add Query Commands

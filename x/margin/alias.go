@@ -12,7 +12,7 @@ const (
 	RouterKey         = types.RouterKey
 	StoreKey          = types.StoreKey
 	DefaultParamspace = types.DefaultParamspace
-	QueryParams       = types.QueryParams
+	QueryParams       = types.QueryParameters
 	QuerierRoute      = types.QuerierRoute
 )
 
@@ -27,7 +27,7 @@ var (
 	// TODO: Fill out function aliases
 
 	// variable aliases
-	ModuleCdc     = types.ModuleCdc
+	ModuleCdc = types.ModuleCdc
 	// TODO: Fill out variable aliases
 )
 
