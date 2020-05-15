@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -43,6 +42,9 @@ func (msg MsgList) Type() string { return "list" }
 
 // ValidateBasic Implements Msg
 func (msg MsgList) ValidateBasic() sdk.Error {
+	if msg.ListAsset == msg.QuoteAsset {
+		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list product because base asset is same as quote asset"))
+	}
 	return nil
 }
 
