@@ -26,7 +26,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	marginQueryCmd.AddCommand(
 		flags.GetCommands(
-			GetCmdMarginAccountBalance(queryRoute, cdc),
+			GetCmdAccountDeposit(queryRoute, cdc),
 			// TODO: Add query Cmds
 		)...,
 	)
@@ -34,10 +34,10 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return marginQueryCmd
 }
 
-func GetCmdMarginAccountBalance(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdAccountDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "account",
-		Short: "Query the margin account balance",
+		Short: "Query the margin account deposits",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 

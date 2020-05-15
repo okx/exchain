@@ -24,17 +24,13 @@ var (
 	NewGenesisState     = types.NewGenesisState
 	DefaultGenesisState = types.DefaultGenesisState
 	ValidateGenesis     = types.ValidateGenesis
-	// TODO: Fill out function aliases
 
 	// variable aliases
 	ModuleCdc = types.ModuleCdc
-	// TODO: Fill out variable aliases
 )
 
 type (
 	Keeper       = keeper.Keeper
 	GenesisState = types.GenesisState
 	Params       = types.Params
-
-	// TODO: Fill out module types
 )

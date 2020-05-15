@@ -102,10 +102,10 @@ func (msg MsgDexWithdraw) GetSigners() []sdk.AccAddress {
 // MsgDexSet - struct for dex setting params for a product
 type MsgDexSet struct {
 	Address     sdk.AccAddress `json:"address"`
-	Product     string         `json:'product'`
-	MaxLeverage int64          `json:'max-leverage'`
-	BorrowRate  float64        `json:'borrow-rate'`
-	RiskRate    float64        `json:'risk-rate'`
+	Product     string         `json:"product"`
+	MaxLeverage int64          `json:"max-leverage"`
+	BorrowRate  float64        `json:"borrow-rate"`
+	RiskRate    float64        `json:"risk-rate"`
 }
 
 // NewMsgDexSet creates a new MsgDexSet instance
@@ -144,7 +144,7 @@ func (msg MsgDexSet) GetSigners() []sdk.AccAddress {
 // MsgDexSave - struct for dex saving  for a product
 type MsgDexSave struct {
 	Address sdk.AccAddress `json:"address"`
-	Product string         `json:'product'`
+	Product string         `json:"product"`
 	Amount  sdk.DecCoins   `json:"amount"`
 }
 
@@ -185,7 +185,7 @@ func (msg MsgDexSave) GetSigners() []sdk.AccAddress {
 // MsgDexReturn - struct for dex returning from a product
 type MsgDexReturn struct {
 	Address sdk.AccAddress `json:"address"`
-	Product string         `json:'product'`
+	Product string         `json:"product"`
 	Amount  sdk.DecCoins   `json:"amount"`
 }
 
