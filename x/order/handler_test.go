@@ -243,7 +243,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	require.EqualValues(t, sdk.CodeOK, result.Code)
 	orderRes := parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, "0.00000100okt", orderRes[0].Message)
+	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	expectCoins0 = sdk.DecCoins{
@@ -858,8 +858,8 @@ func TestFeesTable(t *testing.T) {
 
 	//test btc-b19_okt
 	orders1 := []*types.Order{
-		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_okt", types.BuyOrder, "10", "1"),
-		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_okt", types.SellOrder, "10", "1"),
+		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_"+common.NativeToken, types.BuyOrder, "10", "1"),
+		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_"+common.NativeToken, types.SellOrder, "10", "1"),
 	}
 	expectCoins1 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),         //100 + (1 - 1*0.0001)
@@ -906,7 +906,7 @@ func TestFeesTable(t *testing.T) {
 		blockheight int64
 	}{
 		{common.TestToken, common.NativeToken, orders0, expectCoins0, 10000},
-		{"btc-b19", "okt", orders1, expectCoins1, 10000},
+		{"btc-b19", common.NativeToken, orders1, expectCoins1, 10000},
 		{"btc-b19", "xxb", orders2, expectCoins2, 10000},
 		{"btc-b19", "xxb", orders2, expectCoins3, 800},
 		{"btc-a8a", "xxb", orders4, expectCoins4, 10000},

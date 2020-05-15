@@ -3,6 +3,8 @@ package types
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +46,7 @@ func TestParamsString(t *testing.T) {
 	expectString := `Order Params:
   OrderExpireBlocks: 259200
   MaxDealsPerBlock: 1000
-  FeePerBlock: 0.00000000okt
+  FeePerBlock: 0.00000000` + common.NativeToken + `
   TradeFeeRate: 0.00100000`
 	require.EqualValues(t, expectString, param.String())
 }
