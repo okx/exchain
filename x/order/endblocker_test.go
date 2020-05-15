@@ -584,22 +584,7 @@ func TestFillPrecision(t *testing.T) {
 			var sellPrice string
 			var quantity string
 
-			rand.Seed(time.Now().Unix() + int64(orderIdx) + 1)
-
-			// Test different precision of price and quantity
-			//
-			//flag := float64(rand.Intn(9))/10
-			//
-			//rand.Seed(time.Now().Unix() + int64(orderIdx))
-			//if flag > 0.5{
-			//	quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 5,64)
-			//	buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 3, 64)
-			//	sellPrice = strconv.FormatFloat(price, 'f', 3, 64)
-			//}else{
-			//	quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4,64)
-			//	buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 4, 64)
-			//	sellPrice = strconv.FormatFloat(price, 'f', 4, 64)
-			//}
+			rand.Seed(time.Now().Unix() + int64(orderIdx))
 
 			// Test Same precision of price and quantity
 			quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4,64)
