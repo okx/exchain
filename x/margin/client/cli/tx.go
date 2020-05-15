@@ -57,6 +57,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // 	}
 // }
 
+// GetCmdDeposit is the CLI command for doing Deposit
 func GetCmdMarginDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "deposit [product] [amount] [flag]",

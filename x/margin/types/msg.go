@@ -4,79 +4,41 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// TODO: Describe your actions, these will implment the interface of `sdk.Msg`
-/*
-verify interface at compile time
-var _ sdk.Msg = &Msg<Action>{}
+// verify interface at compile time
+var _ sdk.Msg = &MsgDexDeposit{}
+var _ sdk.Msg = &MsgDexWithdraw{}
+var _ sdk.Msg = &MsgDexSet{}
+var _ sdk.Msg = &MsgDexSave{}
+var _ sdk.Msg = &MsgDexReturn{}
+var _ sdk.Msg = &MsgDeposit{}
+var _ sdk.Msg = &MsgBorrow{}
+var _ sdk.Msg = &MsgRepay{}
+var _ sdk.Msg = &MsgWithdraw{}
 
-Msg<Action> - struct for unjailing jailed validator
-type Msg<Action> struct {
-	ValidatorAddr sdk.ValAddress `json:"address" yaml:"address"` // address of the validator operator
-}
-
-NewMsg<Action> creates a new Msg<Action> instance
-func NewMsg<Action>(validatorAddr sdk.ValAddress) Msg<Action> {
-	return Msg<Action>{
-		ValidatorAddr: validatorAddr,
-	}
-}
-
-const <action>Const = "<action>"
-
-// nolint
-func (msg Msg<Action>) Route() string { return RouterKey }
-func (msg Msg<Action>) Type() string  { return <action>Const }
-func (msg Msg<Action>) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddr)}
-}
-
-GetSignBytes gets the bytes for the message signer to sign on
-func (msg Msg<Action>) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-ValidateBasic validity check for the AnteHandler
-func (msg Msg<Action>) ValidateBasic() error {
-	if msg.ValidatorAddr.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing validator address"
-	}
-	return nil
-}
-*/
-
-type MsgMarginDeposit struct {
+// MsgDexDeposit - struct for dex depositing for a product
+type MsgDexDeposit struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
 	Amount  sdk.DecCoin    `json:"amount"`
 }
 
-func NewMsgMarginDeposit(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgMarginDeposit {
-	return MsgMarginDeposit{
+// NewMsgDexDeposit creates a new MsgDeposit instance
+func NewMsgDexDeposit(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgDexDeposit {
+	return MsgDexDeposit{
 		Address: address,
 		Product: product,
 		Amount:  amount,
 	}
 }
 
-func (msg MsgMarginDeposit) Route() string { return RouterKey }
+// Route Implements Msg
+func (msg MsgDexDeposit) Route() string { return RouterKey }
 
-func (msg MsgMarginDeposit) Type() string { return "margin-deposit" }
+// Type Implements Msg
+func (msg MsgDexDeposit) Type() string { return "dexDeposit" }
 
-func (msg MsgMarginDeposit) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Address}
-}
-
-func (msg MsgMarginDeposit) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-func (msg MsgMarginDeposit) ValidateBasic() sdk.Error {
-	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress(msg.Address.String())
-	}
-
+// ValidateBasic Implements Msg
+func (msg MsgDexDeposit) ValidateBasic() sdk.Error {
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
@@ -84,14 +46,234 @@ func (msg MsgMarginDeposit) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// GetSignBytes Implements Msg
+func (msg MsgDexDeposit) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDexDeposit) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgDexWithdraw - struct for dex withdrawing from a product
+type MsgDexWithdraw struct {
+	Address sdk.AccAddress `json:"address"`
+	Product string         `json:"product"`
+	Amount  sdk.DecCoin    `json:"amount"`
+}
+
+// NewMsgDexWithdraw creates a new MsgWithdraw instance
+func NewMsgDexWithdraw(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgDexWithdraw {
+	return MsgDexWithdraw{
+		Address: address,
+		Product: product,
+		Amount:  amount,
+	}
+}
+
+// Route Implements Msg
+func (msg MsgDexWithdraw) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgDexWithdraw) Type() string { return "dexWithdraw" }
+
+// ValidateBasic Implements Msg
+func (msg MsgDexWithdraw) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+
+	return nil
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgDexWithdraw) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDexWithdraw) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgDexSet - struct for dex setting params for a product
+type MsgDexSet struct {
+	Address     sdk.AccAddress `json:"address"`
+	Product     string         `json:'product'`
+	MaxLeverage int64          `json:'max-leverage'`
+	BorrowRate  float64        `json:'borrow-rate'`
+	RiskRate    float64        `json:'risk-rate'`
+}
+
+// NewMsgDexSet creates a new MsgDexSet instance
+func NewMsgDexSet(address sdk.AccAddress, product string, maxLeverage int64, borrowRate float64, riskRate float64) MsgDexSet {
+	return MsgDexSet{
+		Address:     address,
+		Product:     product,
+		MaxLeverage: maxLeverage,
+		BorrowRate:  borrowRate,
+		RiskRate:    riskRate,
+	}
+}
+
+// Route Implements Msg
+func (msg MsgDexSet) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgDexSet) Type() string { return "dexSet" }
+
+// ValidateBasic Implements Msg
+func (msg MsgDexSet) ValidateBasic() sdk.Error {
+	return nil
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgDexSet) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDexSet) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgDexSave - struct for dex saving  for a product
+type MsgDexSave struct {
+	Address sdk.AccAddress `json:"address"`
+	Product string         `json:'product'`
+	Amount  sdk.DecCoins   `json:"amount"`
+}
+
+// NewMsgDexSave creates a new MsgDexSave instance
+func NewMsgDexSave(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgDexSave {
+	return MsgDexSave{
+		Address: address,
+		Product: product,
+		Amount:  amount,
+	}
+}
+
+// Route Implements Msg
+func (msg MsgDexSave) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgDexSave) Type() string { return "dexSave" }
+
+// ValidateBasic Implements Msg
+func (msg MsgDexSave) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgDexSave) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDexSave) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgDexReturn - struct for dex returning from a product
+type MsgDexReturn struct {
+	Address sdk.AccAddress `json:"address"`
+	Product string         `json:'product'`
+	Amount  sdk.DecCoins   `json:"amount"`
+}
+
+// NewMsgDexReturn creates a new NewMsgDexReturn instance
+func NewMsgDexReturn(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgDexReturn {
+	return MsgDexReturn{
+		Address: address,
+		Product: product,
+		Amount:  amount,
+	}
+}
+
+// Route Implements Msg
+func (msg MsgDexReturn) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgDexReturn) Type() string { return "dexReturn" }
+
+// ValidateBasic Implements Msg
+func (msg MsgDexReturn) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgDexReturn) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDexReturn) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgDeposit - struct for depositing for a product
+type MsgDeposit struct {
+	Address sdk.AccAddress `json:"address"`
+	Product string         `json:"product"`
+	Amount  sdk.DecCoins   `json:"amount"`
+}
+
+// NewMsgDeposit creates a new NewMsgDeposit instance
+func NewMsgDeposit(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgDeposit {
+	return MsgDeposit{
+		Address: address,
+		Product: product,
+		Amount:  amount,
+	}
+}
+
+// Route Implements Msg
+func (msg MsgDeposit) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgDeposit) Type() string { return "deposit" }
+
+// ValidateBasic Implements Msg
+func (msg MsgDeposit) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgDeposit) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
+}
+
+// MsgBorrow - struct for borrowing for a product
 type MsgBorrow struct {
 	Address  sdk.AccAddress `json:"address"`
 	Product  string         `json:"product"`
 	Amount   sdk.DecCoin    `json:"amount"`
-	Leverage int            `json:"leverage"`
+	Leverage int64          `json:"leverage"`
 }
 
-func NewMsgBorrow(address sdk.AccAddress, product string, amount sdk.DecCoin, leverage int) MsgBorrow {
+// NewMsgBorrow creates a new MsgBorrow instance
+func NewMsgBorrow(address sdk.AccAddress, product string, amount sdk.DecCoin, leverage int64) MsgBorrow {
 	return MsgBorrow{
 		Address:  address,
 		Product:  product,
@@ -100,38 +282,40 @@ func NewMsgBorrow(address sdk.AccAddress, product string, amount sdk.DecCoin, le
 	}
 }
 
+// Route Implements Msg
 func (msg MsgBorrow) Route() string { return RouterKey }
 
-func (msg MsgBorrow) Type() string { return "margin-borrow" }
+// Type Implements Msg
+func (msg MsgBorrow) Type() string { return "borrow" }
 
-func (msg MsgBorrow) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Address}
+// ValidateBasic Implements Msg
+func (msg MsgBorrow) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
 }
 
+// GetSignBytes Implements Msg
 func (msg MsgBorrow) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (msg MsgBorrow) ValidateBasic() sdk.Error {
-	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress(msg.Address.String())
-	}
-
-	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
-	}
-
-	return nil
+// GetSigners Implements Msg
+func (msg MsgBorrow) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
 }
 
+// MsgRepay - struct for repaying for a product
 type MsgRepay struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
-	Amount  sdk.DecCoin    `json:"amount"`
+	Amount  sdk.DecCoins   `json:"amount"`
 }
 
-func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgRepay {
+// NewMsgRepay creates a new MsgRepay instance
+func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgRepay {
 	return MsgRepay{
 		Address: address,
 		Product: product,
@@ -139,38 +323,40 @@ func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoin) Msg
 	}
 }
 
+// Route Implements Msg
 func (msg MsgRepay) Route() string { return RouterKey }
 
-func (msg MsgRepay) Type() string { return "margin-repay" }
+// Type Implements Msg
+func (msg MsgRepay) Type() string { return "repay" }
 
-func (msg MsgRepay) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Address}
+// ValidateBasic Implements Msg
+func (msg MsgRepay) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
 }
 
+// GetSignBytes Implements Msg
 func (msg MsgRepay) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (msg MsgRepay) ValidateBasic() sdk.Error {
-	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress(msg.Address.String())
-	}
-
-	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
-	}
-
-	return nil
+// GetSigners Implements Msg
+func (msg MsgRepay) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
 }
 
+// MsgWithdraw - struct for withdraying for a product
 type MsgWithdraw struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
-	Amount  sdk.DecCoin    `json:"amount"`
+	Amount  sdk.DecCoins   `json:"amount"`
 }
 
-func NewMsgWithdraw(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgWithdraw {
+// NewMsgWithdraw creates a new MsgWithdraw instance
+func NewMsgWithdraw(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgWithdraw {
 	return MsgWithdraw{
 		Address: address,
 		Product: product,
@@ -178,27 +364,27 @@ func NewMsgWithdraw(address sdk.AccAddress, product string, amount sdk.DecCoin) 
 	}
 }
 
+// Route Implements Msg
 func (msg MsgWithdraw) Route() string { return RouterKey }
 
-func (msg MsgWithdraw) Type() string { return "margin-withdraw" }
+// Type Implements Msg
+func (msg MsgWithdraw) Type() string { return "withdraw" }
 
-func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Address}
+// ValidateBasic Implements Msg
+func (msg MsgWithdraw) ValidateBasic() sdk.Error {
+	if !msg.Amount.IsValid() {
+		return sdk.ErrInvalidCoins(msg.Amount.String())
+	}
+	return nil
 }
 
+// GetSignBytes Implements Msg
 func (msg MsgWithdraw) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (msg MsgWithdraw) ValidateBasic() sdk.Error {
-	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress(msg.Address.String())
-	}
-
-	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
-	}
-
-	return nil
+// GetSigners Implements Msg
+func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
 }
