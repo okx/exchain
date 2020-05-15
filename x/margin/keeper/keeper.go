@@ -47,7 +47,7 @@ func (k Keeper) GetMarginTradePair(ctx sdk.Context, product string) *dexTypes.To
 	return k.dexKeeper.GetTokenPair(ctx, product)
 }
 
-func (k Keeper) GetMarginAccountAssetOnProduct(ctx sdk.Context, addresses sdk.AccAddress, product string) (assetOnProduct types.MarginAssetOnProduct, ok bool) {
+func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, addresses sdk.AccAddress, product string) (assetOnProduct types.AccountAssetOnProduct, ok bool) {
 	bytes := ctx.KVStore(k.storeKey).Get(types.GetMarginProductAssetKey(addresses.String(), product))
 	if bytes == nil {
 		return
@@ -57,18 +57,31 @@ func (k Keeper) GetMarginAccountAssetOnProduct(ctx sdk.Context, addresses sdk.Ac
 	return assetOnProduct, true
 }
 
-func (k Keeper) SetMarginDepositOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
+func (k Keeper) SetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
 
-	assetOnProduct, ok := k.GetMarginAccountAssetOnProduct(ctx, address, product)
+	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
 	if ok {
-		assetOnProduct.Available.Add(available)
+		assetOnProduct.Available = assetOnProduct.Available.Add(available)
 	} else {
-		assetOnProduct = types.MarginAssetOnProduct{product, available, sdk.DecCoins{sdk()}, sdk.DecCoins{sdk.ZeroDec()}}
+		assetOnProduct = types.AccountAssetOnProduct{Product: product, Available: available}
 	}
 
-	key := types.GetMarginProductAssetKey(addresses.String(), product)
-	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(withdrawInfo)
+	key := types.GetMarginProductAssetKey(address.String(), product)
+	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(assetOnProduct)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
+}
+
+func (k Keeper) GetAccountDeposit(ctx sdk.Context, address sdk.AccAddress) (marginDeposit types.MarginProductAssets) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.GetMarginAllAssetKey(address.String()))
+	defer iterator.Close()
+	for i := int64(0); iterator.Valid(); iterator.Next() {
+		var assetOnProduct types.AccountAssetOnProduct
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &assetOnProduct)
+		marginDeposit = append(marginDeposit, assetOnProduct)
+		i++
+	}
+	return
 }
 
 func (k Keeper) GetCDC() *codec.Codec {

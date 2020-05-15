@@ -6,15 +6,15 @@ import (
 
 // RegisterCodec registers concrete types on codec
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDexDeposit", nil)
-	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgDexWithdraw", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDexSet", nil)
-	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgDexSave", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDexReturn", nil)
-	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgDeposit", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgBorrow", nil)
-	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgRepay", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgWithdraw", nil)
+	cdc.RegisterConcrete(MsgDexDeposit{}, "okchain/margin/MsgDexDeposit", nil)
+	cdc.RegisterConcrete(MsgDexWithdraw{}, "okchain/margin/MsgDexWithdraw", nil)
+	//cdc.RegisterConcrete(MsgDexSet{}, "okchain/margin/MsgDexSet", nil)
+	cdc.RegisterConcrete(MsgDexSave{}, "okchain/margin/MsgDexSave", nil)
+	cdc.RegisterConcrete(MsgDexReturn{}, "okchain/margin/MsgDexReturn", nil)
+	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDeposit", nil)
+	cdc.RegisterConcrete(MsgBorrow{}, "okchain/margin/MsgBorrow", nil)
+	cdc.RegisterConcrete(MsgRepay{}, "okchain/margin/MsgRepay", nil)
+	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgWithdraw", nil)
 }
 
 // ModuleCdc defines the module codec

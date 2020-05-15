@@ -22,7 +22,7 @@ func NewHandler(k Keeper) sdk.Handler {
 		//Example:
 		// case Msg<Action>:
 		// 	return handleMsg<Action>(ctx, k, msg)
-		case types.MsgMarginDeposit:
+		case types.MsgDeposit:
 			handlerFun = func() sdk.Result {
 				return handleMsgMarginDeposit(ctx, k, msg, logger)
 			}
@@ -54,19 +54,19 @@ func handleMsgDexDeposit(ctx sdk.Context, keeper Keeper, msg MsgDexDeposit, logg
 }
 
 // handle<Action> does x
-func handleMsgMarginDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgMarginDeposit, logger log.Logger) (result sdk.Result) {
+func handleMsgMarginDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDeposit, logger log.Logger) (result sdk.Result) {
 	tradePair := keeper.GetMarginTradePair(ctx, msg.Product)
 	if nil == tradePair {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", tradePair.Name())).Result()
 	}
 
-	if err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, types.ModuleName, msg.Amount.ToCoins()); err != nil {
+	if err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, types.ModuleName, msg.Amount); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", msg.Amount.String())).Result()
 	}
 
 	//marginAcc := types.GetMarginAccount(msg.Address.String())
 
-	keeper.SetMarginDepositOnProduct(ctx, msg.Address, msg.Product, sdk.DecCoins{msg.Amount})
+	keeper.SetAccountAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount)
 	// TODO: Define your msg events
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
