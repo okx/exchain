@@ -40,12 +40,12 @@ func TestCurrency(t *testing.T) {
 			Description: "my currency",
 			Symbol:      common.NativeToken,
 			TotalSupply: sdk.NewDec(10000000),
-		}, `{"description":"my currency","symbol":"okt","total_supply":"10000000.00000000"}`},
+		}, `{"description":"my currency","symbol":"` + common.NativeToken + `","total_supply":"10000000.00000000"}`},
 		{Currency{
 			Description: common.NativeToken,
 			Symbol:      common.NativeToken,
 			TotalSupply: sdk.NewDec(10000),
-		}, `{"description":"okt","symbol":"okt","total_supply":"10000.00000000"}`},
+		}, `{"description":"` + common.NativeToken + `","symbol":"` + common.NativeToken + `","total_supply":"10000.00000000"}`},
 	}
 	for _, currencyCase := range testCase {
 		b, err := json.Marshal(currencyCase.currency)
@@ -72,7 +72,7 @@ func TestToken(t *testing.T) {
 			TotalSupply:         sdk.ZeroDec(),
 			Owner:               nil,
 			Mintable:            false,
-		}, `{"description":"my token","symbol":"okt","original_symbol":"okt","whole_name":"btc","original_total_supply":"1000000.00000000","total_supply":"0.00000000","owner":"","mintable":false}`},
+		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.00000000","total_supply":"0.00000000","owner":"","mintable":false}`},
 		{Token{
 			Description:         "okblockchain coin",
 			Symbol:              common.NativeToken,
@@ -82,7 +82,7 @@ func TestToken(t *testing.T) {
 			TotalSupply:         sdk.ZeroDec(),
 			Owner:               addr,
 			Mintable:            true,
-		}, `{"description":"okblockchain coin","symbol":"okt","original_symbol":"okt","whole_name":"ok coin","original_total_supply":"1000000000.00000000","total_supply":"0.00000000","owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
+		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","total_supply":"0.00000000","owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
 	}
 	for _, tokenCase := range testCase {
 		b, err := json.Marshal(tokenCase.token)
