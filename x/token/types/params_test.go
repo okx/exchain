@@ -3,6 +3,8 @@ package types
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/common"
+
 	"github.com/okex/okchain/x/params"
 	"github.com/stretchr/testify/require"
 )
@@ -10,13 +12,12 @@ import (
 func TestParams(t *testing.T) {
 	param := DefaultParams()
 	expectedString := `Params: 
-FeeIssue: 20000.00000000okt
-FeeMint: 2000.00000000okt
-FeeBurn: 10.00000000okt
-FeeModify: 0.00000000okt
-FeeSend: 0.00000000okt
-FeeMultiSend: 0.01000000okt
-FeeChown: 10.00000000okt
+FeeIssue: 20000.00000000` + common.NativeToken + `
+FeeMint: 2000.00000000` + common.NativeToken + `
+FeeBurn: 10.00000000` + common.NativeToken + `
+FeeModify: 0.00000000` + common.NativeToken + `
+FeeMultiSend: 0.01000000` + common.NativeToken + `
+FeeChown: 10.00000000` + common.NativeToken + `
 `
 	paramStr := param.String()
 	require.EqualValues(t, expectedString, paramStr)
@@ -26,7 +27,6 @@ FeeChown: 10.00000000okt
 		{Key: KeyFeeMint, Value: &param.FeeMint},
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},
 		{Key: KeyFeeModify, Value: &param.FeeModify},
-		{Key: KeyFeeSend, Value: &param.FeeSend},
 		{Key: KeyFeeMultiSend, Value: &param.FeeMultiSend},
 		{Key: KeyFeeChown, Value: &param.FeeChown},
 	}

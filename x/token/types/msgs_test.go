@@ -202,7 +202,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 	fromAddr := sdk.AccAddress(fromPubKey.Address())
 
 	// correct message
-	coinStr := `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1okt"}]`
+	coinStr := `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
 	transfers, err := StrToTransfers(coinStr)
 	require.Nil(t, err)
 

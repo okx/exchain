@@ -3,6 +3,8 @@ package dex
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/dex/types"
 	"github.com/stretchr/testify/require"
@@ -27,7 +29,7 @@ func TestHandler_HandleMsgList(t *testing.T) {
 	mApp, tkKeeper, spKeeper, mDexKeeper, ctx := getMockTestCaseEvn(t)
 
 	address := mApp.GenesisAccounts[0].GetAddress()
-	listMsg := NewMsgList(address, "btc", "okt", sdk.NewDec(10))
+	listMsg := NewMsgList(address, "btc", common.NativeToken, sdk.NewDec(10))
 
 	handlerFunctor := NewHandler(mApp.dexKeeper)
 
