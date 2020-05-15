@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
@@ -238,7 +240,7 @@ func TestTallyDelegatorInherit(t *testing.T) {
 	CreateValidators(t, stakingHandler, ctx, valAddrs, []int64{5, 5, 5})
 	staking.EndBlocker(ctx, sk)
 
-	coin, err := sdk.ParseDecCoin("11000okt")
+	coin, err := sdk.ParseDecCoin("11000" + common.NativeToken)
 	require.Nil(t, err)
 	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
@@ -281,7 +283,7 @@ func TestTallyDelegatorOverride(t *testing.T) {
 	CreateValidators(t, stakingHandler, ctx, valAddrs, []int64{5, 5, 5})
 	staking.EndBlocker(ctx, sk)
 
-	coin, err := sdk.ParseDecCoin("1okt")
+	coin, err := sdk.ParseDecCoin("1" + common.NativeToken)
 	require.Nil(t, err)
 	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
