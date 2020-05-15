@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/okex/okchain/x/margin"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -73,6 +75,7 @@ var (
 		// okchain extended
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
+		margin.AppModuleBasic{},
 		order.AppModuleBasic{},
 		backend.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
@@ -92,6 +95,7 @@ var (
 		order.ModuleName:          nil,
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
+		margin.ModuleName:         nil,
 	}
 )
 
@@ -126,6 +130,7 @@ type ProtocolV0 struct {
 	streamKeeper   stream.Keeper
 	upgradeKeeper  upgrade.Keeper
 	debugKeeper    debug.Keeper
+	marginKeeper   margin.Keeper
 
 	stopped     bool
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
@@ -267,6 +272,7 @@ func (p *ProtocolV0) produceKeepers() {
 	orderSubspace := p.paramsKeeper.Subspace(order.DefaultParamspace)
 	upgradeSubspace := p.paramsKeeper.Subspace(upgrade.DefaultParamspace)
 	dexSubspace := p.paramsKeeper.Subspace(dex.DefaultParamspace)
+	marginSubspace := p.paramsKeeper.Subspace(margin.DefaultParamspace)
 
 	// 2.add keepers
 	p.accountKeeper = auth.NewAccountKeeper(p.cdc, p.keys[auth.StoreKey], authSubspace, auth.ProtoBaseAccount)
@@ -300,6 +306,8 @@ func (p *ProtocolV0) produceKeepers() {
 	p.dexKeeper = dex.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, dexSubspace, p.tokenKeeper, &stakingKeeper,
 		p.bankKeeper, p.keys[dex.StoreKey], p.keys[dex.TokenPairStoreKey], p.cdc)
 
+	p.marginKeeper = margin.NewKeeper(p.cdc, p.keys[margin.StoreKey], marginSubspace, p.dexKeeper, p.tokenKeeper, p.supplyKeeper)
+
 	p.orderKeeper = order.NewKeeper(
 		p.tokenKeeper, p.supplyKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
@@ -317,7 +325,7 @@ func (p *ProtocolV0) produceKeepers() {
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
-		AddRoute(distr.RouterKey,distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
@@ -367,7 +375,7 @@ func (p *ProtocolV0) setManager() {
 		gov.NewAppModule(version.ProtocolVersionV0, p.govKeeper, p.supplyKeeper),
 		order.NewAppModule(version.ProtocolVersionV0, p.orderKeeper, p.supplyKeeper),
 		token.NewAppModule(version.ProtocolVersionV0, p.tokenKeeper, p.supplyKeeper),
-
+		margin.NewAppModule(p.marginKeeper),
 		// TODO
 		dex.NewAppModule(version.ProtocolVersionV0, p.dexKeeper, p.supplyKeeper),
 		backend.NewAppModule(p.backendKeeper),
@@ -379,6 +387,7 @@ func (p *ProtocolV0) setManager() {
 
 	// ORDER SETTING
 	p.mm.SetOrderBeginBlockers(
+		margin.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -393,6 +402,7 @@ func (p *ProtocolV0) setManager() {
 		gov.ModuleName,
 		dex.ModuleName,
 		order.ModuleName,
+		margin.ModuleName,
 		staking.ModuleName,
 		backend.ModuleName,
 		stream.ModuleName,
@@ -411,6 +421,7 @@ func (p *ProtocolV0) setManager() {
 		supply.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
+		margin.ModuleName,
 		order.ModuleName,
 		upgrade.ModuleName,
 		crisis.ModuleName,

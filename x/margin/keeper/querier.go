@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/okex/okchain/x/common"
-	tokenTypes "github.com/okex/okchain/x/token/types"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -29,17 +27,14 @@ func NewQuerier(k Keeper) sdk.Querier {
 }
 
 func queryMarginAccount(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	addr, err := sdk.AccAddressFromBech32(path[0])
+	addr, err := sdk.AccAddressFromBech32(path[1])
 	if err != nil {
-		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[0]))
+		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[1]))
 	}
 
-	marginAcc := types.GetMarginAccount(addr.String())
-	coinsInfo := keeper.tokenKeeper.GetCoins(ctx, marginAcc)
-
-	accountResponse := tokenTypes.NewAccountResponse(path[0])
-	accountResponse.Currencies = coinsInfo
-	res, err := common.JSONMarshalV2(coinsInfo)
+	//marginAcc := types.GetMarginAccount(addr.String())
+	marginDeposit := keeper.GetAccountDeposit(ctx, addr)
+	res, err := common.JSONMarshalV2(marginDeposit)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}

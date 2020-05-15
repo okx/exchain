@@ -27,7 +27,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	marginTxCmd.AddCommand(flags.PostCommands(
 		// TODO: Add tx based commands
-		GetCmdMarginDeposit(cdc),
+		GetCmdAddDeposit(cdc),
 	)...)
 
 	return marginTxCmd
@@ -58,7 +58,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // }
 
 // GetCmdDeposit is the CLI command for doing Deposit
-func GetCmdMarginDeposit(cdc *codec.Codec) *cobra.Command {
+func GetCmdAddDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "deposit [product] [amount] [flag]",
 		Short: "add deposit for margin trade product ",
@@ -72,7 +72,7 @@ func GetCmdMarginDeposit(cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			msg := types.NewMsgMarginDeposit(from, product, amount)
+			msg := types.NewMsgDeposit(from, product, sdk.NewCoins(amount))
 			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
