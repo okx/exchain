@@ -18,7 +18,7 @@ type TokenKeeper interface {
 	BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins, inputCoins sdk.DecCoins) error
 	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error
 	// Fee detail
-	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string)
+	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string, receiver string)
 	GetAllLockedCoins(ctx sdk.Context) (locks []token.AccCoins)
 	IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool))
 }

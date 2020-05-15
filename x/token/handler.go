@@ -277,7 +277,7 @@ func chargeMultiCoinsFee(ctx sdk.Context, keeper Keeper, from sdk.AccAddress,
 		return feeCharged, sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
 			feeCharged.String())).Result()
 	}
-	keeper.AddFeeDetail(ctx, from.String(), feeCharged, types.FeeTypeTransfer)
+	keeper.AddFeeDetail(ctx, from.String(), feeCharged, types.FeeTypeTransfer, keeper.feeCollectorName)
 	return feeCharged, sdk.Result{}
 }
 

@@ -153,6 +153,7 @@ func GetNewDealsAndMatchResultsAtEndBlock(ctx sdk.Context, orderKeeper types.Ord
 					Quantity:    quantity,
 					Fee:         record.Fee,
 					Timestamp:   ctx.BlockHeader().Time.Unix(),
+					FeeReceiver: record.FeeReceiver,
 				}
 				deals = append(deals, deal)
 

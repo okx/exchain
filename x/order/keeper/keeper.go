@@ -403,22 +403,22 @@ func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.Dec
 	if coins.IsZero() {
 		return
 	}
-	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
+	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, "")
 }
 
 // SendFeesToProductOwner sends fees from the specified address to productOwner
 func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
-	feeType string, product string) error {
+	feeType string, product string) (receiver string, err error) {
 	if coins.IsZero() {
-		return nil
+		return "", nil
 	}
 	to := k.GetProductOwner(ctx, product)
-	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
+	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, to.String())
 	if err := k.tokenKeeper.SendCoinsFromAccountToAccount(ctx, from, to, coins); err != nil {
 		log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
-		return err
+		return "", err
 	}
-	return nil
+	return to.String(), nil
 }
 
 // AddCollectedFees adds fee to the feePool
@@ -428,7 +428,7 @@ func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.DecCoins, from sdk.A
 		return nil
 	}
 	if hasFeeDetail {
-		k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
+		k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, k.feeCollectorName)
 	}
 	baseCoins := coins
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, k.feeCollectorName, baseCoins)

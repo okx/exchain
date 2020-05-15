@@ -336,13 +336,14 @@ func (k Keeper) GetFeeDetailList() []*FeeDetail {
 }
 
 // nolint
-func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string) {
+func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string, receiver string) {
 	if k.enableBackend {
 		feeDetail := &FeeDetail{
 			Address:   from,
 			Fee:       fee.String(),
 			FeeType:   feeType,
 			Timestamp: ctx.BlockHeader().Time.Unix(),
+			Receiver:  receiver,
 		}
 		k.cache.addFeeDetail(feeDetail)
 	}

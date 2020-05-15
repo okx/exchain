@@ -79,8 +79,8 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
 	require.Nil(t, err)
 
-	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, types.FeeTypeTransfer)
-	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, types.FeeTypeTransfer)
+	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, types.FeeTypeTransfer, "")
+	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, types.FeeTypeTransfer, "")
 
 	feeList := keeper.GetFeeDetailList()
 	require.Equal(t, 2, len(feeList))

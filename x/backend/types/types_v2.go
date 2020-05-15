@@ -31,6 +31,7 @@ type Deal struct {
 	Price       float64 `gorm:"type:DOUBLE" json:"price" v2:"price"`
 	Quantity    float64 `gorm:"type:DOUBLE" json:"volume" v2:"volume"`
 	Fee         string  `gorm:"type:varchar(20)" json:"fee" v2:"fee"`
+	FeeReceiver string  `gorm:"index;type:varchar(80)" json:"fee_receiver" v2:"fee_receiver"`
 }
 
 type TickerV2 struct {
