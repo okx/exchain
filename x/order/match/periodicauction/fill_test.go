@@ -667,7 +667,8 @@ func TestChargeFee(t *testing.T) {
 	feeParams := types.DefaultTestParams()
 
 	for _, order := range orders {
-		retFee := chargeFee(order, ctx, keeper, fillQuantity, &feeParams)
+		retFee, deal := chargeFee(order, ctx, keeper, fillQuantity, &feeParams)
 		require.NotEmpty(t, retFee)
+		require.NotEmpty(t, deal)
 	}
 }
