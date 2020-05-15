@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/okex/okchain/x/common"
+
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -135,7 +137,7 @@ var (
 	//defaultCommissionRate          = "0.1"
 	//defaultCommissionMaxRate       = "0.2"
 	//defaultCommissionMaxChangeRate = "0.01"
-	defaultMinSelfDelegation = "0.001okt"
+	defaultMinSelfDelegation = "0.001" + common.NativeToken
 )
 
 // CreateValidatorMsgHelpers returns the flagset, particular flags, and a description of defaults
