@@ -33,6 +33,25 @@ func NewHandler(k Keeper) sdk.Handler {
 		return handlerFun()
 	}
 }
+func handleMsgDexDeposit(ctx sdk.Context, keeper Keeper, msg MsgDexDeposit, logger log.Logger) sdk.Result {
+	if sdkErr := keeper.Deposit(ctx, msg.Address, msg.Amount); sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	logger.Debug(fmt.Sprintf("successfully handleMsgDexDeposit: "+
+		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
+
+}
 
 // handle<Action> does x
 func handleMsgMarginDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgMarginDeposit, logger log.Logger) (result sdk.Result) {

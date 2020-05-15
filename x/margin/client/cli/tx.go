@@ -18,44 +18,52 @@ import (
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	marginTxCmd := &cobra.Command{
-		Use:                        types.ModuleName,
-		Short:                      fmt.Sprintf("%s transactions subcommands", types.ModuleName),
-		DisableFlagParsing:         true,
-		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
+		Use:   types.ModuleName,
+		Short: fmt.Sprintf("%s transactions subcommands", types.ModuleName),
+		RunE:  client.ValidateCmd,
 	}
 
 	marginTxCmd.AddCommand(flags.PostCommands(
-		// TODO: Add tx based commands
+		GetCmdDexDeposit(cdc),
 		GetCmdMarginDeposit(cdc),
 	)...)
 
 	return marginTxCmd
 }
 
-// Example:
-//
-// GetCmd<Action> is the CLI command for doing <Action>
-// func GetCmd<Action>(cdc *codec.Codec) *cobra.Command {
-// 	return &cobra.Command{
-// 		Use:   "/* Describe your action cmd */",
-// 		Short: "/* Provide a short description on the cmd */",
-// 		Args:  cobra.ExactArgs(2), // Does your request require arguments
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-// 			inBuf := bufio.NewReader(cmd.InOrStdin())
-// 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+// GetCmdDexDeposit is the CLI command for doing DexDeposit
+func GetCmdDexDeposit(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "dex-deposit [product] [amount]",
+		Short: "dex deposits an amount of token for a product",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-// 			msg := types.NewMsg<Action>(/* Action params */)
-// 			err = msg.ValidateBasic()
-// 			if err != nil {
-// 				return err
-// 			}
+			// Get depositor address
+			address := cliCtx.GetFromAddress()
 
-// 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-// 		},
-// 	}
-// }
+			product := args[0]
+			// Get amount of coins
+			amount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
+			msg := types.MsgDexDeposit{
+				Address: address,
+				Product: product,
+				Amount:  amount,
+			}
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
 
 // GetCmdDeposit is the CLI command for doing Deposit
 func GetCmdMarginDeposit(cdc *codec.Codec) *cobra.Command {
