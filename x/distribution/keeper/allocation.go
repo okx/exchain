@@ -61,21 +61,21 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	}
 
 	feesToVals := feesCollected.MulDecTruncate(sdk.OneDec().Sub(k.GetCommunityTax(ctx)))
-	fee1, fee2 := feesToVals.MulDecTruncate(valPortion), feesToVals.MulDecTruncate(votePortion)
-	remaining := feesCollected.Sub(fee1.Add(fee2))
-	remain1 := k.allocateByVal(ctx, fee1, previousVotes) //allocate rewards equally between validators
-	remain2 := k.allocateByVotePower(ctx, fee2)         //allocate rewards by votes
-	remaining = remaining.Add(remain1.Add(remain2))
+	feeByEqual, feeByVote := feesToVals.MulDecTruncate(valPortion), feesToVals.MulDecTruncate(votePortion)
+	feesToCommunity := feesCollected.Sub(feeByEqual.Add(feeByVote))
+	remainByEqual := k.allocateByEqual(ctx, feeByEqual, previousVotes) //allocate rewards equally between validators
+	remainByVote := k.allocateByVote(ctx, feeByVote)                   //allocate rewards by votes
+	feesToCommunity = feesToCommunity.Add(remainByEqual.Add(remainByVote))
 
 	// allocate community funding
-	if !remaining.IsZero() {
-		feePool.CommunityPool = feePool.CommunityPool.Add(remaining)
+	if !feesToCommunity.IsZero() {
+		feePool.CommunityPool = feePool.CommunityPool.Add(feesToCommunity)
 		k.SetFeePool(ctx, feePool)
-		logger.Debug("Send remaining to community pool", "remaining", remaining)
+		logger.Debug("Send fees to community pool", "community_pool", feesToCommunity)
 	}
 }
 
-func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVotes []abci.VoteInfo) sdk.DecCoins {
+func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.DecCoins, previousVotes []abci.VoteInfo) sdk.DecCoins {
 	logger := k.Logger(ctx)
 
 	//count the total sum of the unJailed val
@@ -105,7 +105,7 @@ func (k Keeper) allocateByVal(ctx sdk.Context, rewards sdk.DecCoins, previousVot
 	return remaining
 }
 
-func (k Keeper) allocateByVotePower(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
+func (k Keeper) allocateByVote(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
 	logger := k.Logger(ctx)
 
 	//allocate tokens proportionally by votes to validators and candidators
