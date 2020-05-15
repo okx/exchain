@@ -1,7 +1,11 @@
 package order
 
 import (
+	"github.com/okex/okchain/x/order/keeper"
+	"math/rand"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
@@ -546,4 +550,94 @@ func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
 	require.EqualValues(t, "", collectedFees.String())
+}
+
+func TestFillPrecision(t *testing.T) {
+	mapp, addrKeysSlice := getMockApp(t, 2)
+	k := mapp.orderKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+
+	var startHeight int64 = 10
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+	BeginBlocker(ctx, k)
+
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	feeParams := types.DefaultParams()
+	mapp.orderKeeper.SetParams(ctx, &feeParams)
+
+	tokenPair := dex.GetBuiltInTokenPair()
+	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
+
+	// mock orders
+	orderIdx := 0
+	roundN := 1  // Need more balance to make a large round
+	orderNums := 20
+	var orders []*types.Order
+
+	for j := 0 ; j < roundN; j++ {
+		rand.Seed(time.Now().Unix())
+		price := float64(25000 + rand.Intn(5000))/10000
+
+		for i:=0; i< orderNums; i++ {
+			var buyPrice string
+			var sellPrice string
+			var quantity string
+
+			rand.Seed(time.Now().Unix() + int64(orderIdx) + 1)
+
+			// Test different precision of price and quantity
+			//
+			//flag := float64(rand.Intn(9))/10
+			//
+			//rand.Seed(time.Now().Unix() + int64(orderIdx))
+			//if flag > 0.5{
+			//	quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 5,64)
+			//	buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 3, 64)
+			//	sellPrice = strconv.FormatFloat(price, 'f', 3, 64)
+			//}else{
+			//	quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4,64)
+			//	buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 4, 64)
+			//	sellPrice = strconv.FormatFloat(price, 'f', 4, 64)
+			//}
+
+			// Test Same precision of price and quantity
+			quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4,64)
+			buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 4, 64)
+			sellPrice = strconv.FormatFloat(price, 'f', 4, 64)
+
+			tmp, err := strconv.ParseFloat(quantity, 64)
+			if tmp == 0.0 {
+				continue
+			}
+
+			orderIdx += 1
+			buyOrder := types.MockOrder(types.FormatOrderID(startHeight, int64(orderIdx)), types.TestTokenPair, types.BuyOrder, buyPrice, quantity)
+			orderIdx += 1
+			sellOrder :=types.MockOrder(types.FormatOrderID(startHeight, int64(orderIdx)), types.TestTokenPair, types.SellOrder, sellPrice, quantity)
+
+			buyOrder.Sender = addrKeysSlice[0].Address
+			sellOrder.Sender = addrKeysSlice[1].Address
+
+			orders = append(orders, buyOrder,sellOrder)
+			err = k.PlaceOrder(ctx, buyOrder)
+			require.NoError(t, err)
+
+			orders = append(orders, sellOrder)
+			err = k.PlaceOrder(ctx, sellOrder)
+		}
+	}
+	// call EndBlocker to execute periodic match
+	EndBlocker(ctx, k)
+
+	N :=  len(orders) / 1000
+	for i :=0 ;i< N; i++ {
+		ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + int64(1 + i))
+		BeginBlocker(ctx, k)
+		EndBlocker(ctx, k)
+	}
+
+	invaFunc := keeper.ModuleAccountInvariant(mapp.orderKeeper)
+	_, isInval := invaFunc(ctx)
+	require.EqualValues(t, false, isInval)
 }
