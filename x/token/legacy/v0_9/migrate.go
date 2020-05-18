@@ -10,12 +10,7 @@ import (
 
 func Migrate(oldGenState v08token.GenesisState, oldgovParams v08gov.GovParams) GenesisState {
 
-	params := types.Params{
-		//FeeIssue: sdk.NewDecCoinFromDec(common.NativeToken, oldGenState.Params.IssueAsset),
-		//FeeMint:  sdk.NewDecCoinFromDec(common.NativeToken, oldGenState.Params.MintAsset),
-		//FeeBurn:  sdk.NewDecCoinFromDec(common.NativeToken, oldGenState.Params.BurnAsset),
-		//FeeSend:  sdk.NewDecCoinFromDec(common.NativeToken, oldGenState.Params.Transfer),
-	}
+	params := types.DefaultParams()
 
 	tokens := make([]types.Token, len(oldGenState.Info))
 	for k, token := range oldGenState.Info {
