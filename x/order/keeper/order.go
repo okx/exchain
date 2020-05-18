@@ -49,8 +49,11 @@ func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
 	k.SetBlockOrderNum(ctx, blockHeight, orderNum+1)
 	k.SetOrder(ctx, order.OrderID, order)
 
-	// update depth book and orderIDsMap in cache
-	k.InsertOrderIntoDepthBook(order)
+	if !ctx.IsCheckTx() {
+		// update depth book and orderIDsMap in cache
+		k.InsertOrderIntoDepthBook(order)
+	}
+
 	return nil
 }
 
@@ -96,7 +99,10 @@ func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, l
 	order.Unlock()
 	k.SetOrder(ctx, order.OrderID, order)
 
-	// remove order from depth book cache
-	k.RemoveOrderFromDepthBook(order, feeType)
+	if !ctx.IsCheckTx() {
+		// remove order from depth book cache
+		k.RemoveOrderFromDepthBook(order, feeType)
+	}
+
 	return fee
 }
