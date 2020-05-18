@@ -870,7 +870,7 @@ func TestCreateMsgMultiSend(t *testing.T) {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(btcSymbol, "998")
 			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79999.005")...)
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79998.99250000")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97498.99250000")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(btcSymbol, "2")
