@@ -22,7 +22,6 @@ var (
 	KeyFeeMint      = []byte("FeeMint")
 	KeyFeeBurn      = []byte("FeeBurn")
 	KeyFeeModify    = []byte("FeeModify")
-	KeyFeeMultiSend = []byte("FeeMultiSend")
 	KeyFeeChown     = []byte("FeeChown")
 )
 
