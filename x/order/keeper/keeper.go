@@ -15,6 +15,13 @@ import (
 
 var onStartUp sync.Once
 
+// This struct is used for memory copy when ctx mode is checkTx, You should never use it
+type CopyCache struct {
+	CopyHeight int64
+	Cache     *Cache
+	DiskCache *DiskCache
+}
+
 // Keeper maintains the link to data storage and exposes getter/setter methods
 // for the various parts of the state machine
 type Keeper struct {
@@ -39,6 +46,7 @@ type Keeper struct {
 	// reset cache data in BeginBlock
 	cache     *Cache
 	diskCache *DiskCache
+	copyCache *CopyCache
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
@@ -63,6 +71,7 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper Dex
 		cdc:       cdc,
 		cache:     NewCache(),
 		diskCache: newDiskCache(),
+		copyCache: nil,
 	}
 }
 
@@ -94,7 +103,6 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		bookIter.Close()
 	})
 
-
 	// Reset cache
 	k.cache.reset()
 
@@ -102,7 +110,6 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 	k.diskCache.reset()
 	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
 	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
-
 }
 
 // Cache2Disk flushes cached data into KVStore, called in EndBlock
@@ -525,4 +532,26 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 		}
 	}
 	return cleanProducts
+}
+
+// nolint
+func (k *Keeper) FreezeCache(ctx sdk.Context) {
+	k.copyCache = &CopyCache{
+		CopyHeight: ctx.BlockHeight(),
+		Cache:      k.cache,
+		DiskCache:  k.diskCache,
+	}
+
+	k.cache = NewCache()
+	k.diskCache = newDiskCache()
+}
+
+// nolint
+func (k *Keeper) UnFreezeCache(ctx sdk.Context) {
+	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
+		k.cache = k.copyCache.Cache
+		k.diskCache = k.copyCache.DiskCache
+
+		k.copyCache = nil
+	}
 }

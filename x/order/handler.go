@@ -17,6 +17,11 @@ import (
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		if ctx.IsCheckTx() {
+			keeper.FreezeCache(ctx)
+			defer keeper.UnFreezeCache(ctx)
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var handlerFun func() sdk.Result
 		var name string
@@ -38,6 +43,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
+
 		return handlerFun()
 	}
 }

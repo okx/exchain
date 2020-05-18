@@ -19,6 +19,62 @@ import (
 	tokentypes "github.com/okex/okchain/x/token/types"
 )
 
+func TestCtxCheckTxMode(t *testing.T) {
+	mapp, addrKeysSlice := getMockApp(t, 2)
+	keeper := mapp.orderKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+
+	// checkTx mode is true: simulate case!
+	ctx := mapp.BaseApp.NewContext(true, abci.Header{}).WithBlockHeight(10)
+
+	feeParams := types.DefaultTestParams()
+	mapp.orderKeeper.SetParams(ctx, &feeParams)
+
+	tokenPair := dex.GetBuiltInTokenPair()
+	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
+
+	handler := NewOrderHandler(keeper)
+	orderItems := []types.OrderItem{
+		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "5.0"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "0.5"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.5"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "3.0"),
+	}
+
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	_ = handler(ctx, msg)
+
+	require.EqualValues(t, 0 , len(keeper.GetDiskCache().GetOrderIDsMapCopy().Data))
+	require.EqualValues(t, 0 , len(keeper.GetDiskCache().GetUpdatedDepthbookKeys()))
+	require.EqualValues(t, 0, len(keeper.GetDiskCache().GetNewDepthbookKeys()))
+
+	// checkTx mode is false
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(11)
+
+	feeParams = types.DefaultTestParams()
+	mapp.orderKeeper.SetParams(ctx, &feeParams)
+
+	tokenPair = dex.GetBuiltInTokenPair()
+	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
+
+	handler = NewOrderHandler(keeper)
+	orderItems = []types.OrderItem{
+		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "5.0"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "0.5"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.5"),
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "3.0"),
+	}
+
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	_ = handler(ctx, msg)
+
+	require.EqualValues(t, 2 , len(keeper.GetDiskCache().GetOrderIDsMapCopy().Data))
+	require.EqualValues(t, 1 , len(keeper.GetDiskCache().GetUpdatedDepthbookKeys()))
+	require.EqualValues(t, 1, len(keeper.GetDiskCache().GetNewDepthbookKeys()))
+}
+
 func TestEventNewOrders(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	keeper := mapp.orderKeeper
@@ -45,7 +101,6 @@ func TestEventNewOrders(t *testing.T) {
 	result := handler(ctx, msg)
 
 	require.EqualValues(t, 2, len(result.Events[4].Attributes))
-
 }
 
 func TestFeesNewOrders(t *testing.T) {
