@@ -274,7 +274,11 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 			ctx.BlockHeight(), name,
 			msg.From))
 	}
-	
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
+	)
+
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
@@ -294,6 +298,10 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 			ctx.BlockHeight(), name,
 			msg.FromAddress, msg.ToAddress, msg.Amount))
 	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
+	)
 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
