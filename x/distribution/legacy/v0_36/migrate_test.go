@@ -41,4 +41,6 @@ func TestMigrate(t *testing.T) {
 	require.Equal(t, valConsAddr, genesisState.PreviousProposer)
 	require.Equal(t, valOpAddr, genesisState.ValidatorAccumulatedCommissions[0].ValidatorAddress)
 	require.Equal(t, accmulatedComssion, genesisState.ValidatorAccumulatedCommissions[0].Accumulated)
+	require.Equal(t, sdk.NewDecWithPrec(2,2), genesisState.CommunityTax)
+	require.Equal(t, true, genesisState.FeePool.CommunityPool.IsZero())
 }
