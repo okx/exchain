@@ -7,5 +7,4 @@ type FeeDetail struct {
 	Fee       string `gorm:"type:varchar(40)" json:"fee" v2:"fee"`
 	FeeType   string `gorm:"index;type:varchar(20)" json:"fee_type" v2:"fee_type"` 		 // defined in order/types/const.go
 	Timestamp int64  `gorm:"PRIMARY_KEY;type:bigint" json:"timestamp" v2:"timestamp"`
-	OrderID   string `gorm:"PRIMARY_KEY;type:varchar(30)" json:"order_id" v2:"order_id"` // added for opendex
 }
