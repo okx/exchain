@@ -523,7 +523,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 }
 
 func TestCreateTokenIssue(t *testing.T) {
-	intQuantity := int64(30000)
+	intQuantity := int64(3000)
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
@@ -576,7 +576,7 @@ func TestCreateTokenIssue(t *testing.T) {
 }
 
 func TestCreateTokenBurn(t *testing.T) {
-	intQuantity := int64(20011)
+	intQuantity := int64(2511)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
@@ -646,7 +646,7 @@ func TestCreateTokenBurn(t *testing.T) {
 }
 
 func TestCreateTokenMint(t *testing.T) {
-	intQuantity := int64(42001)
+	intQuantity := int64(5011)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
@@ -755,7 +755,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "900")
 			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "80000.0125")...)
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "80000")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97500")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(tokenName, "100")
@@ -780,7 +780,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "800")
 			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79900.005")...)
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79899.9925")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97399.9925")...)
 			require.EqualValues(t, senderCoins.String(), acc.GetCoins().String())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(tokenName, "200")
@@ -1088,13 +1088,13 @@ func TestTxSuccessFeeTable(t *testing.T) {
 		msg     sdk.Msg
 		account *testAccount
 	}{
-		{"success to issue : 20000+0.0125", "9999.98750000", successfulIssueMsg, testAccounts[0]},
-		{"success to mint  : 2000+0.0125", "7999.97500000", successfulMintMsg, testAccounts[0]},
-		{"success to burn  : 10+0.0125", "7989.96250000", successfulBurnMsg, testAccounts[0]},
-		{"success to send  : 0.0125", "7989.95000000", successfulSendMsg, testAccounts[0]},
-		{"success to multi : 10 +0.01*2", "7979.93000000", successfulMultiSendMsg, testAccounts[0]},
-		{"success to modify:0.0125", "7979.91750000", successfulEditMsg, testAccounts[0]},
-		{"success to chown : 10+0.0125", "7969.90500000", successfulChownMsg, testAccounts[0]},
+		{"success to issue : 2500+0.0125", "27499.98750000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 10+0.0125", "27489.97500000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.0125", "27479.96250000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.0125", "27479.95000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10 +0.01*2", "27469.93000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify:0.0125", "27469.91750000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.0125", "27459.90500000", successfulChownMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.name, func(t *testing.T) {
