@@ -9,6 +9,6 @@ import (
 // which now include the period.
 func Migrate(oldGenState v034distr.GenesisState) GenesisState {
 	// migrate slash events which now have the period included
-	return NewGenesisState(oldGenState.WithdrawAddrEnabled, oldGenState.DelegatorWithdrawInfos,
+	return NewGenesisState(oldGenState.FeePool, oldGenState.WithdrawAddrEnabled, oldGenState.DelegatorWithdrawInfos,
 		oldGenState.PreviousProposer, oldGenState.ValidatorAccumulatedCommissions)
 }
