@@ -2,20 +2,20 @@ package types
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
 // Default parameter namespace
 const (
-	DefaultParamspace = ModuleName
-	// TODO: Define your default parameters
+	DefaultParamspace     = ModuleName
+	DefaultWithdrawPeriod = time.Hour * 24 * 3
 )
 
 // Parameter store keys
 var (
-	// TODO: Define your keys for the parameter store
-	// KeyParamName          = []byte("ParamName")
+	keyWithdrawPeriod = []byte("WithdrawPeriod")
 )
 
 // ParamKeyTable for margin module
@@ -25,33 +25,24 @@ func ParamKeyTable() params.KeyTable {
 
 // Params - used for initializing default parameter for margin at genesis
 type Params struct {
-	// TODO: Add your Paramaters to the Paramter struct
-	// KeyParamName string `json:"key_param_name"`
-}
-
-// NewParams creates a new Params object
-func NewParams(/* TODO: Pass in the paramters*/) Params {
-	return Params{
-		// TODO: Create your Params Type
-	}
+	WithdrawPeriod time.Duration `json:"withdraw_period"`
 }
 
 // String implements the stringer interface for Params
 func (p Params) String() string {
-	return fmt.Sprintf(`
-	// TODO: Return all the params as a string
-	`, )
+	return fmt.Sprintf("Params: \nWithdrawPeriod:%d\n", p.WithdrawPeriod)
 }
 
 // ParamSetPairs - Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		// TODO: Pair your key with the param
-		// params.NewParamSetPair(KeyParamName, &p.ParamName),
+		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod},
 	}
 }
 
 // DefaultParams defines the parameters for this module
-func DefaultParams() Params {
-	return NewParams( /* TODO: Pass in your default Params */ )
+func DefaultParams() *Params {
+	return &Params{
+		WithdrawPeriod: DefaultWithdrawPeriod,
+	}
 }

@@ -25,13 +25,14 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	marginTxCmd.AddCommand(flags.PostCommands(
 		GetCmdDexDeposit(cdc),
+		GetCmdDexWithdraw(cdc),
 		GetCmdDeposit(cdc),
 	)...)
 
 	return marginTxCmd
 }
 
-// GetCmdDexDeposit is the CLI command for doing DexDeposit
+// GetCmdDexDeposit is the CLI command for doing dex-deposit
 func GetCmdDexDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "dex-deposit [product] [amount]",
@@ -46,12 +47,43 @@ func GetCmdDexDeposit(cdc *codec.Codec) *cobra.Command {
 
 			product := args[0]
 			// Get amount of coins
-			amount, err := sdk.ParseDecCoins(args[1])
+			amount, err := sdk.ParseDecCoin(args[1])
 			if err != nil {
 				return err
 			}
 
 			msg := types.NewMsgDexDeposit(address, product, amount)
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdDexWithdraw is the CLI command for doing dex-withdraw
+func GetCmdDexWithdraw(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "dex-withdraw [product] [amount]",
+		Short: "dex withdraws an amount of token from a product",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			// Get depositor address
+			address := cliCtx.GetFromAddress()
+
+			product := args[0]
+			// Get amount of coins
+			amount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgDexWithdraw(address, product, amount)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

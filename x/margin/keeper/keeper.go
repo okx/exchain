@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
@@ -135,6 +136,7 @@ func (k Keeper) GetTradePair(ctx sdk.Context, product string) *types.TradePair {
 	return &tradePair
 }
 
+// SetTradePair saves the trade pair to db
 func (k Keeper) SetTradePair(ctx sdk.Context, tradePair *types.TradePair) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetTradePairKey(tradePair.Name)
@@ -142,11 +144,11 @@ func (k Keeper) SetTradePair(ctx sdk.Context, tradePair *types.TradePair) {
 }
 
 // Deposit deposits amount of tokens for a product
-func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+func (k Keeper) Deposit(ctx sdk.Context, from sdk.AccAddress, product string, amount sdk.DecCoin) sdk.Error {
 	tradePair := k.GetTradePair(ctx, product)
 	if tradePair == nil {
 		tradePair = &types.TradePair{
-			Owner:       address,
+			Owner:       from,
 			Name:        product,
 			Deposit:     amount,
 			BlockHeight: ctx.BlockHeight(),
@@ -155,10 +157,117 @@ func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string,
 		tradePair.Deposit = tradePair.Deposit.Add(amount)
 	}
 
-	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount)
+	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, amount.ToCoins())
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.ToCoins().String()))
 	}
 	k.SetTradePair(ctx, tradePair)
+	return nil
+}
+
+// Withdraw withdraws amount of tokens from a product
+func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
+	tradePair := k.GetTradePair(ctx, product)
+	if tradePair == nil {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because non-exist product: %s", product))
+	}
+
+	if !tradePair.Owner.Equals(to) {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to withdraws because %s is not the owner of product:%s", to.String(), product))
+	}
+
+	if tradePair.Deposit.IsLT(amount) {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraws because deposits:%s is less than withdraw:%s", tradePair.Deposit.String(), amount.String()))
+	}
+
+	completeTime := ctx.BlockHeader().Time.Add(k.GetParams(ctx).WithdrawPeriod)
+	// add withdraw info to store
+	withdrawInfo, ok := k.GetWithdrawInfo(ctx, to)
+	if !ok {
+		withdrawInfo = types.WithdrawInfo{
+			Owner:        to,
+			Deposits:     amount,
+			CompleteTime: completeTime,
+		}
+	} else {
+		k.DeleteWithdrawCompleteTimeAddress(ctx, withdrawInfo.CompleteTime, to)
+		withdrawInfo.Deposits = withdrawInfo.Deposits.Add(amount)
+		withdrawInfo.CompleteTime = completeTime
+	}
+	k.SetWithdrawInfo(ctx, withdrawInfo)
+	k.SetWithdrawCompleteTimeAddress(ctx, completeTime, to)
+
+	// update token pair
+	tradePair.Deposit = tradePair.Deposit.Sub(amount)
+	k.SetTradePair(ctx, tradePair)
+	return nil
+}
+
+// GetWithdrawInfo returns withdraw info binding the addr
+func (k Keeper) GetWithdrawInfo(ctx sdk.Context, addr sdk.AccAddress) (withdrawInfo types.WithdrawInfo, ok bool) {
+	bytes := ctx.KVStore(k.storeKey).Get(types.GetWithdrawKey(addr))
+	if bytes == nil {
+		return
+	}
+
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bytes, &withdrawInfo)
+	return withdrawInfo, true
+}
+
+// SetWithdrawInfo sets withdraw address key with withdraw info
+func (k Keeper) SetWithdrawInfo(ctx sdk.Context, withdrawInfo types.WithdrawInfo) {
+	key := types.GetWithdrawKey(withdrawInfo.Owner)
+	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(withdrawInfo)
+	ctx.KVStore(k.storeKey).Set(key, bytes)
+}
+
+// SetWithdrawCompleteTimeAddress sets withdraw time key with empty []byte{} value
+func (k Keeper) SetWithdrawCompleteTimeAddress(ctx sdk.Context, completeTime time.Time, addr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Set(types.GetWithdrawTimeAddressKey(completeTime, addr), []byte{})
+}
+
+// DeleteWithdrawCompleteTimeAddress deletes withdraw time key
+func (k Keeper) DeleteWithdrawCompleteTimeAddress(ctx sdk.Context, timestamp time.Time, delAddr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Delete(types.GetWithdrawTimeAddressKey(timestamp, delAddr))
+}
+func (k Keeper) withdrawTimeKeyIterator(ctx sdk.Context, endTime time.Time) sdk.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetWithdrawTimeKey(endTime)
+	return store.Iterator(types.WithdrawTimeKeyPrefix, sdk.PrefixEndBytes(key))
+}
+
+// IterateWithdrawAddress itreates withdraw time keys, and returns address
+func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
+	fn func(index int64, key []byte) (stop bool)) {
+	// iterate for all keys of (time+delAddr) from time 0 until the current time
+	timeKeyIterator := k.withdrawTimeKeyIterator(ctx, currentTime)
+	defer timeKeyIterator.Close()
+
+	for i := int64(0); timeKeyIterator.Valid(); timeKeyIterator.Next() {
+		key := timeKeyIterator.Key()
+		if stop := fn(i, key); stop {
+			break
+		}
+		i++
+	}
+}
+
+func (k Keeper) deleteWithdrawInfo(ctx sdk.Context, addr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Delete(types.GetWithdrawKey(addr))
+}
+
+// CompleteWithdraw completes withdrawing of addr
+func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
+	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
+	if !ok {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address%s", addr.String()))
+	}
+	withdrawCoins := withdrawInfo.Deposits.ToCoins()
+	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("withdraw error: %s, insufficient deposit coins(need %s)",
+			err.Error(), withdrawCoins.String()))
+	}
+	k.deleteWithdrawInfo(ctx, addr)
 	return nil
 }

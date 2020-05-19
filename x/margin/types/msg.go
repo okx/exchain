@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,11 +21,11 @@ var _ sdk.Msg = &MsgWithdraw{}
 type MsgDexDeposit struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
-	Amount  sdk.DecCoins   `json:"amount"`
+	Amount  sdk.DecCoin    `json:"amount"`
 }
 
 // NewMsgDexDeposit creates a new MsgDeposit instance
-func NewMsgDexDeposit(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgDexDeposit {
+func NewMsgDexDeposit(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgDexDeposit {
 	return MsgDexDeposit{
 		Address: address,
 		Product: product,
@@ -42,7 +44,9 @@ func (msg MsgDexDeposit) ValidateBasic() sdk.Error {
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
-
+	if msg.Amount.Denom != sdk.DefaultBondDenom {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because deposits only support %s token", sdk.DefaultBondDenom))
+	}
 	return nil
 }
 
@@ -84,7 +88,9 @@ func (msg MsgDexWithdraw) ValidateBasic() sdk.Error {
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
-
+	if msg.Amount.Denom != sdk.DefaultBondDenom {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because deposits only support %s token", sdk.DefaultBondDenom))
+	}
 	return nil
 }
 

@@ -21,6 +21,10 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgDexDeposit(ctx, k, msg, logger)
 			}
+		case types.MsgDexWithdraw:
+			handlerFun = func() sdk.Result {
+				return handleMsgDexWithdraw(ctx, k, msg, logger)
+			}
 		case types.MsgDeposit:
 			handlerFun = func() sdk.Result {
 				return handleMsgMarginDeposit(ctx, k, msg, logger)
@@ -57,6 +61,24 @@ func handleMsgDexDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDexDeposit
 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 
+}
+
+func handleMsgDexWithdraw(ctx sdk.Context, keeper Keeper, msg types.MsgDexWithdraw, logger log.Logger) sdk.Result {
+	if sdkErr := keeper.Withdraw(ctx, msg.Product, msg.Address, msg.Amount); sdkErr != nil {
+		return sdkErr.Result()
+	}
+
+	logger.Debug(fmt.Sprintf("successfully handleMsgDexWithdraw: "+
+		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 // handle<Action> does x
