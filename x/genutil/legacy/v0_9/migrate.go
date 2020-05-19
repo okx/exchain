@@ -265,7 +265,6 @@ func genAccountMigrate(
 		}
 	}
 	//bondedCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, bondedAmt))
-	//bondedCoins := sdk.NewDecCoins(sdk.NewDecCoinsFromDec(bondDenom, sdk.NewDecFromBigInt(bondedAmt.BigInt())))
 	bondedCoins := sdk.NewDecCoins(sdk.NewDecCoinsFromDec(bondDenom, sdk.NewDecFromBigIntWithPrec(bondedAmt.BigInt(), 3)))
 	notBondedCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, notBondedAmt))
 
