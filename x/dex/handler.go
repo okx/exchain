@@ -16,7 +16,7 @@ func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
 	default:
 		switch k.(type) {
 		case Keeper:
-			k = k.FreezeCache(ctx).(Keeper)
+			k = k.FreezeCache(ctx)
 		}
 	}
 
