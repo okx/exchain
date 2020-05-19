@@ -14,6 +14,12 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
+// This struct is used for memory copy when ctx mode is checkTx, You should never use it
+type CopyCache struct {
+	CopyHeight int64
+	Cache     *Cache
+}
+
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
 	bankKeeper       bank.Keeper
@@ -33,6 +39,7 @@ type Keeper struct {
 	// cache data in memory to avoid marshal/unmarshal too frequently
 	// reset cache data in BeginBlock
 	cache *Cache
+	copyCache *CopyCache
 }
 
 // NewKeeper creates a new token keeper
@@ -49,6 +56,7 @@ func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
 		cdc:              cdc,
 		enableBackend:    enableBackend,
 		cache:            NewCache(),
+		copyCache: nil,
 	}
 	return k
 }
@@ -396,4 +404,23 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 		return "", false
 	}
 	return name, true
+}
+
+// nolint
+func (k *Keeper) FreezeCache(ctx sdk.Context) {
+	k.copyCache = &CopyCache{
+		CopyHeight: ctx.BlockHeight(),
+		Cache:      k.cache,
+	}
+
+	k.cache = NewCache()
+}
+
+// nolint
+func (k *Keeper) UnFreezeCache(ctx sdk.Context) {
+	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
+		k.cache = k.copyCache.Cache
+
+		k.copyCache = nil
+	}
 }
