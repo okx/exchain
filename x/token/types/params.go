@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	DefaultFeeIssue  = "20000"
-	DefaultFeeMint   = "2000"
+	DefaultFeeIssue  = "2500"
+	DefaultFeeMint   = "10"
 	DefaultFeeBurn   = "10"
 	DefaultFeeModify = "0"
 	DefaultFeeChown     = "10"
