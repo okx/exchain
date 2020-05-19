@@ -253,34 +253,6 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func chargeMultiCoinsFee(ctx sdk.Context, keeper Keeper, from sdk.AccAddress,
-	coinNum int) (feeCharged sdk.DecCoins, result sdk.Result) {
-
-	feeCharged = sdk.ZeroFee().ToCoins()
-
-	if coinNum == 1 {
-		return feeCharged, result
-	}
-
-	fee := keeper.GetParams(ctx).FeeMultiSend.Amount.MulInt64(int64(coinNum))
-	feeAmount := fee.Sub(sdk.GetSystemFee().Amount)
-
-	if feeAmount.IsNegative() {
-		// charge nothing, since it's already covered by system fee
-		return feeCharged, result
-	}
-
-	// deduction fee
-	feeCharged = sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, feeAmount)
-	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, keeper.feeCollectorName, feeCharged)
-	if err != nil {
-		return feeCharged, sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCharged.String())).Result()
-	}
-	keeper.AddFeeDetail(ctx, from.String(), feeCharged, types.FeeTypeTransfer, keeper.feeCollectorName)
-	return feeCharged, sdk.Result{}
-}
-
 func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) sdk.Result {
 	var transfers string
 	var coinNum int
@@ -294,11 +266,6 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
 
-	actualFee, chargeResult := chargeMultiCoinsFee(ctx, keeper, msg.From, coinNum)
-	if !chargeResult.IsOK() {
-		return chargeResult
-	}
-
 	name := "handleMsgMultiSend"
 	if logger != nil {
 		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
@@ -310,12 +277,9 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 	}
 
 	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeyFee, actualFee.String()),
-		),
+		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
 	)
+
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
@@ -325,11 +289,6 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient coins(need %s)",
 			msg.Amount.String())).Result()
-	}
-
-	actualFee, chargeResult := chargeMultiCoinsFee(ctx, keeper, msg.FromAddress, len(msg.Amount))
-	if !chargeResult.IsOK() {
-		return chargeResult
 	}
 
 	var name = "handleMsgSend"
@@ -342,12 +301,9 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 	}
 
 	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-			sdk.NewAttribute(sdk.AttributeKeyFee, actualFee.String()),
-		),
+		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
 	)
+
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
