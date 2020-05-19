@@ -15,8 +15,8 @@ import (
 func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		if ctx.IsCheckTx() {
-			keeper.FreezeCache(ctx)
-			defer keeper.UnFreezeCache(ctx)
+			keeper = keeper.FreezeCache(ctx)
+			defer func(){keeper = keeper.UnFreezeCache(ctx)}()
 		}
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())

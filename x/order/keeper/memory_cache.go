@@ -129,3 +129,57 @@ func (c *Cache) GetExpireNum() int64 {
 func (c *Cache) GetPartialFillNum() int64 {
 	return c.partialFillNum
 }
+
+// nolint
+func (c *Cache) DepthCopy() *Cache {
+	cache := Cache{
+		updatedOrderIDs:  nil,
+		blockMatchResult: nil,
+		params:           nil,
+		cancelNum:        c.cancelNum,
+		expireNum:        c.expireNum,
+		partialFillNum:   c.partialFillNum,
+		fullFillNum:      c.fullFillNum,
+	}
+
+	if c.updatedOrderIDs != nil {
+		cpUpdatedOrderIDs := make([]string, len(c.updatedOrderIDs))
+		copy(cpUpdatedOrderIDs, c.updatedOrderIDs)
+
+		cache.updatedOrderIDs = cpUpdatedOrderIDs
+	}
+
+	if c.blockMatchResult != nil {
+		cache.blockMatchResult = &types.BlockMatchResult{
+			BlockHeight: c.blockMatchResult.BlockHeight,
+			ResultMap: nil,
+			TimeStamp: c.blockMatchResult.TimeStamp,
+		}
+
+		if c.blockMatchResult.ResultMap != nil {
+			cpResultMap := make(map[string]types.MatchResult)
+			for k, v := range c.blockMatchResult.ResultMap {
+				cpDeals := make([]types.Deal, len(v.Deals))
+				cpDeals = append(cpDeals, v.Deals...)
+
+				cpResultMap[k] = types.MatchResult{
+					BlockHeight: v.BlockHeight,
+					Price: v.Price,
+					Quantity: v.Quantity,
+					Deals: cpDeals,
+				}
+			}
+		}
+	}
+
+	if c.params != nil {
+		cache.params = &types.Params{
+			OrderExpireBlocks: c.params.OrderExpireBlocks,
+			MaxDealsPerBlock:  c.params.MaxDealsPerBlock,
+			FeePerBlock:       c.params.FeePerBlock,
+			TradeFeeRate:      c.params.TradeFeeRate,
+		}
+	}
+
+	return &cache
+}

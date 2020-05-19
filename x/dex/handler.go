@@ -9,14 +9,45 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+//func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
+//	switch k.(interface{}).(type) {
+//	case *mockDexKeeper:
+//		tmpKeeper := interface{}(k).(*mockDexKeeper).Keeper.FreezeCache(ctx).(Keeper)
+//		interface{}(k).(*mockDexKeeper).Keeper = &tmpKeeper
+//	default:
+//		switch k.(type) {
+//		case Keeper:
+//			k = k.FreezeCache(ctx)
+//		}
+//	}
+//
+//	return k
+//}
+
+//func UnFreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
+//	switch k.(interface{}).(type) {
+//	case *mockDexKeeper:
+//		tmpKeeper := interface{}(k).(*mockDexKeeper).Keeper.UnFreezeCache(ctx).(Keeper)
+//		interface{}(k).(*mockDexKeeper).Keeper = &tmpKeeper
+//	default:
+//		switch k.(type) {
+//		case Keeper:
+//			k = k.UnFreezeCache(ctx)
+//		}
+//	}
+//
+//	return k
+//}
+
 func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
 	switch k.(interface{}).(type) {
 	case *mockDexKeeper:
-		 k = interface{}(k).(*mockDexKeeper).Keeper.FreezeCache(ctx)
+		tmpK := interface{}(k).(*mockDexKeeper).Keeper.FreezeCache(ctx)
+		interface{}(k).(*mockDexKeeper).Keeper = &tmpK
 	default:
 		switch k.(type) {
 		case Keeper:
-			k = k.FreezeCache(ctx)
+			k = k.(Keeper).FreezeCache(ctx)
 		}
 	}
 
@@ -26,11 +57,12 @@ func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
 func UnFreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
 	switch k.(interface{}).(type) {
 	case *mockDexKeeper:
-		k = interface{}(k).(*mockDexKeeper).Keeper.UnFreezeCache(ctx)
+		tmpK := interface{}(k).(*mockDexKeeper).Keeper.UnFreezeCache(ctx)
+		interface{}(k).(*mockDexKeeper).Keeper = &tmpK
 	default:
 		switch k.(type) {
 		case Keeper:
-			k = k.UnFreezeCache(ctx)
+			k = k.(Keeper).UnFreezeCache(ctx)
 		}
 	}
 
@@ -42,7 +74,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		if ctx.IsCheckTx() {
 			k = FreezeCache(ctx, k)
-			defer func (){ k = UnFreezeCache(ctx, k)}()
+			defer func() { k = UnFreezeCache(ctx, k) }()
 		}
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())

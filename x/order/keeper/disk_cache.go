@@ -234,3 +234,77 @@ func (c *DiskCache) removeOrder(order *types.Order) {
 
 	c.closeOrder(order.OrderID)
 }
+
+// nolint
+func (c *DiskCache) DepthCopy() *DiskCache {
+	cache := DiskCache{
+		depthBookMap:   nil,
+		orderIDsMap:    nil,
+		priceMap:       nil,
+		storeOrderNum:  c.storeOrderNum,
+		openNum:        c.openNum,
+		closedOrderIDs: nil,
+	}
+
+	if c.depthBookMap != nil {
+		cpData := make(map[string]*types.DepthBook)
+		for k , v := range c.depthBookMap.data{
+			cpItems := make([]types.DepthBookItem, len(v.Items))
+			cpItems = append(cpItems, v.Items...)
+			cpData[k] = &types.DepthBook{Items: cpItems}
+		}
+
+		cpUpdatedItems := make(map[string]struct{})
+		for k, _ := range c.depthBookMap.updatedItems {
+			cpUpdatedItems[k] = struct{}{}
+		}
+
+		cpNewItems := make(map[string]struct{})
+		for k, _ := range c.depthBookMap.newItems {
+			cpNewItems[k] = struct{}{}
+		}
+
+		cache.depthBookMap =  &DepthBookMap{
+			data:         cpData,
+			updatedItems: cpUpdatedItems,
+			newItems:     cpNewItems,
+		}
+	}
+
+	if c.orderIDsMap != nil {
+		cpData := make(map[string][]string)
+		for k, v := range c.orderIDsMap.Data{
+			orderIDs := make([]string, len(v))
+			orderIDs = append(orderIDs, v...)
+			cpData[k] = orderIDs
+		}
+
+		cpUpdateItems := make(map[string]struct{})
+		for k, _ := range c.orderIDsMap.updatedItems {
+			cpUpdateItems[k] = struct{}{}
+		}
+
+		cache.orderIDsMap = &OrderIDsMap{
+			Data:         cpData,
+			updatedItems: cpUpdateItems,
+		}
+	}
+
+	if c.priceMap != nil {
+		cpPriceMap := make(map[string]sdk.Dec)
+		for k, v := range c.priceMap {
+			cpPriceMap[k] = v
+		}
+
+		cache.priceMap = cpPriceMap
+	}
+
+	if c.closedOrderIDs != nil {
+		cpClosedOrderIDs := make([]string, len(c.closedOrderIDs))
+		cpClosedOrderIDs = append(cpClosedOrderIDs, c.closedOrderIDs...)
+
+		cache.closedOrderIDs = cpClosedOrderIDs
+	}
+
+	return &cache
+}

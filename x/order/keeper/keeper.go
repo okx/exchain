@@ -535,23 +535,38 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 }
 
 // nolint
-func (k *Keeper) FreezeCache(ctx sdk.Context) {
+func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
+	tmpCache := k.cache.DepthCopy()
+	tmpDiskCache := k.diskCache.DepthCopy()
+
 	k.copyCache = &CopyCache{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 		DiskCache:  k.diskCache,
 	}
 
-	k.cache = NewCache()
-	k.diskCache = newDiskCache()
+	k.cache = tmpCache
+	k.diskCache = tmpDiskCache
+
+	// depend keeper
+	//tmpKeeper := k.tokenKeeper.(token.Keeper)
+	//k.tokenKeeper = tmpKeeper.FreezeCache(ctx)
+
+	return k
 }
 
 // nolint
-func (k *Keeper) UnFreezeCache(ctx sdk.Context) {
+func (k Keeper) UnFreezeCache(ctx sdk.Context) Keeper {
 	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
 		k.cache = k.copyCache.Cache
 		k.diskCache = k.copyCache.DiskCache
 
 		k.copyCache = nil
+
+		// depend keeper
+		//tmpKeeper := k.tokenKeeper.(token.Keeper)
+		//k.tokenKeeper = tmpKeeper.UnFreezeCache(ctx)
 	}
+
+	return k
 }

@@ -88,3 +88,74 @@ func (c *Cache) AddNewTokenPair(tokenPair *types.TokenPair) {
 func (c *Cache) GetNewTokenPair() []*types.TokenPair {
 	return c.newTokenPairMap
 }
+
+// nolint
+func (c *Cache) DepthCopy() *Cache {
+	cache := Cache{
+		tokenPairMap:     nil,
+		newTokenPairMap:  nil,
+		tokenPairChanged: c.tokenPairChanged,
+		lockMap:          nil,
+	}
+
+	if c.tokenPairMap != nil {
+		cpTokenPairMap := make(map[string]*types.TokenPair)
+		for k, v := range c.tokenPairMap{
+			cpTokenPairMap[k] = &types.TokenPair{
+				BaseAssetSymbol:  v.BaseAssetSymbol,
+				QuoteAssetSymbol: v.QuoteAssetSymbol,
+				InitPrice:        v.InitPrice,
+				MaxPriceDigit:    v.MaxPriceDigit,
+				MaxQuantityDigit: v.MaxQuantityDigit,
+				MinQuantity:      v.MinQuantity,
+				ID:               v.ID,
+				Delisting:        v.Delisting,
+				Owner:            v.Owner,
+				Deposits:         v.Deposits,
+				BlockHeight:      v.BlockHeight,
+			}
+		}
+
+		cache.tokenPairMap = cpTokenPairMap
+	}
+
+	if c.newTokenPairMap != nil {
+		cpNewTokenPairMap := make([]*types.TokenPair, len(c.newTokenPairMap))
+		for _, v := range c.newTokenPairMap{
+			cpNewTokenPairMap = append(cpNewTokenPairMap, &types.TokenPair{
+				BaseAssetSymbol:  v.BaseAssetSymbol,
+				QuoteAssetSymbol: v.QuoteAssetSymbol,
+				InitPrice:        v.InitPrice,
+				MaxPriceDigit:    v.MaxPriceDigit,
+				MaxQuantityDigit: v.MaxQuantityDigit,
+				MinQuantity:      v.MinQuantity,
+				ID:               v.ID,
+				Delisting:        v.Delisting,
+				Owner:            v.Owner,
+				Deposits:         v.Deposits,
+				BlockHeight:      v.BlockHeight,
+			})
+		}
+
+		cache.newTokenPairMap = cpNewTokenPairMap
+	}
+
+	if c.lockMap != nil {
+		cpData := make(map[string]*ordertypes.ProductLock)
+		for k, v := range c.lockMap.Data{
+			cpData[k] = &ordertypes.ProductLock{
+				BlockHeight:  v.BlockHeight,
+				Price:        v.Price,
+				Quantity:     v.Quantity,
+				BuyExecuted:  v.BuyExecuted,
+				SellExecuted: v.SellExecuted,
+			}
+		}
+
+		cache.lockMap = &ordertypes.ProductLockMap{
+			Data: cpData,
+		}
+	}
+
+	return &cache
+}

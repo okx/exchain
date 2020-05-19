@@ -3,13 +3,13 @@ package order
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okchain/x/common/perf"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/okex/okchain/x/common/perf"
 	"github.com/okex/okchain/x/order/keeper"
 	"github.com/okex/okchain/x/order/types"
 )
@@ -18,8 +18,8 @@ import (
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		if ctx.IsCheckTx() {
-			keeper.FreezeCache(ctx)
-			defer keeper.UnFreezeCache(ctx)
+			keeper = keeper.FreezeCache(ctx)
+			defer func(){ keeper = keeper.UnFreezeCache(ctx)}()
 		}
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())

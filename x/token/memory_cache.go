@@ -29,3 +29,17 @@ func (c *Cache) addFeeDetail(feeDetail *FeeDetail) {
 func (c *Cache) getFeeDetailList() []*FeeDetail {
 	return c.FeeDetails
 }
+
+func (c *Cache) DepthCopy() *Cache {
+	cpFeeDetails := make([]*FeeDetail, len(c.FeeDetails))
+	for _, v := range c.FeeDetails {
+		cpFeeDetails = append(cpFeeDetails, &FeeDetail{
+			Address: v.Address,
+			Fee: v.Fee,
+			FeeType: v.FeeType,
+			Timestamp: v.Timestamp,
+		})
+	}
+
+	return &Cache{FeeDetails: cpFeeDetails}
+}

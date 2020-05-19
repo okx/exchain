@@ -407,20 +407,44 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 }
 
 // nolint
-func (k *Keeper) FreezeCache(ctx sdk.Context) {
+func (k Keeper) FreezeCache(ctx sdk.Context) Keeper {
+	tmpCache := k.cache.DepthCopy()
 	k.copyCache = &CopyCache{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 	}
 
-	k.cache = NewCache()
+	k.cache = tmpCache
+
+	return k
 }
 
 // nolint
-func (k *Keeper) UnFreezeCache(ctx sdk.Context) {
+func (k Keeper) UnFreezeCache(ctx sdk.Context) Keeper {
 	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
 		k.cache = k.copyCache.Cache
 
 		k.copyCache = nil
 	}
+
+	return k
 }
+
+//// nolint
+//func (k *Keeper) FreezeCache(ctx sdk.Context) {
+//	k.copyCache = &CopyCache{
+//		CopyHeight: ctx.BlockHeight(),
+//		Cache:      k.cache.DepthCopy(),
+//	}
+//
+//	k.cache = NewCache()
+//}
+//
+//// nolint
+//func (k *Keeper) UnFreezeCache(ctx sdk.Context) {
+//	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
+//		k.cache = k.copyCache.Cache
+//
+//		k.copyCache = nil
+//	}
+//}

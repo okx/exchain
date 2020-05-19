@@ -3,7 +3,6 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
-
 	dex "github.com/okex/okchain/x/dex/types"
 	"github.com/okex/okchain/x/order/types"
 	token "github.com/okex/okchain/x/token/types"

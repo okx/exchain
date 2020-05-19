@@ -494,18 +494,19 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 }
 
 // nolint
-func (k Keeper) FreezeCache(ctx sdk.Context) IKeeper{
+func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
+	tmpCache := k.cache.DepthCopy()
 	k.copyCache = &CopyCache{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 	}
-	k.cache = NewCache()
+	k.cache = tmpCache
 
 	return k
 }
 
 // nolint
-func (k Keeper) UnFreezeCache(ctx sdk.Context) IKeeper{
+func (k Keeper) UnFreezeCache(ctx sdk.Context) Keeper{
 	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
 		k.cache = k.copyCache.Cache
 		k.copyCache = nil
