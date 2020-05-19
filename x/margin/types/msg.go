@@ -19,11 +19,11 @@ var _ sdk.Msg = &MsgWithdraw{}
 type MsgDexDeposit struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
-	Amount  sdk.DecCoin    `json:"amount"`
+	Amount  sdk.DecCoins   `json:"amount"`
 }
 
 // NewMsgDexDeposit creates a new MsgDeposit instance
-func NewMsgDexDeposit(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgDexDeposit {
+func NewMsgDexDeposit(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgDexDeposit {
 	return MsgDexDeposit{
 		Address: address,
 		Product: product,

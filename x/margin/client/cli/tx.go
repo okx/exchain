@@ -46,15 +46,12 @@ func GetCmdDexDeposit(cdc *codec.Codec) *cobra.Command {
 
 			product := args[0]
 			// Get amount of coins
-			amount, err := sdk.ParseDecCoin(args[1])
+			amount, err := sdk.ParseDecCoins(args[1])
 			if err != nil {
 				return err
 			}
-			msg := types.MsgDexDeposit{
-				Address: address,
-				Product: product,
-				Amount:  amount,
-			}
+
+			msg := types.NewMsgDexDeposit(address, product, amount)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

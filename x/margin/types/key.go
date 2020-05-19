@@ -15,12 +15,12 @@ const (
 )
 
 var (
-	MarginProduct  = []byte{0x01}
-	MagrinAssetKey = []byte{0x02}
+	TradePairKeyPrefix = []byte{0x01}
+	MagrinAssetKey     = []byte{0x02}
 )
 
-func GetMarginProductKey(product string) []byte {
-	return append(MarginProduct, []byte(product)...)
+func GetTradePairKey(product string) []byte {
+	return append(TradePairKeyPrefix, []byte(product)...)
 }
 
 func GetMarginAllAssetKey(address string) []byte {

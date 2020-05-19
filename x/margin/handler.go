@@ -37,11 +37,13 @@ func handleMsgDexDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDexDeposit
 	if tokenPair == nil {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", msg.Product)).Result()
 	}
-	/*
-		if sdkErr := keeper.Deposit(ctx, msg.Address, msg.Amount); sdkErr != nil {
-			return sdkErr.Result()
-		}
-	*/
+	if !tokenPair.Owner.Equals(msg.Address) {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to deposit because %s is not the owner of product:%s", msg.Address.String(), msg.Product)).Result()
+	}
+
+	if sdkErr := keeper.Deposit(ctx, msg.Address, msg.Product, msg.Amount); sdkErr != nil {
+		return sdkErr.Result()
+	}
 	logger.Debug(fmt.Sprintf("successfully handleMsgDexDeposit: "+
 		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
 

@@ -119,25 +119,46 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	return params
 }
 
-//// Get returns the pubkey from the adddress-pubkey relation
-//func (k Keeper) Get(ctx sdk.Context, key string) (/* TODO: Fill out this type */, error) {
-//	store := ctx.KVStore(k.storeKey)
-//	var item /* TODO: Fill out this type */
-//	byteKey := []byte(key)
-//	err := k.cdc.UnmarshalBinaryLengthPrefixed(store.Get(byteKey), &item)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return item, nil
-//}
-//
-//func (k Keeper) set(ctx sdk.Context, key string, value /* TODO: fill out this type */ ) {
-//	store := ctx.KVStore(k.storeKey)
-//	bz := k.cdc.MustMarshalBinaryLengthPrefixed(value)
-//	store.Set([]byte(key), bz)
-//}
-//
-//func (k Keeper) delete(ctx sdk.Context, key string) {
-//	store := ctx.KVStore(k.storeKey)
-//	store.Delete([]byte(key))
-//}
+// GetTradePair returns  the trade pair by product
+func (k Keeper) GetTradePair(ctx sdk.Context, product string) *types.TradePair {
+	var tradePair types.TradePair
+	store := ctx.KVStore(k.storeKey)
+	bytes := store.Get(types.GetTradePairKey(product))
+	if bytes == nil {
+		return nil
+	}
+
+	if k.cdc.UnmarshalBinaryBare(bytes, &tradePair) != nil {
+		ctx.Logger().Error("decoding of token pair is failed", product)
+		return nil
+	}
+	return &tradePair
+}
+
+func (k Keeper) SetTradePair(ctx sdk.Context, tradePair *types.TradePair) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetTradePairKey(tradePair.Name)
+	store.Set(key, k.cdc.MustMarshalBinaryBare(tradePair))
+}
+
+// Deposit deposits amount of tokens for a product
+func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+	tradePair := k.GetTradePair(ctx, product)
+	if tradePair == nil {
+		tradePair = &types.TradePair{
+			Owner:       address,
+			Name:        product,
+			Deposit:     amount,
+			BlockHeight: ctx.BlockHeight(),
+		}
+	} else {
+		tradePair.Deposit = tradePair.Deposit.Add(amount)
+	}
+
+	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
+	}
+	k.SetTradePair(ctx, tradePair)
+	return nil
+}
