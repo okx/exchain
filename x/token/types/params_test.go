@@ -16,7 +16,6 @@ FeeIssue: 2500.00000000` + common.NativeToken + `
 FeeMint: 10.00000000` + common.NativeToken + `
 FeeBurn: 10.00000000` + common.NativeToken + `
 FeeModify: 0.00000000` + common.NativeToken + `
-FeeMultiSend: 0.01000000` + common.NativeToken + `
 FeeChown: 10.00000000` + common.NativeToken + `
 `
 	paramStr := param.String()
@@ -27,7 +26,6 @@ FeeChown: 10.00000000` + common.NativeToken + `
 		{Key: KeyFeeMint, Value: &param.FeeMint},
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},
 		{Key: KeyFeeModify, Value: &param.FeeModify},
-		{Key: KeyFeeMultiSend, Value: &param.FeeMultiSend},
 		{Key: KeyFeeChown, Value: &param.FeeChown},
 	}
 

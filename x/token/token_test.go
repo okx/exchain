@@ -329,7 +329,8 @@ type TestAccounts []*testAccount
 func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
 	// Make the transaction free
 	fee := auth.StdFee{
-		Amount: sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.0125")),
+		// just for test - 0.01okt as fixed fee
+		Amount: sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.01")),
 		Gas:    200000,
 	}
 
@@ -754,7 +755,6 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "900")
-			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "80000.0125")...)
 			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97500")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
@@ -779,53 +779,13 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "800")
-			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79900.005")...)
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97399.9925")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97400")...)
 			require.EqualValues(t, senderCoins.String(), acc.GetCoins().String())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(tokenName, "200")
 			receiverCoins = append(receiverCoins, sdk.MustParseCoins(common.NativeToken, "100100")...)
 			require.EqualValues(t, receiverCoins, acc.GetCoins())
 		}
-	}
-}
-
-func TestChargeMultiCoinsFee(t *testing.T) {
-	intQuantity := int64(1)
-	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.DecCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
-		})
-
-	app, keeper, _ := getMockDexApp(t, 0)
-	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
-	ctx := app.NewContext(true, abci.Header{})
-	keeper.SetParams(ctx, types.DefaultParams())
-
-	goodRes := sdk.Result{}
-	testCases := []struct {
-		coinNum    int
-		from       sdk.AccAddress
-		feeCharged sdk.DecCoins
-		res        sdk.Result
-	}{
-		{1, testAccounts[0].baseAccount.Address,
-			sdk.ZeroFee().ToCoins(), goodRes},
-		{2, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0075"), goodRes},
-		{3, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0175"), goodRes},
-		{4, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.0275"), goodRes},
-		{100, testAccounts[0].baseAccount.Address,
-			sdk.MustParseCoins(sdk.DefaultBondDenom, "0.9875"),
-			sdk.ErrInsufficientCoins("insufficient fee coins(need 0.98750000" + common.NativeToken + ")").Result()},
-	}
-
-	for _, tc := range testCases {
-		feeCharged, res := chargeMultiCoinsFee(ctx, keeper, tc.from, tc.coinNum)
-		require.Equal(t, tc.feeCharged, feeCharged)
-		require.Equal(t, tc.res, res)
 	}
 }
 
@@ -839,6 +799,19 @@ func TestCreateMsgMultiSend(t *testing.T) {
 
 	app, keeper, _ := getMockDexApp(t, 0)
 	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
+	// set anteHandler for mock app
+	app.PushAnteHandler(auth.NewAnteHandler(
+		app.AccountKeeper,
+		app.supplyKeeper,
+		auth.DefaultSigVerificationGasConsumer,
+		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
+			return sdk.Result{}
+
+		},
+		func(ctx sdk.Context, msgs []sdk.Msg) bool {
+			return false
+		},
+	))
 
 	ctx := app.NewContext(true, abci.Header{})
 	var tokenMsgs []auth.StdTx
@@ -846,31 +819,29 @@ func TestCreateMsgMultiSend(t *testing.T) {
 	tokenIssueMsg := types.NewMsgTokenIssue("btc", "btc", "btc", "bitcoin", "1000", testAccounts[0].baseAccount.Address, true)
 	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenIssueMsg))
 	ctx = mockApplyBlock(t, app, tokenMsgs, 3)
+
 	tokenMsgs = tokenMsgs[:0]
-
 	btcSymbol := getTokenSymbol(ctx, keeper, "btc")
-
 	multiSendStr := `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1` + common.NativeToken + `,2` + btcSymbol + `"}]`
 	transfers, err := types.StrToTransfers(multiSendStr)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	multiSend := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
 	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], multiSend))
+	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
 
-	// not enough coins
+	// insufficient coins for multi-send
 	multiSendStr = `[{"to":"` + testAccounts[1].baseAccount.Address.String() + `","amount":"1` + common.NativeToken + `,2000` + btcSymbol + `"}]`
 	transfers, err = types.StrToTransfers(multiSendStr)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	multiSend = types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
 	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], multiSend))
-
-	ctx = mockApplyBlock(t, app, tokenMsgs, 4)
+	ctx = mockApplyBlock(t, app, tokenMsgs, 5)
 
 	accounts := app.AccountKeeper.GetAllAccounts(ctx)
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(btcSymbol, "998")
-			//senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79999.005")...)
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97498.99250000")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97498.97000000")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(btcSymbol, "2")
@@ -1030,13 +1001,14 @@ func TestTxFailedFeeTable(t *testing.T) {
 		balance string
 		msg     auth.StdTx
 	}{
-		{"fail to issue : 0.0125", "9.98750000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
-		{"fail to mint  : 0.0125", "9.97500000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
-		{"fail to burn  : 0.0125", "9.96250000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
-		{"fail to modify :0.0125", "9.95000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
-		{"fail to send  : 0.0125", "9.93750000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
-		{"fail to multi : 0.0125", "9.92500000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
-		{"fail to chown : 0.0125", "9.91250000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
+		// 0.01okt as fixed fee in each stdTx
+		{"fail to issue : 0.01", "9.99000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
+		{"fail to mint  : 0.01", "9.98000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
+		{"fail to burn  : 0.01", "9.97000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
+		{"fail to modify: 0.01", "9.96000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
+		{"fail to send  : 0.01", "9.95000000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
+		{"fail to multi : 0.01", "9.94000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
+		{"fail to chown : 0.01", "9.93000000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
 	}
 	for i, tt := range failTestSets {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1083,23 +1055,24 @@ func TestTxSuccessFeeTable(t *testing.T) {
 	successfulChownMsg.ToSignature.Signature = bSig
 
 	successfulTestSets := []struct {
-		name    string
-		balance string
-		msg     sdk.Msg
-		account *testAccount
+		description string
+		balance     string
+		msg         sdk.Msg
+		account     *testAccount
 	}{
-		{"success to issue : 2500+0.0125", "27499.98750000", successfulIssueMsg, testAccounts[0]},
-		{"success to mint  : 10+0.0125", "27489.97500000", successfulMintMsg, testAccounts[0]},
-		{"success to burn  : 10+0.0125", "27479.96250000", successfulBurnMsg, testAccounts[0]},
-		{"success to send  : 0.0125", "27479.95000000", successfulSendMsg, testAccounts[0]},
-		{"success to multi : 10 +0.01*2", "27469.93000000", successfulMultiSendMsg, testAccounts[0]},
-		{"success to modify:0.0125", "27469.91750000", successfulEditMsg, testAccounts[0]},
-		{"success to chown : 10+0.0125", "27459.90500000", successfulChownMsg, testAccounts[0]},
+		// 0.01okt as fixed fee in each stdTx
+		{"success to issue : 2500+0.01", "27499.99000000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 10+0.01", "27489.98000000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.01", "27479.97000000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.01", "27479.96000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10(amount of transfer) +0.01", "27469.95000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify: 0.01", "27469.94000000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.01", "27459.93000000", successfulChownMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
-		t.Run(tt.name, func(t *testing.T) {
-			msg := createTokenMsg(t, app, ctx, tt.account, tt.msg)
-			ctx = mockApplyBlock(t, app, []auth.StdTx{msg}, int64(i+3))
+		t.Run(tt.description, func(t *testing.T) {
+			stdTx := createTokenMsg(t, app, ctx, tt.account, tt.msg)
+			ctx = mockApplyBlock(t, app, []auth.StdTx{stdTx}, int64(i+3))
 			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
 		})
 	}
