@@ -56,6 +56,9 @@ type IKeeper interface {
 	CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error
 	IterateWithdrawInfo(ctx sdk.Context, fn func(index int64, withdrawInfo types.WithdrawInfo) (stop bool))
 	DeleteWithdrawCompleteTimeAddress(ctx sdk.Context, timestamp time.Time, delAddr sdk.AccAddress)
+
+	FreezeCache(ctx sdk.Context ) IKeeper
+	UnFreezeCache(ctx sdk.Context ) IKeeper
 }
 
 // StakingKeeper defines the expected staking Keeper (noalias)

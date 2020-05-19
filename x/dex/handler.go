@@ -9,9 +9,42 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
+	switch k.(interface{}).(type) {
+	case *mockDexKeeper:
+		 k = interface{}(k).(*mockDexKeeper).Keeper.FreezeCache(ctx)
+	default:
+		switch k.(type) {
+		case Keeper:
+			k = k.FreezeCache(ctx).(Keeper)
+		}
+	}
+
+	return k
+}
+
+func UnFreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
+	switch k.(interface{}).(type) {
+	case *mockDexKeeper:
+		k = interface{}(k).(*mockDexKeeper).Keeper.UnFreezeCache(ctx)
+	default:
+		switch k.(type) {
+		case Keeper:
+			k = k.UnFreezeCache(ctx)
+		}
+	}
+
+	return k
+}
+
 // NewHandler handles all "dex" type messages.
 func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		if ctx.IsCheckTx() {
+			k = FreezeCache(ctx, k)
+			defer func (){ k = UnFreezeCache(ctx, k)}()
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
 

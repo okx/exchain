@@ -13,6 +13,11 @@ import (
 	"github.com/okex/okchain/x/params"
 )
 
+type CopyCache struct {
+	CopyHeight int64
+	Cache      *Cache
+}
+
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
 	supplyKeeper      SupplyKeeper
@@ -26,6 +31,7 @@ type Keeper struct {
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
 	cdc               *codec.Codec    // The wire codec for binary encoding/decoding.
 	cache             *Cache          // reset cache data in BeginBlock
+	copyCache         *CopyCache
 }
 
 // NewKeeper creates new instances of the token Keeper
@@ -43,6 +49,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper SupplyKeeper, dexParamsSubs
 		tokenPairStoreKey: tokenPairStoreKey,
 		cdc:               cdc,
 		cache:             NewCache(),
+		copyCache:         nil,
 	}
 
 	return k
@@ -484,4 +491,25 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairNumber)
 	}
 	return
+}
+
+// nolint
+func (k Keeper) FreezeCache(ctx sdk.Context) IKeeper{
+	k.copyCache = &CopyCache{
+		CopyHeight: ctx.BlockHeight(),
+		Cache:      k.cache,
+	}
+	k.cache = NewCache()
+
+	return k
+}
+
+// nolint
+func (k Keeper) UnFreezeCache(ctx sdk.Context) IKeeper{
+	if k.copyCache != nil && ctx.BlockHeight() == k.copyCache.CopyHeight {
+		k.cache = k.copyCache.Cache
+		k.copyCache = nil
+	}
+
+	return k
 }

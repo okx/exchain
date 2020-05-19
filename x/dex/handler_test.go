@@ -11,6 +11,31 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
+func TestHandler_CtxCheckTxMode(t *testing.T) {
+	mApp, tkKeeper, spKeeper, mDexKeeper, ctx := getMockTestCaseEvn(t)
+
+	// checkTx mode is true: simulate case!
+	ctx = mApp.BaseApp.NewContext(true, abci.Header{}).WithBlockHeight(10)
+
+	address := mApp.GenesisAccounts[0].GetAddress()
+	listMsg := NewMsgList(address, "btc", common.NativeToken, sdk.NewDec(10))
+
+	handlerFunctor := NewHandler(mApp.dexKeeper)
+
+	// successful case
+	tkKeeper.exist = true
+	spKeeper.behaveEvil = false
+	mDexKeeper.getFakeTokenPair = false
+	handlerFunctor(ctx, listMsg)
+
+	require.EqualValues(t, 0, len(mApp.dexKeeper.GetNewTokenPair()))
+
+	// checkTx mode is false: normal case!
+	ctx = mApp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(11)
+	handlerFunctor(ctx, listMsg)
+	require.EqualValues(t, 1, len(mApp.dexKeeper.GetNewTokenPair()))
+}
+
 func getMockTestCaseEvn(t *testing.T) (mApp *mockApp,
 	tkKeeper *mockTokenKeeper, spKeeper *mockSupplyKeeper, dexKeeper *mockDexKeeper, testContext sdk.Context) {
 	fakeTokenKeeper := newMockTokenKeeper()
