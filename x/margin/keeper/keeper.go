@@ -271,3 +271,43 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	k.deleteWithdrawInfo(ctx, addr)
 	return nil
 }
+
+// Save saves amount of tokens for borrowing
+func (k Keeper) Save(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+	saving := k.GetSaving(ctx, address, product)
+	if saving == nil {
+		saving = amount
+	} else {
+		saving = saving.Add(amount)
+	}
+
+	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
+	}
+	k.SetSaving(ctx, address, product, saving)
+	return nil
+}
+
+// GetSaving returns  the saving of product
+func (k Keeper) GetSaving(ctx sdk.Context, address sdk.AccAddress, product string) sdk.DecCoins {
+	var saving sdk.DecCoins
+	store := ctx.KVStore(k.storeKey)
+	bytes := store.Get(types.GetSavingKey(address, product))
+	if bytes == nil {
+		return nil
+	}
+
+	if k.cdc.UnmarshalBinaryBare(bytes, &saving) != nil {
+		ctx.Logger().Error("decoding of saving is failed", product)
+		return nil
+	}
+	return saving
+}
+
+// SetSaving saves the saving of product to db
+func (k Keeper) SetSaving(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetSavingKey(address, product)
+	store.Set(key, k.cdc.MustMarshalBinaryBare(amount))
+}

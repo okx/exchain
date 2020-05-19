@@ -26,6 +26,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	marginTxCmd.AddCommand(flags.PostCommands(
 		GetCmdDexDeposit(cdc),
 		GetCmdDexWithdraw(cdc),
+		GetCmdDexSave(cdc),
 		GetCmdDeposit(cdc),
 	)...)
 
@@ -84,6 +85,37 @@ func GetCmdDexWithdraw(cdc *codec.Codec) *cobra.Command {
 			}
 
 			msg := types.NewMsgDexWithdraw(address, product, amount)
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdDexSave is the CLI command for doing dex-save
+func GetCmdDexSave(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "dex-save [product] [amount]",
+		Short: "dex saves an amount of token for borrowing",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			// Get depositor address
+			address := cliCtx.GetFromAddress()
+
+			product := args[0]
+			// Get amount of coins
+			amount, err := sdk.ParseDecCoins(args[1])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgDexSave(address, product, amount)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

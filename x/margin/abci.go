@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okchain/x/margin/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
