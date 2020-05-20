@@ -83,8 +83,8 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 		orderIDsMap.Data[types.FormatOrderIDsKey(order.Product, order.Price, order.Side)][0])
 	require.Equal(t, 1, len(keeper.GetDiskCache().GetUpdatedOrderIDKeys()))
 	// other check
-	require.EqualValues(t, 1, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.diskCache.storeOrderNum)
+	require.EqualValues(t, 1, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.diskCache.StoreOrderNum)
 
 	// Test cancel order
 	ctx = ctx.WithBlockHeight(11)
@@ -123,8 +123,8 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	require.Equal(t, 1, len(closedOrderIDs))
 	require.Equal(t, order.OrderID, closedOrderIDs[0])
 	// other check
-	require.EqualValues(t, 0, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.cache.cancelNum)
+	require.EqualValues(t, 0, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.cache.CancelNum)
 }
 
 func TestPlaceOrderAndExpireOrder(t *testing.T) {
@@ -164,8 +164,8 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 		orderIDsMap.Data[types.FormatOrderIDsKey(order.Product, order.Price, order.Side)][0])
 	require.Equal(t, 1, len(keeper.GetDiskCache().GetUpdatedOrderIDKeys()))
 	// other check
-	require.EqualValues(t, 1, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.diskCache.storeOrderNum)
+	require.EqualValues(t, 1, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.diskCache.StoreOrderNum)
 
 	// Test expire order
 	ctx = ctx.WithBlockHeight(11)
@@ -203,6 +203,6 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	require.Equal(t, 1, len(closedOrderIDs))
 	require.Equal(t, order.OrderID, closedOrderIDs[0])
 	// other check
-	require.EqualValues(t, 0, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.cache.expireNum)
+	require.EqualValues(t, 0, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.cache.ExpireNum)
 }

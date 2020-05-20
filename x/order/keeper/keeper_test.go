@@ -38,9 +38,9 @@ func TestKeeper_Cache2Disk(t *testing.T) {
 	require.EqualValues(t, 1, len(keeper.GetDepthBookFromDB(ctx, types.TestTokenPair).Items))
 
 	keeper.RemoveOrderFromDepthBook(order, types.FeeTypeOrderCancel)
-	require.EqualValues(t, 1, keeper.cache.cancelNum)
+	require.EqualValues(t, 1, keeper.cache.CancelNum)
 	keeper.RemoveOrderFromDepthBook(order, types.FeeTypeOrderExpire)
-	require.EqualValues(t, 1, keeper.cache.expireNum)
+	require.EqualValues(t, 1, keeper.cache.ExpireNum)
 }
 
 func TestCache(t *testing.T) {
@@ -67,12 +67,12 @@ func TestCache(t *testing.T) {
 	order.Sender = testInput.TestAddrs[0]
 	err = keeper.PlaceOrder(ctx, order)
 	require.Nil(t, err)
-	require.EqualValues(t, 1, keeper.GetCache().params.OrderExpireBlocks)
+	require.EqualValues(t, 1, keeper.GetCache().Params.OrderExpireBlocks)
 	require.EqualValues(t, 1, keeper.GetOperationMetric().OpenNum)
 
 	// current cache
-	require.EqualValues(t, 1, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.diskCache.storeOrderNum)
+	require.EqualValues(t, 1, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.diskCache.StoreOrderNum)
 	copycache := keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 1, len(copycache.Items))
 	require.EqualValues(t, 0, len(keeper.GetDepthBookCopy("ABC").Items))
@@ -88,12 +88,12 @@ func TestCache(t *testing.T) {
 	// new cache
 	keeper.cache = NewCache()
 	keeper.diskCache = newDiskCache()
-	require.EqualValues(t, 0, keeper.diskCache.openNum)
-	require.EqualValues(t, 0, keeper.diskCache.storeOrderNum)
+	require.EqualValues(t, 0, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 0, keeper.diskCache.StoreOrderNum)
 	require.Nil(t, keeper.GetDiskCache().getDepthBook(types.TestTokenPair))
 	keeper.ResetCache(ctx)
-	require.EqualValues(t, 1, keeper.diskCache.openNum)
-	require.EqualValues(t, 1, keeper.diskCache.storeOrderNum)
+	require.EqualValues(t, 1, keeper.diskCache.OpenNum)
+	require.EqualValues(t, 1, keeper.diskCache.StoreOrderNum)
 	require.EqualValues(t, 1, len(keeper.GetDiskCache().getDepthBook(types.TestTokenPair).Items))
 
 	params := keeper.GetParams(ctx)
@@ -280,7 +280,7 @@ func TestKeeper_UpdateOrder(t *testing.T) {
 	require.Nil(t, err)
 
 	//xxb_okt:10.00000000:BUY
-	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.orderIDsMap.Data["xxb_"+common.NativeToken+":10.00000000:BUY"][0])
+	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.OrderIDsMap.Data["xxb_"+common.NativeToken+":10.00000000:BUY"][0])
 
 	order.Price = sdk.MustNewDecFromStr("11.0")
 
@@ -292,11 +292,11 @@ func TestKeeper_UpdateOrder(t *testing.T) {
 	require.EqualValues(t, 0, len(keeper.GetProductPriceOrderIDs(types.TestTokenPair)))
 	require.EqualValues(t, 0, len(keeper.GetProductPriceOrderIDsFromDB(ctx, types.TestTokenPair)))
 
-	require.EqualValues(t, "ID0000000010-1", keeper.cache.updatedOrderIDs[0])
+	require.EqualValues(t, "ID0000000010-1", keeper.cache.UpdatedOrderIDs[0])
 
 	order.Status = types.OrderStatusFilled
 	keeper.UpdateOrder(order, ctx)
-	require.EqualValues(t, 1, keeper.cache.fullFillNum)
+	require.EqualValues(t, 1, keeper.cache.FullFillNum)
 
 }
 
@@ -350,7 +350,7 @@ func TestKeeper_InsertOrderIntoDepthBook(t *testing.T) {
 	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "8", "1")
 	order.Sender = testInput.TestAddrs[0]
 	keeper.InsertOrderIntoDepthBook(order)
-	require.EqualValues(t, 1, len(keeper.diskCache.depthBookMap.data))
+	require.EqualValues(t, 1, len(keeper.diskCache.DepthBookMap.Data))
 }
 
 func TestFilterDelistedProducts(t *testing.T) {

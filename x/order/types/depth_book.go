@@ -38,7 +38,7 @@ type DepthBookItem struct {
 
 // nolint
 type DepthBook struct {
-	Items []DepthBookItem
+	Items []DepthBookItem `json:"items"`
 }
 
 // InsertOrder : Items in depth book are sorted by price desc

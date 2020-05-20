@@ -1,183 +1,196 @@
 package keeper
 
 import (
+	"encoding/json"
 	"github.com/okex/okchain/x/order/types"
 )
 
 // Cache stores some caches that will not be written to disk
 type Cache struct {
 	// Reset at BeginBlock
-	updatedOrderIDs  []string
-	blockMatchResult *types.BlockMatchResult
+	UpdatedOrderIDs  []string                `json:"update_order_ids"`
+	BlockMatchResult *types.BlockMatchResult `json:"block_match_result, omitempty"`
 
-	params *types.Params
+	Params *types.Params `json:"params, omitempty"`
 
 	// for statistic
-	cancelNum      int64 // canceled orders num in this block
-	expireNum      int64 // expired orders num in this block
-	partialFillNum int64 // partially filled orders num in this block
-	fullFillNum    int64 // fully filled orders num in this block
+	CancelNum      int64 `json:"cancel_number"`       // canceled orders num in this block
+	ExpireNum      int64 `json:"expire_number"`       // expired orders num in this block
+	PartialFillNum int64 `json:"partial_fill_number"` // partially filled orders num in this block
+	FullFillNum    int64 `json:"full_fill_number"`    // fully filled orders num in this block
 }
 
 // nolint
 func NewCache() *Cache {
 	return &Cache{
-		updatedOrderIDs:  []string{},
-		blockMatchResult: nil,
-		params:           nil,
+		UpdatedOrderIDs:  []string{},
+		BlockMatchResult: nil,
+		Params:           nil,
 	}
 }
 
 // reset resets temporary cache, called at BeginBlock
 func (c *Cache) reset() {
-	c.updatedOrderIDs = []string{}
-	c.blockMatchResult = &types.BlockMatchResult{}
-	c.params = nil
+	c.UpdatedOrderIDs = []string{}
+	c.BlockMatchResult = &types.BlockMatchResult{}
+	c.Params = nil
 
-	c.cancelNum = 0
-	c.expireNum = 0
-	c.fullFillNum = 0
-	c.partialFillNum = 0
+	c.CancelNum = 0
+	c.ExpireNum = 0
+	c.FullFillNum = 0
+	c.PartialFillNum = 0
 }
 
 func (c *Cache) addUpdatedOrderID(orderID string) {
-	c.updatedOrderIDs = append(c.updatedOrderIDs, orderID)
+	c.UpdatedOrderIDs = append(c.UpdatedOrderIDs, orderID)
 }
 
 func (c *Cache) setBlockMatchResult(result *types.BlockMatchResult) {
-	c.blockMatchResult = result
+	c.BlockMatchResult = result
 }
 
 // nolint
 func (c *Cache) IncreaseExpireNum() int64 {
-	c.expireNum++
-	return c.expireNum
+	c.ExpireNum++
+	return c.ExpireNum
 }
 
 // --------
 
 // nolint
 func (c *Cache) DecreaseCancelNum() int64 {
-	c.cancelNum--
-	return c.cancelNum
+	c.CancelNum--
+	return c.CancelNum
 }
 
 // nolint
 func (c *Cache) IncreaseCancelNum() int64 {
-	c.cancelNum++
-	return c.cancelNum
+	c.CancelNum++
+	return c.CancelNum
 }
 
 // nolint
 func (c *Cache) DecreaseFullFillNum() int64 {
-	c.fullFillNum--
-	return c.fullFillNum
+	c.FullFillNum--
+	return c.FullFillNum
 }
 
 // nolint
 func (c *Cache) IncreaseFullFillNum() int64 {
-	c.fullFillNum++
-	return c.fullFillNum
+	c.FullFillNum++
+	return c.FullFillNum
 }
 
 // nolint
 func (c *Cache) DecreasePartialFillNum() int64 {
-	c.partialFillNum--
-	return c.partialFillNum
+	c.PartialFillNum--
+	return c.PartialFillNum
 }
 
 // nolint
 func (c *Cache) IncreasePartialFillNum() int64 {
-	c.partialFillNum++
-	return c.partialFillNum
+	c.PartialFillNum++
+	return c.PartialFillNum
 }
 
 func (c *Cache) getBlockMatchResult() *types.BlockMatchResult {
-	return c.blockMatchResult
+	return c.BlockMatchResult
 }
 
 // nolint
 func (c *Cache) SetParams(params *types.Params) {
-	c.params = params
+	c.Params = params
 }
 
 // nolint
 func (c *Cache) GetParams() *types.Params {
-	return c.params
+	return c.Params
 }
 
 func (c *Cache) getUpdatedOrderIDs() []string {
-	return c.updatedOrderIDs
+	return c.UpdatedOrderIDs
 }
 
 // nolint
 func (c *Cache) GetFullFillNum() int64 {
-	return c.fullFillNum
+	return c.FullFillNum
 }
 
 // nolint
 func (c *Cache) GetCancelNum() int64 {
-	return c.cancelNum
+	return c.CancelNum
 }
 
 // nolint
 func (c *Cache) GetExpireNum() int64 {
-	return c.expireNum
+	return c.ExpireNum
 }
 
 // nolint
 func (c *Cache) GetPartialFillNum() int64 {
-	return c.partialFillNum
+	return c.PartialFillNum
+}
+
+// nolint
+func (c *Cache) Clone() *Cache {
+	cache := &Cache{}
+	bytes, _ := json.Marshal(c)
+	err := json.Unmarshal(bytes, cache)
+	if err != nil {
+		return c.DepthCopy()
+	}
+
+	return cache
 }
 
 // nolint
 func (c *Cache) DepthCopy() *Cache {
 	cache := Cache{
-		updatedOrderIDs:  nil,
-		blockMatchResult: nil,
-		params:           nil,
-		cancelNum:        c.cancelNum,
-		expireNum:        c.expireNum,
-		partialFillNum:   c.partialFillNum,
-		fullFillNum:      c.fullFillNum,
+		UpdatedOrderIDs:  nil,
+		BlockMatchResult: nil,
+		Params:           nil,
+		CancelNum:        c.CancelNum,
+		ExpireNum:        c.ExpireNum,
+		PartialFillNum:   c.PartialFillNum,
+		FullFillNum:      c.FullFillNum,
 	}
 
-	if c.updatedOrderIDs != nil {
-		cpUpdatedOrderIDs := make([]string, len(c.updatedOrderIDs))
-		copy(cpUpdatedOrderIDs, c.updatedOrderIDs)
+	if c.UpdatedOrderIDs != nil {
+		cpUpdatedOrderIDs := make([]string, 0, len(c.UpdatedOrderIDs))
+		cpUpdatedOrderIDs = append(cpUpdatedOrderIDs, c.UpdatedOrderIDs...)
 
-		cache.updatedOrderIDs = cpUpdatedOrderIDs
+		cache.UpdatedOrderIDs = cpUpdatedOrderIDs
 	}
 
-	if c.blockMatchResult != nil {
-		cache.blockMatchResult = &types.BlockMatchResult{
-			BlockHeight: c.blockMatchResult.BlockHeight,
-			ResultMap: nil,
-			TimeStamp: c.blockMatchResult.TimeStamp,
+	if c.BlockMatchResult != nil {
+		cache.BlockMatchResult = &types.BlockMatchResult{
+			BlockHeight: c.BlockMatchResult.BlockHeight,
+			ResultMap:   nil,
+			TimeStamp:   c.BlockMatchResult.TimeStamp,
 		}
 
-		if c.blockMatchResult.ResultMap != nil {
+		if c.BlockMatchResult.ResultMap != nil {
 			cpResultMap := make(map[string]types.MatchResult)
-			for k, v := range c.blockMatchResult.ResultMap {
-				cpDeals := make([]types.Deal, len(v.Deals))
+			for k, v := range c.BlockMatchResult.ResultMap {
+				cpDeals := make([]types.Deal, 0, len(v.Deals))
 				cpDeals = append(cpDeals, v.Deals...)
 
 				cpResultMap[k] = types.MatchResult{
 					BlockHeight: v.BlockHeight,
-					Price: v.Price,
-					Quantity: v.Quantity,
-					Deals: cpDeals,
+					Price:       v.Price,
+					Quantity:    v.Quantity,
+					Deals:       cpDeals,
 				}
 			}
 		}
 	}
 
-	if c.params != nil {
-		cache.params = &types.Params{
-			OrderExpireBlocks: c.params.OrderExpireBlocks,
-			MaxDealsPerBlock:  c.params.MaxDealsPerBlock,
-			FeePerBlock:       c.params.FeePerBlock,
-			TradeFeeRate:      c.params.TradeFeeRate,
+	if c.Params != nil {
+		cache.Params = &types.Params{
+			OrderExpireBlocks: c.Params.OrderExpireBlocks,
+			MaxDealsPerBlock:  c.Params.MaxDealsPerBlock,
+			FeePerBlock:       c.Params.FeePerBlock,
+			TradeFeeRate:      c.Params.TradeFeeRate,
 		}
 	}
 

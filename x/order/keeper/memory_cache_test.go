@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 func TestCache_GetCancelNum(t *testing.T) {
 	cache := NewCache()
 	cache.addUpdatedOrderID("ID0000000010-1")
-	require.EqualValues(t, 1, len(cache.updatedOrderIDs))
+	require.EqualValues(t, 1, len(cache.UpdatedOrderIDs))
 
 	cache.addUpdatedOrderID("ID0000000010-2")
 	require.EqualValues(t, 2, len(cache.getUpdatedOrderIDs()))
@@ -33,7 +34,7 @@ func TestCache_GetCancelNum(t *testing.T) {
 	feeParams := types.DefaultTestParams()
 	cache.SetParams(&feeParams)
 
-	require.EqualValues(t, types.DefaultOrderExpireBlocks, cache.params.OrderExpireBlocks)
+	require.EqualValues(t, types.DefaultOrderExpireBlocks, cache.Params.OrderExpireBlocks)
 
 	res := types.BlockMatchResult{
 		BlockHeight: 0,
@@ -47,4 +48,42 @@ func TestCache_GetCancelNum(t *testing.T) {
 	cache.reset()
 	require.Nil(t, cache.GetParams())
 
+}
+
+func TestCache_Clone(t *testing.T) {
+	cache := NewCache()
+	cloneCache := cache.Clone()
+	require.EqualValues(t, len(cache.UpdatedOrderIDs), len(cloneCache.UpdatedOrderIDs))
+
+	cache.addUpdatedOrderID("ID0000000010-1")
+	cache.addUpdatedOrderID("ID0000000010-2")
+	require.EqualValues(t, len(cache.UpdatedOrderIDs), len(cloneCache.UpdatedOrderIDs) + 2)
+
+	cache.Params = &types.Params{
+		OrderExpireBlocks: 0,
+		MaxDealsPerBlock:  100,
+		FeePerBlock:       sdk.DecCoin{},
+		TradeFeeRate:      sdk.Dec{},
+	}
+	require.Nil(t, cloneCache.Params)
+	cloneCache.Params = &types.Params{
+		OrderExpireBlocks: 0,
+		MaxDealsPerBlock:  10000,
+		FeePerBlock:       sdk.DecCoin{},
+		TradeFeeRate:      sdk.Dec{},
+	}
+	require.NotEqual(t, cache.Params.MaxDealsPerBlock, cloneCache.Params.MaxDealsPerBlock)
+
+	cache.BlockMatchResult = &types.BlockMatchResult{
+		BlockHeight: 200,
+		ResultMap:   nil,
+		TimeStamp:   0,
+	}
+	require.Nil(t, cloneCache.BlockMatchResult)
+	cloneCache.BlockMatchResult = &types.BlockMatchResult{
+		BlockHeight: 20,
+		ResultMap:   nil,
+		TimeStamp:   0,
+	}
+	require.NotEqual(t, cache.BlockMatchResult.BlockHeight, cloneCache.BlockMatchResult.BlockHeight)
 }

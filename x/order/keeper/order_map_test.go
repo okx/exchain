@@ -15,7 +15,7 @@ func TestOrderIDsMapInsertAndRemove(t *testing.T) {
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
 
-	orderIDsMap := keeper.diskCache.orderIDsMap
+	orderIDsMap := keeper.diskCache.OrderIDsMap
 
 	// Test insert to same key
 	order1 := mockOrder("ID1-1", types.TestTokenPair, types.BuyOrder, "0.5", "1.1")

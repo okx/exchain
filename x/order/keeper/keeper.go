@@ -120,8 +120,8 @@ func (k Keeper) Cache2Disk(ctx sdk.Context) {
 	closedOrderIDs := k.diskCache.GetClosedOrderIDs()
 
 	k.SetLastClosedOrderIDs(ctx, closedOrderIDs)
-	k.setOpenOrderNum(ctx, k.diskCache.openNum)
-	k.setStoreOrderNum(ctx, k.diskCache.storeOrderNum)
+	k.setOpenOrderNum(ctx, k.diskCache.OpenNum)
+	k.setStoreOrderNum(ctx, k.diskCache.StoreOrderNum)
 
 	// update depth book to KVStore
 	updatedBookKeys := k.diskCache.GetUpdatedDepthbookKeys()
@@ -465,11 +465,11 @@ func (k Keeper) GetMetric() *monitor.OrderMetric {
 
 // nolint
 func (k Keeper) SetMetric() {
-	k.metric.FullFilledNum.Set(float64(k.cache.fullFillNum))
-	k.metric.PendingNum.Set(float64(k.diskCache.openNum))
-	k.metric.CanceledNum.Set(float64(k.cache.cancelNum))
-	k.metric.ExpiredNum.Set(float64(k.cache.expireNum))
-	k.metric.PartialFilledNum.Set(float64(k.cache.partialFillNum))
+	k.metric.FullFilledNum.Set(float64(k.cache.FullFillNum))
+	k.metric.PendingNum.Set(float64(k.diskCache.OpenNum))
+	k.metric.CanceledNum.Set(float64(k.cache.CancelNum))
+	k.metric.ExpiredNum.Set(float64(k.cache.ExpireNum))
+	k.metric.PartialFilledNum.Set(float64(k.cache.PartialFillNum))
 }
 
 // GetBestBidAndAsk gets the highest bidPrice and the lowest askPrice from depthBook
@@ -544,8 +544,8 @@ func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
 		DiskCache:  k.diskCache,
 	}
 
-	k.cache = k.cache.DepthCopy()
-	k.diskCache = k.diskCache.DepthCopy()
+	k.cache = k.cache.Clone()
+	k.diskCache = k.diskCache.Clone()
 
 	// depend keeper
 	tmpTokenKeeper := k.tokenKeeper.(token.Keeper)

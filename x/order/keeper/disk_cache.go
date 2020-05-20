@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"sort"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,58 +11,58 @@ import (
 // OrderIDsMap stores orderIDSlice with map.
 // <product:price:side> -> <orderIDs>
 type OrderIDsMap struct {
-	Data         map[string][]string
-	updatedItems map[string]struct{}
+	Data         map[string][]string `json:"data"`
+	UpdatedItems map[string]struct{} `json:"updated_items"`
 }
 
 // DepthBookMap stores depthBook with map.
 // <product> -> <depthBook>
 type DepthBookMap struct {
-	data         map[string]*types.DepthBook
-	updatedItems map[string]struct{}
-	newItems     map[string]struct{}
+	Data         map[string]*types.DepthBook `json:"data"`
+	UpdatedItems map[string]struct{}         `json:"updated_items"`
+	NewItems     map[string]struct{}         `json:"new_items"`
 }
 
 // DiskCache stores cache that will persist to disk at endBlock.
 type DiskCache struct {
-	depthBookMap *DepthBookMap
-	orderIDsMap  *OrderIDsMap
-	priceMap     map[string]sdk.Dec
+	DepthBookMap *DepthBookMap      `json:"depth_book_map"`
+	OrderIDsMap  *OrderIDsMap       `json:"order_ids_map"`
+	PriceMap     map[string]sdk.Dec `json:"price_map"`
 
-	storeOrderNum  int64 // current stored order num
-	openNum        int64 // current open orders num
-	closedOrderIDs []string
+	StoreOrderNum  int64    `json:"store_order_number"` // current stored order num
+	OpenNum        int64    `json:"open_number"`        // current open orders num
+	ClosedOrderIDs []string `json:"closed_order_ids"`
 }
 
 func newDiskCache() *DiskCache {
 	return &DiskCache{
-		closedOrderIDs: []string{},
-		orderIDsMap:    &OrderIDsMap{make(map[string][]string), make(map[string]struct{})},
-		priceMap:       make(map[string]sdk.Dec),
-		depthBookMap: &DepthBookMap{make(map[string]*types.DepthBook), make(map[string]struct{}),
+		ClosedOrderIDs: []string{},
+		OrderIDsMap:    &OrderIDsMap{make(map[string][]string), make(map[string]struct{})},
+		PriceMap:       make(map[string]sdk.Dec),
+		DepthBookMap: &DepthBookMap{make(map[string]*types.DepthBook), make(map[string]struct{}),
 			make(map[string]struct{})},
 	}
 }
 
 // reset is invoked in begin block
 func (c *DiskCache) reset() {
-	c.closedOrderIDs = []string{}
-	c.orderIDsMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.updatedItems = make(map[string]struct{})
-	c.depthBookMap.newItems = make(map[string]struct{})
+	c.ClosedOrderIDs = []string{}
+	c.OrderIDsMap.UpdatedItems = make(map[string]struct{})
+	c.DepthBookMap.UpdatedItems = make(map[string]struct{})
+	c.DepthBookMap.NewItems = make(map[string]struct{})
 }
 
 // nolint
 func (c *DiskCache) GetClosedOrderIDs() []string {
-	return c.closedOrderIDs
+	return c.ClosedOrderIDs
 }
 
 func (c *DiskCache) setLastPrice(product string, price sdk.Dec) {
-	c.priceMap[product] = price
+	c.PriceMap[product] = price
 }
 
 func (c *DiskCache) getLastPrice(product string) sdk.Dec {
-	if price, ok := c.priceMap[product]; ok {
+	if price, ok := c.PriceMap[product]; ok {
 		return price
 	}
 	return sdk.ZeroDec()
@@ -69,11 +70,11 @@ func (c *DiskCache) getLastPrice(product string) sdk.Dec {
 
 // GetOrderIDsMapCopy returns a new copy of OrderIDsMap
 func (c *DiskCache) GetOrderIDsMapCopy() *OrderIDsMap {
-	if c.orderIDsMap == nil {
+	if c.OrderIDsMap == nil {
 		return nil
 	}
 	ret := make(map[string][]string)
-	for k, v := range c.orderIDsMap.Data {
+	for k, v := range c.OrderIDsMap.Data {
 		if len(v) == 0 {
 			ret[k] = []string{}
 		}
@@ -83,33 +84,33 @@ func (c *DiskCache) GetOrderIDsMapCopy() *OrderIDsMap {
 }
 
 func (c *DiskCache) getOrderIDs(key string) []string {
-	return c.orderIDsMap.Data[key]
+	return c.OrderIDsMap.Data[key]
 }
 
 func (c *DiskCache) setStoreOrderNum(num int64) {
-	c.storeOrderNum = num
+	c.StoreOrderNum = num
 }
 
 // nolint
 func (c *DiskCache) DecreaseStoreOrderNum(num int64) int64 {
-	c.storeOrderNum -= num
-	return c.storeOrderNum
+	c.StoreOrderNum -= num
+	return c.StoreOrderNum
 }
 
 func (c *DiskCache) setOpenNum(num int64) {
-	c.openNum = num
+	c.OpenNum = num
 }
 
 func (c *DiskCache) getOpenNum() int64 {
-	return c.openNum
+	return c.OpenNum
 }
 
 func (c *DiskCache) addOrderIDs(key string, orderIDs []string) {
-	c.orderIDsMap.Data[key] = orderIDs
+	c.OrderIDsMap.Data[key] = orderIDs
 }
 
 func (c *DiskCache) addDepthBook(product string, book *types.DepthBook) {
-	c.depthBookMap.data[product] = book
+	c.DepthBookMap.Data[product] = book
 }
 
 // setOrderIDs updates or removes unfilled order ids
@@ -117,28 +118,28 @@ func (c *DiskCache) setOrderIDs(key string, orderIDs []string) {
 
 	if len(orderIDs) == 0 {
 		// remove empty element immediately, not do it by the end of endblock
-		delete(c.orderIDsMap.Data, key)
+		delete(c.OrderIDsMap.Data, key)
 	} else {
-		c.orderIDsMap.Data[key] = orderIDs
+		c.OrderIDsMap.Data[key] = orderIDs
 	}
-	c.orderIDsMap.updatedItems[key] = struct{}{}
+	c.OrderIDsMap.UpdatedItems[key] = struct{}{}
 }
 
 // setDepthBook updates or removes a depth book
 func (c *DiskCache) setDepthBook(product string, book *types.DepthBook) {
 	if book != nil && len(book.Items) > 0 {
-		c.depthBookMap.data[product] = book
+		c.DepthBookMap.Data[product] = book
 	} else {
-		delete(c.depthBookMap.data, product)
+		delete(c.DepthBookMap.Data, product)
 	}
-	c.depthBookMap.updatedItems[product] = struct{}{}
+	c.DepthBookMap.UpdatedItems[product] = struct{}{}
 }
 
 // UpdatedOrderIDKeys
 // nolint
 func (c *DiskCache) GetUpdatedOrderIDKeys() []string {
-	updatedKeys := make([]string, 0, len(c.orderIDsMap.updatedItems))
-	for key := range c.orderIDsMap.updatedItems {
+	updatedKeys := make([]string, 0, len(c.OrderIDsMap.UpdatedItems))
+	for key := range c.OrderIDsMap.UpdatedItems {
 		updatedKeys = append(updatedKeys, key)
 	}
 	sort.Strings(updatedKeys)
@@ -146,13 +147,13 @@ func (c *DiskCache) GetUpdatedOrderIDKeys() []string {
 }
 
 func (c *DiskCache) getDepthBook(product string) *types.DepthBook {
-	res := c.depthBookMap.data[product]
+	res := c.DepthBookMap.Data[product]
 	return res
 }
 
 func (c *DiskCache) getProductsFromDepthBookMap() []string {
-	products := make([]string, 0, len(c.depthBookMap.data))
-	for product := range c.depthBookMap.data {
+	products := make([]string, 0, len(c.DepthBookMap.Data))
+	for product := range c.DepthBookMap.Data {
 		products = append(products, product)
 	}
 	return products
@@ -160,8 +161,8 @@ func (c *DiskCache) getProductsFromDepthBookMap() []string {
 
 // GetUpdatedDepthbookKeys returns a new copy of UpdatedDepthbookKeys
 func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
-	updatedKeys := make([]string, 0, len(c.depthBookMap.updatedItems))
-	for key := range c.depthBookMap.updatedItems {
+	updatedKeys := make([]string, 0, len(c.DepthBookMap.UpdatedItems))
+	for key := range c.DepthBookMap.UpdatedItems {
 		updatedKeys = append(updatedKeys, key)
 	}
 	sort.Strings(updatedKeys)
@@ -170,8 +171,8 @@ func (c *DiskCache) GetUpdatedDepthbookKeys() []string {
 
 // GetNewDepthbookKeys returns a new copy of NewDepthbookKeys
 func (c *DiskCache) GetNewDepthbookKeys() []string {
-	newAddKeys := make([]string, 0, len(c.depthBookMap.newItems))
-	for key := range c.depthBookMap.newItems {
+	newAddKeys := make([]string, 0, len(c.DepthBookMap.NewItems))
+	for key := range c.DepthBookMap.NewItems {
 		newAddKeys = append(newAddKeys, key)
 	}
 	return newAddKeys
@@ -180,17 +181,17 @@ func (c *DiskCache) GetNewDepthbookKeys() []string {
 // insertOrder inserts a new order into orderIDsMap
 func (c *DiskCache) insertOrder(order *types.Order) {
 	// 1. update depthBookMap
-	depthBook, ok := c.depthBookMap.data[order.Product]
+	depthBook, ok := c.DepthBookMap.Data[order.Product]
 	if !ok {
 		depthBook = &types.DepthBook{}
-		c.depthBookMap.data[order.Product] = depthBook
+		c.DepthBookMap.Data[order.Product] = depthBook
 	}
 	depthBook.InsertOrder(order)
-	c.depthBookMap.updatedItems[order.Product] = struct{}{}
-	c.depthBookMap.newItems[order.Product] = struct{}{}
+	c.DepthBookMap.UpdatedItems[order.Product] = struct{}{}
+	c.DepthBookMap.NewItems[order.Product] = struct{}{}
 
 	// 2. update orderIDsMap
-	orderIDsMap := c.orderIDsMap
+	orderIDsMap := c.OrderIDsMap
 	key := types.FormatOrderIDsKey(order.Product, order.Price, order.Side)
 	orderIDs, ok := orderIDsMap.Data[key]
 	if !ok {
@@ -198,15 +199,15 @@ func (c *DiskCache) insertOrder(order *types.Order) {
 	}
 	orderIDs = append(orderIDs, order.OrderID)
 	orderIDsMap.Data[key] = orderIDs
-	c.orderIDsMap.updatedItems[key] = struct{}{}
+	c.OrderIDsMap.UpdatedItems[key] = struct{}{}
 
-	c.openNum++
-	c.storeOrderNum++
+	c.OpenNum++
+	c.StoreOrderNum++
 }
 
 func (c *DiskCache) closeOrder(orderID string) {
-	c.closedOrderIDs = append(c.closedOrderIDs, orderID)
-	c.openNum--
+	c.ClosedOrderIDs = append(c.ClosedOrderIDs, orderID)
+	c.OpenNum--
 }
 
 // remove an order from orderIDsMap when order cancelled/expired
@@ -220,7 +221,7 @@ func (c *DiskCache) removeOrder(order *types.Order) {
 	}
 
 	// update order id map
-	orderIDsMap := c.orderIDsMap
+	orderIDsMap := c.OrderIDsMap
 	key := types.FormatOrderIDsKey(order.Product, order.Price, order.Side)
 	orderIDs := orderIDsMap.Data[key]
 	orderIDsLen := len(orderIDs)
@@ -236,74 +237,86 @@ func (c *DiskCache) removeOrder(order *types.Order) {
 }
 
 // nolint
-func (c *DiskCache) DepthCopy() *DiskCache {
-	cache := DiskCache{
-		depthBookMap:   nil,
-		orderIDsMap:    nil,
-		priceMap:       nil,
-		storeOrderNum:  c.storeOrderNum,
-		openNum:        c.openNum,
-		closedOrderIDs: nil,
+func (c *DiskCache) Clone() *DiskCache {
+	cache := &DiskCache{}
+	bytes, _ := json.Marshal(c)
+	err := json.Unmarshal(bytes, cache)
+	if err != nil {
+		return c.DepthCopy()
 	}
 
-	if c.depthBookMap != nil {
+	return cache
+}
+
+// nolint
+func (c *DiskCache) DepthCopy() *DiskCache {
+	cache := DiskCache{
+		DepthBookMap:   nil,
+		OrderIDsMap:    nil,
+		PriceMap:       nil,
+		StoreOrderNum:  c.StoreOrderNum,
+		OpenNum:        c.OpenNum,
+		ClosedOrderIDs: nil,
+	}
+
+	if c.DepthBookMap != nil {
 		cpData := make(map[string]*types.DepthBook)
-		for k , v := range c.depthBookMap.data{
-			cpItems := make([]types.DepthBookItem, len(v.Items))
+		for k, v := range c.DepthBookMap.Data {
+			cpItems := make([]types.DepthBookItem, 0, len(v.Items))
 			cpItems = append(cpItems, v.Items...)
 			cpData[k] = &types.DepthBook{Items: cpItems}
 		}
 
 		cpUpdatedItems := make(map[string]struct{})
-		for k, _ := range c.depthBookMap.updatedItems {
+		for k, _ := range c.DepthBookMap.UpdatedItems {
 			cpUpdatedItems[k] = struct{}{}
 		}
 
 		cpNewItems := make(map[string]struct{})
-		for k, _ := range c.depthBookMap.newItems {
+		for k, _ := range c.DepthBookMap.NewItems {
 			cpNewItems[k] = struct{}{}
 		}
 
-		cache.depthBookMap =  &DepthBookMap{
-			data:         cpData,
-			updatedItems: cpUpdatedItems,
-			newItems:     cpNewItems,
+		cache.DepthBookMap = &DepthBookMap{
+			Data:         cpData,
+			UpdatedItems: cpUpdatedItems,
+			NewItems:     cpNewItems,
 		}
 	}
 
-	if c.orderIDsMap != nil {
+	if c.OrderIDsMap != nil {
 		cpData := make(map[string][]string)
-		for k, v := range c.orderIDsMap.Data{
-			orderIDs := make([]string, len(v))
+		for k, v := range c.OrderIDsMap.Data {
+			orderIDs := make([]string, 0, len(v))
 			orderIDs = append(orderIDs, v...)
 			cpData[k] = orderIDs
 		}
 
 		cpUpdateItems := make(map[string]struct{})
-		for k, _ := range c.orderIDsMap.updatedItems {
+		for k, _ := range c.OrderIDsMap.UpdatedItems {
 			cpUpdateItems[k] = struct{}{}
 		}
 
-		cache.orderIDsMap = &OrderIDsMap{
+		cache.OrderIDsMap = &OrderIDsMap{
 			Data:         cpData,
-			updatedItems: cpUpdateItems,
+			UpdatedItems: cpUpdateItems,
 		}
 	}
 
-	if c.priceMap != nil {
+	if c.PriceMap != nil {
 		cpPriceMap := make(map[string]sdk.Dec)
-		for k, v := range c.priceMap {
+		for k, v := range c.PriceMap {
 			cpPriceMap[k] = v
 		}
 
-		cache.priceMap = cpPriceMap
+		cache.PriceMap = cpPriceMap
 	}
 
-	if c.closedOrderIDs != nil {
-		cpClosedOrderIDs := make([]string, len(c.closedOrderIDs))
-		cpClosedOrderIDs = append(cpClosedOrderIDs, c.closedOrderIDs...)
+	if c.ClosedOrderIDs != nil {
+		cpClosedOrderIDs := make([]string, 0, len(c.ClosedOrderIDs))
+		cpClosedOrderIDs = append(cpClosedOrderIDs, c.ClosedOrderIDs...)
 
-		cache.closedOrderIDs = cpClosedOrderIDs
+		cache.ClosedOrderIDs = cpClosedOrderIDs
 	}
 
 	return &cache

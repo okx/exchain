@@ -77,7 +77,7 @@ func TestKeeper_StoreOrderIDsMap(t *testing.T) {
 	//key xxb_okt:10.00000000:BUY
 	keeper.StoreOrderIDsMap(ctx, "xxb_"+common.NativeToken+":10.00000000:BUY", orderIDs)
 
-	require.EqualValues(t, 0, len(keeper.diskCache.orderIDsMap.Data))
+	require.EqualValues(t, 0, len(keeper.diskCache.OrderIDsMap.Data))
 }
 
 func TestFlushCache(t *testing.T) {
@@ -93,7 +93,7 @@ func TestFlushCache(t *testing.T) {
 	//store order number
 	dcache.setStoreOrderNum(88)
 	dcache.DecreaseStoreOrderNum(1)
-	require.EqualValues(t, 87, dcache.storeOrderNum)
+	require.EqualValues(t, 87, dcache.StoreOrderNum)
 
 	dcache.setLastPrice(types.TestTokenPair, sdk.MustNewDecFromStr("11.0"))
 	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "8", "1")
@@ -108,7 +108,7 @@ func TestFlushCache(t *testing.T) {
 	require.EqualValues(t, 1, len(dcache.GetUpdatedDepthbookKeys()))
 	require.EqualValues(t, 1, len(dcache.getOrderIDs("xxb_"+common.NativeToken+":8.00000000:BUY")))
 	dcache.removeOrder(order)
-	require.EqualValues(t, 6, dcache.openNum)
+	require.EqualValues(t, 6, dcache.OpenNum)
 
 	//close order
 	dcache.closeOrder("ID0000000010-1")
@@ -130,4 +130,36 @@ func TestGetProductsFromDepthBookMap(t *testing.T) {
 	productsList := keeper.GetProductsFromDepthBookMap()
 	require.EqualValues(t, 1, len(productsList))
 	require.EqualValues(t, product, productsList[0])
+}
+
+func TestDiskCacheClone(t *testing.T) {
+	cache := newDiskCache()
+	cloneCache := cache.Clone()
+	require.EqualValues(t, len(cache.ClosedOrderIDs), len(cloneCache.ClosedOrderIDs))
+
+	testInput := CreateTestInputWithBalance(t, 1, 100)
+	keeper := testInput.OrderKeeper
+	product := types.TestTokenPair
+	depthBook := types.DepthBook{}
+	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
+	depthBook.InsertOrder(order)
+	keeper.SetDepthBook(product, &depthBook)
+
+	cloneCache = keeper.diskCache.Clone()
+	require.EqualValues(t, len(keeper.diskCache.ClosedOrderIDs), len(cloneCache.ClosedOrderIDs))
+	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.Data), len(cloneCache.DepthBookMap.Data))
+	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.UpdatedItems), len(cloneCache.DepthBookMap.UpdatedItems))
+	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.NewItems), len(cloneCache.DepthBookMap.NewItems))
+	require.EqualValues(t, len(keeper.diskCache.OrderIDsMap.Data), len(cloneCache.OrderIDsMap.Data))
+	require.EqualValues(t, len(keeper.diskCache.OrderIDsMap.UpdatedItems), len(cloneCache.OrderIDsMap.UpdatedItems))
+	require.EqualValues(t, keeper.diskCache.StoreOrderNum, cloneCache.StoreOrderNum)
+	require.EqualValues(t, keeper.diskCache.ClosedOrderIDs, cloneCache.ClosedOrderIDs)
+	require.EqualValues(t, keeper.diskCache.OpenNum, cloneCache.OpenNum)
+
+	order = mockOrder("", "yyb", types.SellOrder, "10.0", "1.0")
+	depthBook.InsertOrder(order)
+	keeper.SetDepthBook("yyb", &depthBook)
+
+	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.Data), len(cloneCache.DepthBookMap.Data) + 1)
+	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.UpdatedItems), len(cloneCache.DepthBookMap.UpdatedItems) + 1)
 }
