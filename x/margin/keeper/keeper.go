@@ -307,7 +307,7 @@ func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, 
 
 // DexSave saves amount of tokens for borrowing
 func (k Keeper) DexSave(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
-	saving := k.GetSaving(ctx, address, product)
+	saving := k.GetSaving(ctx, product)
 	if saving == nil {
 		saving = amount
 	} else {
@@ -318,13 +318,13 @@ func (k Keeper) DexSave(ctx sdk.Context, address sdk.AccAddress, product string,
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient coins(need %s)", amount.String()))
 	}
-	k.SetSaving(ctx, address, product, saving)
+	k.SetSaving(ctx, product, saving)
 	return nil
 }
 
 // DexReturn returns amount of tokens for borrowing
 func (k Keeper) DexReturn(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
-	saving := k.GetSaving(ctx, address, product)
+	saving := k.GetSaving(ctx, product)
 	if saving == nil || saving.IsAllLT(amount) {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
 	}
@@ -333,15 +333,15 @@ func (k Keeper) DexReturn(ctx sdk.Context, address sdk.AccAddress, product strin
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
 	}
 	saving = saving.Sub(amount)
-	k.SetSaving(ctx, address, product, saving)
+	k.SetSaving(ctx, product, saving)
 	return nil
 }
 
 // GetSaving returns  the saving of product
-func (k Keeper) GetSaving(ctx sdk.Context, address sdk.AccAddress, product string) sdk.DecCoins {
+func (k Keeper) GetSaving(ctx sdk.Context, product string) sdk.DecCoins {
 	var saving sdk.DecCoins
 	store := ctx.KVStore(k.storeKey)
-	bytes := store.Get(types.GetSavingKey(address, product))
+	bytes := store.Get(types.GetSavingKey(product))
 	if bytes == nil {
 		return nil
 	}
@@ -354,8 +354,8 @@ func (k Keeper) GetSaving(ctx sdk.Context, address sdk.AccAddress, product strin
 }
 
 // SetSaving saves the saving of product to db
-func (k Keeper) SetSaving(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) {
+func (k Keeper) SetSaving(ctx sdk.Context, product string, amount sdk.DecCoins) {
 	store := ctx.KVStore(k.storeKey)
-	key := types.GetSavingKey(address, product)
+	key := types.GetSavingKey(product)
 	store.Set(key, k.cdc.MustMarshalBinaryBare(amount))
 }

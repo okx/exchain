@@ -25,9 +25,9 @@ var (
 	lenTime = len(sdk.FormatTimeBytes(time.Now()))
 
 	TradePairKeyPrefix = []byte{0x01}
-	MagrinAssetKey     = []byte{0x02}
+	SavingKeyPrefix    = []byte{0x02}
 
-	SavingKeyPrefix = []byte{0x03}
+	MagrinAssetKey = []byte{0x03}
 
 	WithdrawKeyPrefix     = []byte{0x05}
 	WithdrawTimeKeyPrefix = []byte{0x06}
@@ -74,7 +74,6 @@ func SplitWithdrawTimeKey(key []byte) (time.Time, sdk.AccAddress) {
 	return endTime, delAddr
 }
 
-func GetSavingKey(address sdk.AccAddress, product string) []byte {
-	addressKey := append(SavingKeyPrefix, address.Bytes()...)
-	return append(addressKey, []byte(product)...)
+func GetSavingKey(product string) []byte {
+	return append(SavingKeyPrefix, []byte(product)...)
 }
