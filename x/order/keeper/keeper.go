@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okchain/x/token"
 	"log"
 	"sync"
 
@@ -536,21 +537,18 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 
 // nolint
 func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
-	tmpCache := k.cache.DepthCopy()
-	tmpDiskCache := k.diskCache.DepthCopy()
-
 	k.copyCache = &CopyCache{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 		DiskCache:  k.diskCache,
 	}
 
-	k.cache = tmpCache
-	k.diskCache = tmpDiskCache
+	k.cache = k.cache.DepthCopy()
+	k.diskCache = k.diskCache.DepthCopy()
 
 	// depend keeper
-	//tmpKeeper := k.tokenKeeper.(token.Keeper)
-	//k.tokenKeeper = tmpKeeper.FreezeCache(ctx)
+	tmpKeeper := k.tokenKeeper.(token.Keeper)
+	k.tokenKeeper = tmpKeeper.FreezeCache(ctx)
 
 	return k
 }
@@ -564,8 +562,8 @@ func (k Keeper) UnFreezeCache(ctx sdk.Context) Keeper {
 		k.copyCache = nil
 
 		// depend keeper
-		//tmpKeeper := k.tokenKeeper.(token.Keeper)
-		//k.tokenKeeper = tmpKeeper.UnFreezeCache(ctx)
+		tmpKeeper := k.tokenKeeper.(token.Keeper)
+		k.tokenKeeper = tmpKeeper.UnFreezeCache(ctx)
 	}
 
 	return k

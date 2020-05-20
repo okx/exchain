@@ -495,12 +495,11 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 
 // nolint
 func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
-	tmpCache := k.cache.DepthCopy()
 	k.copyCache = &CopyCache{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 	}
-	k.cache = tmpCache
+	k.cache = k.cache.DepthCopy()
 
 	return k
 }

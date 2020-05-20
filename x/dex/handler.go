@@ -9,36 +9,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-//func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
-//	switch k.(interface{}).(type) {
-//	case *mockDexKeeper:
-//		tmpKeeper := interface{}(k).(*mockDexKeeper).Keeper.FreezeCache(ctx).(Keeper)
-//		interface{}(k).(*mockDexKeeper).Keeper = &tmpKeeper
-//	default:
-//		switch k.(type) {
-//		case Keeper:
-//			k = k.FreezeCache(ctx)
-//		}
-//	}
-//
-//	return k
-//}
-
-//func UnFreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
-//	switch k.(interface{}).(type) {
-//	case *mockDexKeeper:
-//		tmpKeeper := interface{}(k).(*mockDexKeeper).Keeper.UnFreezeCache(ctx).(Keeper)
-//		interface{}(k).(*mockDexKeeper).Keeper = &tmpKeeper
-//	default:
-//		switch k.(type) {
-//		case Keeper:
-//			k = k.UnFreezeCache(ctx)
-//		}
-//	}
-//
-//	return k
-//}
-
 func FreezeCache(ctx sdk.Context, k IKeeper) IKeeper {
 	switch k.(interface{}).(type) {
 	case *mockDexKeeper:
