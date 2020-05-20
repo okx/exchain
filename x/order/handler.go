@@ -72,11 +72,6 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
 		return fmt.Errorf("quantity should be greater than %s", tokenPair.MinQuantity)
 	}
-	var d int64 = 100000000
-	baseQuantity := msg.Price.Mul(msg.Quantity)
-	if !msg.Price.MulInt64(d).Mul(msg.Quantity).Equal(baseQuantity.MulInt64(d)) {
-		return fmt.Errorf("price(%v) * quantity(%v) over accuracy(%d)", msg.Price, msg.Quantity, priceDigit)
-	}
 	return nil
 }
 

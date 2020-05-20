@@ -589,6 +589,29 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 	}
 }
 
+func queryProxyCheck(proxyAddr sdk.AccAddress, isProxy bool, totalDelTokens sdk.Dec) actResChecker {
+	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
+		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
+
+		cdc := ModuleCdc
+
+		queryDlgParams := types.NewQueryDelegatorParams(proxyAddr)
+		bz := cdc.MustMarshalJSON(queryDlgParams)
+		res, sdkErr := q(ctx, []string{types.QueryDelegator}, abci.RequestQuery{Data: bz})
+		if sdkErr != nil {
+			panic(fmt.Sprintf("failed. Proxy %s is missing", proxyAddr))
+		}
+
+		var proxy Delegator
+		cdc.MustUnmarshalJSON(res, &proxy)
+
+		require.Equal(t, isProxy, proxy.IsProxy)
+		require.True(t, totalDelTokens.Equal(proxy.TotalDelegatedTokens))
+		return true
+	}
+}
+
 func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.ValAddress, expShares *sdk.Dec,
 	expToken *sdk.Dec, expUnbondingToken *sdk.Dec) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {

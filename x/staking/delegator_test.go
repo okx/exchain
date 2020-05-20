@@ -294,6 +294,84 @@ func TestProxy(t *testing.T) {
 	smTestCase.Run(t)
 }
 
+func TestRebindProxy(t *testing.T) {
+	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
+	params := DefaultParams()
+
+	originVaSet := addrVals[1:]
+	params.MaxValidators = uint16(len(originVaSet))
+	params.Epoch = 2
+	params.UnbondingTime = time.Millisecond * 300
+
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+
+	startUpStatus := baseValidatorStatus{startUpValidator}
+
+	orgValsLen := len(originVaSet)
+	fullVaSet := make([]sdk.ValAddress, orgValsLen+1)
+	copy(fullVaSet, originVaSet)
+	copy(fullVaSet[orgValsLen:], []sdk.ValAddress{startUpStatus.getValidator().GetOperator()})
+
+	bAction := baseAction{mk}
+	proxyOriginTokens := MaxDelegatedToken
+	ProxiedDelegatorAlternative := ValidDelegator2
+	inputActions := []IAction{
+		createValidatorAction{bAction, nil},
+		endBlockAction{bAction},
+
+		// register proxy
+		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		baseProxyRegAction{bAction, ProxiedDelegator, true},
+
+		// register another proxy
+		newDelegatorAction{bAction, ProxiedDelegatorAlternative, proxyOriginTokens, sdk.DefaultBondDenom},
+		baseProxyRegAction{bAction, ProxiedDelegatorAlternative, true},
+		endBlockAction{bAction},
+
+		// bind proxy
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
+
+		// rebind to an alternative proxy
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegatorAlternative},
+	}
+
+	ProxyChecker1 := andChecker{[]actResChecker{
+		noErrorInHandlerResult(true),
+		queryProxyCheck(ProxiedDelegator, true, DelegatedToken1),
+		queryProxyCheck(ProxiedDelegatorAlternative, true, sdk.ZeroDec()),
+	}}
+
+	ProxyChecker2 := andChecker{[]actResChecker{
+		noErrorInHandlerResult(true),
+		queryProxyCheck(ProxiedDelegator, true, sdk.ZeroDec()),
+		queryProxyCheck(ProxiedDelegatorAlternative, true, DelegatedToken1),
+	}}
+
+	actionsAndChecker := []actResChecker{
+		nil,
+		validatorStatusChecker(sdk.Unbonded.String()),
+		// register proxy
+		noErrorInHandlerResult(true),
+		noErrorInHandlerResult(true),
+
+		// register another proxy
+		noErrorInHandlerResult(true),
+		noErrorInHandlerResult(true),
+		nil,
+
+		// bind proxy
+		ProxyChecker1.GetChecker(),
+
+		// rebind to an alternative proxy
+		ProxyChecker2.GetChecker(),
+	}
+
+	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
+	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
+	smTestCase.printParticipantSnapshot(t)
+	smTestCase.Run(t)
+}
+
 func TestLimitedProxy(t *testing.T) {
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()

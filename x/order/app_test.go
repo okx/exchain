@@ -208,7 +208,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper types.SupplyKeeper,
 //	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: blockHeight}})
 //
 //	newCtx := app.NewContext(false, abci.Header{})
-//	param := DefaultParams()
+//	param := DefaultTestParams()
 //	app.orderKeeper.SetParams(newCtx, &param)
 //	for _, tx := range txs {
 //		app.Deliver(tx)

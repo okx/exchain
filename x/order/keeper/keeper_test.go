@@ -17,7 +17,7 @@ func TestKeeper_Cache2Disk(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -108,7 +108,7 @@ func TestKeeper_LockCoins(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -145,7 +145,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 
@@ -181,11 +181,11 @@ func TestLastPrice(t *testing.T) {
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	price := keeper.GetLastPrice(ctx, "xxxb_okt")
+	price := keeper.GetLastPrice(ctx, "xxxb_"+common.NativeToken)
 	require.Equal(t, sdk.ZeroDec(), price)
 
-	keeper.SetLastPrice(ctx, "xxxb_okt", sdk.MustNewDecFromStr("9.9"))
-	price = keeper.GetLastPrice(ctx, "xxxb_okt")
+	keeper.SetLastPrice(ctx, "xxxb_"+common.NativeToken, sdk.MustNewDecFromStr("9.9"))
+	price = keeper.GetLastPrice(ctx, "xxxb_"+common.NativeToken)
 	require.Equal(t, sdk.MustNewDecFromStr("9.9"), price)
 
 	require.EqualValues(t, sdk.MustNewDecFromStr("10.0"), keeper.GetLastPrice(ctx, types.TestTokenPair))
@@ -280,7 +280,7 @@ func TestKeeper_UpdateOrder(t *testing.T) {
 	require.Nil(t, err)
 
 	//xxb_okt:10.00000000:BUY
-	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.orderIDsMap.Data["xxb_okt:10.00000000:BUY"][0])
+	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.orderIDsMap.Data["xxb_"+common.NativeToken+":10.00000000:BUY"][0])
 
 	order.Price = sdk.MustNewDecFromStr("11.0")
 
@@ -304,7 +304,7 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	testInput := CreateTestInputWithBalance(t, 1, 100)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
-	feeParams := types.DefaultParams()
+	feeParams := types.DefaultTestParams()
 	feeParams.OrderExpireBlocks = 1
 	keeper.SetParams(ctx, &feeParams)
 

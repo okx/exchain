@@ -12,9 +12,9 @@ import (
 // test sdk.DecCoin
 func TestParseDecCoinByDecimal(t *testing.T) {
 
-	decCoin, err := sdk.ParseDecCoin("1000.01okt")
+	decCoin, err := sdk.ParseDecCoin("1000.01" + NativeToken)
 	require.Nil(t, err)
-	require.Equal(t, "1000.01000000okt", decCoin.String())
+	require.Equal(t, "1000.01000000"+NativeToken, decCoin.String())
 
 	//----------------
 	// test sdk.Dec
@@ -35,10 +35,10 @@ func TestParseDecCoinByDecimal(t *testing.T) {
 
 func TestParseDecCoinByInteger(t *testing.T) {
 
-	decCoin, err := sdk.ParseDecCoin("1000okt")
+	decCoin, err := sdk.ParseDecCoin("1000" + NativeToken)
 	require.Nil(t, err)
 
-	require.Equal(t, "1000.00000000okt", decCoin.String())
+	require.Equal(t, "1000.00000000"+NativeToken, decCoin.String())
 
 	//----------------
 	// test sdk.Dec
@@ -60,7 +60,7 @@ func TestParseDecCoinByInteger(t *testing.T) {
 //--------------
 // test sdk.Coin
 func TestParseIntCoinByDecimal(t *testing.T) {
-	_, err := sdk.ParseCoin("1000.1okt")
+	_, err := sdk.ParseCoin("1000.1" + NativeToken)
 	require.Nil(t, err)
 }
 
@@ -68,16 +68,16 @@ func TestParseIntCoinByDecimal(t *testing.T) {
 // test sdk.NewCoin. Dangerous!
 func TestSdkNewCoin(t *testing.T) {
 	// dangerous to use!!!
-	intCoin := sdk.NewCoin("okt", sdk.NewInt(1000))
-	require.Equal(t, "1000.00000000okt", intCoin.String())
+	intCoin := sdk.NewCoin(NativeToken, sdk.NewInt(1000))
+	require.Equal(t, "1000.00000000"+NativeToken, intCoin.String())
 }
 
 //--------------------
 // test sdk.NewDecCoin
 func TestSdkNewDecCoin(t *testing.T) {
 	// safe to use
-	intCoin := sdk.NewDecCoin("okt", sdk.NewInt(1000))
-	require.Equal(t, "1000.00000000okt", intCoin.String())
+	intCoin := sdk.NewDecCoin(NativeToken, sdk.NewInt(1000))
+	require.Equal(t, "1000.00000000"+NativeToken, intCoin.String())
 }
 
 func TestHasSufCoins(t *testing.T) {
