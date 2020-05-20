@@ -4,6 +4,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	DepositType = 1
+	BorrowType  = 2
+)
+
 type MarginAccountAssets struct {
 	MarginProductAssets
 }
@@ -15,6 +20,7 @@ type AccountAssetOnProduct struct {
 	Available sdk.DecCoins `json:"available"`
 	Locked    sdk.DecCoins `json:"locked"`
 	Borrowed  sdk.DecCoins `json:"borrowed"`
+	Deposit   sdk.DecCoins `json:"deposit"`
 	//Interest  sdk.DecCoins `json:"interest"`
 }
 

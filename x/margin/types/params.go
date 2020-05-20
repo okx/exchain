@@ -10,12 +10,16 @@ import (
 const (
 	DefaultParamspace = ModuleName
 	// TODO: Define your default parameters
+
+
 )
 
 // Parameter store keys
 var (
 	// TODO: Define your keys for the parameter store
 	// KeyParamName          = []byte("ParamName")
+	keyAddDepositFee             = []byte("AddDepositFee"),
+
 )
 
 // ParamKeyTable for margin module
