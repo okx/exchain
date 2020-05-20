@@ -1,5 +1,7 @@
 package token
 
+import "encoding/json"
+
 const (
 	// InitFeeDetailsCap default fee detail list cap
 	InitFeeDetailsCap = 2000
@@ -7,7 +9,7 @@ const (
 
 // Cache for detail
 type Cache struct {
-	FeeDetails []*FeeDetail
+	FeeDetails []*FeeDetail `json:"fee_details"`
 }
 
 // NewCache news cache for detail
@@ -30,8 +32,21 @@ func (c *Cache) getFeeDetailList() []*FeeDetail {
 	return c.FeeDetails
 }
 
+// nolint
+func (c *Cache) Clone() *Cache {
+	cache := &Cache{}
+	bytes, _ := json.Marshal(c)
+	err := json.Unmarshal(bytes, cache)
+	if err != nil {
+		return c.DepthCopy()
+	}
+
+	return cache
+}
+
+// nolint
 func (c *Cache) DepthCopy() *Cache {
-	cpFeeDetails := make([]*FeeDetail, len(c.FeeDetails))
+	cpFeeDetails := make([]*FeeDetail, 0, len(c.FeeDetails))
 	for _, v := range c.FeeDetails {
 		cpFeeDetails = append(cpFeeDetails, &FeeDetail{
 			Address: v.Address,
