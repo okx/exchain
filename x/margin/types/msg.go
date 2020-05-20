@@ -107,21 +107,21 @@ func (msg MsgDexWithdraw) GetSigners() []sdk.AccAddress {
 
 // MsgDexSet - struct for dex setting params for a product
 type MsgDexSet struct {
-	Address     sdk.AccAddress `json:"address"`
-	Product     string         `json:"product"`
-	MaxLeverage int64          `json:"max-leverage"`
-	BorrowRate  float64        `json:"borrow-rate"`
-	RiskRate    float64        `json:"risk-rate"`
+	Address                sdk.AccAddress `json:"address"`
+	Product                string         `json:"product"`
+	MaxLeverage            int64          `json:"max-leverage"`
+	BorrowRate             sdk.Dec        `json:"borrow-rate"`
+	MaintenanceMarginRatio sdk.Dec        `json:"maintenance-margin-ratio"`
 }
 
 // NewMsgDexSet creates a new MsgDexSet instance
-func NewMsgDexSet(address sdk.AccAddress, product string, maxLeverage int64, borrowRate float64, riskRate float64) MsgDexSet {
+func NewMsgDexSet(address sdk.AccAddress, product string, maxLeverage int64, borrowRate sdk.Dec, maintenanceMarginRatio sdk.Dec) MsgDexSet {
 	return MsgDexSet{
-		Address:     address,
-		Product:     product,
-		MaxLeverage: maxLeverage,
-		BorrowRate:  borrowRate,
-		RiskRate:    riskRate,
+		Address:                address,
+		Product:                product,
+		MaxLeverage:            maxLeverage,
+		BorrowRate:             borrowRate,
+		MaintenanceMarginRatio: maintenanceMarginRatio,
 	}
 }
 
@@ -133,6 +133,9 @@ func (msg MsgDexSet) Type() string { return "dexSet" }
 
 // ValidateBasic Implements Msg
 func (msg MsgDexSet) ValidateBasic() sdk.Error {
+	if msg.MaxLeverage < 0 {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("invald max leverage:%d", msg.MaxLeverage))
+	}
 	return nil
 }
 

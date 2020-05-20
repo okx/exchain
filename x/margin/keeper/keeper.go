@@ -281,8 +281,32 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	return nil
 }
 
-// Save saves amount of tokens for borrowing
-func (k Keeper) Save(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+// DexSet sets params for a margin product
+func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, maxLeverage int64, borrowRate sdk.Dec, maintenanceMarginRatio sdk.Dec) sdk.Error {
+	tradePair := k.GetTradePair(ctx, product)
+	if tradePair == nil {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to set because non-exist product: %s", product))
+	}
+
+	if !tradePair.Owner.Equals(address) {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to set because %s is not the owner of product:%s", address.String(), product))
+	}
+	if maxLeverage > 0 {
+		tradePair.MaxLeverage = maxLeverage
+	}
+
+	if borrowRate.IsPositive() {
+		tradePair.BorrowRate = borrowRate
+	}
+	if maintenanceMarginRatio.IsPositive() {
+		tradePair.MaintenanceMarginRatio = maintenanceMarginRatio
+	}
+	k.SetTradePair(ctx, tradePair)
+	return nil
+}
+
+// DexSave saves amount of tokens for borrowing
+func (k Keeper) DexSave(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
 	saving := k.GetSaving(ctx, address, product)
 	if saving == nil {
 		saving = amount

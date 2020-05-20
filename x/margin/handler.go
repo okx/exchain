@@ -25,6 +25,10 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgDexWithdraw(ctx, k, msg, logger)
 			}
+		case types.MsgDexSet:
+			handlerFun = func() sdk.Result {
+				return handleMsgDexSet(ctx, k, msg, logger)
+			}
 		case types.MsgDexSave:
 			handlerFun = func() sdk.Result {
 				return handleMsgDexSave(ctx, k, msg, logger)
@@ -90,6 +94,24 @@ func handleMsgDexWithdraw(ctx sdk.Context, keeper Keeper, msg types.MsgDexWithdr
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
+func handleMsgDexSet(ctx sdk.Context, keeper Keeper, msg types.MsgDexSet, logger log.Logger) sdk.Result {
+	if sdkErr := keeper.DexSet(ctx, msg.Address, msg.Product, msg.MaxLeverage, msg.BorrowRate, msg.MaintenanceMarginRatio); sdkErr != nil {
+		return sdkErr.Result()
+	}
+	logger.Debug(fmt.Sprintf("successfully handleMsgDexSet: "+
+		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
 func handleMsgDexSave(ctx sdk.Context, keeper Keeper, msg types.MsgDexSave, logger log.Logger) sdk.Result {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
@@ -99,7 +121,7 @@ func handleMsgDexSave(ctx sdk.Context, keeper Keeper, msg types.MsgDexSave, logg
 		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to save because %s is not the owner of product:%s", msg.Address.String(), msg.Product)).Result()
 	}
 
-	if sdkErr := keeper.Save(ctx, msg.Address, msg.Product, msg.Amount); sdkErr != nil {
+	if sdkErr := keeper.DexSave(ctx, msg.Address, msg.Product, msg.Amount); sdkErr != nil {
 		return sdkErr.Result()
 	}
 	logger.Debug(fmt.Sprintf("successfully handleMsgDexSave: "+
