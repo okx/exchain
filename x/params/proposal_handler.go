@@ -2,15 +2,19 @@ package params
 
 import (
 	"fmt"
-	"math"
-	"time"
-
 	"github.com/okex/okchain/x/common"
 	govtypes "github.com/okex/okchain/x/gov/types"
 	"github.com/okex/okchain/x/params/types"
+	"math"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
+)
+
+const (
+	distrModuleName = "distribution"
+	communityTaxKey = "communitytax"
 )
 
 // NewParamChangeProposalHandler returns the rollback function of the param proposal handler
@@ -126,6 +130,11 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 		return govtypes.ErrInvalidHeight(DefaultCodespace, paramsChangeProposal.Height, curHeight, maxHeight)
 	}
 
+	// give a quick check for the validity of the value in the proposal
+	if sdkErr := keeper.isTargetValueValid(paramsChangeProposal); sdkErr != nil {
+		return sdkErr
+	}
+
 	// run simulation with cache context
 	cacheCtx, _ := ctx.CacheContext()
 	return changeParams(cacheCtx, &keeper, paramsChangeProposal)
@@ -138,3 +147,32 @@ func (keeper Keeper) VoteHandler(ctx sdk.Context, proposal govtypes.Proposal, vo
 }
 func (keeper Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govtypes.Proposal) {}
 func (keeper Keeper) RejectedHandler(ctx sdk.Context, content govtypes.Content)            {}
+
+func (keeper Keeper) isTargetValueValid(proposal types.ParameterChangeProposal) (sdkErr sdk.Error) {
+	// confirmed： one change is allowed
+	for _, change := range proposal.Changes {
+		switch change.Subspace {
+		case distrModuleName:
+			if sdkErr = keeper.checkDistrParams(change); sdkErr != nil {
+				break
+			}
+		}
+	}
+
+	return
+}
+
+func (keeper Keeper) checkDistrParams(change sdkparams.ParamChange) sdk.Error {
+	if change.Key == communityTaxKey {
+		var communityTax sdk.Dec
+		if keeper.cdc.UnmarshalJSON([]byte(change.Value), &communityTax) != nil {
+			return types.ErrUnmarshalJSON(DefaultCodespace)
+		}
+
+		if communityTax.IsNegative() || communityTax.GT(sdk.OneDec()) {
+			return types.ErrInvalidRate(DefaultCodespace)
+		}
+	}
+
+	return nil
+}
