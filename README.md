@@ -20,9 +20,9 @@ See the [documentation](https://okchain-docs.readthedocs.io/en/latest/index.html
 
 ## OKChain Testnet
 
-To run a full-node for the testnet of the OKChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html).
+To run a full-node for the testnet of the OKChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install-okchain.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html).
 
-For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html#genesis).
+For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html#genesis-seeds).
 
 ## Quick Start
 
