@@ -33,6 +33,10 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgDexSave(ctx, k, msg, logger)
 			}
+		case types.MsgDexReturn:
+			handlerFun = func() sdk.Result {
+				return handleMsgDexReturn(ctx, k, msg, logger)
+			}
 		case types.MsgDeposit:
 			handlerFun = func() sdk.Result {
 				return handleMsgDeposit(ctx, k, msg, logger)
@@ -113,11 +117,11 @@ func handleMsgDexSet(ctx sdk.Context, keeper Keeper, msg types.MsgDexSet, logger
 }
 
 func handleMsgDexSave(ctx sdk.Context, keeper Keeper, msg types.MsgDexSave, logger log.Logger) sdk.Result {
-	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
-	if tokenPair == nil {
+	tradePair := keeper.GetTradePair(ctx, msg.Product)
+	if tradePair == nil {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to save because non-exist product: %s", msg.Product)).Result()
 	}
-	if !tokenPair.Owner.Equals(msg.Address) {
+	if !tradePair.Owner.Equals(msg.Address) {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to save because %s is not the owner of product:%s", msg.Address.String(), msg.Product)).Result()
 	}
 
@@ -125,6 +129,32 @@ func handleMsgDexSave(ctx sdk.Context, keeper Keeper, msg types.MsgDexSave, logg
 		return sdkErr.Result()
 	}
 	logger.Debug(fmt.Sprintf("successfully handleMsgDexSave: "+
+		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgDexReturn(ctx sdk.Context, keeper Keeper, msg types.MsgDexReturn, logger log.Logger) sdk.Result {
+	tokenPair := keeper.GetTradePair(ctx, msg.Product)
+	if tokenPair == nil {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to return because non-exist product: %s", msg.Product)).Result()
+	}
+	if !tokenPair.Owner.Equals(msg.Address) {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to return because %s is not the owner of product:%s", msg.Address.String(), msg.Product)).Result()
+	}
+
+	if sdkErr := keeper.DexReturn(ctx, msg.Address, msg.Product, msg.Amount); sdkErr != nil {
+		return sdkErr.Result()
+	}
+	logger.Debug(fmt.Sprintf("successfully handleMsgDexReturn: "+
 		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
 
 	ctx.EventManager().EmitEvent(
