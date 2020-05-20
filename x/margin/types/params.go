@@ -16,6 +16,7 @@ const (
 // Parameter store keys
 var (
 	keyWithdrawPeriod = []byte("WithdrawPeriod")
+	keyAddDepositFee  = []byte("AddDepositFee")
 )
 
 // ParamKeyTable for margin module

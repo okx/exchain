@@ -58,13 +58,22 @@ func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, addresses sdk.AccAddre
 	return assetOnProduct, true
 }
 
-func (k Keeper) SetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
+func (k Keeper) SetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, amt sdk.DecCoins, assetType int) {
 
 	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
+	// account info has exist
 	if ok {
-		assetOnProduct.Available = assetOnProduct.Available.Add(available)
+		switch assetType {
+		case types.DepositType:
+			assetOnProduct.Available = assetOnProduct.Available.Add(amt)
+		case types.BorrowType:
+			assetOnProduct.Available = assetOnProduct.Available.Add(amt)
+			assetOnProduct.Borrowed = assetOnProduct.Borrowed.Add(amt)
+		}
 	} else {
-		assetOnProduct = types.AccountAssetOnProduct{Product: product, Available: available}
+		if assetType == types.DepositType {
+			assetOnProduct = types.AccountAssetOnProduct{Product: product, Available: amt}
+		}
 	}
 
 	key := types.GetMarginProductAssetKey(address.String(), product)

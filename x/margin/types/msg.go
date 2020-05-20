@@ -275,11 +275,11 @@ type MsgBorrow struct {
 	Address  sdk.AccAddress `json:"address"`
 	Product  string         `json:"product"`
 	Amount   sdk.DecCoin    `json:"amount"`
-	Leverage int64          `json:"leverage"`
+	Leverage sdk.Dec        `json:"leverage"`
 }
 
 // NewMsgBorrow creates a new MsgBorrow instance
-func NewMsgBorrow(address sdk.AccAddress, product string, amount sdk.DecCoin, leverage int64) MsgBorrow {
+func NewMsgBorrow(address sdk.AccAddress, product string, amount sdk.DecCoin, leverage sdk.Dec) MsgBorrow {
 	return MsgBorrow{
 		Address:  address,
 		Product:  product,

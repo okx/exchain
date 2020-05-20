@@ -129,7 +129,7 @@ func GetCmdDexSave(cdc *codec.Codec) *cobra.Command {
 // GetCmdDeposit is the CLI command for doing Deposit
 func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "deposit [product] [amount] [flag]",
+		Use:   "deposit [product] [amount]",
 		Short: "add deposit for margin trade product ",
 		Args:  cobra.ExactArgs(2), // Does your request require arguments
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -148,4 +148,38 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
+}
+
+// GetCmdDeposit is the CLI command for doing Deposit
+func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
+	var leverageStr string
+	var depositStr string
+	cmd := &cobra.Command{
+		Use:   "borrow [product] ",
+		Short: "add deposit for margin trade product ",
+		Args:  cobra.ExactArgs(3), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			from := cliCtx.GetFromAddress()
+			product := args[0]
+			deposit, err := sdk.ParseDecCoin(depositStr)
+			if err != nil {
+				return err
+			}
+			leverageDec, err := sdk.NewDecFromStr(leverageStr)
+			if err != nil {
+				return err
+			}
+			msg := types.NewMsgBorrow(from, product, deposit, leverageDec)
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().StringVarP(&depositStr, "leverage", "l", "", "The leverage of the borrow")
+	cmd.Flags().StringVarP(&leverageStr, "deposit", "d", "", "The deposit for  borrow token")
+	return cmd
 }
