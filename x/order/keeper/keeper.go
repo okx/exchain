@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/token"
 	"log"
 	"sync"
@@ -547,8 +548,11 @@ func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
 	k.diskCache = k.diskCache.DepthCopy()
 
 	// depend keeper
-	tmpKeeper := k.tokenKeeper.(token.Keeper)
-	k.tokenKeeper = tmpKeeper.FreezeCache(ctx)
+	tmpTokenKeeper := k.tokenKeeper.(token.Keeper)
+	k.tokenKeeper = tmpTokenKeeper.FreezeCache(ctx)
+
+	tmpDexKeeper := k.dexKeeper.(dex.Keeper)
+	k.dexKeeper = tmpDexKeeper.FreezeCache(ctx)
 
 	return k
 }
@@ -562,8 +566,11 @@ func (k Keeper) UnFreezeCache(ctx sdk.Context) Keeper {
 		k.copyCache = nil
 
 		// depend keeper
-		tmpKeeper := k.tokenKeeper.(token.Keeper)
-		k.tokenKeeper = tmpKeeper.UnFreezeCache(ctx)
+		tmpTokenKeeper := k.tokenKeeper.(token.Keeper)
+		k.tokenKeeper = tmpTokenKeeper.UnFreezeCache(ctx)
+
+		tmpDexKeeper := k.dexKeeper.(dex.Keeper)
+		k.dexKeeper = tmpDexKeeper.UnFreezeCache(ctx)
 	}
 
 	return k
