@@ -138,11 +138,12 @@ func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDeposit, logg
 
 	//marginAcc := types.GetMarginAccount(msg.Address.String())
 
-	keeper.SetAccountAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount, types.DepositType)
+	keeper.SetAvailableAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount)
 	// TODO: Define your msg events
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
 			sdk.NewAttribute("deposit amount", msg.Amount.String()),
 			sdk.NewAttribute("deposit product", msg.Product),
 		),
@@ -165,16 +166,19 @@ func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger
 
 	//marginAcc := types.GetMarginAccount(msg.Address.String())
 
-	keeper.SetAccountAssetOnProduct(ctx, msg.Address, msg.Product, sdk.NewCoins(msg.Amount), types.BorrowType)
+	times := msg.Leverage.Sub(sdk.NewDec(1))
+	if err := keeper.SetBorrowAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount, times); err != nil {
+		return err.Result()
+	}
+
 	// TODO: Define your msg events
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
-			sdk.NewAttribute("deposit amount", msg.Amount.String()),
-			sdk.NewAttribute("deposit product", msg.Product),
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute("borrow amount", sdk.NewCoins(msg.Amount).MulDec(times).String()),
 		),
 	)
-
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 

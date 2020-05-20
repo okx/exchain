@@ -24,11 +24,10 @@ const (
 var (
 	lenTime = len(sdk.FormatTimeBytes(time.Now()))
 
-	TradePairKeyPrefix = []byte{0x01}
-	MagrinAssetKey     = []byte{0x02}
-
-	SavingKeyPrefix = []byte{0x03}
-
+	TradePairKeyPrefix    = []byte{0x01}
+	SavingKeyPrefix       = []byte{0x02}
+	MarginAssetKeyPrefix  = []byte{0x03}
+	BorrowKeyPrefix       = []byte{0x04}
 	WithdrawKeyPrefix     = []byte{0x05}
 	WithdrawTimeKeyPrefix = []byte{0x06}
 )
@@ -38,11 +37,23 @@ func GetTradePairKey(product string) []byte {
 }
 
 func GetMarginAllAssetKey(address string) []byte {
-	return append(MagrinAssetKey, []byte(address)...)
+	return append(MarginAssetKeyPrefix, []byte(address)...)
 }
 
-func GetMarginProductAssetKey(address, product string) []byte {
+func GetMarginAssetOnProductKey(address, product string) []byte {
 	return append(GetMarginAllAssetKey(address), []byte(product)...)
+}
+
+func GetProductBorrowInfoKey(product string) []byte {
+	return append(BorrowKeyPrefix, []byte(product)...)
+}
+
+func GetAccountBorrowOnProductKey(address, product string) []byte {
+	return append(GetProductBorrowInfoKey(product), []byte(address)...)
+}
+
+func GetAccountBorrowOnProductAtHeightKey(height uint64, address, product string) []byte {
+	return append(GetAccountBorrowOnProductKey(address, product), sdk.Uint64ToBigEndian(height)...)
 }
 
 // GetWithdrawKey returns key of withdraw

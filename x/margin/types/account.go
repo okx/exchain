@@ -4,11 +4,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const (
-	DepositType = 1
-	BorrowType  = 2
-)
-
 type MarginAccountAssets struct {
 	MarginProductAssets
 }

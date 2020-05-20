@@ -48,8 +48,8 @@ func (k Keeper) GetMarginTradePair(ctx sdk.Context, product string) *dexTypes.To
 	return k.dexKeeper.GetTokenPair(ctx, product)
 }
 
-func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, addresses sdk.AccAddress, product string) (assetOnProduct types.AccountAssetOnProduct, ok bool) {
-	bytes := ctx.KVStore(k.storeKey).Get(types.GetMarginProductAssetKey(addresses.String(), product))
+func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string) (assetOnProduct types.AccountAssetOnProduct, ok bool) {
+	bytes := ctx.KVStore(k.storeKey).Get(types.GetMarginAssetOnProductKey(address.String(), product))
 	if bytes == nil {
 		return
 	}
@@ -58,27 +58,72 @@ func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, addresses sdk.AccAddre
 	return assetOnProduct, true
 }
 
-func (k Keeper) SetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, amt sdk.DecCoins, assetType int) {
+func (k Keeper) SetAvailableAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
 
 	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
 	// account info has exist
 	if ok {
-		switch assetType {
-		case types.DepositType:
-			assetOnProduct.Available = assetOnProduct.Available.Add(amt)
-		case types.BorrowType:
-			assetOnProduct.Available = assetOnProduct.Available.Add(amt)
-			assetOnProduct.Borrowed = assetOnProduct.Borrowed.Add(amt)
-		}
+		assetOnProduct.Available = assetOnProduct.Available.Add(available)
 	} else {
-		if assetType == types.DepositType {
-			assetOnProduct = types.AccountAssetOnProduct{Product: product, Available: amt}
-		}
+		assetOnProduct = types.AccountAssetOnProduct{Product: product, Available: available}
 	}
-
-	key := types.GetMarginProductAssetKey(address.String(), product)
+	key := types.GetMarginAssetOnProductKey(address.String(), product)
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(assetOnProduct)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
+}
+
+func (k Keeper) SetBorrowAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, deposit sdk.DecCoin, times sdk.Dec) sdk.Error {
+
+	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
+	// account info has exist
+	if ok {
+		assetOnProduct.Available = assetOnProduct.Available.Sub(sdk.NewCoins(deposit))
+		assetOnProduct.Deposit = assetOnProduct.Deposit.Add(sdk.NewCoins(deposit))
+		borrowAmount := sdk.DecCoin{Denom: deposit.Denom, Amount: deposit.Amount.Mul(times)}
+		assetOnProduct.Borrowed = assetOnProduct.Borrowed.Add(sdk.NewCoins(borrowAmount))
+
+		borrowBlockHeight := ctx.BlockHeight()
+
+		accountBorrowInfoKey := types.GetAccountBorrowOnProductAtHeightKey(uint64(borrowBlockHeight), address.String(), product)
+		bytes := k.cdc.MustMarshalBinaryLengthPrefixed(types.BorrowInfo{Amount: borrowAmount, BlockHeight: borrowBlockHeight, Rate: sdk.NewDec(0.01)})
+		ctx.KVStore(k.storeKey).Set(accountBorrowInfoKey, bytes)
+
+	} else {
+		// TODO : add error
+		//return sdk.NewError(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.ToCoins().String()))
+	}
+
+	key := types.GetMarginAssetOnProductKey(address.String(), product)
+	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(assetOnProduct)
+	ctx.KVStore(k.storeKey).Set(key, bytes)
+	return nil
+}
+
+func (k Keeper) GetBorrowOnProductAtHeight(ctx sdk.Context, blockHeight int64, address sdk.AccAddress, product string) (borrowOnProductAtHeight types.BorrowInfo, ok bool) {
+	bytes := ctx.KVStore(k.storeKey).Get(types.GetAccountBorrowOnProductAtHeightKey(uint64(blockHeight), address.String(), product))
+	if bytes == nil {
+		return
+	}
+
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bytes, &borrowOnProductAtHeight)
+	return borrowOnProductAtHeight, true
+}
+
+func (k Keeper) updateAccountBorrowInfo(ctx sdk.Context, borrowBlockHeight int64, address sdk.AccAddress, product string, repay sdk.DecCoins, operation int) sdk.Error {
+	//borrowOnProductAtHeight, ok := k.GetBorrowOnProductAtHeight(ctx, borrowBlockHeight, address, product)
+	//if !ok {
+	//	// TODO return error
+	//}
+
+	// calculate interest
+
+	//if borrowOnProductAtHeight.Amount.IsAllLT(repay) {
+	//	i := ctx.BlockHeight() - borrowOnProductAtHeight.BlockHeight
+	//	i * borrowOnProductAtHeight.Rate
+	//
+	//}
+	return nil
+
 }
 
 func (k Keeper) GetAccountDeposit(ctx sdk.Context, address sdk.AccAddress) (marginDeposit types.MarginProductAssets) {
