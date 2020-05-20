@@ -326,9 +326,33 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	return nil
 }
 
-// Save saves amount of tokens for borrowing
-func (k Keeper) Save(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
-	saving := k.GetSaving(ctx, address, product)
+// DexSet sets params for a margin product
+func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, maxLeverage int64, borrowRate sdk.Dec, maintenanceMarginRatio sdk.Dec) sdk.Error {
+	tradePair := k.GetTradePair(ctx, product)
+	if tradePair == nil {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to set because non-exist product: %s", product))
+	}
+
+	if !tradePair.Owner.Equals(address) {
+		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to set because %s is not the owner of product:%s", address.String(), product))
+	}
+	if maxLeverage > 0 {
+		tradePair.MaxLeverage = maxLeverage
+	}
+
+	if borrowRate.IsPositive() {
+		tradePair.BorrowRate = borrowRate
+	}
+	if maintenanceMarginRatio.IsPositive() {
+		tradePair.MaintenanceMarginRatio = maintenanceMarginRatio
+	}
+	k.SetTradePair(ctx, tradePair)
+	return nil
+}
+
+// DexSave saves amount of tokens for borrowing
+func (k Keeper) DexSave(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+	saving := k.GetSaving(ctx, product)
 	if saving == nil {
 		saving = amount
 	} else {
@@ -337,17 +361,32 @@ func (k Keeper) Save(ctx sdk.Context, address sdk.AccAddress, product string, am
 
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient coins(need %s)", amount.String()))
 	}
-	k.SetSaving(ctx, address, product, saving)
+	k.SetSaving(ctx, product, saving)
+	return nil
+}
+
+// DexReturn returns amount of tokens for borrowing
+func (k Keeper) DexReturn(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) sdk.Error {
+	saving := k.GetSaving(ctx, product)
+	if saving == nil || saving.IsAllLT(amount) {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
+	}
+	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, amount)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
+	}
+	saving = saving.Sub(amount)
+	k.SetSaving(ctx, product, saving)
 	return nil
 }
 
 // GetSaving returns  the saving of product
-func (k Keeper) GetSaving(ctx sdk.Context, address sdk.AccAddress, product string) sdk.DecCoins {
+func (k Keeper) GetSaving(ctx sdk.Context, product string) sdk.DecCoins {
 	var saving sdk.DecCoins
 	store := ctx.KVStore(k.storeKey)
-	bytes := store.Get(types.GetSavingKey(address, product))
+	bytes := store.Get(types.GetSavingKey(product))
 	if bytes == nil {
 		return nil
 	}
@@ -360,8 +399,8 @@ func (k Keeper) GetSaving(ctx sdk.Context, address sdk.AccAddress, product strin
 }
 
 // SetSaving saves the saving of product to db
-func (k Keeper) SetSaving(ctx sdk.Context, address sdk.AccAddress, product string, amount sdk.DecCoins) {
+func (k Keeper) SetSaving(ctx sdk.Context, product string, amount sdk.DecCoins) {
 	store := ctx.KVStore(k.storeKey)
-	key := types.GetSavingKey(address, product)
+	key := types.GetSavingKey(product)
 	store.Set(key, k.cdc.MustMarshalBinaryBare(amount))
 }

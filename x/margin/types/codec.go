@@ -8,7 +8,7 @@ import (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDexDeposit{}, "okchain/margin/MsgDexDeposit", nil)
 	cdc.RegisterConcrete(MsgDexWithdraw{}, "okchain/margin/MsgDexWithdraw", nil)
-	//cdc.RegisterConcrete(MsgDexSet{}, "okchain/margin/MsgDexSet", nil)
+	cdc.RegisterConcrete(MsgDexSet{}, "okchain/margin/MsgDexSet", nil)
 	cdc.RegisterConcrete(MsgDexSave{}, "okchain/margin/MsgDexSave", nil)
 	cdc.RegisterConcrete(MsgDexReturn{}, "okchain/margin/MsgDexReturn", nil)
 	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDeposit", nil)

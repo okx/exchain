@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -26,7 +28,9 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	marginTxCmd.AddCommand(flags.PostCommands(
 		GetCmdDexDeposit(cdc),
 		GetCmdDexWithdraw(cdc),
+		GetCmdDexSet(cdc),
 		GetCmdDexSave(cdc),
+		GetCmdDexReturn(cdc),
 		GetCmdDeposit(cdc),
 	)...)
 
@@ -95,6 +99,59 @@ func GetCmdDexWithdraw(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
+// GetCmdDexSet is the CLI command for doing dex-set
+func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
+	var maxLeverage int64
+	var borrowRate string
+	var maintenanceMarginRatio string
+	cmd := &cobra.Command{
+		Use:   "dex-set [product]",
+		Short: "dex sets params for a product",
+		Args:  cobra.ExactArgs(1), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			// Get depositor address
+			address := cliCtx.GetFromAddress()
+			product := args[0]
+
+			if maxLeverage < 0 {
+				return errors.New("invalid max-leverage")
+			}
+
+			var borrowRateDec sdk.Dec
+			var err error
+			if len(borrowRate) > 0 {
+				borrowRateDec, err = sdk.NewDecFromStr(borrowRate)
+				if err != nil {
+					return fmt.Errorf("invalid borrow-rate:%s", err.Error())
+				}
+			}
+
+			var mmrDec sdk.Dec
+			if len(maintenanceMarginRatio) > 0 {
+				mmrDec, err = sdk.NewDecFromStr(maintenanceMarginRatio)
+				if err != nil {
+					return fmt.Errorf("invalid maintenance-margin-ratio:%s", err.Error())
+				}
+			}
+
+			msg := types.NewMsgDexSet(address, product, maxLeverage, borrowRateDec, mmrDec)
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	cmd.Flags().Int64VarP(&maxLeverage, "max-leverage", "ml", 0, "max leverage of the product")
+	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "br", "", "interest rate on borrowing")
+	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "mmr", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
+	return cmd
+}
+
 // GetCmdDexSave is the CLI command for doing dex-save
 func GetCmdDexSave(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
@@ -116,6 +173,37 @@ func GetCmdDexSave(cdc *codec.Codec) *cobra.Command {
 			}
 
 			msg := types.NewMsgDexSave(address, product, amount)
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdDexReturn is the CLI command for doing dex-save
+func GetCmdDexReturn(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "dex-return [product] [amount]",
+		Short: "dex returns an amount of token for borrowing",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			// Get depositor address
+			address := cliCtx.GetFromAddress()
+
+			product := args[0]
+			// Get amount of coins
+			amount, err := sdk.ParseDecCoins(args[1])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgDexReturn(address, product, amount)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

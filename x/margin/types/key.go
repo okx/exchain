@@ -85,7 +85,6 @@ func SplitWithdrawTimeKey(key []byte) (time.Time, sdk.AccAddress) {
 	return endTime, delAddr
 }
 
-func GetSavingKey(address sdk.AccAddress, product string) []byte {
-	addressKey := append(SavingKeyPrefix, address.Bytes()...)
-	return append(addressKey, []byte(product)...)
+func GetSavingKey(product string) []byte {
+	return append(SavingKeyPrefix, []byte(product)...)
 }
