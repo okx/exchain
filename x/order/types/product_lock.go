@@ -6,16 +6,16 @@ import (
 
 // nolint
 type ProductLock struct {
-	BlockHeight  int64
-	Price        sdk.Dec
-	Quantity     sdk.Dec
-	BuyExecuted  sdk.Dec
-	SellExecuted sdk.Dec
+	BlockHeight  int64 `json:"block_height"`
+	Price        sdk.Dec `json:"price"`
+	Quantity     sdk.Dec `json:"quantity"`
+	BuyExecuted  sdk.Dec `json:"buy_executed"`
+	SellExecuted sdk.Dec `json:"sell_executed"`
 }
 
 // nolint
 type ProductLockMap struct {
-	Data map[string]*ProductLock
+	Data map[string]*ProductLock `json:"data"`
 }
 
 // nolint

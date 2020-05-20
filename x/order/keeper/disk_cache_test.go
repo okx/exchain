@@ -137,29 +137,56 @@ func TestDiskCacheClone(t *testing.T) {
 	cloneCache := cache.Clone()
 	require.EqualValues(t, len(cache.ClosedOrderIDs), len(cloneCache.ClosedOrderIDs))
 
-	testInput := CreateTestInputWithBalance(t, 1, 100)
-	keeper := testInput.OrderKeeper
-	product := types.TestTokenPair
-	depthBook := types.DepthBook{}
-	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	depthBook.InsertOrder(order)
-	keeper.SetDepthBook(product, &depthBook)
+	cache = &DiskCache{
+		DepthBookMap:   nil,
+		OrderIDsMap:    nil,
+		PriceMap:       nil,
+		StoreOrderNum:  1000,
+		OpenNum:        20,
+		ClosedOrderIDs: []string{"ID000000045-1","ID000000045-2","ID000000045-3"},
+	}
 
-	cloneCache = keeper.diskCache.Clone()
-	require.EqualValues(t, len(keeper.diskCache.ClosedOrderIDs), len(cloneCache.ClosedOrderIDs))
-	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.Data), len(cloneCache.DepthBookMap.Data))
-	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.UpdatedItems), len(cloneCache.DepthBookMap.UpdatedItems))
-	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.NewItems), len(cloneCache.DepthBookMap.NewItems))
-	require.EqualValues(t, len(keeper.diskCache.OrderIDsMap.Data), len(cloneCache.OrderIDsMap.Data))
-	require.EqualValues(t, len(keeper.diskCache.OrderIDsMap.UpdatedItems), len(cloneCache.OrderIDsMap.UpdatedItems))
-	require.EqualValues(t, keeper.diskCache.StoreOrderNum, cloneCache.StoreOrderNum)
-	require.EqualValues(t, keeper.diskCache.ClosedOrderIDs, cloneCache.ClosedOrderIDs)
-	require.EqualValues(t, keeper.diskCache.OpenNum, cloneCache.OpenNum)
+	dpMapData := make(map[string]*types.DepthBook)
+	dpMapData["xxxx"] = &types.DepthBook{Items:[]types.DepthBookItem{
+		{sdk.MustNewDecFromStr("10000"), sdk.MustNewDecFromStr("10000"), sdk.MustNewDecFromStr("10000")},
+		{sdk.MustNewDecFromStr("20000"), sdk.MustNewDecFromStr("2000"), sdk.MustNewDecFromStr("100001")},
+	}}
+	dpUpdateItems := make(map[string]struct{})
+	dpUpdateItems["zzzz"] = struct{}{}
+	dpUpdateItems["kkkk"] = struct{}{}
 
-	order = mockOrder("", "yyb", types.SellOrder, "10.0", "1.0")
-	depthBook.InsertOrder(order)
-	keeper.SetDepthBook("yyb", &depthBook)
+	dpNewItems := make(map[string]struct{})
+	dpNewItems["aaaa"] = struct{}{}
+	dpNewItems["bbbb"] = struct{}{}
 
-	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.Data), len(cloneCache.DepthBookMap.Data) + 1)
-	require.EqualValues(t, len(keeper.diskCache.DepthBookMap.UpdatedItems), len(cloneCache.DepthBookMap.UpdatedItems) + 1)
+	dpMap := &DepthBookMap{
+		Data:         dpMapData,
+		UpdatedItems: dpUpdateItems,
+		NewItems:     dpNewItems,
+	}
+	cache.DepthBookMap = dpMap
+
+	orderIDsData := make(map[string][]string)
+	orderIDsData["uuuu"] = []string{"ID0000000045-1", "ID0000000045-2"}
+	orderIDsData["wwww"] = []string{"ID0000000046-1", "ID0000000046-2"}
+
+	orderIDsUpdateItems := make(map[string]struct{})
+	orderIDsUpdateItems["cccc"] = struct{}{}
+	orderIDsUpdateItems["dddd"] = struct{}{}
+	orderIdsMap := &OrderIDsMap{
+		Data:         orderIDsData,
+		UpdatedItems: orderIDsUpdateItems,
+	}
+	cache.OrderIDsMap = orderIdsMap
+
+	priceMap := make(map[string]sdk.Dec)
+	priceMap["xxb_okt"] = sdk.MustNewDecFromStr("100000")
+	priceMap["yyb_okt"] = sdk.MustNewDecFromStr("10000")
+	cache.PriceMap = priceMap
+
+	depthCopy := cache.DepthCopy()
+	require.EqualValues(t, len(cache.OrderIDsMap.UpdatedItems), len(depthCopy.OrderIDsMap.UpdatedItems))
+
+	cache.OrderIDsMap.UpdatedItems["xzxzxz"] = struct{}{}
+	require.EqualValues(t, len(cache.OrderIDsMap.UpdatedItems), len(depthCopy.OrderIDsMap.UpdatedItems) + 1)
 }

@@ -413,7 +413,7 @@ func (k Keeper) FreezeCache(ctx sdk.Context) Keeper {
 		Cache:      k.cache,
 	}
 
-	k.cache = k.cache.Clone()
+	k.cache = k.cache.DepthCopy()
 
 	return k
 }

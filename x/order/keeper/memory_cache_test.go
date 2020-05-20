@@ -51,39 +51,63 @@ func TestCache_GetCancelNum(t *testing.T) {
 }
 
 func TestCache_Clone(t *testing.T) {
-	cache := NewCache()
-	cloneCache := cache.Clone()
-	require.EqualValues(t, len(cache.UpdatedOrderIDs), len(cloneCache.UpdatedOrderIDs))
+	cache := &Cache{
+		UpdatedOrderIDs:  []string{"ID00000000054-1","ID00000000056-2"},
+		BlockMatchResult: &types.BlockMatchResult{
+			BlockHeight: 1000,
+			ResultMap:   nil,
+			TimeStamp:   10000000240,
+		},
+		Params:           &types.Params{
+			OrderExpireBlocks: 20,
+			MaxDealsPerBlock:  30,
+			FeePerBlock:       sdk.NewDecCoinFromDec("okt", sdk.MustNewDecFromStr("1000000")),
+			TradeFeeRate:      sdk.MustNewDecFromStr("10000"),
+		},
+		CancelNum:        1,
+		ExpireNum:        2,
+		PartialFillNum:   3,
+		FullFillNum:      4,
+	}
 
-	cache.addUpdatedOrderID("ID0000000010-1")
-	cache.addUpdatedOrderID("ID0000000010-2")
-	require.EqualValues(t, len(cache.UpdatedOrderIDs), len(cloneCache.UpdatedOrderIDs) + 2)
+	resultMap := make(map[string]types.MatchResult)
+	resultMap["okxxxxxx1"] = types.MatchResult{
+		BlockHeight: 100001,
+		Price:       sdk.MustNewDecFromStr("10000"),
+		Quantity:    sdk.MustNewDecFromStr("1000"),
+		Deals:       []types.Deal{
+			{"ID0000000040-1","BUY",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000040-2","BUY",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000040-3","BUY",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000040-4","BUY",sdk.MustNewDecFromStr("1000"),"1000okt" },
+		},
+	}
+	cache.BlockMatchResult.ResultMap = resultMap
 
-	cache.Params = &types.Params{
-		OrderExpireBlocks: 0,
-		MaxDealsPerBlock:  100,
-		FeePerBlock:       sdk.DecCoin{},
-		TradeFeeRate:      sdk.Dec{},
-	}
-	require.Nil(t, cloneCache.Params)
-	cloneCache.Params = &types.Params{
-		OrderExpireBlocks: 0,
-		MaxDealsPerBlock:  10000,
-		FeePerBlock:       sdk.DecCoin{},
-		TradeFeeRate:      sdk.Dec{},
-	}
-	require.NotEqual(t, cache.Params.MaxDealsPerBlock, cloneCache.Params.MaxDealsPerBlock)
+	cloneCopy := cache.Clone()
+	require.NotNil(t, cloneCopy)
 
-	cache.BlockMatchResult = &types.BlockMatchResult{
-		BlockHeight: 200,
-		ResultMap:   nil,
-		TimeStamp:   0,
+	depthCopy := cache.DepthCopy()
+	require.NotNil(t, depthCopy)
+
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap), len(cloneCopy.BlockMatchResult.ResultMap))
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap), len(depthCopy.BlockMatchResult.ResultMap))
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap["okxxxxxx1"].Deals), len(cloneCopy.BlockMatchResult.ResultMap["okxxxxxx1"].Deals))
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap["okxxxxxx1"].Deals), len(depthCopy.BlockMatchResult.ResultMap["okxxxxxx1"].Deals))
+
+	addMatchResult := types.MatchResult{
+		BlockHeight: 100002,
+		Price:       sdk.MustNewDecFromStr("10000"),
+		Quantity:    sdk.MustNewDecFromStr("1000"),
+		Deals:       []types.Deal{
+			{"ID0000000050-1","SELL",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000050-2","SELL",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000050-3","SELL",sdk.MustNewDecFromStr("1000"),"1000okt" },
+			{"ID0000000050-4","SELL",sdk.MustNewDecFromStr("1000"),"1000okt" },
+		},
 	}
-	require.Nil(t, cloneCache.BlockMatchResult)
-	cloneCache.BlockMatchResult = &types.BlockMatchResult{
-		BlockHeight: 20,
-		ResultMap:   nil,
-		TimeStamp:   0,
-	}
-	require.NotEqual(t, cache.BlockMatchResult.BlockHeight, cloneCache.BlockMatchResult.BlockHeight)
+	cache.BlockMatchResult.ResultMap["okxxxxxx2"] = addMatchResult
+
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap), len(cloneCopy.BlockMatchResult.ResultMap) + 1)
+	require.EqualValues(t, len(cache.BlockMatchResult.ResultMap), len(depthCopy.BlockMatchResult.ResultMap) + 1)
 }

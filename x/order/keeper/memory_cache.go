@@ -182,6 +182,8 @@ func (c *Cache) DepthCopy() *Cache {
 					Deals:       cpDeals,
 				}
 			}
+
+			cache.BlockMatchResult.ResultMap = cpResultMap
 		}
 	}
 

@@ -544,8 +544,8 @@ func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
 		DiskCache:  k.diskCache,
 	}
 
-	k.cache = k.cache.Clone()
-	k.diskCache = k.diskCache.Clone()
+	k.cache = k.cache.DepthCopy()
+	k.diskCache = k.diskCache.DepthCopy()
 
 	// depend keeper
 	tmpTokenKeeper := k.tokenKeeper.(token.Keeper)
