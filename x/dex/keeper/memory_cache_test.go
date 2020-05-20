@@ -24,3 +24,17 @@ func TestCache(t *testing.T) {
 	require.Nil(t, getTokenPair)
 	require.Equal(t, false, ok)
 }
+
+func TestCacheClone(t *testing.T) {
+	cache := NewCache()
+	tokenPair := GetBuiltInTokenPair()
+	cache.AddTokenPair(tokenPair)
+
+	cloneCache := cache.Clone()
+	require.EqualValues(t, len(cache.TokenPairMap), len(cloneCache.TokenPairMap))
+
+	tokenPair.BaseAssetSymbol = "yyt"
+	cache.AddTokenPair(tokenPair)
+	require.EqualValues(t, len(cache.TokenPairMap), len(cloneCache.TokenPairMap) + 1)
+
+}

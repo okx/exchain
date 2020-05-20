@@ -1,37 +1,38 @@
 package keeper
 
 import (
+	"encoding/json"
 	"github.com/okex/okchain/x/dex/types"
 	ordertypes "github.com/okex/okchain/x/order/types"
 )
 
 // Cache caches data
 type Cache struct {
-	tokenPairMap     map[string]*types.TokenPair
-	newTokenPairMap  []*types.TokenPair
-	tokenPairChanged bool
-	lockMap          *ordertypes.ProductLockMap
+	TokenPairMap     map[string]*types.TokenPair `json:"token_pair_map"`
+	NewTokenPairMap  []*types.TokenPair `json:"new_token_pair_map"`
+	TokenPairChanged bool `json:"token_pair_changed"`
+	LockMap          *ordertypes.ProductLockMap `json:"lock_map"`
 }
 
 // NewCache returns instance of Cache
 func NewCache() *Cache {
 	return &Cache{
-		tokenPairMap:     make(map[string]*types.TokenPair),
-		tokenPairChanged: false,
-		lockMap:          ordertypes.NewProductLockMap(),
+		TokenPairMap:     make(map[string]*types.TokenPair),
+		TokenPairChanged: false,
+		LockMap:          ordertypes.NewProductLockMap(),
 	}
 }
 
 // Reset clears cache
 func (c *Cache) Reset() {
-	c.newTokenPairMap = []*types.TokenPair{}
-	c.tokenPairChanged = false
+	c.NewTokenPairMap = []*types.TokenPair{}
+	c.TokenPairChanged = false
 }
 
 // AddTokenPair adds a new token pair into cache
 func (c *Cache) AddTokenPair(tokenPair *types.TokenPair) {
-	c.tokenPairMap[c.genTokenPairKey(tokenPair)] = tokenPair
-	c.tokenPairChanged = true
+	c.TokenPairMap[c.genTokenPairKey(tokenPair)] = tokenPair
+	c.TokenPairChanged = true
 }
 
 //generate token pair key
@@ -41,7 +42,7 @@ func (c *Cache) genTokenPairKey(t *types.TokenPair) string {
 
 // GetTokenPair returns token pair from cache
 func (c *Cache) GetTokenPair(product string) (*types.TokenPair, bool) {
-	tokenPair, ok := c.tokenPairMap[product]
+	tokenPair, ok := c.TokenPairMap[product]
 	return tokenPair, ok
 }
 
@@ -54,8 +55,8 @@ func (c *Cache) PrepareTokenPairs(tokenPairs []*types.TokenPair) {
 
 // GetAllTokenPairs returns all token pairs from cache
 func (c *Cache) GetAllTokenPairs() []*types.TokenPair {
-	tokenPairs := make([]*types.TokenPair, 0, len(c.tokenPairMap))
-	for _, v := range c.tokenPairMap {
+	tokenPairs := make([]*types.TokenPair, 0, len(c.TokenPairMap))
+	for _, v := range c.TokenPairMap {
 		tokenPairs = append(tokenPairs, v)
 	}
 	return tokenPairs
@@ -63,44 +64,55 @@ func (c *Cache) GetAllTokenPairs() []*types.TokenPair {
 
 // DeleteTokenPair deletes token pair cache
 func (c *Cache) DeleteTokenPair(targetPair *types.TokenPair) {
-	delete(c.tokenPairMap, c.genTokenPairKey(targetPair))
-	c.tokenPairChanged = true
+	delete(c.TokenPairMap, c.genTokenPairKey(targetPair))
+	c.TokenPairChanged = true
 }
 
 // DeleteTokenPairByName deletes token pair by token pair's name from cache
 func (c *Cache) DeleteTokenPairByName(tokenPairName string) {
-	delete(c.tokenPairMap, tokenPairName)
-	c.tokenPairChanged = true
+	delete(c.TokenPairMap, tokenPairName)
+	c.TokenPairChanged = true
 }
 
 // TokenPairCount returns count of token pair
 func (c *Cache) TokenPairCount() int {
-	return len(c.tokenPairMap)
+	return len(c.TokenPairMap)
 }
 
 // AddNewTokenPair adds a new token pair into cache
 func (c *Cache) AddNewTokenPair(tokenPair *types.TokenPair) {
-	c.newTokenPairMap = append(c.newTokenPairMap, tokenPair)
-	c.tokenPairChanged = true
+	c.NewTokenPairMap = append(c.NewTokenPairMap, tokenPair)
+	c.TokenPairChanged = true
 }
 
 // GetNewTokenPair returns new token pairs from cache
 func (c *Cache) GetNewTokenPair() []*types.TokenPair {
-	return c.newTokenPairMap
+	return c.NewTokenPairMap
+}
+
+func (c *Cache) Clone() *Cache {
+	cache := &Cache{}
+	bytes, _ := json.Marshal(c)
+	err := json.Unmarshal(bytes, cache)
+	if err != nil {
+		return c.DepthCopy()
+	}
+
+	return cache
 }
 
 // nolint
 func (c *Cache) DepthCopy() *Cache {
 	cache := Cache{
-		tokenPairMap:     nil,
-		newTokenPairMap:  nil,
-		tokenPairChanged: c.tokenPairChanged,
-		lockMap:          nil,
+		TokenPairMap:     nil,
+		NewTokenPairMap:  nil,
+		TokenPairChanged: c.TokenPairChanged,
+		LockMap:          nil,
 	}
 
-	if c.tokenPairMap != nil {
+	if c.TokenPairMap != nil {
 		cpTokenPairMap := make(map[string]*types.TokenPair)
-		for k, v := range c.tokenPairMap{
+		for k, v := range c.TokenPairMap{
 			cpTokenPairMap[k] = &types.TokenPair{
 				BaseAssetSymbol:  v.BaseAssetSymbol,
 				QuoteAssetSymbol: v.QuoteAssetSymbol,
@@ -116,12 +128,12 @@ func (c *Cache) DepthCopy() *Cache {
 			}
 		}
 
-		cache.tokenPairMap = cpTokenPairMap
+		cache.TokenPairMap = cpTokenPairMap
 	}
 
-	if c.newTokenPairMap != nil {
-		cpNewTokenPairMap := make([]*types.TokenPair, len(c.newTokenPairMap))
-		for _, v := range c.newTokenPairMap{
+	if c.NewTokenPairMap != nil {
+		cpNewTokenPairMap := make([]*types.TokenPair, 0, len(c.NewTokenPairMap))
+		for _, v := range c.NewTokenPairMap{
 			cpNewTokenPairMap = append(cpNewTokenPairMap, &types.TokenPair{
 				BaseAssetSymbol:  v.BaseAssetSymbol,
 				QuoteAssetSymbol: v.QuoteAssetSymbol,
@@ -137,12 +149,12 @@ func (c *Cache) DepthCopy() *Cache {
 			})
 		}
 
-		cache.newTokenPairMap = cpNewTokenPairMap
+		cache.NewTokenPairMap = cpNewTokenPairMap
 	}
 
-	if c.lockMap != nil {
+	if c.LockMap != nil {
 		cpData := make(map[string]*ordertypes.ProductLock)
-		for k, v := range c.lockMap.Data{
+		for k, v := range c.LockMap.Data{
 			cpData[k] = &ordertypes.ProductLock{
 				BlockHeight:  v.BlockHeight,
 				Price:        v.Price,
@@ -152,7 +164,7 @@ func (c *Cache) DepthCopy() *Cache {
 			}
 		}
 
-		cache.lockMap = &ordertypes.ProductLockMap{
+		cache.LockMap = &ordertypes.ProductLockMap{
 			Data: cpData,
 		}
 	}

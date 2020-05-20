@@ -238,8 +238,8 @@ func (k Keeper) GetNewTokenPair() []*types.TokenPair {
 func (k Keeper) ResetCache(ctx sdk.Context) {
 	k.cache.Reset()
 
-	if len(k.cache.lockMap.Data) == 0 {
-		k.cache.lockMap = k.LoadProductLocks(ctx)
+	if len(k.cache.LockMap.Data) == 0 {
+		k.cache.LockMap = k.LoadProductLocks(ctx)
 	}
 	//if cache data is empty, update from local db
 	if k.cache.TokenPairCount() <= 0 {
@@ -475,7 +475,7 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 
 // IsTokenPairChanged returns true if token pair changed during lifetime of the block
 func (k Keeper) IsTokenPairChanged() bool {
-	return k.cache.tokenPairChanged
+	return k.cache.TokenPairChanged
 }
 
 // SetGovKeeper sets keeper of gov
@@ -499,7 +499,7 @@ func (k Keeper) FreezeCache(ctx sdk.Context) Keeper{
 		CopyHeight: ctx.BlockHeight(),
 		Cache:      k.cache,
 	}
-	k.cache = k.cache.DepthCopy()
+	k.cache = k.cache.Clone()
 
 	return k
 }
