@@ -27,9 +27,9 @@ type TokenKeeper interface {
 
 // DexKeeper expected dex keeper
 type DexKeeper interface {
-	IsTokenPairChanged() bool
+	IsTokenPairChanged(ctx sdk.Context) bool
 	GetTokenPairs(ctx sdk.Context) []*dextypes.TokenPair
-	GetNewTokenPair() []*dex.TokenPair
+	GetNewTokenPairs(ctx sdk.Context) []*dex.TokenPair
 }
 
 // MarketKeeper expected market keeper which would get data from pulsar & redis

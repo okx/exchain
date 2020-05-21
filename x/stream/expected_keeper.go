@@ -31,7 +31,7 @@ type AccountKeeper interface {
 }
 
 type DexKeeper interface {
-	IsTokenPairChanged() bool
+	IsTokenPairChanged(ctx sdk.Context) bool
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
-	GetNewTokenPair() []*dex.TokenPair
+	GetNewTokenPairs(ctx sdk.Context) []*dex.TokenPair
 }
