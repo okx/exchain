@@ -57,11 +57,6 @@ func (msg MsgList) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
-// Calculate customize gas
-func (msg MsgList) CalculateGas() uint64 {
-	return 20000
-}
-
 // MsgDelist - high level transaction of the dex module
 type MsgDelist struct {
 	Owner   sdk.AccAddress `json:"owner"`
@@ -99,11 +94,6 @@ func (msg MsgDelist) GetSignBytes() []byte {
 // GetSigners Implements Msg.
 func (msg MsgDelist) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
-}
-
-// Calculate customize gas
-func (msg MsgDelist) CalculateGas() uint64 {
-	return 20000
 }
 
 // MsgDeposit - high level transaction of the dex module
@@ -147,11 +137,6 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositor}
 }
 
-// Calculate customize gas
-func (msg MsgDeposit) CalculateGas() uint64 {
-	return 20000
-}
-
 // MsgWithdraw - high level transaction of the dex module
 type MsgWithdraw struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
@@ -191,11 +176,6 @@ func (msg MsgWithdraw) GetSignBytes() []byte {
 // GetSigners Implements Msg
 func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Depositor}
-}
-
-// Calculate customize gas
-func (msg MsgWithdraw) CalculateGas() uint64 {
-	return 20000
 }
 
 // MsgTransferOwnership - high level transaction of the dex module
@@ -268,9 +248,4 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 	msg.ToSignature = auth.StdSignature{}
 	toValid := toSignature.VerifyBytes(msg.GetSignBytes(), toSignature.Signature)
 	return toValid
-}
-
-// Calculate customize gas
-func (msg MsgTransferOwnership) CalculateGas() uint64 {
-	return 20000
 }
