@@ -146,9 +146,9 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().Int64VarP(&maxLeverage, "max-leverage", "ml", 0, "max leverage of the product")
-	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "br", "", "interest rate on borrowing")
-	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "mmr", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
+	cmd.Flags().Int64VarP(&maxLeverage, "max-leverage", "ml", 0, "Max leverage of the product")
+	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "br", "", "Interest rate on borrowing")
+	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "mmr", "", "When the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
 	return cmd
 }
 
