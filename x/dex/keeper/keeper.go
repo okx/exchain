@@ -25,7 +25,7 @@ type Keeper struct {
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
 	cdc               *codec.Codec    // The wire codec for binary encoding/decoding.
-	cache             *Cache          // reset cache data in BeginBlock
+	//cache             *Cache          // reset cache data in BeginBlock
 }
 
 // NewKeeper creates new instances of the token Keeper
@@ -42,7 +42,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper SupplyKeeper, dexParamsSubs
 		storeKey:          storeKey,
 		tokenPairStoreKey: tokenPairStoreKey,
 		cdc:               cdc,
-		cache:             NewCache(),
+		//cache:             NewCache(),
 	}
 
 	return k
@@ -224,18 +224,19 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 	return isDelisting, err
 }
 
-//// GetNewTokenPair returns all the net token pairs
-//func (k Keeper) GetNewTokenPair() []*types.TokenPair {
-//	return k.cache.GetNewTokenPair()
-//}
+// GetNewTokenPair returns all the net token pairs
+func (k Keeper) GetNewTokenPair() []*types.TokenPair {
+	//return k.cache.GetNewTokenPair()
+	return nil
+}
 
 // ResetCache resets cache
 func (k Keeper) ResetCache(ctx sdk.Context) {
 	//k.cache.Reset()
 
-	if len(k.cache.lockMap.Data) == 0 {
-		k.cache.lockMap = k.LoadProductLocks(ctx)
-	}
+	//if len(k.cache.lockMap.Data) == 0 {
+	//	k.cache.lockMap = k.LoadProductLocks(ctx)
+	//}
 	////if cache data is empty, update from local db
 	//if k.cache.TokenPairCount() <= 0 {
 	//	tokenPairs := k.GetTokenPairs(ctx)
@@ -468,10 +469,11 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	return nil
 }
 
-//// IsTokenPairChanged returns true if token pair changed during lifetime of the block
-//func (k Keeper) IsTokenPairChanged() bool {
-//	return k.cache.tokenPairChanged
-//}
+// IsTokenPairChanged returns true if token pair changed during lifetime of the block
+func (k Keeper) IsTokenPairChanged() bool {
+	//return k.cache.tokenPairChanged
+	return false
+}
 
 // SetGovKeeper sets keeper of gov
 func (k *Keeper) SetGovKeeper(gk GovKeeper) {

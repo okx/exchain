@@ -1,27 +1,22 @@
 package keeper
 
-import (
-	"github.com/okex/okchain/x/dex/types"
-	ordertypes "github.com/okex/okchain/x/order/types"
-)
+//// Cache caches data
+//type Cache struct {
+//	//tokenPairMap     map[string]*types.TokenPair
+//	//newTokenPairMap  []*types.TokenPair
+//	//tokenPairChanged bool
+//
+//	//lockMap          *ordertypes.ProductLockMap
+//}
 
-// Cache caches data
-type Cache struct {
-	//tokenPairMap     map[string]*types.TokenPair
-	//newTokenPairMap  []*types.TokenPair
-	//tokenPairChanged bool
-
-	lockMap          *ordertypes.ProductLockMap
-}
-
-// NewCache returns instance of Cache
-func NewCache() *Cache {
-	return &Cache{
-		//tokenPairMap:     make(map[string]*types.TokenPair),
-		//tokenPairChanged: false,
-		lockMap:          ordertypes.NewProductLockMap(),
-	}
-}
+//// NewCache returns instance of Cache
+//func NewCache() *Cache {
+//	return &Cache{
+//		//tokenPairMap:     make(map[string]*types.TokenPair),
+//		//tokenPairChanged: false,
+//		//lockMap:          ordertypes.NewProductLockMap(),
+//	}
+//}
 
 //// Reset clears cache
 //func (c *Cache) Reset() {
@@ -35,10 +30,10 @@ func NewCache() *Cache {
 //	//c.tokenPairChanged = true
 //}
 
-//generate token pair key
-func (c *Cache) genTokenPairKey(t *types.TokenPair) string {
-	return t.BaseAssetSymbol + "_" + t.QuoteAssetSymbol
-}
+////generate token pair key
+//func (c *Cache) genTokenPairKey(t *types.TokenPair) string {
+//	return t.BaseAssetSymbol + "_" + t.QuoteAssetSymbol
+//}
 
 //// GetTokenPair returns token pair from cache
 //func (c *Cache) GetTokenPair(product string) (*types.TokenPair, bool) {
@@ -80,7 +75,7 @@ func (c *Cache) genTokenPairKey(t *types.TokenPair) string {
 //}
 
 //// AddNewTokenPair adds a new token pair into cache
-//func (c *Cache) AddNewTokenPair(tokenPair *types.TokenPair) {
+//func (c *Cache) AddNewTokenPair(tokenPair *tyGetNewTokenPairpes.TokenPair) {
 //	//c.newTokenPairMap = append(c.newTokenPairMap, tokenPair)
 //	//c.tokenPairChanged = true
 //}
