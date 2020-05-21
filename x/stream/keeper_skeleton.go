@@ -19,7 +19,7 @@ func NewKeeper(ok OrderKeeper, tk TokenKeeper, dk DexKeeper, cdc *codec.Codec,
 
 	k := Keeper{}
 	// do this only if stream module enabled
-	// dk.SetStreamKeeper(k)
+	// dk.SetObserverKeeper(k)
 	return k
 }
 
