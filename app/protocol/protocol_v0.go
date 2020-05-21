@@ -305,7 +305,7 @@ func (p *ProtocolV0) produceKeepers() {
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
-	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.accountKeeper, p.cdc, p.logger,
+	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.cdc, p.logger,
 		appConfig, streamMetrics)
 
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.streamKeeper.GetMarketKeeper(),

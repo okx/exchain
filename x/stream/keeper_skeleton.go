@@ -14,7 +14,7 @@ import (
 
 type Keeper struct{}
 
-func NewKeeper(ok OrderKeeper, tk TokenKeeper, dk DexKeeper, ak AccountKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
+func NewKeeper(ok OrderKeeper, tk TokenKeeper, dk DexKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
 	return Keeper{}
 }
 

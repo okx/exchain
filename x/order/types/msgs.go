@@ -143,7 +143,7 @@ func (msg MsgNewOrders) GetSigners() []sdk.AccAddress {
 
 // Calculate customize gas
 func (msg MsgNewOrders) CalculateGas() uint64 {
-	return uint64(len(msg.OrderItems) * 20000)
+	return uint64(len(msg.OrderItems) * 40000)
 }
 
 // nolint
@@ -215,7 +215,7 @@ func (msg MsgCancelOrders) GetSigners() []sdk.AccAddress {
 
 // Calculate customize gas
 func (msg MsgCancelOrders) CalculateGas() uint64 {
-	return uint64(len(msg.OrderIDs) * 6000)
+	return uint64(len(msg.OrderIDs) * 30000)
 }
 
 // nolint

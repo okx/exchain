@@ -26,10 +26,6 @@ type TokenKeeper interface {
 	GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) token.CoinsInfo
 }
 
-type AccountKeeper interface {
-	GetUpdatedAccAddress(ctx sdk.Context) (accs []sdk.AccAddress)
-}
-
 type DexKeeper interface {
 	IsTokenPairChanged(ctx sdk.Context) bool
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
