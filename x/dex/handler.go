@@ -2,6 +2,8 @@ package dex
 
 import (
 	"fmt"
+	types2 "github.com/cosmos/cosmos-sdk/store/types"
+	"math"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -9,9 +11,42 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+func CalculateGas(msg sdk.Msg) (gas uint64){
+	switch msg := msg.(type) {
+	case MsgList:
+		gas = msg.CalculateGas()
+	case MsgDelist:
+		gas = msg.CalculateGas()
+	case MsgDeposit:
+		gas = msg.CalculateGas()
+	case MsgWithdraw:
+		gas = msg.CalculateGas()
+	case MsgTransferOwnership:
+		gas = msg.CalculateGas()
+	default:
+		gas =  math.MaxUint64
+	}
+
+	return gas
+}
+
 // NewHandler handles all "dex" type messages.
 func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		gas := CalculateGas(msg)
+
+		// consume gas that msg required, it will panic if gas is insufficient
+		ctx.GasMeter().ConsumeGas(gas, types2.GasWriteCostFlatDesc)
+
+		if ctx.IsCheckTx() {
+			return sdk.Result{}
+		} else {
+			// set an infinite gas meter and recovery it when return
+			gasMeter := ctx.GasMeter()
+			ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			defer func() { ctx = ctx.WithGasMeter(gasMeter) }()
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
 
