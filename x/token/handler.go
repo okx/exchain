@@ -3,6 +3,8 @@ package token
 import (
 	"bytes"
 	"fmt"
+	types2 "github.com/cosmos/cosmos-sdk/store/types"
+	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
@@ -11,9 +13,46 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
+func CalculateGas(msg sdk.Msg) (gas uint64){
+	switch msg := msg.(type) {
+	case types.MsgTokenIssue:
+		gas = msg.CalculateGas()
+	case types.MsgTokenBurn:
+		gas = msg.CalculateGas()
+	case types.MsgTokenMint:
+		gas = msg.CalculateGas()
+	case types.MsgMultiSend:
+		gas = msg.CalculateGas()
+	case types.MsgSend:
+		gas = msg.CalculateGas()
+	case types.MsgTransferOwnership:
+		gas = msg.CalculateGas()
+	case types.MsgTokenModify:
+		gas = msg.CalculateGas()
+	default:
+		gas =  math.MaxUint64
+	}
+
+	return gas
+}
+
 // NewTokenHandler returns a handler for "token" type messages.
 func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		gas := CalculateGas(msg)
+
+		// consume gas that msg required, it will panic if gas is insufficient
+		ctx.GasMeter().ConsumeGas(gas, types2.GasWriteCostFlatDesc)
+
+		if ctx.IsCheckTx() {
+			return sdk.Result{}
+		} else {
+			// set an infinite gas meter and recovery it when return
+			gasMeter := ctx.GasMeter()
+			ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			defer func() { ctx = ctx.WithGasMeter(gasMeter) }()
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		//logger := ctx.Logger().With("module", "token")
 		// NOTE msg already has validate basic run

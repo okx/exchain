@@ -84,6 +84,11 @@ func (msg MsgTokenIssue) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
+// Calculate customize gas
+func (msg MsgTokenIssue) CalculateGas() uint64 {
+	return 20000
+}
+
 type MsgTokenBurn struct {
 	Amount sdk.DecCoin    `json:"amount"`
 	Owner  sdk.AccAddress `json:"owner"`
@@ -119,6 +124,11 @@ func (msg MsgTokenBurn) GetSignBytes() []byte {
 
 func (msg MsgTokenBurn) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
+}
+
+// Calculate customize gas
+func (msg MsgTokenBurn) CalculateGas() uint64 {
+	return 20000
 }
 
 type MsgTokenMint struct {
@@ -160,6 +170,11 @@ func (msg MsgTokenMint) GetSignBytes() []byte {
 
 func (msg MsgTokenMint) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
+}
+
+// Calculate customize gas
+func (msg MsgTokenMint) CalculateGas() uint64 {
+	return 20000
 }
 
 type MsgMultiSend struct {
@@ -208,6 +223,11 @@ func (msg MsgMultiSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.From}
 }
 
+// Calculate customize gas
+func (msg MsgMultiSend) CalculateGas() uint64 {
+	return uint64(len(msg.Transfers)*20000)
+}
+
 // MsgSend - high level transaction of the coin module
 type MsgSend struct {
 	FromAddress sdk.AccAddress `json:"from_address"`
@@ -250,6 +270,11 @@ func (msg MsgSend) GetSignBytes() []byte {
 
 func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
+}
+
+// Calculate customize gas
+func (msg MsgSend) CalculateGas() uint64 {
+	return 20000
 }
 
 // MsgTransferOwnership - high level transaction of the coin module
@@ -322,6 +347,11 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 	return toValid
 }
 
+// Calculate customize gas
+func (msg MsgTransferOwnership) CalculateGas() uint64 {
+	return 20000
+}
+
 type MsgTokenModify struct {
 	Owner                 sdk.AccAddress `json:"owner"`
 	Symbol                string         `json:"symbol"`
@@ -381,4 +411,9 @@ func (msg MsgTokenModify) GetSignBytes() []byte {
 
 func (msg MsgTokenModify) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
+}
+
+// Calculate customize gas
+func (msg MsgTokenModify) CalculateGas() uint64 {
+	return 20000
 }
