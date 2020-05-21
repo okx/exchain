@@ -21,26 +21,18 @@ func (k Keeper) getProductLock(ctx sdk.Context, product string) *ordertypes.Prod
 	productLock := &ordertypes.ProductLock{}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(productInfo, productLock)
 	return productLock
-
-	//l, ok := k.cache.lockMap.Data[product]
-	//if ok {
-	//	return l
-	//}
-	//return nil
 }
 
 // LockTokenPair locks token pair
 func (k Keeper) LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockProductKey(product), k.cdc.MustMarshalBinaryLengthPrefixed(*lock))
-	//k.cache.lockMap.Data[product] = lock
 }
 
 // UnlockTokenPair unlocks token pair
 func (k Keeper) UnlockTokenPair(ctx sdk.Context, product string) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetLockProductKey(product))
-	//delete(k.cache.lockMap.Data, product)
 }
 
 // LoadProductLocks loads product locked
@@ -63,20 +55,10 @@ func (k Keeper) LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap {
 
 // GetLockedProductsCopy returns deep copy of product locked
 func (k Keeper) GetLockedProductsCopy(ctx sdk.Context) *ordertypes.ProductLockMap {
-	//source := k.cache.lockMap
-	//copy := ordertypes.NewProductLockMap()
-	//
-	//for k, v := range source.Data {
-	//	copiedValue := *v
-	//	copy.Data[k] = &copiedValue
-	//}
-	//return copy
-
 	return k.LoadProductLocks(ctx)
 }
 
 // IsAnyProductLocked checks if any product is locked
 func (k Keeper) IsAnyProductLocked(ctx sdk.Context) bool {
 	return len(k.LoadProductLocks(ctx).Data) > 0
-	//return len(k.cache.lockMap.Data) > 0
 }
