@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/order"
+	"github.com/okex/okchain/x/stream/exported"
 	"github.com/okex/okchain/x/token"
 )
 
@@ -27,7 +28,6 @@ type TokenKeeper interface {
 }
 
 type DexKeeper interface {
-	IsTokenPairChanged(ctx sdk.Context) bool
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
-	GetNewTokenPairs(ctx sdk.Context) []*dex.TokenPair
+	SetObserverKeeper(sk exported.StreamKeeper)
 }
