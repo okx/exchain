@@ -76,10 +76,8 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 	}
 
 	// check tokenpair exist
-	queryTokenPair := keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
-	if queryTokenPair != nil {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list %s_%s which has been listed before",
-			tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)).Result()
+	if sdkErr := keeper.IsTokenPairExisted(ctx, tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol); sdkErr != nil {
+		return sdkErr.Result()
 	}
 
 	// deduction fee
