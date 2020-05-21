@@ -155,7 +155,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	EndBlocker(ctx, k)
 
 	// check product lock
-	lock := k.GetDexKeeper().GetLockedProductsCopy().Data[types.TestTokenPair]
+	lock := k.GetDexKeeper().GetLockedProductsCopy(ctx).Data[types.TestTokenPair]
 	require.NotNil(t, lock)
 	require.EqualValues(t, 10, lock.BlockHeight)
 	require.EqualValues(t, sdk.MustNewDecFromStr("10.0"), lock.Price)
@@ -218,7 +218,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	EndBlocker(ctx, k)
 
 	// check product lock
-	lock = k.GetDexKeeper().GetLockedProductsCopy().Data[types.TestTokenPair]
+	lock = k.GetDexKeeper().GetLockedProductsCopy(ctx).Data[types.TestTokenPair]
 	require.Nil(t, lock)
 
 	// check order status

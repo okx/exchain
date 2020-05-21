@@ -33,7 +33,7 @@ type IKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*types.TokenPair
 	GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) []*types.TokenPair
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
-	//GetNewTokenPair() []*types.TokenPair
+	GetNewTokenPairs(ctx sdk.Context) []*types.TokenPair
 	ResetCache(ctx sdk.Context)
 	GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair)
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error

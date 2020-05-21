@@ -25,7 +25,6 @@ type Keeper struct {
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
 	cdc               *codec.Codec    // The wire codec for binary encoding/decoding.
-	cache             *Cache          // reset cache data in BeginBlock
 }
 
 // NewKeeper creates new instances of the token Keeper
@@ -42,7 +41,6 @@ func NewKeeper(feeCollectorName string, supplyKeeper SupplyKeeper, dexParamsSubs
 		storeKey:          storeKey,
 		tokenPairStoreKey: tokenPairStoreKey,
 		cdc:               cdc,
-		cache:             NewCache(),
 	}
 
 	return k
@@ -95,8 +93,6 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 
 	k.setTokenPairChanged(ctx)
 	k.setNewTokenPair(ctx, tokenPair)
-	//k.cache.AddNewTokenPair(tokenPair)
-	//k.cache.AddTokenPair(tokenPair)
 
 	return nil
 }
@@ -104,11 +100,6 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 // GetTokenPair returns all the token pairs
 func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair *types.TokenPair
-	//use cache
-	//tokenPair, ok := k.cache.GetTokenPair(product)
-	//if ok {
-	//	return tokenPair
-	//}
 
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	bytes := store.Get(types.GetTokenPairAddress(product))
@@ -120,7 +111,6 @@ func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 		ctx.Logger().Info("decoding of token pair is failed", product)
 		return nil
 	}
-	//k.cache.AddTokenPair(tokenPair)
 
 	return tokenPair
 }
@@ -143,12 +133,6 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 
 // GetTokenPairs returns all the token pairs
 func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
-	//load from cache, if not exist, load from local db
-	//cacheTokenPairs := k.cache.GetAllTokenPairs()
-	//if len(cacheTokenPairs) > 0 {
-	//	return cacheTokenPairs
-	//}
-
 	return k.GetTokenPairsFromStore(ctx)
 }
 
@@ -193,8 +177,6 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	// delete the token pair from the store
 	store.Delete(types.GetTokenPairAddress(product))
-	// synchronize the cache
-	//k.cache.DeleteTokenPairByName(product)
 
 	// remove the user-tokenpair relationship
 	k.deleteUserTokenPair(ctx, owner, product)
@@ -211,7 +193,6 @@ func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to s
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
-	//k.cache.AddTokenPair(tokenPair)
 	k.setTokenPairChanged(ctx)
 }
 
@@ -230,24 +211,13 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 
 // ResetCache resets cache
 func (k Keeper) ResetCache(ctx sdk.Context) {
-	//k.cache.Reset()
-
-	if len(k.cache.lockMap.Data) == 0 {
-		k.cache.lockMap = k.LoadProductLocks(ctx)
-	}
-
-	////if cache data is empty, update from local db
-	//if k.cache.TokenPairCount() <= 0 {
-	//	tokenPairs := k.GetTokenPairs(ctx)
-	//	//prepare token pair cache data, we will empty cache, put db data into cache
-	//	k.cache.PrepareTokenPairs(tokenPairs)
-	//}
 	k.deleteTokenPairChanged(ctx)
 	// delete new token pairs
 	newTokenPairs := k.GetNewTokenPairs(ctx)
 	for _, tokenPair := range newTokenPairs {
 		k.deleteNewTokenPair(ctx, tokenPair)
 	}
+
 }
 
 // Deposit deposits amount of tokens for a product

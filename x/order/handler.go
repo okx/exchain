@@ -140,7 +140,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 	if err != nil {
 		code = sdk.CodeUnknownRequest
 	} else {
-		if k.IsProductLocked(msg.Product) {
+		if k.IsProductLocked(ctx, msg.Product) {
 			code = sdk.CodeInternal
 			err = fmt.Errorf("the trading pair (%s) is locked, please retry later", order.Product)
 		} else if err = k.PlaceOrder(ctxItem, order); err != nil {
@@ -219,7 +219,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 				Log:  err.Error(),
 			}
 		}
-		if k.IsProductLocked(msg.Product) {
+		if k.IsProductLocked(ctx, msg.Product) {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
 				Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", msg.Product),
@@ -322,7 +322,7 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 			Log:  fmt.Sprintf("not the owner of order(%v)", msg.OrderID),
 		}
 	}
-	if keeper.IsProductLocked(order.Product) {
+	if keeper.IsProductLocked(ctx, order.Product) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product),

@@ -41,9 +41,6 @@ func TestGetTokenPair(t *testing.T) {
 	err := keeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	// delete cache tokenpair
-	//keeper.cache.DeleteTokenPair(tokenPair)
-
 	// GetTokenPair successful
 	product := tokenPair.Name()
 	getTokenPair := keeper.GetTokenPair(ctx, product)
