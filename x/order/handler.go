@@ -3,6 +3,8 @@ package order
 import (
 	"encoding/json"
 	"fmt"
+	types2 "github.com/cosmos/cosmos-sdk/store/types"
+	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
@@ -14,9 +16,36 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+func CalculateGas(msg sdk.Msg) (gas uint64){
+	switch msg := msg.(type) {
+	case types.MsgNewOrders:
+		gas = msg.CalculateGas()
+	case types.MsgCancelOrders:
+		gas = msg.CalculateGas()
+	default:
+		gas =  math.MaxUint64
+	}
+
+	return gas
+}
+
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		gas := CalculateGas(msg)
+
+		// consume gas that msg required, it will panic if gas is insufficient
+		ctx.GasMeter().ConsumeGas(gas, types2.GasWriteCostFlatDesc)
+
+		if ctx.IsCheckTx() {
+			return sdk.Result{}
+		} else {
+			// set an infinite gas meter and recovery it when return
+			gasMeter := ctx.GasMeter()
+			ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			defer func() { ctx = ctx.WithGasMeter(gasMeter) }()
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var handlerFun func() sdk.Result
 		var name string
