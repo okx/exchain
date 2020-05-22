@@ -435,10 +435,10 @@ func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
 
 }
 
-func TestKeeper_IsTokenPairChanged(t *testing.T) {
-	testInput := createTestInputWithBalance(t, 2, 30)
-
-	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
-	require.Nil(t, err)
-	require.True(t, testInput.DexKeeper.IsTokenPairChanged(testInput.Ctx))
-}
+//func TestKeeper_IsTokenPairChanged(t *testing.T) {
+//	testInput := createTestInputWithBalance(t, 2, 30)
+//
+//	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
+//	require.Nil(t, err)
+//	require.True(t, testInput.DexKeeper.IsTokenPairChanged(testInput.Ctx))
+//}

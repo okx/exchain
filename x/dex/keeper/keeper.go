@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/okex/okchain/x/stream/exported"
+
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -18,9 +20,10 @@ type Keeper struct {
 	supplyKeeper      SupplyKeeper
 	feeCollectorName  string // name of the FeeCollector ModuleAccount
 	tokenKeeper       TokenKeeper
-	stakingKeeper     StakingKeeper // The reference to the staking keeper  to check whether proposer is  validator
-	bankKeeper        BankKeeper    // The reference to the bank keeper to check whether proposer can afford  proposal deposit
-	govKeeper         GovKeeper     // The reference to the gov keeper to handle proposal
+	stakingKeeper     StakingKeeper         // The reference to the staking keeper to check whether proposer is  validator
+	bankKeeper        BankKeeper            // The reference to the bank keeper to check whether proposer can afford  proposal deposit
+	govKeeper         GovKeeper             // The reference to the gov keeper to handle proposal
+	observerKeeper    exported.StreamKeeper // The reference to the stream keeper
 	storeKey          sdk.StoreKey
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
@@ -91,8 +94,9 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	store.Set(types.GetTokenPairAddress(keyPair), k.cdc.MustMarshalBinaryBare(tokenPair))
 	store.Set(types.GetUserTokenPairAddress(tokenPair.Owner, keyPair), []byte{})
 
-	k.setTokenPairChanged(ctx)
-	k.setNewTokenPair(ctx, tokenPair)
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnAddNewTokenPair(ctx, tokenPair)
+	}
 
 	return nil
 }
@@ -177,10 +181,12 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	// delete the token pair from the store
 	store.Delete(types.GetTokenPairAddress(product))
-
 	// remove the user-tokenpair relationship
 	k.deleteUserTokenPair(ctx, owner, product)
-	k.setTokenPairChanged(ctx)
+
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnTokenPairUpdated(ctx)
+	}
 }
 
 func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
@@ -193,7 +199,10 @@ func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to s
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
-	k.setTokenPairChanged(ctx)
+
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnTokenPairUpdated(ctx)
+	}
 }
 
 // CheckTokenPairUnderDexDelist checks if token pair is under delist. for x/order: It's not allowed to place an order about the tokenpair under dex delist
@@ -207,17 +216,6 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 		err = errors.Errorf("product %s doesn't exist", product)
 	}
 	return isDelisting, err
-}
-
-// ResetCache resets cache
-func (k Keeper) ResetCache(ctx sdk.Context) {
-	k.deleteTokenPairChanged(ctx)
-	// delete new token pairs
-	newTokenPairs := k.GetNewTokenPairs(ctx)
-	for _, tokenPair := range newTokenPairs {
-		k.deleteNewTokenPair(ctx, tokenPair)
-	}
-
 }
 
 // Deposit deposits amount of tokens for a product
@@ -444,19 +442,6 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	return nil
 }
 
-// IsTokenPairChanged returns true if token pair changed during lifetime of the block
-func (k Keeper) IsTokenPairChanged(ctx sdk.Context) bool {
-	return ctx.KVStore(k.storeKey).Has(types.TokenPairChangedKey)
-}
-
-func (k Keeper) setTokenPairChanged(ctx sdk.Context) {
-	ctx.KVStore(k.storeKey).Set(types.TokenPairChangedKey, []byte{})
-}
-
-func (k Keeper) deleteTokenPairChanged(ctx sdk.Context) {
-	ctx.KVStore(k.storeKey).Delete(types.TokenPairChangedKey)
-}
-
 // SetGovKeeper sets keeper of gov
 func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
@@ -472,34 +457,6 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 	return
 }
 
-// setNewTokenPair sets new token pair to db
-func (k Keeper) setNewTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) {
-	keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
-	bytes := k.cdc.MustMarshalBinaryBare(tokenPair)
-	ctx.KVStore(k.storeKey).Set(types.GetNewTokenPairKey(keyPair), bytes)
-}
-
-func (k Keeper) deleteNewTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) {
-	// get store
-	store := ctx.KVStore(k.storeKey)
-	keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
-	// delete the token pair from the store
-	store.Delete(types.GetNewTokenPairKey(keyPair))
-}
-
-// GetNewTokenPair returns all the new token pairs
-func (k Keeper) GetNewTokenPairs(ctx sdk.Context) []*types.TokenPair {
-	var tokenPairs []*types.TokenPair
-	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.NewTokenPairKeyPrefix)
-	defer iter.Close()
-	for iter.Valid() {
-		var tokenPair types.TokenPair
-		tokenPairBytes := iter.Value()
-		k.cdc.MustUnmarshalBinaryBare(tokenPairBytes, &tokenPair)
-		tokenPairs = append(tokenPairs, &tokenPair)
-		iter.Next()
-	}
-
-	return tokenPairs
+func (k Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
+	k.observerKeeper = sk
 }
