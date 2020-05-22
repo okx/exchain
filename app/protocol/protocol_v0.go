@@ -317,7 +317,7 @@ func (p *ProtocolV0) produceKeepers() {
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
-		AddRoute(distr.RouterKey,distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
@@ -379,6 +379,7 @@ func (p *ProtocolV0) setManager() {
 
 	// ORDER SETTING
 	p.mm.SetOrderBeginBlockers(
+		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
