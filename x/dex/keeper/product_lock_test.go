@@ -62,7 +62,7 @@ func TestProductLockMap(t *testing.T) {
 
 	// unlock
 	keeper.UnlockTokenPair(ctx, "p1")
-	require.False(t, keeper.IsTokenPairLocked(ctx,"p1"))
+	require.False(t, keeper.IsTokenPairLocked(ctx, "p1"))
 
 	lockMap = keeper.GetLockedProductsCopy(ctx)
 	require.EqualValues(t, 1, len(lockMap.Data))

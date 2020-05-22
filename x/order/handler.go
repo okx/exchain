@@ -3,8 +3,9 @@ package order
 import (
 	"encoding/json"
 	"fmt"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"math"
+
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
@@ -16,14 +17,14 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
-func CalculateGas(msg sdk.Msg) (gas uint64){
+func CalculateGas(msg sdk.Msg) (gas uint64) {
 	switch msg := msg.(type) {
 	case types.MsgNewOrders:
 		gas = msg.CalculateGas()
 	case types.MsgCancelOrders:
 		gas = msg.CalculateGas()
 	default:
-		gas =  math.MaxUint64
+		gas = math.MaxUint64
 	}
 
 	return gas
