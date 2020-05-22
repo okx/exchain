@@ -101,9 +101,7 @@ func GetCmdDexWithdraw(cdc *codec.Codec) *cobra.Command {
 
 // GetCmdDexSet is the CLI command for doing dex-set
 func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
-	var maxLeverage int64
-	var borrowRate string
-	var maintenanceMarginRatio string
+	var maxLeverageStr, borrowRate, maintenanceMarginRatio string
 	cmd := &cobra.Command{
 		Use:   "dex-set [product]",
 		Short: "dex sets params for a product",
@@ -116,12 +114,16 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			address := cliCtx.GetFromAddress()
 			product := args[0]
 
-			if maxLeverage < 0 {
+			maxLeverage, err := sdk.NewDecFromStr(maxLeverageStr)
+			if err != nil {
+				return err
+			}
+
+			if maxLeverage.IsNegative() {
 				return errors.New("invalid max-leverage")
 			}
 
 			var borrowRateDec sdk.Dec
-			var err error
 			if len(borrowRate) > 0 {
 				borrowRateDec, err = sdk.NewDecFromStr(borrowRate)
 				if err != nil {
@@ -146,7 +148,7 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().Int64VarP(&maxLeverage, "max-leverage", "ml", 0, "max leverage of the product")
+	cmd.Flags().StringVarP(&maxLeverageStr, "max-leverage", "ml", "", "max leverage of the product")
 	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "br", "", "interest rate on borrowing")
 	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "mmr", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
 	return cmd

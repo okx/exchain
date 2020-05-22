@@ -7,7 +7,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	dexTypes "github.com/okex/okchain/x/dex/types"
 
 	"github.com/okex/okchain/x/margin/types"
 	"github.com/okex/okchain/x/params"
@@ -43,11 +42,6 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
-func (k Keeper) GetMarginTradePair(ctx sdk.Context, product string) *dexTypes.TokenPair {
-	// TODO : add margin token pair
-	return k.dexKeeper.GetTokenPair(ctx, product)
-}
-
 func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string) (assetOnProduct types.AccountAssetOnProduct, ok bool) {
 	bytes := ctx.KVStore(k.storeKey).Get(types.GetMarginAssetOnProductKey(address.String(), product))
 	if bytes == nil {
@@ -58,7 +52,7 @@ func (k Keeper) GetAccountAssetOnProduct(ctx sdk.Context, address sdk.AccAddress
 	return assetOnProduct, true
 }
 
-func (k Keeper) SetAvailableAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
+func (k Keeper) DepositAssetFromSpot(ctx sdk.Context, address sdk.AccAddress, product string, available sdk.DecCoins) {
 
 	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
 	// account info has exist
@@ -72,35 +66,108 @@ func (k Keeper) SetAvailableAssetOnProduct(ctx sdk.Context, address sdk.AccAddre
 	ctx.KVStore(k.storeKey).Set(key, bytes)
 }
 
-func (k Keeper) SetBorrowAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, product string, deposit sdk.DecCoin, times sdk.Dec) sdk.Error {
+func (k Keeper) WithdrawAssetToSpot(ctx sdk.Context, address sdk.AccAddress, product string, amt sdk.DecCoins) sdk.Error {
 
 	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, product)
-	// account info has exist
-	if ok {
-		assetOnProduct.Available = assetOnProduct.Available.Sub(sdk.NewCoins(deposit))
-		assetOnProduct.Deposit = assetOnProduct.Deposit.Add(sdk.NewCoins(deposit))
-		borrowAmount := sdk.DecCoin{Denom: deposit.Denom, Amount: deposit.Amount.Mul(times)}
-		assetOnProduct.Borrowed = assetOnProduct.Borrowed.Add(sdk.NewCoins(borrowAmount))
-
-		borrowBlockHeight := ctx.BlockHeight()
-
-		accountBorrowInfoKey := types.GetAccountBorrowOnProductAtHeightKey(uint64(borrowBlockHeight), address.String(), product)
-		bytes := k.cdc.MustMarshalBinaryLengthPrefixed(types.BorrowInfo{Amount: borrowAmount, BlockHeight: borrowBlockHeight, Rate: sdk.NewDec(0.01)})
-		ctx.KVStore(k.storeKey).Set(accountBorrowInfoKey, bytes)
-
-	} else {
-		// TODO : add error
-		//return sdk.NewError(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.ToCoins().String()))
+	if !ok {
+		return types.ErrEmptyAccountDeposit(types.MarginCodespace, fmt.Sprintf("fail to withdraw beacuse the margin is empty "))
 	}
-
+	assetOnProduct.Available = assetOnProduct.Available.Sub(amt)
 	key := types.GetMarginAssetOnProductKey(address.String(), product)
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(assetOnProduct)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
+
 	return nil
 }
 
-func (k Keeper) GetBorrowOnProductAtHeight(ctx sdk.Context, blockHeight int64, address sdk.AccAddress, product string) (borrowOnProductAtHeight types.BorrowInfo, ok bool) {
-	bytes := ctx.KVStore(k.storeKey).Get(types.GetAccountBorrowOnProductAtHeightKey(uint64(blockHeight), address.String(), product))
+func (k Keeper) SetCalculateInterestKey(ctx sdk.Context, calculateTime time.Time, borrowInfoKey []byte) {
+	ctx.KVStore(k.storeKey).Set(types.GetCalculateInterestKey(calculateTime, borrowInfoKey), []byte{})
+}
+
+func (k Keeper) DeleteCalculateInterestKey(ctx sdk.Context, timestamp time.Time, borrowInfoKey []byte) {
+	ctx.KVStore(k.storeKey).Delete(types.GetCalculateInterestKey(timestamp, borrowInfoKey))
+}
+
+func (k Keeper) SetBorrowAssetOnProduct(ctx sdk.Context, address sdk.AccAddress, tradePair types.TradePair, deposit sdk.DecCoin, leverage sdk.Dec) sdk.Error {
+	assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, tradePair.Name)
+	if !ok {
+		return types.ErrEmptyAccountDeposit(types.MarginCodespace, fmt.Sprintf("failed to borrow without deposit"))
+	}
+	if !assetOnProduct.Available.IsAllGT(sdk.NewCoins(deposit)) {
+		return types.ErrEmptyAccountDeposit(types.MarginCodespace, fmt.Sprintf("failed to borrow because insufficient coins(deposit) %s,need %s", assetOnProduct.Available.String(), deposit.String()))
+	}
+	// calculate the number of loans
+	borrowAmount := sdk.DecCoin{Denom: deposit.Denom, Amount: deposit.Amount.Mul(leverage.Sub(sdk.NewDec(1)))}
+
+	// sub saving
+	saving := k.GetSaving(ctx, tradePair.Name)
+	if saving == nil || !saving.IsAllGT(sdk.NewCoins(borrowAmount)) {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to borrow because insufficient coins saved(need %s)", borrowAmount.String()))
+	}
+	saving = saving.Sub(sdk.NewCoins(borrowAmount))
+	k.SetSaving(ctx, tradePair.Name, saving)
+
+	// add borrow
+	assetOnProduct.Borrowed = assetOnProduct.Borrowed.Add(sdk.NewCoins(borrowAmount))
+
+	borrowBlockHeight := ctx.BlockHeight()
+	accountBorrowInfoKey := types.GetAccountBorrowOnProductAtHeightKey(uint64(borrowBlockHeight), address.String(), tradePair.Name)
+
+	// save borrow info to db
+	k.SetBorrowInfo(ctx, types.BorrowInfo{Token: borrowAmount, BlockHeight: borrowBlockHeight, Rate: tradePair.BorrowRate}, accountBorrowInfoKey)
+	k.SetCalculateInterestKey(ctx, ctx.BlockTime(), accountBorrowInfoKey)
+
+	// sub available and add deposit
+	assetOnProduct.Available = assetOnProduct.Available.Sub(sdk.NewCoins(deposit))
+	assetOnProduct.Deposit = assetOnProduct.Deposit.Add(sdk.NewCoins(deposit))
+
+	// update account asset to db
+	key := types.GetMarginAssetOnProductKey(address.String(), tradePair.Name)
+	assetBytes := k.cdc.MustMarshalBinaryLengthPrefixed(assetOnProduct)
+	ctx.KVStore(k.storeKey).Set(key, assetBytes)
+	return nil
+}
+
+func (k Keeper) SetBorrowInfo(ctx sdk.Context, borrowInfo types.BorrowInfo, borrowKey []byte) {
+	borrowBytes := k.cdc.MustMarshalBinaryLengthPrefixed(borrowInfo)
+	ctx.KVStore(k.storeKey).Set(borrowKey, borrowBytes)
+}
+
+// IterateWithdrawAddress itreates withdraw time keys, and returns address
+func (k Keeper) IterateCalculateInterest(ctx sdk.Context, currentTime time.Time,
+	fn func(key []byte)) {
+	// iterate for all keys of (time+delAddr) from time 0 until the current time
+	timeKeyIterator := k.calculateTimeKeyIterator(ctx, currentTime)
+	defer timeKeyIterator.Close()
+
+	for i := int64(0); timeKeyIterator.Valid(); timeKeyIterator.Next() {
+		key := timeKeyIterator.Key()
+		fn(key)
+		i++
+	}
+}
+
+func (k Keeper) calculateTimeKeyIterator(ctx sdk.Context, calculateTime time.Time) sdk.Iterator {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetWithdrawTimeKey(calculateTime)
+	return store.Iterator(types.InterestTimeKeyPrefix, sdk.PrefixEndBytes(key))
+}
+
+func (k Keeper) ReplyOnProduct(ctx sdk.Context, address sdk.AccAddress, tradePair types.TradePair, repayAmount sdk.DecCoins) sdk.Error {
+
+	//assetOnProduct, ok := k.GetAccountAssetOnProduct(ctx, address, tradePair.Name)
+	//// asset info has exist
+	//if !ok {
+	//	return types.ErrEmptyAccountDeposit(types.MarginCodespace, fmt.Sprintf("failed to repay without deposit"))
+	//}
+	//
+	//// calculate loan interest
+	//interest := k.GetBorrowInterest(ctx,address,tradePair.Name)
+
+}
+
+func (k Keeper) GetBorrowOnProductAtHeight(ctx sdk.Context, borrowInfoKey []byte) (borrowOnProductAtHeight types.BorrowInfo, ok bool) {
+	bytes := ctx.KVStore(k.storeKey).Get(borrowInfoKey)
 	if bytes == nil {
 		return
 	}
@@ -109,21 +176,17 @@ func (k Keeper) GetBorrowOnProductAtHeight(ctx sdk.Context, blockHeight int64, a
 	return borrowOnProductAtHeight, true
 }
 
-func (k Keeper) updateAccountBorrowInfo(ctx sdk.Context, borrowBlockHeight int64, address sdk.AccAddress, product string, repay sdk.DecCoins, operation int) sdk.Error {
-	//borrowOnProductAtHeight, ok := k.GetBorrowOnProductAtHeight(ctx, borrowBlockHeight, address, product)
-	//if !ok {
-	//	// TODO return error
-	//}
-
-	// calculate interest
-
-	//if borrowOnProductAtHeight.Amount.IsAllLT(repay) {
-	//	i := ctx.BlockHeight() - borrowOnProductAtHeight.BlockHeight
-	//	i * borrowOnProductAtHeight.Rate
-	//
-	//}
-	return nil
-
+func (k Keeper) GetBorrowInterest(ctx sdk.Context, address sdk.AccAddress, product string) (interest sdk.DecCoins) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.GetAccountBorrowOnProductKey(address.String(), product))
+	defer iterator.Close()
+	for i := int64(0); iterator.Valid(); iterator.Next() {
+		var borrowInfo types.BorrowInfo
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &borrowInfo)
+		interest = interest.Add(sdk.NewCoins(borrowInfo.Interest))
+		i++
+	}
+	return
 }
 
 func (k Keeper) GetAccountDeposit(ctx sdk.Context, address sdk.AccAddress) (marginDeposit types.MarginProductAssets) {
@@ -327,7 +390,7 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 }
 
 // DexSet sets params for a margin product
-func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, maxLeverage int64, borrowRate sdk.Dec, maintenanceMarginRatio sdk.Dec) sdk.Error {
+func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, maxLeverage sdk.Dec, borrowRate sdk.Dec, maintenanceMarginRatio sdk.Dec) sdk.Error {
 	tradePair := k.GetTradePair(ctx, product)
 	if tradePair == nil {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to set because non-exist product: %s", product))
@@ -336,7 +399,7 @@ func (k Keeper) DexSet(ctx sdk.Context, address sdk.AccAddress, product string, 
 	if !tradePair.Owner.Equals(address) {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to set because %s is not the owner of product:%s", address.String(), product))
 	}
-	if maxLeverage > 0 {
+	if maxLeverage.IsPositive() {
 		tradePair.MaxLeverage = maxLeverage
 	}
 

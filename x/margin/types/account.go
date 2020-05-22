@@ -20,7 +20,8 @@ type AccountAssetOnProduct struct {
 }
 
 type BorrowInfo struct {
-	Amount      sdk.DecCoin `json:"amount"`
+	Token       sdk.DecCoin `json:"amount"`
 	BlockHeight int64       `json:"block_height"`
 	Rate        sdk.Dec     `json:"rate"`
+	Interest    sdk.DecCoin `json:"interest"`
 }
