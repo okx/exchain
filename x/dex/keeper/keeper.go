@@ -101,7 +101,7 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	return nil
 }
 
-// GetTokenPair returns all the token pairs
+// GetTokenPair gets the token pair by product
 func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair *types.TokenPair
 
@@ -333,7 +333,7 @@ func (k Keeper) GetParamSubspace() params.Subspace {
 func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("non-exist product: %s", product))
+		return types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", product))
 	}
 
 	if !tokenPair.Owner.Equals(from) {
