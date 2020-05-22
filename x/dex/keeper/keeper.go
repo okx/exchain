@@ -185,7 +185,7 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	k.deleteUserTokenPair(ctx, owner, product)
 
 	if k.observerKeeper != nil {
-		k.observerKeeper.OnTokenPairChanged(ctx)
+		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
 }
 
@@ -201,7 +201,7 @@ func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *type
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
 
 	if k.observerKeeper != nil {
-		k.observerKeeper.OnTokenPairChanged(ctx)
+		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
 }
 

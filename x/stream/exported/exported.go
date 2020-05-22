@@ -7,5 +7,5 @@ import (
 
 type StreamKeeper interface {
 	OnAddNewTokenPair(ctx sdk.Context, tokenPair *types.TokenPair)
-	OnTokenPairChanged(ctx sdk.Context)
+	OnTokenPairUpdated(ctx sdk.Context)
 }
