@@ -50,8 +50,6 @@ var (
 	WithdrawTimeKeyPrefix = []byte{0x54}
 	// UserTokenPairKeyPrefix is the store key for user token pair num
 	UserTokenPairKeyPrefix = []byte{0x06}
-	NewTokenPairKeyPrefix  = []byte{0x07}
-	TokenPairChangedKey    = []byte{0x08}
 )
 
 // GetUserTokenPairAddressPrefix returns token pair address prefix key
@@ -106,9 +104,4 @@ func GetLockProductKey(product string) []byte {
 // GetKey returns keys between index 1 to the end
 func GetKey(it sdk.Iterator) string {
 	return string(it.Key()[1:])
-}
-
-// GetNewTokenPairKey returns store key of the new token pair
-func GetNewTokenPairKey(product string) []byte {
-	return append(NewTokenPairKeyPrefix, []byte(product)...)
 }

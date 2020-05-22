@@ -407,14 +407,6 @@ func Test_IterateWithdrawInfo(t *testing.T) {
 	require.True(t, expectWithdrawInfos[0].Equal(expectWithdrawInfo))
 }
 
-func TestKeeper_GetNewTokenPair(t *testing.T) {
-	testInput := createTestInputWithBalance(t, 2, 30)
-
-	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
-	require.Nil(t, err)
-	require.NotNil(t, testInput.DexKeeper.GetNewTokenPairs(testInput.Ctx))
-}
-
 func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 2, 30)
 

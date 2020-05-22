@@ -94,7 +94,7 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	store.Set(types.GetTokenPairAddress(keyPair), k.cdc.MustMarshalBinaryBare(tokenPair))
 	store.Set(types.GetUserTokenPairAddress(tokenPair.Owner, keyPair), []byte{})
 
-	if k.observerKeeper != nil {
+	if !ctx.IsCheckTx() && k.observerKeeper != nil {
 		k.observerKeeper.OnAddNewTokenPair(ctx, tokenPair)
 	}
 
@@ -184,7 +184,7 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	// remove the user-tokenpair relationship
 	k.deleteUserTokenPair(ctx, owner, product)
 
-	if k.observerKeeper != nil {
+	if !ctx.IsCheckTx() && k.observerKeeper != nil {
 		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
 }
@@ -200,7 +200,7 @@ func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *type
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
 
-	if k.observerKeeper != nil {
+	if !ctx.IsCheckTx() && k.observerKeeper != nil {
 		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
 }
