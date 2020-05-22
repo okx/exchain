@@ -147,7 +147,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.backendKeeper = NewKeeper(
 		mockApp.orderKeeper,
 		mockApp.tokenKeeper,
-		mockApp.dexKeeper,
+		&mockApp.dexKeeper,
 		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
