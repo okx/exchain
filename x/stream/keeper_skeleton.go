@@ -14,12 +14,14 @@ import (
 
 type Keeper struct{}
 
-func NewKeeper(ok OrderKeeper, tk TokenKeeper, dk DexKeeper, cdc *codec.Codec,
-	logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
+func NewKeeper(ok OrderKeeper, tk TokenKeeper, dk DexKeeper, ak auth.AccountKeeper,
+	cdc *codec.Codec, logger log.Logger,
+	cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
 
 	k := Keeper{}
 	// do this only if stream module enabled
 	// dk.SetObserverKeeper(k)
+	// ak.SetObserverKeeper(k)
 	return k
 }
 
