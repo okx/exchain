@@ -3,7 +3,7 @@ package order
 import (
 	"encoding/json"
 	"fmt"
-	types2 "github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,7 +35,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		gas := CalculateGas(msg)
 
 		// consume gas that msg required, it will panic if gas is insufficient
-		ctx.GasMeter().ConsumeGas(gas, types2.GasWriteCostFlatDesc)
+		ctx.GasMeter().ConsumeGas(gas, storetypes.GasWriteCostFlatDesc)
 
 		if ctx.IsCheckTx() {
 			return sdk.Result{}
