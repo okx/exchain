@@ -457,6 +457,6 @@ func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
 	return
 }
 
-func (k Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
+func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
 	k.observerKeeper = sk
 }
