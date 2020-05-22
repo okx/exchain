@@ -84,7 +84,7 @@ func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote go
 	if _, ok := proposal.Content.(types.DelistProposal); ok {
 		delistProposal := proposal.Content.(types.DelistProposal)
 		tokenPairName := delistProposal.BaseAsset + "_" + delistProposal.QuoteAsset
-		if k.IsTokenPairLocked(tokenPairName) {
+		if k.IsTokenPairLocked(ctx, tokenPairName) {
 			errContent := fmt.Sprintf("the trading pair (%s) is locked, please retry later", tokenPairName)
 			return "", sdk.ErrInternal(errContent)
 		}

@@ -41,9 +41,6 @@ func TestGetTokenPair(t *testing.T) {
 	err := keeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	// delete cache tokenpair
-	keeper.cache.DeleteTokenPair(tokenPair)
-
 	// GetTokenPair successful
 	product := tokenPair.Name()
 	getTokenPair := keeper.GetTokenPair(ctx, product)
@@ -255,7 +252,9 @@ func TestGetTokenPairsOrdered(t *testing.T) {
 	// 2. compare block height
 	// 3. compare product name
 	orderTokenPairs := keeper.GetTokenPairsOrdered(ctx)
-	require.Equal(t, expectedSortedPairs, orderTokenPairs)
+	for idx, tokenPair := range orderTokenPairs {
+		require.Equal(t, expectedSortedPairs[idx].Name(), tokenPair.Name())
+	}
 }
 
 func TestSortProducts(t *testing.T) {
@@ -408,14 +407,6 @@ func Test_IterateWithdrawInfo(t *testing.T) {
 	require.True(t, expectWithdrawInfos[0].Equal(expectWithdrawInfo))
 }
 
-func TestKeeper_GetNewTokenPair(t *testing.T) {
-	testInput := createTestInputWithBalance(t, 2, 30)
-
-	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
-	require.Nil(t, err)
-	require.NotNil(t, testInput.DexKeeper.GetNewTokenPair())
-}
-
 func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 2, 30)
 
@@ -434,12 +425,4 @@ func TestKeeper_CheckTokenPairUnderDexDelist(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, isDelisting, tokenPair.Delisting)
 
-}
-
-func TestKeeper_IsTokenPairChanged(t *testing.T) {
-	testInput := createTestInputWithBalance(t, 2, 30)
-
-	err := testInput.DexKeeper.SaveTokenPair(testInput.Ctx, getTestTokenPair())
-	require.Nil(t, err)
-	require.True(t, testInput.DexKeeper.IsTokenPairChanged())
 }
