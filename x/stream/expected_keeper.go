@@ -4,6 +4,7 @@ package stream
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/order"
 	"github.com/okex/okchain/x/stream/exported"
@@ -30,4 +31,8 @@ type TokenKeeper interface {
 type DexKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
 	SetObserverKeeper(sk exported.StreamKeeper)
+}
+
+type AccountKeeper interface {
+	SetObserverKeeper(observer auth.ObserverI)
 }
