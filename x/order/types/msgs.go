@@ -13,6 +13,8 @@ import (
 const (
 	OrderItemLimit            = 200
 	MultiCancelOrderItemLimit = 200
+	NewOrderMsgGasUnit        = 40000
+	CancelOrderMsgGasUnit     = 30000
 )
 
 // nolint
@@ -141,6 +143,11 @@ func (msg MsgNewOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// Calculate customize gas
+func (msg MsgNewOrders) CalculateGas() uint64 {
+	return uint64(len(msg.OrderItems) * NewOrderMsgGasUnit)
+}
+
 // nolint
 type MsgCancelOrders struct {
 	Sender   sdk.AccAddress `json:"sender"` // order maker address
@@ -206,6 +213,11 @@ func (msg MsgCancelOrders) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgCancelOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// Calculate customize gas
+func (msg MsgCancelOrders) CalculateGas() uint64 {
+	return uint64(len(msg.OrderIDs) * CancelOrderMsgGasUnit)
 }
 
 // nolint
