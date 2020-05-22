@@ -46,7 +46,7 @@ type DexKeeper interface {
 	CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (isDelisting bool, err error)
 	LockTokenPair(ctx sdk.Context, product string, lock *types.ProductLock)
 	UnlockTokenPair(ctx sdk.Context, product string)
-	IsTokenPairLocked(product string) bool
-	GetLockedProductsCopy() *types.ProductLockMap
-	IsAnyProductLocked() bool
+	IsTokenPairLocked(ctx sdk.Context, product string) bool
+	GetLockedProductsCopy(ctx sdk.Context) *types.ProductLockMap
+	IsAnyProductLocked(ctx sdk.Context) bool
 }

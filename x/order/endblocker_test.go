@@ -1,11 +1,12 @@
 package order
 
 import (
-	"github.com/okex/okchain/x/order/keeper"
 	"math/rand"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/okex/okchain/x/order/keeper"
 
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
@@ -155,7 +156,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	EndBlocker(ctx, k)
 
 	// check product lock
-	lock := k.GetDexKeeper().GetLockedProductsCopy().Data[types.TestTokenPair]
+	lock := k.GetDexKeeper().GetLockedProductsCopy(ctx).Data[types.TestTokenPair]
 	require.NotNil(t, lock)
 	require.EqualValues(t, 10, lock.BlockHeight)
 	require.EqualValues(t, sdk.MustNewDecFromStr("10.0"), lock.Price)
@@ -218,7 +219,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	EndBlocker(ctx, k)
 
 	// check product lock
-	lock = k.GetDexKeeper().GetLockedProductsCopy().Data[types.TestTokenPair]
+	lock = k.GetDexKeeper().GetLockedProductsCopy(ctx).Data[types.TestTokenPair]
 	require.Nil(t, lock)
 
 	// check order status
@@ -571,15 +572,15 @@ func TestFillPrecision(t *testing.T) {
 
 	// mock orders
 	orderIdx := 0
-	roundN := 1  // Need more balance to make a large round
+	roundN := 1 // Need more balance to make a large round
 	orderNums := 20
 	var orders []*types.Order
 
-	for j := 0 ; j < roundN; j++ {
+	for j := 0; j < roundN; j++ {
 		rand.Seed(time.Now().Unix())
-		price := float64(25000 + rand.Intn(5000))/10000
+		price := float64(25000+rand.Intn(5000)) / 10000
 
-		for i:=0; i< orderNums; i++ {
+		for i := 0; i < orderNums; i++ {
 			var buyPrice string
 			var sellPrice string
 			var quantity string
@@ -587,8 +588,8 @@ func TestFillPrecision(t *testing.T) {
 			rand.Seed(time.Now().Unix() + int64(orderIdx))
 
 			// Test Same precision of price and quantity
-			quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4,64)
-			buyPrice = strconv.FormatFloat(price + 0.0001, 'f', 4, 64)
+			quantity = strconv.FormatFloat(float64(rand.Intn(99999))/100000, 'f', 4, 64)
+			buyPrice = strconv.FormatFloat(price+0.0001, 'f', 4, 64)
 			sellPrice = strconv.FormatFloat(price, 'f', 4, 64)
 
 			tmp, err := strconv.ParseFloat(quantity, 64)
@@ -599,12 +600,12 @@ func TestFillPrecision(t *testing.T) {
 			orderIdx += 1
 			buyOrder := types.MockOrder(types.FormatOrderID(startHeight, int64(orderIdx)), types.TestTokenPair, types.BuyOrder, buyPrice, quantity)
 			orderIdx += 1
-			sellOrder :=types.MockOrder(types.FormatOrderID(startHeight, int64(orderIdx)), types.TestTokenPair, types.SellOrder, sellPrice, quantity)
+			sellOrder := types.MockOrder(types.FormatOrderID(startHeight, int64(orderIdx)), types.TestTokenPair, types.SellOrder, sellPrice, quantity)
 
 			buyOrder.Sender = addrKeysSlice[0].Address
 			sellOrder.Sender = addrKeysSlice[1].Address
 
-			orders = append(orders, buyOrder,sellOrder)
+			orders = append(orders, buyOrder, sellOrder)
 			err = k.PlaceOrder(ctx, buyOrder)
 			require.NoError(t, err)
 
@@ -615,9 +616,9 @@ func TestFillPrecision(t *testing.T) {
 	// call EndBlocker to execute periodic match
 	EndBlocker(ctx, k)
 
-	N :=  len(orders) / 1000
-	for i :=0 ;i< N; i++ {
-		ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + int64(1 + i))
+	N := len(orders) / 1000
+	for i := 0; i < N; i++ {
+		ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + int64(1+i))
 		BeginBlocker(ctx, k)
 		EndBlocker(ctx, k)
 	}

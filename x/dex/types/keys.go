@@ -44,17 +44,17 @@ var (
 	TokenPairNumberKey = []byte{0x02}
 	// TokenPairLockKeyPrefix is the store key for token pair prefix
 	TokenPairLockKeyPrefix = []byte{0x03}
-	// PrefixWithdrawAddressKey is the store key for withdraw address
-	PrefixWithdrawAddressKey = []byte{0x53}
-	// PrefixWithdrawTimeKey is the store key for withdraw time
-	PrefixWithdrawTimeKey = []byte{0x54}
-	// PrefixUserTokenPairKey is the store key for user token pair num
-	PrefixUserTokenPairKey = []byte{0x06}
+	// WithdrawAddressKeyPrefix is the store key for withdraw address
+	WithdrawAddressKeyPrefix = []byte{0x53}
+	// WithdrawTimeKeyPrefix is the store key for withdraw time
+	WithdrawTimeKeyPrefix = []byte{0x54}
+	// UserTokenPairKeyPrefix is the store key for user token pair num
+	UserTokenPairKeyPrefix = []byte{0x06}
 )
 
 // GetUserTokenPairAddressPrefix returns token pair address prefix key
 func GetUserTokenPairAddressPrefix(owner sdk.AccAddress) []byte {
-	return append(PrefixUserTokenPairKey, owner.Bytes()...)
+	return append(UserTokenPairKeyPrefix, owner.Bytes()...)
 }
 
 // GetUserTokenPairAddress returns token pair address key
@@ -69,13 +69,13 @@ func GetTokenPairAddress(key string) []byte {
 
 // GetWithdrawAddressKey returns key of withdraw address
 func GetWithdrawAddressKey(addr sdk.AccAddress) []byte {
-	return append(PrefixWithdrawAddressKey, addr.Bytes()...)
+	return append(WithdrawAddressKeyPrefix, addr.Bytes()...)
 }
 
 // GetWithdrawTimeKey returns key of withdraw time
 func GetWithdrawTimeKey(completeTime time.Time) []byte {
 	bz := sdk.FormatTimeBytes(completeTime)
-	return append(PrefixWithdrawTimeKey, bz...)
+	return append(WithdrawTimeKeyPrefix, bz...)
 }
 
 // GetWithdrawTimeAddressKey returns withdraw time address key

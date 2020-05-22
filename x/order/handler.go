@@ -3,6 +3,9 @@ package order
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
@@ -14,9 +17,36 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
+func CalculateGas(msg sdk.Msg) (gas uint64) {
+	switch msg := msg.(type) {
+	case types.MsgNewOrders:
+		gas = msg.CalculateGas()
+	case types.MsgCancelOrders:
+		gas = msg.CalculateGas()
+	default:
+		gas = math.MaxUint64
+	}
+
+	return gas
+}
+
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		gas := CalculateGas(msg)
+
+		// consume gas that msg required, it will panic if gas is insufficient
+		ctx.GasMeter().ConsumeGas(gas, storetypes.GasWriteCostFlatDesc)
+
+		if ctx.IsCheckTx() {
+			return sdk.Result{}
+		} else {
+			// set an infinite gas meter and recovery it when return
+			gasMeter := ctx.GasMeter()
+			ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			defer func() { ctx = ctx.WithGasMeter(gasMeter) }()
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var handlerFun func() sdk.Result
 		var name string
@@ -111,7 +141,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 	if err != nil {
 		code = sdk.CodeUnknownRequest
 	} else {
-		if k.IsProductLocked(msg.Product) {
+		if k.IsProductLocked(ctx, msg.Product) {
 			code = sdk.CodeInternal
 			err = fmt.Errorf("the trading pair (%s) is locked, please retry later", order.Product)
 		} else if err = k.PlaceOrder(ctxItem, order); err != nil {
@@ -190,7 +220,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 				Log:  err.Error(),
 			}
 		}
-		if k.IsProductLocked(msg.Product) {
+		if k.IsProductLocked(ctx, msg.Product) {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
 				Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", msg.Product),
@@ -293,7 +323,7 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 			Log:  fmt.Sprintf("not the owner of order(%v)", msg.OrderID),
 		}
 	}
-	if keeper.IsProductLocked(order.Product) {
+	if keeper.IsProductLocked(ctx, order.Product) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product),

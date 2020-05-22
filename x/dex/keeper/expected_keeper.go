@@ -34,8 +34,6 @@ type IKeeper interface {
 	IsTokenPairExisted(ctx sdk.Context, baseAsset, quoteAsset string) sdk.Error
 	GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) []*types.TokenPair
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
-	GetNewTokenPair() []*types.TokenPair
-	ResetCache(ctx sdk.Context)
 	GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair)
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, tokenPairName string)
