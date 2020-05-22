@@ -38,7 +38,7 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -ldflags '$(ldflags)'
+BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
 
 
 all: install
