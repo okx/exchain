@@ -6,7 +6,7 @@ const (
 	defaultDelistMinDeposit     = "100"
 
 	// DefaultMaxPriceDigitSize defines default max price digit size
-	DefaultMaxPriceDigitSize = 8
+	DefaultMaxPriceDigitSize = 4
 	// DefaultMaxQuantityDigitSize defines default max quantity digit size
-	DefaultMaxQuantityDigitSize = 8
+	DefaultMaxQuantityDigitSize = 4
 )

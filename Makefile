@@ -4,7 +4,7 @@ SUM := $(shell which shasum)
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
-Version=v0.10.0
+Version=v0.10.5
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
@@ -38,7 +38,7 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
-BUILD_FLAGS := -ldflags '$(ldflags)'
+BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
 
 
 all: install

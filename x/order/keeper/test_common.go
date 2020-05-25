@@ -132,7 +132,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 		paramsKeeper.Subspace(types.DefaultParamspace), auth.FeeCollectorName, keyOrder,
 		cdc, true, monitor.NopOrderMetrics())
 
-	defaultParams := types.DefaultParams()
+	defaultParams := types.DefaultTestParams()
 	orderKeeper.SetParams(ctx, &defaultParams)
 
 	// init account tokens

@@ -19,6 +19,8 @@ type (
 	ValidatorAccumulatedCommission = sdk.DecCoins
 
 	GenesisState struct {
+		FeePool                         v034distr.FeePool                                `json:"fee_pool" yaml:"fee_pool"`
+		CommunityTax                    sdk.Dec                                          `json:"community_tax" yaml:"community_tax"`
 		WithdrawAddrEnabled             bool                                             `json:"withdraw_addr_enabled"`
 		DelegatorWithdrawInfos          []v034distr.DelegatorWithdrawInfo                `json:"delegator_withdraw_infos"`
 		PreviousProposer                sdk.ConsAddress                                  `json:"previous_proposer"`
@@ -26,9 +28,12 @@ type (
 	}
 )
 
-func NewGenesisState(withdrawAddrEnabled bool, dwis []v034distr.DelegatorWithdrawInfo, pp sdk.ConsAddress, acc []v034distr.ValidatorAccumulatedCommissionRecord) GenesisState {
+func NewGenesisState(feePool v034distr.FeePool, withdrawAddrEnabled bool, dwis []v034distr.DelegatorWithdrawInfo,
+	pp sdk.ConsAddress, acc []v034distr.ValidatorAccumulatedCommissionRecord) GenesisState {
 
 	return GenesisState{
+		FeePool:				         feePool,
+		CommunityTax:                    sdk.NewDecWithPrec(2,2),
 		WithdrawAddrEnabled:             withdrawAddrEnabled,
 		DelegatorWithdrawInfos:          dwis,
 		PreviousProposer:                pp,

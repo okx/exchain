@@ -5,6 +5,7 @@ import (
 	dextypes "github.com/okex/okchain/x/dex/types"
 	"github.com/okex/okchain/x/order"
 	ordertypes "github.com/okex/okchain/x/order/types"
+	"github.com/okex/okchain/x/stream/exported"
 	"github.com/okex/okchain/x/token"
 )
 
@@ -27,6 +28,7 @@ type TokenKeeper interface {
 // DexKeeper expected dex keeper
 type DexKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*dextypes.TokenPair
+	SetObserverKeeper(keeper exported.StreamKeeper)
 }
 
 // MarketKeeper expected market keeper which would get data from pulsar & redis

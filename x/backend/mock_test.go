@@ -147,7 +147,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.backendKeeper = NewKeeper(
 		mockApp.orderKeeper,
 		mockApp.tokenKeeper,
-		mockApp.dexKeeper,
+		&mockApp.dexKeeper,
 		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
@@ -180,6 +180,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		app.keyTokenPair,
 		app.keyLock,
 		app.keySupply,
+		app.keyDex,
 	)
 
 	require.NoError(t, mockApp.CompleteSetup(mockApp.keyOrder))

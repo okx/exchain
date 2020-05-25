@@ -11,7 +11,7 @@ import (
 
 func TestNewOrder(t *testing.T) {
 	// test new order
-	params := DefaultParams()
+	params := DefaultTestParams()
 	order1 := NewOrder("hash1", nil, TestTokenPair, SellOrder, sdk.MustNewDecFromStr("1.1"),
 		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock)
 	order2 := NewOrder("hash2", nil, TestTokenPair, BuyOrder, sdk.MustNewDecFromStr("1.1"),
@@ -26,7 +26,7 @@ func TestNewOrder(t *testing.T) {
 	require.Equal(t, sdk.ZeroDec().String(), order1.RemainLocked.String())
 
 	// test order string
-	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_okt","side":"SELL","price":"1.10000000","quantity":"10.00000000","status":0,"filled_avg_price":"0","remain_quantity":"10.00000000","remain_locked":"0.00000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"okt","amount":"0.00000100"},"extra_info":""}`
+	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_` + common.NativeToken + `","side":"SELL","price":"1.10000000","quantity":"10.00000000","status":0,"filled_avg_price":"0","remain_quantity":"10.00000000","remain_locked":"0.00000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"` + common.NativeToken + `","amount":"0.00000100"},"extra_info":""}`
 
 	require.Equal(t, expected, order1.String())
 
@@ -37,7 +37,7 @@ func TestNewOrder(t *testing.T) {
 func TestOrderUpdateExtraInfo(t *testing.T) {
 	order := MockOrder("", "", SellOrder, "0.1", "10.0")
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, "0.002"+common.NativeToken)
-	expectExtra := `{"cancelFee":"0.002okt"}`
+	expectExtra := `{"cancelFee":"0.002` + common.NativeToken + `"}`
 	require.EqualValues(t, expectExtra, order.ExtraInfo)
 	require.EqualValues(t, "0.002"+common.NativeToken, order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
 

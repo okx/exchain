@@ -93,7 +93,7 @@ func (k *mockDexKeeper) LockTokenPair(ctx sdk.Context, product string, lock *ord
 }
 
 // GetLockedProductsCopy returns map with product locked
-func (k *mockDexKeeper) GetLockedProductsCopy() *ordertypes.ProductLockMap {
+func (k *mockDexKeeper) GetLockedProductsCopy(ctx sdk.Context) *ordertypes.ProductLockMap {
 	return ordertypes.NewProductLockMap()
 }
 

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"log"
+	"sync"
 
 	"github.com/okex/okchain/x/common/monitor"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/order/types"
 )
+
+var onStartUp sync.Once
 
 // Keeper maintains the link to data storage and exposes getter/setter methods
 // for the various parts of the state machine
@@ -66,36 +69,40 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper Dex
 
 // ResetCache is called in BeginBlock
 func (k Keeper) ResetCache(ctx sdk.Context) {
-	// Reset cache
-	k.cache.reset()
 
-	k.diskCache.reset()
-	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
-	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
+	onStartUp.Do(func() {
 
-	// init depth book & items cache
-	if len(k.diskCache.depthBookMap.data) == 0 {
+		// init depth book map
 		depthStore := ctx.KVStore(k.orderStoreKey)
 		depthIter := sdk.KVStorePrefixIterator(depthStore, types.DepthBookKey)
 
 		for ; depthIter.Valid(); depthIter.Next() {
 			depthBook := &types.DepthBook{}
 			k.cdc.MustUnmarshalBinaryBare(depthIter.Value(), depthBook)
-			k.SetDepthBook(types.GetKey(depthIter), depthBook)
+			k.diskCache.addDepthBook(types.GetKey(depthIter), depthBook)
 		}
 		depthIter.Close()
-	}
-	if len(k.diskCache.orderIDsMap.Data) == 0 {
+
+		// init OrderIDs map
 		bookStore := ctx.KVStore(k.orderStoreKey)
 		bookIter := sdk.KVStorePrefixIterator(bookStore, types.OrderIDsKey)
 
 		for ; bookIter.Valid(); bookIter.Next() {
 			var orderIDs []string
 			k.cdc.MustUnmarshalJSON(bookIter.Value(), &orderIDs)
-			k.SetOrderIDs(types.GetKey(bookIter), orderIDs) // startup
+			k.diskCache.addOrderIDs(types.GetKey(bookIter), orderIDs)
 		}
 		bookIter.Close()
-	}
+	})
+
+	// Reset cache
+	k.cache.reset()
+
+	// VERY IMPORTANT: always reset disk cache in BeginBlock
+	k.diskCache.reset()
+	k.diskCache.setOpenNum(k.GetOpenOrderNum(ctx))
+	k.diskCache.setStoreOrderNum(k.GetStoreOrderNum(ctx))
+
 }
 
 // Cache2Disk flushes cached data into KVStore, called in EndBlock
@@ -117,7 +124,6 @@ func (k Keeper) Cache2Disk(ctx sdk.Context) {
 	for _, key := range updatedItemKeys {
 		k.StoreOrderIDsMap(ctx, key, k.diskCache.getOrderIDs(key))
 	}
-	k.diskCache.flush()
 }
 
 // OrderOperationMetric records the order information in the depthBook
@@ -349,11 +355,17 @@ func (k Keeper) SetBlockMatchResult(result *types.BlockMatchResult) {
 
 // LockCoins locks coins from the specified address,
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
+	if coins.IsZero() {
+		return nil
+	}
 	return k.tokenKeeper.LockCoins(ctx, addr, coins, lockCoinsType)
 }
 
 // nolint
 func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) {
+	if coins.IsZero() {
+		return
+	}
 	if err := k.tokenKeeper.UnlockCoins(ctx, addr, coins, lockCoinsType); err != nil {
 		log.Printf("User(%s) unlock coins(%s) failed\n", addr.String(), coins.String())
 	}
@@ -382,6 +394,9 @@ func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress 
 // AddFeeDetail adds detail message of fee to tokenKeeper
 func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.DecCoins,
 	feeType string) {
+	if coins.IsZero() {
+		return
+	}
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
 }
 

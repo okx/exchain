@@ -3,6 +3,7 @@
 package v0_36
 
 import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	v034staking "github.com/okex/okchain/x/staking/legacy/v0_34"
 )
 
@@ -24,16 +25,20 @@ func migrateValidators(oldValidators v034staking.Validators) Validators {
 	validators := make(Validators, len(oldValidators))
 
 	for i, val := range oldValidators {
-		validators[i] = Validator{
+		bechConsPubKey, err := sdk.Bech32ifyConsPub(val.ConsPubKey)
+		if err != nil {
+			panic(err)
+		}
+		validators[i] = ValidatorExported{
 			OperatorAddress:         val.OperatorAddress,
-			ConsPubKey:              val.ConsPubKey,
+			ConsPubKey:              bechConsPubKey,
 			Jailed:                  val.Jailed,
 			Status:                  val.Status,
 			DelegatorShares:         val.DelegatorShares,
 			Description:             val.Description,
 			UnbondingHeight:         val.UnbondingHeight,
 			UnbondingCompletionTime: val.UnbondingCompletionTime,
-			MinSelfDelegation:       val.MinSelfDelegation,
+			MinSelfDelegation:       sdk.MustNewDecFromStr("0.001"),
 		}
 	}
 

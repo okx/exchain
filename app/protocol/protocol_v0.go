@@ -313,10 +313,10 @@ func (p *ProtocolV0) produceKeepers() {
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
-	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.accountKeeper, p.cdc, p.logger,
-		appConfig, streamMetrics)
+	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.accountKeeper,
+		p.cdc, p.logger, appConfig, streamMetrics)
 
-	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
+	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
 
 	// 3.register the proposal types
@@ -388,6 +388,7 @@ func (p *ProtocolV0) setManager() {
 	// ORDER SETTING
 	p.mm.SetOrderBeginBlockers(
 		margin.ModuleName,
+		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -514,15 +515,7 @@ func isSystemFreeHook(ctx sdk.Context, msgs []sdk.Msg) bool {
 		return true
 	}
 
-	for _, msg := range msgs {
-		switch msg.(type) {
-		case order.MsgNewOrders, order.MsgCancelOrders:
-		default:
-			return false
-		}
-	}
-
-	return true
+	return false
 }
 
 // ExportGenesis exports the genesis state for whole protocol
