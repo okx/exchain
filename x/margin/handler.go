@@ -41,6 +41,11 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgDeposit(ctx, k, msg, logger)
 			}
+		case types.MsgWithdraw:
+			handlerFun = func() sdk.Result {
+				return handleMsgWithdraw(ctx, k, msg, logger)
+			}
+
 		case types.MsgBorrow:
 			handlerFun = func() sdk.Result {
 				return handleMsgBorrow(ctx, k, msg, logger)
@@ -168,29 +173,17 @@ func handleMsgDexReturn(ctx sdk.Context, keeper Keeper, msg types.MsgDexReturn, 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-// handle<Action> does x
 func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDeposit, logger log.Logger) (result sdk.Result) {
-	tradePair := keeper.GetMarginTradePair(ctx, msg.Product)
+	tradePair := keeper.GetTradePair(ctx, msg.Product)
 	if nil == tradePair {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", tradePair.Name())).Result()
+		return types.ErrInvalidTradePair(types.MarginCodespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
 	}
 
-	// deduction fee
-	//feeCoins := keeper.GetParams(ctx).ListFee.ToCoins()
-	//err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
-	//if err != nil {
-	//	return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-	//		feeCoins.String())).Result()
-	//}
-
-	// lock available
 	if err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, types.ModuleName, msg.Amount); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", msg.Amount.String())).Result()
 	}
 
-	//marginAcc := types.GetMarginAccount(msg.Address.String())
-
-	keeper.SetAvailableAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount)
+	keeper.DepositAssetFromSpot(ctx, msg.Address, msg.Product, msg.Amount)
 	// TODO: Define your msg events
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -204,22 +197,41 @@ func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg types.MsgDeposit, logg
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-// handle<Action> does x
+func handleMsgWithdraw(ctx sdk.Context, keeper Keeper, msg types.MsgWithdraw, logger log.Logger) sdk.Result {
+	tokenPair := keeper.GetTradePair(ctx, msg.Product)
+	if tokenPair == nil {
+		return types.ErrInvalidTradePair(types.MarginCodespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
+	}
+
+	if err := keeper.WithdrawAssetToSpot(ctx, msg.Address, msg.Product, msg.Amount); err != nil {
+		return err.Result()
+	}
+
+	if err := keeper.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Address, msg.Amount); err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraw because insufficient coins saved(need %s)", msg.Amount.String())).Result()
+	}
+
+	// TODO: Define your msg events
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
 func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger log.Logger) (result sdk.Result) {
-	tradePair := keeper.GetMarginTradePair(ctx, msg.Product)
+	tradePair := keeper.GetTradePair(ctx, msg.Product)
 	if nil == tradePair {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to borrow because non-exist product: %s", tradePair.Name())).Result()
+		return types.ErrInvalidTradePair(types.MarginCodespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
 	}
-
-	// lock available
-	if err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, types.ModuleName, sdk.NewCoins(msg.Amount)); err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", msg.Amount.String())).Result()
+	if msg.Leverage.GT(tradePair.MaxLeverage) {
+		return types.ErrInvalidLeverage(types.MarginCodespace, fmt.Sprintf("%s is more than the product leverage %s", msg.Leverage, tradePair.MaxLeverage)).Result()
 	}
-
-	//marginAcc := types.GetMarginAccount(msg.Address.String())
-
-	times := msg.Leverage.Sub(sdk.NewDec(1))
-	if err := keeper.SetBorrowAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount, times); err != nil {
+	if err := keeper.SetBorrowAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount, msg.Leverage); err != nil {
 		return err.Result()
 	}
 
@@ -228,7 +240,8 @@ func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
-			sdk.NewAttribute("borrow amount", sdk.NewCoins(msg.Amount).MulDec(times).String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+			sdk.NewAttribute("borrow amount", sdk.NewCoins(msg.Amount).MulDec(msg.Leverage.Sub(sdk.NewDec(1))).String()),
 		),
 	)
 	return sdk.Result{Events: ctx.EventManager().Events()}

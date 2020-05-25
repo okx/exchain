@@ -30,6 +30,7 @@ var (
 	BorrowKeyPrefix       = []byte{0x04}
 	WithdrawKeyPrefix     = []byte{0x05}
 	WithdrawTimeKeyPrefix = []byte{0x06}
+	InterestTimeKeyPrefix = []byte{0x07}
 )
 
 func GetTradePairKey(product string) []byte {
@@ -54,6 +55,15 @@ func GetAccountBorrowOnProductKey(address, product string) []byte {
 
 func GetAccountBorrowOnProductAtHeightKey(height uint64, address, product string) []byte {
 	return append(GetAccountBorrowOnProductKey(address, product), sdk.Uint64ToBigEndian(height)...)
+}
+
+func GetInterestTimeKey(calculateTime time.Time) []byte {
+	bz := sdk.FormatTimeBytes(calculateTime)
+	return append(InterestTimeKeyPrefix, bz...)
+}
+
+func GetCalculateInterestKey(calculateTime time.Time, BorrowInfoKey []byte) []byte {
+	return append(GetInterestTimeKey(calculateTime), BorrowInfoKey...)
 }
 
 // GetWithdrawKey returns key of withdraw
