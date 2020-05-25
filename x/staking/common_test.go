@@ -782,7 +782,7 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 		cdc := ModuleCdc
 
-		params := types.NewQueryValidatorVotesParams(valAddr)
+		params := types.NewQueryValidatorParams(valAddr)
 		bz, _ := cdc.MarshalJSON(params)
 
 		res, e := q(ctx, []string{types.QueryValidatorVotes}, abci.RequestQuery{Data: bz})
