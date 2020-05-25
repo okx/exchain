@@ -364,7 +364,7 @@ $ %s query staking votes-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu
 				return err
 			}
 
-			bytes, err := cdc.MarshalJSON(types.NewQueryValidatorVotesParams(valAddr))
+			bytes, err := cdc.MarshalJSON(types.NewQueryValidatorParams(valAddr))
 			if err != nil {
 				return err
 			}
