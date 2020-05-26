@@ -13,9 +13,9 @@ func TestNewOrder(t *testing.T) {
 	// test new order
 	params := DefaultTestParams()
 	order1 := NewOrder("hash1", nil, TestTokenPair, SellOrder, sdk.MustNewDecFromStr("1.1"),
-		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock)
+		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock, OrdinaryOrder)
 	order2 := NewOrder("hash2", nil, TestTokenPair, BuyOrder, sdk.MustNewDecFromStr("1.1"),
-		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock)
+		sdk.MustNewDecFromStr("10.0"), 123, params.OrderExpireBlocks, params.FeePerBlock, OrdinaryOrder)
 
 	require.Equal(t, sdk.MustNewDecFromStr("10"), order1.RemainLocked)
 	require.Equal(t, sdk.MustNewDecFromStr("11"), order2.RemainLocked)

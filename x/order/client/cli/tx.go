@@ -105,7 +105,7 @@ func handleNewOrder(cdc *codec.Codec, product string, side string, price string,
 	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-	msg := types.NewMsgNewOrders(cliCtx.GetFromAddress(), items)
+	msg := types.NewMsgNewOrders(cliCtx.GetFromAddress(), items, types.OrdinaryOrder)
 	err := utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 	return err
 }

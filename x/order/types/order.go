@@ -61,6 +61,13 @@ const (
 	OrderExtraInfoKeyReceiveFee = "receiveFee"
 )
 
+type OrderType int
+
+const (
+	OrdinaryOrder OrderType = iota
+	MarginOrder
+)
+
 // nolint
 type Order struct {
 	TxHash            string         `json:"txhash"`           // txHash of the place order tx
@@ -78,11 +85,12 @@ type Order struct {
 	OrderExpireBlocks int64          `json:"order_expire_blocks"`
 	FeePerBlock       sdk.DecCoin    `json:"fee_per_block"`
 	ExtraInfo         string         `json:"extra_info"` // extra info of order in json format
+	Type              OrderType      `json:"type"`
 }
 
 // nolint
 func NewOrder(txHash string, sender sdk.AccAddress, product, side string, price, quantity sdk.Dec,
-	timestamp int64, orderExpireBlocks int64, feePerBlock sdk.DecCoin) *Order {
+	timestamp int64, orderExpireBlocks int64, feePerBlock sdk.DecCoin, orderType OrderType) *Order {
 	order := &Order{
 		TxHash:            txHash,
 		Sender:            sender,
@@ -95,6 +103,7 @@ func NewOrder(txHash string, sender sdk.AccAddress, product, side string, price,
 		Timestamp:         timestamp,
 		OrderExpireBlocks: orderExpireBlocks,
 		FeePerBlock:       feePerBlock,
+		Type:              orderType,
 	}
 	if side == BuyOrder {
 		order.RemainLocked = price.Mul(quantity)

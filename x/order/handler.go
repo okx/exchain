@@ -119,10 +119,11 @@ func getOrderFromMsg(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrder, ra
 		ctx.BlockHeader().Time.Unix(),
 		feeParams.OrderExpireBlocks,
 		feePerBlock,
+		msg.Type,
 	)
 }
 
-func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
+func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress, orderType types.OrderType,
 	item types.OrderItem, ratio string, logger log.Logger) (types.OrderResult, sdk.CacheMultiStore, error) {
 
 	cacheItem := ctx.MultiStore().CacheMultiStore()
@@ -133,6 +134,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 		Side:     item.Side,
 		Price:    item.Price,
 		Quantity: item.Quantity,
+		Type:     orderType,
 	}
 	order := getOrderFromMsg(ctxItem, k, msg, ratio)
 	code := sdk.CodeOK
@@ -181,7 +183,7 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 
 	rs := make([]types.OrderResult, 0, len(msg.OrderItems))
 	for _, item := range msg.OrderItems {
-		res, cacheItem, err := handleNewOrder(ctx, k, msg.Sender, item, ratio, logger)
+		res, cacheItem, err := handleNewOrder(ctx, k, msg.Sender, msg.OrderType, item, ratio, logger)
 		if err == nil {
 			cacheItem.Write()
 		}
@@ -212,6 +214,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 			Side:     item.Side,
 			Price:    item.Price,
 			Quantity: item.Quantity,
+			Type:     msg.OrderType,
 		}
 		err := checkOrderNewMsg(ctx, k, msg)
 		if err != nil {

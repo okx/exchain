@@ -41,7 +41,7 @@ func TestEventNewOrders(t *testing.T) {
 	}
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 
 	require.EqualValues(t, 2, len(result.Events[4].Attributes))
@@ -75,7 +75,7 @@ func TestFeesNewOrders(t *testing.T) {
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 
 	// check account balance
@@ -426,7 +426,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
@@ -466,7 +466,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	orderItems = []types.OrderItem{
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result = handler(ctx, msg)
 
 	// check result & order
@@ -489,7 +489,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	orderItems = []types.OrderItem{
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result = handler(ctx, msg)
 
 	orderID = getOrderID(result)
@@ -537,7 +537,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
@@ -634,13 +634,13 @@ func TestValidateMsgMultiNewOrder(t *testing.T) {
 
 	// normal
 	orderItem := types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem), types.OrdinaryOrder)
 	result := ValidateMsgNewOrders(ctx, keeper, msg)
 	require.EqualValues(t, sdk.CodeOK, result.Code)
 
 	// not-exist product
 	orderItem = types.NewOrderItem("nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem), types.OrdinaryOrder)
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
 	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
 
