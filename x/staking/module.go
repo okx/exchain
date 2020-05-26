@@ -31,8 +31,6 @@ var (
 // AppModuleBasic is a struct of app module basics object
 type AppModuleBasic struct{}
 
-var _ module.AppModuleBasic = AppModuleBasic{}
-
 // Name returns module name
 func (AppModuleBasic) Name() string {
 	return ModuleName

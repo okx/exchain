@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/okex/okchain/x/stream/exported"
+
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -18,14 +20,14 @@ type Keeper struct {
 	supplyKeeper      SupplyKeeper
 	feeCollectorName  string // name of the FeeCollector ModuleAccount
 	tokenKeeper       TokenKeeper
-	stakingKeeper     StakingKeeper // The reference to the staking keeper  to check whether proposer is  validator
-	bankKeeper        BankKeeper    // The reference to the bank keeper to check whether proposer can afford  proposal deposit
-	govKeeper         GovKeeper     // The reference to the gov keeper to handle proposal
+	stakingKeeper     StakingKeeper         // The reference to the staking keeper to check whether proposer is  validator
+	bankKeeper        BankKeeper            // The reference to the bank keeper to check whether proposer can afford  proposal deposit
+	govKeeper         GovKeeper             // The reference to the gov keeper to handle proposal
+	observerKeeper    exported.StreamKeeper // The reference to the stream keeper
 	storeKey          sdk.StoreKey
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
 	cdc               *codec.Codec    // The wire codec for binary encoding/decoding.
-	cache             *Cache          // reset cache data in BeginBlock
 }
 
 // NewKeeper creates new instances of the token Keeper
@@ -42,7 +44,6 @@ func NewKeeper(feeCollectorName string, supplyKeeper SupplyKeeper, dexParamsSubs
 		storeKey:          storeKey,
 		tokenPairStoreKey: tokenPairStoreKey,
 		cdc:               cdc,
-		cache:             NewCache(),
 	}
 
 	return k
@@ -100,19 +101,16 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	store.Set(types.GetTokenPairAddress(keyPair), k.cdc.MustMarshalBinaryBare(tokenPair))
 	store.Set(types.GetUserTokenPairAddress(tokenPair.Owner, keyPair), []byte{})
 
-	k.cache.AddNewTokenPair(tokenPair)
-	k.cache.AddTokenPair(tokenPair)
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnAddNewTokenPair(ctx, tokenPair)
+	}
+
 	return nil
 }
 
-// GetTokenPair returns all the token pairs
+// GetTokenPair gets the token pair by product
 func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair *types.TokenPair
-	//use cache
-	tokenPair, ok := k.cache.GetTokenPair(product)
-	if ok {
-		return tokenPair
-	}
 
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	bytes := store.Get(types.GetTokenPairAddress(product))
@@ -124,7 +122,7 @@ func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 		ctx.Logger().Info("decoding of token pair is failed", product)
 		return nil
 	}
-	k.cache.AddTokenPair(tokenPair)
+
 	return tokenPair
 }
 
@@ -146,12 +144,6 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 
 // GetTokenPairs returns all the token pairs
 func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
-	//load from cache, if not exist, load from local db
-	cacheTokenPairs := k.cache.GetAllTokenPairs()
-	if len(cacheTokenPairs) > 0 {
-		return cacheTokenPairs
-	}
-
 	return k.GetTokenPairsFromStore(ctx)
 }
 
@@ -196,11 +188,12 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	// delete the token pair from the store
 	store.Delete(types.GetTokenPairAddress(product))
-	// synchronize the cache
-	k.cache.DeleteTokenPairByName(product)
-
 	// remove the user-tokenpair relationship
 	k.deleteUserTokenPair(ctx, owner, product)
+
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnTokenPairUpdated(ctx)
+	}
 }
 
 func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
@@ -213,7 +206,10 @@ func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to s
 func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
-	k.cache.AddTokenPair(tokenPair)
+
+	if k.observerKeeper != nil {
+		k.observerKeeper.OnTokenPairUpdated(ctx)
+	}
 }
 
 // CheckTokenPairUnderDexDelist checks if token pair is under delist. for x/order: It's not allowed to place an order about the tokenpair under dex delist
@@ -227,26 +223,6 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 		err = errors.Errorf("product %s doesn't exist", product)
 	}
 	return isDelisting, err
-}
-
-// GetNewTokenPair returns all the net token pairs
-func (k Keeper) GetNewTokenPair() []*types.TokenPair {
-	return k.cache.GetNewTokenPair()
-}
-
-// ResetCache resets cache
-func (k Keeper) ResetCache(ctx sdk.Context) {
-	k.cache.Reset()
-
-	if len(k.cache.lockMap.Data) == 0 {
-		k.cache.lockMap = k.LoadProductLocks(ctx)
-	}
-	//if cache data is empty, update from local db
-	if k.cache.TokenPairCount() <= 0 {
-		tokenPairs := k.GetTokenPairs(ctx)
-		//prepare token pair cache data, we will empty cache, put db data into cache
-		k.cache.PrepareTokenPairs(tokenPairs)
-	}
 }
 
 // Deposit deposits amount of tokens for a product
@@ -364,7 +340,7 @@ func (k Keeper) GetParamSubspace() params.Subspace {
 func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("non-exist product: %s", product))
+		return types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", product))
 	}
 
 	if !tokenPair.Owner.Equals(from) {
@@ -412,7 +388,7 @@ func (k Keeper) deleteWithdrawInfo(ctx sdk.Context, addr sdk.AccAddress) {
 func (k Keeper) withdrawTimeKeyIterator(ctx sdk.Context, endTime time.Time) sdk.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetWithdrawTimeKey(endTime)
-	return store.Iterator(types.PrefixWithdrawTimeKey, sdk.PrefixEndBytes(key))
+	return store.Iterator(types.WithdrawTimeKeyPrefix, sdk.PrefixEndBytes(key))
 }
 
 // SetWithdrawCompleteTimeAddress sets withdraw time key with empty []byte{} value
@@ -428,7 +404,7 @@ func (k Keeper) DeleteWithdrawCompleteTimeAddress(ctx sdk.Context, timestamp tim
 // IterateWithdrawInfo iterates withdraw address key， and returns withdraw info
 func (k Keeper) IterateWithdrawInfo(ctx sdk.Context, fn func(index int64, withdrawInfo types.WithdrawInfo) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.PrefixWithdrawAddressKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.WithdrawAddressKeyPrefix)
 	defer iterator.Close()
 
 	for i := int64(0); iterator.Valid(); iterator.Next() {
@@ -471,11 +447,6 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	}
 	k.deleteWithdrawInfo(ctx, addr)
 	return nil
-}
-
-// IsTokenPairChanged returns true if token pair changed during lifetime of the block
-func (k Keeper) IsTokenPairChanged() bool {
-	return k.cache.tokenPairChanged
 }
 
 // SetGovKeeper sets keeper of gov
@@ -539,4 +510,8 @@ func (k Keeper) SetOperator(ctx sdk.Context, operator types.DEXOperator) {
 	key := types.GetOperatorAddressKey(operator.Address)
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(operator)
 	store.Set(key, bytes)
+}
+
+func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
+	k.observerKeeper = sk
 }

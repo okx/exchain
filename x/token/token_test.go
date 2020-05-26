@@ -524,7 +524,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 }
 
 func TestCreateTokenIssue(t *testing.T) {
-	intQuantity := int64(30000)
+	intQuantity := int64(3000)
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
@@ -577,7 +577,7 @@ func TestCreateTokenIssue(t *testing.T) {
 }
 
 func TestCreateTokenBurn(t *testing.T) {
-	intQuantity := int64(20011)
+	intQuantity := int64(2511)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
@@ -647,7 +647,7 @@ func TestCreateTokenBurn(t *testing.T) {
 }
 
 func TestCreateTokenMint(t *testing.T) {
-	intQuantity := int64(42001)
+	intQuantity := int64(5011)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
@@ -755,7 +755,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "900")
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "80000")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97500")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(tokenName, "100")
@@ -779,7 +779,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(tokenName, "800")
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79900")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97400")...)
 			require.EqualValues(t, senderCoins.String(), acc.GetCoins().String())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(tokenName, "200")
@@ -841,7 +841,7 @@ func TestCreateMsgMultiSend(t *testing.T) {
 	for _, acc := range accounts {
 		if acc.GetAddress().Equals(testAccounts[0].baseAccount.Address) {
 			senderCoins := sdk.MustParseCoins(btcSymbol, "998")
-			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "79998.97000000")...)
+			senderCoins = append(senderCoins, sdk.MustParseCoins(common.NativeToken, "97498.97000000")...)
 			require.EqualValues(t, senderCoins, acc.GetCoins())
 		} else if acc.GetAddress().Equals(testAccounts[1].baseAccount.Address) {
 			receiverCoins := sdk.MustParseCoins(btcSymbol, "2")
@@ -1061,13 +1061,13 @@ func TestTxSuccessFeeTable(t *testing.T) {
 		account     *testAccount
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"success to issue : 20000+0.01", "9999.99000000", successfulIssueMsg, testAccounts[0]},
-		{"success to mint  : 20000+0.01", "7999.98000000", successfulMintMsg, testAccounts[0]},
-		{"success to burn  : 10+0.01", "7989.97000000", successfulBurnMsg, testAccounts[0]},
-		{"success to send  : 0.01", "7989.96000000", successfulSendMsg, testAccounts[0]},
-		{"success to multi : 10(amount of transfer) +0.01", "7979.95000000", successfulMultiSendMsg, testAccounts[0]},
-		{"success to modify: 0.01", "7979.94000000", successfulEditMsg, testAccounts[0]},
-		{"success to chown : 10+0.01", "7969.93000000", successfulChownMsg, testAccounts[0]},
+		{"success to issue : 2500+0.01", "27499.99000000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 10+0.01", "27489.98000000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.01", "27479.97000000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.01", "27479.96000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10(amount of transfer) +0.01", "27469.95000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify: 0.01", "27469.94000000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.01", "27459.93000000", successfulChownMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.description, func(t *testing.T) {

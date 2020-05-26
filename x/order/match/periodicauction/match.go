@@ -165,14 +165,14 @@ func expireOrdersInExpiredBlock(ctx sdk.Context, k keeper.Keeper, expiredBlockHe
 	for ; index < orderNum; index++ {
 		orderID := types.FormatOrderID(expiredBlockHeight, index+1)
 		order := k.GetOrder(ctx, orderID)
-		if order != nil && order.Status == types.OrderStatusOpen && !k.IsProductLocked(order.Product) {
+		if order != nil && order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
 			k.ExpireOrder(ctx, order, logger)
 			logger.Info(fmt.Sprintf("order (%s) expired", order.OrderID))
 		}
 	}
 }
 
-func markCurBlockToFeatureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) {
+func markCurBlockToFutureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) {
 	curBlockHeight := ctx.BlockHeight()
 	feeParams := keeper.GetParams(ctx)
 
@@ -218,7 +218,7 @@ func cacheExpiredBlockToCurrentHeight(ctx sdk.Context, keeper keeper.Keeper) {
 		}
 	}
 
-	if !keeper.AnyProductLocked() {
+	if !keeper.AnyProductLocked(ctx) {
 		height := lastExpiredBlockHeight
 		if curBlockHeight > 1 {
 			for ; height < curBlockHeight; height++ {
@@ -267,7 +267,7 @@ func cleanOrdersByOrderIDList(ctx sdk.Context, keeper keeper.Keeper, orderIDList
 func cleanupExpiredOrders(ctx sdk.Context, keeper keeper.Keeper) {
 
 	// Look forward to see what height will this block expired
-	markCurBlockToFeatureExpireBlockList(ctx, keeper)
+	markCurBlockToFutureExpireBlockList(ctx, keeper)
 
 	// Clean the expired orders which is collected by the last block
 	cleanLastBlockClosedOrders(ctx, keeper)
@@ -280,7 +280,7 @@ func matchOrders(ctx sdk.Context, keeper keeper.Keeper) {
 	blockHeight := ctx.BlockHeight()
 	orderNum := keeper.GetBlockOrderNum(ctx, blockHeight)
 	// no new orders in this block & no product lock in previous blocks, skip match
-	if orderNum == 0 && !keeper.AnyProductLocked() {
+	if orderNum == 0 && !keeper.AnyProductLocked(ctx) {
 		return
 	}
 
@@ -294,7 +294,7 @@ func matchOrders(ctx sdk.Context, keeper keeper.Keeper) {
 	updatedProductsBasePrice := calcMatchPriceAndExecution(ctx, keeper, products)
 
 	// step1.1: recover locked depth book
-	lockMap := keeper.GetDexKeeper().GetLockedProductsCopy()
+	lockMap := keeper.GetDexKeeper().GetLockedProductsCopy(ctx)
 	for product := range lockMap.Data {
 		products = append(products, product)
 	}

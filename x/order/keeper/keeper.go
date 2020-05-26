@@ -1,9 +1,10 @@
 package keeper
 
 import (
-	"github.com/okex/okchain/x/common/monitor"
 	"log"
 	"sync"
+
+	"github.com/okex/okchain/x/common/monitor"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -93,7 +94,6 @@ func (k Keeper) ResetCache(ctx sdk.Context) {
 		}
 		bookIter.Close()
 	})
-
 
 	// Reset cache
 	k.cache.reset()

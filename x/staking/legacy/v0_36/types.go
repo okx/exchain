@@ -9,8 +9,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	v034staking "github.com/okex/okchain/x/staking/legacy/v0_34"
 	"github.com/okex/okchain/x/staking/types"
-
-	"github.com/tendermint/tendermint/crypto"
 )
 
 const (
@@ -18,19 +16,7 @@ const (
 )
 
 type (
-	Validator struct {
-		OperatorAddress         sdk.ValAddress          `json:"operator_address" yaml:"operator_address"`
-		ConsPubKey              crypto.PubKey           `json:"consensus_pubkey" yaml:"consensus_pubkey"`
-		Jailed                  bool                    `json:"jailed" yaml:"jailed"`
-		Status                  sdk.BondStatus          `json:"status" yaml:"status"`
-		DelegatorShares         sdk.Dec                 `json:"delegator_shares" yaml:"delegator_shares"`
-		Description             v034staking.Description `json:"description" yaml:"description"`
-		UnbondingHeight         int64                   `json:"unbonding_height" yaml:"unbonding_height"`
-		UnbondingCompletionTime time.Time               `json:"unbonding_time" yaml:"unbonding_time"`
-		MinSelfDelegation       sdk.Int                 `json:"min_self_delegation" yaml:"min_self_delegation"`
-	}
-
-	bechValidator struct {
+	ValidatorExported struct {
 		OperatorAddress         sdk.ValAddress          `json:"operator_address" yaml:"operator_address"`
 		ConsPubKey              string                  `json:"consensus_pubkey" yaml:"consensus_pubkey"`
 		Jailed                  bool                    `json:"jailed" yaml:"jailed"`
@@ -39,10 +25,29 @@ type (
 		Description             v034staking.Description `json:"description" yaml:"description"`
 		UnbondingHeight         int64                   `json:"unbonding_height" yaml:"unbonding_height"`
 		UnbondingCompletionTime time.Time               `json:"unbonding_time" yaml:"unbonding_time"`
-		MinSelfDelegation       sdk.Int                 `json:"min_self_delegation" yaml:"min_self_delegation"`
+		MinSelfDelegation       sdk.Dec                 `json:"min_self_delegation" yaml:"min_self_delegation"`
 	}
 
-	Validators []Validator
+	bechValidator struct {
+		OperatorAddress         sdk.ValAddress          `json:"operator_address" yaml:"operator_address"`
+		ConsPubKey              string                  `json:"consensus_pubkey" yaml:"consensus_pubkey"`
+		Jailed                  bool                    `json:"jailed" yaml:"jailed"`
+		Status                  sdk.BondStatus          `json:"status" yaml:"status"`
+		Tokens                  sdk.Int                 `json:"tokens" yaml:"tokens"`
+		DelegatorShares         sdk.Dec                 `json:"delegator_shares" yaml:"delegator_shares"`
+		Description             v034staking.Description `json:"description" yaml:"description"`
+		UnbondingHeight         int64                   `json:"unbonding_height" yaml:"unbonding_height"`
+		UnbondingCompletionTime time.Time               `json:"unbonding_time" yaml:"unbonding_time"`
+		MinSelfDelegation       sdk.Dec                 `json:"min_self_delegation" yaml:"min_self_delegation"`
+	}
+
+	Validators []ValidatorExported
+
+	CommissionRates struct {
+		Rate          sdk.Dec `json:"rate" yaml:"rate"`
+		MaxRate       sdk.Dec `json:"max_rate" yaml:"max_rate"`
+		MaxChangeRate sdk.Dec `json:"max_change_rate" yaml:"max_change_rate"`
+	}
 
 	GenesisState struct {
 		Params               Params                           `json:"params" yaml:"params"`
@@ -66,32 +71,31 @@ type (
 		ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
 		Votes            Votes          `json:"votes" yaml:"votes"`
 	}
+
 	Votes = sdk.Dec
 
 	UndelegationInfo struct {
 		DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-		Quantity         sdk.Int        `json:"quantity" yaml:"quantity"`
+		Quantity         sdk.Dec        `json:"quantity" yaml:"quantity"`
 		CompletionTime   time.Time      `json:"completion_time"`
 	}
-
 	Delegator struct {
-		DelegatorAddress   sdk.AccAddress   `json:"delegator_address" yaml:"delegator_address"`
-		ValidatorAddresses []sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
-		Shares             sdk.Dec          `json:"shares" yaml:"shares"`
-		Tokens             sdk.Int          `json:"tokens" yaml:"tokens"` // delegated tokens (not include. self-delegation)
+		DelegatorAddress     sdk.AccAddress   `json:"delegator_address" yaml:"delegator_address"`
+		ValidatorAddresses   []sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
+		Shares               sdk.Dec          `json:"shares" yaml:"shares"`
+		Tokens               sdk.Dec          `json:"tokens" yaml:"tokens"`
+		IsProxy              bool             `json:"is_proxy" yaml:"is_proxy"`
+		TotalDelegatedTokens sdk.Dec          `json:"total_delegated_tokens" yaml:"total_delegated_tokens"`
+		ProxyAddress         sdk.AccAddress   `json:"proxy_address" yaml:"proxy_address"`
 	}
 
 	Params struct {
-		// time duration of unbonding
 		UnbondingTime time.Duration `json:"unbonding_time" yaml:"unbonding_time"`
-		// maximum number of validators (max uint16 = 65535)
-		MaxValidators          uint16  `json:"max_validators" yaml:"max_validators"`
-		// note: we need to be a bit careful about potential overflow here, since this is user-determined
-		BondDenom     string `json:"bond_denom" yaml:"bond_denom"` // bondable coin denomination
-		Epoch         uint16 `json:"epoch" yaml:"epoch"`           //epoch for validator update
-		MaxValsToVote uint16 `json:"max_vals_to_vote" yaml:"max_vals_to_vote"`
-		//limited amount of delegate
-		MinDelegation sdk.Dec `json:"min_delegation" yaml:"min_delegation"`
+		MaxValidators uint16        `json:"max_bonded_validators" yaml:"max_bonded_validators"`
+		Epoch         uint16        `json:"epoch" yaml:"epoch"`
+		MaxValsToVote uint16        `json:"max_validators_to_vote" yaml:"max_validators_to_vote"`
+		BondDenom     string        `json:"bond_denom" yaml:"bond_denom"`
+		MinDelegation sdk.Dec       `json:"min_delegation" yaml:"min_delegation"`
 	}
 )
 
@@ -102,12 +106,12 @@ func NewGenesisState(
 ) GenesisState {
 
 	newParams := Params{
-		UnbondingTime:          params.UnbondingTime,
-		MaxValidators:          params.MaxValidators,
-		BondDenom:              params.BondDenom,
-		Epoch:                  types.DefaultEpoch,
-		MaxValsToVote:          types.DefaultMaxValsToVote,
-		MinDelegation:          types.DefaultMinDelegation,
+		UnbondingTime: params.UnbondingTime,
+		MaxValidators: params.MaxValidators,
+		BondDenom:     params.BondDenom,
+		Epoch:         types.DefaultEpoch,
+		MaxValsToVote: types.DefaultMaxValsToVote,
+		MinDelegation: types.DefaultMinDelegation,
 	}
 
 	var vals Validators
@@ -120,7 +124,6 @@ func NewGenesisState(
 			}
 		}
 		validator.DelegatorShares = shares
-		validator.MinSelfDelegation = sdk.NewIntFromBigInt(shares.Int)
 
 		vals = append(vals, validator)
 	}
@@ -138,15 +141,14 @@ func NewGenesisState(
 	}
 }
 
-func (v Validator) MarshalJSON() ([]byte, error) {
-	bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
-	if err != nil {
-		return nil, err
-	}
-
+func (v ValidatorExported) MarshalJSON() ([]byte, error) {
+	//bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
+	//if err != nil {
+	//	return nil, err
+	//}
 	return codec.Cdc.MarshalJSON(bechValidator{
 		OperatorAddress:         v.OperatorAddress,
-		ConsPubKey:              bechConsPubKey,
+		ConsPubKey:              v.ConsPubKey,
 		Jailed:                  v.Jailed,
 		Status:                  v.Status,
 		DelegatorShares:         v.DelegatorShares,
@@ -157,18 +159,18 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (v *Validator) UnmarshalJSON(data []byte) error {
+func (v *ValidatorExported) UnmarshalJSON(data []byte) error {
 	bv := &bechValidator{}
 	if err := codec.Cdc.UnmarshalJSON(data, bv); err != nil {
 		return err
 	}
-	consPubKey, err := sdk.GetConsPubKeyBech32(bv.ConsPubKey)
-	if err != nil {
-		return err
-	}
-	*v = Validator{
+	//consPubKey, err := sdk.GetConsPubKeyBech32(bv.ConsPubKey)
+	//if err != nil {
+	//	return err
+	//}
+	*v = ValidatorExported{
 		OperatorAddress:         bv.OperatorAddress,
-		ConsPubKey:              consPubKey,
+		ConsPubKey:              bv.ConsPubKey,
 		Jailed:                  bv.Jailed,
 		Status:                  bv.Status,
 		DelegatorShares:         bv.DelegatorShares,
