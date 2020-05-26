@@ -101,17 +101,6 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	return nil
 }
 
-// IsTokenPairExisted checks whether a specific token pair is existed with the symbols of base asset and quote asset
-// Note: aaa_bbb and bbb_aaa are actually one token pair
-func (k Keeper) IsTokenPairExisted(ctx sdk.Context, baseAsset, quoteAsset string) sdk.Error {
-	if k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", baseAsset, quoteAsset)) != nil ||
-		k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", quoteAsset, baseAsset)) != nil {
-		return types.ErrTokenPairExisted(baseAsset, quoteAsset)
-	}
-
-	return nil
-}
-
 // GetTokenPair gets the token pair by product
 func (k Keeper) GetTokenPair(ctx sdk.Context, product string) *types.TokenPair {
 	var tokenPair *types.TokenPair

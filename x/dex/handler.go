@@ -2,6 +2,7 @@ package dex
 
 import (
 	"fmt"
+	"github.com/okex/okchain/x/dex/types"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -75,9 +76,11 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		BlockHeight:      ctx.BlockHeight(),
 	}
 
-	// check tokenpair exist
-	if sdkErr := keeper.IsTokenPairExisted(ctx, tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol); sdkErr != nil {
-		return sdkErr.Result()
+	// check whether a specific token pair is existed with the symbols of base asset and quote asset
+	// Note: aaa_bbb and bbb_aaa are actually one token pair
+	if keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)) != nil ||
+		keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.QuoteAssetSymbol, tokenPair.BaseAssetSymbol)) != nil {
+		return types.ErrTokenPairExisted(tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol).Result()
 	}
 
 	// deduction fee

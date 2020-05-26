@@ -31,7 +31,6 @@ type TokenKeeper interface {
 type IKeeper interface {
 	GetTokenPair(ctx sdk.Context, product string) *types.TokenPair
 	GetTokenPairs(ctx sdk.Context) []*types.TokenPair
-	IsTokenPairExisted(ctx sdk.Context, baseAsset, quoteAsset string) sdk.Error
 	GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) []*types.TokenPair
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
 	GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair)
