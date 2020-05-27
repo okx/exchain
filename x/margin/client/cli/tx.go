@@ -32,6 +32,9 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		GetCmdDexSave(cdc),
 		GetCmdDexReturn(cdc),
 		GetCmdDeposit(cdc),
+		GetCmdWithdraw(cdc),
+		GetCmdBorrow(cdc),
+		GetCmdRepay(cdc),
 	)...)
 
 	return marginTxCmd
@@ -148,9 +151,9 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().StringVarP(&maxLeverageStr, "max-leverage", "ml", "", "max leverage of the product")
-	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "br", "", "interest rate on borrowing")
-	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "mmr", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
+	cmd.Flags().StringVarP(&maxLeverageStr, "max-leverage", "", "", "max leverage of the product")
+	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "", "", "interest rate on borrowing")
+	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "m", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
 	return cmd
 }
 
@@ -240,14 +243,40 @@ func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// GetCmdDeposit is the CLI command for doing Deposit
+// GetCmdWithdraw is the CLI command for doing withdraw the asset to spot account
+func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "withdraw [product] [amount] ",
+		Short: "withdraw the asset to account ",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			from := cliCtx.GetFromAddress()
+			product := args[0]
+			amount, err := sdk.ParseDecCoins(args[1])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgWithdraw(from, product, amount)
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	return cmd
+}
+
+// GetCmdBorrow is the CLI command for doing borrow
 func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
 	var leverageStr string
 	var depositStr string
 	cmd := &cobra.Command{
 		Use:   "borrow [product] ",
-		Short: "add deposit for margin trade product ",
-		Args:  cobra.ExactArgs(3), // Does your request require arguments
+		Short: "borrow asset with mortgage principal",
+		Args:  cobra.ExactArgs(1), // Does your request require arguments
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -271,5 +300,31 @@ func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().StringVarP(&depositStr, "leverage", "l", "", "The leverage of the borrow")
 	cmd.Flags().StringVarP(&leverageStr, "deposit", "d", "", "The deposit for  borrow token")
+	return cmd
+}
+
+// GetCmdWithdraw is the CLI command for doing withdraw the asset to spot account
+func GetCmdRepay(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "repay [product] [amount] ",
+		Short: "repayment of loans and interest",
+		Args:  cobra.ExactArgs(2), // Does your request require arguments
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			from := cliCtx.GetFromAddress()
+			product := args[0]
+			amount, err := sdk.ParseDecCoins(args[1])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgRepay(from, product, amount)
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
 	return cmd
 }

@@ -98,3 +98,11 @@ func SplitWithdrawTimeKey(key []byte) (time.Time, sdk.AccAddress) {
 func GetSavingKey(product string) []byte {
 	return append(SavingKeyPrefix, []byte(product)...)
 }
+
+func SplitCalculateInterestTimeKey(key []byte) (time.Time, []byte) {
+	endTime, err := sdk.ParseTimeBytes(key[1 : 1+lenTime])
+	if err != nil {
+		panic(err)
+	}
+	return endTime, key[1+lenTime:]
+}

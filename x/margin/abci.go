@@ -36,14 +36,15 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 
 	k.IterateCalculateInterest(ctx, currentTime,
 		func(key []byte) {
-			borrowInfo, ok := k.GetBorrowOnProductAtHeight(ctx, key)
+			oldTime, borrowInfoKey := types.SplitCalculateInterestTimeKey(key)
+			borrowInfo, ok := k.GetBorrowOnProductAtHeight(ctx, borrowInfoKey)
 			if ok {
-				intervalInterest := sdk.DecCoin{Denom: borrowInfo.Token.Denom, Amount: borrowInfo.Token.Amount.Mul(borrowInfo.Rate)}
+				intervalInterest := sdk.DecCoin{Denom: borrowInfo.BorrowAmount.Denom, Amount: borrowInfo.BorrowAmount.Amount.Mul(borrowInfo.Rate)}
 				borrowInfo.Interest = borrowInfo.Interest.Add(intervalInterest)
 				k.SetBorrowInfo(ctx, borrowInfo, key)
-				k.SetCalculateInterestKey(ctx, currentTime.Add(k.GetParams(ctx).WithdrawPeriod), key)
+				k.SetCalculateInterestKey(ctx, oldTime.Add(k.GetParams(ctx).InterestPeriod), key)
 			}
-			k.DeleteCalculateInterestKey(ctx, currentTime, key)
+			k.DeleteCalculateInterestKey(ctx, oldTime, key)
 
 		})
 }
