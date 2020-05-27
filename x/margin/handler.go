@@ -50,6 +50,10 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgBorrow(ctx, k, msg, logger)
 			}
+		case types.MsgRepay:
+			handlerFun = func() sdk.Result {
+				return handleMsgRepay(ctx, k, msg, logger)
+			}
 
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", ModuleName, msg)
@@ -231,7 +235,7 @@ func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger
 	if msg.Leverage.GT(tradePair.MaxLeverage) {
 		return types.ErrInvalidLeverage(types.MarginCodespace, fmt.Sprintf("%s is more than the product leverage %s", msg.Leverage, tradePair.MaxLeverage)).Result()
 	}
-	if err := keeper.SetBorrowAssetOnProduct(ctx, msg.Address, msg.Product, msg.Amount, msg.Leverage); err != nil {
+	if err := keeper.SetBorrowAssetOnProduct(ctx, msg.Address, *tradePair, msg.Amount, msg.Leverage); err != nil {
 		return err.Result()
 	}
 
@@ -242,6 +246,27 @@ func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
 			sdk.NewAttribute("borrow amount", sdk.NewCoins(msg.Amount).MulDec(msg.Leverage.Sub(sdk.NewDec(1))).String()),
+		),
+	)
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgRepay(ctx sdk.Context, keeper Keeper, msg types.MsgRepay, logger log.Logger) (result sdk.Result) {
+	tradePair := keeper.GetTradePair(ctx, msg.Product)
+	if nil == tradePair {
+		return types.ErrInvalidTradePair(types.MarginCodespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
+	}
+
+	if err := keeper.ReplyOnProduct(ctx, msg.Address, *tradePair, msg.Amount); err != nil {
+		return err.Result()
+	}
+
+	// TODO: Define your msg events
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
 		),
 	)
 	return sdk.Result{Events: ctx.EventManager().Events()}
