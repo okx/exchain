@@ -194,7 +194,7 @@ func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keep
 		outputCoins = sdk.DecCoins{{Denom: symbols[0], Amount: fillQuantity}}
 		inputCoins = sdk.DecCoins{{Denom: symbols[1], Amount: fillPrice.Mul(fillQuantity)}}
 	}
-	keeper.BalanceAccount(ctx, order.Sender, outputCoins, inputCoins)
+	keeper.BalanceAccount(ctx, order, outputCoins, inputCoins)
 }
 
 func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, fillQuantity sdk.Dec,
@@ -206,17 +206,17 @@ func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, f
 		fee = orderkeeper.GetOrderCostFee(order, ctx)
 		receiveFee := lockedFee.Sub(fee)
 
-		keeper.UnlockCoins(ctx, order.Sender, lockedFee, token.LockCoinsTypeFee)
+		keeper.UnlockCoins(ctx, order, lockedFee, token.LockCoinsTypeFee)
 		keeper.AddFeeDetail(ctx, order.Sender, receiveFee, types.FeeTypeOrderReceive)
 		order.RecordOrderReceiveFee(receiveFee)
 
-		err := keeper.AddCollectedFees(ctx, fee, order.Sender, types.FeeTypeOrderNew, false)
+		err := keeper.AddCollectedFees(ctx, order, fee, types.FeeTypeOrderNew, false)
 		if err != nil {
 			ctx.Logger().Error(fmt.Sprintf("Send fee failed:%s\n", err.Error()))
 		}
 	}
 	dealFee := orderkeeper.GetDealFee(order, fillQuantity, ctx, keeper, feeParams)
-	err := keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
+	err := keeper.SendFeesToProductOwner(ctx, order, dealFee, types.FeeTypeOrderDeal, order.Product)
 	if err == nil {
 		order.RecordOrderDealFee(fee)
 	}
@@ -236,7 +236,7 @@ func fillOrder(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 	// if fully filled and still need unlock coins
 	if order.Status == types.OrderStatusFilled && order.RemainLocked.IsPositive() {
 		needUnlockCoins := order.NeedUnlockCoins()
-		keeper.UnlockCoins(ctx, order.Sender, needUnlockCoins, token.LockCoinsTypeQuantity)
+		keeper.UnlockCoins(ctx, order, needUnlockCoins, token.LockCoinsTypeQuantity)
 		order.Unlock()
 	}
 

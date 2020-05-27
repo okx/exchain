@@ -55,16 +55,17 @@ func TestCache(t *testing.T) {
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	err = keeper.AddCollectedFees(ctx,
+	// mock order
+	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
+	order.Sender = testInput.TestAddrs[0]
+
+	err = keeper.AddCollectedFees(ctx, order,
 		sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.25920000")}},
-		testInput.TestAddrs[0], types.FeeTypeOrderExpire, true)
+		types.FeeTypeOrderExpire, true)
 	require.Nil(t, err)
 	tokenKeeper := keeper.GetTokenKeeper()
 	require.NotNil(t, tokenKeeper)
 
-	// mock order
-	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	order.Sender = testInput.TestAddrs[0]
 	err = keeper.PlaceOrder(ctx, order)
 	require.Nil(t, err)
 	require.EqualValues(t, 1, keeper.GetCache().params.OrderExpireBlocks)
@@ -123,18 +124,18 @@ func TestKeeper_LockCoins(t *testing.T) {
 	require.Nil(t, err)
 
 	//not enough coin to lock
-	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("99.7408")}}, token.LockCoinsTypeQuantity)
+	err = keeper.LockCoins(ctx, order, sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("99.7408")}}, token.LockCoinsTypeQuantity)
 	require.NotNil(t, err)
 
 	//lock coin
-	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
+	err = keeper.LockCoins(ctx, order, sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
 	require.Nil(t, err)
 
 	//not enough coin to placeorder
 	err = keeper.PlaceOrder(ctx, order)
 	require.NotNil(t, err)
 
-	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
+	keeper.UnlockCoins(ctx, order, sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
 
 	//placeorder success
 	err = keeper.PlaceOrder(ctx, order)
@@ -159,7 +160,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	err = keeper.PlaceOrder(ctx, order)
 	require.Nil(t, err)
 
-	keeper.BalanceAccount(ctx, testInput.TestAddrs[0],
+	keeper.BalanceAccount(ctx, order,
 		sdk.MustParseCoins(common.NativeToken, "8"),
 		sdk.MustParseCoins(common.NativeToken, "9"),
 	)
@@ -329,7 +330,7 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	dealFee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.2592")}}
 	require.EqualValues(t, fee, dealFee)
 
-	err = keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
+	err = keeper.SendFeesToProductOwner(ctx, order, dealFee, types.FeeTypeOrderDeal, order.Product)
 	require.Nil(t, err)
 }
 

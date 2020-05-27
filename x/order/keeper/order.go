@@ -15,7 +15,7 @@ func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecC
 	logger := ctx.Logger().With("module", "order")
 	// Trying to lock coins
 	needLockCoins := order.NeedLockCoins()
-	err = k.LockCoins(ctx, order.Sender, needLockCoins, token.LockCoinsTypeQuantity)
+	err = k.LockCoins(ctx, order, needLockCoins, token.LockCoinsTypeQuantity)
 	if err != nil {
 		logger.Info(fmt.Sprintf("place order failed: %v, %v", err, order))
 		return fee, err
@@ -26,7 +26,7 @@ func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecC
 	// Currently, after lock coins successfully, placeOrder will succeed if charging succeed
 	fee = GetOrderNewFee(order)
 
-	if err := k.LockCoins(ctx, order.Sender, fee, token.LockCoinsTypeFee); err != nil {
+	if err := k.LockCoins(ctx, order, fee, token.LockCoinsTypeFee); err != nil {
 		return fee, err
 	}
 
@@ -77,17 +77,17 @@ func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, l
 
 	// unlock coins in this order & charge fee
 	needUnlockCoins := order.NeedUnlockCoins()
-	k.UnlockCoins(ctx, order.Sender, needUnlockCoins, token.LockCoinsTypeQuantity)
+	k.UnlockCoins(ctx, order, needUnlockCoins, token.LockCoinsTypeQuantity)
 
 	lockedFee := GetOrderNewFee(order)
 	fee = GetOrderCostFee(order, ctx)
 	receiveFee := lockedFee.Sub(fee)
 
-	k.UnlockCoins(ctx, order.Sender, lockedFee, token.LockCoinsTypeFee)
+	k.UnlockCoins(ctx, order, lockedFee, token.LockCoinsTypeFee)
 	k.AddFeeDetail(ctx, order.Sender, receiveFee, types.FeeTypeOrderReceive)
 	order.RecordOrderReceiveFee(receiveFee)
 
-	err := k.AddCollectedFees(ctx, fee, order.Sender, feeType, false)
+	err := k.AddCollectedFees(ctx, order, fee, feeType, false)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to charge order(%s) %s fee: %v", feeType, order.OrderID, err))

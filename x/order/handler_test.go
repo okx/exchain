@@ -210,17 +210,17 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	// subtract all okb of addr0
-	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.DecCoins{{Denom: common.NativeToken,
-		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
-	require.NoError(t, err)
-
 	// mock orders
 	orders := []*types.Order{
 		types.MockOrder(types.FormatOrderID(startHeight, 1), types.TestTokenPair, types.SellOrder, "10.0", "2.0"),
 	}
 	orders[0].Sender = addrKeysSlice[0].Address
 	err = keeper.PlaceOrder(ctx, orders[0])
+	require.NoError(t, err)
+
+	// subtract all okb of addr0
+	err = keeper.LockCoins(ctx, orders[0], sdk.DecCoins{{Denom: common.NativeToken,
+		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 
 	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + 1)
