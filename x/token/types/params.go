@@ -10,12 +10,10 @@ import (
 )
 
 const (
-	DefaultFeeIssue  = "20000"
-	DefaultFeeMint   = "2000"
+	DefaultFeeIssue  = "2500"
+	DefaultFeeMint   = "10"
 	DefaultFeeBurn   = "10"
 	DefaultFeeModify = "0"
-	// 0.0125 * 0.8
-	DefaultFeeMultiSend = "0.01"
 	DefaultFeeChown     = "10"
 )
 
@@ -24,7 +22,6 @@ var (
 	KeyFeeMint      = []byte("FeeMint")
 	KeyFeeBurn      = []byte("FeeBurn")
 	KeyFeeModify    = []byte("FeeModify")
-	KeyFeeMultiSend = []byte("FeeMultiSend")
 	KeyFeeChown     = []byte("FeeChown")
 )
 
@@ -36,7 +33,6 @@ type Params struct {
 	FeeMint      sdk.DecCoin `json:"mint_fee"`
 	FeeBurn      sdk.DecCoin `json:"burn_fee"`
 	FeeModify    sdk.DecCoin `json:"modify_fee"`
-	FeeMultiSend sdk.DecCoin `json:"multi_send_fee"`
 	FeeChown     sdk.DecCoin `json:"transfer_ownership_fee"`
 }
 
@@ -54,7 +50,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyFeeMint, &p.FeeMint},
 		{KeyFeeBurn, &p.FeeBurn},
 		{KeyFeeModify, &p.FeeModify},
-		{KeyFeeMultiSend, &p.FeeMultiSend},
 		{KeyFeeChown, &p.FeeChown},
 	}
 }
@@ -66,7 +61,6 @@ func DefaultParams() Params {
 		FeeMint:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMint)),
 		FeeBurn:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
 		FeeModify:    sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeModify)),
-		FeeMultiSend: sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMultiSend)),
 		FeeChown:     sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeChown)),
 	}
 }
@@ -79,7 +73,6 @@ func (p Params) String() string {
 	sb.WriteString(fmt.Sprintf("FeeMint: %s\n", p.FeeMint))
 	sb.WriteString(fmt.Sprintf("FeeBurn: %s\n", p.FeeBurn))
 	sb.WriteString(fmt.Sprintf("FeeModify: %s\n", p.FeeModify))
-	sb.WriteString(fmt.Sprintf("FeeMultiSend: %s\n", p.FeeMultiSend))
 	sb.WriteString(fmt.Sprintf("FeeChown: %s\n", p.FeeChown))
 
 	return sb.String()

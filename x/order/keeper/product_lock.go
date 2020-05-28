@@ -6,8 +6,8 @@ import (
 )
 
 // nolint
-func (k Keeper) IsProductLocked(product string) bool {
-	return k.dexKeeper.IsTokenPairLocked(product)
+func (k Keeper) IsProductLocked(ctx sdk.Context, product string) bool {
+	return k.dexKeeper.IsTokenPairLocked(ctx, product)
 }
 
 // nolint
@@ -21,6 +21,6 @@ func (k Keeper) UnlockProduct(ctx sdk.Context, product string) {
 }
 
 // nolint
-func (k Keeper) AnyProductLocked() bool {
-	return k.dexKeeper.IsAnyProductLocked()
+func (k Keeper) AnyProductLocked(ctx sdk.Context) bool {
+	return k.dexKeeper.IsAnyProductLocked(ctx)
 }

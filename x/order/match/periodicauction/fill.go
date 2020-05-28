@@ -151,6 +151,9 @@ func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 	index := 0
 	for filledDealsCnt < remainDeals && filledAmount.LT(needFillAmount) {
 		order := keeper.GetOrder(ctx, orderIDs[index])
+		if order == nil {
+			ctx.Logger().Error("[Order] Not exist orderID: ", orderIDs[index])
+		}
 		if filledAmount.Add(order.RemainQuantity).LTE(needFillAmount) {
 			filledAmount = filledAmount.Add(order.RemainQuantity)
 			deal := fillOrder(order, ctx, keeper, fillPrice, order.RemainQuantity, feeParams)

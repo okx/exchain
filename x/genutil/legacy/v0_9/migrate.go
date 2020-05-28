@@ -249,7 +249,7 @@ func genAccountMigrate(
 	for _, validator := range vals {
 		switch validator.Status {
 		case sdk.Bonded:
-			bondedAmt = bondedAmt.Add(validator.Tokens)
+			bondedAmt = bondedAmt.Add(validator.MinSelfDelegation)
 
 		case sdk.Unbonding, sdk.Unbonded:
 			notBondedAmt = notBondedAmt.Add(validator.Tokens)
@@ -264,8 +264,8 @@ func genAccountMigrate(
 			notBondedAmt = notBondedAmt.Add(entry.Balance)
 		}
 	}
-
-	bondedCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, bondedAmt))
+	//bondedCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, bondedAmt))
+	bondedCoins := sdk.NewDecCoins(sdk.NewDecCoinsFromDec(bondDenom, sdk.NewDecFromBigIntWithPrec(bondedAmt.BigInt(), 3)))
 	notBondedCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, notBondedAmt))
 
 	// get distr module account coins

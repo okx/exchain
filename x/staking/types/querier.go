@@ -19,23 +19,9 @@ const (
 	QueryDelegator           = "delegator"
 )
 
-// QueryValidatorVotesParams defines the params for the following queries:
-// - 'custom/staking/validatorVotes'
-type QueryValidatorVotesParams struct {
-	ValAddr sdk.ValAddress
-}
-
-// NewQueryValidatorVotesParams creates a new instance of QueryValidatorVotesParams
-func NewQueryValidatorVotesParams(valAddr sdk.ValAddress) QueryValidatorVotesParams {
-	return QueryValidatorVotesParams{
-		valAddr,
-	}
-}
-
 // QueryDelegatorParams defines the params for the following queries:
 // - 'custom/staking/delegatorDelegations'
 // - 'custom/staking/delegatorUnbondingDelegations'
-// - 'custom/staking/delegatorRedelegations'
 // - 'custom/staking/delegatorValidators'
 type QueryDelegatorParams struct {
 	DelegatorAddr sdk.AccAddress

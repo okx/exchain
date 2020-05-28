@@ -54,3 +54,9 @@ func ErrInvalidBalanceNotEnough(message string) sdk.Error {
 func ErrInvalidAsset(message string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeInvalidAsset, message)
 }
+
+// ErrTokenPairExisted returns an error when the token pair is existed during the process of listing
+func ErrTokenPairExisted(baseAsset, quoteAsset string) sdk.Error {
+	return sdk.NewError(DefaultCodespace, codeInvalidAsset,
+		fmt.Sprintf("failed. the token pair is existed with %s and %s", baseAsset, quoteAsset))
+}

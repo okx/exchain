@@ -31,7 +31,7 @@ func handleDelistProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Pr
 	if tokenPair == nil {
 		return ErrTokenPairNotFound(fmt.Sprintf("%+v", p))
 	}
-	if keeper.IsTokenPairLocked(tokenPairName) {
+	if keeper.IsTokenPairLocked(ctx, tokenPairName) {
 		errContent := fmt.Sprintf("unexpected state, the trading pair (%s) is locked", tokenPairName)
 		return sdk.ErrInternal(errContent)
 	}
