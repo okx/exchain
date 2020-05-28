@@ -15,18 +15,20 @@ const (
 	DefaultMaxDealsPerBlock  = 1000   // deals limit per block
 
 	// Fee param
-	DefaultFeeAmountPerBlock     = "0" // okt
-	DefaultFeeDenomPerBlock      = common.NativeToken
-	DefaultFeeRateTrade          = "0.001"    // percentage
+	DefaultFeeAmountPerBlock = "0" // okt
+	DefaultFeeDenomPerBlock  = common.NativeToken
+	DefaultFeeRateTrade      = "0.001" // percentage
 )
 
 // nolint : Parameter keys
 var (
-	KeyOrderExpireBlocks   = []byte("OrderExpireBlocks")
-	KeyMaxDealsPerBlock    = []byte("MaxDealsPerBlock")
-	KeyFeePerBlock         = []byte("FeePerBlock")
-	KeyTradeFeeRate        = []byte("TradeFeeRate")
-	DefaultFeePerBlock     = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultFeeAmountPerBlock))
+	KeyOrderExpireBlocks     = []byte("OrderExpireBlocks")
+	KeyMaxDealsPerBlock      = []byte("MaxDealsPerBlock")
+	KeyFeePerBlock           = []byte("FeePerBlock")
+	KeyTradeFeeRate          = []byte("TradeFeeRate")
+	KeyNewOrderMsgGasUnit    = []byte("NewOrderMsgGasUnit")
+	KeyCancelOrderMsgGasUnit = []byte("CancelOrderMsgGasUnit")
+	DefaultFeePerBlock       = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.MustNewDecFromStr(DefaultFeeAmountPerBlock))
 )
 
 // nolint
@@ -34,10 +36,12 @@ var _ params.ParamSet = &Params{}
 
 // nolint : order parameters
 type Params struct {
-	OrderExpireBlocks int64       `json:"order_expire_blocks"`
-	MaxDealsPerBlock  int64       `json:"max_deals_per_block"`
-	FeePerBlock       sdk.DecCoin `json:"fee_per_block"`
-	TradeFeeRate      sdk.Dec     `json:"trade_fee_rate"`
+	OrderExpireBlocks     int64       `json:"order_expire_blocks"`
+	MaxDealsPerBlock      int64       `json:"max_deals_per_block"`
+	FeePerBlock           sdk.DecCoin `json:"fee_per_block"`
+	TradeFeeRate          sdk.Dec     `json:"trade_fee_rate"`
+	NewOrderMsgGasUnit    uint64      `json:"new_order_msg_gas_unit"`
+	CancelOrderMsgGasUnit uint64      `json:"cancel_order_msg_gas_unit"`
 }
 
 // ParamKeyTable for auth module
@@ -54,16 +58,20 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyMaxDealsPerBlock, &p.MaxDealsPerBlock},
 		{KeyFeePerBlock, &p.FeePerBlock},
 		{KeyTradeFeeRate, &p.TradeFeeRate},
+		{KeyNewOrderMsgGasUnit, &p.NewOrderMsgGasUnit},
+		{KeyCancelOrderMsgGasUnit, &p.CancelOrderMsgGasUnit},
 	}
 }
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{
-		OrderExpireBlocks: DefaultOrderExpireBlocks,
-		MaxDealsPerBlock:  DefaultMaxDealsPerBlock,
-		FeePerBlock:       DefaultFeePerBlock,
-		TradeFeeRate:      sdk.MustNewDecFromStr(DefaultFeeRateTrade),
+		OrderExpireBlocks:     DefaultOrderExpireBlocks,
+		MaxDealsPerBlock:      DefaultMaxDealsPerBlock,
+		FeePerBlock:           DefaultFeePerBlock,
+		TradeFeeRate:          sdk.MustNewDecFromStr(DefaultFeeRateTrade),
+		NewOrderMsgGasUnit:    NewOrderMsgGasUnit,
+		CancelOrderMsgGasUnit: CancelOrderMsgGasUnit,
 	}
 }
 
@@ -73,7 +81,9 @@ func (p Params) String() string {
   OrderExpireBlocks: %d
   MaxDealsPerBlock: %d
   FeePerBlock: %s
-  TradeFeeRate: %s`, p.OrderExpireBlocks,
+  TradeFeeRate: %s
+  NewOrderMsgGasUnit: %d
+  CancelOrderMsgGasUnit: %d`, p.OrderExpireBlocks,
 		p.MaxDealsPerBlock, p.FeePerBlock,
-		p.TradeFeeRate)
+		p.TradeFeeRate, p.NewOrderMsgGasUnit, p.CancelOrderMsgGasUnit)
 }
