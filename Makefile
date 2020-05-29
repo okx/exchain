@@ -39,11 +39,22 @@ ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-
+BUILD_TESTNET_FLAGS := $(BUILD_FLAGS) -ldflags '-X github.com/okex/okchain/vendor/github.com/tendermint/tendermint/types.startBlockHeightStr=6028399'
+UNAME_S := $(shell uname -s)
 
 all: install
 
 install: okchain
+
+testnet:
+	env GO111MODULE=on go mod vendor
+ifeq ($(UNAME_S),Linux)
+	sed -i 's#DefaultBondDenom = "okt"#DefaultBondDenom = "tokt"#g' ./vendor/github.com/cosmos/cosmos-sdk/types/staking.go
+else ifeq ($(UNAME_S),Darwin)
+	sed -i "" 's#DefaultBondDenom = "okt"#DefaultBondDenom = "tokt"#g' ./vendor/github.com/cosmos/cosmos-sdk/types/staking.go
+endif
+	env GO111MODULE=off go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
+	env GO111MODULE=off go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
 
 okchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
