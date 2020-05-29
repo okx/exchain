@@ -19,16 +19,17 @@ const (
 // nolint
 // types aliases
 type (
-	Keeper          = keeper.Keeper
-	Order           = types.Order
-	DepthBook       = types.DepthBook
-	MatchResult     = types.MatchResult
-	Deal            = types.Deal
-	Params          = types.Params
-	MsgNewOrder     = types.MsgNewOrder
-	MsgCancelOrder  = types.MsgCancelOrder
-	MsgNewOrders    = types.MsgNewOrders
-	MsgCancelOrders = types.MsgCancelOrders
+	Keeper           = keeper.Keeper
+	Order            = types.Order
+	DepthBook        = types.DepthBook
+	MatchResult      = types.MatchResult
+	Deal             = types.Deal
+	Params           = types.Params
+	MsgNewOrder      = types.MsgNewOrder
+	MsgCancelOrder   = types.MsgCancelOrder
+	MsgNewOrders     = types.MsgNewOrders
+	MsgCancelOrders  = types.MsgCancelOrders
+	BlockMatchResult = types.BlockMatchResult
 )
 
 // nolint

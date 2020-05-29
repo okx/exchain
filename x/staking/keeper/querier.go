@@ -2,13 +2,12 @@ package keeper
 
 import (
 	"fmt"
-	"strings"
-
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/tendermint/tendermint/crypto"
+	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/staking/types"
@@ -75,19 +74,24 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 	}
 
 	validators := k.GetAllValidators(ctx)
-	filteredVals := make([]types.Validator, 0, len(validators))
 
-	for _, val := range validators {
-		if strings.EqualFold(val.GetStatus().String(), params.Status) {
-			filteredVals = append(filteredVals, val)
-		}
-	}
-
-	start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, int(k.GetParams(ctx).MaxValidators))
-	if start < 0 || end < 0 {
-		filteredVals = []types.Validator{}
+	var filteredVals []types.Validator
+	if params.Status == "all" {
+		filteredVals = validators
 	} else {
-		filteredVals = filteredVals[start:end]
+		filteredVals = make([]types.Validator, 0, len(validators))
+		for _, val := range validators {
+			if strings.EqualFold(val.GetStatus().String(), params.Status) {
+				filteredVals = append(filteredVals, val)
+			}
+		}
+
+		start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, int(k.GetParams(ctx).MaxValidators))
+		if start < 0 || end < 0 {
+			filteredVals = []types.Validator{}
+		} else {
+			filteredVals = filteredVals[start:end]
+		}
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, filteredVals)
@@ -167,13 +171,13 @@ func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 }
 
 func queryValidatorVotes(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
-	var params types.QueryValidatorVotesParams
+	var params types.QueryValidatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, sdk.ErrInternal(fmt.Sprintf("failed to parse validator votes params. %s", err))
 	}
 
-	voteResponses := k.GetValidatorVotes(ctx, params.ValAddr)
+	voteResponses := k.GetValidatorVotes(ctx, params.ValidatorAddr)
 	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, voteResponses)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)

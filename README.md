@@ -3,6 +3,7 @@ The Infrastructure of Decentralized Exchange
 
 ![banner](./docs/images/okchain-image.jpg)
 
+[![version](https://img.shields.io/github/tag/okex/okchain.svg)](https://github.com/okex/okchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/okchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okchain/tree/master)
 [![codecov](https://codecov.io/gh/okex/okchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okex/okchain)](https://goreportcard.com/report/github.com/okex/okchain)
@@ -19,9 +20,9 @@ See the [documentation](https://okchain-docs.readthedocs.io/en/latest/index.html
 
 ## OKChain Testnet
 
-To run a full-node for the testnet of the OKChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html).
+To run a full-node for the testnet of the OKChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install-okchain.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html).
 
-For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join_testnet.html#genesis).
+For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html#genesis-seeds).
 
 ## Quick Start
 

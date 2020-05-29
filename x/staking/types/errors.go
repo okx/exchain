@@ -137,8 +137,8 @@ func ErrNoUnbondingDelegation(codespace sdk.CodespaceType) sdk.Error {
 // ErrVoteDismission returns an error when a zero-msd validator becomes the voting target
 func ErrVoteDismission(codespace sdk.CodespaceType, valAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidVote,
-		"failed. validator %s with zero min self delegation isn't allowed to vote. please get rid of it from the "+
-			"voting list by voting other validators again", valAddr)
+		"failed. destroyed validator %s isn't allowed to vote. please get rid of it from the "+
+			"voting list by voting other validators again or unbond all delegated tokens", valAddr)
 }
 
 // ErrNoAvailableValsToVote returns an error when none of the validators in voting list is available to vote

@@ -33,6 +33,9 @@ type (
 	AccountResponse = types.AccountResponse
 	// CoinInfo coin info for query token
 	CoinInfo = types.CoinInfo
+	// nolint
+	FeeDetail = types.FeeDetail
+	CoinsInfo = types.CoinsInfo
 )
 
 var (

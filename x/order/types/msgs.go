@@ -141,6 +141,11 @@ func (msg MsgNewOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// Calculate customize gas
+func (msg MsgNewOrders) CalculateGas(gasUnit uint64) uint64 {
+	return uint64(len(msg.OrderItems)) * gasUnit
+}
+
 // nolint
 type MsgCancelOrders struct {
 	Sender   sdk.AccAddress `json:"sender"` // order maker address
@@ -206,6 +211,11 @@ func (msg MsgCancelOrders) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgCancelOrders) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// Calculate customize gas
+func (msg MsgCancelOrders) CalculateGas(gasUnit uint64) uint64 {
+	return uint64(len(msg.OrderIDs)) * gasUnit
 }
 
 // nolint

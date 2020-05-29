@@ -2,32 +2,34 @@
 package v0_9
 
 import (
+	v08gov "github.com/okex/okchain/x/gov/legacy/v0_8"
+	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okchain/x/params"
+	upgradeTypes "github.com/okex/okchain/x/upgrade/types"
+
 	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
-	v08gov "github.com/okex/okchain/x/gov/legacy/v0_8"
 )
 
 // Migrate accepts exported genesis state from v0.34 and migrates it to v0.36
 // genesis state. This migration flattens the deposits and votes and updates the
 // proposal content to the new
 func Migrate(oldGenState v08gov.GenesisState) GenesisState {
-	var deposits Deposits
+	var deposits types.Deposits
 	for _, deposit := range oldGenState.Deposits {
-		deposits = append(deposits, Deposit{
+		deposits = append(deposits, types.Deposit{
 			deposit.ProposalID,
 			deposit.Depositor,
 			deposit.Amount,
-			deposit.DepositID,
 		})
 	}
 
-	var votes Votes
+	var votes types.Votes
 	for _, vote := range oldGenState.Votes {
-		votes = append(votes, Vote{
+		votes = append(votes, types.Vote{
 			vote.ProposalID,
 			vote.Voter,
-			vote.Option,
-			vote.VoteID,
+			types.VoteOption(vote.Option),
 		})
 	}
 
@@ -50,18 +52,17 @@ func Migrate(oldGenState v08gov.GenesisState) GenesisState {
 		proposals = append(proposals, newProposal)
 	}
 
-	depositParam, voteParam, tallyParams, tendermintParam := migrateParams(oldGenState.Params)
+	depositParam, voteParam, tallyParams := migrateParams(oldGenState.Params)
 
 	return GenesisState{
 		oldGenState.StartingProposalID,
 		deposits, votes, proposals,
 		depositParam, voteParam, tallyParams,
-		tendermintParam,
 	}
 }
 
 func migrateParams(oldParams v08gov.GovParams) (sdkGovTypes.DepositParams, sdkGovTypes.VotingParams,
-	sdkGovTypes.TallyParams, sdkGovTypes.TendermintParams) {
+	sdkGovTypes.TallyParams) {
 
 	depositParam := sdkGovTypes.DepositParams{
 		oldParams.TextMinDeposit,
@@ -79,11 +80,7 @@ func migrateParams(oldParams v08gov.GovParams) (sdkGovTypes.DepositParams, sdkGo
 		oldParams.YesInVotePeriod,
 	}
 
-	tendermintParam := sdkGovTypes.TendermintParams{
-		int(oldParams.MaxTxNumPerBlock),
-	}
-
-	return depositParam, voteParam, tallyParams, tendermintParam
+	return depositParam, voteParam, tallyParams
 }
 
 func migrateContent(proposal v08gov.Proposal) (content sdkGovTypes.Content) {
@@ -95,7 +92,7 @@ func migrateContent(proposal v08gov.Proposal) (content sdkGovTypes.Content) {
 		if !ok {
 			panic("interface proposal failed to convert to ParameterProposal")
 		}
-		return ParameterChangeProposal{
+		return params.ParameterChangeProposal{
 			sdkparams.ParameterChangeProposal{
 				paramChange.Title,
 				paramChange.Description,
@@ -108,7 +105,7 @@ func migrateContent(proposal v08gov.Proposal) (content sdkGovTypes.Content) {
 		if !ok {
 			panic("interface proposal failed to convert to AppUpgradeProposal")
 		}
-		return AppUpgradeProposal{
+		return upgradeTypes.AppUpgradeProposal{
 			appUpgrade.Title,
 			appUpgrade.Description,
 			appUpgrade.ProtocolDefinition,

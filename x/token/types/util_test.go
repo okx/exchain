@@ -25,8 +25,8 @@ func TestAmountToCoins(t *testing.T) {
 func TestStrToTransfers(t *testing.T) {
 	//coinStr := `[{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1BNB,2BTC"},
 	//{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1OKB,2BTC"}]`
-	coinStr := `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1okt"}]`
-	coinStrError := `[{"to":"kochain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1okt"}]`
+	coinStr := `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
+	coinStrError := `[{"to":"kochain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
 	addr, err := sdk.AccAddressFromBech32("okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3")
 	require.Nil(t, err)
 	_, err = StrToTransfers(coinStrError)
@@ -91,7 +91,7 @@ func TestDecAccount_String(t *testing.T) {
 	expectedStr := `Account:
  Address:       ` + addr.String() + `
  Pubkey:        ` + sdk.MustBech32ifyAccPub(pubKey) + `
- Coins:         0.20000000okt
+ Coins:         0.20000000` + common.NativeToken + `
  AccountNumber: 1
  Sequence:      1`
 

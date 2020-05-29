@@ -35,6 +35,13 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrDoubleProxy(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
 	}
 
+	// unbind from the original proxy
+	if len(delegator.ProxyAddress) != 0 {
+		if sdkErr := unbindProxy(ctx, delegator.DelegatorAddress, k); sdkErr != nil {
+			return sdkErr.Result()
+		}
+	}
+
 	// bind proxy relationship
 	delegator.BindProxy(msg.ProxyAddress)
 
@@ -54,25 +61,33 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgUnbindProxy(ctx sdk.Context, msg types.MsgUnbindProxy, k keeper.Keeper) sdk.Result {
-	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
+func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.Error {
+	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return types.ErrNoDelegationVote(types.DefaultCodespace, msg.DelAddr.String()).Result()
+		return types.ErrNoDelegationVote(types.DefaultCodespace, delAddr.String())
 	}
 
 	proxyDelegator, found := k.GetDelegator(ctx, delegator.ProxyAddress)
 	if !found {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, delegator.ProxyAddress.String()).Result()
+		return types.ErrNotFoundProxy(types.DefaultCodespace, delegator.ProxyAddress.String())
 	}
 
 	// update proxy's vote weight
 	if k.UpdateProxy(ctx, delegator, delegator.Tokens.Mul(sdk.NewDec(-1))) != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
+		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String())
 	}
 	// unbind proxy relationship
 	delegator.UnbindProxy()
 	k.SetDelegator(ctx, delegator)
 	k.SetProxyBinding(ctx, proxyDelegator.DelegatorAddress, delegator.DelegatorAddress, true)
+
+	return nil
+}
+
+func handleMsgUnbindProxy(ctx sdk.Context, msg types.MsgUnbindProxy, k keeper.Keeper) sdk.Result {
+	if sdkErr := unbindProxy(ctx, msg.DelAddr, k); sdkErr != nil {
+		return sdkErr.Result()
+	}
 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }

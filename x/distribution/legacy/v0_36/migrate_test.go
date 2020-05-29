@@ -3,6 +3,8 @@ package v0_36
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	v034distr "github.com/okex/okchain/x/distribution/legacy/v0_34"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ func TestMigrate(t *testing.T) {
 	valConsAddr := sdk.ConsAddress(valConsPk.Address())
 	valOpPk1 := ed25519.GenPrivKey().PubKey()
 	valOpAddr := sdk.ValAddress(valOpPk1.Address())
-	accmulatedComssion := sdk.NewDecCoinsFromDec("okt", sdk.NewDecWithPrec(125, 4))
+	accmulatedComssion := sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDecWithPrec(125, 4))
 
 	oldGenesis := v034distr.GenesisState{
 		WithdrawAddrEnabled: true,
@@ -39,4 +41,6 @@ func TestMigrate(t *testing.T) {
 	require.Equal(t, valConsAddr, genesisState.PreviousProposer)
 	require.Equal(t, valOpAddr, genesisState.ValidatorAccumulatedCommissions[0].ValidatorAddress)
 	require.Equal(t, accmulatedComssion, genesisState.ValidatorAccumulatedCommissions[0].Accumulated)
+	require.Equal(t, sdk.NewDecWithPrec(2,2), genesisState.CommunityTax)
+	require.Equal(t, true, genesisState.FeePool.CommunityPool.IsZero())
 }

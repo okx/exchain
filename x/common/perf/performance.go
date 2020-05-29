@@ -245,7 +245,9 @@ func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName 
 }
 
 func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName string, seq uint64) {
-	p.sanityCheck(ctx, seq)
+	if !ctx.IsCheckTx() {
+		p.sanityCheck(ctx, seq)
+	}
 
 	m := p.getModule(moduleName)
 

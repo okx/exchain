@@ -49,8 +49,7 @@ func TestKeeper_AddVote(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "", votefee)
 	vote, ok := keeper.GetVote(ctx, proposalID, Addrs[0])
-	sdkGovVote := sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionYes}
-	expectedVote := types.Vote{Vote: sdkGovVote, VoteID: 0}
+	expectedVote := sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionYes}
 	require.True(t, ok)
 	require.Equal(t, expectedVote, vote)
 
@@ -58,8 +57,7 @@ func TestKeeper_AddVote(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "", votefee)
 	vote, ok = keeper.GetVote(ctx, proposalID, Addrs[0])
-	sdkGovVote = sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionNo}
-	expectedVote = types.Vote{Vote: sdkGovVote, VoteID: 0}
+	expectedVote = sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionNo}
 	require.True(t, ok)
 	require.Equal(t, expectedVote, vote)
 }
@@ -82,8 +80,8 @@ func TestKeeper_GetVote(t *testing.T) {
 	require.Equal(t, "", voteFee)
 
 	expectedVote := types.Vote{
-		Vote: sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0],
-			Option: types.OptionYes}, VoteID: 0,
+		ProposalID: proposalID, Voter: Addrs[0],
+		Option: types.OptionYes,
 	}
 	vote, found := keeper.GetVote(ctx, proposalID, Addrs[0])
 	require.True(t, found)
@@ -117,20 +115,14 @@ func TestKeeper_GetVotes(t *testing.T) {
 
 	expectedVotes := types.Votes{
 		{
-			Vote: sdkGov.Vote{
-				ProposalID: proposalID,
-				Voter:      Addrs[1],
-				Option:     types.OptionYes,
-			},
-			VoteID: 0,
+			ProposalID: proposalID,
+			Voter:      Addrs[1],
+			Option:     types.OptionYes,
 		},
 		{
-			Vote: sdkGov.Vote{
-				ProposalID: proposalID,
-				Voter:      Addrs[2],
-				Option:     types.OptionNo,
-			},
-			VoteID: 1,
+			ProposalID: proposalID,
+			Voter:      Addrs[2],
+			Option:     types.OptionNo,
 		},
 	}
 	votes := keeper.GetVotes(ctx, proposalID)

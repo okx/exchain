@@ -9,40 +9,11 @@ import (
 	"github.com/okex/okchain/x/gov/types"
 )
 
-// GetDeposit gets the deposit of a specific depositor on a specific proposal
-func (keeper Keeper) GetDeposit(
-	ctx sdk.Context, proposalID uint64, depositorAddr sdk.Address,
-) (types.Deposit, bool) {
-	var depositNum, i uint64
-	depositNum = keeper.getProposalDepositCnt(ctx, proposalID)
-	store := ctx.KVStore(keeper.StoreKey())
-	for i = 0; i < depositNum; i++ {
-		depositKey := types.DepositKey(proposalID, i)
-		bz := store.Get(depositKey)
-		if bz == nil {
-			continue
-		}
-		var deposit types.Deposit
-		keeper.Cdc().MustUnmarshalBinaryLengthPrefixed(bz, &deposit)
-		if deposit.Depositor.Equals(depositorAddr) {
-			return deposit, true
-		}
-	}
-	return types.Deposit{}, false
-}
-
 // SetDeposit sets the deposit of a specific depositor on a specific proposal
 func (keeper Keeper) SetDeposit(ctx sdk.Context, deposit types.Deposit) {
 	store := ctx.KVStore(keeper.StoreKey())
 	bz := keeper.Cdc().MustMarshalBinaryLengthPrefixed(deposit)
-	store.Set(types.DepositKey(deposit.ProposalID, deposit.DepositID), bz)
-	keeper.setProposalDepositCnt(ctx, deposit.ProposalID)
-}
-
-func (keeper Keeper) changeOldDeposit(ctx sdk.Context, proposalID uint64, deposit types.Deposit) {
-	store := ctx.KVStore(keeper.StoreKey())
-	bz := keeper.Cdc().MustMarshalBinaryLengthPrefixed(deposit)
-	store.Set(types.DepositKey(proposalID, deposit.DepositID), bz)
+	store.Set(types.DepositKey(deposit.ProposalID, deposit.Depositor), bz)
 }
 
 func tryEnterVotingPeriod(
@@ -91,16 +62,14 @@ func updateDeposit(
 	deposit, found := keeper.GetDeposit(ctx, proposalID, depositorAddr)
 	if found {
 		deposit.Amount = deposit.Amount.Add(depositAmount)
-		keeper.changeOldDeposit(ctx, proposalID, deposit)
 	} else {
-		newDeposit := types.Deposit{
+		deposit = types.Deposit{
 			ProposalID: proposalID,
 			Depositor:  depositorAddr,
 			Amount:     depositAmount,
-			DepositID:  keeper.getProposalDepositCnt(ctx, proposalID),
 		}
-		keeper.SetDeposit(ctx, newDeposit)
 	}
+	keeper.SetDeposit(ctx, deposit)
 }
 
 // AddDeposit adds or updates a deposit of a specific depositor on a specific proposal
@@ -145,23 +114,6 @@ func (keeper Keeper) AddDeposit(
 	return nil
 }
 
-// GetDeposits returns all the deposits from a proposal
-func (keeper Keeper) GetDeposits(ctx sdk.Context, proposalID uint64) (deposits types.Deposits) {
-	var depositNum, i uint64
-	depositNum = keeper.getProposalDepositCnt(ctx, proposalID)
-	store := ctx.KVStore(keeper.StoreKey())
-	for i = 0; i < depositNum; i++ {
-		var deposit types.Deposit
-		bz := store.Get(types.DepositKey(proposalID, i))
-		if bz == nil {
-			continue
-		}
-		keeper.Cdc().MustUnmarshalBinaryLengthPrefixed(bz, &deposit)
-		deposits = append(deposits, deposit)
-	}
-	return deposits
-}
-
 // RefundDeposits refunds and deletes all the deposits on a specific proposal
 func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID uint64) {
 	deposits := keeper.GetDeposits(ctx, proposalID)
@@ -172,9 +124,8 @@ func (keeper Keeper) RefundDeposits(ctx sdk.Context, proposalID uint64) {
 		if err != nil {
 			panic(err)
 		}
-		keeper.deleteDeposit(ctx, proposalID, deposit.DepositID)
+		keeper.deleteDeposit(ctx, proposalID, deposit.Depositor)
 	}
-	keeper.deleteDepositsCnt(ctx, proposalID)
 }
 
 // DistributeDeposits distributes and deletes all the deposits on a specific proposal
@@ -187,41 +138,11 @@ func (keeper Keeper) DistributeDeposits(ctx sdk.Context, proposalID uint64) {
 		if err != nil {
 			panic(err)
 		}
-		keeper.deleteDeposit(ctx, proposalID, deposit.DepositID)
-	}
-	keeper.deleteDepositsCnt(ctx, proposalID)
-}
-
-func (keeper Keeper) deleteDeposit(ctx sdk.Context, proposalID, depositID uint64) {
-	store := ctx.KVStore(keeper.StoreKey())
-	store.Delete(types.DepositKey(proposalID, depositID))
-}
-
-func (keeper Keeper) deleteDepositsCnt(ctx sdk.Context, proposalID uint64) {
-	if depositsIterator := keeper.GetDeposits(ctx, proposalID); len(depositsIterator) == 0 {
-		store := ctx.KVStore(keeper.StoreKey())
-		store.Delete(types.DepositCntKey(proposalID))
+		keeper.deleteDeposit(ctx, proposalID, deposit.Depositor)
 	}
 }
 
-// setProposalDepositCnt save new count of deposit for a specific proposalID
-func (keeper Keeper) setProposalDepositCnt(ctx sdk.Context, proposalID uint64) {
-	cnt := keeper.getProposalDepositCnt(ctx, proposalID)
+func (keeper Keeper) deleteDeposit(ctx sdk.Context, proposalID uint64, depositorAddr sdk.AccAddress) {
 	store := ctx.KVStore(keeper.StoreKey())
-	bz := keeper.Cdc().MustMarshalBinaryLengthPrefixed(cnt + 1)
-	store.Set(types.DepositCntKey(proposalID), bz)
-}
-
-func (keeper Keeper) getProposalDepositCnt(ctx sdk.Context, proposalID uint64) uint64 {
-	var cnt uint64
-	store := ctx.KVStore(keeper.StoreKey())
-	cntKey := types.DepositCntKey(proposalID)
-	bz := store.Get(cntKey)
-	if bz == nil {
-		bz = keeper.Cdc().MustMarshalBinaryLengthPrefixed(0)
-		store.Set(cntKey, bz)
-		return 0
-	}
-	keeper.Cdc().MustUnmarshalBinaryLengthPrefixed(bz, &cnt)
-	return cnt
+	store.Delete(types.DepositKey(proposalID, depositorAddr))
 }
