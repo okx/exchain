@@ -27,6 +27,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	marginQueryCmd.AddCommand(
 		flags.GetCommands(
 			GetCmdAccountDeposit(queryRoute, cdc),
+			GetCmdMarginProducts(queryRoute, cdc),
 			// TODO: Add query Cmds
 		)...,
 	)
@@ -60,3 +61,21 @@ func GetCmdAccountDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 }
 
 // TODO: Add Query Commands
+func GetCmdMarginProducts(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "products",
+		Short: "Query the margin products",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryProducts), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+
+	return cmd
+}

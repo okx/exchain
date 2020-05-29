@@ -19,7 +19,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryParams(ctx, k)
 		case types.QueryMarginAccount:
 			return queryMarginAccount(ctx, path, req, k)
-
+		case types.QueryProducts:
+			return queryMarginProducts(ctx, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown dex query endpoint")
 		}
@@ -39,6 +40,15 @@ func queryMarginAccount(ctx sdk.Context, path []string, req abci.RequestQuery, k
 		return nil, sdk.ErrInternal(err.Error())
 	}
 	return res, nil
+}
+
+func queryMarginProducts(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
+	//marginDeposit := keeper.GetAccountDeposit(ctx, addr)
+	//res, err := common.JSONMarshalV2(marginDeposit)
+	//if err != nil {
+	//	return nil, sdk.ErrInternal(err.Error())
+	//}
+	return []byte{}, nil
 }
 
 func queryParams(ctx sdk.Context, k Keeper) (res []byte, err sdk.Error) {

@@ -7,6 +7,7 @@ const (
 	// TODO: Describe query parameters, update <action> with your query
 	// Query<Action>    = "<action>"
 	QueryMarginAccount = "margin-account"
+	QueryProducts = "products"
 
 	QueryParameters = "params"
 )
