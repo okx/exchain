@@ -13,8 +13,6 @@ import (
 const (
 	OrderItemLimit            = 200
 	MultiCancelOrderItemLimit = 200
-	NewOrderMsgGasUnit        = 40000
-	CancelOrderMsgGasUnit     = 30000
 )
 
 // nolint

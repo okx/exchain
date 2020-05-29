@@ -15,9 +15,11 @@ const (
 	DefaultMaxDealsPerBlock  = 1000   // deals limit per block
 
 	// Fee param
-	DefaultFeeAmountPerBlock = "0" // okt
-	DefaultFeeDenomPerBlock  = common.NativeToken
-	DefaultFeeRateTrade      = "0.001" // percentage
+	DefaultFeeAmountPerBlock     = "0" // okt
+	DefaultFeeDenomPerBlock      = common.NativeToken
+	DefaultFeeRateTrade          = "0.001" // percentage
+	DefaultNewOrderMsgGasUnit    = 40000
+	DefaultCancelOrderMsgGasUnit = 30000
 )
 
 // nolint : Parameter keys
@@ -70,8 +72,8 @@ func DefaultParams() Params {
 		MaxDealsPerBlock:      DefaultMaxDealsPerBlock,
 		FeePerBlock:           DefaultFeePerBlock,
 		TradeFeeRate:          sdk.MustNewDecFromStr(DefaultFeeRateTrade),
-		NewOrderMsgGasUnit:    NewOrderMsgGasUnit,
-		CancelOrderMsgGasUnit: CancelOrderMsgGasUnit,
+		NewOrderMsgGasUnit:    DefaultNewOrderMsgGasUnit,
+		CancelOrderMsgGasUnit: DefaultCancelOrderMsgGasUnit,
 	}
 }
 
