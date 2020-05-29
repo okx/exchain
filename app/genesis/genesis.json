@@ -25,7 +25,7 @@
         "coins": [
           {
             "amount": "9000000.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ],
         "delegated_free": [],
@@ -54,7 +54,7 @@
     "crisis": {
       "constant_fee": {
         "amount": "1000.00000000",
-        "denom": "okt"
+        "denom": "tokt"
       }
     },
     "debug": null,
@@ -64,17 +64,17 @@
         "delist_min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ],
         "delist_voting_period": "259200000000000",
         "list_fee": {
           "amount": "20000.00000000",
-          "denom": "okt"
+          "denom": "tokt"
         },
         "transfer_ownership_fee": {
           "amount": "10.00000000",
-          "denom": "okt"
+          "denom": "tokt"
         },
         "withdraw_period": "259200000000000"
       },
@@ -117,7 +117,7 @@
                   },
                   "min_self_delegation": {
                     "amount": "0.00100000",
-                    "denom": "okt"
+                    "denom": "tokt"
                   },
                   "pubkey": "okchainvalconspub1zcjduepqqxsxcjjletkq40ypzuqz8n925pk0ycw9h8g4saw27adyf2t93szsvpk77u",
                   "validator_address": "okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"
@@ -130,7 +130,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "ZuRwla7Kpt6H3etoJ6peAwzaC6k8m8lu7lQozm4oQKIpYEaoWAIZAqZBbAaqebKmIov3f22Ys4xDOlCt2teHlg=="
+                "signature": "MX+gzxaThOt7qpgX8mNGlgqpv3mbLQGvErMaA9VjsAk4WHyvcGQXWxuu2PwDhExApbhZQrBtz+5fZ7ZWcbSo9Q=="
               }
             ]
           }
@@ -143,7 +143,7 @@
         "min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ]
       },
@@ -168,7 +168,7 @@
         "minted_per_block": [
           {
             "amount": "0.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ],
         "next_block_to_update": "0"
@@ -176,15 +176,15 @@
       "params": {
         "blocks_per_year": "10519200",
         "inflation_rate": "0.01000000",
-        "mint_denom": "okt"
+        "mint_denom": "tokt"
       }
     },
     "order": {
       "open_orders": null,
       "params": {
         "fee_per_block": {
-          "amount": "0.00000100",
-          "denom": "okt"
+          "amount": "0.00000000",
+          "denom": "tokt"
         },
         "max_deals_per_block": "1000",
         "order_expire_blocks": "259200",
@@ -198,7 +198,7 @@
         "min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ],
         "voting_period": "259200000000000"
@@ -222,7 +222,7 @@
       "last_total_power": "0",
       "last_validator_powers": null,
       "params": {
-        "bond_denom": "okt",
+        "bond_denom": "tokt",
         "epoch": 252,
         "max_bonded_validators": 21,
         "max_validators_to_vote": 30,
@@ -244,31 +244,23 @@
       "params": {
         "burn_fee": {
           "amount": "10.00000000",
-          "denom": "okt"
+          "denom": "tokt"
         },
         "issue_fee": {
-          "amount": "20000.00000000",
-          "denom": "okt"
+          "amount": "2500.00000000",
+          "denom": "tokt"
         },
         "mint_fee": {
-          "amount": "2000.00000000",
-          "denom": "okt"
+          "amount": "10.00000000",
+          "denom": "tokt"
         },
         "modify_fee": {
           "amount": "0.00000000",
-          "denom": "okt"
-        },
-        "multi_send_fee": {
-          "amount": "0.01000000",
-          "denom": "okt"
-        },
-        "send_fee": {
-          "amount": "0.00000000",
-          "denom": "okt"
+          "denom": "tokt"
         },
         "transfer_ownership_fee": {
           "amount": "10.00000000",
-          "denom": "okt"
+          "denom": "tokt"
         }
       },
       "tokens": [
@@ -278,7 +270,7 @@
           "original_symbol": "OKT",
           "original_total_supply": "1000000000.00000000",
           "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
-          "symbol": "okt",
+          "symbol": "tokt",
           "total_supply": "1000000000.00000000",
           "whole_name": "OKT"
         }
@@ -302,7 +294,7 @@
         "app_upgrade_min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "okt"
+            "denom": "tokt"
           }
         ],
         "app_upgrade_voting_period": "259200000000000"
