@@ -4,9 +4,9 @@ SUM := $(shell which shasum)
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
-GithubTop=github.com/okex/okchain/vendor/github.com
+GithubTop=github.com
 
-Version=v0.10.5
+Version=v0.10.6
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
