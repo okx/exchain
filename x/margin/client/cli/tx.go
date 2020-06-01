@@ -271,8 +271,7 @@ func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 
 // GetCmdBorrow is the CLI command for doing borrow
 func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
-	var leverageStr string
-	var depositStr string
+	var leverageStr, depositStr string
 	cmd := &cobra.Command{
 		Use:   "borrow [product] ",
 		Short: "borrow asset with mortgage principal",
@@ -298,8 +297,8 @@ func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&depositStr, "leverage", "l", "", "The leverage of the borrow")
-	cmd.Flags().StringVarP(&leverageStr, "deposit", "d", "", "The deposit for  borrow token")
+	cmd.Flags().StringVarP(&leverageStr, "leverage", "l", "", "The leverage of the borrow")
+	cmd.Flags().StringVarP(&depositStr, "deposit", "d", "", "The deposit for  borrow token")
 	return cmd
 }
 

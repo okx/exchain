@@ -144,8 +144,6 @@ func (k Keeper) DexDeposit(ctx sdk.Context, from sdk.AccAddress, product string,
 	return nil
 }
 
-
-
 // DexWithdraw withdraws amount of tokens from a product
 func (k Keeper) DexWithdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
 	tradePair := k.GetTradePair(ctx, product)
@@ -540,6 +538,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	// only repay interest & update account
 	if account.Interest.AmountOf(denom).GTE(actualAmount) {
 		// update account
+		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		k.SetAccount(ctx, address, account)
 		return nil
@@ -547,9 +546,9 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 
 	// update account
 	remainAmount := actualAmount.Sub(account.Interest.AmountOf(denom))
-	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
-	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
+	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 	account.Borrowed = account.Borrowed.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
+	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
 	k.SetAccount(ctx, address, account)
 
 	// repay borrowing & update borrowInfo
