@@ -42,7 +42,7 @@ func TestExportGenesis(t *testing.T) {
 		sdk.NewDec(456),
 		time.Now().Unix(),
 		5,
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)))
+		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)), types.OrdinaryOrder)
 	order1.OrderID = types.FormatOrderID(10, 1)
 	order1.FilledAvgPrice = sdk.ZeroDec()
 
@@ -97,7 +97,7 @@ func TestExportGenesis(t *testing.T) {
 		sdk.NewDec(5),
 		time.Now().Unix(),
 		5,
-		sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)))
+		sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)), types.OrdinaryOrder)
 	order2.FilledAvgPrice = sdk.ZeroDec()
 	ctx = ctx.WithBlockHeight(1000)
 	err = orderKeeper.PlaceOrder(ctx, order2)

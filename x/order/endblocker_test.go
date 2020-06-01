@@ -52,7 +52,7 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	}
 	// subtract all okb of addr0
 	// 100 - 10 - 0.2592
-	err = k.LockCoins(ctx, addrKeysSlice[0].Address, sdk.DecCoins{{Denom: common.NativeToken,
+	err = k.LockCoins(ctx, orders[0], sdk.DecCoins{{Denom: common.NativeToken,
 		Amount: sdk.MustNewDecFromStr("89.7408")}}, token.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 

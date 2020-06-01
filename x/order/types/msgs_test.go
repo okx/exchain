@@ -133,7 +133,7 @@ func TestMsgMultiNewOrder(t *testing.T) {
 	addr, err := hex.DecodeString("1212121212121212123412121212121212121234")
 	require.Nil(t, err)
 	orderItems := NewOrderItem("btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
-	orderMsg := NewMsgNewOrders(addr, []OrderItem{orderItems})
+	orderMsg := NewMsgNewOrders(addr, []OrderItem{orderItems}, OrdinaryOrder)
 	require.Nil(t, orderMsg.ValidateBasic())
 	require.Equal(t, "order", orderMsg.Route())
 	require.Equal(t, "new", orderMsg.Type())

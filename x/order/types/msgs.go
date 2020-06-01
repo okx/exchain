@@ -24,6 +24,7 @@ type MsgNewOrder struct {
 	Side     string         `json:"side"`     // BUY/SELL
 	Price    sdk.Dec        `json:"price"`    // price of the order
 	Quantity sdk.Dec        `json:"quantity"` // quantity of the order
+	Type     OrderType      `json:"type"`     // type of the order
 }
 
 // NewMsgNewOrder is a constructor function for MsgNewOrder
@@ -63,6 +64,7 @@ func NewMsgCancelOrder(sender sdk.AccAddress, orderID string) MsgCancelOrders {
 type MsgNewOrders struct {
 	Sender     sdk.AccAddress `json:"sender"` // order maker address
 	OrderItems []OrderItem    `json:"order_items"`
+	OrderType  OrderType      `json:"order_type"`
 }
 
 // nolint
@@ -85,10 +87,11 @@ func NewOrderItem(product string, side string, price string,
 }
 
 // NewMsgNewOrders is a constructor function for MsgNewOrder
-func NewMsgNewOrders(sender sdk.AccAddress, orderItems []OrderItem) MsgNewOrders {
+func NewMsgNewOrders(sender sdk.AccAddress, orderItems []OrderItem, orderType OrderType) MsgNewOrders {
 	return MsgNewOrders{
 		Sender:     sender,
 		OrderItems: orderItems,
+		OrderType:  orderType,
 	}
 }
 

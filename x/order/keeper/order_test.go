@@ -42,7 +42,7 @@ func TestTryPlaceOrder(t *testing.T) {
 	order = mockOrder("", types.TestTokenPair, types.BuyOrder, "1.0", "9")
 	order.Sender = testInput.TestAddrs[0]
 	_, err = keeper.TryPlaceOrder(ctx, order)
-	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
+	keeper.UnlockCoins(ctx, order, sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
 	require.Error(t, err)
 }
 

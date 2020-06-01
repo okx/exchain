@@ -41,7 +41,7 @@ func TestEventNewOrders(t *testing.T) {
 	}
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 
 	require.EqualValues(t, 2, len(result.Events[4].Attributes))
@@ -75,7 +75,7 @@ func TestFeesNewOrders(t *testing.T) {
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 
 	// check account balance
@@ -210,17 +210,17 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	// subtract all okb of addr0
-	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.DecCoins{{Denom: common.NativeToken,
-		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
-	require.NoError(t, err)
-
 	// mock orders
 	orders := []*types.Order{
 		types.MockOrder(types.FormatOrderID(startHeight, 1), types.TestTokenPair, types.SellOrder, "10.0", "2.0"),
 	}
 	orders[0].Sender = addrKeysSlice[0].Address
 	err = keeper.PlaceOrder(ctx, orders[0])
+	require.NoError(t, err)
+
+	// subtract all okb of addr0
+	err = keeper.LockCoins(ctx, orders[0], sdk.DecCoins{{Denom: common.NativeToken,
+		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 
 	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + 1)
@@ -426,7 +426,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
@@ -466,7 +466,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	orderItems = []types.OrderItem{
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result = handler(ctx, msg)
 
 	// check result & order
@@ -489,7 +489,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	orderItems = []types.OrderItem{
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result = handler(ctx, msg)
 
 	orderID = getOrderID(result)
@@ -537,7 +537,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems, types.OrdinaryOrder)
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
@@ -634,13 +634,13 @@ func TestValidateMsgMultiNewOrder(t *testing.T) {
 
 	// normal
 	orderItem := types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
+	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem), types.OrdinaryOrder)
 	result := ValidateMsgNewOrders(ctx, keeper, msg)
 	require.EqualValues(t, sdk.CodeOK, result.Code)
 
 	// not-exist product
 	orderItem = types.NewOrderItem("nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
+	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem), types.OrdinaryOrder)
 	result = ValidateMsgNewOrders(ctx, keeper, msg)
 	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
 

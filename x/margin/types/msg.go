@@ -302,6 +302,9 @@ func (msg MsgBorrow) ValidateBasic() sdk.Error {
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
+	if msg.Leverage.LT(sdk.NewDec(1)) {
+		return ErrInvalidLeverage(Codespace, "leverage should be greater than 1")
+	}
 	return nil
 }
 
@@ -320,11 +323,11 @@ func (msg MsgBorrow) GetSigners() []sdk.AccAddress {
 type MsgRepay struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
-	Amount  sdk.DecCoins   `json:"amount"`
+	Amount  sdk.DecCoin    `json:"amount"`
 }
 
 // NewMsgRepay creates a new MsgRepay instance
-func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoins) MsgRepay {
+func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgRepay {
 	return MsgRepay{
 		Address: address,
 		Product: product,

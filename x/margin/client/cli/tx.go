@@ -314,7 +314,7 @@ func GetCmdRepay(cdc *codec.Codec) *cobra.Command {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			from := cliCtx.GetFromAddress()
 			product := args[0]
-			amount, err := sdk.ParseDecCoins(args[1])
+			amount, err := sdk.ParseDecCoin(args[1])
 			if err != nil {
 				return err
 			}

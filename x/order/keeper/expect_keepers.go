@@ -50,3 +50,7 @@ type DexKeeper interface {
 	GetLockedProductsCopy(ctx sdk.Context) *types.ProductLockMap
 	IsAnyProductLocked(ctx sdk.Context) bool
 }
+
+// MarginKeeper : expected margin keeper
+type MarginKeeper interface {
+}

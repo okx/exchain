@@ -22,6 +22,9 @@ const (
 
 	// CodeInvalidAsset error code of invalid asset
 	CodeInvalidAsset = types.CodeInvalidAsset
+	// nolint
+	LockCoinsTypeQuantity = types.LockCoinsTypeQuantity
+	LockCoinsTypeFee      = types.LockCoinsTypeFee
 )
 
 type (
