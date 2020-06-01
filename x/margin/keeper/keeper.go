@@ -344,9 +344,9 @@ func (k Keeper) GetAccount(ctx sdk.Context, address sdk.AccAddress, product stri
 	return account
 }
 
-func (k Keeper) SetAccount(ctx sdk.Context, address sdk.AccAddress, account *types.Account) {
+func (k Keeper) SetAccount(ctx sdk.Context, address sdk.AccAddress, product string, account *types.Account) {
 	store := ctx.KVStore(k.storeKey)
-	key := types.GetAccountAddressProductKey(address, account.Product)
+	key := types.GetAccountAddressProductKey(address, product)
 	store.Set(key, k.cdc.MustMarshalBinaryBare(account))
 }
 
@@ -358,7 +358,6 @@ func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string,
 		account.Available = account.Available.Add(amount)
 	} else {
 		account = &types.Account{
-			Product:   product,
 			Available: amount,
 			Locked:    sdk.DecCoins{},
 			Borrowed:  sdk.DecCoins{},
@@ -370,7 +369,7 @@ func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string,
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
 	}
 
-	k.SetAccount(ctx, address, account)
+	k.SetAccount(ctx, address, product, account)
 	return nil
 }
 
@@ -395,7 +394,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, address sdk.AccAddress, product string
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraw because insufficient coins saved(need %s)", amount.String()))
 	}
 
-	k.SetAccount(ctx, address, account)
+	k.SetAccount(ctx, address, product, account)
 	return nil
 }
 
@@ -445,7 +444,7 @@ func (k Keeper) Borrow(ctx sdk.Context, address sdk.AccAddress, tradePair *types
 	account.Borrowed = account.Borrowed.Add(sdk.NewCoins(borrowAmount))
 	account.Available = account.Available.Add(sdk.NewCoins(borrowAmount))
 	account.Interest = account.Interest.Add(interest)
-	k.SetAccount(ctx, address, account)
+	k.SetAccount(ctx, address, tradePair.Name, account)
 	return nil
 }
 
@@ -540,7 +539,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 		// update account
 		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
-		k.SetAccount(ctx, address, account)
+		k.SetAccount(ctx, address, tradePair.Name, account)
 		return nil
 	}
 
@@ -549,7 +548,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 	account.Borrowed = account.Borrowed.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
 	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
-	k.SetAccount(ctx, address, account)
+	k.SetAccount(ctx, address, tradePair.Name, account)
 
 	// repay borrowing & update borrowInfo
 	borrowInfoList := k.GetBorrowInfoList(ctx, address, tradePair.Name)

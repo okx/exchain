@@ -5,7 +5,6 @@ import (
 )
 
 type Account struct {
-	Product   string       `json:"product"`
 	Available sdk.DecCoins `json:"available"`
 	Locked    sdk.DecCoins `json:"locked"`
 	Borrowed  sdk.DecCoins `json:"borrowed"`

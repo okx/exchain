@@ -69,7 +69,7 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 				return false
 			}
 			account.Interest = account.Interest.Add(interest)
-			k.SetAccount(ctx, borrowInfo.Address, account)
+			k.SetAccount(ctx, borrowInfo.Address, borrowInfo.Product, account)
 
 			return false
 		})
