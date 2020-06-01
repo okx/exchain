@@ -4,7 +4,7 @@ SUM := $(shell which shasum)
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
-GithubTop=github.com/okex/okchain/vendor/github.com
+GithubTop=github.com
 
 Version=v0.11.0
 CosmosSDK=v0.37.9
@@ -56,8 +56,8 @@ okchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
 
 testnet:
-	env GO111MODULE=off go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
-	env GO111MODULE=off go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
 
 test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./app/...
