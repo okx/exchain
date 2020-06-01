@@ -6,9 +6,9 @@ import "github.com/okex/okchain/x/token"
 const (
 	// TODO: Describe query parameters, update <action> with your query
 	// Query<Action>    = "<action>"
-	QueryMarginAccount = "margin-account"
-	QueryProducts = "products"
-	QuerySaving = "saving"
+	QueryAccount   = "account"
+	QueryProducts  = "products"
+	QuerySaving    = "saving"
 	QueryBorrowing = "borrowing"
 
 	QueryParameters = "params"

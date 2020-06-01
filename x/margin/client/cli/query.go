@@ -51,7 +51,7 @@ func GetCmdAccountDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			}
 
 			res, _, err := cliCtx.QueryWithData(
-				fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QueryMarginAccount, args[0]), nil)
+				fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QueryAccount, args[0]), nil)
 			if err != nil {
 				return err
 			}
@@ -103,9 +103,9 @@ func GetCmdSaving(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String( "product", "",
-		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example " +
-		"\"mycoin_"+common.NativeToken+"\"")
+	cmd.Flags().String("product", "",
+		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example "+
+			"\"mycoin_"+common.NativeToken+"\"")
 	return cmd
 }
 
@@ -135,8 +135,8 @@ func GetCmdBorrowing(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String( "product", "",
-		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example " +
+	cmd.Flags().String("product", "",
+		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example "+
 			"\"mycoin_"+common.NativeToken+"\"")
 	return cmd
 }

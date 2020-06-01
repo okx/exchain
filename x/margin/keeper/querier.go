@@ -17,7 +17,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QueryParameters:
 			return queryParams(ctx, k)
-		case types.QueryMarginAccount:
+		case types.QueryAccount:
 			return queryMarginAccount(ctx, path, req, k)
 		case types.QueryProducts:
 			return queryMarginProducts(ctx, k)
@@ -55,7 +55,7 @@ func queryMarginProducts(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	return res, nil
 }
 
-func queryMarginSaving(ctx sdk.Context, path []string,keeper Keeper) ([]byte, sdk.Error) {
+func queryMarginSaving(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	product := path[1]
 	saving := keeper.GetSaving(ctx, product)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, saving)
