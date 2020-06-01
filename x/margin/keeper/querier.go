@@ -33,7 +33,7 @@ func queryMarginAccount(ctx sdk.Context, path []string, req abci.RequestQuery, k
 	}
 
 	//marginAcc := types.GetMarginAccount(addr.String())
-	marginDeposit := keeper.GetAccountDeposit(ctx, addr)
+	marginDeposit := keeper.GetAccounts(ctx, addr)
 	res, err := common.JSONMarshalV2(marginDeposit)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())

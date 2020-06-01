@@ -24,61 +24,40 @@ const (
 var (
 	lenTime = len(sdk.FormatTimeBytes(time.Now()))
 
-	TradePairKeyPrefix    = []byte{0x01}
-	SavingKeyPrefix       = []byte{0x02}
-	MarginAssetKeyPrefix  = []byte{0x03}
-	BorrowKeyPrefix       = []byte{0x04}
-	WithdrawKeyPrefix     = []byte{0x05}
-	WithdrawTimeKeyPrefix = []byte{0x06}
-	InterestTimeKeyPrefix = []byte{0x07}
+	TradePairKeyPrefix         = []byte{0x01}
+	SavingKeyPrefix            = []byte{0x02}
+	AccountKeyPrefix           = []byte{0x03}
+	BorrowInfoKeyPrefix        = []byte{0x04}
+	CalculateInterestKeyPrefix = []byte{0x05}
+	DexWithdrawKeyPrefix       = []byte{0x06}
+	DexWithdrawTimeKeyPrefix   = []byte{0x07}
 )
 
 func GetTradePairKey(product string) []byte {
 	return append(TradePairKeyPrefix, []byte(product)...)
 }
 
-func GetMarginAllAssetKey(address string) []byte {
-	return append(MarginAssetKeyPrefix, []byte(address)...)
+func GetAccountAddressKey(address sdk.AccAddress) []byte {
+	return append(AccountKeyPrefix, address.Bytes()...)
 }
 
-func GetMarginAssetOnProductKey(address, product string) []byte {
-	return append(GetMarginAllAssetKey(address), []byte(product)...)
+func GetAccountAddressProductKey(address sdk.AccAddress, product string) []byte {
+	return append(GetAccountAddressKey(address), []byte(product)...)
 }
 
-func GetProductBorrowInfoKey(product string) []byte {
-	return append(BorrowKeyPrefix, []byte(product)...)
-}
-
-func GetAccountBorrowOnProductKey(address, product string) []byte {
-	return append(GetProductBorrowInfoKey(product), []byte(address)...)
-}
-
-func GetAccountBorrowOnProductAtHeightKey(height uint64, address, product string) []byte {
-	return append(GetAccountBorrowOnProductKey(address, product), sdk.Uint64ToBigEndian(height)...)
-}
-
-func GetInterestTimeKey(calculateTime time.Time) []byte {
-	bz := sdk.FormatTimeBytes(calculateTime)
-	return append(InterestTimeKeyPrefix, bz...)
-}
-
-func GetCalculateInterestKey(calculateTime time.Time, BorrowInfoKey []byte) []byte {
-	return append(GetInterestTimeKey(calculateTime), BorrowInfoKey...)
-}
-
-// GetWithdrawKey returns key of withdraw
-func GetWithdrawKey(addr sdk.AccAddress) []byte {
-	return append(WithdrawKeyPrefix, addr.Bytes()...)
+// GetDexWithdrawKey returns key of withdraw
+func GetDexWithdrawKey(addr sdk.AccAddress) []byte {
+	return append(DexWithdrawKeyPrefix, addr.Bytes()...)
 }
 
 // GetWithdrawTimeKey returns key of withdraw time
 func GetWithdrawTimeKey(completeTime time.Time) []byte {
 	bz := sdk.FormatTimeBytes(completeTime)
-	return append(WithdrawTimeKeyPrefix, bz...)
+	return append(DexWithdrawTimeKeyPrefix, bz...)
 }
 
-// GetWithdrawTimeAddressKey returns withdraw time address key
-func GetWithdrawTimeAddressKey(completeTime time.Time, addr sdk.AccAddress) []byte {
+// GetDexWithdrawTimeAddressKey returns withdraw time address key
+func GetDexWithdrawTimeAddressKey(completeTime time.Time, addr sdk.AccAddress) []byte {
 	return append(GetWithdrawTimeKey(completeTime), addr.Bytes()...)
 }
 
@@ -97,6 +76,27 @@ func SplitWithdrawTimeKey(key []byte) (time.Time, sdk.AccAddress) {
 
 func GetSavingKey(product string) []byte {
 	return append(SavingKeyPrefix, []byte(product)...)
+}
+
+func GetBorrowInfoAddressKey(address sdk.AccAddress) []byte {
+	return append(BorrowInfoKeyPrefix, address.Bytes()...)
+}
+
+func GetBorrowInfoProductKey(address sdk.AccAddress, product string) []byte {
+	return append(GetBorrowInfoAddressKey(address), []byte(product)...)
+}
+
+func GetBorrowInfoKey(address sdk.AccAddress, product string, blockHeight uint64) []byte {
+	return append(GetBorrowInfoProductKey(address, product), sdk.Uint64ToBigEndian(blockHeight)...)
+}
+
+func GetCalculateInterestTimeKey(calculateTime time.Time) []byte {
+	bz := sdk.FormatTimeBytes(calculateTime)
+	return append(CalculateInterestKeyPrefix, bz...)
+}
+
+func GetCalculateInterestKey(calculateTime time.Time, BorrowInfoKey []byte) []byte {
+	return append(GetCalculateInterestTimeKey(calculateTime), BorrowInfoKey...)
 }
 
 func SplitCalculateInterestTimeKey(key []byte) (time.Time, []byte) {

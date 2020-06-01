@@ -4,31 +4,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const (
-	RepayInterestAndPrincipal = 1
-	RepayPartialPrincipal     = 2
-	RepayInterest             = 3
-)
-
-type MarginAccountAssets struct {
-	MarginProductAssets
-}
-
-type MarginProductAssets []AccountAssetOnProduct
-
-type AccountAssetOnProduct struct {
+type Account struct {
 	Product   string       `json:"product"`
 	Available sdk.DecCoins `json:"available"`
 	Locked    sdk.DecCoins `json:"locked"`
 	Borrowed  sdk.DecCoins `json:"borrowed"`
-	Deposits  sdk.DecCoins `json:"deposits"`
-	//Interest  sdk.DecCoins `json:"interest"`
+	Interest  sdk.DecCoins `json:"interest"`
 }
 
-type BorrowInfo struct {
-	BorrowAmount  sdk.DecCoin `json:"amount"`
-	BorrowDeposit sdk.DecCoin `json:"deposit"`
-	BlockHeight   int64       `json:"block_height"`
-	Rate          sdk.Dec     `json:"rate"`
-	Interest      sdk.DecCoin `json:"interest"`
+func (account Account) MaxCanBorrow(denom string, maxLeverage sdk.Dec) sdk.DecCoin {
+	available := account.Available.AmountOf(denom)
+	borrowed := account.Borrowed.AmountOf(denom)
+	interest := account.Interest.AmountOf(denom)
+
+	canBorrow := available.Sub(borrowed).Sub(interest).Mul(maxLeverage.Sub(sdk.NewDec(1))).Sub(borrowed)
+	return sdk.NewDecCoinFromDec(denom, canBorrow)
 }

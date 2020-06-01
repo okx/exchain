@@ -12,12 +12,13 @@ import (
 type CodeType = sdk.CodeType
 
 const (
-	MarginCodespace sdk.CodespaceType = "margin"
+	Codespace sdk.CodespaceType = ModuleName
 
 	CodeInvalidLeverage     CodeType = 62100
 	CodeInvalidTradePair    CodeType = 62101
-	CodeEmptyAccountDeposit CodeType = 62102
+	CodeAccountNotExist     CodeType = 62102
 	CodeInvalidBorrowAmount CodeType = 62103
+	CodeNotAllowed          CodeType = 62104
 )
 
 func ErrInvalidLeverage(codespace sdk.CodespaceType, msg string) sdk.Error {
@@ -30,12 +31,16 @@ func ErrInvalidTradePair(codespace sdk.CodespaceType, msg string) sdk.Error {
 		"failed. invalid trade pair : %s", msg)
 }
 
-func ErrEmptyAccountDeposit(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeEmptyAccountDeposit,
+func ErrAccountNotExist(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeAccountNotExist,
 		"failed. invalid request : %s", msg)
 }
 
 func ErrInvalidBorrowAmount(codespace sdk.CodespaceType, msg string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidBorrowAmount,
 		"failed. invalid borrow amount : %s", msg)
+}
+
+func ErrNotAllowed(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeNotAllowed, "not allowed: %s", msg)
 }
