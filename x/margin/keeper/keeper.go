@@ -511,22 +511,22 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	}
 	// repay to saving, update saving
 	saving := k.GetSaving(ctx, tradePair.Name)
-	saving.AmountOf(denom) = saving.AmountOf(denom).Sub(actualAmount)
+	saving = saving.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 	k.SetSaving(ctx, tradePair.Name, saving)
 
 	// only repay interest & update account
 	if account.Interest.AmountOf(denom).GTE(actualAmount) {
 		// update account
-		account.Interest.AmountOf(denom) = account.Interest.AmountOf(denom).Sub(actualAmount)
+		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		k.SetAccount(ctx, address, account)
 		return nil
 	}
 
 	// update account
 	remainAmount := actualAmount.Sub(account.Interest.AmountOf(denom))
-	account.Interest.AmountOf(denom) = sdk.ZeroDec()
-	account.Available.AmountOf(denom) = account.Available.AmountOf(denom).Sub(remainAmount)
-	account.Borrowed.AmountOf(denom) = account.Borrowed.AmountOf(denom).Sub(remainAmount)
+	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
+	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
+	account.Borrowed = account.Borrowed.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
 	k.SetAccount(ctx, address, account)
 
 	// repay borrowing & update borrowInfo
@@ -534,7 +534,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	sort.Sort(borrowInfoList)
 	for _, borrowInfo := range borrowInfoList {
 		if borrowInfo.BorrowAmount.AmountOf(denom).GT(remainAmount) {
-			borrowInfo.BorrowAmount.AmountOf(denom) = borrowInfo.BorrowAmount.AmountOf(denom).Sub(remainAmount)
+			borrowInfo.BorrowAmount = borrowInfo.BorrowAmount.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
 			k.SetBorrowInfo(ctx, borrowInfo)
 			break
 		}
