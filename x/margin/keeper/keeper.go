@@ -339,7 +339,10 @@ func (k Keeper) GetAccount(ctx sdk.Context, address sdk.AccAddress, product stri
 	if bytes == nil {
 		return nil
 	}
-	k.cdc.UnmarshalBinaryBare(bytes, &account)
+	if k.cdc.UnmarshalBinaryBare(bytes, &account) != nil {
+		ctx.Logger().Error("decoding of account is failed", product)
+		return nil
+	}
 	return account
 }
 
@@ -433,7 +436,7 @@ func (k Keeper) Borrow(ctx sdk.Context, address sdk.AccAddress, tradePair *types
 	} else {
 		borrowInfo.BorrowAmount = borrowInfo.BorrowAmount.Add(sdk.NewCoins(borrowAmount))
 	}
-	k.SetBorrowInfo(ctx, borrowInfo)
+	k.SetBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
 
 	// add calculate interest key
 	nextCalculateTime := ctx.BlockTime().Add(k.GetParams(ctx).InterestPeriod)
@@ -466,14 +469,14 @@ func (k Keeper) GetBorrowInfoByKey(ctx sdk.Context, key []byte) *types.BorrowInf
 }
 
 // SetBorrowInfo set or update the borrowInfo to db
-func (k Keeper) SetBorrowInfo(ctx sdk.Context, borrowInfo *types.BorrowInfo) {
-	key := types.GetBorrowInfoKey(borrowInfo.Address, borrowInfo.Product, uint64(ctx.BlockHeight()))
+func (k Keeper) SetBorrowInfo(ctx sdk.Context, address sdk.AccAddress, product string, borrowInfo *types.BorrowInfo) {
+	key := types.GetBorrowInfoKey(address, product, uint64(ctx.BlockHeight()))
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(borrowInfo)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
 }
 
-func (k Keeper) deleteBorrowInfo(ctx sdk.Context, borrowInfo *types.BorrowInfo) {
-	key := types.GetBorrowInfoKey(borrowInfo.Address, borrowInfo.Product, uint64(ctx.BlockHeight()))
+func (k Keeper) deleteBorrowInfo(ctx sdk.Context, address sdk.AccAddress, product string, borrowInfo *types.BorrowInfo) {
+	key := types.GetBorrowInfoKey(address, product, uint64(ctx.BlockHeight()))
 	ctx.KVStore(k.storeKey).Delete(key)
 }
 
@@ -531,7 +534,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	}
 	// repay to saving, update saving
 	saving := k.GetSaving(ctx, tradePair.Name)
-	saving = saving.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
+	saving = saving.Add(sdk.NewDecCoinsFromDec(denom, actualAmount))
 	k.SetSaving(ctx, tradePair.Name, saving)
 
 	// only repay interest & update account
@@ -555,11 +558,11 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	for _, borrowInfo := range borrowInfoList {
 		if borrowInfo.BorrowAmount.AmountOf(denom).GT(remainAmount) {
 			borrowInfo.BorrowAmount = borrowInfo.BorrowAmount.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
-			k.SetBorrowInfo(ctx, borrowInfo)
+			k.SetBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
 			break
 		}
 		remainAmount = remainAmount.Sub(borrowInfo.BorrowAmount.AmountOf(denom))
-		k.deleteBorrowInfo(ctx, borrowInfo)
+		k.deleteBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
 	}
 	return nil
 }

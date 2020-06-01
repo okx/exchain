@@ -268,22 +268,3 @@ func handleMsgRepay(ctx sdk.Context, keeper Keeper, msg types.MsgRepay, logger l
 	)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
-
-//// handle<Action> does x
-//func handleMsgMarginDeposit<Action>(ctx sdk.Context, k Keeper, msg Msg<Action>) (*sdk.Result, error) {
-//	err := k.<Action>(ctx, msg.ValidatorAddr)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// TODO: Define your msg events
-//	ctx.EventManager().EmitEvent(
-//		sdk.NewEvent(
-//			sdk.EventTypeMessage,
-//			sdk.NewAttribute(sdk.AttributeKeyModule, AttributeValueCategory),
-//			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddr.String()),
-//		),
-//	)
-//
-//	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
-//}
