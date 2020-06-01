@@ -5,6 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okchain/x/common"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -28,6 +29,8 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		flags.GetCommands(
 			GetCmdAccountDeposit(queryRoute, cdc),
 			GetCmdMarginProducts(queryRoute, cdc),
+			GetCmdSaving(queryRoute, cdc),
+			GetCmdBorrowing(queryRoute, cdc),
 			// TODO: Add query Cmds
 		)...,
 	)
@@ -77,5 +80,63 @@ func GetCmdMarginProducts(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
+	return cmd
+}
+
+func GetCmdSaving(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "saving",
+		Short: "Query the margin saving",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			product, err := cmd.Flags().GetString("product")
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySaving, product), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+	cmd.Flags().String( "product", "",
+		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example " +
+		"\"mycoin_"+common.NativeToken+"\"")
+	return cmd
+}
+
+func GetCmdBorrowing(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "borrowing",
+		Short: "Query the margin borrowing",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			_, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid address：%s", args[0])
+			}
+
+			product, err := cmd.Flags().GetString("product")
+			if err != nil {
+				return err
+			}
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryBorrowing, product, args[0]), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+	cmd.Flags().String( "product", "",
+		" Trading pair in full name of the tokens: ${baseAssetSymbol}_${quoteAssetSymbol}, for example " +
+			"\"mycoin_"+common.NativeToken+"\"")
 	return cmd
 }

@@ -94,6 +94,24 @@ func (k Keeper) GetTradePair(ctx sdk.Context, product string) *types.TradePair {
 	return &tradePair
 }
 
+func (k Keeper) GetAllTradePairs(ctx sdk.Context) []types.TradePair {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.TradePairKeyPrefix)
+	defer iterator.Close()
+
+	var tradePairs []types.TradePair
+	for ; iterator.Valid(); iterator.Next() {
+		var tradePair types.TradePair
+		err := k.cdc.UnmarshalBinaryBare(iterator.Value(), &tradePair)
+		if err != nil {
+			ctx.Logger().Error("decoding of token pair is failed", iterator.Value())
+			return nil
+		}
+		tradePairs = append(tradePairs, tradePair)
+	}
+	return tradePairs
+}
+
 // SetTradePair saves the trade pair to db
 func (k Keeper) SetTradePair(ctx sdk.Context, tradePair *types.TradePair) {
 	store := ctx.KVStore(k.storeKey)
@@ -125,6 +143,8 @@ func (k Keeper) DexDeposit(ctx sdk.Context, from sdk.AccAddress, product string,
 	k.SetTradePair(ctx, tradePair)
 	return nil
 }
+
+
 
 // DexWithdraw withdraws amount of tokens from a product
 func (k Keeper) DexWithdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error {

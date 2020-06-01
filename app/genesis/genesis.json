@@ -162,6 +162,7 @@
       },
       "waiting_proposals": {}
     },
+    "margin": {},
     "mint": {
       "minter_custom": {
         "annual_provisions": "0.00000000",
@@ -183,7 +184,7 @@
       "open_orders": null,
       "params": {
         "fee_per_block": {
-          "amount": "0.00000100",
+          "amount": "0.00000000",
           "denom": "okt"
         },
         "max_deals_per_block": "1000",
@@ -247,22 +248,14 @@
           "denom": "okt"
         },
         "issue_fee": {
-          "amount": "20000.00000000",
+          "amount": "2500.00000000",
           "denom": "okt"
         },
         "mint_fee": {
-          "amount": "2000.00000000",
+          "amount": "10.00000000",
           "denom": "okt"
         },
         "modify_fee": {
-          "amount": "0.00000000",
-          "denom": "okt"
-        },
-        "multi_send_fee": {
-          "amount": "0.01000000",
-          "denom": "okt"
-        },
-        "send_fee": {
           "amount": "0.00000000",
           "denom": "okt"
         },

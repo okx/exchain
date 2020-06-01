@@ -21,6 +21,10 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryMarginAccount(ctx, path, req, k)
 		case types.QueryProducts:
 			return queryMarginProducts(ctx, k)
+		case types.QuerySaving:
+			return queryMarginSaving(ctx, path, k)
+		case types.QueryBorrowing:
+			return queryMarginBorrowing(ctx, path, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown dex query endpoint")
 		}
@@ -43,12 +47,36 @@ func queryMarginAccount(ctx sdk.Context, path []string, req abci.RequestQuery, k
 }
 
 func queryMarginProducts(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
-	//marginDeposit := keeper.GetAccountDeposit(ctx, addr)
-	//res, err := common.JSONMarshalV2(marginDeposit)
-	//if err != nil {
-	//	return nil, sdk.ErrInternal(err.Error())
-	//}
-	return []byte{}, nil
+	tradePairs := keeper.GetAllTradePairs(ctx)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, tradePairs)
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+	}
+	return res, nil
+}
+
+func queryMarginSaving(ctx sdk.Context, path []string,keeper Keeper) ([]byte, sdk.Error) {
+	product := path[1]
+	saving := keeper.GetSaving(ctx, product)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, saving)
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+	}
+	return res, nil
+}
+
+func queryMarginBorrowing(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
+	addr, err := sdk.AccAddressFromBech32(path[2])
+	if err != nil {
+		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[1]))
+	}
+	product := path[1]
+	borrowInfoList := keeper.GetBorrowInfoList(ctx, addr, product)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, borrowInfoList)
+	if err != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+	}
+	return res, nil
 }
 
 func queryParams(ctx sdk.Context, k Keeper) (res []byte, err sdk.Error) {

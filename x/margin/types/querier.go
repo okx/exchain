@@ -8,6 +8,8 @@ const (
 	// Query<Action>    = "<action>"
 	QueryMarginAccount = "margin-account"
 	QueryProducts = "products"
+	QuerySaving = "saving"
+	QueryBorrowing = "borrowing"
 
 	QueryParameters = "params"
 )
