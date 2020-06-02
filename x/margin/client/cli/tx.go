@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 
+	"github.com/okex/okchain/x/order"
+
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -35,6 +37,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		GetCmdWithdraw(cdc),
 		GetCmdBorrow(cdc),
 		GetCmdRepay(cdc),
+		GetCmdOrder(cdc),
 	)...)
 
 	return marginTxCmd
@@ -326,4 +329,20 @@ func GetCmdRepay(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+// GetCmdOrder is the CLI command for doing order trading
+func GetCmdOrder(cdc *codec.Codec) *cobra.Command {
+	orderCmd := &cobra.Command{
+		Use:   "order",
+		Short: "Margin order transactions subcommands",
+		RunE:  client.ValidateCmd,
+	}
+
+	orderCmd.AddCommand(client.PostCommands(
+		order.GetCmdNewOrder(cdc, order.OrdinaryOrder),
+		order.GetCmdCancelOrder(cdc),
+	)...)
+
+	return orderCmd
 }

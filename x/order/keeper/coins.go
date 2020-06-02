@@ -19,6 +19,9 @@ func (k Keeper) LockCoins(ctx sdk.Context, order *types.Order, coins sdk.DecCoin
 			return err
 		}
 	case types.MarginOrder:
+		if err := k.marginKeeper.LockCoins(ctx, order.Sender, order.Product, coins); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unrecognized order type:%d", order.Type)
 	}
@@ -36,6 +39,9 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, order *types.Order, coins sdk.DecCo
 			log.Printf("User(%s) unlock coins(%s) failed\n", order.Sender.String(), coins.String())
 		}
 	case types.MarginOrder:
+		if err := k.marginKeeper.UnLockCoins(ctx, order.Sender, order.Product, coins); err != nil {
+			log.Printf("User(%s) unlock product(%s) coins(%s) failed\n", order.Sender.String(), order.Product, coins.String())
+		}
 	}
 }
 
@@ -53,6 +59,8 @@ func (k Keeper) AddCollectedFees(ctx sdk.Context, order *types.Order, coins sdk.
 	switch order.Type {
 	case types.OrdinaryOrder:
 		return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, order.Sender, k.feeCollectorName, baseCoins)
+	case types.MarginOrder:
+		return k.marginKeeper.SendCoinsFromAccountToModule(ctx, order.Sender, order.Product, k.feeCollectorName, baseCoins)
 	default:
 		return fmt.Errorf("unrecognized order type:%d", order.Type)
 	}
@@ -75,6 +83,10 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, order *types.Order, coin
 			return err
 		}
 	case types.MarginOrder:
+		if err := k.marginKeeper.SendCoinsFromAccountToAccount(ctx, order.Sender, order.Product, to, coins); err != nil {
+			log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
+			return err
+		}
 	default:
 		return fmt.Errorf("unrecognized order type:%d", order.Type)
 	}
@@ -90,6 +102,9 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, order *types.Order,
 			log.Printf("User(%s) burn locked coins(%s) failed\n", order.Sender.String(), outputCoins.String())
 		}
 	case types.MarginOrder:
+		if err := k.marginKeeper.BalanceAccount(ctx, order.Sender, order.Product, outputCoins, inputCoins); err != nil {
+			log.Printf("User(%s) burn locked product(%s) coins(%s) failed\n", order.Sender.String(), order.Product, outputCoins.String())
+		}
 	}
 
 }

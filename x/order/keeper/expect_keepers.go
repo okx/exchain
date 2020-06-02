@@ -53,4 +53,9 @@ type DexKeeper interface {
 
 // MarginKeeper : expected margin keeper
 type MarginKeeper interface {
+	LockCoins(ctx sdk.Context, address sdk.AccAddress, product string, coins sdk.DecCoins) error
+	UnLockCoins(ctx sdk.Context, address sdk.AccAddress, product string, coins sdk.DecCoins) error
+	SendCoinsFromAccountToModule(ctx sdk.Context, address sdk.AccAddress, product string, recipientModule string, coins sdk.DecCoins) error
+	SendCoinsFromAccountToAccount(ctx sdk.Context, address sdk.AccAddress, product string, to sdk.AccAddress, coins sdk.DecCoins) error
+	BalanceAccount(ctx sdk.Context, address sdk.AccAddress, product string, outputCoins, inputCoins sdk.DecCoins) error
 }

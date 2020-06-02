@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/okchain/x/token"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -19,6 +21,8 @@ const (
 
 	// QuerierRoute to be used for querierer msgs
 	QuerierRoute = ModuleName
+
+	ModuleAccount = token.ModuleName
 )
 
 var (

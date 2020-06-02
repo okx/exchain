@@ -120,6 +120,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.tokenKeeper,
 		mockApp.supplyKeeper,
 		mockApp.dexKeeper,
+		nil,
 		mockApp.ParamsKeeper.Subspace(ordertypes.DefaultParamspace),
 		auth.FeeCollectorName,
 		mockApp.keyOrder,

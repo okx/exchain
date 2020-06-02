@@ -306,10 +306,10 @@ func (p *ProtocolV0) produceKeepers() {
 	p.dexKeeper = dex.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, dexSubspace, p.tokenKeeper, &stakingKeeper,
 		p.bankKeeper, p.keys[dex.StoreKey], p.keys[dex.TokenPairStoreKey], p.cdc)
 
-	p.marginKeeper = margin.NewKeeper(p.cdc, p.keys[margin.StoreKey], marginSubspace, p.dexKeeper, p.tokenKeeper, p.supplyKeeper)
+	p.marginKeeper = margin.NewKeeper(p.cdc, p.keys[margin.StoreKey], marginSubspace, p.dexKeeper, p.tokenKeeper)
 
 	p.orderKeeper = order.NewKeeper(
-		p.tokenKeeper, p.supplyKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
+		p.tokenKeeper, p.supplyKeeper, p.dexKeeper, p.marginKeeper, orderSubspace, auth.FeeCollectorName,
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 

@@ -23,14 +23,15 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	}
 
 	txCmd.AddCommand(client.PostCommands(
-		getCmdNewOrder(cdc),
-		getCmdCancelOrder(cdc),
+		GetCmdNewOrder(cdc, types.OrdinaryOrder),
+		GetCmdCancelOrder(cdc),
 	)...)
 
 	return txCmd
 }
 
-func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
+// GetCmdNewOrder returns new order command
+func GetCmdNewOrder(cdc *codec.Codec, orderType types.OrderType) *cobra.Command {
 	// new order flags
 	var product string
 	var side string
@@ -52,7 +53,7 @@ func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
 				return errors.New("invalid param counts")
 			}
 
-			err := handleNewOrder(cdc, product, side, price, quantity)
+			err := handleNewOrder(cdc, orderType, product, side, price, quantity)
 			return err
 
 		},
@@ -65,7 +66,7 @@ func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func handleNewOrder(cdc *codec.Codec, product string, side string, price string, quantity string) error {
+func handleNewOrder(cdc *codec.Codec, orderType types.OrderType, product string, side string, price string, quantity string) error {
 	var items []types.OrderItem
 	productArr := strings.Split(product, ",")
 	sideArr := strings.Split(side, ",")
@@ -105,12 +106,13 @@ func handleNewOrder(cdc *codec.Codec, product string, side string, price string,
 	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-	msg := types.NewMsgNewOrders(cliCtx.GetFromAddress(), items, types.OrdinaryOrder)
+	msg := types.NewMsgNewOrders(cliCtx.GetFromAddress(), items, orderType)
 	err := utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 	return err
 }
 
-func getCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
+// GetCmdCancelOrder returns cancel order command
+func GetCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "cancel [order-id]",
 		Short: "cancel order",

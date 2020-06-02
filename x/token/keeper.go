@@ -397,3 +397,15 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 	}
 	return name, true
 }
+
+func (k Keeper) SendCoinsFromAccountToModule(ctx sdk.Context, from sdk.AccAddress, amount sdk.Coins) sdk.Error {
+	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, types.ModuleName, amount)
+}
+
+func (k Keeper) SendCoinsFromModuleToAccount(ctx sdk.Context, to sdk.AccAddress, amount sdk.Coins) sdk.Error {
+	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, to, amount)
+}
+
+func (k Keeper) SendCoinsFromModuleToModule(ctx sdk.Context, recipientModule string, coins sdk.Coins) sdk.Error {
+	return k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, recipientModule, coins)
+}

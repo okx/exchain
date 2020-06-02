@@ -20,21 +20,19 @@ type Keeper struct {
 	cdc           *codec.Codec
 	paramSubspace params.Subspace
 
-	dexKeeper    types.DexKeeper
-	supplyKeeper types.SupplyKeeper
-	tokenKeeper  types.TokenKeeper
+	dexKeeper   types.DexKeeper
+	tokenKeeper types.TokenKeeper
 }
 
 // NewKeeper creates a margin keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSubspace types.ParamSubspace, dexKeeper types.DexKeeper, tokenKeeper types.TokenKeeper, supplyKeeper types.SupplyKeeper) Keeper {
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSubspace types.ParamSubspace, dexKeeper types.DexKeeper, tokenKeeper types.TokenKeeper) Keeper {
 	return Keeper{
 		storeKey:      key,
 		cdc:           cdc,
 		paramSubspace: paramSubspace.WithKeyTable(types.ParamKeyTable()),
 
-		dexKeeper:    dexKeeper,
-		tokenKeeper:  tokenKeeper,
-		supplyKeeper: supplyKeeper,
+		dexKeeper:   dexKeeper,
+		tokenKeeper: tokenKeeper,
 	}
 }
 
@@ -45,11 +43,6 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 func (k Keeper) GetCDC() *codec.Codec {
 	return k.cdc
-}
-
-// GetSupplyKeeper returns supply Keeper
-func (k Keeper) GetSupplyKeeper() types.SupplyKeeper {
-	return k.supplyKeeper
 }
 
 // GetSupplyKeeper returns token Keeper
@@ -136,7 +129,7 @@ func (k Keeper) DexDeposit(ctx sdk.Context, from sdk.AccAddress, product string,
 		tradePair.Deposit = tradePair.Deposit.Add(amount)
 	}
 
-	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, amount.ToCoins())
+	err := k.tokenKeeper.SendCoinsFromAccountToModule(ctx, from, amount.ToCoins())
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.ToCoins().String()))
 	}
@@ -242,7 +235,7 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address%s", addr.String()))
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
-	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
+	err := k.tokenKeeper.SendCoinsFromModuleToAccount(ctx, withdrawInfo.Owner, withdrawCoins)
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("withdraw error: %s, insufficient deposit coins(need %s)",
 			err.Error(), withdrawCoins.String()))
@@ -284,7 +277,7 @@ func (k Keeper) DexSave(ctx sdk.Context, address sdk.AccAddress, product string,
 		saving = saving.Add(amount)
 	}
 
-	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount)
+	err := k.tokenKeeper.SendCoinsFromAccountToModule(ctx, address, amount)
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient coins(need %s)", amount.String()))
 	}
@@ -298,7 +291,7 @@ func (k Keeper) DexReturn(ctx sdk.Context, address sdk.AccAddress, product strin
 	if saving == nil || saving.IsAllLT(amount) {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
 	}
-	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, amount)
+	err := k.tokenKeeper.SendCoinsFromModuleToAccount(ctx, address, amount)
 	if err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
 	}
@@ -365,7 +358,7 @@ func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string,
 		}
 	}
 
-	if err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, address, types.ModuleName, amount); err != nil {
+	if err := k.tokenKeeper.SendCoinsFromAccountToModule(ctx, address, amount); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", amount.String()))
 	}
 
@@ -390,7 +383,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, address sdk.AccAddress, product string
 
 	account.Available = account.Available.Sub(amount)
 
-	if err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, amount); err != nil {
+	if err := k.tokenKeeper.SendCoinsFromModuleToAccount(ctx, address, amount); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraw because insufficient coins saved(need %s)", amount.String()))
 	}
 

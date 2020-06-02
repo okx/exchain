@@ -49,8 +49,8 @@ func (k Keeper) SendCoinsFromAccountToModule(ctx sdk.Context, address sdk.AccAdd
 	}
 	account.Available = account.Available.Sub(coins)
 	k.SetAccount(ctx, address, product, account)
-	if err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, recipientModule, coins); err != nil {
-		return fmt.Errorf("insufficient module account %s, needs %s", types.ModuleName, coins)
+	if err := k.tokenKeeper.SendCoinsFromModuleToModule(ctx, recipientModule, coins); err != nil {
+		return fmt.Errorf("insufficient module account %s, needs %s", types.ModuleAccount, coins)
 	}
 	return nil
 }
@@ -66,8 +66,8 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, address sdk.AccAd
 	}
 	account.Available = account.Available.Sub(coins)
 	k.SetAccount(ctx, address, product, account)
-	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, to, coins); err != nil {
-		return fmt.Errorf("insufficient module account %s, needs %s", types.ModuleName, coins)
+	if err := k.tokenKeeper.SendCoinsFromModuleToAccount(ctx, to, coins); err != nil {
+		return fmt.Errorf("insufficient module account %s, needs %s", types.ModuleAccount, coins)
 	}
 	return nil
 }

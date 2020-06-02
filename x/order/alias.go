@@ -1,6 +1,7 @@
 package order
 
 import (
+	"github.com/okex/okchain/x/order/client/cli"
 	"github.com/okex/okchain/x/order/keeper"
 	"github.com/okex/okchain/x/order/types"
 )
@@ -14,6 +15,8 @@ const (
 	DefaultParamspace = types.DefaultParamspace
 	DefaultCodespace  = types.DefaultCodespace
 	OrderStoreKey     = types.OrderStoreKey
+	OrdinaryOrder     = types.OrdinaryOrder
+	MarginOrder       = types.MarginOrder
 )
 
 // nolint
@@ -42,4 +45,6 @@ var (
 	NewKeeper         = keeper.NewKeeper
 	NewQuerier        = keeper.NewQuerier
 	FormatOrderIDsKey = types.FormatOrderIDsKey
+	GetCmdNewOrder    = cli.GetCmdNewOrder
+	GetCmdCancelOrder = cli.GetCmdCancelOrder
 )
