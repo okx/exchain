@@ -164,6 +164,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		msg.QuoteAmount,
 		baseTokens,
 	}
+	coins = coins.Sort()
 	//TODO another coin connot send to pool
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
@@ -248,6 +249,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		baseAmount,
 		quoteAmount,
 	}
+	coins = coins.Sort()
 	err = k.SendCoinsFromPoolToAccount(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
