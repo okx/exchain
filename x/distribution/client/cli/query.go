@@ -59,7 +59,7 @@ func GetCmdQueryValidatorCommission(queryRoute string, cdc *codec.Codec) *cobra.
 		Args:  cobra.ExactArgs(1),
 		Short: "Query distribution validator commission",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the unwithdrawn rewards of a given validator address.
+			fmt.Sprintf(`Query available rewards by a specified validator address.
 
 Example:
 $ %s query distr commission okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
