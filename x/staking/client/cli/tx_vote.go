@@ -2,9 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/cosmos/cosmos-sdk/client"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -46,16 +45,17 @@ $ %s tx staking destroy-validator --from mykey
 // GetCmdDeposit gets command for deposit
 func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "deposit [amount]",
-		Args:  cobra.ExactArgs(1),
-		Short: "deposit an amount of okt to delegator account; deposited okt in delegator account is a prerequisite for adding shares",
+		Use:  "deposit [amount]",
+		Args: cobra.ExactArgs(1),
+		Short: fmt.Sprintf("deposit an amount of %s to delegator account; deposited %s in delegator account is a prerequisite for adding shares",
+			sdk.DefaultBondDenom, sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Deposit an amount of okt to delegator account. Deposited okt in delegator account is a prerequisite for adding shares.
+			fmt.Sprintf(`Deposit an amount of %s to delegator account. Deposited %s in delegator account is a prerequisite for adding shares.
 
 Example:
-$ %s tx staking deposit 1000okt --from mykey
+$ %s tx staking deposit 1000%s --from mykey
 `,
-				version.ClientName,
+				sdk.DefaultBondDenom, sdk.DefaultBondDenom, version.ClientName, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -80,14 +80,14 @@ func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw [amount]",
 		Args:  cobra.ExactArgs(1),
-		Short: "withdraw an amount of okt and the corresponding shares from all validators",
+		Short: fmt.Sprintf("withdraw an amount of %s and the corresponding shares from all validators", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Withdraw an amount of okt and the corresponding shares from all validators.
+			fmt.Sprintf(`Withdraw an amount of %s and the corresponding shares from all validators.
 
 Example:
-$ %s tx staking withdraw 1okt
+$ %s tx staking withdraw 1%s
 `,
-				version.ClientName,
+				sdk.DefaultBondDenom, version.ClientName, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -112,14 +112,14 @@ func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "add-shares [validator-addr1, validator-addr2, validator-addr3, ... validator-addrN] [flags]",
 		Args:  cobra.ExactArgs(1),
-		Short: "add shares to one or more validators by all deposited okt",
+		Short: fmt.Sprintf("add shares to one or more validators by all deposited %s", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf("Add shares to one or more validators by all deposited okt.\n\nExample:\n$ %s tx staking add-shares "+
+			fmt.Sprintf("Add shares to one or more validators by all deposited %s.\n\nExample:\n$ %s tx staking add-shares "+
 				"okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5,"+
 				"okchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42a3gl7g,"+
 				"okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m,"+
 				"okchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6mph5rx --from mykey\n",
-				version.ClientName),
+				sdk.DefaultBondDenom, version.ClientName),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
