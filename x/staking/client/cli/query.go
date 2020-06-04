@@ -375,12 +375,12 @@ $ %s query staking shares-added-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58
 				return err
 			}
 
-			var sharesResponses types.SharesResponses
-			if err := cdc.UnmarshalJSON(resp, &sharesResponses); err != nil {
+			var voteResponses types.VoteResponses
+			if err := cdc.UnmarshalJSON(resp, &voteResponses); err != nil {
 				return err
 			}
 
-			return cliCtx.PrintOutput(sharesResponses)
+			return cliCtx.PrintOutput(voteResponses)
 		},
 	}
 }

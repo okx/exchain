@@ -41,7 +41,7 @@ func DelegatorVotesInvariant(k Keeper) sdk.Invariant {
 
 			votes := k.GetValidatorVotes(ctx, validator.GetOperator())
 			for _, vote := range votes {
-				totalVotes = totalVotes.Add(vote.Shares)
+				totalVotes = totalVotes.Add(vote.Votes)
 			}
 
 			if !valTotalVotes.Equal(totalVotes) {

@@ -130,9 +130,9 @@ func TestInitGenesis(t *testing.T) {
 		return false
 	})
 	// 0x51
-	require.Equal(t, types.NewSharesResponse(actualGenesis.Votes[0].VoterAddress, actualGenesis.Votes[0].Votes),
+	require.Equal(t, types.NewVoteResponse(actualGenesis.Votes[0].VoterAddress, actualGenesis.Votes[0].Votes),
 		newKeeper.GetValidatorVotes(newCtx, actualGenesis.Votes[0].ValidatorAddress)[0])
-	require.Equal(t, types.NewSharesResponse(actualGenesis.Votes[1].VoterAddress, actualGenesis.Votes[1].Votes),
+	require.Equal(t, types.NewVoteResponse(actualGenesis.Votes[1].VoterAddress, actualGenesis.Votes[1].Votes),
 		newKeeper.GetValidatorVotes(newCtx, actualGenesis.Votes[1].ValidatorAddress)[0])
 	// 0x52
 	delegator, ok := newKeeper.GetDelegator(newCtx, actualGenesis.Delegators[0].DelegatorAddress)
