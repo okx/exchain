@@ -3,6 +3,7 @@ module github.com/okex/okchain
 go 1.12
 
 require (
+	github.com/CosmWasm/go-cosmwasm v0.8.0
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c // indirect
 	github.com/cosmos/cosmos-sdk v0.37.8
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
@@ -23,7 +24,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
@@ -33,17 +34,17 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.1
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.32.10
 	github.com/tendermint/tm-db v0.2.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
 	golang.org/x/text v0.3.2 // indirect
-	gopkg.in/yaml.v2 v2.2.7
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 replace (
+	github.com/CosmWasm/go-cosmwasm => github.com/okex/go-cosmwasm v0.8.0-okchain
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.37.9-okchain5
 	github.com/tendermint/iavl => github.com/okex/iavl v0.12.4-okchain
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.32.10-okchain1
