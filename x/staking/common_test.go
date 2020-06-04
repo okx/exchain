@@ -806,7 +806,7 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 				}
 			}
 
-			b2 = assert.Equal(t, len(expVoters), cnt, expVoters, voteResponses.String())
+			b2 = assert.Equal(t, len(expVoters), cnt, expVoters, sharesResponses.String())
 
 		}
 
