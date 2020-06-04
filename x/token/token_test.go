@@ -5,7 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/okchain/x/common"
+	"github.com/okex/okchain/x/common/version"
+	"github.com/okex/okchain/x/gov"
+	govKeeper "github.com/okex/okchain/x/gov/keeper"
+	"github.com/okex/okchain/x/params"
+	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
@@ -15,15 +21,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/common/version"
-	"github.com/okex/okchain/x/gov"
-	govKeeper "github.com/okex/okchain/x/gov/keeper"
-	"github.com/okex/okchain/x/params"
-	"github.com/okex/okchain/x/staking"
-	"github.com/okex/okchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
@@ -1075,5 +1075,100 @@ func TestTxSuccessFeeTable(t *testing.T) {
 			ctx = mockApplyBlock(t, app, []auth.StdTx{stdTx}, int64(i+3))
 			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
 		})
+	}
+}
+
+func TestCreateTokenActive(t *testing.T) {
+	//intQuantity := int64(6000)
+	//genAccs, testAccounts := CreateGenAccounts(3,
+	//	sdk.DecCoins{
+	//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
+	//	})
+	//
+	//app, keeper, _ := getMockDexApp(t, 0)
+	//mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
+	//
+	//ctx := app.BaseApp.NewContext(true, abci.Header{})
+	//ctx = ctx.WithTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
+	//
+	//tokenBtc := types.CertifiedToken{
+	//	Description: "btc btc btc btc",
+	//	Symbol:      "btc",
+	//	WholeName:   "Bitcoin",
+	//	TotalSupply: "21000000",
+	//	Owner:       testAccounts[0].baseAccount.Address,
+	//	Mintable:    false,
+	//}
+	//tokenXmr := types.CertifiedToken{
+	//	Description: "xmr xmr xmr xmr xmr",
+	//	Symbol:      "xmr",
+	//	WholeName:   "xmr",
+	//	TotalSupply: "21000000",
+	//	Owner:       testAccounts[1].baseAccount.Address,
+	//	Mintable:    false,
+	//}
+	//tokenBnb := types.CertifiedToken{
+	//	Description: "bnb bnb",
+	//	Symbol:      "bnb",
+	//	WholeName:   "bnb",
+	//	TotalSupply: "21000000",
+	//	Owner:       testAccounts[1].baseAccount.Address,
+	//	Mintable:    false,
+	//}
+	//keeper.SetCertifiedToken(ctx, 1, tokenBtc)
+	//keeper.SetCertifiedToken(ctx, 2, tokenBtc)
+	//keeper.SetCertifiedToken(ctx, 3, tokenXmr)
+	//keeper.SetCertifiedToken(ctx, 4, tokenBnb)
+	//
+	//var tokenActive []auth.StdTx
+	//
+	//tokenActiveMsg := types.NewMsgTokenActive(1, testAccounts[0].baseAccount.Address)
+	//tokenActive = append(tokenActive, createTokenMsg(t, app, ctx, testAccounts[0], tokenActiveMsg))
+	//ctx = mockApplyBlock(t, app, tokenActive, 3)
+	//
+	//tokenInfo := app.tokenKeeper.GetTokenInfo(ctx, "btc")
+	//require.Equal(t, parseToken(tokenBtc), tokenInfo)
+	//
+	//// not owner
+	//tokenActiveMsg = types.NewMsgTokenActive(3, testAccounts[0].baseAccount.Address)
+	//tokenActive = append([]auth.StdTx{}, createTokenMsg(t, app, ctx, testAccounts[0], tokenActiveMsg))
+	//ctx = mockApplyBlock(t, app, tokenActive, 4)
+	//
+	//// token exits
+	//tokenActiveMsg = types.NewMsgTokenActive(1, testAccounts[0].baseAccount.Address)
+	//tokenActive = append([]auth.StdTx{}, createTokenMsg(t, app, ctx, testAccounts[0], tokenActiveMsg))
+	//ctx = mockApplyBlock(t, app, tokenActive, 5)
+	//
+	//tokenActiveMsg = types.NewMsgTokenActive(3, testAccounts[1].baseAccount.Address)
+	//tokenActive = append([]auth.StdTx{}, createTokenMsg(t, app, ctx, testAccounts[1], tokenActiveMsg))
+	//ctx = mockApplyBlock(t, app, tokenActive, 6)
+	//
+	//tokenInfo = keeper.GetTokenInfo(ctx, "xmr")
+	//require.Equal(t, parseToken(tokenXmr), tokenInfo)
+	//
+	//// not enough okts
+	//tokenActiveMsg = types.NewMsgTokenActive(4, testAccounts[2].baseAccount.Address)
+	//tokenActive = append([]auth.StdTx{}, createTokenMsg(t, app, ctx, testAccounts[2], tokenActiveMsg))
+	//ctx = mockApplyBlock(t, app, tokenActive, 7)
+	//
+	//feeIssue := keeper.GetParams(ctx).FeeIssue.Amount
+	//coins := sdk.DecCoins{
+	//	sdk.NewDecCoinFromDec(tokenBtc.Symbol, sdk.MustNewDecFromStr(tokenBtc.TotalSupply)),
+	//	sdk.NewDecCoinFromDec(tokenXmr.Symbol, sdk.MustNewDecFromStr(tokenXmr.TotalSupply)),
+	//	sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity).Sub(feeIssue).Sub(feeIssue)),
+	//}
+	//require.EqualValues(t, coins, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins())
+}
+
+func parseToken(token types.CertifiedToken) types.Token {
+	return types.Token{
+		Description:         token.Description,
+		Symbol:              token.Symbol,
+		OriginalSymbol:      token.Symbol,
+		WholeName:           token.WholeName,
+		OriginalTotalSupply: sdk.MustNewDecFromStr(token.TotalSupply),
+		TotalSupply:         sdk.MustNewDecFromStr(token.TotalSupply),
+		Owner:               token.Owner,
+		Mintable:            token.Mintable,
 	}
 }

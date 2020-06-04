@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/binary"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -42,6 +44,7 @@ var (
 	LockKey            = []byte{0x02} // the address prefix of the locked coins
 	LockedFeeKey       = []byte{0x04} // the address prefix of the locked order fee coins
 	PrefixUserTokenKey = []byte{0x03} // the address prefix of the user-token relationship
+	CertifiedTokenKey  = []byte{0x05} // the proposal prefix of the certified token proposal
 )
 
 func GetUserTokenPrefix(owner sdk.AccAddress) []byte {
@@ -65,7 +68,10 @@ func GetLockFeeAddress(addr sdk.AccAddress) []byte {
 	return append(LockedFeeKey, addr.Bytes()...)
 }
 
-//// Key for getting a specific proposal from the store
-//func keyDexListAsset(asset string) []byte {
-//	return []byte(fmt.Sprintf("asset:%s", asset))
-//}
+// GetCertifiedTokenProposal gets the key for the no suffix token with proposalID
+func GetCertifiedTokenProposal(proposalID uint64) []byte {
+	bz := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bz, proposalID)
+
+	return append(CertifiedTokenKey, bz...)
+}

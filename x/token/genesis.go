@@ -19,19 +19,21 @@ const DefaultTokenOwner = "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya"
 
 // all state that must be provided in genesis file
 type GenesisState struct {
-	Params       types.Params     `json:"params"`
-	Tokens       []types.Token    `json:"tokens"`
-	LockedAssets []types.AccCoins `json:"locked_assets"`
-	LockedFees   []types.AccCoins `json:"locked_fees"`
+	Params          types.Params                 `json:"params"`
+	Tokens          []types.Token                `json:"tokens"`
+	LockedAssets    []types.AccCoins             `json:"locked_assets"`
+	LockedFees      []types.AccCoins             `json:"locked_fees"`
+	CertifiedTokens []types.CertifiedTokenExport `json:"certified_tokens"`
 }
 
 // default GenesisState used by Cosmos Hub
 func defaultGenesisState() GenesisState {
 	return GenesisState{
-		Params:       types.DefaultParams(),
-		Tokens:       []types.Token{defaultGenesisStateOKT()},
-		LockedAssets: nil,
-		LockedFees:   nil,
+		Params:          types.DefaultParams(),
+		Tokens:          []types.Token{defaultGenesisStateOKT()},
+		LockedAssets:    nil,
+		LockedFees:      nil,
+		CertifiedTokens: nil,
 	}
 }
 
@@ -70,6 +72,21 @@ func validateGenesis(data GenesisState) error {
 			return errors.New(err.Error())
 		}
 	}
+
+	for _, token := range data.CertifiedTokens {
+		msg := types.NewMsgTokenIssue(token.Token.Description,
+			token.Token.Symbol,
+			token.Token.Symbol,
+			token.Token.WholeName,
+			token.Token.TotalSupply,
+			token.Token.Owner,
+			token.Token.Mintable)
+
+		err := msg.ValidateBasic()
+		if err != nil {
+			return errors.New(err.Error())
+		}
+	}
 	return nil
 }
 
@@ -99,6 +116,9 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 			panic(err)
 		}
 	}
+	for _, token := range data.CertifiedTokens {
+		keeper.SetCertifiedToken(ctx, token.ProposalID, token.Token)
+	}
 }
 
 // ExportGenesis writes the current store values
@@ -108,6 +128,7 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
 	tokens := keeper.GetTokensInfo(ctx)
 	lockedAsset := keeper.GetAllLockedCoins(ctx)
+	certifiedTokens := keeper.GetCertifiedTokensWithProposalID(ctx)
 
 	var lockedFees []types.AccCoins
 	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
@@ -120,10 +141,11 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	})
 
 	return GenesisState{
-		Params:       params,
-		Tokens:       tokens,
-		LockedAssets: lockedAsset,
-		LockedFees:   lockedFees,
+		Params:          params,
+		Tokens:          tokens,
+		LockedAssets:    lockedAsset,
+		LockedFees:      lockedFees,
+		CertifiedTokens: certifiedTokens,
 	}
 }
 

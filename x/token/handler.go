@@ -3,6 +3,7 @@ package token
 import (
 	"bytes"
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
 	"github.com/okex/okchain/x/common/version"
@@ -60,6 +61,11 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 			name = "handleMsgTokenModify"
 			handlerFun = func() sdk.Result {
 				return handleMsgTokenModify(ctx, keeper, msg, logger)
+			}
+		case types.MsgTokenActive:
+			name = "handleMsgTokenActive"
+			handlerFun = func() sdk.Result {
+				return handleMsgTokenActive(ctx, keeper, msg, logger)
 			}
 		default:
 			errMsg := fmt.Sprintf("Unrecognized token Msg type: %v", msg.Type())
@@ -391,6 +397,75 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeModify.String()),
+		),
+	)
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgTokenActive(ctx sdk.Context, keeper Keeper, msg types.MsgTokenActive, logger log.Logger) sdk.Result {
+	certifiedToken := keeper.GetCertifiedToken(ctx, msg.ProposalID)
+	if keeper.TokenExist(ctx, certifiedToken.Symbol) {
+		return sdk.ErrInternal(fmt.Sprintf("%s already exists", certifiedToken.Symbol)).Result()
+	}
+
+	// check owner
+	if !bytes.Equal(certifiedToken.Owner.Bytes(), msg.Activator.Bytes()) {
+		return sdk.ErrUnauthorized("Not the token's owner").Result()
+	}
+
+	totalSupply, err := sdk.NewDecFromStr(certifiedToken.TotalSupply)
+	if err != nil {
+		return sdk.ErrInternal(fmt.Sprintf("invalid total supply(%s)", certifiedToken.TotalSupply)).Result()
+	}
+
+	token := types.Token{
+		Description:         certifiedToken.Description,
+		Symbol:              certifiedToken.Symbol,
+		OriginalSymbol:      certifiedToken.Symbol,
+		WholeName:           certifiedToken.WholeName,
+		OriginalTotalSupply: totalSupply,
+		TotalSupply:         totalSupply,
+		Owner:               certifiedToken.Owner,
+		Mintable:            certifiedToken.Mintable,
+	}
+
+	coins := sdk.MustParseCoins(token.Symbol, certifiedToken.TotalSupply)
+	// set supply
+	err = keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
+	if err != nil {
+		return sdk.ErrInternal(fmt.Sprintf("supply mint coins error:%s", err.Error())).Result()
+	}
+
+	// send coins to owner
+	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, token.Owner, coins)
+	if err != nil {
+		return sdk.ErrInternal(fmt.Sprintf("supply send coins error:%s", err.Error())).Result()
+	}
+
+	// set token info
+	keeper.NewToken(ctx, token)
+
+	// deduction fee
+	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()
+	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, token.Owner, keeper.feeCollectorName, feeDecCoins)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+			feeDecCoins.String())).Result()
+	}
+
+	if logger != nil {
+		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
+			"                           msg<Description:%s,Symbol:%s,OriginalSymbol:%s,TotalSupply:%s,Owner:%v,Mintable:%v>\n",
+			ctx.BlockHeight(), "handleMsgTokenActive",
+			token.Description, token.Symbol, token.OriginalSymbol, token.TotalSupply, token.Owner, token.Mintable))
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeIssue.String()),
+			sdk.NewAttribute("symbol", token.Symbol),
 		),
 	)
 	return sdk.Result{Events: ctx.EventManager().Events()}

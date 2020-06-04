@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sort"
 	"strings"
@@ -396,4 +397,37 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 		return "", false
 	}
 	return name, true
+}
+
+func (k Keeper) SetCertifiedToken(ctx sdk.Context, proposalID uint64, token types.CertifiedToken) {
+	store := ctx.KVStore(k.tokenStoreKey)
+
+	store.Set(types.GetCertifiedTokenProposal(proposalID), k.cdc.MustMarshalBinaryBare(token))
+}
+
+func (k Keeper) GetCertifiedToken(ctx sdk.Context, proposalID uint64) (token types.CertifiedToken) {
+	store := ctx.KVStore(k.tokenStoreKey)
+	bz := store.Get(types.GetCertifiedTokenProposal(proposalID))
+	if bz == nil {
+		return
+	}
+	k.cdc.MustUnmarshalBinaryBare(bz, &token)
+	return
+}
+
+func (k Keeper) GetCertifiedTokensWithProposalID(ctx sdk.Context) (tokens []types.CertifiedTokenExport) {
+	store := ctx.KVStore(k.tokenStoreKey)
+	iter := sdk.KVStorePrefixIterator(store, types.CertifiedTokenKey)
+	defer iter.Close()
+	for iter.Valid() {
+		bz := iter.Key()[len(types.CertifiedTokenKey):]
+		proposalID := binary.LittleEndian.Uint64(bz)
+		tokenBytes := iter.Value()
+		var token types.CertifiedToken
+		k.cdc.MustUnmarshalBinaryBare(tokenBytes, &token)
+
+		tokens = append(tokens, types.CertifiedTokenExport{ProposalID: proposalID, Token: token})
+		iter.Next()
+	}
+	return tokens
 }

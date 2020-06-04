@@ -357,3 +357,35 @@ bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "bnbbbbbbbbbb", false, fals
 	err := tokenEditMsg.ValidateBasic()
 	require.NoError(t, err)
 }
+
+func TestNewMsgTokenActive(t *testing.T) {
+	priKey := secp256k1.GenPrivKey()
+	pubKey := priKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	testCase := []struct {
+		tokenActiveMsg MsgTokenActive
+		err            sdk.Error
+	}{
+		{NewMsgTokenActive(1, addr), nil},
+		{NewMsgTokenActive(0, addr), nil},
+		{NewMsgTokenActive(2, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
+	}
+	for _, msgCase := range testCase {
+		err := msgCase.tokenActiveMsg.ValidateBasic()
+		require.EqualValues(t, msgCase.err, err)
+	}
+
+	// correct message
+	tokenActiveMsg := testCase[0].tokenActiveMsg
+	signAddr := tokenActiveMsg.GetSigners()
+	require.EqualValues(t, []sdk.AccAddress{addr}, signAddr)
+
+	bz := ModuleCdc.MustMarshalJSON(tokenActiveMsg)
+	require.EqualValues(t, sdk.MustSortJSON(bz), tokenActiveMsg.GetSignBytes())
+	require.EqualValues(t, "active", tokenActiveMsg.Type())
+	require.EqualValues(t, "token", tokenActiveMsg.Route())
+
+	err := tokenActiveMsg.ValidateBasic()
+	require.NoError(t, err)
+}

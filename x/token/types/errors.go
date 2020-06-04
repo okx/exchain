@@ -14,6 +14,7 @@ const (
 	CodeInvalidHeight           sdk.CodeType = 5
 	CodeInvalidAsset            sdk.CodeType = 6
 	CodeInvalidCommon           sdk.CodeType = 7
+	CodeInvalidToken            sdk.CodeType = 8
 )
 
 func ErrInvalidDexList(codespace sdk.CodespaceType, message string) sdk.Error {

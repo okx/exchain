@@ -1,18 +1,18 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/okex/okchain/x/token/types"
-
-	"encoding/json"
 	"strings"
+
+	"github.com/okex/okchain/x/common"
+	govRest "github.com/okex/okchain/x/gov/client/rest"
+	"github.com/okex/okchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
-	"github.com/okex/okchain/x/common"
 )
 
 // RegisterRoutes, a central function to define routes
@@ -129,4 +129,9 @@ func spotAccountsHandler(cliCtx context.CLIContext, storeName string) http.Handl
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
 		rest.PostProcessResponse(w, cliCtx, result2)
 	}
+}
+
+// ProposalRESTHandler defines token proposal handler
+func ProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
 }

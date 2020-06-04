@@ -3,17 +3,22 @@ package cli
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
+
+	govTypes "github.com/okex/okchain/x/gov/types"
+	tokenUtils "github.com/okex/okchain/x/token/client/utils"
+	"github.com/okex/okchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/token/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -68,6 +73,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		getCmdTransferOwnership(cdc),
 		getMultiSignsCmd(cdc),
 		getCmdTokenEdit(cdc),
+		getCmdTokenActive(cdc),
 	)...)
 
 	return distTxCmd
@@ -476,4 +482,102 @@ func getCmdTokenEdit(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(TokenDesc, "", "description of the token")
 
 	return cmd
+}
+
+// GetCmdSubmitProposal implements a command handler for submitting a parameter change proposal transaction
+func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "certified-token [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a token without suffix proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a certified token proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal certified-token <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title": "Issue a token without suffix",
+  "description": "Issue a token without suffix: btc",
+  "token": {
+     "description": "Bitcoin in testnet，1:1 anchoring with Bitcoin",
+     "symbol": "tbtc",
+     "whole_name": "Testnet Bitcoin",
+     "total_supply": "21000000",
+     "owner": "okchain170ydluqy9qnza6t7mt5rqtqw5p3esdrz00hvm2",
+     "mintable": false
+   },
+  "deposit": [
+    {
+      "denom": okt,
+      "amount": "10000"
+    }
+  ]
+}
+`, version.ClientName)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := tokenUtils.ParseCertifiedTokenProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewCertifiedTokenProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.Token,
+			)
+
+			msg := govTypes.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	return cmd
+}
+
+// getCmdActive implements creating a new vote command.
+func getCmdTokenActive(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "active [proposal-id]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Activate a certified token",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Activate a certified token. You can
+find the proposal-id by running "%s query gov proposals".
+
+
+Example:
+$ %s tx token active 1 --from mykey
+`,
+				version.ClientName, version.ClientName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			// Get voting address
+			from := cliCtx.GetFromAddress()
+
+			// validate that the proposal id is a uint
+			proposalID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("proposal-id %s not a valid int, please input a valid proposal-id", args[0])
+			}
+
+			msg := types.NewMsgTokenActive(proposalID, from)
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
 }

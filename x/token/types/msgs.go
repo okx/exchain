@@ -382,3 +382,37 @@ func (msg MsgTokenModify) GetSignBytes() []byte {
 func (msg MsgTokenModify) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
+
+type MsgTokenActive struct {
+	ProposalID uint64         `json:"proposal_id" yaml:"proposal_id"`
+	Activator  sdk.AccAddress `json:"activator" yaml:"activator"`
+}
+
+func NewMsgTokenActive(proposalID uint64, activator sdk.AccAddress) MsgTokenActive {
+	return MsgTokenActive{
+		ProposalID: proposalID,
+		Activator:  activator,
+	}
+}
+
+func (msg MsgTokenActive) Route() string { return RouterKey }
+
+func (msg MsgTokenActive) Type() string { return "active" }
+
+func (msg MsgTokenActive) ValidateBasic() sdk.Error {
+	// check activator
+	if msg.Activator.Empty() {
+		return sdk.ErrInvalidAddress(msg.Activator.String())
+	}
+
+	return nil
+}
+
+func (msg MsgTokenActive) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg MsgTokenActive) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Activator}
+}

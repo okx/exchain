@@ -79,7 +79,7 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
 	require.Nil(t, err)
 
-	feeType:="test fee type"
+	feeType := "test fee type"
 	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, feeType)
 	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, feeType)
 
@@ -280,4 +280,31 @@ func TestKeeper_SetCoins(t *testing.T) {
 
 	require.EqualValues(t, "1001.00000000", keeper.GetCoinsInfo(ctx,
 		testAccounts[1].baseAccount.Address)[0].Available)
+}
+
+func TestKeeper_SetCertifiedToken(t *testing.T) {
+	mapp, keeper, _ := getMockDexApp(t, 0)
+
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+
+	genAccs, _ := CreateGenAccounts(2,
+		sdk.DecCoins{
+			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000)),
+		})
+	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
+
+	expected_token := types.CertifiedToken{
+		Description: "Bitcoin in testnet，1:1 anchoring with Bitcoin",
+		Symbol:      "btc",
+		WholeName:   "Bitcoin",
+		TotalSupply: "21000000",
+		Owner:       genAccs[0].Address,
+		Mintable:    false,
+	}
+	proposalID := uint64(1)
+	keeper.SetCertifiedToken(ctx, proposalID, expected_token)
+
+	token := keeper.GetCertifiedToken(ctx, proposalID)
+	require.EqualValues(t, expected_token, token)
 }

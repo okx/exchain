@@ -36,6 +36,7 @@ import (
 	"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/stream"
 	"github.com/okex/okchain/x/token"
+	tokenClient "github.com/okex/okchain/x/token/client"
 	"github.com/okex/okchain/x/upgrade"
 	upgradeClient "github.com/okex/okchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -64,6 +65,7 @@ var (
 		gov.NewAppModuleBasic(
 			upgradeClient.ProposalHandler, paramsclient.ProposalHandler,
 			dexClient.DelistProposalHandler, distr.ProposalHandler,
+			tokenClient.ProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -317,11 +319,13 @@ func (p *ProtocolV0) produceKeepers() {
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper)).
+		AddRoute(token.RouterKey, token.NewCertifiedTokenProposalHandler(&p.tokenKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
-		AddRoute(upgrade.RouterKey, &p.upgradeKeeper)
+		AddRoute(upgrade.RouterKey, &p.upgradeKeeper).
+		AddRoute(token.RouterKey, &p.tokenKeeper)
 	p.govKeeper = gov.NewKeeper(
 		p.cdc, p.keys[gov.StoreKey], p.paramsKeeper, govSubspace,
 		p.supplyKeeper, &stakingKeeper, gov.DefaultCodespace, govRouter,

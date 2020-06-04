@@ -13,6 +13,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSend{}, "okchain/token/MsgTransfer", nil)
 	cdc.RegisterConcrete(MsgTransferOwnership{}, "okchain/token/MsgTransferOwnership", nil)
 	cdc.RegisterConcrete(MsgTokenModify{}, "okchain/token/MsgModify", nil)
+	cdc.RegisterConcrete(MsgTokenActive{}, "okchain/token/MsgTokenActive", nil)
+	cdc.RegisterConcrete(CertifiedTokenProposal{}, "okchain/token/CertifiedTokenProposal", nil)
 
 	// for test
 	//cdc.RegisterConcrete(MsgTokenDestroy{}, "okchain/token/MsgDestroy", nil)
