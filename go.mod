@@ -18,7 +18,6 @@ require (
 	github.com/jinzhu/now v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.6
 	github.com/lib/pq v1.1.1 // indirect
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect

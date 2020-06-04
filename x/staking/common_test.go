@@ -788,18 +788,18 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 		res, e := q(ctx, []string{types.QueryValidatorVotes}, abci.RequestQuery{Data: bz})
 		require.Nil(t, e, e)
 
-		voteResponses := types.VoteResponses{}
-		err := cdc.UnmarshalJSON(res, &voteResponses)
+		var sharesResponses types.SharesResponses
+		err := cdc.UnmarshalJSON(res, &sharesResponses)
 		b1 := assert.Nil(t, err, err) &&
-			assert.Equal(t, expVoterCnt, len(voteResponses))
+			assert.Equal(t, expVoterCnt, len(sharesResponses))
 
 		b2 := true
 		if b1 && expVoters != nil && len(expVoters) > 0 {
 
 			cnt := 0
 			for _, exp := range expVoters {
-				for _, real := range voteResponses {
-					if real.VoterAddr.Equals(exp) {
+				for _, real := range sharesResponses {
+					if real.DelAddr.Equals(exp) {
 						cnt++
 						break
 					}
