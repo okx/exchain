@@ -26,7 +26,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 	stakingQueryCmd.AddCommand(client.GetCommands(
 		GetCmdQueryDelegator(queryRoute, cdc),
-		GetCmdQueryValidatorVotes(queryRoute, cdc),
+		GetCmdQueryValidatorShares(queryRoute, cdc),
 		GetCmdQueryValidator(queryRoute, cdc),
 		GetCmdQueryValidators(queryRoute, cdc),
 		GetCmdQueryProxy(queryRoute, cdc),
@@ -341,17 +341,17 @@ func convertToDelegatorResp(delegator types.Delegator, undelegation types.Undele
 	}
 }
 
-// GetCmdQueryValidatorVotes gets command for querying all votes made to a validator
-func GetCmdQueryValidatorVotes(queryRoute string, cdc *codec.Codec) *cobra.Command {
+// GetCmdQueryValidatorShares gets command for querying all shares added to a validator
+func GetCmdQueryValidatorShares(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "votes-to [validator-addr]",
-		Short: "query all votes to a validator",
+		Use:   "shares-added-to [validator-addr]",
+		Short: "query all shares added to a validator",
 		Args:  cobra.ExactArgs(1),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the information of all votes recently made to a validator.
+			fmt.Sprintf(`Query all shares added to a validator.
 
 Example:
-$ %s query staking votes-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
+$ %s query staking shares-added-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
 `,
 				version.ClientName,
 			),
