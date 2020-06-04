@@ -239,7 +239,7 @@ func TestBonding(t *testing.T) {
 	//full := sdk.NewCoins(sdk.NewInt64Coin("stake", 160000))
 	//funds := sdk.NewCoins(sdk.NewInt64Coin("stake", 80000))
 
-	full := sdk.NewDecCoinsFromDec("stake",sdk.MustNewDecFromStr( "160000"))
+	full := sdk.NewDecCoinsFromDec("stake", sdk.MustNewDecFromStr("160000"))
 	funds := sdk.NewDecCoinsFromDec("stake", sdk.MustNewDecFromStr("80000"))
 
 	bob := createFakeFundedAccount(ctx, accKeeper, full)
@@ -342,6 +342,7 @@ func TestUnbonding(t *testing.T) {
 	assertClaims(t, ctx, keeper, contractAddr, bob, "27000")
 	assertSupply(t, ctx, keeper, contractAddr, "53000", sdk.NewInt64Coin("stake", 53000))
 }
+
 /*
 func TestReinvest(t *testing.T) {
 	initInfo := initializeStaking(t)

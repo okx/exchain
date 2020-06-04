@@ -3,8 +3,9 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okchain/x/wasm"
 	"os"
+
+	"github.com/okex/okchain/x/wasm"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -92,7 +93,7 @@ var (
 		gov.ModuleName:            nil,
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		order.ModuleName:          nil,
-		wasm.ModuleName: nil,
+		wasm.ModuleName:           nil,
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
 	}
@@ -124,7 +125,7 @@ type ProtocolV0 struct {
 	tokenKeeper    token.Keeper
 	dexKeeper      dex.Keeper
 	orderKeeper    order.Keeper
-	wasmKeeper wasm.Keeper
+	wasmKeeper     wasm.Keeper
 	protocolKeeper proto.ProtocolKeeper
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
@@ -315,7 +316,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
 
-	p.wasmKeeper = wasm.NewKeeper(p.cdc, p.keys[wasm.StoreKey], p.accountKeeper, p.bankKeeper, p.generateRouterForWasm(), DefaultNodeHome, wasm.DefaultWasmConfig(),  "", nil, nil)
+	p.wasmKeeper = wasm.NewKeeper(p.cdc, p.keys[wasm.StoreKey], p.accountKeeper, p.bankKeeper, p.generateRouterForWasm(), DefaultNodeHome, wasm.DefaultWasmConfig(), "", nil, nil)
 
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()

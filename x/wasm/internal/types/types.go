@@ -2,10 +2,11 @@ package types
 
 import (
 	"encoding/json"
+	"strconv"
+
 	wasmTypes "github.com/CosmWasm/go-cosmwasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/wasm/internal/types/bytes"
-	"strconv"
 )
 
 const defaultLRUCacheSize = uint64(0)
@@ -168,8 +169,8 @@ func DefaultWasmConfig() WasmConfig {
 	}
 }
 
-func ConvertSdkDecToString(amount sdk.Dec) string{
-	value, err := strconv.ParseFloat(amount.String(),64)
+func ConvertSdkDecToString(amount sdk.Dec) string {
+	value, err := strconv.ParseFloat(amount.String(), 64)
 	if err != nil {
 		value = 0
 	}

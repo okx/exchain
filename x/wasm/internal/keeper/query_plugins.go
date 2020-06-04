@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+
 	wasmTypes "github.com/CosmWasm/go-cosmwasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -43,9 +44,9 @@ type QueryPlugins struct {
 
 func DefaultQueryPlugins(bank bank.Keeper, wasm Keeper) QueryPlugins {
 	return QueryPlugins{
-		Bank:    BankQuerier(bank),
-		Custom:  NoCustomQuerier,
-		Wasm:    WasmQuerier(wasm),
+		Bank:   BankQuerier(bank),
+		Custom: NoCustomQuerier,
+		Wasm:   WasmQuerier(wasm),
 	}
 }
 
@@ -252,6 +253,6 @@ func convertSdkCoinsToWasmCoins(coins []sdk.Coin) wasmTypes.Coins {
 func convertSdkCoinToWasmCoin(coin sdk.Coin) wasmTypes.Coin {
 	return wasmTypes.Coin{
 		Denom:  coin.Denom,
-		Amount:  types.ConvertSdkDecToString(coin.Amount),
+		Amount: types.ConvertSdkDecToString(coin.Amount),
 	}
 }
