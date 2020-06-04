@@ -32,25 +32,25 @@ func (k Keeper) DeleteVote(ctx sdk.Context, valAddr sdk.ValAddress, voterAddr sd
 }
 
 // GetValidatorVotes returns all votes made to a specific validator and it's useful for querier
-func (k Keeper) GetValidatorVotes(ctx sdk.Context, valAddr sdk.ValAddress) types.VoteResponses {
+func (k Keeper) GetValidatorVotes(ctx sdk.Context, valAddr sdk.ValAddress) types.SharesResponses {
 	store := ctx.KVStore(k.storeKey)
 
-	var voteResps types.VoteResponses
+	var sharesResps types.SharesResponses
 	iterator := sdk.KVStorePrefixIterator(store, types.GetVotesToValidatorsKey(valAddr))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		// 1.get the voter address
-		voterAddr := sdk.AccAddress(iterator.Key()[1+sdk.AddrLen:])
+		// 1.get the delegator address
+		delAddr := sdk.AccAddress(iterator.Key()[1+sdk.AddrLen:])
 
-		// 2.get the votes
-		votes := types.MustUnmarshalVote(k.cdc, iterator.Value())
+		// 2.get the shares
+		shares := types.MustUnmarshalVote(k.cdc, iterator.Value())
 
 		// 3.assemble the result
-		voteResps = append(voteResps, types.NewVoteResponse(voterAddr, votes))
+		sharesResps = append(sharesResps, types.NewSharesResponse(delAddr, shares))
 	}
 
-	return voteResps
+	return sharesResps
 }
 
 // IterateVotes iterates through all of the votes from store

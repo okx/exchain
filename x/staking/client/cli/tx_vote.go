@@ -43,17 +43,17 @@ $ %s tx staking destroy-validator --from mykey
 	}
 }
 
-// GetCmdDelegate gets command for delegating
-func GetCmdDelegate(cdc *codec.Codec) *cobra.Command {
+// GetCmdDeposit gets command for deposit
+func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delegate [amount]",
+		Use:   "deposit [amount]",
 		Args:  cobra.ExactArgs(1),
-		Short: "delegate an amount of okt.",
+		Short: "deposit an amount of okt to delegator account; deposited okt in delegator account is a prerequisite for adding shares",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Delegate an amount of okt.
+			fmt.Sprintf(`Deposit an amount of okt to delegator account. Deposited okt in delegator account is a prerequisite for adding shares.
 
 Example:
-$ %s tx staking delegate 1000okt --from mykey
+$ %s tx staking deposit 1000okt --from mykey
 `,
 				version.ClientName,
 			),
@@ -75,17 +75,17 @@ $ %s tx staking delegate 1000okt --from mykey
 	return cmd
 }
 
-// GetCmdUndelegate gets command for undelegating
-func GetCmdUndelegate(cdc *codec.Codec) *cobra.Command {
+// GetCmdWithdraw gets command for withdrawing the deposit
+func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "unbond [amount]",
+		Use:   "withdraw [amount]",
 		Args:  cobra.ExactArgs(1),
-		Short: "unbond shares and withdraw the same amount of votes",
+		Short: "withdraw an amount of okt and the corresponding shares from all validators",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Unbond shares and withdraw the same amount of votes.
+			fmt.Sprintf(`Withdraw an amount of okt and the corresponding shares from all validators.
 
 Example:
-$ %s tx staking unbond 1okt
+$ %s tx staking withdraw 1okt
 `,
 				version.ClientName,
 			),
@@ -107,14 +107,14 @@ $ %s tx staking unbond 1okt
 	return cmd
 }
 
-// GetCmdVote gets command for multi voting
-func GetCmdVote(cdc *codec.Codec) *cobra.Command {
+// GetCmdAddShares gets command for multi voting
+func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "vote [validator-addr1, validator-addr2, validator-addr3, ... validator-addrN] [flags]",
+		Use:   "add-shares [validator-addr1, validator-addr2, validator-addr3, ... validator-addrN] [flags]",
 		Args:  cobra.ExactArgs(1),
-		Short: "vote on validators",
+		Short: "add shares to one or more validators by all deposited okt",
 		Long: strings.TrimSpace(
-			fmt.Sprintf("Vote on one or more validator(s).\n\nExample:\n$ %s tx staking vote "+
+			fmt.Sprintf("Add shares to one or more validators by all deposited okt.\n\nExample:\n$ %s tx staking add-shares "+
 				"okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5,"+
 				"okchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42a3gl7g,"+
 				"okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m,"+

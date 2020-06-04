@@ -18,32 +18,32 @@ func MustUnmarshalVote(cdc *codec.Codec, bytes []byte) Votes {
 	return vote
 }
 
-// VoteResponse is the struct for query all the votes on a validator
-type VoteResponse struct {
-	VoterAddr sdk.AccAddress `json:"voter_address"`
-	Votes     sdk.Dec        `json:"votes"`
+// SharesResponse is the struct for query all the shares added to a validator
+type SharesResponse struct {
+	DelAddr sdk.AccAddress `json:"delegator_address"`
+	Shares  sdk.Dec        `json:"shares"`
 }
 
-// NewVoteResponse creates a new instance of VoteResponse
-func NewVoteResponse(voterAddr sdk.AccAddress, votes Votes) VoteResponse {
-	return VoteResponse{
-		voterAddr,
-		votes,
+// NewSharesResponse creates a new instance of SharesResponse
+func NewSharesResponse(delAddr sdk.AccAddress, shares Votes) SharesResponse {
+	return SharesResponse{
+		delAddr,
+		shares,
 	}
 }
 
-// String returns a human readable string representation of VoteResponse
-func (vr VoteResponse) String() string {
-	return fmt.Sprintf("%s\n  Votes:   %s", vr.VoterAddr.String(), vr.Votes)
+// String returns a human readable string representation of SharesResponse
+func (sr SharesResponse) String() string {
+	return fmt.Sprintf("%s\n  Shares:   %s", sr.DelAddr.String(), sr.Shares)
 }
 
-// VoteResponses is the type alias of VoteResponse slice
-type VoteResponses []VoteResponse
+// SharesResponses is the type alias of SharesResponse slice
+type SharesResponses []SharesResponse
 
-// String returns a human readable string representation of VoteResponses
-func (vrs VoteResponses) String() (strFormat string) {
-	for _, vr := range vrs {
-		strFormat = fmt.Sprintf("%s%s\n", strFormat, vr.String())
+// String returns a human readable string representation of SharesResponses
+func (srs SharesResponses) String() (strFormat string) {
+	for _, sr := range srs {
+		strFormat = fmt.Sprintf("%s%s\n", strFormat, sr.String())
 	}
 
 	return strings.TrimSpace(strFormat)
