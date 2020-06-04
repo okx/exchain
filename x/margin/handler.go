@@ -255,9 +255,16 @@ func handleMsgRepay(ctx sdk.Context, keeper Keeper, msg types.MsgRepay, logger l
 		return types.ErrInvalidTradePair(types.Codespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
 	}
 
-	if err := keeper.Repay(ctx, msg.Address, tradePair, msg.Amount); err != nil {
-		return err.Result()
+	account := keeper.GetAccount(ctx, msg.Address, tradePair.Name)
+	if account == nil {
+		return types.ErrAccountNotExist(types.Codespace, fmt.Sprintf("failed to repay")).Result()
 	}
+
+	if account.Borrowed.AmountOf(msg.Amount.Denom).IsZero() {
+		return sdk.ErrInvalidCoins(fmt.Sprintf("repay amount:%s mismatch borrowed coins:%s", msg.Amount.String(), account.Borrowed.String())).Result()
+	}
+
+	keeper.Repay(ctx, account, msg.Address, tradePair, msg.Amount)
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	dex "github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okchain/x/order"
 )
 
 // ParamSubspace defines the expected Subspace interfacace
@@ -25,4 +26,12 @@ type TokenKeeper interface {
 type DexKeeper interface {
 	// TokenPair
 	GetTokenPair(ctx sdk.Context, product string) *dex.TokenPair
+}
+
+type OrderKeeper interface {
+	SetMarginKeeper(mk order.MarginKeeper)
+	GetLastPrice(ctx sdk.Context, product string) sdk.Dec
+	IsProductLocked(ctx sdk.Context, product string) bool
+	GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.Dec)
+	PlaceOrder(ctx sdk.Context, order *order.Order) error
 }

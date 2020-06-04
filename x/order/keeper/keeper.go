@@ -42,7 +42,7 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper DexKeeper, marginKeeper MarginKeeper,
+func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper DexKeeper,
 	paramSpace params.Subspace, feeCollectorName string, ordersStoreKey sdk.StoreKey,
 	cdc *codec.Codec,
 	enableBackend bool, metrics *monitor.OrderMetric) Keeper {
@@ -56,7 +56,6 @@ func NewKeeper(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, dexKeeper Dex
 		tokenKeeper:  tokenKeeper,
 		supplyKeeper: supplyKeeper,
 		dexKeeper:    dexKeeper,
-		marginKeeper: marginKeeper,
 		paramSpace:   paramSpace.WithKeyTable(types.ParamKeyTable()),
 
 		orderStoreKey: ordersStoreKey,
@@ -470,4 +469,9 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 		}
 	}
 	return cleanProducts
+}
+
+// SetMarginKeeper sets keeper of margin
+func (k *Keeper) SetMarginKeeper(mk MarginKeeper) {
+	k.marginKeeper = mk
 }

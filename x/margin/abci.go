@@ -2,6 +2,9 @@ package margin
 
 import (
 	"fmt"
+	"sync"
+
+	"github.com/okex/okchain/x/order"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
@@ -74,5 +77,107 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 			return false
 		})
 
-	// force liquidation
+	// liquidation
+	var wg sync.WaitGroup
+	tradePairs := k.GetAllTradePairs(ctx)
+	for _, tradePair := range tradePairs {
+		// get all address borrowed on tradePair
+		addressList := k.GetBorrowedAddress(ctx, tradePair.Name)
+		if len(addressList) > 0 {
+			wg.Add(1)
+			go doLiquidation(&wg, ctx, k, tradePair, addressList)
+		}
+	}
+	wg.Wait()
+}
+
+func doLiquidation(wg *sync.WaitGroup, ctx sdk.Context, k Keeper, tradePair *types.TradePair, addressList []sdk.AccAddress) {
+	defer wg.Done()
+	for _, address := range addressList {
+		account := k.GetAccount(ctx, address, tradePair.Name)
+		latestPrice := k.GetOrderKeeper().GetLastPrice(ctx, tradePair.Name)
+		baseSymbol := tradePair.BaseSymbol()
+		quoteSymbol := tradePair.QuoteSymbol()
+		marginRatio := account.MarginRatio(baseSymbol, quoteSymbol, latestPrice)
+		// do not need liquidation
+		if marginRatio.GT(tradePair.MaintenanceMarginRatio) {
+			continue
+		}
+
+		// force liquidation
+		if account.Borrowed.AmountOf(baseSymbol).IsPositive() && account.Available.AmountOf(baseSymbol).IsPositive() {
+			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol)))
+		}
+		if account.Borrowed.AmountOf(quoteSymbol).IsPositive() && account.Available.AmountOf(quoteSymbol).IsPositive() {
+			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol)))
+		}
+
+		// force placing order
+		placeOrder(ctx, k, tradePair, latestPrice, address, account)
+	}
+}
+
+func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPrice sdk.Dec, address sdk.AccAddress, account *types.Account) {
+	if k.GetOrderKeeper().IsProductLocked(ctx, tradePair.Name) {
+		return
+	}
+	baseSymbol := tradePair.BaseSymbol()
+	quoteSymbol := tradePair.QuoteSymbol()
+
+	bestBid, bestAsk := k.GetOrderKeeper().GetBestBidAndAsk(ctx, tradePair.Name)
+	if bestBid.IsZero() {
+		bestBid = latestPrice
+	}
+	if bestAsk.IsZero() {
+		bestAsk = latestPrice
+	}
+	bestBid = bestBid.Mul(sdk.MustNewDecFromStr("1.05"))
+	bestAsk = bestAsk.Mul(sdk.MustNewDecFromStr("0.95"))
+
+	baseAvailable := account.Available.AmountOf(baseSymbol)
+	baseBorrowed := account.Borrowed.AmountOf(baseSymbol)
+	quoteAvailable := account.Available.AmountOf(quoteSymbol)
+	quoteBorrowed := account.Borrowed.AmountOf(quoteSymbol)
+
+	// place buy order to repay base token
+	if baseBorrowed.IsPositive() && quoteAvailable.IsPositive() {
+		side := order.BuyOrder
+		quantity := baseBorrowed
+		maxBuyQuantity := quoteAvailable.Quo(bestBid)
+		if quantity.GT(maxBuyQuantity) {
+			quantity = maxBuyQuantity
+		}
+		msg := order.MsgNewOrder{
+			Sender:   address,
+			Product:  tradePair.Name,
+			Side:     side,
+			Price:    bestBid,
+			Quantity: quantity,
+			Type:     order.MarginOrder,
+		}
+		orderKeeper := k.GetOrderKeeper().(*order.Keeper)
+		newOrder := order.GetOrderFromMsg(ctx, *orderKeeper, msg, order.DefaultNewOrderFeeRatio)
+		k.GetOrderKeeper().PlaceOrder(ctx, newOrder)
+	}
+
+	// place sell order to repay quote token
+	if quoteBorrowed.IsPositive() && baseAvailable.IsPositive() {
+		side := order.SellOrder
+		quantity := quoteBorrowed.Quo(bestAsk)
+		maxSellQuantity := baseAvailable
+		if quantity.GT(maxSellQuantity) {
+			quantity = maxSellQuantity
+		}
+		msg := order.MsgNewOrder{
+			Sender:   address,
+			Product:  tradePair.Name,
+			Side:     side,
+			Price:    bestBid,
+			Quantity: quantity,
+			Type:     order.MarginOrder,
+		}
+		orderKeeper := k.GetOrderKeeper().(*order.Keeper)
+		newOrder := order.GetOrderFromMsg(ctx, *orderKeeper, msg, order.DefaultNewOrderFeeRatio)
+		k.GetOrderKeeper().PlaceOrder(ctx, newOrder)
+	}
 }

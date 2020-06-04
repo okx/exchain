@@ -72,8 +72,8 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	}
 }
 
-// checkOrderNewMsg: check msg product, price & quantity fields
-func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
+// CheckOrderNewMsg: check msg product, price & quantity fields
+func CheckOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
 		return fmt.Errorf("trading pair '%s' does not exist", msg.Product)
@@ -105,7 +105,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	return nil
 }
 
-func getOrderFromMsg(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrder, ratio string) *types.Order {
+func GetOrderFromMsg(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrder, ratio string) *types.Order {
 	feeParams := k.GetParams(ctx)
 	feePerBlockAmount := feeParams.FeePerBlock.Amount.Mul(sdk.MustNewDecFromStr(ratio))
 	feePerBlock := sdk.NewDecCoinFromDec(feeParams.FeePerBlock.Denom, feePerBlockAmount)
@@ -136,9 +136,9 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress, orderType 
 		Quantity: item.Quantity,
 		Type:     orderType,
 	}
-	order := getOrderFromMsg(ctxItem, k, msg, ratio)
+	order := GetOrderFromMsg(ctxItem, k, msg, ratio)
 	code := sdk.CodeOK
-	err := checkOrderNewMsg(ctxItem, k, msg)
+	err := CheckOrderNewMsg(ctxItem, k, msg)
 
 	if err != nil {
 		code = sdk.CodeUnknownRequest
@@ -176,7 +176,7 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 	logger log.Logger) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
-	ratio := "1"
+	ratio := DefaultNewOrderFeeRatio
 	if len(msg.OrderItems) > 1 {
 		ratio = "0.8"
 	}
@@ -216,7 +216,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 			Quantity: item.Quantity,
 			Type:     msg.OrderType,
 		}
-		err := checkOrderNewMsg(ctx, k, msg)
+		err := CheckOrderNewMsg(ctx, k, msg)
 		if err != nil {
 			return sdk.Result{
 				Code: sdk.CodeUnknownRequest,
@@ -230,7 +230,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 			}
 		}
 
-		order := getOrderFromMsg(ctx, k, msg, ratio)
+		order := GetOrderFromMsg(ctx, k, msg, ratio)
 		_, err = k.TryPlaceOrder(ctx, order)
 		if err != nil {
 			return sdk.Result{

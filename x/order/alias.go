@@ -9,14 +9,17 @@ import (
 // nolint
 // const params aliases
 const (
-	ModuleName        = types.ModuleName
-	RouterKey         = types.RouterKey
-	QuerierRoute      = types.QuerierRoute
-	DefaultParamspace = types.DefaultParamspace
-	DefaultCodespace  = types.DefaultCodespace
-	OrderStoreKey     = types.OrderStoreKey
-	OrdinaryOrder     = types.OrdinaryOrder
-	MarginOrder       = types.MarginOrder
+	ModuleName              = types.ModuleName
+	RouterKey               = types.RouterKey
+	QuerierRoute            = types.QuerierRoute
+	DefaultParamspace       = types.DefaultParamspace
+	DefaultCodespace        = types.DefaultCodespace
+	OrderStoreKey           = types.OrderStoreKey
+	OrdinaryOrder           = types.OrdinaryOrder
+	MarginOrder             = types.MarginOrder
+	BuyOrder                = types.BuyOrder
+	SellOrder               = types.SellOrder
+	DefaultNewOrderFeeRatio = types.DefaultNewOrderFeeRatio
 )
 
 // nolint
@@ -33,6 +36,7 @@ type (
 	MsgNewOrders     = types.MsgNewOrders
 	MsgCancelOrders  = types.MsgCancelOrders
 	BlockMatchResult = types.BlockMatchResult
+	MarginKeeper     = keeper.MarginKeeper
 )
 
 // nolint

@@ -128,7 +128,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	dexKeeper := dex.NewKeeper(auth.FeeCollectorName, supplyKeeper, paramsSubspace, tokenKeepr, nil, bankKeeper, storeKey, keyTokenPair, cdc)
 
 	// order keeper
-	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, dexKeeper, nil,
+	orderKeeper := NewKeeper(tokenKeepr, supplyKeeper, dexKeeper,
 		paramsKeeper.Subspace(types.DefaultParamspace), auth.FeeCollectorName, keyOrder,
 		cdc, true, monitor.NopOrderMetrics())
 

@@ -22,18 +22,22 @@ type Keeper struct {
 
 	dexKeeper   types.DexKeeper
 	tokenKeeper types.TokenKeeper
+	orderKeeper types.OrderKeeper
 }
 
 // NewKeeper creates a margin keeper
-func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSubspace types.ParamSubspace, dexKeeper types.DexKeeper, tokenKeeper types.TokenKeeper) Keeper {
-	return Keeper{
+func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSubspace types.ParamSubspace, dexKeeper types.DexKeeper, tokenKeeper types.TokenKeeper, orderKeeper types.OrderKeeper) Keeper {
+	k := Keeper{
 		storeKey:      key,
 		cdc:           cdc,
 		paramSubspace: paramSubspace.WithKeyTable(types.ParamKeyTable()),
 
 		dexKeeper:   dexKeeper,
 		tokenKeeper: tokenKeeper,
+		orderKeeper: orderKeeper,
 	}
+	orderKeeper.SetMarginKeeper(k)
+	return k
 }
 
 // Logger returns a module-specific logger.
@@ -53,6 +57,11 @@ func (k Keeper) GetTokenKeeper() types.TokenKeeper {
 // GetDexKeeper returns dex Keeper
 func (k Keeper) GetDexKeeper() types.DexKeeper {
 	return k.dexKeeper
+}
+
+// GetOrderKeeper returns order Keeper
+func (k Keeper) GetOrderKeeper() types.OrderKeeper {
+	return k.orderKeeper
 }
 
 // GetParamSubspace returns paramSubspace
@@ -87,12 +96,12 @@ func (k Keeper) GetTradePair(ctx sdk.Context, product string) *types.TradePair {
 	return &tradePair
 }
 
-func (k Keeper) GetAllTradePairs(ctx sdk.Context) []types.TradePair {
+func (k Keeper) GetAllTradePairs(ctx sdk.Context) []*types.TradePair {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.TradePairKeyPrefix)
 	defer iterator.Close()
 
-	var tradePairs []types.TradePair
+	var tradePairs []*types.TradePair
 	for ; iterator.Valid(); iterator.Next() {
 		var tradePair types.TradePair
 		err := k.cdc.UnmarshalBinaryBare(iterator.Value(), &tradePair)
@@ -100,7 +109,7 @@ func (k Keeper) GetAllTradePairs(ctx sdk.Context) []types.TradePair {
 			ctx.Logger().Error("decoding of token pair is failed", iterator.Value())
 			return nil
 		}
-		tradePairs = append(tradePairs, tradePair)
+		tradePairs = append(tradePairs, &tradePair)
 	}
 	return tradePairs
 }
@@ -438,6 +447,9 @@ func (k Keeper) Borrow(ctx sdk.Context, address sdk.AccAddress, tradePair *types
 	account.Available = account.Available.Add(sdk.NewCoins(borrowAmount))
 	account.Interest = account.Interest.Add(interest)
 	k.SetAccount(ctx, address, tradePair.Name, account)
+
+	// set borrowed key, for checking force liquidation
+	k.SetBorrowedKey(ctx, address, tradePair.Name)
 	return nil
 }
 
@@ -506,16 +518,7 @@ func (k Keeper) calculateTimeKeyIterator(ctx sdk.Context, calculateTime time.Tim
 
 // Repay repays the borrowing of product
 // repay precedence: 1. return interest 2. repay borrowing which rate is greater 3. repay borrowing which borrowed earlier
-func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) sdk.Error {
-	account := k.GetAccount(ctx, address, tradePair.Name)
-	if account == nil {
-		return types.ErrAccountNotExist(types.Codespace, fmt.Sprintf("failed to repay"))
-	}
-
-	if account.Borrowed.AmountOf(amount.Denom).IsZero() {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("repay amount:%s mismatch borrowed coins:%s", amount.String(), account.Borrowed.String()))
-	}
-
+func (k Keeper) Repay(ctx sdk.Context, account *types.Account, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) {
 	denom := amount.Denom
 	actualAmount := amount.Amount
 	// when amount is greater than borrowed + interest
@@ -533,7 +536,7 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
 		k.SetAccount(ctx, address, tradePair.Name, account)
-		return nil
+		return
 	}
 
 	// update account
@@ -542,6 +545,11 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 	account.Borrowed = account.Borrowed.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
 	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
 	k.SetAccount(ctx, address, tradePair.Name, account)
+
+	// delete borrowed key
+	if account.Borrowed.IsZero() {
+		k.DeleteBorrowedKey(ctx, address, tradePair.Name)
+	}
 
 	// repay borrowing & update borrowInfo
 	borrowInfoList := k.GetBorrowInfoList(ctx, address, tradePair.Name)
@@ -555,7 +563,6 @@ func (k Keeper) Repay(ctx sdk.Context, address sdk.AccAddress, tradePair *types.
 		remainAmount = remainAmount.Sub(borrowInfo.BorrowAmount.AmountOf(denom))
 		k.deleteBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
 	}
-	return nil
 }
 
 // GetBorrowInfoList  returns all borrowInfos
@@ -571,7 +578,7 @@ func (k Keeper) GetBorrowInfoList(ctx sdk.Context, address sdk.AccAddress, produ
 	return
 }
 
-// GetAccounts return all margin accunts of address
+// GetAccounts returns all margin accunts of address
 func (k Keeper) GetAccounts(ctx sdk.Context, address sdk.AccAddress) (accounts []*types.Account) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.GetAccountAddressKey(address))
@@ -582,4 +589,32 @@ func (k Keeper) GetAccounts(ctx sdk.Context, address sdk.AccAddress) (accounts [
 		accounts = append(accounts, &account)
 	}
 	return
+}
+
+// SetBorrowedKey sets key when address borrowed on product
+func (k Keeper) SetBorrowedKey(ctx sdk.Context, address sdk.AccAddress, product string) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetBorrowedKey(address, product)
+	store.Set(key, []byte{})
+}
+
+// DeleteBorrowedKey deletes key when address repaid on product
+func (k Keeper) DeleteBorrowedKey(ctx sdk.Context, address sdk.AccAddress, product string) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetBorrowedKey(address, product)
+	store.Delete(key)
+}
+
+// GetBorrowedAddress returns all address borrowed product
+func (k Keeper) GetBorrowedAddress(ctx sdk.Context, product string) []sdk.AccAddress {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.GetBorrowedProductKey(product))
+	defer iterator.Close()
+	var addressList []sdk.AccAddress
+	for ; iterator.Valid(); iterator.Next() {
+		key := iterator.Key()
+		address := types.SplitBorrowedKey(key, product)
+		addressList = append(addressList, address)
+	}
+	return addressList
 }

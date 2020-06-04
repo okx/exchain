@@ -35,6 +35,7 @@ var (
 	CalculateInterestKeyPrefix = []byte{0x05}
 	DexWithdrawKeyPrefix       = []byte{0x06}
 	DexWithdrawTimeKeyPrefix   = []byte{0x07}
+	BorrowedKeyPrefix          = []byte{0x08}
 )
 
 func GetTradePairKey(product string) []byte {
@@ -109,4 +110,18 @@ func SplitCalculateInterestTimeKey(key []byte) (time.Time, []byte) {
 		panic(err)
 	}
 	return endTime, key[1+lenTime:]
+}
+
+func GetBorrowedProductKey(product string) []byte {
+	return append(BorrowedKeyPrefix, []byte(product)...)
+}
+
+func GetBorrowedKey(address sdk.AccAddress, product string) []byte {
+	return append(GetBorrowedProductKey(product), address.Bytes()...)
+}
+
+func SplitBorrowedKey(key []byte, product string) sdk.AccAddress {
+	lenProduct := len([]byte(product))
+	address := sdk.AccAddress(key[1+lenProduct:])
+	return address
 }

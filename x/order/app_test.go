@@ -109,7 +109,6 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.tokenKeeper,
 		mockApp.supplyKeeper,
 		mockApp.dexKeeper,
-		nil,
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),
 		auth.FeeCollectorName,
 		mockApp.keyOrder,

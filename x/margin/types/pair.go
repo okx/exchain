@@ -1,6 +1,8 @@
 package types
 
 import (
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -12,4 +14,12 @@ type TradePair struct {
 	BorrowRate             sdk.Dec        `json:"borrow-rate"`
 	MaintenanceMarginRatio sdk.Dec        `json:"maintenance-margin-ratio"`
 	BlockHeight            int64          `json:"block_height"`
+}
+
+func (tp TradePair) BaseSymbol() string {
+	return strings.Split(tp.Name, "_")[0]
+}
+
+func (tp TradePair) QuoteSymbol() string {
+	return strings.Split(tp.Name, "_")[1]
 }
