@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -68,21 +70,29 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 	// 4.discharge the abandoned validators
 	for _, valAddr := range abandonedValAddrs {
 		validator := k.mustGetValidator(ctx, valAddr)
-		// bonded to unbonding
-		validator = k.bondedToUnbonding(ctx, validator)
-		// delete from the bonded validator index
-		k.DeleteLastValidatorPower(ctx, validator.GetOperator())
-		// update the validator set
-		updates = append(updates, validator.ABCIValidatorUpdateZero())
-		// reduce the total power
-		valKey := getLastValidatorsMapKey(valAddr)
-		oldPowerBytes, found := lastBondedVals[valKey]
-		if !found {
-			panic("Never occur")
+		switch {
+		case validator.IsUnbonded():
+			logger.Debug(fmt.Sprintf("validator %s is already in the unboned status", validator.OperatorAddress.String()))
+		case validator.IsUnbonding():
+			logger.Debug(fmt.Sprintf("validator %s is already in the unbonding status", validator.OperatorAddress.String()))
+		case validator.IsBonded(): // bonded to unbonding
+			k.bondedToUnbonding(ctx, validator)
+			// delete from the bonded validator index
+			k.DeleteLastValidatorPower(ctx, validator.GetOperator())
+			// update the validator set
+			updates = append(updates, validator.ABCIValidatorUpdateZero())
+			// reduce the total power
+			valKey := getLastValidatorsMapKey(valAddr)
+			oldPowerBytes, found := lastBondedVals[valKey]
+			if !found {
+				panic("Never occur")
+			}
+			var oldPower int64
+			k.cdc.MustUnmarshalBinaryLengthPrefixed(oldPowerBytes, &oldPower)
+			totalPower = totalPower.Sub(sdk.NewInt(oldPower))
+		default:
+			panic("unexpected validator status")
 		}
-		var oldPower int64
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(oldPowerBytes, &oldPower)
-		totalPower = totalPower.Sub(sdk.NewInt(oldPower))
 	}
 
 	// 5. update the total power of this block to store
