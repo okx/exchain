@@ -19,12 +19,12 @@ const (
 
 // nolint
 type MsgNewOrder struct {
-	Sender   sdk.AccAddress `json:"sender"`   // order maker address
-	Product  string         `json:"product"`  // product for trading pair in full name of the tokens
-	Side     string         `json:"side"`     // BUY/SELL
-	Price    sdk.Dec        `json:"price"`    // price of the order
-	Quantity sdk.Dec        `json:"quantity"` // quantity of the order
-	Type     OrderType      `json:"type"`     // type of the order
+	Sender   sdk.AccAddress `json:"sender"`     // order maker address
+	Product  string         `json:"product"`    // product for trading pair in full name of the tokens
+	Side     string         `json:"side"`       // BUY/SELL
+	Price    sdk.Dec        `json:"price"`      // price of the order
+	Quantity sdk.Dec        `json:"quantity"`   // quantity of the order
+	Type     OrderType      `json:"order_type"` // type of the order
 }
 
 // NewMsgNewOrder is a constructor function for MsgNewOrder

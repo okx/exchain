@@ -26,7 +26,7 @@ func TestNewOrder(t *testing.T) {
 	require.Equal(t, sdk.ZeroDec().String(), order1.RemainLocked.String())
 
 	// test order string
-	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_` + common.NativeToken + `","side":"SELL","price":"1.10000000","quantity":"10.00000000","status":0,"filled_avg_price":"0","remain_quantity":"10.00000000","remain_locked":"0.00000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"` + common.NativeToken + `","amount":"0.00000100"},"extra_info":""}`
+	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_` + common.NativeToken + `","side":"SELL","price":"1.10000000","quantity":"10.00000000","status":0,"filled_avg_price":"0","remain_quantity":"10.00000000","remain_locked":"0.00000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"` + common.NativeToken + `","amount":"0.00000100"},"extra_info":"","type":0}`
 
 	require.Equal(t, expected, order1.String())
 
