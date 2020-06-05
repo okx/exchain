@@ -1,4 +1,4 @@
-package swap
+package poolswap
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"

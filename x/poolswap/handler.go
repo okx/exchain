@@ -1,11 +1,11 @@
-package swap
+package poolswap
 
 import (
 	"fmt"
 
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

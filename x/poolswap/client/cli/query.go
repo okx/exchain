@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

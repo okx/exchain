@@ -1,4 +1,4 @@
-package swap
+package poolswap
 
 import (
 	"fmt"

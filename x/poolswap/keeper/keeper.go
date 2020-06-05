@@ -7,7 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 	tokentypes "github.com/okex/okchain/x/token/types"
 )
 
