@@ -20,7 +20,7 @@ import (
 	//"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/token"
 	"github.com/okex/okchain/x/upgrade"
-	"github.com/okex/okchain/x/swap"
+	"github.com/okex/okchain/x/poolswap"
 )
 
 // store keys used in all modules
@@ -40,7 +40,7 @@ var (
 		upgrade.StoreKey,
 		dex.StoreKey, dex.TokenPairStoreKey,
 		debug.StoreKey,
-		swap.StoreKey,
+		poolswap.StoreKey,
 	)
 
 	transientStoreKeysMap = sdk.NewTransientStoreKeys(staking.TStoreKey, params.TStoreKey)
