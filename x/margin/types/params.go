@@ -14,12 +14,9 @@ const (
 	DefaultInterestPeriod = time.Hour * 24
 )
 
-// Parameter store keys
 var (
 	keyWithdrawPeriod = []byte("WithdrawPeriod")
 	keyInterestPeriod = []byte("InterestPeriod")
-
-	keyAddDepositFee = []byte("AddDepositFee")
 )
 
 // ParamKeyTable for margin module

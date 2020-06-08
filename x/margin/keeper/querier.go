@@ -37,7 +37,6 @@ func queryMarginAccount(ctx sdk.Context, path []string, req abci.RequestQuery, k
 		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[1]))
 	}
 
-	//marginAcc := types.GetMarginAccount(addr.String())
 	marginDeposit := keeper.GetAccounts(ctx, addr)
 	res, err := common.JSONMarshalV2(marginDeposit)
 	if err != nil {
