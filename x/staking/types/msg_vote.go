@@ -7,7 +7,7 @@ import (
 
 // ensure Msg interface compliance at compile time
 var (
-	_ sdk.Msg = (*MsgVote)(nil)
+	_ sdk.Msg = (*MsgAddShares)(nil)
 	_ sdk.Msg = (*MsgDestroyValidator)(nil)
 )
 
@@ -45,7 +45,7 @@ func (msg MsgDestroyValidator) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bytes)
 }
 
-// MsgUnbindProxy - structure for unbinding proxy relationship between voters and proxy
+// MsgUnbindProxy - structure for unbinding proxy relationship between the delegator and the proxy
 type MsgUnbindProxy struct {
 	DelAddr sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 }
@@ -59,7 +59,7 @@ func NewMsgUnbindProxy(delAddr sdk.AccAddress) MsgUnbindProxy {
 
 // nolint
 func (MsgUnbindProxy) Route() string { return RouterKey }
-func (MsgUnbindProxy) Type() string  { return "vote_unbind_proxy" }
+func (MsgUnbindProxy) Type() string  { return "unbind_proxy" }
 func (msg MsgUnbindProxy) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelAddr}
 }
@@ -95,7 +95,7 @@ func NewMsgRegProxy(proxyAddress sdk.AccAddress, reg bool) MsgRegProxy {
 
 // nolint
 func (MsgRegProxy) Route() string { return RouterKey }
-func (MsgRegProxy) Type() string  { return "vote_reg_or_unreg_proxy" }
+func (MsgRegProxy) Type() string  { return "reg_or_unreg_proxy" }
 func (msg MsgRegProxy) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.ProxyAddress}
 }
@@ -114,7 +114,7 @@ func (msg MsgRegProxy) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bytes)
 }
 
-// MsgBindProxy - structure for bind proxy relationship between voters and voting proxy
+// MsgBindProxy - structure for bind proxy relationship between the delegator and the proxy
 type MsgBindProxy struct {
 	DelAddr      sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	ProxyAddress sdk.AccAddress `json:"proxy_address" yaml:"proxy_address"`
@@ -130,7 +130,7 @@ func NewMsgBindProxy(delAddr sdk.AccAddress, ProxyDelAddr sdk.AccAddress) MsgBin
 
 // nolint
 func (MsgBindProxy) Route() string { return RouterKey }
-func (MsgBindProxy) Type() string  { return "vote_bind_proxy" }
+func (MsgBindProxy) Type() string  { return "bind_proxy" }
 func (msg MsgBindProxy) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelAddr}
 }
@@ -156,29 +156,29 @@ func (msg MsgBindProxy) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bytes)
 }
 
-// MsgVote - struct for voting transactions
-type MsgVote struct {
+// MsgAddShares - struct for adding-shares transaction
+type MsgAddShares struct {
 	DelAddr  sdk.AccAddress   `json:"delegator_address" yaml:"delegator_address"`
 	ValAddrs []sdk.ValAddress `json:"validator_addresses" yaml:"validator_addresses"`
 }
 
-// NewMsgVote creates a msg of multi voting
-func NewMsgVote(delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) MsgVote {
-	return MsgVote{
+// NewMsgAddShares creates a msg of adding shares to vals
+func NewMsgAddShares(delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) MsgAddShares {
+	return MsgAddShares{
 		DelAddr:  delAddr,
 		ValAddrs: valAddrs,
 	}
 }
 
 // nolint
-func (MsgVote) Route() string { return RouterKey }
-func (MsgVote) Type() string  { return "vote_to_validators" }
-func (msg MsgVote) GetSigners() []sdk.AccAddress {
+func (MsgAddShares) Route() string { return RouterKey }
+func (MsgAddShares) Type() string  { return "add_shares_to_validators" }
+func (msg MsgAddShares) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelAddr}
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgVote) ValidateBasic() sdk.Error {
+func (msg MsgAddShares) ValidateBasic() sdk.Error {
 	if msg.DelAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -195,7 +195,7 @@ func (msg MsgVote) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes returns the message bytes to sign over
-func (msg MsgVote) GetSignBytes() []byte {
+func (msg MsgAddShares) GetSignBytes() []byte {
 	bytes := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bytes)
 }
@@ -214,7 +214,7 @@ func isValsDuplicate(valAddrs []sdk.ValAddress) bool {
 	return false
 }
 
-// MsgDelegate - struct for delegating to exchange the votes
+// MsgDelegate - struct for delegating to staking account
 type MsgDelegate struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantiy"`
@@ -252,7 +252,7 @@ func (msg MsgDelegate) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bz)
 }
 
-// MsgUndelegate - struct for delegating to exchange the votes
+// MsgUndelegate - struct for undelegating
 type MsgUndelegate struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantity"`

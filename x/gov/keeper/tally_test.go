@@ -245,7 +245,7 @@ func TestTallyDelegatorInherit(t *testing.T) {
 	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
 
-	voteMsg := staking.NewMsgVote(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
+	voteMsg := staking.NewMsgAddShares(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
 	stakingHandler(ctx, voteMsg)
 
 	content := types.NewTextProposal("Test", "description")
@@ -288,7 +288,7 @@ func TestTallyDelegatorOverride(t *testing.T) {
 	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
 
-	voteMsg := staking.NewMsgVote(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
+	voteMsg := staking.NewMsgAddShares(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
 	stakingHandler(ctx, voteMsg)
 
 	content := types.NewTextProposal("Test", "description")

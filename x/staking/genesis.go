@@ -39,8 +39,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	for _, ubd := range data.UnbondingDelegations {
 		initUnbondingDelegation(ctx, ubd, keeper, &notBondedTokens)
 	}
-	for _, voteExported := range data.Votes {
-		keeper.SetVote(ctx, voteExported.VoterAddress, voteExported.ValidatorAddress, voteExported.Votes)
+	for _, sharesExported := range data.AllShares {
+		keeper.SetShares(ctx, sharesExported.DelAddress, sharesExported.ValidatorAddress, sharesExported.Shares)
 	}
 	for _, proxyDelegatorKeyExported := range data.ProxyDelegatorKeys {
 		keeper.SetProxyBinding(ctx, proxyDelegatorKeyExported.ProxyAddr, proxyDelegatorKeyExported.DelAddr, false)
@@ -151,10 +151,10 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 		lastValidatorPowers = append(lastValidatorPowers, types.NewLastValidatorPower(addr, power))
 		return false
 	})
-	var votesExportedSlice []types.VotesExported
-	keeper.IterateVotes(ctx,
-		func(_ int64, voterAddr sdk.AccAddress, valAddr sdk.ValAddress, votes types.Votes) (stop bool) {
-			votesExportedSlice = append(votesExportedSlice, types.NewVoteExported(voterAddr, valAddr, votes))
+	var sharesExportedSlice []types.SharesExported
+	keeper.IterateShares(ctx,
+		func(_ int64, delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares types.Shares) (stop bool) {
+			sharesExportedSlice = append(sharesExportedSlice, types.NewSharesExported(delAddr, valAddr, shares))
 			return false
 		})
 
@@ -171,7 +171,7 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 		Validators:           validators.Export(),
 		Delegators:           delegators,
 		UnbondingDelegations: undelegationInfos,
-		Votes:                votesExportedSlice,
+		AllShares:            sharesExportedSlice,
 		ProxyDelegatorKeys:   proxyDelegatorKeys,
 		Exported:             true,
 	}

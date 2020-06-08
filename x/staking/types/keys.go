@@ -38,7 +38,7 @@ var (
 
 	ValidatorQueueKey = []byte{0x43} // prefix for the timestamps in validator queue
 
-	VoteKey             = []byte{0x51}
+	SharesKey           = []byte{0x51}
 	DelegatorKey        = []byte{0x52}
 	UnDelegationInfoKey = []byte{0x53}
 	UnDelegateQueueKey  = []byte{0x54}
@@ -87,10 +87,10 @@ func GetValidatorQueueTimeKey(timestamp time.Time) []byte {
 }
 
 // getValidatorPowerRank gets the power ranking of a validator by okchain's rule
-// just according to the votes instead of tokens on validator
+// just according to the shares instead of tokens on a validator
 func getValidatorPowerRank(validator Validator) []byte {
-	// consensus power based on votes on validator
-	consensusPower := votesToConsensusPower(validator.DelegatorShares)
+	// consensus power based on the shares on a validator
+	consensusPower := sharesToConsensusPower(validator.DelegatorShares)
 	consensusPowerBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(consensusPowerBytes[:], uint64(consensusPower))
 
@@ -121,14 +121,14 @@ func GetProxyDelegatorKey(proxyAddr, delAddr sdk.AccAddress) []byte {
 	return append(append(ProxyKey, proxyAddr...), delAddr...)
 }
 
-// GetVoteKey gets the whole key for a vote
-func GetVoteKey(valAddr sdk.ValAddress, voterAddr sdk.AccAddress) []byte {
-	return append(GetVotesToValidatorsKey(valAddr), voterAddr.Bytes()...)
+// GetSharesKey gets the whole key for an item of shares info
+func GetSharesKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
+	return append(GetSharesToValidatorsKey(valAddr), delAddr.Bytes()...)
 }
 
-// GetVotesToValidatorsKey gets the first-prefix for a vote
-func GetVotesToValidatorsKey(valAddr sdk.ValAddress) []byte {
-	return append(VoteKey, valAddr.Bytes()...)
+// GetSharesToValidatorsKey gets the first-prefix for an item of shares info
+func GetSharesToValidatorsKey(valAddr sdk.ValAddress) []byte {
+	return append(SharesKey, valAddr.Bytes()...)
 }
 
 // GetUndelegationInfoKey gets the key for UndelegationInfo

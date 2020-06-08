@@ -5,73 +5,73 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// GetVote gets the vote entity
-func (k Keeper) GetVote(ctx sdk.Context, voterAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.Votes, bool) {
+// GetShares gets the shares entity
+func (k Keeper) GetShares(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (types.Shares, bool) {
 	store := ctx.KVStore(k.storeKey)
-	votesBytes := store.Get(types.GetVoteKey(valAddr, voterAddr))
-	var votes types.Votes
-	// the voter never votes to this val before
-	if votesBytes == nil {
-		return votes, false
+	sharesBytes := store.Get(types.GetSharesKey(valAddr, delAddr))
+	var shares types.Shares
+	// the delegator never adds shares to this val before
+	if sharesBytes == nil {
+		return shares, false
 	}
 
-	votes = types.MustUnmarshalVote(k.cdc, votesBytes)
-	return votes, true
+	shares = types.MustUnmarshalShares(k.cdc, sharesBytes)
+	return shares, true
 }
 
-// SetVote sets votes to store
-func (k Keeper) SetVote(ctx sdk.Context, voterAddr sdk.AccAddress, valAddr sdk.ValAddress, votes types.Votes) {
-	key := types.GetVoteKey(valAddr, voterAddr)
-	voteBytes := k.cdc.MustMarshalBinaryLengthPrefixed(votes)
-	ctx.KVStore(k.storeKey).Set(key, voteBytes)
+// SetShares sets the shares that added to validators to store
+func (k Keeper) SetShares(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares types.Shares) {
+	key := types.GetSharesKey(valAddr, delAddr)
+	sharesBytes := k.cdc.MustMarshalBinaryLengthPrefixed(shares)
+	ctx.KVStore(k.storeKey).Set(key, sharesBytes)
 }
 
-// DeleteVote deletes votes entire from store
-func (k Keeper) DeleteVote(ctx sdk.Context, valAddr sdk.ValAddress, voterAddr sdk.AccAddress) {
-	ctx.KVStore(k.storeKey).Delete(types.GetVoteKey(valAddr, voterAddr))
+// DeleteShares deletes shares entire from store
+func (k Keeper) DeleteShares(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Delete(types.GetSharesKey(valAddr, delAddr))
 }
 
-// GetValidatorVotes returns all votes made to a specific validator and it's useful for querier
-func (k Keeper) GetValidatorVotes(ctx sdk.Context, valAddr sdk.ValAddress) types.VoteResponses {
+// GetValidatorAllShares returns all shares added to a specific validator and it's useful for querier
+func (k Keeper) GetValidatorAllShares(ctx sdk.Context, valAddr sdk.ValAddress) types.SharesResponses {
 	store := ctx.KVStore(k.storeKey)
 
-	var voteResps types.VoteResponses
-	iterator := sdk.KVStorePrefixIterator(store, types.GetVotesToValidatorsKey(valAddr))
+	var sharesResps types.SharesResponses
+	iterator := sdk.KVStorePrefixIterator(store, types.GetSharesToValidatorsKey(valAddr))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		// 1.get the voter address
-		voterAddr := sdk.AccAddress(iterator.Key()[1+sdk.AddrLen:])
+		// 1.get the delegator address
+		delAddr := sdk.AccAddress(iterator.Key()[1+sdk.AddrLen:])
 
-		// 2.get the votes
-		votes := types.MustUnmarshalVote(k.cdc, iterator.Value())
+		// 2.get the shares
+		shares := types.MustUnmarshalShares(k.cdc, iterator.Value())
 
 		// 3.assemble the result
-		voteResps = append(voteResps, types.NewVoteResponse(voterAddr, votes))
+		sharesResps = append(sharesResps, types.NewSharesResponse(delAddr, shares))
 	}
 
-	return voteResps
+	return sharesResps
 }
 
-// IterateVotes iterates through all of the votes from store
-func (k Keeper) IterateVotes(ctx sdk.Context, fn func(index int64, voterAddr sdk.AccAddress, valAddr sdk.ValAddress,
-	votes types.Votes) (stop bool)) {
+// IterateShares iterates through all of the shares from store
+func (k Keeper) IterateShares(ctx sdk.Context, fn func(index int64, delAddr sdk.AccAddress, valAddr sdk.ValAddress,
+	shares types.Shares) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.VoteKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.SharesKey)
 	defer iterator.Close()
 
 	boundIndex := sdk.AddrLen + 1
 	for i := int64(0); iterator.Valid(); iterator.Next() {
-		// 1.get voter/validator address from the key
+		// 1.get delegator/validator address from the key
 		key := iterator.Key()
-		valAddr, voterAddr := sdk.ValAddress(key[1:boundIndex]), sdk.AccAddress(key[boundIndex:])
+		valAddr, delAddr := sdk.ValAddress(key[1:boundIndex]), sdk.AccAddress(key[boundIndex:])
 
-		// 2.get the votes
-		var vote types.Votes
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &vote)
+		// 2.get the shares
+		var shares types.Shares
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &shares)
 
 		// 3.call back the function
-		if stop := fn(i, voterAddr, valAddr, vote); stop {
+		if stop := fn(i, delAddr, valAddr, shares); stop {
 			break
 		}
 		i++

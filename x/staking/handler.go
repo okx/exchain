@@ -26,8 +26,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgDelegate(ctx, msg, k)
 		case types.MsgUndelegate:
 			return handleMsgUndelegate(ctx, msg, k)
-		case types.MsgVote:
-			return handleMsgVote(ctx, msg, k)
+		case types.MsgAddShares:
+			return handleMsgAddShares(ctx, msg, k)
 		case types.MsgBindProxy:
 			return handleMsgBindProxy(ctx, msg, k)
 		case types.MsgUnbindProxy:
@@ -122,9 +122,9 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
-	// vote msd for validator itself
+	// add shares of equal value of msd for validator itself
 	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
-	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
+	if err = k.AddSharesAsMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)

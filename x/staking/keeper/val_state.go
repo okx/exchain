@@ -39,8 +39,8 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 		}
 		// promote the candidate
 		validator := k.mustGetValidator(ctx, valAddr)
-		// if we get to a zero-power validator without votes, just pass
-		if validator.PotentialConsensusPowerByVotes() == 0 {
+		// if we get to a zero-power validator without shares, just pass
+		if validator.PotentialConsensusPowerByShares() == 0 {
 			continue
 		}
 
@@ -56,9 +56,9 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 		}
 
 		// calculate the new power of candidate validator
-		newPower := validator.ConsensusPowerByVotes()
+		newPower := validator.ConsensusPowerByShares()
 		// update the validator to tendermint
-		updates = append(updates, validator.ABCIValidatorUpdateByVotes())
+		updates = append(updates, validator.ABCIValidatorUpdateByShares())
 		// set validator power on lookup index
 		k.SetLastValidatorPower(ctx, valAddr, newPower)
 		// cumsum the total power

@@ -11,7 +11,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDestroyValidator{}, "okchain/staking/MsgDestroyValidator", nil)
 	cdc.RegisterConcrete(MsgDelegate{}, "okchain/staking/MsgDelegate", nil)
 	cdc.RegisterConcrete(MsgUndelegate{}, "okchain/staking/MsgUnDelegate", nil)
-	cdc.RegisterConcrete(MsgVote{}, "okchain/staking/MsgVote", nil)
+	cdc.RegisterConcrete(MsgAddShares{}, "okchain/staking/MsgAddShares", nil)
 	cdc.RegisterConcrete(MsgRegProxy{}, "okchain/staking/MsgRegProxy", nil)
 	cdc.RegisterConcrete(MsgBindProxy{}, "okchain/staking/MsgBindProxy", nil)
 	cdc.RegisterConcrete(MsgUnbindProxy{}, "okchain/staking/MsgUnbindProxy", nil)

@@ -50,7 +50,7 @@ var (
 	DefaultParams                      = types.DefaultParams
 	NewValidator                       = types.NewValidator
 	NewDescription                     = types.NewDescription
-	NewMsgVote                         = types.NewMsgVote
+	NewMsgAddShares                    = types.NewMsgAddShares
 	NewGenesisState                    = types.NewGenesisState
 
 	// variable aliases

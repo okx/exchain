@@ -15,7 +15,7 @@ const (
 	QueryForAddress          = "validatorAddress"
 	QueryForAccAddress       = "validatorAccAddress"
 	QueryProxy               = "proxy"
-	QueryValidatorVotes      = "validatorVotes"
+	QueryValidatorAllShares  = "validatorAllShares"
 	QueryDelegator           = "delegator"
 )
 

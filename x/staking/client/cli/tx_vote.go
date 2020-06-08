@@ -33,9 +33,9 @@ $ %s tx staking destroy-validator --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgDestroyValidator(voterAddr)
+			msg := types.NewMsgDestroyValidator(delAddr)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 
 		},
@@ -125,13 +125,13 @@ func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 			valAddrs, err := getValsSet(args[0])
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgVote(voterAddr, valAddrs)
+			msg := types.NewMsgAddShares(delAddr, valAddrs)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 
 		},
@@ -175,9 +175,9 @@ $ %s tx staking proxy reg --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgRegProxy(voterAddr, true)
+			msg := types.NewMsgRegProxy(delAddr, true)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -201,9 +201,9 @@ $ %s tx staking proxy unreg --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgRegProxy(voterAddr, false)
+			msg := types.NewMsgRegProxy(delAddr, false)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -227,13 +227,13 @@ $ %s tx staking proxy bind okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya --from
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
 			proxyAddress, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid address：%s", args[0])
 			}
-			msg := types.NewMsgBindProxy(voterAddr, proxyAddress)
+			msg := types.NewMsgBindProxy(delAddr, proxyAddress)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -257,9 +257,9 @@ $ %s tx staking proxy unbind --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgUnbindProxy(voterAddr)
+			msg := types.NewMsgUnbindProxy(delAddr)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

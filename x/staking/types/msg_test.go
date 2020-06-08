@@ -210,7 +210,7 @@ func TestMsgBindProxy(t *testing.T) {
 		msg := NewMsgBindProxy(tc.dlgAddr, tc.valAddr)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_bind_proxy")
+			checkMsg(t, msg, "bind_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -233,7 +233,7 @@ func TestMsgUnbindProxy(t *testing.T) {
 		msg := NewMsgUnbindProxy(tc.valAddr)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_unbind_proxy")
+			checkMsg(t, msg, "unbind_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -250,14 +250,14 @@ func TestMsgRegProxy(t *testing.T) {
 	}{
 		{"success register", dlgAddr1, true, true},
 		{"success unregister", dlgAddr1, false, true},
-		{"empty delegatotr", sdk.AccAddress(emptyAddr), true, false},
+		{"empty delegator", sdk.AccAddress(emptyAddr), true, false},
 	}
 
 	for _, tc := range tests {
 		msg := NewMsgRegProxy(tc.dlgAddr, tc.doReg)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_reg_or_unreg_proxy")
+			checkMsg(t, msg, "reg_or_unreg_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -265,7 +265,7 @@ func TestMsgRegProxy(t *testing.T) {
 
 }
 
-func TestMsgVote(t *testing.T) {
+func TestMsgAddShares(t *testing.T) {
 
 	tests := []struct {
 		name       string
@@ -281,10 +281,10 @@ func TestMsgVote(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgVote(tc.dlgAddr, tc.valAddrs)
+		msg := NewMsgAddShares(tc.dlgAddr, tc.valAddrs)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_to_validators")
+			checkMsg(t, msg, "add_shares_to_validators")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}

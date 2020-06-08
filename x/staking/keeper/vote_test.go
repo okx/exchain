@@ -8,38 +8,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVote(t *testing.T) {
+func TestAddShares(t *testing.T) {
 	ctx, _, keeper := CreateTestInput(t, false, 0)
 
-	votes := []sdk.Dec{
+	shares := []sdk.Dec{
 		sdk.OneDec(),
 		sdk.OneDec(),
 		sdk.OneDec().MulInt64(100),
 	}
 
-	keeper.Keeper.SetVote(ctx, addrDels[0], addrVals[0], votes[0])
-	keeper.Keeper.SetVote(ctx, addrDels[1], addrVals[0], votes[1])
-	keeper.Keeper.SetVote(ctx, addrDels[2], addrVals[0], votes[2])
+	keeper.Keeper.SetShares(ctx, addrDels[0], addrVals[0], shares[0])
+	keeper.Keeper.SetShares(ctx, addrDels[1], addrVals[0], shares[1])
+	keeper.Keeper.SetShares(ctx, addrDels[2], addrVals[0], shares[2])
 
-	var votesExportedSlice []types.VotesExported
-	keeper.IterateVotes(ctx,
-		func(_ int64, voterAddr sdk.AccAddress, valAddr sdk.ValAddress, votes types.Votes) (stop bool) {
-			votesExportedSlice = append(votesExportedSlice, types.NewVoteExported(voterAddr, valAddr, votes))
+	var sharesExportedSlice []types.SharesExported
+	keeper.IterateShares(ctx,
+		func(_ int64, delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares types.Shares) (stop bool) {
+			sharesExportedSlice = append(sharesExportedSlice, types.NewSharesExported(delAddr, valAddr, shares))
 			return false
 		})
 
-	require.True(t, len(votesExportedSlice) == 3)
+	require.True(t, len(sharesExportedSlice) == 3)
 
-	vote1, found := keeper.GetVote(ctx, addrDels[0], addrVals[0])
+	shares1, found := keeper.GetShares(ctx, addrDels[0], addrVals[0])
 	require.True(t, found)
-	require.True(t, vote1.Equal(sdk.OneDec()))
+	require.True(t, shares1.Equal(sdk.OneDec()))
 
-	vote2, found := keeper.GetVote(ctx, addrDels[0], addrVals[2])
+	shares2, found := keeper.GetShares(ctx, addrDels[0], addrVals[2])
 	require.False(t, found)
-	require.True(t, vote2.IsNil())
+	require.True(t, shares2.IsNil())
 
-	keeper.DeleteVote(ctx, addrVals[0], addrDels[0])
-	keeper.DeleteVote(ctx, addrVals[1], addrDels[0])
-	_, found = keeper.GetVote(ctx, addrDels[0], addrVals[0])
+	keeper.DeleteShares(ctx, addrVals[0], addrDels[0])
+	keeper.DeleteShares(ctx, addrVals[1], addrDels[0])
+	_, found = keeper.GetShares(ctx, addrDels[0], addrVals[0])
 	require.False(t, found)
 }

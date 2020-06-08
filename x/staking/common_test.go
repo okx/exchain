@@ -43,16 +43,16 @@ var (
 	MostPowerfulVaAddr = addrVals[len(addrVals)-1]
 	MostPowerfulVaPub  = PKs[len(PKs)-1]
 
-	InvalidDelegator    = addrDels[0]
-	ValidDelegator1     = addrDels[1]
-	ValidDelegator2     = addrDels[2]
-	ProxiedDelegator    = addrDels[3]
-	SufficientInitPower = int64(10000)
-	MaxDelegatedToken   = sdk.NewDec(4096)
-	DefaultMSD          = types.DefaultMinSelfDelegation
-	VotesFromDefaultMSD = sdk.OneDec()
-	DelegatedToken1     = VotesFromDefaultMSD.MulInt64(1024)
-	DelegatedToken2     = VotesFromDefaultMSD.MulInt64(2048)
+	InvalidDelegator     = addrDels[0]
+	ValidDelegator1      = addrDels[1]
+	ValidDelegator2      = addrDels[2]
+	ProxiedDelegator     = addrDels[3]
+	SufficientInitPower  = int64(10000)
+	MaxDelegatedToken    = sdk.NewDec(4096)
+	DefaultMSD           = types.DefaultMinSelfDelegation
+	SharesFromDefaultMSD = sdk.OneDec()
+	DelegatedToken1      = SharesFromDefaultMSD.MulInt64(1024)
+	DelegatedToken2      = SharesFromDefaultMSD.MulInt64(2048)
 )
 
 var (
@@ -150,7 +150,7 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 		if !found {
 			panic("failed to create a validator")
 		}
-		resultCtx.t.Logf("     ==>>> CreateValidator Result: %s msd: %s, votes: %s\n",
+		resultCtx.t.Logf("     ==>>> CreateValidator Result: %s msd: %s, shares: %s\n",
 			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 
@@ -175,14 +175,14 @@ func (a otherMostPowerfulValidatorEnter) apply(ctx sdk.Context, vaStatus IValida
 
 	// increase the voting power by voting
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
-	handler(ctx, NewMsgVote(ValidDelegator2, []sdk.ValAddress{newValidator.OperatorAddress}))
+	handler(ctx, NewMsgAddShares(ValidDelegator2, []sdk.ValAddress{newValidator.OperatorAddress}))
 
 	// get the info of powerful validator
 	validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, newValidator.OperatorAddress)
 	if !found {
 		panic("failed to create a validator")
 	}
-	resultCtx.t.Logf("     ==>>> OtherMostPowerfulValidatorEnter Result: %s msd: %s, votes: %s\n",
+	resultCtx.t.Logf("     ==>>> OtherMostPowerfulValidatorEnter Result: %s msd: %s, shares: %s\n",
 		validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 
 }
@@ -212,7 +212,7 @@ func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus
 		if !found {
 			panic("validator is missing")
 		}
-		resultCtx.t.Logf("     ==>>> DestroyValidator Result: %s msd: %s, votes: %s\n",
+		resultCtx.t.Logf("     ==>>> DestroyValidator Result: %s msd: %s, shares: %s\n",
 			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 }
@@ -236,7 +236,7 @@ func (a jailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, r
 		if !found {
 			panic("validator is missing")
 		}
-		resultCtx.t.Logf("     ==>>> JailValidator Result: %s msd: %s, votes: %s\n",
+		resultCtx.t.Logf("     ==>>> JailValidator Result: %s msd: %s, shares: %s\n",
 			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 }
@@ -258,7 +258,7 @@ func (a unJailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus,
 		if !found {
 			panic("validator is missing")
 		}
-		resultCtx.t.Logf("     ==>>> UnJailValidator Result: %s msd: %s, votes: %s\n",
+		resultCtx.t.Logf("     ==>>> UnJailValidator Result: %s msd: %s, shares: %s\n",
 			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 
@@ -314,31 +314,31 @@ func (action newDelegatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatu
 	}
 }
 
-type delegatorsVoteAction struct {
+type delegatorsAddSharesAction struct {
 	baseAction
-	voteOnVaSet   bool
-	voteOnStartup bool
-	voteOnFakes   int
-	delegators    []sdk.AccAddress
+	addSharesOnVaSet   bool
+	addSharesOnStartup bool
+	addSharesOnFakes   int
+	delegators         []sdk.AccAddress
 }
 
-func (action delegatorsVoteAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply delegatorsVoteAction[%d]\n", ctx.BlockHeight())
+func (action delegatorsAddSharesAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorsAddSharesAction[%d]\n", ctx.BlockHeight())
 
 	handler := NewHandler(action.mStkKeeper.Keeper)
 
 	var vaAddrs []sdk.ValAddress
-	if action.voteOnStartup {
+	if action.addSharesOnStartup {
 		vaAddrs = append(vaAddrs, vaStatus.getValidator().OperatorAddress)
 	}
 
-	if action.voteOnVaSet {
+	if action.addSharesOnVaSet {
 		for _, v := range resultCtx.tc.originVaSet {
 			vaAddrs = append(vaAddrs, v.getValidator().OperatorAddress)
 		}
 	}
 
-	for i := 0; i < action.voteOnFakes; i++ {
+	for i := 0; i < action.addSharesOnFakes; i++ {
 		vaAddrs = append(vaAddrs, sdk.ValAddress(fmt.Sprintf("fakeAddr%d", i)))
 	}
 
@@ -349,10 +349,10 @@ func (action delegatorsVoteAction) apply(ctx sdk.Context, vaStatus IValidatorSta
 	}
 
 	for _, d := range action.delegators {
-		resultCtx.t.Logf("     ==>>> Delegator: %s vote to Validators: %s\n", d.String(), vaAddrs)
-		voteMsg := NewMsgVote(d, vaAddrs)
+		resultCtx.t.Logf("     ==>>> Delegator: %s add shares to Validators: %s\n", d.String(), vaAddrs)
+		addSharesMsg := NewMsgAddShares(d, vaAddrs)
 
-		res := handler(ctx, voteMsg)
+		res := handler(ctx, addSharesMsg)
 		if resultCtx != nil {
 			resultCtx.txMsgResult = &res
 		}
@@ -634,7 +634,7 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 			_ = cdc.UnmarshalJSON(res, &dlg)
 
 			resultCtx.tc.originDlgSet[dlgAddr.String()] = &dlg
-			// check voted validators
+			// check validators that were added shares to
 			b2 = true
 			delegatorStr := fmt.Sprintf("%+v", dlg)
 			if len(expVAs) > 0 {
@@ -652,7 +652,7 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 			}
 
 			if expShares != nil {
-				b3 = assert.Equal(t, *expShares, dlg.GetLastVotes(), delegatorStr)
+				b3 = assert.Equal(t, *expShares, dlg.GetLastAddedShares(), delegatorStr)
 			}
 
 			if expToken != nil {
@@ -684,9 +684,8 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 }
 
 // queryDelegatorProxyCheck returns the callback function for the querier if delegator proxy
-// TODO: proxyVotes not found in codes.
 func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasProxy bool,
-	expTotalDlgTokens *sdk.Dec, expBindedToProxy *sdk.AccAddress, expBindedDelegators []sdk.AccAddress) actResChecker {
+	expTotalDlgTokens *sdk.Dec, expBoundToProxy *sdk.AccAddress, expBoundDelegators []sdk.AccAddress) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
 		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
@@ -703,14 +702,14 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		}
 
 		var b4 bool
-		if expBindedToProxy != nil {
-			b4 = assert.Equal(t, *expBindedToProxy, dlg.ProxyAddress)
+		if expBoundToProxy != nil {
+			b4 = assert.Equal(t, *expBoundToProxy, dlg.ProxyAddress)
 		} else {
 			b4 = dlg.ProxyAddress == nil
 		}
 
 		b5 := true
-		if len(expBindedDelegators) > 0 {
+		if len(expBoundDelegators) > 0 {
 			q := NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 			para := types.NewQueryDelegatorParams(dlgAddr)
 			bz, _ := types.ModuleCdc.MarshalJSON(para)
@@ -720,10 +719,10 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 			realProxiedDelegators := []sdk.AccAddress{}
 			require.NoError(t, ModuleCdc.UnmarshalJSON(data, &realProxiedDelegators))
 
-			b5 = assert.Equal(t, len(expBindedDelegators), len(realProxiedDelegators))
+			b5 = assert.Equal(t, len(expBoundDelegators), len(realProxiedDelegators))
 			if b5 {
 				cnt := 0
-				for _, e := range expBindedDelegators {
+				for _, e := range expBoundDelegators {
 					for _, r := range realProxiedDelegators {
 						if r.Equals(e) {
 							cnt++
@@ -731,7 +730,7 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 						}
 					}
 				}
-				b5 = assert.Equal(t, len(expBindedDelegators), cnt)
+				b5 = assert.Equal(t, len(expBoundDelegators), cnt)
 			}
 
 		}
@@ -774,7 +773,7 @@ func queryAllValidatorCheck(expStatuses []sdk.BondStatus, expStatusCnt []int) ac
 	}
 }
 
-func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.AccAddress) actResChecker {
+func querySharesToCheck(valAddr sdk.ValAddress, expDlgCnt int, expDlg []sdk.AccAddress) actResChecker {
 
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
@@ -785,28 +784,28 @@ func queryVotesToCheck(valAddr sdk.ValAddress, expVoterCnt int, expVoters []sdk.
 		params := types.NewQueryValidatorParams(valAddr)
 		bz, _ := cdc.MarshalJSON(params)
 
-		res, e := q(ctx, []string{types.QueryValidatorVotes}, abci.RequestQuery{Data: bz})
+		res, e := q(ctx, []string{types.QueryValidatorAllShares}, abci.RequestQuery{Data: bz})
 		require.Nil(t, e, e)
 
-		voteResponses := types.VoteResponses{}
-		err := cdc.UnmarshalJSON(res, &voteResponses)
+		var sharesResponses types.SharesResponses
+		err := cdc.UnmarshalJSON(res, &sharesResponses)
 		b1 := assert.Nil(t, err, err) &&
-			assert.Equal(t, expVoterCnt, len(voteResponses))
+			assert.Equal(t, expDlgCnt, len(sharesResponses))
 
 		b2 := true
-		if b1 && expVoters != nil && len(expVoters) > 0 {
+		if b1 && expDlg != nil && len(expDlg) > 0 {
 
 			cnt := 0
-			for _, exp := range expVoters {
-				for _, real := range voteResponses {
-					if real.VoterAddr.Equals(exp) {
+			for _, exp := range expDlg {
+				for _, real := range sharesResponses {
+					if real.DelAddr.Equals(exp) {
 						cnt++
 						break
 					}
 				}
 			}
 
-			b2 = assert.Equal(t, len(expVoters), cnt, expVoters, voteResponses.String())
+			b2 = assert.Equal(t, len(expDlg), cnt, expDlg, sharesResponses.String())
 
 		}
 
@@ -861,9 +860,9 @@ func baseInVariantCheck(t *testing.T, invariant sdk.Invariant, resultCtx *Action
 
 }
 
-func delegatorVotesInvariantCheck() actResChecker {
+func delegatorAddSharesInvariantCheck() actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
-		invariant := keeper.DelegatorVotesInvariant(resultCtx.tc.mockKeeper.Keeper)
+		invariant := keeper.DelegatorAddSharesInvariant(resultCtx.tc.mockKeeper.Keeper)
 		return baseInVariantCheck(t, invariant, resultCtx)
 	}
 }
@@ -1014,7 +1013,7 @@ func (tc *basicStakingSMTestCase) printParticipantSnapshot(t *testing.T) {
 
 	for _, d := range tc.originDlgSet {
 		latestDlg, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, d.DelegatorAddress)
-		t.Logf("Dlg: %s, VoteTo: %s, BondedToken: %s, GotShare: %s, IsProxy: %+v, HasProxy: %+v, TotalDS: %s \n",
+		t.Logf("Dlg: %s, AddSharesTo: %s, BondedToken: %s, GotShares: %s, IsProxy: %+v, HasProxy: %+v, TotalDS: %s \n",
 			latestDlg.DelegatorAddress.String(), latestDlg.ValidatorAddresses, latestDlg.Tokens.String(),
 			latestDlg.Shares.String(), latestDlg.IsProxy, latestDlg.HasProxy(), latestDlg.TotalDelegatedTokens.String())
 	}
