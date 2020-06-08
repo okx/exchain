@@ -214,29 +214,29 @@ func isValsDuplicate(valAddrs []sdk.ValAddress) bool {
 	return false
 }
 
-// MsgDelegate - struct for delegating to staking account
-type MsgDelegate struct {
+// MsgDeposit - structure for depositing to the delegator account
+type MsgDeposit struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantiy"`
 }
 
-// NewMsgDelegate creates a msg of delegating
-func NewMsgDelegate(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgDelegate {
-	return MsgDelegate{
+// NewMsgDeposit creates a new instance of MsgDeposit
+func NewMsgDeposit(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgDeposit {
+	return MsgDeposit{
 		DelegatorAddress: delAddr,
 		Amount:           amount,
 	}
 }
 
 // nolint
-func (msg MsgDelegate) Route() string { return RouterKey }
-func (msg MsgDelegate) Type() string  { return "delegate" }
-func (msg MsgDelegate) GetSigners() []sdk.AccAddress {
+func (msg MsgDeposit) Route() string { return RouterKey }
+func (msg MsgDeposit) Type() string  { return "deposit" }
+func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddress}
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgDelegate) ValidateBasic() sdk.Error {
+func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -247,34 +247,34 @@ func (msg MsgDelegate) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes returns the message bytes to sign over
-func (msg MsgDelegate) GetSignBytes() []byte {
+func (msg MsgDeposit) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
-// MsgUndelegate - struct for undelegating
-type MsgUndelegate struct {
+// MsgWithdraw - structure for withdrawing okt and the corresponding shares from all validators
+type MsgWithdraw struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantity"`
 }
 
-// NewMsgUndelegate creates a msg of undelegating
-func NewMsgUndelegate(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgUndelegate {
-	return MsgUndelegate{
+// NewMsgWithdraw creates a new instance of MsgWithdraw
+func NewMsgWithdraw(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgWithdraw {
+	return MsgWithdraw{
 		DelegatorAddress: delAddr,
 		Amount:           amount,
 	}
 }
 
 // nolint
-func (msg MsgUndelegate) Route() string { return RouterKey }
-func (msg MsgUndelegate) Type() string  { return "undelegate" }
-func (msg MsgUndelegate) GetSigners() []sdk.AccAddress {
+func (msg MsgWithdraw) Route() string { return RouterKey }
+func (msg MsgWithdraw) Type() string  { return "withdraw" }
+func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.DelegatorAddress}
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgUndelegate) ValidateBasic() sdk.Error {
+func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -285,7 +285,7 @@ func (msg MsgUndelegate) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes returns the message bytes to sign over
-func (msg MsgUndelegate) GetSignBytes() []byte {
+func (msg MsgWithdraw) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }

@@ -131,7 +131,7 @@ func TestDelegator(t *testing.T) {
 		delegatorsAddSharesAction{bAction, false, true, 1, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 
-		// send undelegate message
+		// send withdraw message
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), "testtoken"},
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), sdk.DefaultBondDenom},
 		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(2), sdk.DefaultBondDenom},
@@ -166,7 +166,7 @@ func TestDelegator(t *testing.T) {
 		noErrorInHandlerResult(false),
 		nil,
 
-		// check undelegate response
+		// check withdraw response
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),

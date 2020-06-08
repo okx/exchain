@@ -374,7 +374,7 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonded.String()),
 	}}
 
-	undelegateChecker := andChecker{[]actResChecker{
+	withdrawChecker := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(false),
 	}}
 
@@ -401,7 +401,7 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		addSharesChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Bonded.String()),
-		undelegateChecker.GetChecker(),
+		withdrawChecker.GetChecker(),
 		validatorStatusChecker(sdk.Bonded.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
@@ -468,7 +468,7 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 	expDlgUnbondedToken2 := expDlgBondedTokens2
 	expAllUnBondedToken1 := expDlgUnbondedToken1.Add(expDlgUnbondedToken2)
 	expAllBondedToken1 := DefaultMSD.MulInt64(int64(len(fullVaSet))).Add(expDlgBondedTokens1).Add(expDlgBondedTokens2)
-	undelegateChecker1 := andChecker{[]actResChecker{
+	withdrawChecker1 := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(false),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		queryDelegatorCheck(ValidDelegator1, true, originVaSet, nil, &expDlgBondedTokens1, &expDlgUnbondedToken1),
@@ -481,7 +481,7 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 	// All Deleagtor Unbond the delegation left
 	expDlgGrpUnbonded2 := expZeroDec
 	expAllBondedToken2 := DefaultMSD.MulInt64(int64(len(fullVaSet)))
-	undelegateChecker2 := andChecker{[]actResChecker{
+	withdrawChecker2 := andChecker{[]actResChecker{
 		// cannot find unbonding token in GetUnbonding info
 		queryDelegatorCheck(ValidDelegator1, false, []sdk.ValAddress{}, nil, &expZeroDec, nil),
 		queryDelegatorCheck(ValidDelegator2, false, []sdk.ValAddress{}, nil, &expZeroDec, nil),
@@ -515,11 +515,11 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		nil,
-		undelegateChecker1.GetChecker(),
+		withdrawChecker1.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		nil,
-		undelegateChecker2.GetChecker(),
+		withdrawChecker2.GetChecker(),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)

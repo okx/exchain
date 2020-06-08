@@ -68,7 +68,7 @@ $ %s tx staking deposit 1000%s --from mykey
 			}
 
 			delAddr := cliCtx.GetFromAddress()
-			msg := types.NewMsgDelegate(delAddr, amount)
+			msg := types.NewMsgDeposit(delAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -100,7 +100,7 @@ $ %s tx staking withdraw 1%s
 			}
 
 			delAddr := cliCtx.GetFromAddress()
-			msg := types.NewMsgUndelegate(delAddr, amount)
+			msg := types.NewMsgWithdraw(delAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

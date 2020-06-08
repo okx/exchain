@@ -86,7 +86,7 @@ func MakeTestCodec() *codec.Codec {
 	cdc.RegisterConcrete(types.MsgCreateValidator{}, "test/staking/CreateValidator", nil)
 	cdc.RegisterConcrete(types.MsgDestroyValidator{}, "test/staking/DestroyValidator", nil)
 	cdc.RegisterConcrete(types.MsgEditValidator{}, "test/staking/EditValidator", nil)
-	cdc.RegisterConcrete(types.MsgUndelegate{}, "test/staking/Undelegate", nil)
+	cdc.RegisterConcrete(types.MsgWithdraw{}, "test/staking/MsgWithdraw", nil)
 	cdc.RegisterConcrete(types.MsgAddShares{}, "test/staking/MsgAddShares", nil)
 
 	// Register AppAccount
@@ -284,9 +284,9 @@ func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, msd
 	)
 }
 
-func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Dec) types.MsgDelegate {
+func NewTestMsgDeposit(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Dec) types.MsgDeposit {
 	amount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, amt)
-	return types.NewMsgDelegate(delAddr, amount)
+	return types.NewMsgDeposit(delAddr, amount)
 }
 
 func SimpleCheckValidator(t *testing.T, ctx sdk.Context, stkKeeper Keeper, vaAddr sdk.ValAddress,

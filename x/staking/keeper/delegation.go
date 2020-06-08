@@ -60,8 +60,8 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 	return k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens)
 }
 
-// Undelegate handles the process of undelegating
-func (k Keeper) Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) (time.Time, sdk.Error) {
+// Withdraw handles the process of withdrawing token from deposit account
+func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) (time.Time, sdk.Error) {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
 		return time.Time{}, types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())

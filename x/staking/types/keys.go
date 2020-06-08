@@ -136,7 +136,7 @@ func GetUndelegationInfoKey(delAddr sdk.AccAddress) []byte {
 	return append(UnDelegationInfoKey, delAddr.Bytes()...)
 }
 
-// GetCompleteTimeKey get the key for the preflix of time
+// GetCompleteTimeKey get the key for the prefix of time
 func GetCompleteTimeKey(timestamp time.Time) []byte {
 	bz := sdk.FormatTimeBytes(timestamp)
 	return append(UnDelegateQueueKey, bz...)

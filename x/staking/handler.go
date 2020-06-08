@@ -22,10 +22,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
-		case types.MsgDelegate:
-			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgUndelegate:
-			return handleMsgUndelegate(ctx, msg, k)
+		case types.MsgDeposit:
+			return handleMsgDeposit(ctx, msg, k)
+		case types.MsgWithdraw:
+			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
 			return handleMsgAddShares(ctx, msg, k)
 		case types.MsgBindProxy:
@@ -75,7 +75,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 
 			quantity, err := k.CompleteUndelegation(ctx, delAddr)
 			if err != nil {
-				ctx.Logger().Error(fmt.Sprintf("complete undelegate failed: %s", err.Result().Data))
+				ctx.Logger().Error(fmt.Sprintf("complete withdraw failed: %s", err.Result().Data))
 			} else {
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(

@@ -248,7 +248,7 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 	return sdk.NewEvent(types.EventTypeAddShares, attributes...)
 }
 
-func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
+func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) sdk.Result {
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
@@ -269,12 +269,12 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) sdk.Result {
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	completionTime, err := k.Undelegate(ctx, msg.DelegatorAddress, msg.Amount)
+	completionTime, err := k.Withdraw(ctx, msg.DelegatorAddress, msg.Amount)
 	if err != nil {
 		return err.Result()
 	}
@@ -299,7 +299,7 @@ func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k
 		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()
 	}
 
-	completionTime, sdkErr := k.UndelegateMinSelfDelegation(ctx, msg.DelAddr, validator)
+	completionTime, sdkErr := k.WithdrawMinSelfDelegation(ctx, msg.DelAddr, validator)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}

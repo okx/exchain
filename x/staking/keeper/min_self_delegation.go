@@ -7,8 +7,8 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// UndelegateMinSelfDelegation unbonds the msd from validator
-func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator types.Validator,
+// WithdrawMinSelfDelegation withdraws the msd from validator
+func (k Keeper) WithdrawMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator types.Validator,
 ) (completionTime time.Time, err sdk.Error) {
 	// 0.check the msd on validator
 	if validator.MinSelfDelegation.IsZero() {

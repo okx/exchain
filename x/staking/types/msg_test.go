@@ -136,8 +136,8 @@ func checkMsg(t *testing.T, msg sdk.Msg, expType string) {
 	require.True(t, len(msg.GetSignBytes()) > 0, msg)
 }
 
-// test ValidateBasic for MsgDelegate
-func TestMsgDelegate(t *testing.T) {
+// test ValidateBasic for MsgDeposit
+func TestMsgDeposit(t *testing.T) {
 
 	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
 	coinZero := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec())
@@ -154,21 +154,21 @@ func TestMsgDelegate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgDelegate(tc.delegatorAddr, tc.amount)
+		msg := NewMsgDeposit(tc.delegatorAddr, tc.amount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "delegate")
+			checkMsg(t, msg, "deposit")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
 }
 
-// test ValidateBasic for MsgDelegate
-func TestMsgUnDelegate(t *testing.T) {
+// test ValidateBasic for MsgWithdraw
+func TestMsgWithdraw(t *testing.T) {
 
 	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
-	coinNeg := sdk.DecCoin{sdk.DefaultBondDenom, sdk.NewDec(-1)}
+	coinNeg := sdk.DecCoin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(-1)}
 
 	tests := []struct {
 		name          string
@@ -182,10 +182,10 @@ func TestMsgUnDelegate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgUndelegate(tc.delegatorAddr, tc.amount)
+		msg := NewMsgWithdraw(tc.delegatorAddr, tc.amount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "undelegate")
+			checkMsg(t, msg, "withdraw")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
