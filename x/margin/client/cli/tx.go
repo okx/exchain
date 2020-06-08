@@ -5,8 +5,6 @@ import (
 
 	"github.com/okex/okchain/x/order"
 
-	"github.com/pkg/errors"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -120,16 +118,16 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			address := cliCtx.GetFromAddress()
 			product := args[0]
 
-			maxLeverage, err := sdk.NewDecFromStr(maxLeverageStr)
-			if err != nil {
-				return err
+			maxLeverage := sdk.ZeroDec()
+			var err error
+			if len(maxLeverageStr) > 0 {
+				maxLeverage, err = sdk.NewDecFromStr(maxLeverageStr)
+				if err != nil {
+					return err
+				}
 			}
 
-			if maxLeverage.IsNegative() {
-				return errors.New("invalid max-leverage")
-			}
-
-			var borrowRateDec sdk.Dec
+			borrowRateDec := sdk.ZeroDec()
 			if len(borrowRate) > 0 {
 				borrowRateDec, err = sdk.NewDecFromStr(borrowRate)
 				if err != nil {
@@ -137,7 +135,7 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			var mmrDec sdk.Dec
+			mmrDec := sdk.ZeroDec()
 			if len(maintenanceMarginRatio) > 0 {
 				mmrDec, err = sdk.NewDecFromStr(maintenanceMarginRatio)
 				if err != nil {
@@ -154,9 +152,9 @@ func GetCmdDexSet(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().StringVar(&maxLeverageStr, "max-leverage", "", "max leverage of the product")
-	cmd.Flags().StringVar(&borrowRate, "borrow-rate", "", "interest rate on borrowing")
-	cmd.Flags().StringVar(&maintenanceMarginRatio, "maintenance-margin-ratio", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
+	cmd.Flags().StringVarP(&maxLeverageStr, "max-leverage", "l", "", "max leverage of the product")
+	cmd.Flags().StringVarP(&borrowRate, "borrow-rate", "r", "", "interest rate on borrowing")
+	cmd.Flags().StringVarP(&maintenanceMarginRatio, "maintenance-margin-ratio", "m", "", "when the position Margin Ratio (MR) is lower than the Maintenance Margin Ratio (MMR) , liquidation will be triggered")
 	return cmd
 }
 
@@ -340,7 +338,7 @@ func GetCmdOrder(cdc *codec.Codec) *cobra.Command {
 	}
 
 	orderCmd.AddCommand(client.PostCommands(
-		order.GetCmdNewOrder(cdc, order.OrdinaryOrder),
+		order.GetCmdNewOrder(cdc, order.MarginOrder),
 		order.GetCmdCancelOrder(cdc),
 	)...)
 

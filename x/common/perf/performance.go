@@ -17,6 +17,7 @@ var (
 )
 
 const (
+	marginModule       = "margin"
 	orderModule        = "order"
 	dexModule          = "dex"
 	tokenModule        = "token"
@@ -146,6 +147,7 @@ func newPerf() *performance {
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
+	p.moduleInfoMap[marginModule] = newHanlderMetrics()
 	return p
 }
 
@@ -313,6 +315,7 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
+	p.moduleInfoMap[marginModule] = newHanlderMetrics()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

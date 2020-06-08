@@ -9,6 +9,8 @@ import (
 func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 	// TODO: Define logic for when you would like to initalize a new genesis
 	//return []abci.ValidatorUpdate{}
+	// set params
+	k.SetParams(ctx, data.Params)
 }
 
 // ExportGenesis writes the current store values

@@ -134,7 +134,12 @@ func (msg MsgDexSet) Type() string { return "dexSet" }
 // ValidateBasic Implements Msg
 func (msg MsgDexSet) ValidateBasic() sdk.Error {
 	if msg.MaxLeverage.IsNegative() {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("invald max leverage:%d", msg.MaxLeverage))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("invald max leverage:%s", msg.MaxLeverage))
+	}
+	if msg.BorrowRate.IsNegative() {
+	}
+	if msg.MaintenanceMarginRatio.IsNegative() {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("invald maintenance margin ratio:%s", msg.MaxLeverage))
 	}
 	return nil
 }

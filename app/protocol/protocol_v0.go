@@ -387,9 +387,9 @@ func (p *ProtocolV0) setManager() {
 
 	// ORDER SETTING
 	p.mm.SetOrderBeginBlockers(
-		margin.ModuleName,
 		stream.ModuleName,
 		order.ModuleName,
+		margin.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
 		mint.ModuleName,
@@ -402,8 +402,8 @@ func (p *ProtocolV0) setManager() {
 		crisis.ModuleName,
 		gov.ModuleName,
 		dex.ModuleName,
-		order.ModuleName,
 		margin.ModuleName,
+		order.ModuleName,
 		staking.ModuleName,
 		backend.ModuleName,
 		stream.ModuleName,

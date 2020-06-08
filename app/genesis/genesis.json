@@ -162,7 +162,12 @@
       },
       "waiting_proposals": {}
     },
-    "margin": {},
+    "margin": {
+      "params": {
+        "interest_period": "86400000000000",
+        "withdraw_period": "259200000000000"
+      }
+    },
     "mint": {
       "minter_custom": {
         "annual_provisions": "0.00000000",

@@ -107,9 +107,13 @@ func doLiquidation(wg *sync.WaitGroup, ctx sdk.Context, k Keeper, tradePair *typ
 		// force liquidation
 		if account.Borrowed.AmountOf(baseSymbol).IsPositive() && account.Available.AmountOf(baseSymbol).IsPositive() {
 			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol)))
+			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, repay:address(%s) product(%s) amount(%s)",
+				address, tradePair.Name, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol))))
 		}
 		if account.Borrowed.AmountOf(quoteSymbol).IsPositive() && account.Available.AmountOf(quoteSymbol).IsPositive() {
 			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol)))
+			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, repay:address(%s) product(%s) amount(%s)",
+				address, tradePair.Name, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol))))
 		}
 
 		// force placing order
@@ -158,6 +162,7 @@ func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPri
 		orderKeeper := k.GetOrderKeeper().(*order.Keeper)
 		newOrder := order.GetOrderFromMsg(ctx, *orderKeeper, msg, order.DefaultNewOrderFeeRatio)
 		k.GetOrderKeeper().PlaceOrder(ctx, newOrder)
+		k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, place order: %+v", msg))
 	}
 
 	// place sell order to repay quote token
@@ -179,5 +184,6 @@ func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPri
 		orderKeeper := k.GetOrderKeeper().(*order.Keeper)
 		newOrder := order.GetOrderFromMsg(ctx, *orderKeeper, msg, order.DefaultNewOrderFeeRatio)
 		k.GetOrderKeeper().PlaceOrder(ctx, newOrder)
+		k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, place order: %+v", msg))
 	}
 }

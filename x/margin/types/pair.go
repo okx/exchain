@@ -7,7 +7,7 @@ import (
 )
 
 type TradePair struct {
-	Owner                  sdk.AccAddress `json:"address"`
+	Owner                  sdk.AccAddress `json:"owner"`
 	Name                   string         `json:"name"`
 	Deposit                sdk.DecCoin    `json:"deposit"`
 	MaxLeverage            sdk.Dec        `json:"max-leverage"`

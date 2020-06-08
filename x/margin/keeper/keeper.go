@@ -329,6 +329,10 @@ func (k Keeper) GetSaving(ctx sdk.Context, product string) sdk.DecCoins {
 func (k Keeper) SetSaving(ctx sdk.Context, product string, amount sdk.DecCoins) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetSavingKey(product)
+	if amount == nil {
+		store.Delete(key)
+		return
+	}
 	store.Set(key, k.cdc.MustMarshalBinaryBare(amount))
 }
 
@@ -360,6 +364,7 @@ func (k Keeper) Deposit(ctx sdk.Context, address sdk.AccAddress, product string,
 		account.Available = account.Available.Add(amount)
 	} else {
 		account = &types.Account{
+			Product:   product,
 			Available: amount,
 			Locked:    sdk.DecCoins{},
 			Borrowed:  sdk.DecCoins{},
@@ -435,7 +440,7 @@ func (k Keeper) Borrow(ctx sdk.Context, address sdk.AccAddress, tradePair *types
 	} else {
 		borrowInfo.BorrowAmount = borrowInfo.BorrowAmount.Add(sdk.NewCoins(borrowAmount))
 	}
-	k.SetBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
+	k.SetBorrowInfo(ctx, borrowInfo)
 
 	// add calculate interest key
 	nextCalculateTime := ctx.BlockTime().Add(k.GetParams(ctx).InterestPeriod)
@@ -471,14 +476,14 @@ func (k Keeper) GetBorrowInfoByKey(ctx sdk.Context, key []byte) *types.BorrowInf
 }
 
 // SetBorrowInfo set or update the borrowInfo to db
-func (k Keeper) SetBorrowInfo(ctx sdk.Context, address sdk.AccAddress, product string, borrowInfo *types.BorrowInfo) {
-	key := types.GetBorrowInfoKey(address, product, uint64(ctx.BlockHeight()))
+func (k Keeper) SetBorrowInfo(ctx sdk.Context, borrowInfo *types.BorrowInfo) {
+	key := types.GetBorrowInfoKey(borrowInfo.Address, borrowInfo.Product, uint64(borrowInfo.BlockHeight))
 	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(borrowInfo)
 	ctx.KVStore(k.storeKey).Set(key, bytes)
 }
 
-func (k Keeper) deleteBorrowInfo(ctx sdk.Context, address sdk.AccAddress, product string, borrowInfo *types.BorrowInfo) {
-	key := types.GetBorrowInfoKey(address, product, uint64(ctx.BlockHeight()))
+func (k Keeper) deleteBorrowInfo(ctx sdk.Context, borrowInfo *types.BorrowInfo) {
+	key := types.GetBorrowInfoKey(borrowInfo.Address, borrowInfo.Product, uint64(borrowInfo.BlockHeight))
 	ctx.KVStore(k.storeKey).Delete(key)
 }
 
@@ -557,11 +562,11 @@ func (k Keeper) Repay(ctx sdk.Context, account *types.Account, address sdk.AccAd
 	for _, borrowInfo := range borrowInfoList {
 		if borrowInfo.BorrowAmount.AmountOf(denom).GT(remainAmount) {
 			borrowInfo.BorrowAmount = borrowInfo.BorrowAmount.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
-			k.SetBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
+			k.SetBorrowInfo(ctx, borrowInfo)
 			break
 		}
 		remainAmount = remainAmount.Sub(borrowInfo.BorrowAmount.AmountOf(denom))
-		k.deleteBorrowInfo(ctx, address, tradePair.Name, borrowInfo)
+		k.deleteBorrowInfo(ctx, borrowInfo)
 	}
 }
 
@@ -585,7 +590,7 @@ func (k Keeper) GetAccounts(ctx sdk.Context, address sdk.AccAddress) (accounts [
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var account types.Account
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &account)
+		k.cdc.UnmarshalBinaryBare(iterator.Value(), &account)
 		accounts = append(accounts, &account)
 	}
 	return
