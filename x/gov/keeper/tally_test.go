@@ -242,7 +242,7 @@ func TestTallyDelegatorInherit(t *testing.T) {
 
 	coin, err := sdk.ParseDecCoin("11000" + common.NativeToken)
 	require.Nil(t, err)
-	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
+	delegator1Msg := staking.NewMsgDeposit(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
 
 	voteMsg := staking.NewMsgAddShares(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
@@ -285,7 +285,7 @@ func TestTallyDelegatorOverride(t *testing.T) {
 
 	coin, err := sdk.ParseDecCoin("1" + common.NativeToken)
 	require.Nil(t, err)
-	delegator1Msg := staking.NewMsgDelegate(Addrs[3], coin)
+	delegator1Msg := staking.NewMsgDeposit(Addrs[3], coin)
 	stakingHandler(ctx, delegator1Msg)
 
 	voteMsg := staking.NewMsgAddShares(Addrs[3], []sdk.ValAddress{sdk.ValAddress(Addrs[2])})
