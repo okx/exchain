@@ -44,14 +44,9 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	var item types.SwapTokenPair
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
-	if len(rawItem) == 0 && tokenPairName == types.TestSwapTokenPairName {
-		item = types.GetTestSwapTokenPair()
-		k.SetSwapTokenPair(ctx, tokenPairName, item)
-	} else {
-		err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
-		if err != nil {
-			return types.SwapTokenPair{}, err
-		}
+	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
+	if err != nil {
+		return types.SwapTokenPair{}, err
 	}
 
 	return item, nil
@@ -76,17 +71,17 @@ func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	return sdk.KVStorePrefixIterator(store, []byte{})
 }
 
-// NewToken new token
-func (k Keeper) NewPoolToken(ctx sdk.Context, token tokentypes.Token) {
-	k.tokenKeeper.NewToken(ctx, token)
+// NewPoolToken new token
+func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
+	poolToken := types.InitPoolToken(symbol)
+	k.tokenKeeper.NewToken(ctx, poolToken)
 }
 
 // GetTokenInfo gets the token's info
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		poolToken = types.InitPoolToken(symbol)
-		k.NewPoolToken(ctx, poolToken)
+		return poolToken, fmt.Errorf("poolToken %s not exist", symbol)
 	}
 	return poolToken, nil
 }

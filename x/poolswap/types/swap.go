@@ -12,6 +12,7 @@ import (
 const TestBasePooledToken = "xxb"
 const TestQuotePooledToken = common.NativeToken
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
+const PoolTokenPrefix = "poolswap-"
 
 type SwapTokenPair struct {
 	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`
@@ -43,7 +44,7 @@ func GetTestSwapTokenPair() SwapTokenPair {
 	return SwapTokenPair{
 		QuotePooledCoin: sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0)),
 		BasePooledCoin:  sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(0)),
-		PoolTokenName:   "spt",
+		PoolTokenName:   PoolTokenPrefix + TestBasePooledToken,
 	}
 }
 

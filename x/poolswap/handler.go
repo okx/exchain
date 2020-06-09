@@ -71,26 +71,21 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "Failed to create Exchange: exchange is exit",
+			Log:  "swapTokenPair already exists",
 		}
 	}
 
-	poolName := "oip3" + msg.Token
+	poolName := types.PoolTokenPrefix + msg.Token
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
-	if err != nil {
+	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "pool token is not exist",
+			Log:  "pool token already exists",
 		}
 	}
-	if len(poolToken.Symbol) == 0 {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed to create Exchange: Pool Token not exit",
-		}
-	}
+	k.NewPoolToken(ctx, poolName)
 	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
 	swapTokenPair.BasePooledCoin = baseToken
 	swapTokenPair.QuotePooledCoin = quoteToken

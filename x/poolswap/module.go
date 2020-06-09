@@ -128,7 +128,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 
 // BeginBlock returns the begin blocker for the swap module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlocker(ctx, req, am.keeper)
+	BeginBlocker(ctx, am.keeper)
 }
 
 // EndBlock returns the end blocker for the swap module. It returns no validator
