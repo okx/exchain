@@ -5,7 +5,7 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// ClearProxy clears the ProxyAddress on the delegators who has bound
+// ClearProxy clears the ProxyAddress on the delegator who has bound
 func (k Keeper) ClearProxy(ctx sdk.Context, proxyAddr sdk.AccAddress) {
 	k.IterateProxy(ctx, proxyAddr, true, func(_ int64, delAddr, _ sdk.AccAddress) (stop bool) {
 		delegator, found := k.GetDelegator(ctx, delAddr)
