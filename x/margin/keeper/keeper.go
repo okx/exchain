@@ -523,30 +523,30 @@ func (k Keeper) calculateTimeKeyIterator(ctx sdk.Context, calculateTime time.Tim
 
 // Refund refunds the borrowing of product
 // refund precedence: 1. return interest 2. refund borrowing which rate is greater 3. refund borrowing which borrowed earlier
-func (k Keeper) Refund(ctx sdk.Context, account *types.Account, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) {
+func (k Keeper) Refund(ctx sdk.Context, account *types.Account, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) (actualRefund sdk.Dec) {
 	denom := amount.Denom
-	actualAmount := amount.Amount
+	actualRefund = amount.Amount
 	// when amount is greater than borrowed + interest
 	if amount.Amount.GT(account.Borrowed.AmountOf(denom).Add(account.Interest.AmountOf(denom))) {
-		actualAmount = account.Borrowed.AmountOf(denom).Add(account.Interest.AmountOf(denom))
+		actualRefund = account.Borrowed.AmountOf(denom).Add(account.Interest.AmountOf(denom))
 	}
 	// refund to saving, update saving
 	saving := k.GetSaving(ctx, tradePair.Name)
-	saving = saving.Add(sdk.NewDecCoinsFromDec(denom, actualAmount))
+	saving = saving.Add(sdk.NewDecCoinsFromDec(denom, actualRefund))
 	k.SetSaving(ctx, tradePair.Name, saving)
 
 	// only refund interest & update account
-	if account.Interest.AmountOf(denom).GTE(actualAmount) {
+	if account.Interest.AmountOf(denom).GTE(actualRefund) {
 		// update account
-		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
-		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
+		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualRefund))
+		account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, actualRefund))
 		k.SetAccount(ctx, address, tradePair.Name, account)
 		return
 	}
 
 	// update account
-	remainAmount := actualAmount.Sub(account.Interest.AmountOf(denom))
-	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
+	remainAmount := actualRefund.Sub(account.Interest.AmountOf(denom))
+	account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualRefund))
 	account.Borrowed = account.Borrowed.Sub(sdk.NewDecCoinsFromDec(denom, remainAmount))
 	account.Interest = account.Interest.Sub(sdk.NewDecCoinsFromDec(denom, account.Interest.AmountOf(denom)))
 	k.SetAccount(ctx, address, tradePair.Name, account)
@@ -568,6 +568,7 @@ func (k Keeper) Refund(ctx sdk.Context, account *types.Account, address sdk.AccA
 		remainAmount = remainAmount.Sub(borrowInfo.BorrowAmount.AmountOf(denom))
 		k.deleteBorrowInfo(ctx, borrowInfo)
 	}
+	return
 }
 
 // GetBorrowInfoList  returns all borrowInfos

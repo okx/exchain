@@ -177,7 +177,7 @@ func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPri
 			Sender:   address,
 			Product:  tradePair.Name,
 			Side:     side,
-			Price:    bestBid,
+			Price:    bestAsk,
 			Quantity: quantity,
 			Type:     order.MarginOrder,
 		}

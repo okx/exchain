@@ -264,13 +264,14 @@ func handleMsgRefund(ctx sdk.Context, keeper Keeper, msg types.MsgRefund, logger
 		return sdk.ErrInvalidCoins(fmt.Sprintf("refund amount:%s mismatch borrowed coins:%s", msg.Amount.String(), account.Borrowed.String())).Result()
 	}
 
-	keeper.Refund(ctx, account, msg.Address, tradePair, msg.Amount)
+	actualRefund := keeper.Refund(ctx, account, msg.Address, tradePair, msg.Amount)
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.Address.String()),
+			sdk.NewAttribute("actualRefund", actualRefund.String()),
 		),
 	)
 	return sdk.Result{Events: ctx.EventManager().Events()}
