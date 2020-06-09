@@ -144,13 +144,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("MaxBaseAmount is too high"),
+			Log:  fmt.Sprintf("The required baseTokens are greater than MaxBaseAmount"),
 		}
 	}
 	if liquidity.LT(msg.MinLiquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("MinLiquidity is too low"),
+			Log:  fmt.Sprintf("The available liquidity is less than MinLiquidity"),
 		}
 	}
 
@@ -229,13 +229,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "MinBaseAmount is too high",
+			Log:  "The available baseAmount are less than MinBaseAmount",
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "MinQuoteAmount is too high",
+			Log:  "The available quoteAmount are less than MinQuoteAmount",
 		}
 	}
 
