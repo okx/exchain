@@ -50,9 +50,9 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgBorrow(ctx, k, msg, logger)
 			}
-		case types.MsgRepay:
+		case types.MsgRefund:
 			handlerFun = func() sdk.Result {
-				return handleMsgRepay(ctx, k, msg, logger)
+				return handleMsgRefund(ctx, k, msg, logger)
 			}
 
 		default:
@@ -249,7 +249,7 @@ func handleMsgBorrow(ctx sdk.Context, keeper Keeper, msg types.MsgBorrow, logger
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgRepay(ctx sdk.Context, keeper Keeper, msg types.MsgRepay, logger log.Logger) (result sdk.Result) {
+func handleMsgRefund(ctx sdk.Context, keeper Keeper, msg types.MsgRefund, logger log.Logger) (result sdk.Result) {
 	tradePair := keeper.GetTradePair(ctx, msg.Product)
 	if nil == tradePair {
 		return types.ErrInvalidTradePair(types.Codespace, fmt.Sprintf("no such trade pair %s", msg.Product)).Result()
@@ -257,14 +257,14 @@ func handleMsgRepay(ctx sdk.Context, keeper Keeper, msg types.MsgRepay, logger l
 
 	account := keeper.GetAccount(ctx, msg.Address, tradePair.Name)
 	if account == nil {
-		return types.ErrAccountNotExist(types.Codespace, fmt.Sprintf("failed to repay")).Result()
+		return types.ErrAccountNotExist(types.Codespace, fmt.Sprintf("failed to refund")).Result()
 	}
 
 	if account.Borrowed.AmountOf(msg.Amount.Denom).IsZero() {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("repay amount:%s mismatch borrowed coins:%s", msg.Amount.String(), account.Borrowed.String())).Result()
+		return sdk.ErrInvalidCoins(fmt.Sprintf("refund amount:%s mismatch borrowed coins:%s", msg.Amount.String(), account.Borrowed.String())).Result()
 	}
 
-	keeper.Repay(ctx, account, msg.Address, tradePair, msg.Amount)
+	keeper.Refund(ctx, account, msg.Address, tradePair, msg.Amount)
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

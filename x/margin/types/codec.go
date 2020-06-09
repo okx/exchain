@@ -13,7 +13,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDexReturn{}, "okchain/margin/MsgDexReturn", nil)
 	cdc.RegisterConcrete(MsgDeposit{}, "okchain/margin/MsgDeposit", nil)
 	cdc.RegisterConcrete(MsgBorrow{}, "okchain/margin/MsgBorrow", nil)
-	cdc.RegisterConcrete(MsgRepay{}, "okchain/margin/MsgRepay", nil)
+	cdc.RegisterConcrete(MsgRefund{}, "okchain/margin/MsgRefund", nil)
 	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/margin/MsgWithdraw", nil)
 }
 

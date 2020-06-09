@@ -34,7 +34,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		GetCmdDeposit(cdc),
 		GetCmdWithdraw(cdc),
 		GetCmdBorrow(cdc),
-		GetCmdRepay(cdc),
+		GetCmdRefund(cdc),
 		GetCmdOrder(cdc),
 	)...)
 
@@ -303,11 +303,11 @@ func GetCmdBorrow(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdWithdraw is the CLI command for doing withdraw the asset to spot account
-func GetCmdRepay(cdc *codec.Codec) *cobra.Command {
+// GetCmdRefund is the CLI command for doing refund
+func GetCmdRefund(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "repay [product] [amount] ",
-		Short: "repayment of loans and interest",
+		Use:   "refund [product] [amount] ",
+		Short: "refund of borrowings and interest",
 		Args:  cobra.ExactArgs(2), // Does your request require arguments
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -319,7 +319,7 @@ func GetCmdRepay(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgRepay(from, product, amount)
+			msg := types.NewMsgRefund(from, product, amount)
 			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}

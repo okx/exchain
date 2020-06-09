@@ -13,10 +13,10 @@ type BorrowInfo struct {
 	Leverage     sdk.Dec        `json:"leverage"`
 }
 
-// ShouldRepayEarlier returns true if the borrowInfo should be repaid earlier
+// ShouldRefundEarlier returns true if the borrowInfo should be repaid earlier
 // 1. compare rate
 // 2. compare block height
-func (borrowInfo *BorrowInfo) ShouldRepayEarlier(other *BorrowInfo) bool {
+func (borrowInfo *BorrowInfo) ShouldRefundEarlier(other *BorrowInfo) bool {
 	if borrowInfo.Rate.GT(other.Rate) {
 		return true
 	}
@@ -29,7 +29,7 @@ type BorrowInfoList []*BorrowInfo
 func (list BorrowInfoList) Len() int { return len(list) }
 
 // Less Implements Sort
-func (list BorrowInfoList) Less(i, j int) bool { return list[i].ShouldRepayEarlier(list[j]) }
+func (list BorrowInfoList) Less(i, j int) bool { return list[i].ShouldRefundEarlier(list[j]) }
 
 // Swap Implements Sort
 func (list BorrowInfoList) Swap(i, j int) { list[i], list[j] = list[j], list[i] }

@@ -106,13 +106,13 @@ func doLiquidation(wg *sync.WaitGroup, ctx sdk.Context, k Keeper, tradePair *typ
 
 		// force liquidation
 		if account.Borrowed.AmountOf(baseSymbol).IsPositive() && account.Available.AmountOf(baseSymbol).IsPositive() {
-			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol)))
-			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, repay:address(%s) product(%s) amount(%s)",
+			k.Refund(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol)))
+			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, refund:address(%s) product(%s) amount(%s)",
 				address, tradePair.Name, sdk.NewDecCoinFromDec(baseSymbol, account.Available.AmountOf(baseSymbol))))
 		}
 		if account.Borrowed.AmountOf(quoteSymbol).IsPositive() && account.Available.AmountOf(quoteSymbol).IsPositive() {
-			k.Repay(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol)))
-			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, repay:address(%s) product(%s) amount(%s)",
+			k.Refund(ctx, account, address, tradePair, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol)))
+			k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, refund:address(%s) product(%s) amount(%s)",
 				address, tradePair.Name, sdk.NewDecCoinFromDec(quoteSymbol, account.Available.AmountOf(quoteSymbol))))
 		}
 
@@ -143,7 +143,7 @@ func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPri
 	quoteAvailable := account.Available.AmountOf(quoteSymbol)
 	quoteBorrowed := account.Borrowed.AmountOf(quoteSymbol)
 
-	// place buy order to repay base token
+	// place buy order to refund base token
 	if baseBorrowed.IsPositive() && quoteAvailable.IsPositive() {
 		side := order.BuyOrder
 		quantity := baseBorrowed
@@ -165,7 +165,7 @@ func placeOrder(ctx sdk.Context, k Keeper, tradePair *types.TradePair, latestPri
 		k.Logger(ctx).Debug(fmt.Sprintf("force liquidation, place order: %+v", msg))
 	}
 
-	// place sell order to repay quote token
+	// place sell order to refund quote token
 	if quoteBorrowed.IsPositive() && baseAvailable.IsPositive() {
 		side := order.SellOrder
 		quantity := quoteBorrowed.Quo(bestAsk)

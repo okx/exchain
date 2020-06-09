@@ -388,7 +388,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, address sdk.AccAddress, product string
 	}
 
 	if !account.Borrowed.IsZero() {
-		return types.ErrNotAllowed(types.Codespace, "should repay borrowed coins before withdraw")
+		return types.ErrNotAllowed(types.Codespace, "should refund borrowed coins before withdraw")
 	}
 
 	if amount.IsAnyGT(account.Available) {
@@ -521,21 +521,21 @@ func (k Keeper) calculateTimeKeyIterator(ctx sdk.Context, calculateTime time.Tim
 	return store.Iterator(types.CalculateInterestKeyPrefix, sdk.PrefixEndBytes(key))
 }
 
-// Repay repays the borrowing of product
-// repay precedence: 1. return interest 2. repay borrowing which rate is greater 3. repay borrowing which borrowed earlier
-func (k Keeper) Repay(ctx sdk.Context, account *types.Account, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) {
+// Refund refunds the borrowing of product
+// refund precedence: 1. return interest 2. refund borrowing which rate is greater 3. refund borrowing which borrowed earlier
+func (k Keeper) Refund(ctx sdk.Context, account *types.Account, address sdk.AccAddress, tradePair *types.TradePair, amount sdk.DecCoin) {
 	denom := amount.Denom
 	actualAmount := amount.Amount
 	// when amount is greater than borrowed + interest
 	if amount.Amount.GT(account.Borrowed.AmountOf(denom).Add(account.Interest.AmountOf(denom))) {
 		actualAmount = account.Borrowed.AmountOf(denom).Add(account.Interest.AmountOf(denom))
 	}
-	// repay to saving, update saving
+	// refund to saving, update saving
 	saving := k.GetSaving(ctx, tradePair.Name)
 	saving = saving.Add(sdk.NewDecCoinsFromDec(denom, actualAmount))
 	k.SetSaving(ctx, tradePair.Name, saving)
 
-	// only repay interest & update account
+	// only refund interest & update account
 	if account.Interest.AmountOf(denom).GTE(actualAmount) {
 		// update account
 		account.Available = account.Available.Sub(sdk.NewDecCoinsFromDec(denom, actualAmount))
@@ -556,7 +556,7 @@ func (k Keeper) Repay(ctx sdk.Context, account *types.Account, address sdk.AccAd
 		k.DeleteBorrowedKey(ctx, address, tradePair.Name)
 	}
 
-	// repay borrowing & update borrowInfo
+	// refund borrowing & update borrowInfo
 	borrowInfoList := k.GetBorrowInfoList(ctx, address, tradePair.Name)
 	sort.Sort(borrowInfoList)
 	for _, borrowInfo := range borrowInfoList {

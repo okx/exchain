@@ -14,7 +14,7 @@ var _ sdk.Msg = &MsgDexSave{}
 var _ sdk.Msg = &MsgDexReturn{}
 var _ sdk.Msg = &MsgDeposit{}
 var _ sdk.Msg = &MsgBorrow{}
-var _ sdk.Msg = &MsgRepay{}
+var _ sdk.Msg = &MsgRefund{}
 var _ sdk.Msg = &MsgWithdraw{}
 
 // MsgDexDeposit - struct for dex depositing for a product
@@ -324,16 +324,16 @@ func (msg MsgBorrow) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Address}
 }
 
-// MsgRepay - struct for repaying for a product
-type MsgRepay struct {
+// MsgRefund- struct for refunding for a product
+type MsgRefund struct {
 	Address sdk.AccAddress `json:"address"`
 	Product string         `json:"product"`
 	Amount  sdk.DecCoin    `json:"amount"`
 }
 
-// NewMsgRepay creates a new MsgRepay instance
-func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgRepay {
-	return MsgRepay{
+// NewMsgRefund creates a new MsgRefund instance
+func NewMsgRefund(address sdk.AccAddress, product string, amount sdk.DecCoin) MsgRefund {
+	return MsgRefund{
 		Address: address,
 		Product: product,
 		Amount:  amount,
@@ -341,13 +341,13 @@ func NewMsgRepay(address sdk.AccAddress, product string, amount sdk.DecCoin) Msg
 }
 
 // Route Implements Msg
-func (msg MsgRepay) Route() string { return RouterKey }
+func (msg MsgRefund) Route() string { return RouterKey }
 
 // Type Implements Msg
-func (msg MsgRepay) Type() string { return "repay" }
+func (msg MsgRefund) Type() string { return "refund" }
 
 // ValidateBasic Implements Msg
-func (msg MsgRepay) ValidateBasic() sdk.Error {
+func (msg MsgRefund) ValidateBasic() sdk.Error {
 	if !msg.Amount.IsValid() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
@@ -355,13 +355,13 @@ func (msg MsgRepay) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes Implements Msg
-func (msg MsgRepay) GetSignBytes() []byte {
+func (msg MsgRefund) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners Implements Msg
-func (msg MsgRepay) GetSigners() []sdk.AccAddress {
+func (msg MsgRefund) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Address}
 }
 
