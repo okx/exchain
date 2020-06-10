@@ -305,6 +305,10 @@ func (k Keeper) DexReturn(ctx sdk.Context, address sdk.AccAddress, product strin
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient coins saved(need %s)", amount.String()))
 	}
 	saving = saving.Sub(amount)
+	if saving == nil {
+		k.DeleteSaving(ctx, product)
+		return nil
+	}
 	k.SetSaving(ctx, product, saving)
 	return nil
 }
@@ -329,11 +333,13 @@ func (k Keeper) GetSaving(ctx sdk.Context, product string) sdk.DecCoins {
 func (k Keeper) SetSaving(ctx sdk.Context, product string, amount sdk.DecCoins) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetSavingKey(product)
-	if amount == nil {
-		store.Delete(key)
-		return
-	}
 	store.Set(key, k.cdc.MustMarshalBinaryBare(amount))
+}
+
+func (k Keeper) DeleteSaving(ctx sdk.Context, product string) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetSavingKey(product)
+	store.Delete(key)
 }
 
 // GetAccount returns the account from db
@@ -424,7 +430,11 @@ func (k Keeper) Borrow(ctx sdk.Context, address sdk.AccAddress, tradePair *types
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to borrow because insufficient coins saved(need %s)", borrowAmount.String()))
 	}
 	saving = saving.Sub(sdk.NewCoins(borrowAmount))
-	k.SetSaving(ctx, tradePair.Name, saving)
+	if saving == nil {
+		k.DeleteSaving(ctx, tradePair.Name)
+	} else {
+		k.SetSaving(ctx, tradePair.Name, saving)
+	}
 
 	// add borrow
 	borrowInfo := k.GetBorrowInfo(ctx, address, tradePair.Name, uint64(ctx.BlockHeight()))
