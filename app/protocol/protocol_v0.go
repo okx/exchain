@@ -316,7 +316,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
 
-	p.wasmKeeper = wasm.NewKeeper(p.cdc, p.keys[wasm.StoreKey], p.accountKeeper, p.bankKeeper, p.generateRouterForWasm(), DefaultNodeHome, wasm.DefaultWasmConfig(), "", nil, nil)
+	p.wasmKeeper = wasm.NewKeeper(p.cdc, p.keys[wasm.StoreKey], p.accountKeeper, p.bankKeeper, p.router, DefaultNodeHome, wasm.DefaultWasmConfig(), "", nil, nil)
 
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
@@ -538,18 +538,4 @@ func (p *ProtocolV0) GetParent() Parent {
 		panic("parent is nil in protocol")
 	}
 	return p.parent
-}
-
-func (p *ProtocolV0) generateRouterForWasm() sdk.Router {
-	router := baseapp.NewRouter()
-	bh := bank.NewHandler(p.bankKeeper)
-	router.AddRoute(bank.RouterKey, bh)
-
-	//sh := staking.NewHandler(p.stakingKeeper)
-	//router.AddRoute(staking.RouterKey, sh)
-	//
-	//dh := distr.NewHandler(p.distrKeeper)
-	//router.AddRoute(distr.RouterKey, dh)
-
-	return router
 }
