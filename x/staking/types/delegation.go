@@ -16,11 +16,10 @@ type UndelegationInfo struct {
 }
 
 // NewUndelegationInfo creates a new delegation object
-func NewUndelegationInfo(delegatorAddr sdk.AccAddress, votesQuantity sdk.Dec,
-	completionTime time.Time) UndelegationInfo {
+func NewUndelegationInfo(delegatorAddr sdk.AccAddress, sharesQuantity Shares, completionTime time.Time) UndelegationInfo {
 	return UndelegationInfo{
 		DelegatorAddress: delegatorAddr,
-		Quantity:         votesQuantity,
+		Quantity:         sharesQuantity,
 		CompletionTime:   completionTime,
 	}
 }

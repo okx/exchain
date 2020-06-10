@@ -32,25 +32,23 @@ var (
 	NewKeeper                          = keeper.NewKeeper
 	NewQuerier                         = keeper.NewQuerier
 	RegisterCodec                      = types.RegisterCodec
-	NewCommissionRates                 = types.NewCommissionRates
 	NewCommission                      = types.NewCommission
 	ErrNoValidatorFound                = types.ErrNoValidatorFound
 	ErrValidatorOwnerExists            = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists           = types.ErrValidatorPubKeyExists
 	ErrValidatorPubKeyTypeNotSupported = types.ErrValidatorPubKeyTypeNotSupported
-	ErrMinSelfDelegationInvalid        = types.ErrMinSelfDelegationInvalid
 	ErrBadDenom                        = types.ErrBadDenom
 	DefaultGenesisState                = types.DefaultGenesisState
 	NewMultiStakingHooks               = types.NewMultiStakingHooks
 	GetValidatorsByPowerIndexKey       = types.GetValidatorsByPowerIndexKey
 	NewMsgCreateValidator              = types.NewMsgCreateValidator
 	NewMsgEditValidator                = types.NewMsgEditValidator
-	NewMsgDelegate                     = types.NewMsgDelegate
-	NewMsgUndelegate                   = types.NewMsgUndelegate
+	NewMsgDeposit                      = types.NewMsgDeposit
+	NewMsgWithdraw                     = types.NewMsgWithdraw
 	DefaultParams                      = types.DefaultParams
 	NewValidator                       = types.NewValidator
 	NewDescription                     = types.NewDescription
-	NewMsgVote                         = types.NewMsgVote
+	NewMsgAddShares                    = types.NewMsgAddShares
 	NewGenesisState                    = types.NewGenesisState
 
 	// variable aliases
