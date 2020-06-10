@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/okex/okchain/x/wasm"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -74,6 +76,7 @@ var (
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
+		wasm.AppModuleBasic{},
 		backend.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
@@ -90,6 +93,7 @@ var (
 		gov.ModuleName:            nil,
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		order.ModuleName:          nil,
+		wasm.ModuleName:           nil,
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
 	}
@@ -121,6 +125,7 @@ type ProtocolV0 struct {
 	tokenKeeper    token.Keeper
 	dexKeeper      dex.Keeper
 	orderKeeper    order.Keeper
+	wasmKeeper     wasm.Keeper
 	protocolKeeper proto.ProtocolKeeper
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
@@ -311,6 +316,8 @@ func (p *ProtocolV0) produceKeepers() {
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
 
+	p.wasmKeeper = wasm.NewKeeper(p.cdc, p.keys[wasm.StoreKey], p.accountKeeper, p.bankKeeper, p.router, DefaultNodeHome, wasm.DefaultWasmConfig(), "", nil, nil)
+
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
@@ -367,6 +374,7 @@ func (p *ProtocolV0) setManager() {
 		gov.NewAppModule(version.ProtocolVersionV0, p.govKeeper, p.supplyKeeper),
 		order.NewAppModule(version.ProtocolVersionV0, p.orderKeeper, p.supplyKeeper),
 		token.NewAppModule(version.ProtocolVersionV0, p.tokenKeeper, p.supplyKeeper),
+		wasm.NewAppModule(p.wasmKeeper),
 
 		// TODO
 		dex.NewAppModule(version.ProtocolVersionV0, p.dexKeeper, p.supplyKeeper),

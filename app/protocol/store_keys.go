@@ -10,6 +10,7 @@ import (
 	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okchain/x/wasm"
 
 	//distr "github.com/okex/okchain/x/distribution"
 	distr "github.com/okex/okchain/x/distribution"
@@ -36,6 +37,7 @@ var (
 		params.StoreKey,
 		token.StoreKey, token.KeyMint, token.KeyLock,
 		order.OrderStoreKey,
+		wasm.StoreKey,
 		upgrade.StoreKey,
 		dex.StoreKey, dex.TokenPairStoreKey,
 		debug.StoreKey,
