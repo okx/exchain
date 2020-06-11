@@ -38,6 +38,8 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	expectCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.MustNewDecFromStr("100")),
+		sdk.NewDecCoinFromDec(types.TestBasePooledToken2, sdk.MustNewDecFromStr("100")),
+		sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
@@ -159,6 +161,91 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 		addLiquidityMsg := types.NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
+	}
+}
+
+
+func TestHandleMsgTokenToTokenExchange(t *testing.T) {
+	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
+	keeper := mapp.swapKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	testToken := types.InitPoolToken(types.TestBasePooledToken)
+	secondTestTokenName := "yyb"
+	secondTestToken := types.InitPoolToken(secondTestTokenName)
+
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	handler := NewHandler(keeper)
+	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	msgCreateExchange2 := types.NewMsgCreateExchange(secondTestToken.Symbol, addrKeysSlice[0].Address)
+	mapp.tokenKeeper.NewToken(ctx, testToken)
+	mapp.tokenKeeper.NewToken(ctx, secondTestToken)
+
+	result := handler(ctx, msgCreateExchange)
+	require.Equal(t, "", result.Log)
+	result = handler(ctx, msgCreateExchange2)
+	require.Equal(t, "", result.Log)
+
+	minLiquidity := sdk.NewDec(1)
+	maxBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(10000))
+	maxBaseAmount2 := sdk.NewDecCoinFromDec(secondTestTokenName, sdk.NewDec(10000))
+	quoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDec(10000))
+	deadLine := time.Now().Unix()
+	addr := addrKeysSlice[0].Address
+
+	addLiquidityMsg := types.NewMsgAddLiquidity(minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr)
+	result = handler(ctx, addLiquidityMsg)
+	require.Equal(t, "", result.Log)
+	addLiquidityMsg2 := types.NewMsgAddLiquidity(minLiquidity, maxBaseAmount2, quoteAmount, deadLine, addr)
+	result = handler(ctx, addLiquidityMsg)
+	require.Equal(t, "", result.Log)
+	result = handler(ctx, addLiquidityMsg2)
+	require.Equal(t, "", result.Log)
+
+	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(1))
+	deadLine = time.Now().Unix()
+	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDec(2))
+	insufficientSoldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDec(100000000))
+	unkownBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.NewDec(1))
+	invalidMinBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(100000))
+
+
+	minBoughtTokenAmount2 := sdk.NewDecCoinFromDec(secondTestTokenName, sdk.NewDec(1))
+	unkownBountTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.NewDec(1))
+	soldTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(2))
+	unkownSoldTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.NewDec(1))
+	insufficientSoldTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(10000000))
+	invalidMinBoughtTokenAmount2 := sdk.NewDecCoinFromDec(secondTestTokenName, sdk.NewDec(100000))
+
+	tests := []struct {
+		testCase string
+		minBoughtTokenAmount sdk.DecCoin
+		soldTokenAmount sdk.DecCoin
+		deadLine int64
+		recipient sdk.AccAddress
+		addr sdk.AccAddress
+		exceptResultCode sdk.CodeType
+	}{
+		{"(tokenToNativeToken) success", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, 0},
+		{"(tokenToToken) success", minBoughtTokenAmount2, soldTokenAmount2, deadLine, addr, addr, 0},
+		{"(tokenToNativeToken) blockTime exceeded deadline", minBoughtTokenAmount, soldTokenAmount, 0, addr, addr, sdk.CodeInternal},
+		{"(tokenToToken) blockTime exceeded deadline", minBoughtTokenAmount2, soldTokenAmount2, 0, addr, addr, sdk.CodeInternal},
+		{"(tokenToNativeToken) insufficient SoldTokenAmount", minBoughtTokenAmount, insufficientSoldTokenAmount, deadLine, addr, addr, sdk.CodeInsufficientCoins},
+		{"(tokenToToken) insufficient SoldTokenAmount", minBoughtTokenAmount2, insufficientSoldTokenAmount2, deadLine, addr, addr, sdk.CodeInsufficientCoins},
+		{"(tokenToNativeToken) unknown swapTokenPair", unkownBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeInternal},
+		{"(tokenToToken) unknown swapTokenPair", unkownBountTokenAmount2, soldTokenAmount2, deadLine, addr, addr, sdk.CodeInternal},
+		{"(tokenToToken) unknown swapTokenPair2", minBoughtTokenAmount2, unkownSoldTokenAmount2, deadLine, addr, addr, sdk.CodeInternal},
+		{"(tokenToNativeToken) The available BoughtTokenAmount are less than minBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeInternal},
+		{"(tokenToToken) The available BoughtTokenAmount are less than minBoughtTokenAmount", invalidMinBoughtTokenAmount2, soldTokenAmount2, deadLine, addr, addr, sdk.CodeInternal},
+	}
+
+	for _, testCase := range tests {
+		fmt.Println(testCase.testCase)
+		addLiquidityMsg := types.NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.addr, testCase.addr)
+		result = handler(ctx, addLiquidityMsg)
+		fmt.Println(result.Log)
+		require.Equal(t, testCase.exceptResultCode, result.Code)
+
 	}
 }
 

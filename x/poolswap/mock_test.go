@@ -11,12 +11,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okchain/x/poolswap/types"
+	staking "github.com/okex/okchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/token"
 )
 
@@ -100,8 +100,8 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.supplyKeeper,
 		[]exported.ModuleAccountI{feeCollector}))
 
-	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
-		balance, common.NativeToken, balance, common.TestToken))
+	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s,%d%s,%d%s",
+		balance, types.TestQuotePooledToken, balance, types.TestBasePooledToken, balance, types.TestBasePooledToken2, balance, types.TestBasePooledToken3))
 	require.Nil(t, err)
 	coins := decCoins
 
@@ -142,7 +142,7 @@ func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 	}
 }
 
-func getInitChainer(mapp *mock.App, supplyKeeper types.SupplyKeeper,
+func getInitChainer(mapp *mock.App, supplyKeeper staking.SupplyKeeper,
 	blacklistedAddrs []exported.ModuleAccountI) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)

@@ -332,6 +332,12 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	}
 	tokenPairOne := msg.SoldTokenAmount.Denom + "_" + sdk.DefaultBondDenom
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
+	if err != nil {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  err.Error(),
+		}
+	}
 	tokenPairTwo := msg.MinBoughtTokenAmount.Denom + "_" + sdk.DefaultBondDenom
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
@@ -341,7 +347,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 		}
 	}
 
-	nativeAmount := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, sdk.MustNewDecFromStr("0"))
+	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
 
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
