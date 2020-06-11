@@ -44,6 +44,10 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 
 	// bind proxy relationship
 	delegator.BindProxy(msg.ProxyAddress)
+	proxyDelegator, found = k.GetDelegator(ctx, msg.ProxyAddress)
+	if !found {
+		return types.ErrNeverProxied(types.DefaultCodespace, msg.ProxyAddress.String()).Result()
+	}
 
 	// update proxy's vote weight
 	proxyDelegator.TotalDelegatedTokens = proxyDelegator.TotalDelegatedTokens.Add(delegator.Tokens)

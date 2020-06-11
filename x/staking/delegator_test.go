@@ -315,6 +315,7 @@ func TestRebindProxy(t *testing.T) {
 	bAction := baseAction{mk}
 	proxyOriginTokens := MaxDelegatedToken
 	ProxiedDelegatorAlternative := ValidDelegator2
+	zeroDec := sdk.ZeroDec()
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
 		endBlockAction{bAction},
@@ -331,20 +332,44 @@ func TestRebindProxy(t *testing.T) {
 		// bind proxy
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 
+		// vote validator
+		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		endBlockAction{bAction},
+
 		// rebind to an alternative proxy
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegatorAlternative},
+		endBlockAction{bAction},
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegatorAlternative},
 	}
 
 	ProxyChecker1 := andChecker{[]actResChecker{
 		noErrorInHandlerResult(true),
-		queryProxyCheck(ProxiedDelegator, true, DelegatedToken1),
-		queryProxyCheck(ProxiedDelegatorAlternative, true, sdk.ZeroDec()),
+		queryDelegatorProxyCheck(ProxiedDelegator, true, false,
+			&DelegatedToken1, nil, []sdk.AccAddress{ValidDelegator1}),
+		queryDelegatorProxyCheck(ProxiedDelegatorAlternative, true, false,
+			&zeroDec, nil, nil),
+	}}
+
+	voteActionChecker := andChecker{checkers:[]actResChecker{
+		noErrorInHandlerResult(true),
+		queryDelegatorProxyCheck(ProxiedDelegator, true, false,
+			&DelegatedToken1, nil, []sdk.AccAddress{ValidDelegator1}),
+		queryDelegatorProxyCheck(ProxiedDelegatorAlternative, true, false,
+			&zeroDec, nil, nil),
+		validatorDelegatorShareIncreased(true),
 	}}
 
 	ProxyChecker2 := andChecker{[]actResChecker{
 		noErrorInHandlerResult(true),
 		queryProxyCheck(ProxiedDelegator, true, sdk.ZeroDec()),
 		queryProxyCheck(ProxiedDelegatorAlternative, true, DelegatedToken1),
+
+		queryDelegatorProxyCheck(ProxiedDelegator, true, false,
+			&zeroDec, nil, nil),
+		queryDelegatorProxyCheck(ProxiedDelegatorAlternative, true, false,
+			&DelegatedToken1, nil, nil),
+
+		validatorDelegatorShareIncreased(false),
 	}}
 
 	actionsAndChecker := []actResChecker{
@@ -362,8 +387,16 @@ func TestRebindProxy(t *testing.T) {
 		// bind proxy
 		ProxyChecker1.GetChecker(),
 
+		// vote check
+		voteActionChecker.GetChecker(),
+		nil,
+
 		// rebind to an alternative proxy
 		ProxyChecker2.GetChecker(),
+		nil,
+		// rebind ProxiedDelegatorAlternative
+		queryDelegatorProxyCheck(ProxiedDelegatorAlternative, true, false,
+			&DelegatedToken1, nil, nil),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)

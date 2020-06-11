@@ -53,6 +53,8 @@ var (
 	VotesFromDefaultMSD = sdk.OneDec()
 	DelegatedToken1     = VotesFromDefaultMSD.MulInt64(1024)
 	DelegatedToken2     = VotesFromDefaultMSD.MulInt64(2048)
+
+	GlobalContext       = sdk.Context{}
 )
 
 var (
@@ -83,6 +85,7 @@ type ActionResultCtx struct {
 	endBlockerResult abci.ValidatorUpdates
 	isBlkHeightInc   bool
 	params           types.Params
+	context			 *sdk.Context
 	tc               *basicStakingSMTestCase
 	t                *testing.T
 }
@@ -456,7 +459,8 @@ type proxyBindAction struct {
 }
 
 func (action proxyBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply proxyBindAction[%d]\n", ctx.BlockHeight())
+	resultCtx.t.Logf("====> Apply proxyBindAction[%d] Dlg: %s Prx: %s",
+		ctx.BlockHeight(), action.dlgAddr, action.proxyAddr)
 	msg := types.NewMsgBindProxy(action.dlgAddr, action.proxyAddr)
 	handler := NewHandler(action.mStkKeeper.Keeper)
 	res := handler(ctx, msg)
@@ -519,12 +523,14 @@ func validatorRemoved(expectRemoved bool) actResChecker {
 
 		return b1 || b2
 	}
-
 }
 
 func validatorDelegatorShareIncreased(expectIncr bool) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 		b1 := assert.NotNil(t, beforeStatus) && assert.NotNil(t, afterStatus)
+
+		resultCtx.t.Logf("     ====>>> Checking validatorDelegatorShareIncreased[%d], Val: %s, beforeValidatorShare: %s, afterValidatorShare: %s \n",
+			resultCtx.context.BlockHeight(), beforeStatus.getValidator().OperatorAddress.String(),  beforeStatus.getValidator().DelegatorShares, afterStatus.getValidator().DelegatorShares)
 
 		beforeDS := beforeStatus.getValidator().GetDelegatorShares()
 		afterDS := afterStatus.getValidator().GetDelegatorShares()
@@ -589,8 +595,9 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 	}
 }
 
-func queryProxyCheck(proxyAddr sdk.AccAddress, isProxy bool, totalDelTokens sdk.Dec) actResChecker {
+func queryProxyCheck(proxyAddr sdk.AccAddress, expIsProxy bool, expTotalDelTokens sdk.Dec) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
+
 		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 
@@ -606,9 +613,16 @@ func queryProxyCheck(proxyAddr sdk.AccAddress, isProxy bool, totalDelTokens sdk.
 		var proxy Delegator
 		cdc.MustUnmarshalJSON(res, &proxy)
 
-		require.Equal(t, isProxy, proxy.IsProxy)
-		require.True(t, totalDelTokens.Equal(proxy.TotalDelegatedTokens))
-		return true
+		b1 := assert.Equal(t, expIsProxy, proxy.IsProxy)
+		b2 := assert.True(t, expTotalDelTokens.Equal(proxy.TotalDelegatedTokens))
+		resultCtx.t.Logf("     ====>>> Checking queryProxyCheck[%d], Proxy: %s, FullInfo: %+v \n",
+			resultCtx.context.BlockHeight(), proxyAddr, proxy)
+
+		//expShares, _ := keeper.SimulateWeight(resultCtx.context.BlockTime().Unix(), expTotalDelTokens)
+		//b3 := assert.True(t, (expShares).Equal(proxy.Shares))
+		b3 := true
+
+		return b1 && b2 && b3
 	}
 }
 
@@ -699,7 +713,7 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		b2 := assert.Equal(t, expHasProxy, dlg.HasProxy())
 		b3 := true
 		if expTotalDlgTokens != nil {
-			b3 = assert.Equal(t, expTotalDlgTokens.String(), dlg.TotalDelegatedTokens.String())
+			b3 = assert.Equal(t, expTotalDlgTokens.String(), dlg.TotalDelegatedTokens.String(), dlg)
 		}
 
 		var b4 bool
@@ -710,7 +724,7 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		}
 
 		b5 := true
-		if len(expBindedDelegators) > 0 {
+		if expBindedDelegators != nil && len(expBindedDelegators) > 0 {
 			q := NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 			para := types.NewQueryDelegatorParams(dlgAddr)
 			bz, _ := types.ModuleCdc.MarshalJSON(para)
@@ -733,10 +747,21 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 				}
 				b5 = assert.Equal(t, len(expBindedDelegators), cnt)
 			}
-
 		}
 
-		r := b1 && b2 && b3 && b4 && b5
+		// check if the shares correct
+		b6 := true
+		if len(dlg.GetVotedValidatorAddresses()) > 0 {
+			expectDlgShares, err := keeper.SimulateWeight(getGlobalContext().BlockTime().Unix(), (dlg.TotalDelegatedTokens.Add(dlg.Tokens)))
+			b6 = err == nil
+			b6 = b6 && assert.Equal(t, expectDlgShares.String(), dlg.Shares.String(), dlg)
+		} else {
+			expectDlgShares := sdk.ZeroDec()
+			b6 = assert.Equal(t, expectDlgShares.String(), dlg.Shares.String(), dlg)
+		}
+
+
+		r := b1 && b2 && b3 && b4 && b5 && b6
 		if !r {
 			resultCtx.tc.printParticipantSnapshot(resultCtx.t)
 		}
@@ -967,7 +992,12 @@ func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 	)
 	ctx = ctx.WithBlockTime(time.Now())
 
+	GlobalContext = ctx
 	return ctx
+}
+
+func getGlobalContext() sdk.Context {
+	return GlobalContext
 }
 
 func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator int) {
@@ -1041,6 +1071,7 @@ func (tc *basicStakingSMTestCase) Run(t *testing.T) {
 		resultCtx.params = tc.stkParams
 		resultCtx.tc = tc
 		resultCtx.t = t
+		resultCtx.context = &ctx
 
 		action.apply(ctx, beforeStatus, &resultCtx)
 
