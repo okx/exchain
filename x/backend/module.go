@@ -2,7 +2,6 @@ package backend
 
 import (
 	"encoding/json"
-
 	"github.com/okex/okchain/x/backend/client/cli"
 	"github.com/okex/okchain/x/backend/client/rest"
 
@@ -33,6 +32,7 @@ func (AppModuleBasic) Name() string {
 
 // RegisterCodec registers module codec
 func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	RegisterCodec(cdc)
 }
 
 // DefaultGenesis returns nil

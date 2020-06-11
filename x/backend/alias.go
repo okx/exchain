@@ -46,4 +46,5 @@ var (
 	NewORM = orm.New
 
 	DefaultConfig = config.DefaultConfig
+	RegisterCodec = types.RegisterCodec
 )
