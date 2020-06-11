@@ -1,11 +1,11 @@
-package swap
+package poolswap
 
 import (
 	"fmt"
 
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -71,26 +71,21 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "Failed to create Exchange: exchange is exit",
+			Log:  "swapTokenPair already exists",
 		}
 	}
 
-	poolName := "oip3" + msg.Token
+	poolName := types.PoolTokenPrefix + msg.Token
 	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
-	if err != nil {
+	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "pool token is not exist",
+			Log:  "pool token already exists",
 		}
 	}
-	if len(poolToken.Symbol) == 0 {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed to create Exchange: Pool Token not exit",
-		}
-	}
+	k.NewPoolToken(ctx, poolName)
 	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
 	swapTokenPair.BasePooledCoin = baseToken
 	swapTokenPair.QuotePooledCoin = quoteToken
@@ -149,13 +144,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("MaxBaseAmount is too high"),
+			Log:  fmt.Sprintf("The required baseTokens are greater than MaxBaseAmount"),
 		}
 	}
 	if liquidity.LT(msg.MinLiquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("MinLiquidity is too low"),
+			Log:  fmt.Sprintf("The available liquidity is less than MinLiquidity"),
 		}
 	}
 
@@ -164,6 +159,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		msg.QuoteAmount,
 		baseTokens,
 	}
+	coins = coins.Sort()
 	//TODO another coin connot send to pool
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
@@ -233,13 +229,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "MinBaseAmount is too high",
+			Log:  "The available baseAmount are less than MinBaseAmount",
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "MinQuoteAmount is too high",
+			Log:  "The available quoteAmount are less than MinQuoteAmount",
 		}
 	}
 
@@ -248,6 +244,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		baseAmount,
 		quoteAmount,
 	}
+	coins = coins.Sort()
 	err = k.SendCoinsFromPoolToAccount(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
@@ -335,6 +332,12 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	}
 	tokenPairOne := msg.SoldTokenAmount.Denom + "_" + sdk.DefaultBondDenom
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
+	if err != nil {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  err.Error(),
+		}
+	}
 	tokenPairTwo := msg.MinBoughtTokenAmount.Denom + "_" + sdk.DefaultBondDenom
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
@@ -344,7 +347,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 		}
 	}
 
-	nativeAmount := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, sdk.MustNewDecFromStr("0"))
+	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
 
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount

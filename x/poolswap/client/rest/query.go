@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {

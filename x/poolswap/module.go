@@ -1,4 +1,4 @@
-package swap
+package poolswap
 
 import (
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/okex/okchain/x/swap/client/cli"
-	"github.com/okex/okchain/x/swap/client/rest"
+	"github.com/okex/okchain/x/poolswap/client/cli"
+	"github.com/okex/okchain/x/poolswap/client/rest"
 )
 
 // Type check to ensure the interface is properly implemented
@@ -128,7 +128,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 
 // BeginBlock returns the begin blocker for the swap module.
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlocker(ctx, req, am.keeper)
+	BeginBlocker(ctx, am.keeper)
 }
 
 // EndBlock returns the end blocker for the swap module. It returns no validator

@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
 	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/types"
 	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/client/context"

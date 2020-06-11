@@ -1,8 +1,8 @@
-package swap
+package poolswap
 
 import (
-	"github.com/okex/okchain/x/swap/keeper"
-	"github.com/okex/okchain/x/swap/types"
+	"github.com/okex/okchain/x/poolswap/keeper"
+	"github.com/okex/okchain/x/poolswap/types"
 )
 
 const (
