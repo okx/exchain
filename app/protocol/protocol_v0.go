@@ -421,6 +421,7 @@ func (p *ProtocolV0) setManager() {
 		token.ModuleName,
 		dex.ModuleName,
 		order.ModuleName,
+		poolswap.ModuleName,
 		upgrade.ModuleName,
 		crisis.ModuleName,
 		genutil.ModuleName,

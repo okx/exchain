@@ -171,8 +171,9 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
 	testToken := types.InitPoolToken(types.TestBasePooledToken)
-	secondTestTokenName := "yyb"
+	secondTestTokenName := types.TestBasePooledToken2
 	secondTestToken := types.InitPoolToken(secondTestTokenName)
+	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
