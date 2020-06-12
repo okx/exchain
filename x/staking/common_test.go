@@ -591,7 +591,9 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 			b5 = assert.Equal(t, *expUnbdHght, validator.UnbondingHeight, validator.Standardize().String())
 		}
 
-		return b1 && b2 && b3 && b4 && b5
+		b6 := assert.True(t, validator.DelegatorShares.GTE(sdk.ZeroDec()), validator)
+
+		return b1 && b2 && b3 && b4 && b5 && b6
 	}
 }
 
