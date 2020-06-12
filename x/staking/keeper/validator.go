@@ -88,6 +88,16 @@ func (k Keeper) mustGetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAdd
 // SetValidator sets the main record holding validator details
 func (k Keeper) SetValidator(ctx sdk.Context, validator types.Validator) {
 	store := ctx.KVStore(k.storeKey)
+
+	if validator.DelegatorShares.LT(sdk.ZeroDec()) {
+		panic(fmt.Errorf("validator shares is less than zero, val: %v\n", validator))
+	}
+	if len(k.GetValidatorVotes(ctx, validator.OperatorAddress)) == 0 &&
+		validator.MinSelfDelegation.IsZero() &&
+		validator.DelegatorShares.GT(sdk.ZeroDec()) {
+		panic(fmt.Errorf("validator shares is great than zero, but there is no vote on it, val: %v\n", validator))
+	}
+
 	bz := types.MustMarshalValidator(k.cdc, validator)
 	store.Set(types.GetValidatorKey(validator.OperatorAddress), bz)
 }
