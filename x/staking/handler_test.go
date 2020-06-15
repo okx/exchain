@@ -91,7 +91,7 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	assert.Equal(t, DefaultMSD, validator.MinSelfDelegation)
 	require.True(t, keeper.IsValidator(ctx, validator.OperatorAddress.Bytes()))
 
-	assert.Equal(t, VotesFromDefaultMSD, validator.DelegatorShares)
+	assert.Equal(t, SharesFromDefaultMSD, validator.DelegatorShares)
 	assert.Equal(t, defaultDescriptionForTest(), validator.Description)
 
 	// two validators can't have the same operator address
@@ -121,7 +121,7 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	assert.Equal(t, pk2, validator.ConsPubKey)
 	assert.True(sdk.DecEq(t, DefaultMSD, validator.MinSelfDelegation))
 
-	assert.True(sdk.DecEq(t, VotesFromDefaultMSD, validator.DelegatorShares))
+	assert.True(sdk.DecEq(t, SharesFromDefaultMSD, validator.DelegatorShares))
 	assert.Equal(t, defaultDescriptionForTest(), validator.Description)
 }
 
@@ -172,7 +172,7 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates))
 	SimpleCheckValidator(t, ctx, keeper, validatorAddr, DefaultMSD, sdk.Bonded,
-		VotesFromDefaultMSD, false)
+		SharesFromDefaultMSD, false)
 
 	// edit validator
 	msgEditValidator := NewMsgEditValidator(validatorAddr, Description{Moniker: "moniker"})
@@ -182,5 +182,5 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	got = handler(ctx, msgEditValidator)
 	require.True(t, got.IsOK(), "should not be able to decrease minSelfDelegation")
 	SimpleCheckValidator(t, ctx, keeper, validatorAddr, DefaultMSD, sdk.Bonded,
-		VotesFromDefaultMSD, false)
+		SharesFromDefaultMSD, false)
 }
