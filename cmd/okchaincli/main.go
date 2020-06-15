@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/okchain/x/stream/quoteslite"
+	//"github.com/okex/okchain/x/stream/quoteslite"
 	"os"
 	"path"
 
@@ -69,7 +69,7 @@ func main() {
 		client.LineBreak,
 		lcd.ServeCommand(cdc, registerRoutes),
 		client.LineBreak,
-		quoteslite.LiteCmd,
+		//quoteslite.LiteCmd,
 		client.LineBreak,
 		keys.Commands(),
 		client.LineBreak,
