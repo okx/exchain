@@ -54,7 +54,7 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("invalid BaseTokens")
 	}
 	if msg.QuoteAmount.Denom != common.NativeToken {
-		return sdk.ErrUnknownRequest("quote token only supports okt")
+		return sdk.ErrUnknownRequest("quote token only supports " + common.NativeToken)
 	}
 	return nil
 }

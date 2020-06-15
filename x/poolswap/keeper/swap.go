@@ -13,8 +13,8 @@ func (k Keeper) IsTokenExist(ctx sdk.Context, token string) error {
 	}
 
 	t := k.tokenKeeper.GetTokenInfo(ctx, token)
-	if t.Type == sdk.NewInt(types.GenerateTokenType) {
-		return sdk.ErrInternal("Failed to create exchange with poll token")
+	if t.Type.Equal(sdk.NewInt(types.GenerateTokenType)) {
+		return sdk.ErrInvalidCoins("Failed to create exchange with pool token")
 	}
 	return nil
 

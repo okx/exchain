@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-
-const PoolTokenPrefix = "poolswap-"
+const PoolTokenPrefix = "pol"
 
 type SwapTokenPair struct {
 	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`

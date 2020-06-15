@@ -14,7 +14,7 @@ import (
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/swap/exchange", swapExchangeHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/poolswap/exchange", swapExchangeHandler(cliCtx)).Methods("GET")
 }
 
 func swapExchangeHandler(cliCtx context.CLIContext) func(http.ResponseWriter, *http.Request) {
@@ -22,7 +22,7 @@ func swapExchangeHandler(cliCtx context.CLIContext) func(http.ResponseWriter, *h
 		vars := mux.Vars(r)
 		tokenName := vars["token"]
 
-		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/swap/swapTokenPair/%s", tokenName), nil)
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/poolswap/swapTokenPair/%s", tokenName), nil)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
