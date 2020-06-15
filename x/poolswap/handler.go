@@ -296,7 +296,8 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 			Log:  err.Error(),
 		}
 	}
-	tokenBuy := calculateTokenToBuy(swapTokenPair, msg)
+	params := k.GetParams(ctx)
+	tokenBuy := calculateTokenToBuy(swapTokenPair, msg, params)
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -348,14 +349,14 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	}
 
 	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
-
+	params := k.GetParams(ctx)
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
-	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne)
+	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne, params)
 
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
-	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo)
+	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo, params)
 
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
@@ -381,7 +382,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 }
 
 //calculate the amount to buy
-func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken) sdk.DecCoin {
+func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken, params types.Params) sdk.DecCoin {
 	var inputReserve, outputReserve sdk.Dec
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		inputReserve = swapTokenPair.QuotePooledCoin.Amount
@@ -390,7 +391,7 @@ func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNative
 		inputReserve = swapTokenPair.BasePooledCoin.Amount
 		outputReserve = swapTokenPair.QuotePooledCoin.Amount
 	}
-	tokenBuyAmt := getInputPrice(msg.SoldTokenAmount.Amount, inputReserve, outputReserve)
+	tokenBuyAmt := getInputPrice(msg.SoldTokenAmount.Amount, inputReserve, outputReserve, params.FeeRate)
 	tokenBuy := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, tokenBuyAmt)
 
 	return tokenBuy
@@ -429,11 +430,11 @@ func swapTokenNativeToken(
 	return sdk.Result{}
 }
 
-func getInputPrice(inputAmount, inputReserve, outputReserve sdk.Dec) sdk.Dec {
+func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
 	//if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
 	//	panic("should not happen")
 	//}
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(types.FeeRate))
+	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate))
 	numerator := inputAmountWithFee.Mul(outputReserve)
 	denominator := inputReserve.Add(inputAmountWithFee)
 	return numerator.Quo(denominator)

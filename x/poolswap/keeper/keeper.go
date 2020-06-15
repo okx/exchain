@@ -18,7 +18,7 @@ type Keeper struct {
 
 	storeKey   sdk.StoreKey
 	cdc        *codec.Codec
-	paramspace types.ParamSubspace
+	paramSpace types.ParamSubspace
 }
 
 // NewKeeper creates a swap keeper
@@ -28,7 +28,7 @@ func NewKeeper(supplyKeeper types.SupplyKeeper, tokenKeeper types.TokenKeeper, c
 		tokenKeeper:  tokenKeeper,
 		storeKey:     key,
 		cdc:          cdc,
-		paramspace:   paramspace.WithKeyTable(types.ParamKeyTable()),
+		paramSpace:   paramspace.WithKeyTable(types.ParamKeyTable()),
 	}
 	return keeper
 }
@@ -121,4 +121,15 @@ func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.DecCoins, 
 
 func (k Keeper) GetTokenKeeper() types.TokenKeeper {
 	return k.tokenKeeper
+}
+
+// GetParams gets inflation params from the global param store
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+	k.paramSpace.GetParamSet(ctx, &params)
+	return params
+}
+
+// SetParams sets inflation params from the global param store
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	k.paramSpace.SetParamSet(ctx, &params)
 }
