@@ -31,6 +31,39 @@ func getTestTokenPair() *types.TokenPair {
 	}
 }
 
+func TestSaveTokenPair(t *testing.T) {
+	testInput := createTestInputWithBalance(t, 1, 10000)
+	ctx := testInput.Ctx
+	keeper := testInput.DexKeeper
+	tokenPair0 := getTestTokenPair()
+
+	// SaveTokenPair
+	err := keeper.SaveTokenPair(ctx, tokenPair0)
+	require.Nil(t, err)
+
+	tokenPairNumber := keeper.GetTokenPairNum(ctx)
+	require.Equal(t, uint64(1), tokenPairNumber)
+
+	// SaveTokenPair with id
+	tokenPairId := uint64(100)
+	tokenPair1 := getTestTokenPair()
+	tokenPair1.ID = tokenPairId
+	err = keeper.SaveTokenPair(ctx, tokenPair1)
+	require.Nil(t, err)
+
+	tokenPairNumber = keeper.GetTokenPairNum(ctx)
+	require.Equal(t, tokenPairId, tokenPairNumber)
+
+	// SaveTokenPair with smaller id
+	tokenPair2 := getTestTokenPair()
+	tokenPair2.ID = tokenPairId - 1
+	err = keeper.SaveTokenPair(ctx, tokenPair2)
+	require.Nil(t, err)
+
+	tokenPairNumber = keeper.GetTokenPairNum(ctx)
+	require.Equal(t, tokenPairId, tokenPairNumber)
+}
+
 func TestGetTokenPair(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
