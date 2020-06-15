@@ -77,6 +77,30 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 // SaveTokenPair saves the token pair to db
 // key is base:quote
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
+	if ctx.BlockHeight() <= 6960373 {
+		store := ctx.KVStore(k.tokenPairStoreKey)
+
+		var tokenPairNumber uint64
+		// to load exported data from genesis file.
+		if tokenPair.ID == 0 {
+			tokenPairNumber = k.GetTokenPairNum(ctx)
+			tokenPair.ID = tokenPairNumber + 1
+		}
+
+		tokenPairNumber = tokenPair.ID
+		tokenPairNumberInByte := k.cdc.MustMarshalBinaryBare(tokenPairNumber)
+		store.Set(types.TokenPairNumberKey, tokenPairNumberInByte)
+
+		keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
+		store.Set(types.GetTokenPairAddress(keyPair), k.cdc.MustMarshalBinaryBare(tokenPair))
+		store.Set(types.GetUserTokenPairAddress(tokenPair.Owner, keyPair), []byte{})
+
+		if k.observerKeeper != nil {
+			k.observerKeeper.OnAddNewTokenPair(ctx, tokenPair)
+		}
+		return nil
+	}
+
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
 	tokenPairNumber := k.GetTokenPairNum(ctx)
