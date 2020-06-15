@@ -34,7 +34,7 @@ func TestParams(t *testing.T) {
 	require.Error(t, p2.Validate())
 
 	p2 = p1
-	p2.MaxValsToVote = 0
+	p2.MaxValsToAddShares = 0
 	require.Error(t, p2.Validate())
 
 }

@@ -32,10 +32,10 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		delegatorProxyHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// query the votes on a validator
+	// query the all shares on a validator
 	r.HandleFunc(
-		"/staking/validators/{validatorAddr}/votes",
-		validatorVotesHandlerFn(cliCtx),
+		"/staking/validators/{validatorAddr}/shares",
+		validatorAllSharesHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// get all validators
@@ -97,9 +97,9 @@ func delegatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator))
 }
 
-// HTTP request handler to query the votes on a validator
-func validatorVotesHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
-	return queryValidator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorVotes))
+// HTTP request handler to query the all shares added to a validator
+func validatorAllSharesHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return queryValidator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorAllShares))
 }
 
 // HTTP request handler to query list of validators

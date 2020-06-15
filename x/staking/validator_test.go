@@ -25,7 +25,7 @@ func TestValidatorMultiCreates(t *testing.T) {
 	inputActions := []IAction{
 		createValidatorAction{bAction, startUpStatus},
 		createValidatorAction{bAction, invalidVaStatus},
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 	}
 
@@ -70,14 +70,14 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
-		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
+		queryValidatorCheck(sdk.Bonded, false, &SharesFromDefaultMSD, &DefaultMSD, nil),
 		noErrorInHandlerResult(true),
 		validatorKickedOff(true),
 		nil,
 		nil,
 		nil,
-		queryValidatorCheck(sdk.Unbonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
-		queryValidatorCheck(sdk.Bonded, false, &VotesFromDefaultMSD, &DefaultMSD, nil),
+		queryValidatorCheck(sdk.Unbonded, false, &SharesFromDefaultMSD, &DefaultMSD, nil),
+		queryValidatorCheck(sdk.Bonded, false, &SharesFromDefaultMSD, &DefaultMSD, nil),
 	}
 
 	smTestCase := basicStakingSMTestCase{

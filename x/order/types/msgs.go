@@ -13,8 +13,6 @@ import (
 const (
 	OrderItemLimit            = 200
 	MultiCancelOrderItemLimit = 200
-	NewOrderMsgGasUnit        = 40000
-	CancelOrderMsgGasUnit     = 30000
 )
 
 // nolint
@@ -144,8 +142,8 @@ func (msg MsgNewOrders) GetSigners() []sdk.AccAddress {
 }
 
 // Calculate customize gas
-func (msg MsgNewOrders) CalculateGas() uint64 {
-	return uint64(len(msg.OrderItems) * NewOrderMsgGasUnit)
+func (msg MsgNewOrders) CalculateGas(gasUnit uint64) uint64 {
+	return uint64(len(msg.OrderItems)) * gasUnit
 }
 
 // nolint
@@ -216,8 +214,8 @@ func (msg MsgCancelOrders) GetSigners() []sdk.AccAddress {
 }
 
 // Calculate customize gas
-func (msg MsgCancelOrders) CalculateGas() uint64 {
-	return uint64(len(msg.OrderIDs) * CancelOrderMsgGasUnit)
+func (msg MsgCancelOrders) CalculateGas(gasUnit uint64) uint64 {
+	return uint64(len(msg.OrderIDs)) * gasUnit
 }
 
 // nolint
