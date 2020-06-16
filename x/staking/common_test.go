@@ -596,6 +596,104 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 	}
 }
 
+func delegatorConstraintCheck(dlg Delegator) actResChecker {
+	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
+
+		checkRes := true
+
+		//P1:  delegator is also a proxy
+		proxyChecker := func () (bool, error) {
+			b := dlg.IsProxy && (dlg.ProxyAddress == nil || len(dlg.ProxyAddress) == 0) && dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec())
+			if !b {
+				return b, fmt.Errorf("proxyChecker Error: %+v", dlg)
+			}
+			return b, nil
+		}
+
+		//P2: delegator is not a proxy
+		notProxyChecker := func() (bool, error) {
+			b := !dlg.IsProxy && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()) &&
+				((dlg.ProxyAddress != nil && len(dlg.ProxyAddress) > 0) ||
+				 (dlg.ProxyAddress == nil || len(dlg.ProxyAddress) == 0))
+			if !b {
+				return b, fmt.Errorf("notProxyChecker Error: %+v", dlg)
+			}
+			return b, nil
+		}
+
+		// T1: deposit token check
+		depositTokenChecker := func() (bool, error) {
+			b :=  dlg.Tokens.GTE(sdk.ZeroDec()) &&
+					dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec()) &&
+					(dlg.Tokens.Equal(sdk.ZeroDec()) && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()) ||
+					 dlg.Tokens.GT(sdk.ZeroDec()) && dlg.Tokens.GTE(dlg.TotalDelegatedTokens))
+
+			if !b {
+				return b, fmt.Errorf("depositTokenChecker Error: %+v", dlg)
+			}
+			return b, nil
+		}
+
+		// S1: delegator add shares to a validator
+		addSharesChecker := func() (bool, error) {
+			b1 := true
+			var e error
+			if dlg.ValidatorAddresses == nil || len(dlg.ValidatorAddresses) == 0 {
+				b1 = dlg.Shares.Equal(sdk.ZeroDec())
+			} else  {
+				for i:=0; i<len(dlg.ValidatorAddresses) && b1; i++ {
+					v, found := resultCtx.tc.mockKeeper.GetValidator(*resultCtx.context, dlg.ValidatorAddresses[i])
+					if !found {
+						e = fmt.Errorf("No Validator : %s found", dlg.ValidatorAddresses[i])
+					}
+					b1 = found &&
+						dlg.Shares.GT(sdk.ZeroDec()) &&
+						v.DelegatorShares.GT(sdk.ZeroDec()) &&
+						v.DelegatorShares.GT(dlg.Shares)
+					if !b1 {
+						e = fmt.Errorf("\n\nDelegatorInfo: %+v\n\n,  ValidatorInfo : %+v ", dlg, v)
+					}
+				}
+			}
+
+			if !b1 {
+				return b1, fmt.Errorf("addSharesChecker Error: %+v, raised Error: %+v", dlg, e)
+			}
+			return true, nil
+		}
+
+		functors := []func() (bool, error) {
+			depositTokenChecker,
+			addSharesChecker,
+		}
+
+		if !dlg.IsProxy {
+			//	ordinary delegator
+			functors = append(functors, notProxyChecker)
+		} else {
+			functors = append(functors, proxyChecker)
+		}
+
+		for _, f := range functors {
+			pass, err := f()
+			checkRes = pass
+
+			if  !pass {
+				resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], Delegator[%s]: %+v",
+					resultCtx.context.BlockHeight(), dlg.DelegatorAddress, dlg)
+				if err != nil {
+					resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], ErrorInfo: %+v",
+						resultCtx.context.BlockHeight(), err)
+				}
+
+				break
+			}
+		}
+
+		return checkRes
+	}
+}
+
 func queryProxyCheck(proxyAddr sdk.AccAddress, expIsProxy bool, expTotalDelTokens sdk.Dec) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
@@ -642,6 +740,7 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 
 		b1 := assert.True(t, found == expExist)
 		b2, b3, b4, b5 := true, true, true, true
+		constraintCheckRes := true
 
 		if expExist {
 
@@ -674,6 +773,8 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 				b4 = assert.Equal(t, *expToken, dlg.Tokens, delegatorStr)
 			}
 
+			constraintCheckRes = delegatorConstraintCheck(dlg)(t, beforeStatus, afterStatus, resultCtx)
+
 		}
 
 		if expUnbondingToken != nil {
@@ -694,7 +795,7 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 
 		}
 
-		return b1 && b2 && b3 && b4 && b5
+		return b1 && b2 && b3 && b4 && b5 && constraintCheckRes
 	}
 }
 
@@ -761,7 +862,9 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		}
 
 
-		r := b1 && b2 && b3 && b4 && b5 && b6
+		constraintCheckRes := delegatorConstraintCheck(dlg)(t, beforeStatus, afterStatus, resultCtx)
+
+		r := b1 && b2 && b3 && b4 && b5 && b6 && constraintCheckRes
 		if !r {
 			resultCtx.tc.printParticipantSnapshot(resultCtx.t)
 		}
@@ -1086,7 +1189,7 @@ func (tc *basicStakingSMTestCase) Run(t *testing.T) {
 			}
 
 			require.True(t, cr, fmt.Sprintf("====ActionRound: %d\n", i+1),
-				tc.stkParams, beforeStatus.desc(), afterStatus.desc(), resultCtx.String())
+				tc.stkParams, "\n\n", beforeStatus.desc(), "\n\n", afterStatus.desc(), "\n\n", resultCtx.String())
 
 		}
 
