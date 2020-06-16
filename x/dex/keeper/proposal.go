@@ -98,6 +98,10 @@ func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {
 		tokenPairName := fmt.Sprintf("%s_%s", content.BaseAsset, content.QuoteAsset)
 		//update the token info from the store
 		tokenPair := k.GetTokenPair(ctx, tokenPairName)
+		if tokenPair == nil {
+			ctx.Logger().Error(fmt.Sprintf("token pair %s does not exist", tokenPairName))
+			return
+		}
 		tokenPair.Delisting = false
 		k.UpdateTokenPair(ctx, tokenPairName, tokenPair)
 	}
