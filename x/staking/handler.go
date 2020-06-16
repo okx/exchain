@@ -87,7 +87,9 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			}
 			return false
 		})
-
+	if ctx.BlockHeight()%50 == 0 {
+		sanityCheck(ctx, k)
+	}
 	return validatorUpdates
 }
 
@@ -167,4 +169,33 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	})
 
 	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func sanityCheck(ctx sdk.Context, k keeper.Keeper) {
+	validators := k.GetAllValidators(ctx)
+	for _, validator := range validators {
+
+		valTotalVotes := validator.GetDelegatorShares()
+
+		var totalVotes sdk.Dec
+		if validator.MinSelfDelegation.Equal(sdk.ZeroDec()) && validator.Jailed {
+			totalVotes = sdk.ZeroDec()
+		} else {
+			//TODO:if the self-votes based on msd is related with time-calculating, this DelegatorVotesInvariant will not pass
+			// because we can't calculate the votes number base on msd of a validator afterwards
+			totalVotes = sdk.OneDec()
+		}
+
+		votes := k.GetValidatorVotes(ctx, validator.GetOperator())
+		for _, vote := range votes {
+			totalVotes = totalVotes.Add(vote.Votes)
+		}
+
+		if !valTotalVotes.Equal(totalVotes) {
+			msg := fmt.Sprintf("validator address:%s, broken delegator votes invariance:\n"+
+				"\tvalidator.DelegatorShares: %v\n"+
+				"\tsum of Vote.Votes and min self delegation: %v\n", validator.OperatorAddress, valTotalVotes, totalVotes)
+			panic(msg)
+		}
+	}
 }
