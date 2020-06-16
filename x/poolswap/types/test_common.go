@@ -11,6 +11,7 @@ const TestBasePooledToken3 = "zzb"
 const TestQuotePooledToken = common.NativeToken
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
 
+// GetTestSwapTokenPair test
 func GetTestSwapTokenPair() SwapTokenPair {
 	return SwapTokenPair{
 		QuotePooledCoin: sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0)),

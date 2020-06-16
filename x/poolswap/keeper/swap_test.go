@@ -12,7 +12,7 @@ import (
 )
 
 func TestKeeper_IsTokenExistTable(t *testing.T) {
-	mapp, _ := GetMockApp(t, 1)
+	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
@@ -21,14 +21,14 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 	tests := []struct {
 		testCase         string
 		tokennames       []string
-		tokentypes       []sdk.Int
+		tokentypes       []int
 		tokenname        string
 		exceptResultCode sdk.CodeType
 	}{
-		{"token is not exist", []string{"toa", "tob"}, []sdk.Int{sdk.NewInt(1), sdk.NewInt(1)}, "nota", sdk.CodeInternal},
+		{"token is not exist", []string{"toa", "tob"}, []int{1, 1}, "nota", sdk.CodeInternal},
 		{"token is not exist", nil, nil, "nota", sdk.CodeInternal},
-		{"token is exist", []string{"boa", "bob"}, []sdk.Int{sdk.NewInt(1), sdk.NewInt(1)}, "boa", sdk.CodeOK},
-		{"token is pooltoken", []string{"tkoa", "tkob"}, []sdk.Int{sdk.NewInt(1), sdk.NewInt(2)}, "tkob", sdk.CodeInvalidCoins},
+		{"token is exist", []string{"boa", "bob"}, []int{1, 1}, "boa", sdk.CodeOK},
+		{"token is pooltoken", []string{"tkoa", "tkob"}, []int{1, 2}, "tkob", sdk.CodeInvalidCoins},
 	}
 
 	for _, testCase := range tests {
@@ -42,7 +42,7 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 
 }
 
-func genToken(mapp *MockApp, ctx sdk.Context, tokennames []string, tokentypes []sdk.Int) {
+func genToken(mapp *TestInput, ctx sdk.Context, tokennames []string, tokentypes []int) {
 	for i, t := range tokennames {
 		tok := token.Token{
 			Description:         t,

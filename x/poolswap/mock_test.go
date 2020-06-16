@@ -54,7 +54,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		App:       mapp,
 		keySwap:   sdk.NewKVStoreKey(StoreKey),
 		keyToken:  sdk.NewKVStoreKey(token.StoreKey),
-		keyLock: sdk.NewKVStoreKey(token.KeyLock),
+		keyLock:   sdk.NewKVStoreKey(token.KeyLock),
 		keySupply: sdk.NewKVStoreKey(supply.StoreKey),
 	}
 
@@ -69,7 +69,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
 		token.ModuleName:      {supply.Minter, supply.Burner},
-		ModuleName: {supply.Minter, supply.Burner},
+		ModuleName:            {supply.Minter, supply.Burner},
 	}
 	mockApp.supplyKeeper = supply.NewKeeper(mockApp.Cdc, mockApp.keySupply, mockApp.AccountKeeper,
 		mockApp.bankKeeper, maccPerms)
@@ -90,7 +90,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		mockApp.Cdc,
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),
-		)
+	)
 
 	mockApp.Router().AddRoute(RouterKey, NewHandler(mockApp.swapKeeper))
 	mockApp.QueryRouter().AddRoute(QuerierRoute, NewQuerier(mockApp.swapKeeper))

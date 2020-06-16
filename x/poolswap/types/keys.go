@@ -18,6 +18,7 @@ const (
 )
 
 var (
+	// TokenPairPrefixKey to be used for KVStore
 	TokenPairPrefixKey = []byte{0x01}
 )
 

@@ -20,7 +20,7 @@ import (
 	"github.com/okex/okchain/x/token"
 )
 
-type MockApp struct {
+type TestInput struct {
 	*mock.App
 
 	keySwap   *sdk.KVStoreKey
@@ -34,23 +34,23 @@ type MockApp struct {
 	supplyKeeper supply.Keeper
 }
 
-func registerCodec(cdc *codec.Codec) {
+func regCodec(cdc *codec.Codec) {
 	types.RegisterCodec(cdc)
 	token.RegisterCodec(cdc)
 	supply.RegisterCodec(cdc)
 }
 
-func GetMockApp(t *testing.T, numGenAccs int) (mockApp *MockApp, addrKeysSlice mock.AddrKeysSlice) {
-	return getMockAppWithBalance(t, numGenAccs, 100)
+func GetTestInput(t *testing.T, numGenAccs int) (mockApp *TestInput, addrKeysSlice mock.AddrKeysSlice) {
+	return getTestInputWithBalance(t, numGenAccs, 100)
 }
 
 // initialize the mock application for this module
-func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp *MockApp,
+func getTestInputWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp *TestInput,
 	addrKeysSlice mock.AddrKeysSlice) {
 	mapp := mock.NewApp()
-	registerCodec(mapp.Cdc)
+	regCodec(mapp.Cdc)
 
-	mockApp = &MockApp{
+	mockApp = &TestInput{
 		App:       mapp,
 		keySwap:   sdk.NewKVStoreKey(types.StoreKey),
 		keyToken:  sdk.NewKVStoreKey(token.StoreKey),
@@ -94,7 +94,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 
 	mockApp.QueryRouter().AddRoute(types.QuerierRoute, NewQuerier(mockApp.swapKeeper))
 
-	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.supplyKeeper,
+	mockApp.SetInitChainer(initChainer(mockApp.App, mockApp.supplyKeeper,
 		[]exported.ModuleAccountI{feeCollector}))
 
 	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s,%d%s,%d%s",
@@ -102,7 +102,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	require.Nil(t, err)
 	coins := decCoins
 
-	keysSlice, genAccs := CreateGenAccounts(numGenAccs, coins)
+	keysSlice, genAccs := GenAccounts(numGenAccs, coins)
 	addrKeysSlice = keysSlice
 
 	// todo: checkTx in mock app
@@ -125,7 +125,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	return mockApp, addrKeysSlice
 }
 
-func getInitChainer(mapp *mock.App, supplyKeeper staking.SupplyKeeper,
+func initChainer(mapp *mock.App, supplyKeeper staking.SupplyKeeper,
 	blacklistedAddrs []exported.ModuleAccountI) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)
@@ -137,7 +137,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper staking.SupplyKeeper,
 	}
 }
 
-func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.AddrKeysSlice,
+func GenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.AddrKeysSlice,
 	genAccs []auth.Account) {
 	for i := 0; i < numAccs; i++ {
 		privKey := secp256k1.GenPrivKey()

@@ -19,7 +19,7 @@ var (
 const (
 	orderModule        = "order"
 	dexModule          = "dex"
-	swapModule         = "swap"
+	swapModule         = "poolswap"
 	tokenModule        = "token"
 	stakingModule      = "staking"
 	govModule          = "gov"
@@ -148,6 +148,7 @@ func newPerf() *performance {
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
+
 	return p
 }
 

@@ -1,17 +1,5 @@
-# swap module specification
+# poolswap module specification
 
 ## Abstract
-swap module is x*y=k market makers for OKChain.
-<!-- TODO: Create a abstract definition of what this module does, what functionality does it enable and how it can be used. -->
+poolswap module is x*y=k market makers for OKChain. more https://oips.readthedocs.io/en/latest/draft/OIP-3.html
 
-## Contents
-
-// TODO: Create the below files if they are needed.
-1. **[Concepts](01_concepts.md)**
-2. **[State](02_state.md)**
-3. **[Messages](03_messages.md)**
-4. **[Begin-Block](04_begin_block.md)**
-5. **[End-Block](06_end_bloc.md)**
-6. **[05_hooks](06_hooks.md)**
-7. **[Events](07_events.md)**
-8. **[Parameters](08_params.md)**

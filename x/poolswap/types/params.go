@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
+// FeeRate defines swap fee rate
 var (
 	FeeRate = sdk.NewDecWithPrec(3, 3)
 )
@@ -21,7 +22,7 @@ const (
 
 // Parameter store keys
 var (
-	KeyFeeRate          = []byte("FeeRate")
+	KeyFeeRate = []byte("FeeRate")
 )
 
 // ParamKeyTable for swap module
@@ -31,7 +32,7 @@ func ParamKeyTable() params.KeyTable {
 
 // Params - used for initializing default parameter for swap at genesis
 type Params struct {
-	FeeRate          sdk.Dec     `json:"fee_rate"`
+	FeeRate sdk.Dec `json:"fee_rate"`
 }
 
 // NewParams creates a new Params object

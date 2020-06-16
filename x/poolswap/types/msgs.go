@@ -7,7 +7,7 @@ import (
 	"github.com/okex/okchain/x/common"
 )
 
-// Swap message types and routes
+// PoolSwap message types and routes
 const (
 	TypeMsgAddLiquidity = "add_liquidity"
 	TypeMsgTokenSwap    = "token_swap"
@@ -69,6 +69,7 @@ func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// GetSwapTokenPair defines token pair
 func (msg MsgAddLiquidity) GetSwapTokenPair() string {
 	return msg.MaxBaseAmount.Denom + "_" + msg.QuoteAmount.Denom
 }
@@ -129,6 +130,7 @@ func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// GetSwapTokenPair defines token pair
 func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
 	return msg.MinBaseAmount.Denom + "_" + msg.MinQuoteAmount.Denom
 }
@@ -139,6 +141,7 @@ type MsgCreateExchange struct {
 	Sender sdk.AccAddress `json:"sender"` //sender
 }
 
+// NewMsgCreateExchange create a new exchange with token
 func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
 		Token:  token,
@@ -146,6 +149,7 @@ func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange
 	}
 }
 
+// Route should return the name of the module
 func (msg MsgCreateExchange) Route() string { return RouterKey }
 
 // Type should return the action
@@ -162,10 +166,12 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// GetSignBytes encodes the message for signing
 func (msg MsgCreateExchange) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
+// GetSigners defines whose signature is required
 func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
@@ -233,6 +239,7 @@ func (msg MsgTokenToNativeToken) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
+// GetSwapTokenPair defines token pair
 func (msg MsgTokenToNativeToken) GetSwapTokenPair() string {
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom

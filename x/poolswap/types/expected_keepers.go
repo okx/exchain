@@ -14,11 +14,13 @@ type ParamSubspace interface {
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
 }
 
+// BankKeeper defines the expected bank interfacace
 type BankKeeper interface {
 	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, error)
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 }
 
+// SupplyKeeper defines the expected supply interfacace
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
 		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
@@ -28,6 +30,7 @@ type SupplyKeeper interface {
 	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
 }
 
+// TokenKeeper defines the expected token interfacace
 type TokenKeeper interface {
 	GetTokenInfo(ctx sdk.Context, symbol string) token.Token
 	NewToken(ctx sdk.Context, token token.Token)

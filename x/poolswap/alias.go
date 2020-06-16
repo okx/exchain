@@ -10,8 +10,7 @@ const (
 	RouterKey         = types.RouterKey
 	StoreKey          = types.StoreKey
 	DefaultParamspace = types.DefaultParamspace
-	//QueryParams       = types.QueryParams
-	QuerierRoute = types.QuerierRoute
+	QuerierRoute      = types.QuerierRoute
 )
 
 var (
