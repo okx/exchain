@@ -87,7 +87,8 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			}
 			return false
 		})
-	if ctx.BlockHeight()%50 == 0 {
+
+	if ctx.BlockHeight()%100 == 0 {
 		sanityCheck(ctx, k)
 	}
 	return validatorUpdates
