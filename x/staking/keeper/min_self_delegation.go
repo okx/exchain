@@ -7,17 +7,17 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// UndelegateMinSelfDelegation unbonds the msd from validator
-func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator types.Validator,
+// WithdrawMinSelfDelegation withdraws the msd from validator
+func (k Keeper) WithdrawMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator types.Validator,
 ) (completionTime time.Time, err sdk.Error) {
 	// 0.check the msd on validator
 	if validator.MinSelfDelegation.IsZero() {
 		return completionTime, types.ErrNoMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
 	}
 
-	// 1.check the remained vote from validator
-	remainVotes := validator.GetDelegatorShares().Sub(k.getVotesFromDefaultMinSelfDelegation())
-	if remainVotes.LT(sdk.ZeroDec()) {
+	// 1.check the remained shares on the validator
+	remainShares := validator.GetDelegatorShares().Sub(k.getSharesFromDefaultMinSelfDelegation())
+	if remainShares.LT(sdk.ZeroDec()) {
 		return completionTime, types.ErrMoreMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
 	}
 
@@ -44,8 +44,8 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 		k.AppendAbandonedValidatorAddrs(ctx, validator.ConsAddress())
 	case sdk.Unbonding:
 	case sdk.Unbonded:
-		// if there is no vote on the validator, remove it
-		if remainVotes.IsZero() && validator.GetMinSelfDelegation().IsZero() {
+		// if there is no shares on the validator, remove it
+		if remainShares.IsZero() && validator.GetMinSelfDelegation().IsZero() {
 			k.RemoveValidator(ctx, validator.OperatorAddress)
 			return
 		}
@@ -53,14 +53,14 @@ func (k Keeper) UndelegateMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddr
 	// kick out the val from the vals-set
 	k.DeleteValidatorByPowerIndex(ctx, validator)
 	// ATTENTION:update DelegatorShares must go after DeleteValidatorByPowerIndex
-	validator.DelegatorShares = remainVotes
+	validator.DelegatorShares = remainShares
 	k.SetValidator(ctx, validator)
 
 	return
 }
 
-// VoteMinSelfDelegation votes default msd (0.001okt) to validator itself during the creation
-func (k Keeper) VoteMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator *types.Validator,
+// AddSharesAsMinSelfDelegation adds shares of equal value of default msd (0.001okt) to validator itself during the creation
+func (k Keeper) AddSharesAsMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator *types.Validator,
 	defaultMSDToken sdk.DecCoin) (err sdk.Error) {
 	// 0. transfer account's okt (0.001okt as default) into bondPool
 	coins := defaultMSDToken.ToCoins()
@@ -69,22 +69,22 @@ func (k Keeper) VoteMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, v
 		return err
 	}
 
-	// 1. vote to validator itself
-	k.voteMinSelfDelegation(ctx, validator)
+	// 1. add shares for default msd to validator itself
+	k.addSharesAsDefaultMinSelfDelegation(ctx, validator)
 
 	return nil
 }
 
-func (k Keeper) voteMinSelfDelegation(ctx sdk.Context, pValidator *types.Validator) {
+func (k Keeper) addSharesAsDefaultMinSelfDelegation(ctx sdk.Context, pValidator *types.Validator) {
 	k.DeleteValidatorByPowerIndex(ctx, *pValidator)
-	//TODO: current rule: any msd -> 1 votes
-	votes := k.getVotesFromDefaultMinSelfDelegation()
-	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(votes)
+	//TODO: current rule: any msd -> 1 shares
+	shares := k.getSharesFromDefaultMinSelfDelegation()
+	pValidator.DelegatorShares = pValidator.GetDelegatorShares().Add(shares)
 	k.SetValidator(ctx, *pValidator)
 	k.SetValidatorByPowerIndex(ctx, *pValidator)
 }
 
-// RULES: any msd -> 1 votes
-func (k Keeper) getVotesFromDefaultMinSelfDelegation() sdk.Dec {
+// RULES: any msd -> 1 shares
+func (k Keeper) getSharesFromDefaultMinSelfDelegation() sdk.Dec {
 	return sdk.OneDec()
 }

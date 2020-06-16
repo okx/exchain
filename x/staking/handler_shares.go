@@ -12,11 +12,11 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 
 	if !found || delegator.Tokens.IsZero() {
-		return types.ErrNoDelegationVote(types.DefaultCodespace, msg.DelAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, msg.DelAddr.String()).Result()
 	}
 
 	if !delegator.Shares.Equal(sdk.ZeroDec()) {
-		return types.ErrAlreadyVoted(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
+		return types.ErrAlreadyAddedShares(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
 	}
 
 	// proxy must delegated
@@ -49,7 +49,7 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrNeverProxied(types.DefaultCodespace, msg.ProxyAddress.String()).Result()
 	}
 
-	// update proxy's vote weight
+	// update proxy's shares weight
 	proxyDelegator.TotalDelegatedTokens = proxyDelegator.TotalDelegatedTokens.Add(delegator.Tokens)
 
 	k.SetDelegator(ctx, delegator)
@@ -58,7 +58,7 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 
 	finalTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
 
-	if err := k.UpdateVotes(ctx, proxyDelegator.DelegatorAddress, finalTokens); err != nil {
+	if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, finalTokens); err != nil {
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
 	}
 
@@ -68,7 +68,7 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.Error {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return types.ErrNoDelegationVote(types.DefaultCodespace, delAddr.String())
+		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
 	}
 
 	proxyDelegator, found := k.GetDelegator(ctx, delegator.ProxyAddress)
@@ -76,7 +76,7 @@ func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.E
 		return types.ErrNotFoundProxy(types.DefaultCodespace, delegator.ProxyAddress.String())
 	}
 
-	// update proxy's vote weight
+	// update proxy's shares weight
 	if k.UpdateProxy(ctx, delegator, delegator.Tokens.Mul(sdk.NewDec(-1))) != nil {
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String())
 	}
@@ -100,19 +100,19 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Re
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
-		return types.ErrNoDelegationVote(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
 	if proxy.IsProxy {
 		return types.ErrAlreadyProxied(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
 	if len(proxy.ProxyAddress) != 0 {
-		return types.ErrAlreadyBinded(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
+		return types.ErrAlreadyBound(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
 	proxy.RegProxy(true)
 	k.SetDelegator(ctx, proxy)
 
-	if k.UpdateVotes(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
+	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
@@ -137,7 +137,7 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.
 	k.ClearProxy(ctx, proxy.DelegatorAddress)
 	k.SetDelegator(ctx, proxy)
 
-	if k.UpdateVotes(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
+	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
@@ -153,71 +153,71 @@ func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) sdk
 	return unregProxy(ctx, msg.ProxyAddress, k)
 }
 
-func handleMsgVote(ctx sdk.Context, msg types.MsgVote, k keeper.Keeper) sdk.Result {
-	maxValsToVote := int(k.ParamsMaxValsToVote(ctx))
+func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) sdk.Result {
+	maxValsToAddShares := int(k.ParamsMaxValsToAddShares(ctx))
 	if len(msg.ValAddrs) == 0 {
 		return types.ErrNilValidatorAddrs(DefaultCodespace).Result()
-	} else if len(msg.ValAddrs) > maxValsToVote {
-		return types.ErrExceedValidatorAddrs(DefaultCodespace, maxValsToVote).Result()
+	} else if len(msg.ValAddrs) > maxValsToAddShares {
+		return types.ErrExceedValidatorAddrs(DefaultCodespace, maxValsToAddShares).Result()
 	}
 
-	// 0. check whether the voter has delegation
+	// 0. check whether the delegator has delegation
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 	if !found || delegator.Tokens.IsZero() {
-		return types.ErrNoDelegationVote(types.DefaultCodespace, msg.DelAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, msg.DelAddr.String()).Result()
 	}
 	if delegator.HasProxy() {
-		return types.ErrVoteDuringProxy(types.DefaultCodespace, delegator.DelegatorAddress.String(),
+		return types.ErrAddSharesDuringProxy(types.DefaultCodespace, delegator.DelegatorAddress.String(),
 			delegator.ProxyAddress.String()).Result()
 	}
 
-	// 1. get last validators voted existed in the store
-	lastVals, lastVotes := k.GetLastValsVotedExisted(ctx, msg.DelAddr)
+	// 1. get last validators which were added shares to and existed in the store
+	lastVals, lastShares := k.GetLastValsAddedSharesExisted(ctx, msg.DelAddr)
 
-	// 2. withdraw the votes last time
-	k.WithdrawLastVotes(ctx, msg.DelAddr, lastVals, lastVotes)
+	// 2. withdraw the shares last time
+	k.WithdrawLastShares(ctx, msg.DelAddr, lastVals, lastShares)
 
-	// 3. get validators voted this time (if the validator doesn't exist, return error)
-	vals, sdkErr := k.GetValidatorsToVote(ctx, msg.ValAddrs)
+	// 3. get validators to add shares this time (if the validator doesn't exist, return error)
+	vals, sdkErr := k.GetValidatorsToAddShares(ctx, msg.ValAddrs)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
-	if sdkErr = validateVoting(vals); sdkErr != nil {
+	if sdkErr = validateSharesAdding(vals); sdkErr != nil {
 		return sdkErr.Result()
 	}
 
 	// 4. get the total amount of self token and delegated token
 	totalTokens := delegator.Tokens.Add(delegator.TotalDelegatedTokens)
 
-	// 5. vote for the vals this time
-	votes, sdkErr := k.VoteValidators(ctx, msg.DelAddr, vals, totalTokens)
+	// 5. add shares to the vals this time
+	shares, sdkErr := k.AddSharesToValidators(ctx, msg.DelAddr, vals, totalTokens)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}
 
 	// 6. update the delegator entity for this time
 	delegator.ValidatorAddresses = getValsAddrs(vals)
-	delegator.Shares = votes
+	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
 
-	ctx.EventManager().EmitEvent(buildEventForHandlerVote(delegator))
+	ctx.EventManager().EmitEvent(buildEventForHandlerAddShares(delegator))
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-// validateVoting gives a quick validity of target validators before voting
-func validateVoting(vals types.Validators) sdk.Error {
+// validateSharesAdding gives a quick validity of target validators before shares adding
+func validateSharesAdding(vals types.Validators) sdk.Error {
 	if len(vals) == 0 {
-		return types.ErrNoAvailableValsToVote(types.DefaultCodespace)
+		return types.ErrNoAvailableValsToAddShares(types.DefaultCodespace)
 	}
 
 	if valAddr, ok := isDismissed(vals); ok {
-		return types.ErrVoteDismission(types.DefaultCodespace, valAddr.String())
+		return types.ErrAddSharesToDismission(types.DefaultCodespace, valAddr.String())
 	}
 
 	return nil
 }
 
-// isDismissed tells whether validator with zero-msd is among the voting targets and returns the first dismissed
+// isDismissed tells whether validator with zero-msd is among the shares adding targets and returns the first dismissed
 // validator address
 func isDismissed(vals types.Validators) (sdk.ValAddress, bool) {
 	valsLen := len(vals)
@@ -240,19 +240,19 @@ func getValsAddrs(vals types.Validators) []sdk.ValAddress {
 	return valAddrs
 }
 
-func buildEventForHandlerVote(delegator types.Delegator) sdk.Event {
+func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 	lenAttributes := len(delegator.ValidatorAddresses) + 2
 	attributes := make([]sdk.Attribute, lenAttributes)
-	attributes[0] = sdk.NewAttribute(types.AttributeKeyVoter, delegator.DelegatorAddress.String())
-	attributes[1] = sdk.NewAttribute(types.AttributeKeyVotes, delegator.Shares.String())
+	attributes[0] = sdk.NewAttribute(types.AttributeKeyDelegator, delegator.DelegatorAddress.String())
+	attributes[1] = sdk.NewAttribute(types.AttributeKeyShares, delegator.Shares.String())
 	for i := 2; i < lenAttributes; i++ {
-		attributes[i] = sdk.NewAttribute(types.AttributeKeyValidatorToVote, delegator.ValidatorAddresses[i-2].String())
+		attributes[i] = sdk.NewAttribute(types.AttributeKeyValidatorToAddShares, delegator.ValidatorAddresses[i-2].String())
 	}
 
-	return sdk.NewEvent(types.EventTypeVote, attributes...)
+	return sdk.NewEvent(types.EventTypeAddShares, attributes...)
 }
 
-func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
+func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) sdk.Result {
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
@@ -273,12 +273,12 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
+func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) sdk.Result {
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
-	completionTime, err := k.Undelegate(ctx, msg.DelegatorAddress, msg.Amount)
+	completionTime, err := k.Withdraw(ctx, msg.DelegatorAddress, msg.Amount)
 	if err != nil {
 		return err.Result()
 	}
@@ -303,7 +303,7 @@ func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k
 		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()
 	}
 
-	completionTime, sdkErr := k.UndelegateMinSelfDelegation(ctx, msg.DelAddr, validator)
+	completionTime, sdkErr := k.WithdrawMinSelfDelegation(ctx, msg.DelAddr, validator)
 	if sdkErr != nil {
 		return sdkErr.Result()
 	}

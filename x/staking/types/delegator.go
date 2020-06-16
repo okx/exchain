@@ -32,13 +32,13 @@ func NewDelegator(delAddr sdk.AccAddress) Delegator {
 	}
 }
 
-// GetVotedValidatorAddresses gets validator address that the delegator voted to for other module
-func (d Delegator) GetVotedValidatorAddresses() []sdk.ValAddress {
+// GetShareAddedValidatorAddresses gets validator address that the delegator added shares to for other module
+func (d Delegator) GetShareAddedValidatorAddresses() []sdk.ValAddress {
 	return d.ValidatorAddresses
 }
 
-// GetLastVotes gets votes of a delegator for other module
-func (d Delegator) GetLastVotes() sdk.Dec {
+// GetLastAddedShares gets the last shares added to validators of a delegator for other module
+func (d Delegator) GetLastAddedShares() sdk.Dec {
 	return d.Shares
 }
 
@@ -61,12 +61,12 @@ func (d *Delegator) UnbindProxy() {
 	d.ProxyAddress = nil
 }
 
-// HasProxy tells whether the delegator has binded a proxy
+// HasProxy tells whether the delegator has bound a proxy
 func (d Delegator) HasProxy() bool {
 	return d.ProxyAddress != nil
 }
 
-// MustUnMarshalDelegator must return a delegator entity by unmarshaling
+// MustUnMarshalDelegator must return a delegator entity by unmarshalling
 func MustUnMarshalDelegator(cdc *codec.Codec, value []byte) (delegator Delegator) {
 	cdc.MustUnmarshalBinaryLengthPrefixed(value, &delegator)
 	return

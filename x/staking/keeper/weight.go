@@ -15,17 +15,17 @@ const (
 	weeksPerYear        = float64(52)
 )
 
-func calculateWeight(nowTime int64, tokens sdk.Dec) (votes types.Votes, sdkErr sdk.Error) {
+func calculateWeight(nowTime int64, tokens sdk.Dec) (shares types.Shares, sdkErr sdk.Error) {
 	nowWeek := (nowTime - blockTimestampEpoch) / secondsPerWeek
 	rate := float64(nowWeek) / weeksPerYear
 	weight := math.Pow(float64(2), rate)
 	weightByDec, sdkErr := sdk.NewDecFromStr(fmt.Sprintf("%.8f", weight))
 	if sdkErr == nil {
-		votes = tokens.Mul(weightByDec)
+		shares = tokens.Mul(weightByDec)
 	}
 	return
 }
 
-func SimulateWeight(nowTime int64, tokens sdk.Dec) (votes types.Votes, sdkErr sdk.Error) {
+func SimulateWeight(nowTime int64, tokens sdk.Dec) (votes types.Shares, sdkErr sdk.Error) {
 	return calculateWeight(nowTime, tokens)
 }

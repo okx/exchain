@@ -43,8 +43,9 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	}
 
 	// check whether the baseAsset is in the Dex list
-	if !k.isTokenPairExisted(ctx, delistProposal.BaseAsset, delistProposal.QuoteAsset) {
-		return types.ErrInvalidProduct(fmt.Sprintf("failed to submit proposal because the asset with base asset '%s' and quote asset '%s' didn't exist on the Dex", delistProposal.BaseAsset, delistProposal.QuoteAsset))
+	queryTokenPair := k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
+	if queryTokenPair == nil {
+		return types.ErrTokenPairNotFound(fmt.Sprintf("failed to submit proposal because the asset with base asset '%s' and quote asset '%s' didn't exist on the Dex", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	}
 
 	// check the initial deposit
@@ -75,18 +76,6 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	return
 }
 
-// check whether the token pair constituted by baseAsset and quoteAsset exists on the dex
-func (k Keeper) isTokenPairExisted(ctx sdk.Context, baseAsset, quoteAsset string) bool {
-	tokenPairs := k.GetTokenPairs(ctx)
-	tokenPairsLen := len(tokenPairs)
-	for i := 0; i < tokenPairsLen; i++ {
-		if tokenPairs[i].BaseAssetSymbol == baseAsset && tokenPairs[i].QuoteAssetSymbol == quoteAsset {
-			return true
-		}
-	}
-	return false
-}
-
 // nolint
 func (k Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govTypes.Proposal) {}
 
@@ -95,7 +84,7 @@ func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote go
 	if _, ok := proposal.Content.(types.DelistProposal); ok {
 		delistProposal := proposal.Content.(types.DelistProposal)
 		tokenPairName := delistProposal.BaseAsset + "_" + delistProposal.QuoteAsset
-		if k.IsTokenPairLocked(tokenPairName) {
+		if k.IsTokenPairLocked(ctx, tokenPairName) {
 			errContent := fmt.Sprintf("the trading pair (%s) is locked, please retry later", tokenPairName)
 			return "", sdk.ErrInternal(errContent)
 		}

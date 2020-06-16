@@ -57,13 +57,13 @@ func TestInitGenesis(t *testing.T) {
 	proxysDelegator[1].DelAddr = Addrs[4]
 	proxysDelegator[1].ProxyAddr = Addrs[5]
 
-	votes := make([]types.VotesExported, 2)
-	votes[0] = types.NewVoteExported(Addrs[6], validators[0].OperatorAddress, sdk.NewDec(1))
-	votes[1] = types.NewVoteExported(Addrs[7], validators[1].OperatorAddress, sdk.NewDec(1))
+	sharesExportedSlice := make([]types.SharesExported, 2)
+	sharesExportedSlice[0] = types.NewSharesExported(Addrs[6], validators[0].OperatorAddress, sdk.NewDec(1))
+	sharesExportedSlice[1] = types.NewSharesExported(Addrs[7], validators[1].OperatorAddress, sdk.NewDec(1))
 
 	genesisState := NewGenesisState(params, validators, delegators)
 	genesisState.ProxyDelegatorKeys = proxysDelegator
-	genesisState.Votes = votes
+	genesisState.AllShares = sharesExportedSlice
 	genesisState.UnbondingDelegations = unbondingDelegations
 	// for the token sum check in staking init-genesis
 	//coinsToModuleAcc := sdk.DecCoins{sdk.NewDecCoinFromDec("okt", sdk.NewDec(100))}.ToCoins()
@@ -89,7 +89,7 @@ func TestInitGenesis(t *testing.T) {
 
 	abcivals := make([]abci.ValidatorUpdate, len(vals))
 	for i, val := range validators {
-		abcivals[i] = val.ABCIValidatorUpdateByVotes()
+		abcivals[i] = val.ABCIValidatorUpdateByShares()
 	}
 	require.EqualValues(t, abcivals, vals)
 
@@ -130,10 +130,10 @@ func TestInitGenesis(t *testing.T) {
 		return false
 	})
 	// 0x51
-	require.Equal(t, types.NewVoteResponse(actualGenesis.Votes[0].VoterAddress, actualGenesis.Votes[0].Votes),
-		newKeeper.GetValidatorVotes(newCtx, actualGenesis.Votes[0].ValidatorAddress)[0])
-	require.Equal(t, types.NewVoteResponse(actualGenesis.Votes[1].VoterAddress, actualGenesis.Votes[1].Votes),
-		newKeeper.GetValidatorVotes(newCtx, actualGenesis.Votes[1].ValidatorAddress)[0])
+	require.Equal(t, types.NewSharesResponse(actualGenesis.AllShares[0].DelAddress, actualGenesis.AllShares[0].Shares),
+		newKeeper.GetValidatorAllShares(newCtx, actualGenesis.AllShares[0].ValidatorAddress)[0])
+	require.Equal(t, types.NewSharesResponse(actualGenesis.AllShares[1].DelAddress, actualGenesis.AllShares[1].Shares),
+		newKeeper.GetValidatorAllShares(newCtx, actualGenesis.AllShares[1].ValidatorAddress)[0])
 	// 0x52
 	delegator, ok := newKeeper.GetDelegator(newCtx, actualGenesis.Delegators[0].DelegatorAddress)
 	require.True(t, ok)

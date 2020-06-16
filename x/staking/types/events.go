@@ -15,9 +15,8 @@ const (
 	AttributeKeyCompletionTime    = "completion_time"
 	AttributeValueCategory        = ModuleName
 
-	EventTypeVote = "vote"
+	EventTypeAddShares = "add_shares"
 
-	AttributeKeyVoter           = "voter"
-	AttributeKeyValidatorToVote = "validator_to_vote"
-	AttributeKeyVotes           = "votes"
+	AttributeKeyValidatorToAddShares = "validator_to_add_shares"
+	AttributeKeyShares              = "shares"
 )
