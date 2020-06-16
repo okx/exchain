@@ -89,6 +89,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 		})
 
 	if ctx.BlockHeight()%100 == 0 {
+		ctx.Logger().Error("start sanity check in module staking")
 		sanityCheck(ctx, k)
 	}
 	return validatorUpdates
