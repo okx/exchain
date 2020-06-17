@@ -334,11 +334,14 @@ func TestHandleInvalidMsg(t *testing.T) {
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	params := types.DefaultTestParams()
+	keeper.SetParams(ctx, &params)
 
 	handler := NewOrderHandler(keeper)
 	var msg token.MsgSend
-	result := handler(ctx, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	require.Panics(t, func() {
+		handler(ctx, msg)
+	})
 }
 
 const orderKey = "orders"

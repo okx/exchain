@@ -15,7 +15,7 @@ type GenesisState struct {
 	Validators           []ValidatorExported         `json:"validators" yaml:"validators"`
 	Delegators           []Delegator                 `json:"delegators" yaml:"delegators"`
 	UnbondingDelegations []UndelegationInfo          `json:"unbonding_delegations" yaml:"unbonding_delegations"`
-	Votes                []VotesExported             `json:"votes" yaml:"votes"`
+	AllShares            []SharesExported            `json:"all_shares" yaml:"all_shares"`
 	ProxyDelegatorKeys   []ProxyDelegatorKeyExported `json:"proxy_delegator_keys" yaml:"proxy_delegator_keys"`
 	Exported             bool                        `json:"exported" yaml:"exported"`
 }
@@ -114,18 +114,18 @@ func NewProxyDelegatorKeyExported(delAddr, proxyAddr sdk.AccAddress) ProxyDelega
 	}
 }
 
-// VotesExported is designed for types.Votes export
-type VotesExported struct {
-	VoterAddress     sdk.AccAddress `json:"voter_address" yaml:"voter_address"`
+// SharesExported is designed for types.Shares export
+type SharesExported struct {
+	DelAddress       sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
-	Votes            Votes          `json:"votes" yaml:"votes"`
+	Shares           Shares         `json:"shares" yaml:"shares"`
 }
 
-// NewVoteExported creates a new object of VotesExported
-func NewVoteExported(voterAddr sdk.AccAddress, valAddr sdk.ValAddress, votes Votes) VotesExported {
-	return VotesExported{
-		voterAddr,
+// NewSharesExported creates a new object of SharesExported
+func NewSharesExported(delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares Shares) SharesExported {
+	return SharesExported{
+		delAddr,
 		valAddr,
-		votes,
+		shares,
 	}
 }

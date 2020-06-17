@@ -10,7 +10,7 @@
 | 0x22+ConsensusAddr                  | OperatorAddr                       | N/A         | 无数组                          | <1k        | 交易清理                                                | Validator               |
 | 0x23+Power+^OperatorAddr            | OperatorAddr                       | N/A         | 无数组                          | <1k        | 交易清理                                                | Validator               |
 | 0x43+Time                           | x/staking/types.[]ValAddress       | N/A         | 数组长度最多为validator集合总数 | \>1k       | 每个区块清理到期                                        | ValidatorQueue          |
-| 0x51+VoterAddr+ValidatorAddr        | x/staking/types.Vote               | N/A         | 无数组                          | <1k        | 取消投票时清理                                          | VoteKey                 |
+| 0x51+DelegatorAddr+ValidatorAddr    | x/staking/types.Shares             | N/A         | 无数组                          | <1k        | 取消投票时清理                                          | SharesKey                 |
 | 0x52+DelegatorAddr                  | x/staking/types.Delegator          | N/A         | 无数组                          | <1k        | 当全部解委托tokens时清理                                | DelegatorKey            |
 | 0x53+DelegatorAddr                  | x/staking/types.UndelegationInfo   | N/A         | 无数组                          | <1k        | 当解委托到期时清理                                      | UnDelegationInfoKey     |
 | 0x54+Time                           | x/staking/[]types.UndelegationInfo | N/A         | 有数组                          | 可能会>1k  | 当[]UndelegationInfo中的UndelegationInfo都到期时        | UnDelegateQueueKey      |

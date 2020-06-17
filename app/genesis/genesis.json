@@ -188,11 +188,13 @@
     "order": {
       "open_orders": null,
       "params": {
+        "cancel_order_msg_gas_unit": "30000",
         "fee_per_block": {
           "amount": "0.00000000",
           "denom": "okt"
         },
         "max_deals_per_block": "1000",
+        "new_order_msg_gas_unit": "40000",
         "order_expire_blocks": "259200",
         "trade_fee_rate": "0.00100000"
       }
