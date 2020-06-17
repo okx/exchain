@@ -622,7 +622,7 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 
 		b6 := assert.True(t, validator.DelegatorShares.GTE(sdk.ZeroDec()), validator)
 
-		return b1 && b2 && b3 && b4 && b5 && b6
+		return b1 && b2 && b3 && b4 && b5 && b6 && validatorConstraintCheck(validator)(t, beforeStatus, afterStatus, resultCtx)
 	}
 }
 
@@ -722,6 +722,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 				resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], Delegator[%s]: %+v",
 					resultCtx.context.BlockHeight(), dlg.DelegatorAddress, dlg)
 				if err != nil {
+					resultCtx.errorResult = err
 					resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], ErrorInfo: %+v",
 						resultCtx.context.BlockHeight(), err)
 				}
@@ -731,6 +732,43 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 		}
 
 		return checkRes
+	}
+}
+
+func validatorConstraintCheck(validator types.Validator) actResChecker {
+	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) (r bool) {
+		defer func() {
+			e := recover()
+			if e != nil {
+				debug.PrintStack()
+				resultCtx.t.Logf("     ====>>> [ERROR] Checking validatorConstraintCheck[%d], ErrorInfo: %+v, ValidatorInfo: %+v",
+					resultCtx.context.BlockHeight(), e, validator)
+				resultCtx.errorResult = e.(error)
+			}
+		}()
+
+		sharesRes := resultCtx.tc.mockKeeper.GetValidatorAllShares(*resultCtx.context, validator.OperatorAddress)
+		r = validator.MinSelfDelegation.GT(sdk.ZeroDec())
+		if r {
+			if len(sharesRes) == 0 {
+				r = validator.DelegatorShares.Equal(sdk.OneDec())
+			} else {
+				totalShares := sdk.ZeroDec()
+				for i := 0; i < len(sharesRes); i++ {
+					totalShares = totalShares.Add(sharesRes[i].Shares)
+					dlgInfo, found := resultCtx.tc.mockKeeper.GetDelegator(*resultCtx.context, sharesRes[i].DelAddr)
+					if !found || !dlgInfo.Shares.Equal(sharesRes[i].Shares) {
+						panic(fmt.Errorf("Delegator[%s] share mismatched or not found, check why, DelegatorInfo: %+v, RecordShares: %s",
+							sharesRes[i].DelAddr, dlgInfo, totalShares.String()))
+					}
+				}
+				r = totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec()))
+			}
+		} else {
+			panic(fmt.Errorf("DelegatorList: %s", sharesRes.String()))
+		}
+
+		return
 	}
 }
 
