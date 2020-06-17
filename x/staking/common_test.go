@@ -398,16 +398,16 @@ func (action delegatorsAddSharesAction) apply(ctx sdk.Context, vaStatus IValidat
 
 type delegatorWithdrawAction struct {
 	baseAction
-	dlgAddr     sdk.AccAddress
-	unbondToken sdk.Dec
-	tokenDenom  string
+	dlgAddr       sdk.AccAddress
+	withdrawToken sdk.Dec
+	tokenDenom    string
 }
 
 func (action delegatorWithdrawAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorWithdrawAction [%d]\n", ctx.BlockHeight())
 
 	handler := NewHandler(action.mStkKeeper.Keeper)
-	coins := sdk.NewDecCoinFromDec(action.tokenDenom, action.unbondToken)
+	coins := sdk.NewDecCoinFromDec(action.tokenDenom, action.withdrawToken)
 
 	msg := NewMsgWithdraw(action.dlgAddr, coins)
 	res := handler(ctx, msg)

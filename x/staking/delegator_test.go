@@ -128,6 +128,8 @@ func TestDelegator(t *testing.T) {
 		delegatorsAddSharesAction{bAction, false, false, int(params.MaxValsToAddShares) + 1, []sdk.AccAddress{ValidDelegator1}},
 		delegatorsAddSharesAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		// [E] repeat addshares to previous validator
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		delegatorsAddSharesAction{bAction, false, true, 1, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 
@@ -161,8 +163,9 @@ func TestDelegator(t *testing.T) {
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
-
 		noErrorInHandlerResult(true),
+		// [E]
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
 		noErrorInHandlerResult(false),
 		nil,
 
