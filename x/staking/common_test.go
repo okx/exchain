@@ -2,6 +2,7 @@ package staking
 
 import (
 	"fmt"
+	"runtime/debug"
 	"testing"
 	"time"
 
@@ -599,6 +600,16 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 func delegatorConstraintCheck(dlg Delegator) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
 
+		defer func() {
+			e := recover()
+			if e != nil {
+				debug.PrintStack()
+				resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], ErrorInfo: %+v, DelegatorInfo: %+v",
+					resultCtx.context.BlockHeight(), e, dlg)
+
+			}
+		}()
+
 		checkRes := true
 
 		//P1:  delegator is also a proxy
@@ -1141,13 +1152,13 @@ func (tc *basicStakingSMTestCase) printParticipantSnapshot(t *testing.T) {
 	allVas := tc.mockKeeper.Keeper.GetAllValidators(ctx)
 	t.Logf("        ==> Debug Validator Set & Delegators info ")
 	for _, v := range allVas {
-		t.Logf("Va: %s, Status: %s, Msd: %s,  DS: %s\n", v.GetOperator().String(), v.GetStatus().String(),
+		t.Logf("          Va: %s, Status: %s, Msd: %s,  DS: %s\n", v.GetOperator().String(), v.GetStatus().String(),
 			v.GetMinSelfDelegation().String(), v.GetDelegatorShares().String())
 	}
 
 	for _, d := range tc.originDlgSet {
 		latestDlg, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, d.DelegatorAddress)
-		t.Logf("Dlg: %s, AddSharesTo: %s, BondedToken: %s, GotShares: %s, IsProxy: %+v, HasProxy: %+v, TotalDS: %s \n",
+		t.Logf("          Dlg: %s, AddSharesTo: %s, BondedToken: %s, GotShares: %s, IsProxy: %+v, HasProxy: %+v, TotalDS: %s \n",
 			latestDlg.DelegatorAddress.String(), latestDlg.ValidatorAddresses, latestDlg.Tokens.String(),
 			latestDlg.Shares.String(), latestDlg.IsProxy, latestDlg.HasProxy(), latestDlg.TotalDelegatedTokens.String())
 	}

@@ -230,9 +230,15 @@ func TestProxy(t *testing.T) {
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 		proxyBindAction{bAction, ValidDelegator2, ProxiedDelegator},
 
+		// [E] delegator bind the same proxy again
+		proxyBindAction{bAction, ValidDelegator2, ProxiedDelegator},
+
 		// add shares
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+
+		// [E] delegator add shares to the same validator again
 		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 
 		// redelegate & unbond
@@ -244,10 +250,20 @@ func TestProxy(t *testing.T) {
 		proxyUnBindAction{bAction, ProxiedDelegator},
 		proxyUnBindAction{bAction, ValidDelegator1},
 
+		// [E] ProxiedDelegator unbind again
+		proxyUnBindAction{bAction, ValidDelegator1},
+
 		// unregister
 		baseProxyRegAction{bAction, ValidDelegator1, false},
 		baseProxyRegAction{bAction, ProxiedDelegator, false},
 	}
+
+	delegatorsChecker := andChecker{[]actResChecker{
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
+	}}
+
 
 	actionsAndChecker := []actResChecker{
 		nil,
@@ -269,10 +285,16 @@ func TestProxy(t *testing.T) {
 		noErrorInHandlerResult(true),
 		noErrorInHandlerResult(true),
 
+		// [E] bind
+		delegatorsChecker.GetChecker(),
+
 		// add shares
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(true),
 		noErrorInHandlerResult(true),
+
+		// [E] add shares
+		delegatorsChecker.GetChecker(),
 
 		// redelegate & unbond
 		noErrorInHandlerResult(true),
@@ -282,6 +304,9 @@ func TestProxy(t *testing.T) {
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(true),
+
+		// [E] unbind
+		noErrorInHandlerResult(false),
 
 		// unregister result
 		noErrorInHandlerResult(false),
