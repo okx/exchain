@@ -81,8 +81,11 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 }
 
 type depositsData struct {
-	ProductName     string      `json:"product"`
-	ProductDeposits sdk.DecCoin `json:"deposits"`
+	ProductName     string         `json:"product"`
+	ProductDeposits sdk.DecCoin    `json:"deposits"`
+	Rank            int            `json:"rank"`
+	BlockHeight     int64          `json:"block_height"`
+	Owner           sdk.AccAddress `json:"owner"`
 }
 
 func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
@@ -95,20 +98,17 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
-		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
-		if err != nil {
+		if _, err := sdk.AccAddressFromBech32(params.Owner); err != nil {
 			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", params.Owner))
 		}
-
-		tokenPairs = keeper.GetUserTokenPairs(ctx, ownerAddr)
-	} else {
-		tokenPairs = keeper.GetTokenPairs(ctx)
 	}
 
+	tokenPairs = keeper.GetTokenPairsOrdered(ctx)
+
 	var deposits []depositsData
-	for _, product := range tokenPairs {
+	for i, product := range tokenPairs {
 		if product.Owner.String() == params.Owner {
-			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
+			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits, i + 1, product.BlockHeight, product.Owner})
 		}
 	}
 
