@@ -107,7 +107,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 
 		endBlockAction{bAction},
 		// clear the shares on the startUpValidator
-		delegatorUnbondAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
@@ -386,7 +386,7 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorUnbondAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
@@ -498,10 +498,10 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorsUnBondAction{bAction, true, false},
+		delegatorsWithdrawAction{bAction, true, false},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
 	}
@@ -566,7 +566,7 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 		endBlockAction{bAction},
 
 		// delegators unbond all tokens back, validator has no msd & delegator shares now, delegator removed
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 	}
 
 	expZeroDec := sdk.ZeroDec()
@@ -640,7 +640,7 @@ func TestValidatorSMDestroyValidatorUnbonding2Removed(t *testing.T) {
 		endBlockAction{bAction},
 
 		// delegators unbond all tokens back, validator has no msd & delegator shares now, delegator removed
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 
 		// second unbonding time pass, no delegator shares left, unbonding --> validator removed
 		waitUntilUnbondingTimeExpired{bAction},

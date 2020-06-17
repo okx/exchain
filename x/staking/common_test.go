@@ -292,30 +292,59 @@ func (action endBlockAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, r
 	}
 }
 
-type newDelegatorAction struct {
+type delegatorDepositAction struct {
 	baseAction
 	dlgAddr   sdk.AccAddress
 	dlgAmount sdk.Dec
 	dlgDenom  string
 }
 
-func (action newDelegatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply newDelegatorAction[%d], dlgAddr: %s, dlgAmount: %s, dlgDenon: %s\n",
+func (action delegatorDepositAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorDepositAction[%d], dlgAddr: %s, dlgAmount: %s, dlgDenon: %s\n",
 		ctx.BlockHeight(), action.dlgAddr.String(), action.dlgAmount.String(), action.dlgDenom)
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	coins := sdk.NewDecCoinFromDec(action.dlgDenom, action.dlgAmount)
-	msgDelegate := NewMsgDeposit(action.dlgAddr, coins)
-	if err := msgDelegate.ValidateBasic(); err != nil {
+	msgDeposit := NewMsgDeposit(action.dlgAddr, coins)
+	if err := msgDeposit.ValidateBasic(); err != nil {
 		panic(err)
 	}
 
-	res := handler(ctx, msgDelegate)
+	res := handler(ctx, msgDeposit)
 
 	newDlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, action.dlgAddr)
 	resultCtx.t.Logf("     ==>>> NewDelegatorInfo :%s, resOK: %+v, info: %+v \n", action.dlgAddr.String(), res.IsOK(), newDlg)
 	if resultCtx != nil {
 		resultCtx.txMsgResult = &res
 	}
+}
+
+type delegatorsDepositAction struct {
+	baseAction
+	dlgAddrs   []sdk.AccAddress
+	dlgAmounts []sdk.Dec
+	dlgDenom   string
+}
+
+func (action delegatorsDepositAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorsDepositAction[%d], dlgAddrs: %s, dlgAmounts: %s, dlgDenon: %s\n",
+		ctx.BlockHeight(), action.dlgAddrs, action.dlgAmounts, action.dlgDenom)
+
+	if action.dlgAddrs == nil || action.dlgAmounts == nil || len(action.dlgAddrs) != len(action.dlgAmounts) {
+		resultCtx.errorResult = fmt.Errorf("failed to apply delegatorsDepositAction")
+		return
+	}
+
+	for i:=0; i < len(action.dlgAddrs); i++ {
+		dlgAmount := action.dlgAmounts[i]
+		dlgAddr := action.dlgAddrs[i]
+		subAction := delegatorDepositAction{action.baseAction, dlgAddr, dlgAmount, action.dlgDenom}
+		subAction.apply(ctx, vaStatus, resultCtx)
+
+		if  resultCtx.errorResult != nil {
+			break
+		}
+	}
+
 }
 
 type delegatorsAddSharesAction struct {
@@ -367,15 +396,15 @@ func (action delegatorsAddSharesAction) apply(ctx sdk.Context, vaStatus IValidat
 	}
 }
 
-type delegatorUnbondAction struct {
+type delegatorWithdrawAction struct {
 	baseAction
 	dlgAddr     sdk.AccAddress
 	unbondToken sdk.Dec
 	tokenDenom  string
 }
 
-func (action delegatorUnbondAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply delegatorUnbondAction [%d]\n", ctx.BlockHeight())
+func (action delegatorWithdrawAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorWithdrawAction [%d]\n", ctx.BlockHeight())
 
 	handler := NewHandler(action.mStkKeeper.Keeper)
 	coins := sdk.NewDecCoinFromDec(action.tokenDenom, action.unbondToken)
@@ -390,14 +419,14 @@ func (action delegatorUnbondAction) apply(ctx sdk.Context, vaStatus IValidatorSt
 	resultCtx.t.Logf("     ==>>> DelegatorUnbonded Result: %s unbond: %s, resOK: %+v, info: %+v \n", msg.DelegatorAddress, coins.String(), res.IsOK(), newDlg)
 }
 
-type delegatorsUnBondAction struct {
+type delegatorsWithdrawAction struct {
 	baseAction
 	allDelegatorDoUnbound bool
 	unbondAllTokens       bool
 }
 
-func (action delegatorsUnBondAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply delegatorsUnBondAction[%d]\n", ctx.BlockHeight())
+func (action delegatorsWithdrawAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorsWithdrawAction[%d]\n", ctx.BlockHeight())
 
 	maxIdx := len(resultCtx.tc.originDlgSet) - 1
 	if !action.allDelegatorDoUnbound {
@@ -417,7 +446,7 @@ func (action delegatorsUnBondAction) apply(ctx sdk.Context, vaStatus IValidatorS
 			coins = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, dlg.Tokens.QuoInt64(2))
 		}
 
-		subAction := delegatorUnbondAction{action.baseAction,
+		subAction := delegatorWithdrawAction{action.baseAction,
 			dlg.DelegatorAddress, coins.Amount, coins.Denom}
 		subAction.apply(ctx, vaStatus, resultCtx)
 
@@ -430,14 +459,14 @@ func (action delegatorsUnBondAction) apply(ctx sdk.Context, vaStatus IValidatorS
 	}
 }
 
-type baseProxyRegAction struct {
+type delegatorRegProxyAction struct {
 	baseAction
 	proxyAddr sdk.AccAddress
 	doReg     bool
 }
 
-func (action baseProxyRegAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply baseProxyRegAction[%d] ProxyAddress: %s, DoRegister: %+v\n",
+func (action delegatorRegProxyAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
+	resultCtx.t.Logf("====> Apply delegatorRegProxyAction[%d] ProxyAddress: %s, DoRegister: %+v\n",
 		ctx.BlockHeight(), action.proxyAddr, action.doReg)
 
 	handler := NewHandler(action.mStkKeeper.Keeper)

@@ -29,15 +29,15 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 	proxyOriginTokens := MaxDelegatedToken
 	inputActions := []IAction{
 		createValidatorAction{bAction, nil},
-		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
+		delegatorDepositAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 		proxyBindAction{bAction, ValidDelegator2, ProxiedDelegator},
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 		proxyUnBindAction{bAction, ValidDelegator1},
 
-		baseProxyRegAction{bAction, ProxiedDelegator, false},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, false},
 	}
 
 	expZeroDec := sdk.ZeroDec()
@@ -115,10 +115,10 @@ func TestDelegator(t *testing.T) {
 		createValidatorAction{bAction, nil},
 
 		// send delegate messages
-		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, "testtoken"},
-		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
-		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
-		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(10), sdk.DefaultBondDenom},
+		delegatorDepositAction{bAction, ValidDelegator1, tokenPerTime, "testtoken"},
+		delegatorDepositAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
+		delegatorDepositAction{bAction, ValidDelegator1, tokenPerTime, sdk.DefaultBondDenom},
+		delegatorDepositAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(10), sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 
 		// send add shares messages
@@ -132,11 +132,11 @@ func TestDelegator(t *testing.T) {
 		endBlockAction{bAction},
 
 		// send withdraw message
-		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), "testtoken"},
-		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(2), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, sdk.ZeroDec(), "testtoken"},
+		delegatorWithdrawAction{bAction, ValidDelegator2, sdk.ZeroDec(), sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(2), sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, tokenPerTime.QuoInt64(2), sdk.DefaultBondDenom},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
 
@@ -212,15 +212,15 @@ func TestProxy(t *testing.T) {
 		endBlockAction{bAction},
 
 		// failed to register & unregister
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
-		baseProxyRegAction{bAction, ProxiedDelegator, false},
-		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, false},
+		delegatorDepositAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
 
 		// successfully regiester
 		// delegate again
-		newDelegatorAction{bAction, ProxiedDelegator, MaxDelegatedToken, sdk.DefaultBondDenom},
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
+		delegatorDepositAction{bAction, ProxiedDelegator, MaxDelegatedToken, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
 
 		// bind
 		proxyBindAction{bAction, ValidDelegator1, InvalidDelegator},
@@ -242,8 +242,8 @@ func TestProxy(t *testing.T) {
 		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 
 		// redelegate & unbond
-		newDelegatorAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
-		delegatorUnbondAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
+		delegatorDepositAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 
 		// unbind
 		proxyUnBindAction{bAction, InvalidDelegator},
@@ -254,8 +254,8 @@ func TestProxy(t *testing.T) {
 		proxyUnBindAction{bAction, ValidDelegator1},
 
 		// unregister
-		baseProxyRegAction{bAction, ValidDelegator1, false},
-		baseProxyRegAction{bAction, ProxiedDelegator, false},
+		delegatorRegProxyAction{bAction, ValidDelegator1, false},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, false},
 	}
 
 	delegatorsChecker := andChecker{[]actResChecker{
@@ -346,12 +346,12 @@ func TestRebindProxy(t *testing.T) {
 		endBlockAction{bAction},
 
 		// register proxy
-		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
+		delegatorDepositAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
 
 		// register another proxy
-		newDelegatorAction{bAction, ProxiedDelegatorAlternative, proxyOriginTokens, sdk.DefaultBondDenom},
-		baseProxyRegAction{bAction, ProxiedDelegatorAlternative, true},
+		delegatorDepositAction{bAction, ProxiedDelegatorAlternative, proxyOriginTokens, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegatorAlternative, true},
 		endBlockAction{bAction},
 
 		// bind proxy
@@ -455,14 +455,14 @@ func TestLimitedProxy(t *testing.T) {
 		endBlockAction{bAction},
 
 		// register proxy
-		newDelegatorAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
-		baseProxyRegAction{bAction, ProxiedDelegator, true},
+		delegatorDepositAction{bAction, ProxiedDelegator, proxyOriginTokens, sdk.DefaultBondDenom},
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
 
 		// bind proxy
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 
 		// register proxy without unbinding
-		baseProxyRegAction{bAction, ValidDelegator1, true},
+		delegatorRegProxyAction{bAction, ValidDelegator1, true},
 	}
 
 	actionsAndChecker := []actResChecker{
