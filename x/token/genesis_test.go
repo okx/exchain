@@ -13,7 +13,7 @@ import (
 func TestDefault(t *testing.T) {
 	genesisState := defaultGenesisState()
 	err := validateGenesis(genesisState)
-	require.NoError(t, err)
+	require.Error(t, err)
 	defaultGenesisStateOKT()
 }
 
