@@ -1,7 +1,6 @@
 package token
 
 import (
-	"bytes"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/common/perf"
@@ -153,7 +152,7 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 
 	// check owner
-	if !bytes.Equal(token.Owner.Bytes(), msg.Owner.Bytes()) {
+	if !token.Owner.Equals(msg.Owner) {
 		return sdk.ErrUnauthorized("Not the token's owner").Result()
 	}
 
@@ -200,7 +199,7 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, logger log.Logger) sdk.Result {
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 	// check owner
-	if !bytes.Equal(token.Owner.Bytes(), msg.Owner.Bytes()) {
+	if !token.Owner.Equals(msg.Owner) {
 		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of token(%s)",
 			msg.Owner.String(), msg.Amount.Denom)).Result()
 	}
@@ -350,7 +349,7 @@ func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOw
 func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModify, logger log.Logger) sdk.Result {
 	token := keeper.GetTokenInfo(ctx, msg.Symbol)
 	// check owner
-	if !bytes.Equal(token.Owner.Bytes(), msg.Owner.Bytes()) {
+	if !token.Owner.Equals(msg.Owner) {
 		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of token(%s)",
 			msg.Owner.String(), msg.Symbol)).Result()
 	}
