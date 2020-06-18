@@ -749,12 +749,12 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 		}()
 
 		sharesRes := resultCtx.tc.mockKeeper.GetValidatorAllShares(*resultCtx.context, validator.OperatorAddress)
-		r1, r2, r3 := validator.MinSelfDelegation.GTE(sdk.ZeroDec()), false, false
+		r1, r21, r22 := validator.MinSelfDelegation.GTE(sdk.ZeroDec()), false, false
 		if r1 {
 			if len(sharesRes) == 0 {
 				// c1: v.DelegatorShares == 1 && MinSelfDelegation > 0
 				// c2: v.DelegatorShares == 0 && MinSelfDelegation == 0
-				r2 = validator.DelegatorShares.Equal(sdk.OneDec()) && validator.MinSelfDelegation.GT(sdk.ZeroDec()) ||
+				r21 = validator.DelegatorShares.Equal(sdk.OneDec()) && validator.MinSelfDelegation.GT(sdk.ZeroDec()) ||
 					validator.DelegatorShares.Equal(sdk.ZeroDec()) && validator.MinSelfDelegation.Equal(sdk.ZeroDec())
 			} else {
 				totalShares := sdk.ZeroDec()
@@ -767,16 +767,16 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 					}
 				}
 				if validator.MinSelfDelegation.GT(sdk.ZeroDec()) {
-					r3 = assert.True(t, totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares)
+					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares)
 				} else  {
-					r3 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares)
+					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares)
 				}
 			}
 		}
 
-		r = r1 && (r2 || r3)
+		r = r1 && (r21 || r22)
 		if !r {
-			panic(fmt.Errorf("DelegatorList from GetValidatorAllShares: [%s], r1:%+v, r2:%+v, r3:%+v", sharesRes, r1, r2, r3))
+			panic(fmt.Errorf("DelegatorList from GetValidatorAllShares: [%s], r1:%+v, r21:%+v, r22:%+v", sharesRes, r1, r21, r22))
 		}
 		return
 	}
