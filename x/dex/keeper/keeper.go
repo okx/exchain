@@ -172,7 +172,10 @@ func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenP
 		key := iter.Key()
 		tokenPairName := string(key[prefixLen:])
 
-		tokenPairs = append(tokenPairs, k.GetTokenPairFromStore(ctx, tokenPairName))
+		tokenPair := k.GetTokenPairFromStore(ctx, tokenPairName)
+		if tokenPair != nil {
+			tokenPairs = append(tokenPairs, tokenPair)
+		}
 	}
 
 	return tokenPairs
