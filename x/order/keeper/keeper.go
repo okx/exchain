@@ -390,7 +390,7 @@ func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 func (k Keeper) GetProductOwner(ctx sdk.Context, product string) (sdk.AccAddress, error) {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.AccAddress{}, fmt.Errorf("failed. token pair %s is not existed", product)
+		return sdk.AccAddress{}, fmt.Errorf("failed. token pair %s doesn't exist", product)
 	}
 	return tokenPair.Owner, nil
 }

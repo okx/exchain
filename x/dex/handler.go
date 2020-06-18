@@ -76,7 +76,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		BlockHeight:      ctx.BlockHeight(),
 	}
 
-	// check whether a specific token pair is existed with the symbols of base asset and quote asset
+	// check whether a specific token pair exists with the symbols of base asset and quote asset
 	// Note: aaa_bbb and bbb_aaa are actually one token pair
 	if keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)) != nil ||
 		keeper.GetTokenPair(ctx, fmt.Sprintf("%s_%s", tokenPair.QuoteAssetSymbol, tokenPair.BaseAssetSymbol)) != nil {
