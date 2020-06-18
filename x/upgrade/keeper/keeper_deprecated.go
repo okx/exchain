@@ -13,7 +13,7 @@ import (
 func (k Keeper) SetAppUpgradeConfig(ctx sdk.Context, proposalID, version, upgradeHeight uint64, software string,
 ) sdk.Error {
 	if _, found := k.GetAppUpgradeConfig(ctx); found {
-		return sdk.ErrInternal("failed. an app upgrade config is existed, only one entry is permitted")
+		return sdk.ErrInternal("failed. an app upgrade config has existed, only one entry is permitted")
 	}
 
 	appUpgradeConfig := proto.NewAppUpgradeConfig(

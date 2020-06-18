@@ -176,7 +176,7 @@ func handleMsgVote(ctx sdk.Context, msg types.MsgVote, k keeper.Keeper) sdk.Resu
 			delegator.ProxyAddress.String()).Result()
 	}
 
-	// 1. get last validators voted existed in the store
+	// 1. get last validators voted existing in the store
 	lastVals, lastVotes := k.GetLastValsVotedExisted(ctx, msg.DelAddr)
 
 	// 2. withdraw the votes last time
@@ -302,7 +302,7 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 
 func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k keeper.Keeper) (result sdk.Result) {
 	valAddr := sdk.ValAddress(msg.DelAddr)
-	// 0.check to see if the validator which belongs to the delegator is existed
+	// 0.check to see if the validator which belongs to the delegator exists
 	validator, found := k.GetValidator(ctx, valAddr)
 	if !found {
 		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()

@@ -196,7 +196,10 @@ func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenP
 		key := iter.Key()
 		tokenPairName := string(key[prefixLen:])
 
-		tokenPairs = append(tokenPairs, k.GetTokenPairFromStore(ctx, tokenPairName))
+		tokenPair := k.GetTokenPairFromStore(ctx, tokenPairName)
+		if tokenPair != nil {
+			tokenPairs = append(tokenPairs, tokenPair)
+		}
 	}
 
 	return tokenPairs
@@ -236,8 +239,7 @@ func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *type
 func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (isDelisting bool, err error) {
 	tp := k.GetTokenPair(ctx, product)
 	if tp != nil {
-		isDelisting = k.GetTokenPair(ctx, product).Delisting
-		err = nil
+		isDelisting = tp.Delisting
 	} else {
 		isDelisting = true
 		err = errors.Errorf("product %s doesn't exist", product)

@@ -33,7 +33,7 @@ func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "validator address is invalid")
 }
 
-// ErrNoValidatorFound returns an error when a validator isn't existed
+// ErrNoValidatorFound returns an error when a validator doesn't exist
 func ErrNoValidatorFound(codespace sdk.CodespaceType, valAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator %s does not exist", valAddr)
 }
@@ -129,7 +129,7 @@ func ErrInsufficientShares(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "insufficient delegation shares")
 }
 
-// ErrNoUnbondingDelegation returns an error when the unbonding delegation isn't existed
+// ErrNoUnbondingDelegation returns an error when the unbonding delegation doesn't exist
 func ErrNoUnbondingDelegation(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "no unbonding delegation found")
 }
@@ -177,7 +177,7 @@ func ErrDoubleProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 		"failed. proxy isn't allowed to bind with other proxy %s", delegator)
 }
 
-// ErrNotFoundProxy returns an error when the proxy is not existed
+// ErrNotFoundProxy returns an error when the proxy doesn't exist
 func ErrNotFoundProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
 		"failed. no proxy with %s", delegator)
@@ -207,7 +207,7 @@ func ErrNoDelegationVote(codespace sdk.CodespaceType, voter string) sdk.Error {
 		"failed. there's no delegation of %s", voter)
 }
 
-// ErrNotInDelegating returns an error when the UndelegationInfo was not existed during it's unbonding period
+// ErrNotInDelegating returns an error when the UndelegationInfo doesn't exist during it's unbonding period
 func ErrNotInDelegating(codespace sdk.CodespaceType, addr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
 		"failed. the addr %s is not in the status of undelegating", addr)
@@ -249,16 +249,16 @@ func ErrInvalidProxyUpdating(codespace sdk.CodespaceType) sdk.Error {
 		"failed. the total delegated tokens on the proxy will be negative after this update")
 }
 
-// ErrAlreadyVoted returns an error when a delegator trys to bind proxy after voting
+// ErrAlreadyVoted returns an error when a delegator tries to bind proxy after voting
 func ErrAlreadyVoted(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProxy,
 		"failed. delegator %s isn't allowed to bind proxy while it has voted. please unbond the delegation first", delAddr)
 }
 
-// ErrNoDelegatorExisted returns an error when the info if a certain delegator isn't existed
+// ErrNoDelegatorExisted returns an error when the info if a certain delegator doesn't exist
 func ErrNoDelegatorExisted(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
-		"failed. delegator %s isn't existed", delAddr)
+		"failed. delegator %s doesn't exist", delAddr)
 }
 
 // ErrTargetValsDuplicate returns an error when the target validators in voting list are duplicate
