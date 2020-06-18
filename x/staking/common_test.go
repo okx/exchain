@@ -767,9 +767,9 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 					}
 				}
 				if validator.MinSelfDelegation.GT(sdk.ZeroDec()) {
-					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares)
+					r22 = assert.True(t, validator.DelegatorShares.Equal(totalShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares.String())
 				} else  {
-					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares)
+					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares.String())
 				}
 			}
 		}

@@ -167,7 +167,7 @@ func TestDelegator(t *testing.T) {
 		// [E]
 		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
 		noErrorInHandlerResult(false),
-		nil,
+		queryValidatorCheck(sdk.Bonded, false, nil, nil, nil),
 
 		// check withdraw response
 		noErrorInHandlerResult(false),
