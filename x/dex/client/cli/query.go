@@ -104,8 +104,8 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 // GetCmdQueryMatchOrder queries match order of products
 func GetCmdQueryMatchOrder(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "match-order",
-		Short: "Query the match order of token pairs",
+		Use:   "product-rank",
+		Short: "Query the rank of token pairs",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			page := viper.GetInt("page-number")
 			perPage := viper.GetInt("items-per-page")
