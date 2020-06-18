@@ -24,7 +24,7 @@ func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 }
 
 // DelegatorVotesInvariant checks whether all the votes which persist
-// in the store add up to the correct total votes amount stored in each existed validator
+// in the store add up to the correct total votes amount stored in each existing validator
 //TODO:if the self-votes based on msd is related with time-calculating, this DelegatorVotesInvariant will not pass
 // because we can't calculate the votes number base on msd of a validator afterwards
 func DelegatorVotesInvariant(k Keeper) sdk.Invariant {

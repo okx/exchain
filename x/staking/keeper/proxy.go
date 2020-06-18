@@ -51,7 +51,7 @@ func (k Keeper) IterateProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, isClear 
 
 // UpdateVotes withdraws and votes continuously on the same validator set with different amount of votes
 func (k Keeper) UpdateVotes(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) sdk.Error {
-	// get last validators voted existed in the store
+	// get last validators voted existing in the store
 	vals, lastVotes := k.GetLastValsVotedExisted(ctx, delAddr)
 	if vals == nil {
 		// if the delegator never votes, just pass
@@ -157,7 +157,7 @@ func (k Keeper) GetLastValsVotedExisted(ctx sdk.Context, voterAddr sdk.AccAddres
 		return nil, sdk.ZeroDec()
 	}
 
-	// 2.get validators voted existed in the store
+	// 2.get validators voted existing in the store
 	lenVals := len(delegator.ValidatorAddresses)
 	var vals types.Validators
 	for i := 0; i < lenVals; i++ {
