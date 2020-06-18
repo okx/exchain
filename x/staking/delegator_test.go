@@ -1,6 +1,7 @@
 package staking
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -484,5 +485,148 @@ func TestLimitedProxy(t *testing.T) {
 	smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
 	smTestCase.printParticipantSnapshot(t)
 	smTestCase.Run(t)
+
+}
+
+//
+// Context: create 1 delegator(d) + 1 proxy(p) + 1 validator(v)
+// Operation Group:
+//          step1: v 1(create)
+//          step2: p 1(deposit)
+//          step3: p 7(regProxy, addShare(v), bind(p), unbind(p), unregProxy, withdrawSome)
+//			step4: d 5(bind(p), addShare(v), unbind(p), withdrawSome)
+//			step5: d 4(deposit, bind(p), unbind(p), withdrawSome)
+//          case possibilities: 1 * 1 * 7 * 5 * 4 = 140
+//          iterate all the possibilities to run delegatorConstraintCheck and validatorConstrainCheck
+//
+func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
+	params := DefaultParams()
+
+	originVaSet := addrVals[1:]
+	params.MaxValidators = uint16(len(originVaSet))
+	params.Epoch = 2
+	params.UnbondingTime = time.Millisecond * 300
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpStatus := baseValidatorStatus{startUpValidator}
+	orgValsLen := len(originVaSet)
+	fullVaSet := make([]sdk.ValAddress, orgValsLen+1)
+	copy(fullVaSet, originVaSet)
+	copy(fullVaSet[orgValsLen:], []sdk.ValAddress{startUpStatus.getValidator().GetOperator()})
+
+	bAction := baseAction{}
+
+
+	step1Actions := IActions{
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		delegatorWithdrawAction{bAction, ProxiedDelegator, sdk.OneDec(), sdk.DefaultBondDenom},
+		proxyBindAction{bAction, ProxiedDelegator, ProxiedDelegator},
+		proxyUnBindAction{bAction, ProxiedDelegator},
+
+	}
+
+	step2Actions := IActions{
+		delegatorDepositAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		proxyUnBindAction{bAction, ValidDelegator1},
+		delegatorWithdrawAction{bAction, ValidDelegator1, sdk.OneDec(), sdk.DefaultBondDenom},
+	}
+
+	step3Actions := IActions{
+		delegatorDepositAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
+		proxyUnBindAction{bAction, ValidDelegator1},
+		delegatorWithdrawAction{bAction, ValidDelegator1, sdk.OneDec(), sdk.DefaultBondDenom},
+	}
+
+	//step4Actions := IActions{
+	//}
+
+	for s1:=0; s1 < len(step1Actions); s1++ {
+		for s2 :=0; s2 < len(step2Actions); s2++ {
+			for s3 :=0; s3 <len(step3Actions); s3++ {
+			//	for s4 :=0; s4 <len(step4Actions); s4++ {
+					inputActions := []IAction{
+						createValidatorAction{bAction, nil},
+						delegatorDepositAction{bAction, ProxiedDelegator, MaxDelegatedToken, sdk.DefaultBondDenom},
+						step1Actions[s1],
+						step2Actions[s2],
+						step3Actions[s3],
+						//step4Actions[s4],
+						destroyValidatorAction{bAction},
+					}
+
+					actionsAndChecker, caseName := generateActionsAndCheckers(inputActions)
+
+					t.Logf("============================================== indexes:[%d,%d, %d]  %s ==============================================", s1,s2,s3, caseName)
+					_, _, mk := CreateTestInput(t, false, SufficientInitPower)
+					smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
+					smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
+					smTestCase.printParticipantSnapshot(t)
+					smTestCase.Run(t)
+					t.Log("============================================================================================")
+				}
+
+			}
+		//}
+	}
+}
+
+type IActions []IAction
+type ResCheckers []actResChecker
+
+func defaultConstraintChecker(checkVa bool) actResChecker {
+
+	if checkVa {
+		checker := andChecker{[]actResChecker{
+				validatorCheck(StartUpValidatorAddr),
+				queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+				queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
+			},
+		}
+		return checker.GetChecker()
+	} else {
+		checker := andChecker{[]actResChecker{
+				queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+				queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
+			},
+		}
+		return checker.GetChecker()
+
+	}
+}
+
+func generateActionsAndCheckers(stepActions IActions) (ResCheckers, string) {
+	checkers := ResCheckers{}
+	caseName := ""
+	for i:=0; i < len(stepActions); i++ {
+		a := stepActions[i]
+		caseName =  caseName + fmt.Sprintf("step_%d_%s#$", i, a.desc())
+		if i > len(stepActions) / 2 {
+			checkVa := a.desc() != "destroyVa"
+			checkers = append(checkers, defaultConstraintChecker(checkVa))
+
+		} else {
+			checkers = append(checkers, nil)
+		}
+	}
+	return checkers, caseName
+}
+
+//
+// Context: create 1 delegator(d) + 1 proxy(p) + 1 validator(v)
+// Operation Group:
+//          step1: v 1(create)
+//          step2: p 7(deposit, regProxy, unregProxy, bind(p), unbind(p), addShare, withdraw)
+//			step3: d 5(deposit, bind(p), unbind(p), addShare(v), withdraw)
+//          step4: v 2(nil, destroy)
+//          step5: d 5(nil, deposit, withdraw, bind, unbind)
+//          step6: p 5(nil, deposit, withdraw, bind, unbind)
+//          step7: v 2(nil, destroy)
+//          possibilities: 1 * 5 * 7 * 2 * 5 * 5 * 2 = 3500
+//          iterate all the possibilities an run delegatorConstraintCheck and validatorConstrainCheck
+//
+func TestDelegatorProxyValidatorShares7Steps(t *testing.T) {
 
 }

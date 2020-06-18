@@ -78,6 +78,8 @@ type IValidatorStatus interface {
 // IAction shows the action of a role in staking test
 type IAction interface {
 	apply(ctx sdk.Context, vaStatus IValidatorStatus, result *ActionResultCtx)
+	desc() string
+	setMockKeeper(k keeper.MockStakingKeeper)
 }
 
 type ActionResultCtx struct {
@@ -122,10 +124,23 @@ type baseAction struct {
 	mStkKeeper keeper.MockStakingKeeper
 }
 
+func (a baseAction) desc() string {
+	return "ActX"
+}
+
+func (a baseAction) setMockKeeper(k keeper.MockStakingKeeper)  {
+	a.mStkKeeper = k
+}
+
 type createValidatorAction struct {
 	baseAction
 	newVal IValidatorStatus
 }
+
+func (a createValidatorAction) desc() string {
+	return "createVa"
+}
+
 
 func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 
@@ -142,7 +157,7 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 	if err := msgCreateValidator.ValidateBasic(); err != nil {
 		panic(err)
 	}
-	handler := NewHandler(a.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 
 	msgResponse := handler(ctx, msgCreateValidator)
 
@@ -154,7 +169,7 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 		if !found {
 			panic("failed to create a validator")
 		}
-		resultCtx.t.Logf("     ==>>> CreateValidator Result: %s msd: %s, votes: %s\n",
+		resultCtx.t.Logf("     ==>>> CreateValidator Result: %s msd: %s, shares: %s\n",
 			validator.OperatorAddress, validator.MinSelfDelegation, validator.DelegatorShares)
 	}
 
@@ -195,6 +210,10 @@ type destroyValidatorAction struct {
 	baseAction
 }
 
+func (a destroyValidatorAction) desc() string {
+	return "destroyVa"
+}
+
 func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	val := vaStatus.getValidator()
 	resultCtx.t.Logf("====> Apply destroyValidatorAction[%d], msd: %s\n",
@@ -204,8 +223,7 @@ func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus
 	if err := msgDestroyValidator.ValidateBasic(); err != nil {
 		panic(err)
 	}
-	handler := NewHandler(a.mStkKeeper.Keeper)
-
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	msgResponse := handler(ctx, msgDestroyValidator)
 
 	if resultCtx != nil {
@@ -231,8 +249,8 @@ func (a jailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, r
 		ctx.BlockHeight(), val.MinSelfDelegation)
 
 	// No Response here
-	a.mStkKeeper.Jail(ctx, val.GetConsAddr())
-	a.mStkKeeper.AppendAbandonedValidatorAddrs(ctx, val.GetConsAddr())
+	resultCtx.tc.mockKeeper.Keeper.Jail(ctx, val.GetConsAddr())
+	resultCtx.tc.mockKeeper.Keeper.AppendAbandonedValidatorAddrs(ctx, val.GetConsAddr())
 	if resultCtx != nil {
 		resultCtx.isBlkHeightInc = false
 
@@ -254,7 +272,7 @@ func (a unJailValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus,
 	resultCtx.t.Logf("====> Apply unJailValidatorAction[%d], msd: %s\n",
 		ctx.BlockHeight(), val.MinSelfDelegation)
 
-	a.mStkKeeper.Unjail(ctx, val.GetConsAddr())
+	resultCtx.tc.mockKeeper.Keeper.Unjail(ctx, val.GetConsAddr())
 	if resultCtx != nil {
 		resultCtx.isBlkHeightInc = false
 
@@ -298,6 +316,12 @@ type delegatorDepositAction struct {
 	dlgAmount sdk.Dec
 	dlgDenom  string
 }
+
+
+func (a delegatorDepositAction) desc() string {
+	return "dlgDeposit"
+}
+
 
 func (action delegatorDepositAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorDepositAction[%d], dlgAddr: %s, dlgAmount: %s, dlgDenon: %s\n",
@@ -355,10 +379,14 @@ type delegatorsAddSharesAction struct {
 	delegators         []sdk.AccAddress
 }
 
+func (action delegatorsAddSharesAction) desc() string {
+	return "dlgAddShare"
+}
+
 func (action delegatorsAddSharesAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorsAddSharesAction[%d]\n", ctx.BlockHeight())
 
-	handler := NewHandler(action.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 
 	var vaAddrs []sdk.ValAddress
 	if action.addSharesOnStartup {
@@ -403,10 +431,16 @@ type delegatorWithdrawAction struct {
 	tokenDenom    string
 }
 
+
+
+func (action delegatorWithdrawAction) desc() string {
+	return "dlgWithdraw"
+}
+
 func (action delegatorWithdrawAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorWithdrawAction [%d]\n", ctx.BlockHeight())
 
-	handler := NewHandler(action.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	coins := sdk.NewDecCoinFromDec(action.tokenDenom, action.withdrawToken)
 
 	msg := NewMsgWithdraw(action.dlgAddr, coins)
@@ -439,7 +473,7 @@ func (action delegatorsWithdrawAction) apply(ctx sdk.Context, vaStatus IValidato
 			break
 		}
 
-		dlg, _ := action.mStkKeeper.Keeper.GetDelegator(ctx, v.DelegatorAddress)
+		dlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, v.DelegatorAddress)
 
 		coins := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, dlg.Tokens)
 		if !action.unbondAllTokens {
@@ -465,11 +499,15 @@ type delegatorRegProxyAction struct {
 	doReg     bool
 }
 
+func (action delegatorRegProxyAction) desc() string {
+	return "dlgRegProxy"
+}
+
 func (action delegatorRegProxyAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorRegProxyAction[%d] ProxyAddress: %s, DoRegister: %+v\n",
 		ctx.BlockHeight(), action.proxyAddr, action.doReg)
 
-	handler := NewHandler(action.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	msg := types.NewMsgRegProxy(action.proxyAddr, action.doReg)
 	if err := msg.ValidateBasic(); err != nil {
 		panic(err)
@@ -491,7 +529,7 @@ type proxyBindAction struct {
 func (action proxyBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply proxyBindAction[%d]\n", ctx.BlockHeight())
 	msg := types.NewMsgBindProxy(action.dlgAddr, action.proxyAddr)
-	handler := NewHandler(action.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	res := handler(ctx, msg)
 
 	if resultCtx != nil {
@@ -507,7 +545,7 @@ type proxyUnBindAction struct {
 func (action proxyUnBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply proxyUnBindAction[%d]\n", ctx.BlockHeight())
 	msg := types.NewMsgUnbindProxy(action.dlgAddr)
-	handler := NewHandler(action.mStkKeeper.Keeper)
+	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	res := handler(ctx, msg)
 	if resultCtx != nil {
 		resultCtx.txMsgResult = &res
@@ -735,6 +773,23 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 		return checkRes
 	}
 }
+
+func validatorCheck(validator sdk.ValAddress)  actResChecker {
+	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) (r bool) {
+		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
+		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
+
+		basicParams := types.NewQueryValidatorParams(afterStatus.getValidator().OperatorAddress)
+		bz, _ := amino.MarshalJSON(basicParams)
+		res, err := q(ctx, []string{types.QueryValidator}, abci.RequestQuery{Data: bz})
+		require.Nil(t, err)
+
+		validator := types.Validator{}
+		require.NoError(t, amino.UnmarshalJSON(res, &validator), validator)
+		return validatorConstraintCheck(validator)(t, beforeStatus, afterStatus, resultCtx)
+	}
+}
+
 
 func validatorConstraintCheck(validator types.Validator) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) (r bool) {
@@ -1264,6 +1319,7 @@ func (tc *basicStakingSMTestCase) Run(t *testing.T) {
 		resultCtx.t = t
 		resultCtx.context = &ctx
 
+		action.setMockKeeper(resultCtx.tc.mockKeeper)
 		action.apply(ctx, beforeStatus, &resultCtx)
 
 		afterValidator, _ := stkKeeper.GetValidator(ctx, tc.startUpVaStatus.getValidator().OperatorAddress)
