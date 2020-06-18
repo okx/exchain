@@ -491,15 +491,15 @@ func TestLimitedProxy(t *testing.T) {
 //
 // Context: create 1 delegator(d) + 1 proxy(p) + 1 validator(v)
 // Operation Group:
-//          step1: v 1(create)
-//          step2: p 1(deposit)
-//          step3: p 7(regProxy, addShare(v), bind(p), unbind(p), unregProxy, withdrawSome)
-//			step4: d 5(bind(p), addShare(v), unbind(p), withdrawSome)
-//			step5: d 4(deposit, bind(p), unbind(p), withdrawSome)
-//          case possibilities: 1 * 1 * 7 * 5 * 4 = 140
+//          setup: v(create), p(deposit), delegator2(addShares to v)
+//          step1: p 7(regProxy, addShare(v), bind(p), unbind(p), withdrawSome)
+//			step2: d 5(bind(p), addShare(v), unbind(p), withdrawSome)
+//			step3: d 4(deposit, bind(p), unbind(p), withdrawSome)
+//          teardown: v(destroy), p(unReg)
+//          case possibilities: 1 * 1 * 5 * 5 * 4 = 100
 //          iterate all the possibilities to run delegatorConstraintCheck and validatorConstrainCheck
 //
-func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
+func TestDelegatorProxyValidatorConstraints3Steps(t *testing.T) {
 	params := DefaultParams()
 
 	originVaSet := addrVals[1:]
@@ -549,17 +549,19 @@ func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 			//	for s4 :=0; s4 <len(step4Actions); s4++ {
 					inputActions := []IAction{
 						createValidatorAction{bAction, nil},
+						delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 						delegatorDepositAction{bAction, ProxiedDelegator, MaxDelegatedToken, sdk.DefaultBondDenom},
 						step1Actions[s1],
 						step2Actions[s2],
 						step3Actions[s3],
 						//step4Actions[s4],
+						delegatorRegProxyAction{bAction, ProxiedDelegator, false},
 						destroyValidatorAction{bAction},
 					}
 
 					actionsAndChecker, caseName := generateActionsAndCheckers(inputActions)
 
-					t.Logf("============================================== indexes:[%d,%d, %d]  %s ==============================================", s1,s2,s3, caseName)
+					t.Logf("============================================== indexes:[%d,%d,%d]  %s ==============================================", s1,s2,s3, caseName)
 					_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 					smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 					smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
