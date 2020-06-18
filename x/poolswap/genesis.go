@@ -26,8 +26,8 @@ func ValidateGenesis(data GenesisState) error {
 		if !record.BasePooledCoin.IsValid() {
 			return fmt.Errorf("invalid SwapTokenPairRecord: BasePooledCoin: %s", record.BasePooledCoin)
 		}
-		if record.PoolTokenName == "" {
-			return fmt.Errorf("invalid SwapTokenPairRecord: PoolToken: %s. Error: Missing PoolToken", record.PoolTokenName)
+		if !types.ValidatePoolTokenName(record.PoolTokenName) {
+			return fmt.Errorf("invalid SwapTokenPairRecord: PoolToken: %s. Error: invalid PoolToken", record.PoolTokenName)
 		}
 	}
 	return nil
@@ -37,7 +37,7 @@ func ValidateGenesis(data GenesisState) error {
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Params:               types.DefaultParams(),
-		SwapTokenPairRecords: []SwapTokenPair{},
+		SwapTokenPairRecords: nil,
 	}
 }
 
@@ -54,14 +54,11 @@ func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	var records []SwapTokenPair
 	iterator := k.GetSwapTokenPairsIterator(ctx)
 	for ; iterator.Valid(); iterator.Next() {
-
-		quote := string(iterator.Key())
-		swapTokenPair, error := k.GetSwapTokenPair(ctx, quote)
-		if nil != error {
-
-		}
-		records = append(records, swapTokenPair)
+		tokenPair := SwapTokenPair{}
+		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &tokenPair)
+		records = append(records, tokenPair)
 
 	}
-	return GenesisState{SwapTokenPairRecords: records}
+	params := k.GetParams(ctx)
+	return GenesisState{SwapTokenPairRecords: records, Params: params}
 }

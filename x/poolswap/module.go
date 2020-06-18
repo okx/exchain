@@ -82,11 +82,6 @@ func NewAppModule(k Keeper) AppModule {
 	}
 }
 
-// Name returns the swap module's name.
-func (AppModule) Name() string {
-	return ModuleName
-}
-
 // RegisterInvariants registers the swap module invariants.
 func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 

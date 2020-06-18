@@ -251,7 +251,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.addr, testCase.addr)
+		addLiquidityMsg := types.NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
