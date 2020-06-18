@@ -621,8 +621,9 @@ func queryValidatorCheck(expStatus sdk.BondStatus, expJailed bool, expDS *sdk.De
 		}
 
 		b6 := assert.True(t, validator.DelegatorShares.GTE(sdk.ZeroDec()), validator)
+		b7 := assert.True(t, validatorConstraintCheck(validator)(t, beforeStatus, afterStatus, resultCtx), validator)
 
-		return b1 && b2 && b3 && b4 && b5 && b6 && validatorConstraintCheck(validator)(t, beforeStatus, afterStatus, resultCtx)
+		return b1 && b2 && b3 && b4 && b5 && b6 && b7
 	}
 }
 
@@ -741,17 +742,20 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 			e := recover()
 			if e != nil {
 				debug.PrintStack()
-				resultCtx.t.Logf("     ====>>> [ERROR] Checking validatorConstraintCheck[%d], ErrorInfo: %+v, ValidatorInfo: %+v",
+				resultCtx.t.Logf("     ====>>> [ERROR] Checking validatorConstraintCheck[%d], ErrorInfo: {%+v}, ValidatorInfo: {%+v}",
 					resultCtx.context.BlockHeight(), e, validator)
 				resultCtx.errorResult = e.(error)
 			}
 		}()
 
 		sharesRes := resultCtx.tc.mockKeeper.GetValidatorAllShares(*resultCtx.context, validator.OperatorAddress)
-		r = validator.MinSelfDelegation.GT(sdk.ZeroDec())
-		if r {
+		r1, r2, r3 := validator.MinSelfDelegation.GTE(sdk.ZeroDec()), false, false
+		if r1 {
 			if len(sharesRes) == 0 {
-				r = validator.DelegatorShares.Equal(sdk.OneDec())
+				// c1: v.DelegatorShares == 1 && MinSelfDelegation > 0
+				// c2: v.DelegatorShares == 0 && MinSelfDelegation == 0
+				r2 = validator.DelegatorShares.Equal(sdk.OneDec()) && validator.MinSelfDelegation.GT(sdk.ZeroDec()) ||
+					validator.DelegatorShares.Equal(sdk.ZeroDec()) && validator.MinSelfDelegation.Equal(sdk.ZeroDec())
 			} else {
 				totalShares := sdk.ZeroDec()
 				for i := 0; i < len(sharesRes); i++ {
@@ -762,12 +766,18 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 							sharesRes[i].DelAddr, dlgInfo, totalShares.String()))
 					}
 				}
-				r = totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec()))
+				if validator.MinSelfDelegation.GT(sdk.ZeroDec()) {
+					r3 = assert.True(t, totalShares.Equal(validator.DelegatorShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares)
+				} else  {
+					r3 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares)
+				}
 			}
-		} else {
-			panic(fmt.Errorf("DelegatorList: %s", sharesRes.String()))
 		}
 
+		r = r1 && (r2 || r3)
+		if !r {
+			panic(fmt.Errorf("DelegatorList from GetValidatorAllShares: [%s], r1:%+v, r2:%+v, r3:%+v", sharesRes, r1, r2, r3))
+		}
 		return
 	}
 }
