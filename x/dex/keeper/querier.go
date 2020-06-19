@@ -143,9 +143,12 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
-	var products = []string{}
+	var products []string
 
 	for _, tokenPair := range tokenPairs {
+		if tokenPair == nil {
+			return res, types.ErrNilPointer()
+		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
 
