@@ -86,11 +86,12 @@ func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Tok
 	return poolToken, nil
 }
 
-func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, symbol string) (sdk.Dec, error) {
-	poolToken, err := k.GetPoolTokenInfo(ctx, symbol)
+// GetPoolTokenAmount gets the amount of the specified poolToken name
+func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenNmae string) (sdk.Dec, error) {
+	poolToken, err := k.GetPoolTokenInfo(ctx, poolTokenNmae)
 	return poolToken.TotalSupply, err
 }
-
+// MintPoolCoinsToUser mints coins and send them to the specified user address
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
@@ -99,6 +100,7 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sd
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
 
+// BurnPoolCoinsFromUser sends coins to account module and burns them
 func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 	if err != nil {
@@ -107,14 +109,17 @@ func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.DecCoins, addr 
 	return k.supplyKeeper.BurnCoins(ctx, types.ModuleName, coins)
 }
 
+// SendCoinsToPool sends coins from user account to module account
 func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 }
 
+// SendCoinsFromPoolToAccount sends coins from module account to user account
 func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
 
+// nolint
 func (k Keeper) GetTokenKeeper() types.TokenKeeper {
 	return k.tokenKeeper
 }

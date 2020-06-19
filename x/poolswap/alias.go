@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// nolint
 	ModuleName        = types.ModuleName
 	RouterKey         = types.RouterKey
 	StoreKey          = types.StoreKey
@@ -15,18 +16,22 @@ const (
 
 var (
 	// functions aliases
+	// nolint
 	NewKeeper          = keeper.NewKeeper
 	NewQuerier         = keeper.NewQuerier
 	RegisterCodec      = types.RegisterCodec
 	NewMsgAddLiquidity = types.NewMsgAddLiquidity
 
 	// variable aliases
+	// nolint
 	ModuleCdc = types.ModuleCdc
 )
 
 type (
+	// nolint
 	Keeper = keeper.Keeper
 	Params = types.Params
 
+	// nolint
 	SwapTokenPair = types.SwapTokenPair
 )

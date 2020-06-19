@@ -56,6 +56,7 @@ func InitPoolToken(poolTokenName string) token.Token {
 	}
 }
 
+// ValidatePoolTokenName validates the format of specified poolTokenName
 func ValidatePoolTokenName(tokenName string) bool {
 	var poolTokenFormat = fmt.Sprintf(`^(%s)[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?$`, PoolTokenPrefix)
 	var poolTokenRegExp = regexp.MustCompile(poolTokenFormat)
