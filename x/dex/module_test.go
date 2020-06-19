@@ -23,14 +23,14 @@ func TestAppModule_Smoke(t *testing.T) {
 	require.True(t, appModule.Name() == ModuleName)
 	require.True(t, appModule.Route() == RouterKey)
 	require.True(t, appModule.QuerierRoute() == QuerierRoute)
-	require.True(t, appModule.GetQueryCmd(dexKeeper.GetCDC()) != nil)
-	require.True(t, appModule.GetTxCmd(dexKeeper.GetCDC()) != nil)
+	require.True(t, appModule.GetQueryCmd(types.ModuleCdc) != nil)
+	require.True(t, appModule.GetTxCmd(types.ModuleCdc) != nil)
 
 	// RegisterCodec
 	appModule.RegisterCodec(codec.New())
 
 	appModule.RegisterInvariants(MockInvariantRegistry{})
-	rs := cliLcd.NewRestServer(dexKeeper.GetCDC(), nil)
+	rs := cliLcd.NewRestServer(types.ModuleCdc, nil)
 	appModule.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	handler := appModule.NewHandler()
 	require.True(t, handler != nil)

@@ -59,11 +59,6 @@ func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
 }
 
-// GetCDC returns cdc
-func (k Keeper) GetCDC() *codec.Codec {
-	return k.cdc
-}
-
 // GetTokenKeeper returns token Keeper
 func (k Keeper) GetTokenKeeper() TokenKeeper {
 	return k.tokenKeeper
