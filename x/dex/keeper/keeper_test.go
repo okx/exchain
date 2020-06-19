@@ -139,7 +139,8 @@ func TestUpdateTokenPair(t *testing.T) {
 	blockHeight := tokenPair.BlockHeight
 	updateTokenPair := tokenPair
 	updateTokenPair.BlockHeight = blockHeight + 1
-	keeper.UpdateTokenPair(ctx, product, updateTokenPair)
+	err = keeper.UpdateTokenPair(ctx, product, updateTokenPair)
+	require.NoError(t, err)
 	getTokenPair := keeper.GetTokenPair(ctx, product)
 	require.Equal(t, getTokenPair.BlockHeight, blockHeight+1)
 }
