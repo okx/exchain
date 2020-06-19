@@ -57,45 +57,6 @@ func (msg MsgList) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
-// MsgDelist - high level transaction of the dex module
-type MsgDelist struct {
-	Owner   sdk.AccAddress `json:"owner"`
-	Product string         `json:"product"`
-}
-
-// NewMsgDelist creates a new MsgDelist
-func NewMsgDelist(owner sdk.AccAddress, product string) MsgDelist {
-	return MsgDelist{
-		Owner:   owner,
-		Product: product,
-	}
-}
-
-// Route Implements Msg
-func (msg MsgDelist) Route() string { return RouterKey }
-
-// Type Implements Msg
-func (msg MsgDelist) Type() string { return "delist" }
-
-// ValidateBasic Implements Msg
-func (msg MsgDelist) ValidateBasic() sdk.Error {
-	if msg.Product == "" || len(msg.Product) == 0 {
-		return ErrInvalidProduct(msg.Product)
-	}
-	return nil
-}
-
-// GetSignBytes Implements Msg
-func (msg MsgDelist) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-// GetSigners Implements Msg.
-func (msg MsgDelist) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Owner}
-}
-
 // MsgDeposit - high level transaction of the dex module
 type MsgDeposit struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
