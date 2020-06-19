@@ -364,8 +364,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 		token.Description = msg.Description
 	}
 
-	store := ctx.KVStore(keeper.tokenStoreKey)
-	store.Set(types.GetTokenAddress(token.Symbol), keeper.cdc.MustMarshalBinaryBare(token))
+	keeper.UpdateToken(ctx, token)
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeModify.ToCoins()
