@@ -113,6 +113,10 @@ func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Prop
 		tokenPairName := fmt.Sprintf("%s_%s", content.BaseAsset, content.QuoteAsset)
 		// change the status of the token pair in the store
 		tokenPair := k.GetTokenPair(ctx, tokenPairName)
+		if tokenPair == nil {
+			ctx.Logger().Error(fmt.Sprintf("token pair %s does not exist", tokenPairName))
+			return
+		}
 		tokenPair.Delisting = true
 		k.UpdateTokenPair(ctx, tokenPairName, tokenPair)
 	}
