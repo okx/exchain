@@ -30,6 +30,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 	// Retrieve the last validator set. The persistent set is updated later in this function (see LastValidatorPowerKey)
 	last := k.getLastValidatorsByAddr(ctx)
+	logger := k.Logger(ctx)
+	logMap(logger, last, "LastBondedValAddrsBeforeElection")
 
 	// Iterate over validators, highest power to lowest.
 	iterator := sdk.KVStoreReversePrefixIterator(store, types.ValidatorsByPowerIndexKey)
@@ -92,6 +94,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 
 		// fetch the validator
 		validator := k.mustGetValidator(ctx, sdk.ValAddress(valAddrBytes))
+
+		logger.Debug("no longer boned val", "validator", validator.OperatorAddress.String())
 
 		// bonded to unbonding
 		validator = k.bondedToUnbonding(ctx, validator)

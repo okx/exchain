@@ -205,6 +205,7 @@ func handleMsgVote(ctx sdk.Context, msg types.MsgVote, k keeper.Keeper) sdk.Resu
 	delegator.Shares = votes
 	k.SetDelegator(ctx, delegator)
 
+	k.Logger(ctx).Debug("Vote Msg successfully", "msg", msg, "delgator", delegator)
 	ctx.EventManager().EmitEvent(buildEventForHandlerVote(delegator))
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
@@ -268,6 +269,8 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return err.Result()
 	}
 
+	delegator,_:=k.GetDelegator(ctx, msg.DelegatorAddress)
+	k.Logger(ctx).Debug("Delegate Msg successfully", "msg", msg, "delgator", delegator)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDelegate,
@@ -287,6 +290,9 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 	if err != nil {
 		return err.Result()
 	}
+
+	delegator,_:=k.GetDelegator(ctx, msg.DelegatorAddress)
+	k.Logger(ctx).Debug("Undelegate Msg successfully", "msg", msg, "delgator", delegator)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(

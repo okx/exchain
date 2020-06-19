@@ -11,10 +11,15 @@ import (
 // BeginBlocker set the proposer for determining distribution during endblock
 // and distribute rewards for the previous block
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
+	logger := k.Logger(ctx)
 	// determine the total power signing the block
+	logger.Debug("Start distr fees in begin block")
 	var previousTotalPower int64
 	for _, voteInfo := range req.LastCommitInfo.GetVotes() {
 		previousTotalPower += voteInfo.Validator.Power
+		logger.Debug( sdk.ValAddress(voteInfo.Validator.Address).String(),
+			"Power", voteInfo.Validator.Power,
+			"Singed", voteInfo.SignedLastBlock)
 	}
 
 	// TODO this is Tendermint-dependent

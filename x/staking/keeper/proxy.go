@@ -69,6 +69,7 @@ func (k Keeper) UpdateVotes(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.
 		return types.ErrNoDelegatorExisted(types.DefaultCodespace, delAddr.String())
 	}
 
+	logger := k.Logger(ctx)
 	for i := 0; i < lenVals; i++ {
 		if vals[i].MinSelfDelegation.IsZero() {
 			return types.ErrVoteDismission(types.DefaultCodespace, vals[i].OperatorAddress.String())
@@ -82,6 +83,7 @@ func (k Keeper) UpdateVotes(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.
 
 		// 3.update validator
 		vals[i].DelegatorShares = vals[i].DelegatorShares.Sub(lastVotes).Add(votes)
+		logger.Debug("update vote", vals[i].OperatorAddress.String(), vals[i].DelegatorShares.String())
 		k.SetValidator(ctx, vals[i])
 		k.SetValidatorByPowerIndex(ctx, vals[i])
 	}

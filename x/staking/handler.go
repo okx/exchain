@@ -15,6 +15,7 @@ import (
 // NewHandler manages all tx treatment
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		logMsg(ctx, msg)
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
@@ -43,6 +44,31 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
+func logMsg(ctx sdk.Context, msg sdk.Msg) {
+	logger := ctx.Logger().With("module", types.ModuleName)
+	switch msg := msg.(type) {
+	case types.MsgCreateValidator:
+		logger.Debug("handle MsgCreateValidator", "msg", msg)
+	case types.MsgEditValidator:
+		logger.Debug("handle MsgEditValidator", "msg", msg)
+	case types.MsgDelegate:
+		logger.Debug("handle MsgDelegate", "msg", msg)
+	case types.MsgUndelegate:
+		logger.Debug("handle MsgUndelegate", "msg", msg)
+	case types.MsgVote:
+		logger.Debug("handle MsgVote", "msg", msg)
+	case types.MsgBindProxy:
+		logger.Debug("handle MsgBindProxy", "msg", msg)
+	case types.MsgUnbindProxy:
+		logger.Debug("handle MsgUnbindProxy", "msg", msg)
+	case types.MsgRegProxy:
+		logger.Debug("handle MsgRegProxy", "msg", msg)
+	case types.MsgDestroyValidator:
+		logger.Debug("handle MsgDestroyValidator", "msg", msg)
+	default:
+	}
+}
+
 // EndBlocker is called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 	// calculate validator set changes
@@ -53,8 +79,6 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			k.SetEpoch(ctx, newEpoch)
 		}
 		k.SetTheEndOfLastEpoch(ctx)
-		//ctx.Logger().Debug("validatorUpdates epoch", "old", oldEpoch, "new", newEpoch)
-		//ctx.Logger().Debug(fmt.Sprintf("old epoch end blockHeight: %d", lastEpochEndHeight))
 
 		validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
 		// dont forget to delete in case that some validator need to kick out when an epoch ends
@@ -88,7 +112,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			return false
 		})
 
-	if ctx.BlockHeight()%100 == 0 {
+	if ctx.BlockHeight()%50 == 0 {
 		ctx.Logger().Error("start sanity check in module staking")
 		sanityCheck(ctx, k)
 	}
@@ -132,6 +156,8 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)
+
+	k.Logger(ctx).Debug("Create Validator successfully", "val", validator)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),

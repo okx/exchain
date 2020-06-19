@@ -79,7 +79,9 @@ func (k Keeper) SetEpoch(ctx sdk.Context, epoch uint16) {
 
 // IsEndOfEpoch checks whether an epoch is end
 func (k Keeper) IsEndOfEpoch(ctx sdk.Context) bool {
-	blockInterval := ctx.BlockHeight() - k.GetTheEndOfLastEpoch(ctx)
+	theEndOfLastEpoch := k.GetTheEndOfLastEpoch(ctx)
+	blockInterval := ctx.BlockHeight() - theEndOfLastEpoch
+	k.Logger(ctx).Debug("Epoch", "current", ctx.BlockHeight(), "last_epoch_height", theEndOfLastEpoch)
 	return blockInterval%int64(k.GetEpoch(ctx)) == 0
 }
 
