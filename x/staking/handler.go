@@ -112,10 +112,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			return false
 		})
 
-	if ctx.BlockHeight()%50 == 0 {
-		ctx.Logger().Error("start sanity check in module staking")
-		sanityCheck(ctx, k)
-	}
+	sanityCheck(ctx, k)
 	return validatorUpdates
 }
 
@@ -200,6 +197,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 }
 
 func sanityCheck(ctx sdk.Context, k keeper.Keeper) {
+	ctx.Logger().Error("start sanity check in module staking")
 	validators := k.GetAllValidators(ctx)
 	for _, validator := range validators {
 
