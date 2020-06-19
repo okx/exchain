@@ -187,6 +187,9 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 	tokenPairs := keeper.GetTokenPairs(ctx)
 	tokenPairLen := len(tokenPairs)
 	for i := 0; i < tokenPairLen; i++ {
+		if tokenPairs[i] == nil {
+			return res, types.ErrNilPointer()
+		}
 		if tokenPairs[i].Delisting {
 			tokenPairNames = append(tokenPairNames, fmt.Sprintf("%s_%s", tokenPairs[i].BaseAssetSymbol, tokenPairs[i].QuoteAssetSymbol))
 		}
