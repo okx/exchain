@@ -64,6 +64,8 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 		// cumsum the total power
 		totalPower = totalPower.Add(sdk.NewInt(newPower))
 
+		logger.Debug("get the new boned val", "validator", validator.OperatorAddress.String(), "power", newPower)
+
 		abandonedNum--
 	}
 
