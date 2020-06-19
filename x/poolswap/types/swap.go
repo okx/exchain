@@ -5,11 +5,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	token "github.com/okex/okchain/x/token/types"
+	"regexp"
 	"strings"
 )
 
 // PoolTokenPrefix defines pool token prefix name
-const PoolTokenPrefix = "pol"
+const PoolTokenPrefix = "poolswap-"
 
 // SwapTokenPair defines token pair exchange
 type SwapTokenPair struct {
@@ -53,4 +54,10 @@ func InitPoolToken(poolTokenName string) token.Token {
 		Type:                GenerateTokenType,
 		Mintable:            true,
 	}
+}
+
+func ValidatePoolTokenName(tokenName string) bool {
+	var poolTokenFormat = fmt.Sprintf(`^(%s)[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?$`, PoolTokenPrefix)
+	var poolTokenRegExp = regexp.MustCompile(poolTokenFormat)
+	return poolTokenRegExp.MatchString(tokenName)
 }

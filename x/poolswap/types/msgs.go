@@ -48,10 +48,10 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("tokens must be positive")
 	}
 	if !msg.MaxBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MaxQuoteAmount")
+		return sdk.ErrUnknownRequest("invalid MaxBaseAmount")
 	}
 	if !msg.QuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid BaseTokens")
+		return sdk.ErrUnknownRequest("invalid QuoteAmount")
 	}
 	if msg.QuoteAmount.Denom != common.NativeToken {
 		return sdk.ErrUnknownRequest("quote token only supports " + common.NativeToken)
@@ -115,7 +115,7 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("invalid MinQuoteAmount")
 	}
 	if msg.MinQuoteAmount.Denom != common.NativeToken {
-		return sdk.ErrUnknownRequest("quote token only supports okt")
+		return sdk.ErrUnknownRequest("quote token only supports " + common.NativeToken)
 	}
 	return nil
 }
@@ -160,7 +160,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if len(msg.Token) == 0 {
+	if sdk.ValidateDenom(msg.Token) != nil {
 		return sdk.ErrUnknownRequest("invalid Token")
 	}
 	return nil

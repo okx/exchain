@@ -68,7 +68,7 @@ func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, tokenPairName string) {
 // Get an iterator over all SwapTokenPairs in which the keys are the names and the values are the whois
 func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	store := ctx.KVStore(k.storeKey)
-	return sdk.KVStorePrefixIterator(store, []byte{})
+	return sdk.KVStorePrefixIterator(store, types.TokenPairPrefixKey)
 }
 
 // NewPoolToken new token
