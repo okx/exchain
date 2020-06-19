@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	notAllowedPrefix = "poolswap"
+	notAllowedOriginSymbol  = regexp.MustCompile(fmt.Sprintf("^%s.*?", notAllowedPrefix))
 	regOriginalSymbol = regexp.MustCompile("^[a-z][a-z0-9]{0,5}$")
 	reWholeName       = `[a-zA-Z0-9[:space:]]{1,30}`
 	reWhole           = regexp.MustCompile(fmt.Sprintf(`^%s$`, reWholeName))
@@ -67,6 +69,9 @@ func (acc DecAccount) String() string {
 }
 
 func ValidOriginalSymbol(name string) bool {
+	if notAllowedOriginSymbol.MatchString(name) {
+		return false
+	}
 	return regOriginalSymbol.MatchString(name)
 }
 
