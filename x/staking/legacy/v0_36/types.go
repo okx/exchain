@@ -110,7 +110,7 @@ func NewGenesisState(
 		MaxValidators: params.MaxValidators,
 		BondDenom:     params.BondDenom,
 		Epoch:         types.DefaultEpoch,
-		MaxValsToVote: types.DefaultMaxValsToVote,
+		MaxValsToVote: types.DefaultMaxValsToAddShares,
 		MinDelegation: types.DefaultMinDelegation,
 	}
 

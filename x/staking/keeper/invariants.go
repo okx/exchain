@@ -19,15 +19,13 @@ func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 		NonNegativePowerInvariantCustom(k))
 	ir.RegisterRoute(types.ModuleName, "positive-delegator",
 		PositiveDelegatorInvariant(k))
-	ir.RegisterRoute(types.ModuleName, "delegator-votes",
-		DelegatorVotesInvariant(k))
+	ir.RegisterRoute(types.ModuleName, "delegator-add-shares",
+		DelegatorAddSharesInvariant(k))
 }
 
-// DelegatorVotesInvariant checks whether all the votes which persist
-// in the store add up to the correct total votes amount stored in each existed validator
-//TODO:if the self-votes based on msd is related with time-calculating, this DelegatorVotesInvariant will not pass
-// because we can't calculate the votes number base on msd of a validator afterwards
-func DelegatorVotesInvariant(k Keeper) sdk.Invariant {
+// DelegatorAddSharesInvariant checks whether all the shares which persist
+// in the store add up to the correct total shares amount stored on each existing validator
+func DelegatorAddSharesInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		var msg string
 		var broken bool
@@ -35,28 +33,28 @@ func DelegatorVotesInvariant(k Keeper) sdk.Invariant {
 		validators := k.GetAllValidators(ctx)
 		for _, validator := range validators {
 
-			valTotalVotes := validator.GetDelegatorShares()
+			valTotalShares := validator.GetDelegatorShares()
 
-			var totalVotes sdk.Dec
+			var totalShares sdk.Dec
 			if validator.MinSelfDelegation.Equal(sdk.ZeroDec()) && validator.Jailed {
-				totalVotes = sdk.ZeroDec()
+				totalShares = sdk.ZeroDec()
 			} else {
-				totalVotes = k.getVotesFromDefaultMinSelfDelegation()
+				totalShares = k.getSharesFromDefaultMinSelfDelegation()
 			}
 
-			votes := k.GetValidatorVotes(ctx, validator.GetOperator())
-			for _, vote := range votes {
-				totalVotes = totalVotes.Add(vote.Votes)
+			allShares := k.GetValidatorAllShares(ctx, validator.GetOperator())
+			for _, shares := range allShares {
+				totalShares = totalShares.Add(shares.Shares)
 			}
 
-			if !valTotalVotes.Equal(totalVotes) {
+			if !valTotalShares.Equal(totalShares) {
 				broken = true
-				msg += fmt.Sprintf("broken delegator votes invariance:\n"+
+				msg += fmt.Sprintf("broken delegator shares invariance:\n"+
 					"\tvalidator.DelegatorShares: %v\n"+
-					"\tsum of Vote.Votes and min self delegation: %v\n", valTotalVotes, totalVotes)
+					"\tsum of Shares. Shares and min self delegation: %v\n", valTotalShares, totalShares)
 			}
 		}
-		return sdk.FormatInvariant(types.ModuleName, "delegator votes", msg), broken
+		return sdk.FormatInvariant(types.ModuleName, "delegator shares", msg), broken
 	}
 }
 
@@ -107,12 +105,12 @@ func NonNegativePowerInvariantCustom(k Keeper) sdk.Invariant {
 				broken = true
 				msg += fmt.Sprintf("power store invariance:\n\tvalidator.Power: %v"+
 					"\n\tkey should be: %v\n\tkey in store: %v\n",
-					validator.ConsensusPowerByVotes(), powerKey, iterator.Key())
+					validator.ConsensusPowerByShares(), powerKey, iterator.Key())
 			}
 
 			if validator.DelegatorShares.IsNegative() {
 				broken = true
-				msg += fmt.Sprintf("\tnegative votes for validator: %v\n", validator)
+				msg += fmt.Sprintf("\tnegative shares for validator: %v\n", validator)
 			}
 		}
 		iterator.Close()

@@ -136,8 +136,8 @@ func checkMsg(t *testing.T, msg sdk.Msg, expType string) {
 	require.True(t, len(msg.GetSignBytes()) > 0, msg)
 }
 
-// test ValidateBasic for MsgDelegate
-func TestMsgDelegate(t *testing.T) {
+// test ValidateBasic for MsgDeposit
+func TestMsgDeposit(t *testing.T) {
 
 	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
 	coinZero := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec())
@@ -154,21 +154,21 @@ func TestMsgDelegate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgDelegate(tc.delegatorAddr, tc.amount)
+		msg := NewMsgDeposit(tc.delegatorAddr, tc.amount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "delegate")
+			checkMsg(t, msg, "deposit")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
 	}
 }
 
-// test ValidateBasic for MsgDelegate
-func TestMsgUnDelegate(t *testing.T) {
+// test ValidateBasic for MsgWithdraw
+func TestMsgWithdraw(t *testing.T) {
 
 	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
-	coinNeg := sdk.DecCoin{sdk.DefaultBondDenom, sdk.NewDec(-1)}
+	coinNeg := sdk.DecCoin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(-1)}
 
 	tests := []struct {
 		name          string
@@ -182,10 +182,10 @@ func TestMsgUnDelegate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgUndelegate(tc.delegatorAddr, tc.amount)
+		msg := NewMsgWithdraw(tc.delegatorAddr, tc.amount)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "undelegate")
+			checkMsg(t, msg, "withdraw")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -210,7 +210,7 @@ func TestMsgBindProxy(t *testing.T) {
 		msg := NewMsgBindProxy(tc.dlgAddr, tc.valAddr)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_bind_proxy")
+			checkMsg(t, msg, "bind_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -233,7 +233,7 @@ func TestMsgUnbindProxy(t *testing.T) {
 		msg := NewMsgUnbindProxy(tc.valAddr)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_unbind_proxy")
+			checkMsg(t, msg, "unbind_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -250,14 +250,14 @@ func TestMsgRegProxy(t *testing.T) {
 	}{
 		{"success register", dlgAddr1, true, true},
 		{"success unregister", dlgAddr1, false, true},
-		{"empty delegatotr", sdk.AccAddress(emptyAddr), true, false},
+		{"empty delegator", sdk.AccAddress(emptyAddr), true, false},
 	}
 
 	for _, tc := range tests {
 		msg := NewMsgRegProxy(tc.dlgAddr, tc.doReg)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_reg_or_unreg_proxy")
+			checkMsg(t, msg, "reg_or_unreg_proxy")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}
@@ -265,7 +265,7 @@ func TestMsgRegProxy(t *testing.T) {
 
 }
 
-func TestMsgVote(t *testing.T) {
+func TestMsgAddShares(t *testing.T) {
 
 	tests := []struct {
 		name       string
@@ -281,10 +281,10 @@ func TestMsgVote(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		msg := NewMsgVote(tc.dlgAddr, tc.valAddrs)
+		msg := NewMsgAddShares(tc.dlgAddr, tc.valAddrs)
 		if tc.expectPass {
 			require.Nil(t, msg.ValidateBasic(), "test: %v", tc.name)
-			checkMsg(t, msg, "vote_to_validators")
+			checkMsg(t, msg, "add_shares_to_validators")
 		} else {
 			require.NotNil(t, msg.ValidateBasic(), "test: %v", tc.name)
 		}

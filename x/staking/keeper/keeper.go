@@ -116,7 +116,7 @@ func (k Keeper) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
 }
 
 // GetOperAddrFromValidatorAddr returns the validator address according to the consensus pubkey
-// the validator has to be existed
+// the validator has to exist
 func (k Keeper) GetOperAddrFromValidatorAddr(ctx sdk.Context, va string) (sdk.ValAddress, bool) {
 	validators := k.GetAllValidators(ctx)
 

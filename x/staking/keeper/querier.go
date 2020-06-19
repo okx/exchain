@@ -28,8 +28,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			// required by okchain
 		case types.QueryUnbondingDelegation:
 			return queryUndelegation(ctx, req, k)
-		case types.QueryValidatorVotes:
-			return queryValidatorVotes(ctx, req, k)
+		case types.QueryValidatorAllShares:
+			return queryValidatorAllShares(ctx, req, k)
 		case types.QueryAddress:
 			return queryAddress(ctx, k)
 		case types.QueryForAddress:
@@ -170,15 +170,15 @@ func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 	return resp, nil
 }
 
-func queryValidatorVotes(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
 	var params types.QueryValidatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, sdk.ErrInternal(fmt.Sprintf("failed to parse validator votes params. %s", err))
+		return nil, sdk.ErrInternal(fmt.Sprintf("failed to parse validator params. %s", err))
 	}
 
-	voteResponses := k.GetValidatorVotes(ctx, params.ValidatorAddr)
-	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, voteResponses)
+	sharesResponses := k.GetValidatorAllShares(ctx, params.ValidatorAddr)
+	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, sharesResponses)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}

@@ -57,7 +57,7 @@ type (
 		// validator status (bonded/unbonding/unbonded)
 		Status sdk.BondStatus `json:"status"`
 		Tokens sdk.Int        `json:"tokens"`
-		// total shares issued to a validator's votes
+		// total shares on a validator
 		DelegatorShares sdk.Dec `json:"delegator_shares"`
 		// description terms for the validator
 		Description Description `json:"description"`
