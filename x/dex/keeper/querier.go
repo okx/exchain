@@ -103,6 +103,9 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	var deposits []depositsData
 	for _, product := range tokenPairs {
+		if product == nil {
+			return res, types.ErrNilPointer()
+		}
 		if product.Owner.String() == params.Owner {
 			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
 		}
