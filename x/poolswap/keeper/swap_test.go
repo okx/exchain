@@ -2,13 +2,14 @@ package keeper
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okchain/x/poolswap/types"
 	token "github.com/okex/okchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 func TestKeeper_IsTokenExistTable(t *testing.T) {

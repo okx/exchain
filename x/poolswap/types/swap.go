@@ -1,10 +1,11 @@
 package types
 
 import (
-	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	token "github.com/okex/okchain/x/token/types"
+
+	"fmt"
 	"regexp"
 	"strings"
 )

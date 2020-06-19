@@ -4,10 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
 )
 
 const addrStr = "1212121212121212123412121212121212121234"
@@ -51,7 +52,6 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		require.Equal(t, testCase.exceptResultCode, err.Code())
 	}
 }
-
 
 func TestMsgAddLiquidity(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
@@ -117,7 +117,6 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 	}
 }
 
-
 func TestMsgRemoveLiquidity(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
 	require.Nil(t, err)
@@ -173,7 +172,6 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		{"invalid MinBaseAmount", liquidity, invalidMinBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid MinQuoteAmount", liquidity, minBaseAmount, invalidMinQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"quote token only supports native token", liquidity, minBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-
 	}
 	for _, testCase := range tests {
 		msg := NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
@@ -184,7 +182,6 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		require.Equal(t, testCase.exceptResultCode, err.Code())
 	}
 }
-
 
 func TestMsgTokenToNativeToken(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
@@ -237,7 +234,6 @@ func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
 		{"both token to sell and token to buy do not contain native token", minBoughtTokenAmount, notNativeSoldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid SoldTokenAmount", soldTokenAmount, invalidSoldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid MinBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
-
 	}
 	for _, testCase := range tests {
 		msg := NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)

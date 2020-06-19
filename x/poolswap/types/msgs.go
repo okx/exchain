@@ -135,7 +135,7 @@ func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
 	return msg.MinBaseAmount.Denom + "_" + msg.MinQuoteAmount.Denom
 }
 
-//Create a new exchange with token
+// MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
 	Token  string         `json:"token"`  //token
 	Sender sdk.AccAddress `json:"sender"` //sender

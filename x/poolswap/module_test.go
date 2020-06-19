@@ -2,12 +2,13 @@ package poolswap
 
 import (
 	"encoding/json"
+	"testing"
+
 	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okchain/x/poolswap/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 func TestAppModule(t *testing.T) {
@@ -30,7 +31,7 @@ func TestAppModule(t *testing.T) {
 
 	module.InitGenesis(ctx, msg)
 	params := keeper.GetParams(ctx)
-	require.EqualValues(t, types.FeeRate, params.FeeRate)
+	require.EqualValues(t, types.DefaultParams().FeeRate, params.FeeRate)
 	exportMsg := module.ExportGenesis(ctx)
 
 	var gs GenesisState
