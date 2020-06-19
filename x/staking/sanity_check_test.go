@@ -31,13 +31,13 @@ func TestSanityCheck(t *testing.T) {
 	// delegate
 	delegateAmount, err := sdk.ParseDecCoin(fmt.Sprintf("100%s", keeper.BondDenom(ctx)))
 	require.Nil(t, err)
-	msgDelegate := NewMsgDelegate(dAddr, delegateAmount)
-	got = handleMsgDelegate(ctx, msgDelegate, keeper)
+	msgDelegate := NewMsgDeposit(dAddr, delegateAmount)
+	got = handleMsgDeposit(ctx, msgDelegate, keeper)
 	require.True(t, got.IsOK(), "%v", got)
 
 	// vote
-	msgVote := NewMsgVote(dAddr, []sdk.ValAddress{vAddr1, vAddr2})
-	got = handleMsgVote(ctx, msgVote, keeper)
+	msgVote := NewMsgAddShares(dAddr, []sdk.ValAddress{vAddr1, vAddr2})
+	got = handleMsgAddShares(ctx, msgVote, keeper)
 	require.True(t, got.IsOK(), "%v", got)
 
 	// sanity check pass
