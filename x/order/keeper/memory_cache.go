@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"github.com/okex/okchain/x/order/types"
+	"github.com/willf/bitset"
 )
 
 // Cache stores some caches that will not be written to disk
@@ -9,6 +10,7 @@ type Cache struct {
 	// Reset at BeginBlock
 	updatedOrderIDs  []string
 	blockMatchResult *types.BlockMatchResult
+	handlerTxMsgResult []bitset.BitSet
 
 	params *types.Params
 
@@ -32,6 +34,7 @@ func NewCache() *Cache {
 func (c *Cache) reset() {
 	c.updatedOrderIDs = []string{}
 	c.blockMatchResult = &types.BlockMatchResult{}
+	c.handlerTxMsgResult = []bitset.BitSet{}
 	c.params = nil
 
 	c.cancelNum = 0
@@ -46,6 +49,10 @@ func (c *Cache) addUpdatedOrderID(orderID string) {
 
 func (c *Cache) setBlockMatchResult(result *types.BlockMatchResult) {
 	c.blockMatchResult = result
+}
+
+func (c *Cache) addTxHandlerMsgResult(resultSet bitset.BitSet) {
+	c.handlerTxMsgResult = append(c.handlerTxMsgResult, resultSet)
 }
 
 // nolint
@@ -108,6 +115,16 @@ func (c *Cache) GetParams() *types.Params {
 
 func (c *Cache) getUpdatedOrderIDs() []string {
 	return c.updatedOrderIDs
+}
+
+// toggleCopyTxHandlerMsgResult: copy and reset the handlerTxMsgResult
+func (c *Cache) toggleCopyTxHandlerMsgResult() []bitset.BitSet {
+	txResultCopy := make([]bitset.BitSet, 0, len(c.handlerTxMsgResult))
+	txResultCopy = append(txResultCopy, c.handlerTxMsgResult...)
+	//copy(txResultCopy, c.handlerTxMsgResult)
+	c.handlerTxMsgResult = []bitset.BitSet{}
+
+	return txResultCopy
 }
 
 // nolint

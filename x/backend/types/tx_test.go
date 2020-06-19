@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/willf/bitset"
 	"sort"
 	"testing"
 	"time"
@@ -20,6 +21,8 @@ import (
 
 func TestGenerateTx(t *testing.T) {
 	txbldr := auth.NewTxBuilder(auth.DefaultTxEncoder(auth.ModuleCdc), 1, 2, 3, 4, false, "okchain", "memo", nil, nil)
+	testInput := orderKeeper.CreateTestInput(t)
+	keeper := testInput.OrderKeeper
 
 	priKeyFrom := secp256k1.GenPrivKey()
 	pubKeyFrom := priKeyFrom.PubKey()
@@ -44,7 +47,7 @@ func TestGenerateTx(t *testing.T) {
 	txSigMsg, _ := txbldr.BuildSignMsg([]sdk.Msg{sendMsg})
 	tx := auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
 	ctx0, _, _, _ := tokenKeeper.CreateParam(t, false)
-	GenerateTx(&tx, "", ctx0, nil, time.Now().Unix())
+	GenerateTx(&tx, "", ctx0, keeper, time.Now().Unix())
 
 	// order/new
 	orderNewMsg := order.NewMsgNewOrder(accFrom, "btc_"+common.NativeToken, SellOrder, "23.76", "289")
@@ -57,7 +60,10 @@ func TestGenerateTx(t *testing.T) {
 	}
 	txSigMsg, _ = txbldr.BuildSignMsg([]sdk.Msg{orderNewMsg})
 	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
-	GenerateTx(&tx, "", sdk.Context{}, nil, time.Now().Unix())
+	var tmpBitset bitset.BitSet
+	tmpBitset.Set(1)
+	keeper.AddTxHandlerMsgResult(tmpBitset)
+	GenerateTx(&tx, "", sdk.Context{}, keeper, time.Now().Unix())
 
 	// order/cancel
 	orderCancelMsg := order.NewMsgCancelOrder(accFrom, "ORDER-123")
@@ -71,8 +77,6 @@ func TestGenerateTx(t *testing.T) {
 	txSigMsg, _ = txbldr.BuildSignMsg([]sdk.Msg{orderCancelMsg})
 	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
 
-	testInput := orderKeeper.CreateTestInput(t)
-	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx.WithBlockHeight(10)
 	or := &order.Order{
 		OrderID: orderCancelMsg.OrderIDs[0],
@@ -81,6 +85,8 @@ func TestGenerateTx(t *testing.T) {
 	keeper.SetOrder(ctx, or.OrderID, or)
 	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
 	or.RecordOrderCancelFee(fee)
+	tmpBitset.Set(1)
+	keeper.AddTxHandlerMsgResult(tmpBitset)
 	GenerateTx(&tx, "", ctx, keeper, time.Now().Unix())
 }
 
