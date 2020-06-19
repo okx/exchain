@@ -56,6 +56,8 @@ var (
 	DelegatedToken2      = SharesFromDefaultMSD.MulInt64(2048)
 
 	GlobalContext        = sdk.Context{}
+	ExpectExist          = true
+	ExpectNotExist       = false
 )
 
 var (
@@ -450,7 +452,14 @@ func (action delegatorWithdrawAction) apply(ctx sdk.Context, vaStatus IValidator
 	}
 
 	newDlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, action.dlgAddr)
-	resultCtx.t.Logf("     ==>>> DelegatorUnbonded Result: %s unbond: %s, resOK: %+v, info: %+v \n", msg.DelegatorAddress, coins.String(), res.IsOK(), newDlg)
+	resultCtx.t.Logf("     ==>>> DelegatorWithdrawAction Result: %s unbond: %s, resOK: %+v, info: %+v \n", msg.DelegatorAddress, coins.String(), res.IsOK(), newDlg)
+}
+
+type delegatorWithdrawAllAction struct {
+	delegatorWithdrawAction
+}
+func (action delegatorWithdrawAllAction) desc() string {
+	return "dlg2WithdrawAll"
 }
 
 type delegatorsWithdrawAction struct {
@@ -527,7 +536,8 @@ type proxyBindAction struct {
 }
 
 func (action proxyBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf("====> Apply proxyBindAction[%d]\n", ctx.BlockHeight())
+	resultCtx.t.Logf(  "====> Apply proxyBindAction[%d], dlg: %s bind to proxy: %s\n",
+		ctx.BlockHeight(), action.dlgAddr.String(), action.proxyAddr.String())
 	msg := types.NewMsgBindProxy(action.dlgAddr, action.proxyAddr)
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 	res := handler(ctx, msg)
@@ -678,6 +688,11 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 			}
 		}()
 
+		// skip destroied delegator check
+		if dlg.DelegatorAddress == nil {
+			return true
+		}
+
 		checkRes := true
 
 		//P1:  delegator is also a proxy
@@ -702,10 +717,13 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 
 		// T1: deposit token check
 		depositTokenChecker := func() (bool, error) {
-			b :=  dlg.Tokens.GTE(sdk.ZeroDec()) &&
-					dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec()) &&
-					(dlg.Tokens.Equal(sdk.ZeroDec()) && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()) ||
-					 dlg.Tokens.GT(sdk.ZeroDec()) && dlg.Tokens.GTE(dlg.TotalDelegatedTokens))
+			//b :=  dlg.Tokens.GTE(sdk.ZeroDec()) &&
+			//		dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec()) &&
+			//		(dlg.Tokens.Equal(sdk.ZeroDec()) && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()) ||
+			//		 dlg.Tokens.GT(sdk.ZeroDec()) && dlg.Tokens.GTE(dlg.TotalDelegatedTokens))
+
+			b := dlg.Tokens.GTE(sdk.ZeroDec()) && dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec())
+			//b = b && (dlg.Tokens.Equal(sdk.ZeroDec()) && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()))
 
 			if !b {
 				return b, fmt.Errorf("depositTokenChecker Error: %+v", dlg)
@@ -725,10 +743,15 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 					if !found {
 						e = fmt.Errorf("No Validator : %s found", dlg.ValidatorAddresses[i])
 					}
-					b1 = found &&
-						dlg.Shares.GT(sdk.ZeroDec()) &&
-						v.DelegatorShares.GT(sdk.ZeroDec()) &&
-						v.DelegatorShares.GT(dlg.Shares)
+
+					if found &&  dlg.Shares.GT(sdk.ZeroDec()) {
+						if v.MinSelfDelegation.Equal(sdk.ZeroDec()) {
+							b1 =v.DelegatorShares.GTE(dlg.Shares)
+						} else {
+							b1 = v.DelegatorShares.GTE(dlg.Shares.Add(sdk.OneDec()))
+						}
+					}
+
 					if !b1 {
 						e = fmt.Errorf("\n\nDelegatorInfo: %+v\n\n,  ValidatorInfo : %+v ", dlg, v)
 					}
@@ -802,6 +825,11 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 				resultCtx.errorResult = e.(error)
 			}
 		}()
+
+		// skip destroyed validator check
+		if validator.OperatorAddress == nil {
+			return true
+		}
 
 		sharesRes := resultCtx.tc.mockKeeper.GetValidatorAllShares(*resultCtx.context, validator.OperatorAddress)
 		r1, r21, r22 := validator.MinSelfDelegation.GTE(sdk.ZeroDec()), false, false

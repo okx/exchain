@@ -245,7 +245,7 @@ func TestProxy(t *testing.T) {
 		// [E] delegator add shares to the same validator again
 		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 
-		// redelegate & unbond
+		// redeposit & rewithdraw
 		delegatorDepositAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
 		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 
@@ -300,9 +300,9 @@ func TestProxy(t *testing.T) {
 		// [E] add shares
 		delegatorsChecker.GetChecker(),
 
-		// redelegate & unbond
-		noErrorInHandlerResult(true),
-		noErrorInHandlerResult(true),
+		// redeposit & rewithdraw
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, false, nil, nil, nil, nil),
 
 		// unbind
 		noErrorInHandlerResult(false),
@@ -489,17 +489,18 @@ func TestLimitedProxy(t *testing.T) {
 }
 
 //
-// Context: create 1 delegator(d) + 1 proxy(p) + 1 validator(v)
+// Context: create 2 delegator(d1,d2) + 1 proxy(p) + 1 validator(v)
 // Operation Group:
-//          setup: v(create), p(deposit), delegator2(addShares to v)
-//          step1: p 7(regProxy, addShare(v), bind(p), unbind(p), withdrawSome)
-//			step2: d 5(bind(p), addShare(v), unbind(p), withdrawSome)
-//			step3: d 4(deposit, bind(p), unbind(p), withdrawSome)
-//          teardown: v(destroy), p(unReg)
-//          case possibilities: 1 * 1 * 5 * 5 * 4 = 100
+//          setup: v(create), p(deposit), d2(addShares to v)
+//          step1: p  5(regProxy, addShare(v), bind(p), unbind(p), withdrawSome)
+//			step2: d1 4(bind(p), addShare(v), unbind(p), withdrawSome)
+//			step3: d1 4(deposit, bind(p), unbind(p), withdrawSome)
+//          step4: p  5(regProxy, addShare(v), bind(p), unbind(p), withdrawSome)
+//          teardown: p(unReg), v(destroy)
+//          case possibilities: 1 * 1 * 5 * 5 * 4 * 4 = 400
 //          iterate all the possibilities to run delegatorConstraintCheck and validatorConstrainCheck
 //
-func TestDelegatorProxyValidatorConstraints3Steps(t *testing.T) {
+func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 	params := DefaultParams()
 
 	originVaSet := addrVals[1:]
@@ -540,13 +541,18 @@ func TestDelegatorProxyValidatorConstraints3Steps(t *testing.T) {
 		delegatorWithdrawAction{bAction, ValidDelegator1, sdk.OneDec(), sdk.DefaultBondDenom},
 	}
 
-	//step4Actions := IActions{
-	//}
+	step4Actions := IActions{
+		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		proxyBindAction{bAction, ProxiedDelegator, ProxiedDelegator},
+		proxyUnBindAction{bAction, ProxiedDelegator},
+		delegatorWithdrawAction{bAction, ProxiedDelegator, sdk.OneDec(), sdk.DefaultBondDenom},
+	}
 
 	for s1:=0; s1 < len(step1Actions); s1++ {
 		for s2 :=0; s2 < len(step2Actions); s2++ {
 			for s3 :=0; s3 <len(step3Actions); s3++ {
-			//	for s4 :=0; s4 <len(step4Actions); s4++ {
+				for s4 :=0; s4 <len(step4Actions); s4++ {
 					inputActions := []IAction{
 						createValidatorAction{bAction, nil},
 						delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
@@ -554,14 +560,14 @@ func TestDelegatorProxyValidatorConstraints3Steps(t *testing.T) {
 						step1Actions[s1],
 						step2Actions[s2],
 						step3Actions[s3],
-						//step4Actions[s4],
+						step4Actions[s4],
 						delegatorRegProxyAction{bAction, ProxiedDelegator, false},
 						destroyValidatorAction{bAction},
 					}
 
-					actionsAndChecker, caseName := generateActionsAndCheckers(inputActions)
+					actionsAndChecker, caseName := generateActionsAndCheckers(inputActions, 3)
 
-					t.Logf("============================================== indexes:[%d,%d,%d]  %s ==============================================", s1,s2,s3, caseName)
+					t.Logf("============================================== indexes:[%d,%d,%d,%d]  %s ==============================================", s1,s2,s3,s4, caseName)
 					_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 					smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 					smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
@@ -571,43 +577,42 @@ func TestDelegatorProxyValidatorConstraints3Steps(t *testing.T) {
 				}
 
 			}
-		//}
+		}
 	}
 }
 
 type IActions []IAction
 type ResCheckers []actResChecker
 
-func defaultConstraintChecker(checkVa bool) actResChecker {
+func defaultConstraintChecker(checkVa bool, checkD2 bool) actResChecker {
 
-	if checkVa {
-		checker := andChecker{[]actResChecker{
-				validatorCheck(StartUpValidatorAddr),
-				queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
-				queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
-			},
-		}
-		return checker.GetChecker()
-	} else {
-		checker := andChecker{[]actResChecker{
-				queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
-				queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
-			},
-		}
-		return checker.GetChecker()
-
+	var checkerGroup ResCheckers
+	checkerGroup = []actResChecker{
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
 	}
+
+	if checkD2 {
+		checkerGroup = append(checkerGroup, queryDelegatorCheck(ValidDelegator2, true, nil, nil, nil, nil))
+	}
+	if checkVa {
+		checkerGroup = append(checkerGroup, validatorCheck(StartUpValidatorAddr))
+	}
+
+	checker := andChecker{checkerGroup}
+	return checker.GetChecker()
 }
 
-func generateActionsAndCheckers(stepActions IActions) (ResCheckers, string) {
+func generateActionsAndCheckers(stepActions IActions, skipActCnt int) (ResCheckers, string) {
 	checkers := ResCheckers{}
 	caseName := ""
 	for i:=0; i < len(stepActions); i++ {
 		a := stepActions[i]
 		caseName =  caseName + fmt.Sprintf("step_%d_%s#$", i, a.desc())
-		if i > len(stepActions) / 2 {
+		if i >= skipActCnt {
 			checkVa := a.desc() != "destroyVa"
-			checkers = append(checkers, defaultConstraintChecker(checkVa))
+			checkD2 := a.desc() != "dlg2WithdrawAll"
+			checkers = append(checkers, defaultConstraintChecker(checkVa, checkD2))
 
 		} else {
 			checkers = append(checkers, nil)
