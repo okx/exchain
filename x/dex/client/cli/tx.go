@@ -43,7 +43,6 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	txCmd.AddCommand(client.PostCommands(
 		getCmdList(cdc),
-		//GetCmdDelist(cdc),
 		getCmdDeposit(cdc),
 		getCmdWithdraw(cdc),
 		getCmdTransferOwnership(cdc),
@@ -94,37 +93,6 @@ $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 	cmd.Flags().StringP(FlagBaseAsset, "", "btc", FlagBaseAsset+" should be issued before listed to opendex")
 	cmd.Flags().StringP(FlagQuoteAsset, "", common.NativeToken, FlagQuoteAsset+" should be issued before listed to opendex")
 	cmd.Flags().StringP(FlagInitPrice, "", "0.01", FlagInitPrice+" should be valid price")
-
-	return cmd
-}
-
-// nolint
-func getCmdDelist(cdc *codec.Codec) *cobra.Command {
-
-	cmd := &cobra.Command{
-		Use:   "delist [product]",
-		Short: "delist a trading pair",
-		Args:  cobra.ExactArgs(1),
-		Long: strings.TrimSpace(`Delist a trading pair:
-
-$ okchaincli tx dex delist mytoken_okt --from mykey
-
-The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
-`),
-		RunE: func(_ *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			if err := auth.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
-				return err
-			}
-
-			product := args[0]
-			owner := cliCtx.GetFromAddress()
-			msg := types.NewMsgDelist(owner, product)
-			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
-		},
-	}
 
 	return cmd
 }
