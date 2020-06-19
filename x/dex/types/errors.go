@@ -55,8 +55,8 @@ func ErrInvalidAsset(message string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeInvalidAsset, message)
 }
 
-// ErrTokenPairExisted returns an error when the token pair is existed during the process of listing
+// ErrTokenPairExisted returns an error when the token pair is existing during the process of listing
 func ErrTokenPairExisted(baseAsset, quoteAsset string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeInvalidAsset,
-		fmt.Sprintf("failed. the token pair is existed with %s and %s", baseAsset, quoteAsset))
+		fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))
 }

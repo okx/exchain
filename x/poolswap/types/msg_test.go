@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -81,7 +82,7 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 	minLiquidity := sdk.NewDec(1)
 	maxBaseAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(10000))
 	quoteAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(10000))
-	notPositiveLiquidity := sdk.NewDec(-1)
+	notPositiveQuoteAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0))
 	invalidMaxBaseAmount := sdk.NewDecCoinFromDec("bsa", sdk.NewDec(10000))
 	invalidMaxBaseAmount.Denom = "1add"
 	invalidQuoteAmount := sdk.NewDecCoinFromDec("bsa", sdk.NewDec(10000))
@@ -99,13 +100,14 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 		exceptResultCode sdk.CodeType
 	}{
 		{"success", minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr, 0},
-		{"tokens must be positive", notPositiveLiquidity, maxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"tokens must be positive", minLiquidity, maxBaseAmount, notPositiveQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid MaxBaseAmount", minLiquidity, invalidMaxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid QuoteAmount", minLiquidity, maxBaseAmount, invalidQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"quote token only supports native token", minLiquidity, maxBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"empty sender", minLiquidity, maxBaseAmount, quoteAmount, deadLine, nil, sdk.CodeInvalidAddress},
 	}
 	for _, testCase := range tests {
+		fmt.Println(testCase.testCase)
 		msg := NewMsgAddLiquidity(testCase.minLiquidity, testCase.maxBaseAmount, testCase.quoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
 		if err == nil && testCase.exceptResultCode == sdk.CodeOK {
@@ -149,7 +151,7 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 	minBaseAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(1))
 	minQuoteAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(1))
 	deadLine := time.Now().Unix()
-	notPositiveLiquidity := sdk.NewDec(-1)
+	notPositiveLiquidity := sdk.NewDec(0)
 	invalidMinBaseAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(1))
 	invalidMinBaseAmount.Denom = "1sss"
 	invalidMinQuoteAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(1))

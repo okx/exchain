@@ -21,7 +21,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 	}
 }
 
-// nolint: unparam
+// nolint
 func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
 	err sdk.Error) {
 	tokenPairName := path[0] + "_" + common.NativeToken
