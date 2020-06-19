@@ -32,14 +32,14 @@ func tallyDelegatorVotes(
 			if delegation == nil {
 				continue
 			}
-			for _, val := range delegation.GetVotedValidatorAddresses() {
+			for _, val := range delegation.GetShareAddedValidatorAddresses() {
 				valAddrStr := val.String()
 				if valInfo, ok := currValidators[valAddrStr]; ok {
-					valInfo.DelegatorDeductions = valInfo.DelegatorDeductions.Add(delegation.GetLastVotes())
+					valInfo.DelegatorDeductions = valInfo.DelegatorDeductions.Add(delegation.GetLastAddedShares())
 					currValidators[valAddrStr] = valInfo
 
-					votedPower := delegation.GetLastVotes()
-					// calculate vote power of voter for voterPowerRate
+					votedPower := delegation.GetLastAddedShares()
+					// calculate vote power of delegator for voterPowerRate
 					if voteP != nil && vote.Voter.Equals(voteP.Voter) {
 						voterPower.Add(votedPower)
 					}

@@ -5,7 +5,7 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// ClearProxy clears the ProxyAddress on binded delegators
+// ClearProxy clears the ProxyAddress on the delegator who has bound
 func (k Keeper) ClearProxy(ctx sdk.Context, proxyAddr sdk.AccAddress) {
 	k.IterateProxy(ctx, proxyAddr, true, func(_ int64, delAddr, _ sdk.AccAddress) (stop bool) {
 		delegator, found := k.GetDelegator(ctx, delAddr)
@@ -49,17 +49,17 @@ func (k Keeper) IterateProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, isClear 
 	}
 }
 
-// UpdateVotes withdraws and votes continuously on the same validator set with different amount of votes
-func (k Keeper) UpdateVotes(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) sdk.Error {
-	// get last validators voted existed in the store
-	vals, lastVotes := k.GetLastValsVotedExisted(ctx, delAddr)
+// UpdateShares withdraws and adds shares continuously on the same validator set with different amount of shares
+func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) sdk.Error {
+	// get last validators that were added shares to and existing in the store
+	vals, lastShares := k.GetLastValsAddedSharesExisted(ctx, delAddr)
 	if vals == nil {
-		// if the delegator never votes, just pass
+		// if the delegator never adds shares, just pass
 		return nil
 	}
 
 	lenVals := len(vals)
-	votes, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens)
+	shares, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens)
 	if sdkErr != nil {
 		return sdkErr
 	}
@@ -69,62 +69,64 @@ func (k Keeper) UpdateVotes(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.
 		return types.ErrNoDelegatorExisted(types.DefaultCodespace, delAddr.String())
 	}
 
+	logger := k.Logger(ctx)
 	for i := 0; i < lenVals; i++ {
 		if vals[i].MinSelfDelegation.IsZero() {
-			return types.ErrVoteDismission(types.DefaultCodespace, vals[i].OperatorAddress.String())
+			return types.ErrAddSharesToDismission(types.DefaultCodespace, vals[i].OperatorAddress.String())
 		}
 
 		// 1.delete related store
 		k.DeleteValidatorByPowerIndex(ctx, vals[i])
 
-		// 2.update vote
-		k.SetVote(ctx, delAddr, vals[i].OperatorAddress, votes)
+		// 2.update shares
+		k.SetShares(ctx, delAddr, vals[i].OperatorAddress, shares)
 
 		// 3.update validator
-		vals[i].DelegatorShares = vals[i].DelegatorShares.Sub(lastVotes).Add(votes)
+		logger.Debug("update shares", vals[i].OperatorAddress.String(), vals[i].DelegatorShares.String())
+		vals[i].DelegatorShares = vals[i].DelegatorShares.Sub(lastShares).Add(shares)
 		k.SetValidator(ctx, vals[i])
 		k.SetValidatorByPowerIndex(ctx, vals[i])
 	}
 
 	// update the delegator struct
-	delegator.Shares = votes
+	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
 
 	return nil
 }
 
-// VoteValidators votes to validators and return the votes
-func (k Keeper) VoteValidators(ctx sdk.Context, delAddr sdk.AccAddress, vals types.Validators, tokens sdk.Dec) (sdk.Dec,
-	sdk.Error) {
+// AddSharesToValidators adds shares to validators and return the amount of the shares
+func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, vals types.Validators, tokens sdk.Dec) (
+	shares types.Shares, sdkErr sdk.Error) {
 	lenVals := len(vals)
-	votes, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens)
+	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens)
 	if sdkErr != nil {
-		return sdk.Dec{}, sdkErr
+		return
 	}
 	for i := 0; i < lenVals; i++ {
-		k.vote(ctx, delAddr, vals[i], votes)
+		k.addShares(ctx, delAddr, vals[i], shares)
 	}
-	return votes, nil
+	return
 }
 
-// WithdrawLastVotes withdraws the vote last time from the validators
-func (k Keeper) WithdrawLastVotes(ctx sdk.Context, delAddr sdk.AccAddress, lastValsVoted types.Validators,
-	lastVotes sdk.Dec) {
-	lenLastVals := len(lastValsVoted)
+// WithdrawLastShares withdraws the shares last time from the validators
+func (k Keeper) WithdrawLastShares(ctx sdk.Context, delAddr sdk.AccAddress, lastValsAddedSharesTo types.Validators,
+	lastShares types.Shares) {
+	lenLastVals := len(lastValsAddedSharesTo)
 	for i := 0; i < lenLastVals; i++ {
-		k.withdrawVote(ctx, delAddr, lastValsVoted[i], lastVotes)
+		k.withdrawShares(ctx, delAddr, lastValsAddedSharesTo[i], lastShares)
 	}
 }
 
-func (k Keeper) withdrawVote(ctx sdk.Context, voterAddr sdk.AccAddress, val types.Validator, votes sdk.Dec) {
-	// 1.delete vote entity
-	k.DeleteVote(ctx, val.OperatorAddress, voterAddr)
+func (k Keeper) withdrawShares(ctx sdk.Context, delAddr sdk.AccAddress, val types.Validator, shares types.Shares) {
+	// 1.delete shares entity
+	k.DeleteShares(ctx, val.OperatorAddress, delAddr)
 
 	// 2.update validator entity
 	k.DeleteValidatorByPowerIndex(ctx, val)
 
-	// 3.update validator's votes
-	val.DelegatorShares = val.GetDelegatorShares().Sub(votes)
+	// 3.update validator's shares
+	val.DelegatorShares = val.GetDelegatorShares().Sub(shares)
 
 	// 3.check whether the validator should be removed
 	if val.IsUnbonded() && val.GetMinSelfDelegation().IsZero() && val.GetDelegatorShares().IsZero() {
@@ -136,34 +138,34 @@ func (k Keeper) withdrawVote(ctx sdk.Context, voterAddr sdk.AccAddress, val type
 	k.SetValidatorByPowerIndex(ctx, val)
 }
 
-func (k Keeper) vote(ctx sdk.Context, voterAddr sdk.AccAddress, val types.Validator, votes types.Votes) {
-	// 1.update vote entity
-	k.SetVote(ctx, voterAddr, val.OperatorAddress, votes)
+func (k Keeper) addShares(ctx sdk.Context, delAddr sdk.AccAddress, val types.Validator, shares types.Shares) {
+	// 1.update shares entity
+	k.SetShares(ctx, delAddr, val.OperatorAddress, shares)
 
 	// 2.update validator entity
 	k.DeleteValidatorByPowerIndex(ctx, val)
-	val.DelegatorShares = val.GetDelegatorShares().Add(votes)
+	val.DelegatorShares = val.GetDelegatorShares().Add(shares)
 	k.SetValidator(ctx, val)
 	k.SetValidatorByPowerIndex(ctx, val)
 }
 
-// GetLastValsVotedExisted gets last validators that the voter voted last time
-func (k Keeper) GetLastValsVotedExisted(ctx sdk.Context, voterAddr sdk.AccAddress) (types.Validators, sdk.Dec) {
+// GetLastValsAddedSharesExisted gets last validators that the delegator added shares to last time
+func (k Keeper) GetLastValsAddedSharesExisted(ctx sdk.Context, delAddr sdk.AccAddress) (types.Validators, types.Shares) {
 	// 1.get delegator entity
-	delegator, found := k.GetDelegator(ctx, voterAddr)
+	delegator, found := k.GetDelegator(ctx, delAddr)
 
 	// if not found
 	if !found {
 		return nil, sdk.ZeroDec()
 	}
 
-	// 2.get validators voted existed in the store
+	// 2.get validators that were added shares to and existing in the store
 	lenVals := len(delegator.ValidatorAddresses)
 	var vals types.Validators
 	for i := 0; i < lenVals; i++ {
 		val, found := k.GetValidator(ctx, delegator.ValidatorAddresses[i])
 		if found {
-			// the validator voted hasn't been removed
+			// the validator that were added shares to hasn't been removed
 			vals = append(vals, val)
 		}
 	}
@@ -171,8 +173,8 @@ func (k Keeper) GetLastValsVotedExisted(ctx sdk.Context, voterAddr sdk.AccAddres
 	return vals, delegator.Shares
 }
 
-// GetValidatorsToVote gets the validators from their validator addresses
-func (k Keeper) GetValidatorsToVote(ctx sdk.Context, valAddrs []sdk.ValAddress) (types.Validators, sdk.Error) {
+// GetValidatorsToAddShares gets the validators from their validator addresses
+func (k Keeper) GetValidatorsToAddShares(ctx sdk.Context, valAddrs []sdk.ValAddress) (types.Validators, sdk.Error) {
 	lenVals := len(valAddrs)
 	vals := make(types.Validators, lenVals)
 	for i := 0; i < lenVals; i++ {

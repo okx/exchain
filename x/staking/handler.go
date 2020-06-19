@@ -15,6 +15,7 @@ import (
 // NewHandler manages all tx treatment
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		logMsg(ctx, msg)
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
@@ -22,12 +23,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
-		case types.MsgDelegate:
-			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgUndelegate:
-			return handleMsgUndelegate(ctx, msg, k)
-		case types.MsgVote:
-			return handleMsgVote(ctx, msg, k)
+		case types.MsgDeposit:
+			return handleMsgDeposit(ctx, msg, k)
+		case types.MsgWithdraw:
+			return handleMsgWithdraw(ctx, msg, k)
+		case types.MsgAddShares:
+			return handleMsgAddShares(ctx, msg, k)
 		case types.MsgBindProxy:
 			return handleMsgBindProxy(ctx, msg, k)
 		case types.MsgUnbindProxy:
@@ -43,6 +44,31 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
+func logMsg(ctx sdk.Context, msg sdk.Msg) {
+	logger := ctx.Logger().With("module", types.ModuleName)
+	switch msg := msg.(type) {
+	case types.MsgCreateValidator:
+		logger.Debug("handle MsgCreateValidator", "msg", msg)
+	case types.MsgEditValidator:
+		logger.Debug("handle MsgEditValidator", "msg", msg)
+	case types.MsgDeposit:
+		logger.Debug("handle MsgDeposit", "msg", msg)
+	case types.MsgWithdraw:
+		logger.Debug("handle MsgWithdraw", "msg", msg)
+	case types.MsgAddShares:
+		logger.Debug("handle MsgAddShares", "msg", msg)
+	case types.MsgBindProxy:
+		logger.Debug("handle MsgBindProxy", "msg", msg)
+	case types.MsgUnbindProxy:
+		logger.Debug("handle MsgUnbindProxy", "msg", msg)
+	case types.MsgRegProxy:
+		logger.Debug("handle MsgRegProxy", "msg", msg)
+	case types.MsgDestroyValidator:
+		logger.Debug("handle MsgDestroyValidator", "msg", msg)
+	default:
+	}
+}
+
 // EndBlocker is called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 	// calculate validator set changes
@@ -53,8 +79,6 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			k.SetEpoch(ctx, newEpoch)
 		}
 		k.SetTheEndOfLastEpoch(ctx)
-		//ctx.Logger().Debug("validatorUpdates epoch", "old", oldEpoch, "new", newEpoch)
-		//ctx.Logger().Debug(fmt.Sprintf("old epoch end blockHeight: %d", lastEpochEndHeight))
 
 		validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
 		// dont forget to delete in case that some validator need to kick out when an epoch ends
@@ -75,7 +99,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 
 			quantity, err := k.CompleteUndelegation(ctx, delAddr)
 			if err != nil {
-				ctx.Logger().Error(fmt.Sprintf("complete undelegate failed: %s", err.Result().Data))
+				ctx.Logger().Error(fmt.Sprintf("complete withdraw failed: %s", err.Result().Data))
 			} else {
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
@@ -88,7 +112,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			return false
 		})
 
-	if ctx.BlockHeight()%100 == 0 {
+	if ctx.BlockHeight()%50 == 0 {
 		ctx.Logger().Error("start sanity check in module staking")
 		sanityCheck(ctx, k)
 	}
@@ -126,12 +150,14 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
-	// vote msd for validator itself
+	// add shares of equal value of msd for validator itself
 	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
-	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
+	if err = k.AddSharesAsMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)
+
+	k.Logger(ctx).Debug("Create Validator successfully", "val", validator)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
@@ -188,9 +214,9 @@ func sanityCheck(ctx sdk.Context, k keeper.Keeper) {
 			totalVotes = sdk.OneDec()
 		}
 
-		votes := k.GetValidatorVotes(ctx, validator.GetOperator())
+		votes := k.GetValidatorAllShares(ctx, validator.GetOperator())
 		for _, vote := range votes {
-			totalVotes = totalVotes.Add(vote.Votes)
+			totalVotes = totalVotes.Add(vote.Shares)
 		}
 
 		if !valTotalVotes.Equal(totalVotes) {

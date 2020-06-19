@@ -26,7 +26,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 	stakingQueryCmd.AddCommand(client.GetCommands(
 		GetCmdQueryDelegator(queryRoute, cdc),
-		GetCmdQueryValidatorVotes(queryRoute, cdc),
+		GetCmdQueryValidatorShares(queryRoute, cdc),
 		GetCmdQueryValidator(queryRoute, cdc),
 		GetCmdQueryValidators(queryRoute, cdc),
 		GetCmdQueryProxy(queryRoute, cdc),
@@ -228,14 +228,14 @@ func (as Delegators) String() (strFormat string) {
 	return strings.TrimSpace(strFormat)
 }
 
-// GetCmdQueryDelegator gets command for querying the info of delegator about delegation and votes
+// GetCmdQueryDelegator gets command for querying the info of delegator about delegation and shares
 func GetCmdQueryDelegator(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delegator [address]",
 		Short: "query the information about a delegator",
 		Args:  cobra.ExactArgs(1),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the information of delegations and all votes recently made by a delegator
+			fmt.Sprintf(`Query the information of delegations and all shares recently added by a delegator
 
 Example:
 $ %s query staking delegator okchain1hw4r48aww06ldrfeuq2v438ujnl6alszzzqpph
@@ -341,17 +341,17 @@ func convertToDelegatorResp(delegator types.Delegator, undelegation types.Undele
 	}
 }
 
-// GetCmdQueryValidatorVotes gets command for querying all votes made to a validator
-func GetCmdQueryValidatorVotes(queryRoute string, cdc *codec.Codec) *cobra.Command {
+// GetCmdQueryValidatorShares gets command for querying all shares added to a validator
+func GetCmdQueryValidatorShares(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "votes-to [validator-addr]",
-		Short: "query all votes to a validator",
+		Use:   "shares-added-to [validator-addr]",
+		Short: "query all shares added to a validator",
 		Args:  cobra.ExactArgs(1),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the information of all votes recently made to a validator.
+			fmt.Sprintf(`Query all shares added to a validator.
 
 Example:
-$ %s query staking votes-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
+$ %s query staking shares-added-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
 `,
 				version.ClientName,
 			),
@@ -369,18 +369,18 @@ $ %s query staking votes-to okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu
 				return err
 			}
 
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryValidatorVotes)
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryValidatorAllShares)
 			resp, _, err := cliCtx.QueryWithData(route, bytes)
 			if err != nil {
 				return err
 			}
 
-			var voteResponses types.VoteResponses
-			if err := cdc.UnmarshalJSON(resp, &voteResponses); err != nil {
+			var sharesResponses types.SharesResponses
+			if err := cdc.UnmarshalJSON(resp, &sharesResponses); err != nil {
 				return err
 			}
 
-			return cliCtx.PrintOutput(voteResponses)
+			return cliCtx.PrintOutput(sharesResponses)
 		},
 	}
 }
