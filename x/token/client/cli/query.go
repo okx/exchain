@@ -7,11 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okchain/x/token/types"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -79,41 +76,6 @@ func getCmdTokenInfo(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().StringVarP(&owner, "owner", "", "", "Get all the tokens information belong to")
 
 	return cmd
-}
-
-func getAccountCmd(storeName string, cdc *codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "account [address]",
-		Short: "Query account balance",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			key, err := sdk.AccAddressFromBech32(args[0])
-			if err != nil {
-				return fmt.Errorf("invalid address：%s", args[0])
-			}
-
-			if err := authTypes.NewAccountRetriever(cliCtx).EnsureExists(key); err != nil {
-				return err
-			}
-
-			acc, err := getAccount(&cliCtx, key)
-			if err != nil {
-				return err
-			}
-
-			baseAccount, isValid := acc.(*auth.BaseAccount)
-			if !isValid {
-				return errors.New("not valid account")
-			}
-
-			decAccount := types.BaseAccountToDecAccount(*baseAccount)
-
-			return cliCtx.PrintOutput(decAccount)
-		},
-	}
-	return client.GetCommands(cmd)[0]
 }
 
 // getCmdQueryParams implements the query params command.
