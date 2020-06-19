@@ -4,8 +4,10 @@ package stream
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okchain/x/dex"
 	"github.com/okex/okchain/x/order"
+	"github.com/okex/okchain/x/stream/exported"
 	"github.com/okex/okchain/x/token"
 )
 
@@ -26,12 +28,11 @@ type TokenKeeper interface {
 	GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) token.CoinsInfo
 }
 
-type AccountKeeper interface {
-	GetUpdatedAccAddress(ctx sdk.Context) (accs []sdk.AccAddress)
+type DexKeeper interface {
+	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
+	SetObserverKeeper(sk exported.StreamKeeper)
 }
 
-type DexKeeper interface {
-	IsTokenPairChanged() bool
-	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
-	GetNewTokenPair() []*dex.TokenPair
+type AccountKeeper interface {
+	SetObserverKeeper(observer auth.ObserverI)
 }
