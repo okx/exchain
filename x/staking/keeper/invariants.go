@@ -24,7 +24,7 @@ func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 }
 
 // DelegatorAddSharesInvariant checks whether all the shares which persist
-// in the store add up to the correct total shares amount stored on each existed validator
+// in the store add up to the correct total shares amount stored on each existing validator
 func DelegatorAddSharesInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		var msg string

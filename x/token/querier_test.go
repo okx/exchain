@@ -331,8 +331,8 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 		},
 		{
 			Description:         "not_exist",
-			Symbol:              "not-okt",
-			OriginalSymbol:      "not-exip",
+			Symbol:              "xxb",
+			OriginalSymbol:      "xxb",
 			OriginalTotalSupply: sdk.ZeroDec(),
 			TotalSupply:         sdk.ZeroDec(),
 			Owner:               testAccounts[0].baseAccount.Address,
@@ -350,7 +350,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 			Locked:    "0",
 		},
 		types.CoinInfo{
-			Symbol:    "not-okt",
+			Symbol:    "xxb",
 			Available: "0",
 			Locked:    "0",
 		},

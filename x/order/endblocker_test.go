@@ -1,6 +1,7 @@
 package order
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -626,4 +627,61 @@ func TestFillPrecision(t *testing.T) {
 	invaFunc := keeper.ModuleAccountInvariant(mapp.orderKeeper)
 	_, isInval := invaFunc(ctx)
 	require.EqualValues(t, false, isInval)
+}
+
+func buildRandomOrderMsg(addr sdk.AccAddress) MsgNewOrders {
+	price := strconv.Itoa(rand.Intn(10) + 100)
+	orderItems := []types.OrderItem{
+		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, price, "1.0"),
+	}
+	msg := types.NewMsgNewOrders(addr, orderItems)
+	return msg
+
+}
+
+func TestEndBlocker(t *testing.T) {
+	mapp, addrKeysSlice := getMockAppWithBalance(t, 2, 100000000)
+	k := mapp.orderKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+
+	var startHeight int64 = 10
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+
+	feeParams := types.DefaultTestParams()
+	mapp.orderKeeper.SetParams(ctx, &feeParams)
+
+	tokenPair := dex.GetBuiltInTokenPair()
+	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
+
+	handler := NewOrderHandler(k)
+
+	blockHeight := startHeight
+	for i:=0;i<100000;i++ {
+		msg := buildRandomOrderMsg(addrKeysSlice[0].Address)
+		result := handler(ctx, msg)
+		if (i + 1) % 1000 == 0 {
+			blockHeight = blockHeight + 1
+			ctx = ctx.WithBlockHeight(blockHeight)
+		}
+		require.EqualValues(t, "", result.Log)
+	}
+	// call EndBlocker to execute periodic match
+	EndBlocker(ctx, k)
+
+	quantityList := [3]string{"200","500","1000"}
+	for _, quantity := range quantityList {
+		startTime := time.Now()
+		blockHeight = blockHeight + 1
+		ctx = ctx.WithBlockHeight(blockHeight)
+		orderItems := []types.OrderItem{
+			types.NewOrderItem(types.TestTokenPair, types.SellOrder, "100", quantity),
+		}
+		msg := types.NewMsgNewOrders(addrKeysSlice[1].Address, orderItems)
+		handler(ctx, msg)
+		EndBlocker(ctx, k)
+		fmt.Println(time.Since(startTime))
+		fmt.Println(k.GetOrder(ctx, types.FormatOrderID(blockHeight, 1)))
+	}
 }

@@ -60,61 +60,6 @@ func TestHandler_HandleMsgList(t *testing.T) {
 	require.True(t, goodResult.Events != nil)
 }
 
-func TestHandler_HandleMsgDeList(t *testing.T) {
-	mApp, _, spKeeper, mDexKeeper, ctx := getMockTestCaseEvn(t)
-	address := mApp.GenesisAccounts[0].GetAddress()
-	builtInTP := GetBuiltInTokenPair()
-	delistMsg := NewMsgDelist(address, builtInTP.Name())
-
-	handlerFunctor := NewHandler(mApp.dexKeeper)
-
-	// Case1: product(trading pair) not exist
-	mDexKeeper.getFakeTokenPair = false
-	badResult := handlerFunctor(ctx, delistMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
-
-	// Case1.1: product(trading pair) not exist
-	mDexKeeper.getFakeTokenPair = true
-	delistMsg.Owner = address
-	badResult = handlerFunctor(ctx, delistMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
-
-	// Case2: product exists,
-	//        product belong to owner in MsgDelist, but
-	//        no sufficient money to delist
-	mDexKeeper.getFakeTokenPair = true
-	delistMsg.Owner = builtInTP.Owner
-
-	mDexKeeper.getFakeTokenPair = true
-	delistMsg.Owner = builtInTP.Owner
-	spKeeper.behaveEvil = false
-	mDexKeeper.failToDeleteTokenPair = true
-	badResult = handlerFunctor(ctx, delistMsg)
-	require.True(t, badResult.Code == sdk.CodeOK)
-	require.True(t, badResult.Events != nil)
-
-	// Case 4: failed to delist product which is under delisting
-	builtInTP.Delisting = true
-	err := mDexKeeper.SaveTokenPair(ctx, builtInTP)
-	require.Nil(t, err)
-	mDexKeeper.getFakeTokenPair = false
-	badResult = handlerFunctor(ctx, delistMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
-
-	// Case4: product exists,
-	//        product belong to owner in MsgDelist,
-	//        sufficient money to delist,
-	//        deleteTokenPairByName successfully
-	mDexKeeper.getFakeTokenPair = true
-	delistMsg.Owner = builtInTP.Owner
-	spKeeper.behaveEvil = false
-	mDexKeeper.failToDeleteTokenPair = false
-	goodResult := handlerFunctor(ctx, delistMsg)
-	require.True(t, goodResult.Code == sdk.CodeOK)
-	require.True(t, goodResult.Events != nil)
-
-}
-
 func TestHandler_HandleMsgDeposit(t *testing.T) {
 	mApp, _, _, mDexKeeper, ctx := getMockTestCaseEvn(t)
 	builtInTP := GetBuiltInTokenPair()
