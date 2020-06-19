@@ -91,10 +91,6 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, symbol string) (sdk.Dec, err
 	return poolToken.TotalSupply, err
 }
 
-func (k Keeper) UpdatePoolToken(ctx sdk.Context, token tokentypes.Token) {
-	k.tokenKeeper.UpdateToken(ctx, token)
-}
-
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {

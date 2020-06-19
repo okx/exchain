@@ -44,7 +44,7 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if !(msg.MinLiquidity.IsPositive() && msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
+	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
 		return sdk.ErrUnknownRequest("tokens must be positive")
 	}
 	if !msg.MaxBaseAmount.IsValid() {
@@ -105,7 +105,7 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if !(msg.Liquidity.IsPositive() && msg.MinBaseAmount.IsPositive() && msg.MinBaseAmount.IsPositive()) {
+	if !(msg.Liquidity.IsPositive()) {
 		return sdk.ErrUnknownRequest("coins must be positive")
 	}
 	if !msg.MinBaseAmount.IsValid() {
@@ -160,7 +160,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if sdk.ValidateDenom(msg.Token) != nil {
+	if sdk.ValidateDenom(msg.Token) != nil || ValidatePoolTokenName(msg.Token) {
 		return sdk.ErrUnknownRequest("invalid Token")
 	}
 	return nil
@@ -218,7 +218,9 @@ func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("both token to sell and token to buy do not contain %s,"+
 			" quote token only supports okt", sdk.DefaultBondDenom))
 	}
-
+	if !(msg.SoldTokenAmount.IsPositive()) {
+		return sdk.ErrUnknownRequest("coins must be positive")
+	}
 	if !msg.SoldTokenAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid SoldTokenAmount")
 	}
