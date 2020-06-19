@@ -324,7 +324,7 @@ func (k Keeper) GetUpdatedOrderIDs() []string {
 	return k.cache.getUpdatedOrderIDs()
 }
 
-// nolint
+// GetTxHandlerMsgResult: be careful, only call by backend module, other module should never use it!
 func (k Keeper) GetTxHandlerMsgResult() []bitset.BitSet {
 	return k.cache.toggleCopyTxHandlerMsgResult()
 }
