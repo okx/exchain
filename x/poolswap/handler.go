@@ -50,9 +50,8 @@ func NewHandler(k Keeper) sdk.Handler {
 func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
 	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
 		return handleMsgTokenToToken(ctx, k, msg)
-	} else {
-		return handleMsgTokenToNativeToken(ctx, k, msg)
 	}
+	return handleMsgTokenToNativeToken(ctx, k, msg)
 }
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
@@ -144,13 +143,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("The required baseTokens are greater than MaxBaseAmount"),
+			Log:  "The required baseTokens are greater than MaxBaseAmount",
 		}
 	}
 	if liquidity.LT(msg.MinLiquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("The available liquidity is less than MinLiquidity"),
+			Log:  "The available liquidity is less than MinLiquidity",
 		}
 	}
 
@@ -179,7 +178,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("fail to mint poolCoins"),
+			Log:  "fail to mint poolCoins",
 		}
 	}
 
@@ -249,7 +248,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  fmt.Sprintf("insufficient Coins"),
+			Log:  "insufficient Coins",
 		}
 	}
 	// update swapTokenPair
@@ -263,7 +262,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("fail to burn poolCoins"),
+			Log:  "fail to burn poolCoins",
 		}
 	}
 
@@ -406,7 +405,7 @@ func swapTokenNativeToken(
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  fmt.Sprintf("insufficient Coins"),
+			Log:  "insufficient Coins",
 		}
 	}
 
@@ -414,7 +413,7 @@ func swapTokenNativeToken(
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  fmt.Sprintf("insufficient Coins"),
+			Log:  "insufficient Coins",
 		}
 	}
 

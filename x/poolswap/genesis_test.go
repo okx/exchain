@@ -1,12 +1,13 @@
 package poolswap
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okchain/x/poolswap/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 func TestValidateGenesis(t *testing.T) {

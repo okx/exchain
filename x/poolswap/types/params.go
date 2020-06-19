@@ -10,7 +10,7 @@ import (
 
 // FeeRate defines swap fee rate
 var (
-	FeeRate = sdk.NewDecWithPrec(3, 3)
+	defaultFeeRate = sdk.NewDecWithPrec(3, 3)
 )
 
 // Default parameter namespace
@@ -36,9 +36,9 @@ type Params struct {
 }
 
 // NewParams creates a new Params object
-func NewParams(FeeRate sdk.Dec) Params {
+func NewParams(feeRate sdk.Dec) Params {
 	return Params{
-		FeeRate: FeeRate,
+		FeeRate: feeRate,
 	}
 }
 
@@ -48,14 +48,14 @@ func (p Params) String() string {
   TradeFeeRate: %s`, p.FeeRate)
 }
 
-// ParamSetPairs - Implements params.ParamSet
+// ParamSetPairs implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyFeeRate, &p.FeeRate},
+		{Key: KeyFeeRate, Value: &p.FeeRate},
 	}
 }
 
 // DefaultParams defines the parameters for this module
 func DefaultParams() Params {
-	return NewParams(FeeRate)
+	return NewParams(defaultFeeRate)
 }

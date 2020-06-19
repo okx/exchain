@@ -1,13 +1,14 @@
 package keeper
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/poolswap/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 func TestKeeper_GetPoolTokenInfo(t *testing.T) {
@@ -34,7 +35,8 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	require.EqualValues(t, sdk.MustNewDecFromStr("0"), amount)
 
 	mintToken := sdk.NewDecCoinFromDec(symbol, sdk.NewDec(1000000))
-	keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{mintToken}, sdk.AccAddress(addrTest))
+	err = keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{mintToken}, sdk.AccAddress(addrTest))
+	require.Nil(t, err)
 
 	balance := mapp.bankKeeper.GetCoins(ctx, sdk.AccAddress(addrTest))
 	require.NotNil(t, balance)

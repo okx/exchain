@@ -2,17 +2,16 @@ package poolswap
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
-
-	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/gorilla/mux"
 	"github.com/okex/okchain/x/poolswap/client/cli"
 	"github.com/okex/okchain/x/poolswap/client/rest"
+	"github.com/spf13/cobra"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // Type check to ensure the interface is properly implemented
@@ -71,7 +70,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 type AppModule struct {
 	AppModuleBasic
 
-	keeper       Keeper
+	keeper Keeper
 }
 
 // NewAppModule creates a new AppModule object

@@ -5,6 +5,7 @@ import (
 	"github.com/okex/okchain/x/common"
 )
 
+// nolint
 const TestBasePooledToken = "xxb"
 const TestBasePooledToken2 = "yyb"
 const TestBasePooledToken3 = "zzb"

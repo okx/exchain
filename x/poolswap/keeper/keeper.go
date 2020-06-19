@@ -52,20 +52,20 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	return item, nil
 }
 
-// Sets the entire SwapTokenPair data struct for a quote token name
+// SetSwapTokenPair sets the entire SwapTokenPair data struct for a quote token name
 func (k Keeper) SetSwapTokenPair(ctx sdk.Context, tokenPairName string, swapTokenPair types.SwapTokenPair) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(swapTokenPair)
 	store.Set(types.GetTokenPairKey(tokenPairName), bz)
 }
 
-// Deletes the entire SwapTokenPair data struct for a quote token name
+// DeleteSwapTokenPair deletes the entire SwapTokenPair data struct for a quote token name
 func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, tokenPairName string) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetTokenPairKey(tokenPairName))
 }
 
-// Get an iterator over all SwapTokenPairs in which the keys are the names and the values are the whois
+// GetSwapTokenPairsIterator get an iterator over all SwapTokenPairs in which the keys are the names and the values are the whois
 func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return sdk.KVStorePrefixIterator(store, types.TokenPairPrefixKey)
@@ -77,7 +77,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 	k.tokenKeeper.NewToken(ctx, poolToken)
 }
 
-// GetTokenInfo gets the token's info
+// GetPoolTokenInfo gets the token's info
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
@@ -91,6 +91,7 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenNmae string) (sdk.D
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolTokenNmae)
 	return poolToken.TotalSupply, err
 }
+
 // MintPoolCoinsToUser mints coins and send them to the specified user address
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
