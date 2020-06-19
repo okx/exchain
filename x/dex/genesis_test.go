@@ -41,16 +41,17 @@ func TestInitGenesis(t *testing.T) {
 	lockMap.Data[product] = lock
 
 	initGenesis := GenesisState{
-		Params:        params,
-		TokenPairs:    tokenPairs,
-		WithdrawInfos: withdrawInfos,
-		ProductLocks:  *lockMap,
+		Params:         params,
+		TokenPairs:     tokenPairs,
+		WithdrawInfos:  withdrawInfos,
+		ProductLocks:   *lockMap,
+		MaxTokenPairID: 10,
 	}
-
+	require.NoError(t, ValidateGenesis(initGenesis))
 	InitGenesis(ctx, keeper, initGenesis)
 	require.Equal(t, initGenesis.Params, keeper.GetParams(ctx))
 	require.Equal(t, initGenesis.TokenPairs, keeper.GetTokenPairs(ctx))
-	require.Equal(t, initGenesis.TokenPairs[0].ID+uint64(len(initGenesis.TokenPairs))-1, keeper.GetTokenPairNum(ctx))
+	require.Equal(t, initGenesis.MaxTokenPairID, keeper.GetTokenPairMaxID(ctx))
 	require.Equal(t, initGenesis.ProductLocks, *keeper.LoadProductLocks(ctx))
 	require.Equal(t, initGenesis.TokenPairs, keeper.GetUserTokenPairs(ctx, initGenesis.TokenPairs[0].Owner))
 
@@ -74,18 +75,20 @@ func TestInitGenesis(t *testing.T) {
 	require.Equal(t, initGenesis.TokenPairs, exportGenesis.TokenPairs)
 	require.True(t, initGenesis.WithdrawInfos.Equal(exportGenesis.WithdrawInfos))
 	require.Equal(t, initGenesis.ProductLocks, exportGenesis.ProductLocks)
+	require.Equal(t, initGenesis.MaxTokenPairID, exportGenesis.MaxTokenPairID)
 
 	exportGenesis.Params.WithdrawPeriod = 55555
 	exportGenesis.TokenPairs[0].ID = 66666
 	exportGenesis.WithdrawInfos[0].CompleteTime = now.Add(2 * types.DefaultWithdrawPeriod)
 	exportGenesis.ProductLocks.Data[product].BlockHeight = 123
+	exportGenesis.MaxTokenPairID = 100
 
 	_, _, _, newKeeper, newCtx := getMockTestCaseEvn(t)
+	require.NoError(t, ValidateGenesis(exportGenesis))
 	InitGenesis(newCtx, newKeeper, exportGenesis)
 	require.Equal(t, exportGenesis.Params, newKeeper.GetParams(newCtx))
 	require.Equal(t, exportGenesis.TokenPairs, newKeeper.GetTokenPairs(newCtx))
-	require.Equal(t, exportGenesis.TokenPairs[0].ID+uint64(len(exportGenesis.TokenPairs))-1,
-		newKeeper.GetTokenPairNum(newCtx))
+	require.Equal(t, exportGenesis.TokenPairs[0].ID, newKeeper.GetTokenPairMaxID(newCtx))
 	require.Equal(t, exportGenesis.ProductLocks, *newKeeper.LoadProductLocks(newCtx))
 	require.Equal(t, exportGenesis.TokenPairs, newKeeper.GetUserTokenPairs(newCtx, exportGenesis.TokenPairs[0].Owner))
 
@@ -107,6 +110,7 @@ func TestInitGenesis(t *testing.T) {
 	newExportGenesis := ExportGenesis(newCtx, newKeeper)
 	require.Equal(t, newExportGenesis.Params, newKeeper.GetParams(newCtx))
 	require.Equal(t, newExportGenesis.TokenPairs, newKeeper.GetTokenPairs(newCtx))
+	require.Equal(t, newExportGenesis.MaxTokenPairID, newKeeper.GetTokenPairMaxID(newCtx))
 	var newExportWithdrawInfos WithdrawInfos
 	newKeeper.IterateWithdrawInfo(newCtx, func(_ int64, withdrawInfo WithdrawInfo) (stop bool) {
 		newExportWithdrawInfos = append(newExportWithdrawInfos, withdrawInfo)

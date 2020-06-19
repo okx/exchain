@@ -40,8 +40,8 @@ var (
 
 	// TokenPairKey is the store key for token pair
 	TokenPairKey = []byte{0x01}
-	// TokenPairNumberKey is the store key for token pair num
-	TokenPairNumberKey = []byte{0x02}
+	// TokenPairMaxIDKey is the store key for token pair max ID
+	TokenPairMaxIDKey = []byte{0x02}
 	// TokenPairLockKeyPrefix is the store key for token pair prefix
 	TokenPairLockKeyPrefix = []byte{0x03}
 	// WithdrawAddressKeyPrefix is the store key for withdraw address

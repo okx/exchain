@@ -79,7 +79,7 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
-	tokenPairNumber := k.GetTokenPairNum(ctx)
+	tokenPairNumber := k.GetTokenPairMaxID(ctx)
 	// list new tokenPair
 	if tokenPair.ID == 0 {
 		tokenPair.ID = tokenPairNumber + 1
@@ -88,9 +88,7 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	// update tokenPairNumber to db
 	// to load exported data from genesis file.
 	if tokenPair.ID > tokenPairNumber {
-		tokenPairNumber = tokenPair.ID
-		tokenPairNumberInByte := k.cdc.MustMarshalBinaryBare(tokenPairNumber)
-		store.Set(types.TokenPairNumberKey, tokenPairNumberInByte)
+		k.SetTokenPairMaxID(ctx, tokenPair.ID)
 	}
 
 	keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
@@ -452,14 +450,21 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
-// GetTokenPairNum returns num of token pair
-func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
+// GetTokenPairMaxID returns the max ID of token pair
+func (k Keeper) GetTokenPairMaxID(ctx sdk.Context) (tokenPairMaxID uint64) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
-	b := store.Get(types.TokenPairNumberKey)
+	b := store.Get(types.TokenPairMaxIDKey)
 	if b != nil {
-		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairNumber)
+		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairMaxID)
 	}
 	return
+}
+
+// SetTokenPairNum sets the max ID of token pair
+func (k Keeper) SetTokenPairMaxID(ctx sdk.Context, tokenPairMaxID uint64) {
+	store := ctx.KVStore(k.tokenPairStoreKey)
+	tokenPairNumberInByte := k.cdc.MustMarshalBinaryBare(tokenPairMaxID)
+	store.Set(types.TokenPairMaxIDKey, tokenPairNumberInByte)
 }
 
 func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
