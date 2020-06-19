@@ -219,6 +219,7 @@
       "signing_infos": {}
     },
     "staking": {
+      "all_shares": null,
       "delegators": null,
       "exported": false,
       "last_total_power": "0",
@@ -227,14 +228,14 @@
         "bond_denom": "okt",
         "epoch": 252,
         "max_bonded_validators": 21,
-        "max_validators_to_vote": 30,
+        "max_validators_to_add_shares": 30,
         "min_delegation": "0.00010000",
+        "min_self_delegation": "10000.00000000",
         "unbonding_time": "1209600000000000"
       },
       "proxy_delegator_keys": null,
       "unbonding_delegations": null,
-      "validators": null,
-      "votes": null
+      "validators": null
     },
     "stream": null,
     "supply": {

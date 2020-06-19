@@ -113,7 +113,9 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 				ctx.ConsensusParams().Validator.PubKeyTypes).Result()
 		}
 	}
-	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description)
+
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
+	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description, minSelfDelegation)
 	commission := NewCommission(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(0))
 	validator, err := validator.SetInitialCommission(commission)
 	if err != nil {
