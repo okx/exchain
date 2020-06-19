@@ -206,6 +206,12 @@
         "voting_period": "259200000000000"
       }
     },
+    "poolswap": {
+      "params": {
+        "fee_rate": "0.00300000"
+      },
+      "swap_token_pair_records": null
+    },
     "slashing": {
       "missed_blocks": {},
       "params": {
@@ -270,11 +276,12 @@
         {
           "description": "OK Group Global Utility Token",
           "mintable": true,
-          "original_symbol": "OKT",
+          "original_symbol": "okt",
           "original_total_supply": "1000000000.00000000",
           "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
           "symbol": "okt",
           "total_supply": "1000000000.00000000",
+          "type": "0",
           "whole_name": "OKT"
         }
       ]

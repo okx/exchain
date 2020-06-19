@@ -70,9 +70,10 @@ func TestToken(t *testing.T) {
 			WholeName:           "btc",
 			OriginalTotalSupply: sdk.NewDec(1000000),
 			TotalSupply:         sdk.ZeroDec(),
+			Type:                0,
 			Owner:               nil,
 			Mintable:            false,
-		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.00000000","total_supply":"0.00000000","owner":"","mintable":false}`},
+		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.00000000","total_supply":"0.00000000","type":0,"owner":"","mintable":false}`},
 		{Token{
 			Description:         "okblockchain coin",
 			Symbol:              common.NativeToken,
@@ -80,9 +81,10 @@ func TestToken(t *testing.T) {
 			WholeName:           "ok coin",
 			OriginalTotalSupply: sdk.NewDec(1000000000),
 			TotalSupply:         sdk.ZeroDec(),
+			Type:                0,
 			Owner:               addr,
 			Mintable:            true,
-		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","total_supply":"0.00000000","owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
+		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","total_supply":"0.00000000","type":0,"owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
 	}
 	for _, tokenCase := range testCase {
 		b, err := json.Marshal(tokenCase.token)
