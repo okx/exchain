@@ -245,7 +245,7 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", depositCoins.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient deposit coins(need %s)", depositCoins.String()))
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -441,7 +441,7 @@ func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
 	if !ok {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address%s", addr.String()))
+		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address %s", addr.String()))
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)

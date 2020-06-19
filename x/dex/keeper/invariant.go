@@ -20,6 +20,9 @@ func ModuleAccountInvariant(keeper IKeeper, supplyKeeper SupplyKeeper) sdk.Invar
 
 		// get product deposits
 		for _, product := range keeper.GetTokenPairs(ctx) {
+			if product == nil {
+				return sdk.FormatInvariant(types.ModuleName, "token pairs", "a nil pointer appears"), true
+			}
 			depositsCoins = depositsCoins.Add(sdk.DecCoins{product.Deposits})
 		}
 
