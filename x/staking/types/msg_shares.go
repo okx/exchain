@@ -217,7 +217,7 @@ func isValsDuplicate(valAddrs []sdk.ValAddress) bool {
 // MsgDeposit - structure for depositing to the delegator account
 type MsgDeposit struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantiy"`
+	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantity"`
 }
 
 // NewMsgDeposit creates a new instance of MsgDeposit
