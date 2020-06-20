@@ -14,7 +14,7 @@ v    Please also ensure that this is not a duplicate issue :)
 
 <!-- Concisely describe the issue -->
 
-## Expected result
+## Expected Result
 
 <!-- What result is expected after the issue addressed? -->
 
