@@ -50,7 +50,7 @@ func TestAddSharesToValidatorsAndWithdraw(t *testing.T) {
 func createVals(ctx sdk.Context, num int, keeper Keeper) types.Validators {
 	vals := make(types.Validators, num)
 	for i := 0; i < num; i++ {
-		vals[i] = types.NewValidator(addrVals[i], PKs[i], types.Description{})
+		vals[i] = types.NewValidator(addrVals[i], PKs[i], types.Description{}, types.DefaultMinSelfDelegation)
 		keeper.SetValidator(ctx, vals[i])
 	}
 
