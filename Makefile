@@ -6,7 +6,7 @@ CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
 GithubTop=github.com
 
-Version=v0.10.8
+Version=v0.10.9
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
