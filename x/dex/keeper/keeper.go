@@ -85,7 +85,7 @@ func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 		tokenPair.ID = maxTokenPairID + 1
 	}
 
-	// update tokenPairNumber to db
+	// update maxTokenPairID to db
 	// to load exported data from genesis file.
 	if tokenPair.ID > maxTokenPairID {
 		k.SetMaxTokenPairID(ctx, tokenPair.ID)
