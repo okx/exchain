@@ -14,7 +14,7 @@ type GenesisState struct {
 	TokenPairs     []*TokenPair              `json:"token_pairs"`
 	WithdrawInfos  WithdrawInfos             `json:"withdraw_infos"`
 	ProductLocks   ordertypes.ProductLockMap `json:"product_locks"`
-	MaxTokenPairID uint64                    `json:"Max_token_pair_id" yaml:"Max_token_pair_id"`
+	MaxTokenPairID uint64                    `json:"max_token_pair_id" yaml:"max_token_pair_id"`
 }
 
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
