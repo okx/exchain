@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okchain/x/staking/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -15,10 +17,10 @@ func TestValidatorMultiCreates(t *testing.T) {
 	params.MaxValidators = 1
 	params.Epoch = 1
 
-	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{})
+	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultMinSelfDelegation)
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
-	invalidVal := NewValidator(addrVals[1], PKs[1], Description{})
+	invalidVal := NewValidator(addrVals[1], PKs[1], Description{}, types.DefaultMinSelfDelegation)
 	invalidVaStatus := baseValidatorStatus{invalidVal}
 
 	bAction := baseAction{mk}
@@ -50,7 +52,7 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 	params.Epoch = 1
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{})
+	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 	recreateValStatus := baseValidatorStatus{startUpValidator}

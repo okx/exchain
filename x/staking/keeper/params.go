@@ -45,6 +45,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.ParamsEpoch(ctx),
 		k.ParamsMaxValsToAddShares(ctx),
 		k.ParamsMinDelegation(ctx),
+		k.ParamsMinSelfDelegation(ctx),
 	)
 }
 
@@ -110,5 +111,11 @@ func (k Keeper) ParamsMaxValsToAddShares(ctx sdk.Context) (num uint16) {
 // ParamsMinDelegation returns the param MinDelegateAmount
 func (k Keeper) ParamsMinDelegation(ctx sdk.Context) (num sdk.Dec) {
 	k.paramstore.Get(ctx, types.KeyMinDelegation, &num)
+	return
+}
+
+// ParamsMinSelfDelegation returns the param MinSelfDelegateAmount
+func (k Keeper) ParamsMinSelfDelegation(ctx sdk.Context) (num sdk.Dec) {
+	k.paramstore.Get(ctx, types.KeyMinSelfDelegation, &num)
 	return
 }
