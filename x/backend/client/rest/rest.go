@@ -1,10 +1,12 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
@@ -24,6 +26,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/order/list/{openOrClosed}", orderListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -440,5 +443,21 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h, err := client.GetChainHeight(cliCtx)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+		res := common.GetBaseResponse(h)
+		bz, err := json.Marshal(res)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+		}
+		rest.PostProcessResponse(w, cliCtx, bz)
 	}
 }
