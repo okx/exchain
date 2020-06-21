@@ -64,6 +64,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			} else {
 				res, err = queryTickerListFromMarketKeeper(ctx, path[1:], req, keeper)
 			}
+		case types.QueryDexFeesList:
+			res, err = queryDexFees(ctx, path[1:], req, keeper)
 
 		case types.QueryTickerListV2:
 			if keeper.Config.EnableMktCompute {
@@ -414,6 +416,29 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	var response *common.ListResponse
 	if len(txs) > 0 {
 		response = common.GetListResponse(total, params.Page, params.PerPage, txs)
+	} else {
+		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
+	}
+	bz, err := json.Marshal(response)
+	if err != nil {
+		return nil, sdk.ErrInternal(err.Error())
+	}
+	return bz, nil
+}
+
+// nolint: unparam
+func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	var params types.QueryDexFeesParams
+	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+	}
+
+	offset, limit := common.GetPage(params.Page, params.PerPage)
+	deals, total := keeper.GetDexFees(ctx, params.DexHandlingAddr, params.Product, offset, limit)
+	var response *common.ListResponse
+	if len(deals) > 0 {
+		response = common.GetListResponse(total, params.Page, params.PerPage, deals)
 	} else {
 		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
 	}

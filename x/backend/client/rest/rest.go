@@ -27,6 +27,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -459,5 +460,51 @@ func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 		}
 		rest.PostProcessResponse(w, cliCtx, bz)
+	}
+}
+
+func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		addr := r.URL.Query().Get("address")
+		product := r.URL.Query().Get("product")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+
+		// validate request
+		if addr == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			return
+		}
+		var page, perPage int
+		var err error
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliCtx, err.Error())
+				return
+			}
+		}
+
+		params := types.NewQueryDexFeesParams(addr, product, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDexFeesList), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
