@@ -52,7 +52,7 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 
 	// set maxID
-	keeper.SetTokenPairMaxID(ctx, data.MaxTokenPairID)
+	keeper.SetMaxTokenPairID(ctx, data.MaxTokenPairID)
 
 	// reset token pair
 	for _, pair := range data.TokenPairs {
@@ -89,6 +89,6 @@ func ExportGenesis(ctx sdk.Context, keeper IKeeper) (data GenesisState) {
 		TokenPairs:     tokenPairs,
 		WithdrawInfos:  withdrawInfos,
 		ProductLocks:   *keeper.LoadProductLocks(ctx),
-		MaxTokenPairID: keeper.GetTokenPairMaxID(ctx),
+		MaxTokenPairID: keeper.GetMaxTokenPairID(ctx),
 	}
 }

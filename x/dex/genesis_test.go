@@ -51,7 +51,7 @@ func TestInitGenesis(t *testing.T) {
 	InitGenesis(ctx, keeper, initGenesis)
 	require.Equal(t, initGenesis.Params, keeper.GetParams(ctx))
 	require.Equal(t, initGenesis.TokenPairs, keeper.GetTokenPairs(ctx))
-	require.Equal(t, initGenesis.MaxTokenPairID, keeper.GetTokenPairMaxID(ctx))
+	require.Equal(t, initGenesis.MaxTokenPairID, keeper.GetMaxTokenPairID(ctx))
 	require.Equal(t, initGenesis.ProductLocks, *keeper.LoadProductLocks(ctx))
 	require.Equal(t, initGenesis.TokenPairs, keeper.GetUserTokenPairs(ctx, initGenesis.TokenPairs[0].Owner))
 
@@ -88,7 +88,7 @@ func TestInitGenesis(t *testing.T) {
 	InitGenesis(newCtx, newKeeper, exportGenesis)
 	require.Equal(t, exportGenesis.Params, newKeeper.GetParams(newCtx))
 	require.Equal(t, exportGenesis.TokenPairs, newKeeper.GetTokenPairs(newCtx))
-	require.Equal(t, exportGenesis.TokenPairs[0].ID, newKeeper.GetTokenPairMaxID(newCtx))
+	require.Equal(t, exportGenesis.TokenPairs[0].ID, newKeeper.GetMaxTokenPairID(newCtx))
 	require.Equal(t, exportGenesis.ProductLocks, *newKeeper.LoadProductLocks(newCtx))
 	require.Equal(t, exportGenesis.TokenPairs, newKeeper.GetUserTokenPairs(newCtx, exportGenesis.TokenPairs[0].Owner))
 
@@ -110,7 +110,7 @@ func TestInitGenesis(t *testing.T) {
 	newExportGenesis := ExportGenesis(newCtx, newKeeper)
 	require.Equal(t, newExportGenesis.Params, newKeeper.GetParams(newCtx))
 	require.Equal(t, newExportGenesis.TokenPairs, newKeeper.GetTokenPairs(newCtx))
-	require.Equal(t, newExportGenesis.MaxTokenPairID, newKeeper.GetTokenPairMaxID(newCtx))
+	require.Equal(t, newExportGenesis.MaxTokenPairID, newKeeper.GetMaxTokenPairID(newCtx))
 	var newExportWithdrawInfos WithdrawInfos
 	newKeeper.IterateWithdrawInfo(newCtx, func(_ int64, withdrawInfo WithdrawInfo) (stop bool) {
 		newExportWithdrawInfos = append(newExportWithdrawInfos, withdrawInfo)
