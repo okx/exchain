@@ -13,7 +13,9 @@ import (
 func fillBuyOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,
 	bestPrice, maxExecution sdk.Dec, buyExecuted *sdk.Dec,
 	blockRemainDeals int64, feeParams *types.Params) ([]types.Deal, int64) {
-
+	if buyExecuted == nil || feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	var buyDeals []types.Deal
 	book := keeper.GetDepthBookCopy(product)
 
