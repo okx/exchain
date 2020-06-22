@@ -83,10 +83,6 @@ func (c *DiskCache) GetOrderIDsMapCopy() *OrderIDsMap {
 }
 
 func (c *DiskCache) getOrderIDs(key string) []string {
-	if c.orderIDsMap == nil {
-		return nil
-	}
-
 	return c.orderIDsMap.Data[key]
 }
 
@@ -222,7 +218,9 @@ func (c *DiskCache) closeOrder(orderID string) {
 
 // remove an order from orderIDsMap when order cancelled/expired
 func (c *DiskCache) removeOrder(order *types.Order) {
-
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	// update depth book map
 	depthBook := c.getDepthBook(order.Product)
 	if depthBook != nil {
