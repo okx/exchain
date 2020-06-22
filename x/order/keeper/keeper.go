@@ -452,6 +452,9 @@ func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 
 // SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
+	if params == nil {
+		panic("failed. a nil pointer appears")
+	}
 	k.paramSpace.SetParamSet(ctx, params)
 	k.cache.SetParams(params)
 }
