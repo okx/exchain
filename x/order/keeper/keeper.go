@@ -496,6 +496,9 @@ func (k Keeper) GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.
 
 // RemoveOrderFromDepthBook removes order from depthBook, and updates cancelNum, expireNum, updatedOrderIDs from cache
 func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	k.addUpdatedOrderID(order.OrderID)
 	if feeType == types.FeeTypeOrderCancel {
 		k.cache.IncreaseCancelNum()
