@@ -63,6 +63,9 @@ func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
 
 // ExpireOrder quits the specified order with the expired state
 func (k Keeper) ExpireOrder(ctx sdk.Context, order *types.Order, logger log.Logger) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	k.quitOrder(ctx, order, types.FeeTypeOrderExpire, logger)
 }
 
