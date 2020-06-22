@@ -34,17 +34,8 @@ type (
 		Amount           sdk.DecCoin    `json:"amount" yaml:"amount"`
 	}
 
-	// RedelegateRequest defines the properties of a redelegate request's body.
-	RedelegateRequest struct {
-		BaseReq             rest.BaseReq   `json:"base_req" yaml:"base_req"`
-		DelegatorAddress    sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`         // in bech32
-		ValidatorSrcAddress sdk.ValAddress `json:"validator_src_address" yaml:"validator_src_address"` // in bech32
-		ValidatorDstAddress sdk.ValAddress `json:"validator_dst_address" yaml:"validator_dst_address"` // in bech32
-		Amount              sdk.Coin       `json:"amount" yaml:"amount"`
-	}
-
-	// UndelegateRequest defines the properties of a undelegate request's body.
-	UndelegateRequest struct {
+	// WithdrawRequest defines the properties of a withdraw request's body.
+	WithdrawRequest struct {
 		BaseReq          rest.BaseReq   `json:"base_req" yaml:"base_req"`
 		DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"` // in bech32
 		ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"` // in bech32
@@ -65,7 +56,7 @@ func postDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		msg := types.NewMsgDelegate(req.DelegatorAddress, req.Amount)
+		msg := types.NewMsgDeposit(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -88,7 +79,7 @@ func postDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 func postUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req UndelegateRequest
+		var req WithdrawRequest
 
 		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
@@ -99,7 +90,7 @@ func postUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 			return
 		}
 
-		msg := types.NewMsgUndelegate(req.DelegatorAddress, req.Amount)
+		msg := types.NewMsgWithdraw(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

@@ -66,5 +66,4 @@ dependency-graph.png
 *.synctex.gz
 contract_tests/*
 dev/cache/*
-go.sum
 result.txt

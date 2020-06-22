@@ -42,8 +42,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 			panic("should never retrieve a jailed validator from the power store")
 		}
 
-		// if we get to a zero-power validator (which we don't vote), there are no more possible elected validators
-		if validator.PotentialConsensusPowerByVotes() == 0 {
+		// if we get to a zero-power validator (which we don't add shares to), there are no more possible elected validators
+		if validator.PotentialConsensusPowerByShares() == 0 {
 			break
 		}
 
@@ -65,12 +65,12 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		oldPowerBytes, found := last[valAddrBytes]
 
 		// calculate the new power bytes
-		newPower := validator.ConsensusPowerByVotes()
+		newPower := validator.ConsensusPowerByShares()
 		newPowerBytes := k.cdc.MustMarshalBinaryLengthPrefixed(newPower)
 
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
-			updates = append(updates, validator.ABCIValidatorUpdateByVotes())
+			updates = append(updates, validator.ABCIValidatorUpdateByShares())
 
 			// set validator power on lookup index
 			k.SetLastValidatorPower(ctx, valAddr, newPower)

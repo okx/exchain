@@ -37,9 +37,9 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 			GetCmdCreateValidator(cdc),
 			GetCmdDestroyValidator(cdc),
 			GetCmdEditValidator(cdc),
-			GetCmdDelegate(cdc),
-			GetCmdUndelegate(cdc),
-			GetCmdVote(cdc),
+			GetCmdDeposit(cdc),
+			GetCmdWithdraw(cdc),
+			GetCmdAddShares(cdc),
 		)...)
 
 	stakingTxCmd.AddCommand(GetCmdProxy(cdc))

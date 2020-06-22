@@ -182,11 +182,13 @@
     "order": {
       "open_orders": null,
       "params": {
+        "cancel_order_msg_gas_unit": "30000",
         "fee_per_block": {
-          "amount": "0.00000100",
+          "amount": "0.00000000",
           "denom": "okt"
         },
         "max_deals_per_block": "1000",
+        "new_order_msg_gas_unit": "40000",
         "order_expire_blocks": "259200",
         "trade_fee_rate": "0.00100000"
       }
@@ -204,6 +206,12 @@
         "voting_period": "259200000000000"
       }
     },
+    "poolswap": {
+      "params": {
+        "fee_rate": "0.00300000"
+      },
+      "swap_token_pair_records": null
+    },
     "slashing": {
       "missed_blocks": {},
       "params": {
@@ -217,6 +225,7 @@
       "signing_infos": {}
     },
     "staking": {
+      "all_shares": null,
       "delegators": null,
       "exported": false,
       "last_total_power": "0",
@@ -225,14 +234,14 @@
         "bond_denom": "okt",
         "epoch": 252,
         "max_bonded_validators": 21,
-        "max_validators_to_vote": 30,
+        "max_validators_to_add_shares": 30,
         "min_delegation": "0.00010000",
+        "min_self_delegation": "10000.00000000",
         "unbonding_time": "1209600000000000"
       },
       "proxy_delegator_keys": null,
       "unbonding_delegations": null,
-      "validators": null,
-      "votes": null
+      "validators": null
     },
     "stream": null,
     "supply": {
@@ -247,22 +256,14 @@
           "denom": "okt"
         },
         "issue_fee": {
-          "amount": "20000.00000000",
+          "amount": "2500.00000000",
           "denom": "okt"
         },
         "mint_fee": {
-          "amount": "2000.00000000",
+          "amount": "10.00000000",
           "denom": "okt"
         },
         "modify_fee": {
-          "amount": "0.00000000",
-          "denom": "okt"
-        },
-        "multi_send_fee": {
-          "amount": "0.01000000",
-          "denom": "okt"
-        },
-        "send_fee": {
           "amount": "0.00000000",
           "denom": "okt"
         },
@@ -275,11 +276,12 @@
         {
           "description": "OK Group Global Utility Token",
           "mintable": true,
-          "original_symbol": "OKT",
+          "original_symbol": "okt",
           "original_total_supply": "1000000000.00000000",
           "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
           "symbol": "okt",
           "total_supply": "1000000000.00000000",
+          "type": "0",
           "whole_name": "OKT"
         }
       ]

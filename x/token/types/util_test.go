@@ -138,3 +138,46 @@ func TestValidCoinName(t *testing.T) {
 	valid := sdk.ValidateDenom(coinName)
 	require.Error(t, valid)
 }
+
+func TestValidOriginalSymbol(t *testing.T) {
+	name := "abc"
+	require.True(t, ValidOriginalSymbol(name))
+	name = notAllowedPrefix
+	require.False(t, ValidOriginalSymbol(name))
+	name = notAllowedPrefix + "abc"
+	require.False(t, ValidOriginalSymbol(name))
+	name = notAllowedPrefix + "-abc"
+	require.False(t, ValidOriginalSymbol(name))
+	name = notAllowedPrefix + "-abc-1af"
+	require.False(t, ValidOriginalSymbol(name))
+	name = notAllowedPrefix + "1"
+	require.False(t, ValidOriginalSymbol(name))
+	name = "abc-1fa"
+	require.False(t, ValidOriginalSymbol(name))
+}
+
+func TestValidateDenom(t *testing.T) {
+	name := "abc"
+	require.Nil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "-abc"
+	require.Nil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "-abc-1af"
+	require.Nil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "-abcde-aaa"
+	require.Nil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "f-abcde-aaa"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = "pool-abcde-aaa"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = "token-abcde-aaa"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = "pool-abc"
+	require.Nil(t, sdk.ValidateDenom(name))
+}

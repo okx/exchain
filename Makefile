@@ -4,13 +4,17 @@ SUM := $(shell which shasum)
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
 
-Version=v0.10.5
+GithubTop=github.com
+
+Version=v0.11.0
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
 Name=okchain
 ServerName=okchaind
 ClientName=okchaincli
+# the height of the 1st block is GenesisHeight+1
+GenesisHeight=0
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -25,21 +29,23 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-ldflags = -X github.com/cosmos/cosmos-sdk/version.Version=$(Version) \
-	-X github.com/cosmos/cosmos-sdk/version.Name=$(Name) \
-  -X github.com/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X github.com/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X github.com/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X github.com/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)"
+
+ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
+	-X $(GithubTop)/cosmos/cosmos-sdk/version.Name=$(Name) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
+  -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
 
 
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-
+BUILD_TESTNET_FLAGS := $(BUILD_FLAGS)
 
 all: install
 
@@ -48,6 +54,10 @@ install: okchain
 okchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
+
+testnet:
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
 
 test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./app/...

@@ -6,6 +6,6 @@ import (
 
 // DelegatorI expected delegator functions
 type DelegatorI interface {
-	GetVotedValidatorAddresses() []sdk.ValAddress
-	GetLastVotes() sdk.Dec
+	GetShareAddedValidatorAddresses() []sdk.ValAddress
+	GetLastAddedShares() sdk.Dec
 }

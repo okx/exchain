@@ -17,12 +17,12 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
-func CalculateGas(msg sdk.Msg) (gas uint64) {
+func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
 	switch msg := msg.(type) {
 	case types.MsgNewOrders:
-		gas = msg.CalculateGas()
+		gas = msg.CalculateGas(params.NewOrderMsgGasUnit)
 	case types.MsgCancelOrders:
-		gas = msg.CalculateGas()
+		gas = msg.CalculateGas(params.CancelOrderMsgGasUnit)
 	default:
 		gas = math.MaxUint64
 	}
@@ -33,7 +33,7 @@ func CalculateGas(msg sdk.Msg) (gas uint64) {
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
-		gas := CalculateGas(msg)
+		gas := CalculateGas(msg, keeper.GetParams(ctx))
 
 		// consume gas that msg required, it will panic if gas is insufficient
 		ctx.GasMeter().ConsumeGas(gas, storetypes.GasWriteCostFlatDesc)

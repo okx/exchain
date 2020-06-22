@@ -7,12 +7,12 @@ import (
 	"github.com/okex/okchain/x/staking/types"
 )
 
-// UpdateProxy updates the votes by the total delegated and self delegated tokens of a proxy
+// UpdateProxy updates the shares by the total delegated and self delegated tokens of a proxy
 func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens sdk.Dec) (err sdk.Error) {
 	if !delegator.HasProxy() {
 		return nil
 	}
-	// delegator has binded a proxy, need update proxy's votes
+	// delegator has bound a proxy, need update proxy's shares
 	if proxy, found := k.GetDelegator(ctx, delegator.ProxyAddress); found {
 		// tokens might be negative
 		proxy.TotalDelegatedTokens = proxy.TotalDelegatedTokens.Add(tokens)
@@ -22,7 +22,7 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 
 		finalTokens := proxy.TotalDelegatedTokens.Add(proxy.Tokens)
 		k.SetDelegator(ctx, proxy)
-		return k.UpdateVotes(ctx, proxy.DelegatorAddress, finalTokens)
+		return k.UpdateShares(ctx, proxy.DelegatorAddress, finalTokens)
 	}
 	return sdk.ErrInvalidAddress(delegator.ProxyAddress.String())
 }
@@ -52,19 +52,19 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 	k.SetDelegator(ctx, delegator)
 
 	if delegator.HasProxy() {
-		//delegator have binded with some proxy, need update proxy's votes
+		//delegator have bound with some proxy, need update proxy's shares
 		return k.UpdateProxy(ctx, delegator, delQuantity)
 
 	}
-	// 4.update votes when delAddr have voted already
-	return k.UpdateVotes(ctx, delegator.DelegatorAddress, delegator.Tokens)
+	// 4.update shares when delAddr has added already
+	return k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens)
 }
 
-// Undelegate handles the process of undelegating
-func (k Keeper) Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) (time.Time, sdk.Error) {
+// Withdraw handles the process of withdrawing token from deposit account
+func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) (time.Time, sdk.Error) {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return time.Time{}, types.ErrNoDelegationVote(types.DefaultCodespace, delAddr.String())
+		return time.Time{}, types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
 	}
 	quantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if quantity.LT(minDelLimit) {
@@ -84,9 +84,9 @@ func (k Keeper) Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.De
 		}
 	}
 	if leftTokens.IsZero() {
-		//withdraw all votes
-		lastVals, lastVotes := k.GetLastValsVotedExisted(ctx, delAddr)
-		k.WithdrawLastVotes(ctx, delAddr, lastVals, lastVotes)
+		// withdraw all shares
+		lastVals, lastShares := k.GetLastValsAddedSharesExisted(ctx, delAddr)
+		k.WithdrawLastShares(ctx, delAddr, lastVals, lastShares)
 		if delegator.HasProxy() {
 			k.SetProxyBinding(ctx, delegator.ProxyAddress, delAddr, true)
 		}
@@ -95,7 +95,7 @@ func (k Keeper) Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.De
 		delegator.Tokens = leftTokens
 		k.SetDelegator(ctx, delegator)
 		if !delegator.HasProxy() {
-			if err := k.UpdateVotes(ctx, delegator.DelegatorAddress, delegator.Tokens); err != nil {
+			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens); err != nil {
 				return time.Time{}, err
 			}
 		}

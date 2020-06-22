@@ -10,12 +10,11 @@ import (
 // DelistProposalJSON defines a DelistProposal with a deposit used
 // to parse parameter change proposals from a JSON file.
 type DelistProposalJSON struct {
-	Title       string         `json:"title" yaml:"title"`
-	Description string         `json:"description" yaml:"description"`
-	Proposer    sdk.AccAddress `json:"proposer" yaml:"proposer"`
-	BaseAsset   string         `json:"base_asset" yaml:"base_asset"`
-	QuoteAsset  string         `json:"quote_asset" yaml:"quote_asset"`
-	Deposit     sdk.DecCoins   `json:"deposit" yaml:"deposit"`
+	Title       string       `json:"title" yaml:"title"`
+	Description string       `json:"description" yaml:"description"`
+	BaseAsset   string       `json:"base_asset" yaml:"base_asset"`
+	QuoteAsset  string       `json:"quote_asset" yaml:"quote_asset"`
+	Deposit     sdk.DecCoins `json:"deposit" yaml:"deposit"`
 }
 
 // ParseDelistProposalJSON parse json from proposal file to DelistProposalJSON struct
