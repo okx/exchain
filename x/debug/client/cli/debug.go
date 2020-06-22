@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"strings"
+	
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,7 +16,6 @@ func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 
 	queryRoute := types.ModuleName
 
-	// get rid of debug command from query
 	queryCmd := &cobra.Command{
 		Use:   "debug",
 		Short: "Debugging subcommands",
