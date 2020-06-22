@@ -116,7 +116,9 @@ func fillDepthBook(ctx sdk.Context,
 	sellExecutedCnt *sdk.Dec,
 	blockRemainDeals int64,
 	feeParams *types.Params) ([]types.Deal, int64) {
-
+	if buyExecutedCnt == nil || sellExecutedCnt == nil || feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	var deals []types.Deal
 	if maxExecution.IsZero() {
 		return deals, blockRemainDeals
