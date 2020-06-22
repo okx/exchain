@@ -76,6 +76,9 @@ func (k Keeper) CancelOrder(ctx sdk.Context, order *types.Order, logger log.Logg
 
 // quitOrder unlocks & charges fee, unlocks coins, updates order, and updates DepthBook
 func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, logger log.Logger) (fee sdk.DecCoins) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	switch feeType {
 	case types.FeeTypeOrderCancel:
 		order.Cancel()
