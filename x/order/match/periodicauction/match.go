@@ -81,7 +81,7 @@ func execRule2(buyAmountSum, sellAmountSum []sdk.Dec, indexesRule1 []int) (index
 func execRule3(book *types.DepthBook, offset int, refPrice sdk.Dec, pricePrecision int64,
 	indexesRule2 []int, imbalance []sdk.Dec) (bestPrice sdk.Dec) {
 	if book == nil {
-		panic("a nil pointer appears")
+		panic("failed. a nil pointer appears")
 	}
 	indexLen2 := len(indexesRule2)
 	if imbalance[indexesRule2[0]-offset].GT(sdk.ZeroDec()) {
