@@ -128,7 +128,9 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
 	for _, tp := range tokenPairs {
-		products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
+		if tp != nil {
+			products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
+		}
 	}
 
 	k.Cache.ProductsBuf = products
