@@ -528,6 +528,9 @@ func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
 
 // nolint
 func (k Keeper) InsertOrderIntoDepthBook(order *types.Order) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	k.diskCache.insertOrder(order)
 }
 
