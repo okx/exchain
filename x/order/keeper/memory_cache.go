@@ -101,6 +101,9 @@ func (c *Cache) getBlockMatchResult() *types.BlockMatchResult {
 
 // nolint
 func (c *Cache) SetParams(params *types.Params) {
+	if params == nil {
+		panic("failed. a nil pointer appears")
+	}
 	c.params = params
 }
 

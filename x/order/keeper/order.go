@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,6 +13,9 @@ import (
 
 // TryPlaceOrder tries to charge fee & lock coins for a new order
 func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecCoins, err error) {
+	if order == nil {
+		return fee, errors.New("failed. a nil pointer appears")
+	}
 	logger := ctx.Logger().With("module", "order")
 	// Trying to lock coins
 	needLockCoins := order.NeedLockCoins()
