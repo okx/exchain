@@ -1,0 +1,192 @@
+# Creating a Smart Contract
+
+If you want to get started building you own, the simplest way is to go to the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template) repository and follow the instructions. This will give you a simple contract along with tests, and a properly configured build environment. From there you can edit the code to add your desired logic and publish it as an independent repo.
+
+## 1、Implementing the Smart Contract
+
+If you start from the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template), you may notice that all of the Wasm exports are taken care of by `lib.rs`, which should shouldn't need to modify. What you need to do is simply look in `contract.rs` and implement `init` ,`handle` and `query` functions, defining your custom `InitMsg` , `HandleMsg` and `QueryMsg` structs for parsing your custom message types (as json):
+
+~~~rust
+pub fn init<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: InitMsg,
+) -> StdResult<InitResponse> {}
+
+pub fn handle<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: HandleMsg,
+) -> StdResult<HandleResponse> {}
+
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    msg: QueryMsg,
+) -> StdResult<Binary> {}
+~~~
+
+## 2、Testing the Smart Contract (rust)
+
+For quick unit tests and useful error messages, it is often helpful to compile the code using native build system and then test all code except for the `extern "C"` functions (which should just be small wrappers around the real logic).
+
+If you have non-trivial logic in the contract, please write tests using rust's standard tooling. If you run `cargo test`, it will compile into native code using the `debug` profile, and you get the normal test environment you know and love. Notably, you can add plenty of requirements to `[dev-dependencies]` in `Cargo.toml` and they will be available for your testing joy. As long as they are only used in `#[cfg(test)]` blocks, they will never make it into the (release) Wasm builds and have no overhead on the production artifact.
+
+## 3、Production Builds
+
+The above build process (`cargo wasm`) works well to produce wasm output for testing. However, it is quite large, around 1.5 MB likely, and not suitable for posting to the blockchain. Furthermore, it is very helpful if we have reproducible build step so others can prove the on-chain wasm code was generated from the published rust code.
+
+For that, we have a separate repo, [cosmwasm-opt](https://github.com/CosmWasm/cosmwasm-opt) that provides a [docker image](https://hub.docker.com/r/CosmWasm/cosmwasm-opt/tags) for building. For more info, look at [cosmwasm-opt README](https://github.com/CosmWasm/cosmwasm-opt/blob/master/README.md#usage), but the quickstart guide is:
+
+~~~bash
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/rust-optimizer:0.8.0
+~~~
+
+It will output a highly size-optimized build as `contract.wasm` in `$CODE`. With our example contract, the size went down to 126kB (from 1.6MB from `cargo wasm`). If we didn't use serde-json, this would be much smaller still...
+
+# Running a Smart Contract
+
+If you followed the instructions above, you should have a runable smart contract. To better describe the usage of smart contracts on okchain , we will use an erc20 example to show the whole process.
+
+## 1、Prepare
+
+### 1.1、 Prepare wasm contract file
+
+Download the erc20 contract file: [contract.wasm](https://github.com/CosmWasm/cosmwasm-examples/blob/master/erc20/contract.wasm)
+
+### 1.2、Prepare Okchain account
+
+~~~bash
+$okchaincli keys list
+[
+  {
+    "name": "account1",
+    "type": "local",
+    "address": "okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y",
+    "pubkey": "okchainpub1addwnpepqv82z3zyw2rt897ed5kc0r8v0v3ul4qll3usx35fsp4ld4peslxru753cq0"
+  },
+  {
+    "name": "account2",
+    "type": "local",
+    "address": "okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay",
+    "pubkey": "okchainpub1addwnpepqvry6upv856cg65h6nk0zneezmcphxzvu85gw9vvxsxy409hdyg8cewu9cu"
+  }
+]
+~~~
+
+Before any operation, make sure the accounts list above have enough token in okchain system. 
+
+~~~bash
+okchaincli tx send okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y 10000okt  --gas auto --gas-adjustment=2.0 --gas-prices=0.00001okt -y -b block
+~~~
+
+~~~bash
+okchaincli tx send okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay 10000okt  --gas 200000 --fees 0.1okt -y -b block
+~~~
+
+## 2、Install Contract
+
+~~~bash
+$okchaincli tx wasm store -h
+Upload a wasm binary
+
+Usage:
+  okchaincli tx wasm store [wasm file] --source [source] --builder [builder] [flags]
+~~~
+
+Usage:
+
+~~~bash
+okchaincli tx wasm store  ./erc20.wasm --from captain --gas 2000000 --fees 2okt -y -b block
+~~~
+
+Get `code_id` from output:
+
+~~~bash
+"code_id": 1
+~~~
+
+## 3、Instantiate Contract
+
+~~~bash
+$okchaincli tx wasm instantiate -h
+Instantiate a wasm contract
+
+Usage:
+  okchaincli tx wasm instantiate [code_id_int64] [json_encoded_init_args] [flags]
+~~~
+
+Usage:
+
+~~~bash
+okchaincli tx wasm instantiate 1 "{\"name\":\"Test okchain token\",\"symbol\":\"TOKT\",\"decimals\":10,\"initial_balances\":[{\"address\":\"okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y\",\"amount\":\"10000000\"}]}"  --from account1 --label "First ERC20 token in okchain" --gas 200000 --fees 4okt -y -b block
+~~~
+
+Get the `contract address` from output：
+
+~~~bash
+"contract_address": okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h
+~~~
+
+## 4、Invoke Contract
+
+~~~bash
+$okchaincli tx wasm execute -h
+Execute a command on a wasm contract
+
+Usage:
+  okchaincli tx wasm execute [contract_addr_bech32] [json_encoded_send_args] [flags]
+~~~
+
+Usage:
+
+~~~bash
+// Transfer from account1 to account2
+okchaincli tx wasm execute okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h "{\"transfer\":{\"recipient\":\"okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay\",\"amount\":\"500000\"}}" --from account1 --gas 2000000 --fees 4okt -y -b block
+~~~
+
+## 5、Query Contract
+
+* Query contract detail
+
+~~~bash
+$okchaincli query wasm contract -h
+Prints out metadata of a contract given its address
+
+Usage:
+  okchaincli query wasm contract [bech32_address] [flags]
+~~~
+
+Usage:
+
+~~~bash
+$okchaincli query wasm contract okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h	
+~~~
+
+* Query account balance
+
+~~~bash
+$okchaincli query wasm contract-state -h
+Querying commands for the wasm module
+
+Usage:
+  okchaincli query wasm contract-state [flags]
+  okchaincli query wasm contract-state [command]
+
+Available Commands:
+  all         Prints out all internal state of a contract given its address
+  raw         Prints out internal state for key of a contract given its address
+  smart       Calls contract with given address  with query data and prints the returned result
+~~~
+
+Usage:
+
+~~~bash
+// query account1 balance
+okchaincli query wasm contract-state  smart okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h "{\"balance\":{\"address\":\"okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y\"}}" 
+
+// query account2 balance
+okchaincli query wasm contract-state  smart okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h "{\"balance\":{\"address\":\"okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay\"}}"
+~~~
