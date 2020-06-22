@@ -29,6 +29,9 @@ func GetOrderNewFee(order *types.Order) sdk.DecCoins {
 
 // GetOrderCostFee is used to calculate the handling fee when quiting an order
 func GetOrderCostFee(order *types.Order, ctx sdk.Context) sdk.DecCoins {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	currentHeight := ctx.BlockHeight()
 	orderHeight := types.GetBlockHeightFromOrderID(order.OrderID)
 	blockNum := currentHeight - orderHeight
