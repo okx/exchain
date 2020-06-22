@@ -429,9 +429,6 @@ func swapTokenNativeToken(
 }
 
 func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	//if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
-	//	panic("should not happen")
-	//}
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate))
 	numerator := inputAmountWithFee.Mul(outputReserve)
 	denominator := inputReserve.Add(inputAmountWithFee)
