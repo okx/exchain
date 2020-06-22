@@ -142,7 +142,9 @@ func fillDepthBook(ctx sdk.Context,
 func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 	needFillAmount sdk.Dec, fillPrice sdk.Dec, feeParams *types.Params,
 	remainDeals int64) ([]types.Deal, sdk.Dec, int64) {
-
+	if feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	deals := []types.Deal{}
 	filledAmount := sdk.ZeroDec()
 	orderIDsMap := keeper.GetDiskCache().GetOrderIDsMapCopy()
