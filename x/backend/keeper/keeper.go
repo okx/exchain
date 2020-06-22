@@ -203,7 +203,9 @@ func (k Keeper) GetTickers(products []string, count int) []types.Ticker {
 			}
 		} else {
 			for _, ticker := range k.Cache.LatestTicker {
-				tickers = append(tickers, *ticker)
+				if ticker != nil {
+					tickers = append(tickers, *ticker)
+				}
 			}
 		}
 	}
