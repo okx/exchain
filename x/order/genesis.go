@@ -66,6 +66,9 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) (data GenesisState) {
 	var openOrders []*types.Order
 	var num int64 = 1
 	for _, pair := range tokenPairs {
+		if pair == nil {
+			panic("failed. a nil pointer appears")
+		}
 		product := fmt.Sprintf("%s_%s", pair.BaseAssetSymbol, pair.QuoteAssetSymbol)
 		// update token pairs price
 		pair.InitPrice = keeper.GetLastPrice(ctx, product)
