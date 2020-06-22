@@ -2,8 +2,9 @@ package types
 
 import (
 	"encoding/hex"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 	"testing"
+
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ var (
 func TestGetValidatorPowerRank(t *testing.T) {
 	valAddr1 := sdk.ValAddress(FixAddr)
 	emptyDesc := Description{}
-	val1 := NewValidator(valAddr1, pk1, emptyDesc)
+	val1 := NewValidator(valAddr1, pk1, emptyDesc, DefaultMinSelfDelegation)
 	val1.DelegatorShares = sdk.ZeroDec()
 	val2, val3, val4 := val1, val1, val1
 	val2.DelegatorShares = sdk.OneDec()

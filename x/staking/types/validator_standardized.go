@@ -126,30 +126,29 @@ func (svs StandardizedValidators) String() string {
 	return strings.TrimSpace(output)
 }
 
-// votes from the voting convert to the consensus power
-// reduce
-func votesToConsensusPower(votes sdk.Dec) int64 {
-	return votes.QuoInt(sdk.PowerReduction).Int64()
+// shares from the shares adding convert to the consensus power
+func sharesToConsensusPower(shares Shares) int64 {
+	return shares.QuoInt(sdk.PowerReduction).Int64()
 }
 
-// PotentialConsensusPowerByVotes gets potential consensus-engine power based on votes
-func (v Validator) PotentialConsensusPowerByVotes() int64 {
-	return votesToConsensusPower(v.DelegatorShares)
+// PotentialConsensusPowerByShares gets potential consensus-engine power based on shares
+func (v Validator) PotentialConsensusPowerByShares() int64 {
+	return sharesToConsensusPower(v.DelegatorShares)
 }
 
-// ConsensusPowerByVotes gets the consensus-engine power
-func (v Validator) ConsensusPowerByVotes() int64 {
+// ConsensusPowerByShares gets the consensus-engine power
+func (v Validator) ConsensusPowerByShares() int64 {
 	if v.IsBonded() {
-		return v.PotentialConsensusPowerByVotes()
+		return v.PotentialConsensusPowerByShares()
 	}
 	return 0
 }
 
-// ABCIValidatorUpdateByVotes returns an abci.ValidatorUpdate from a staking validator type
-// with the full validator power based on votes
-func (v Validator) ABCIValidatorUpdateByVotes() abci.ValidatorUpdate {
+// ABCIValidatorUpdateByShares returns an abci.ValidatorUpdate from a staking validator type
+// with the full validator power based on shares
+func (v Validator) ABCIValidatorUpdateByShares() abci.ValidatorUpdate {
 	return abci.ValidatorUpdate{
 		PubKey: tmtypes.TM2PB.PubKey(v.ConsPubKey),
-		Power:  v.ConsensusPowerByVotes(),
+		Power:  v.ConsensusPowerByShares(),
 	}
 }

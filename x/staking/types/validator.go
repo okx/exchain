@@ -46,7 +46,7 @@ type Validator struct {
 	Status sdk.BondStatus `json:"status" yaml:"status"`
 	// delegated tokens (incl. self-delegation)
 	Tokens sdk.Int `json:"tokens" yaml:"tokens"`
-	// total shares issued to a validator's votes
+	// total shares added to a validator
 	DelegatorShares sdk.Dec `json:"delegator_shares" yaml:"delegator_shares"`
 	// description terms for the validator
 	Description Description `json:"description" yaml:"description"`
@@ -64,7 +64,6 @@ type Validator struct {
 func (v Validator) MarshalYAML() (interface{}, error) {
 	bs, err := yaml.Marshal(struct {
 		Status                  sdk.BondStatus
-		Elected                 bool
 		Jailed                  bool
 		UnbondingHeight         int64
 		ConsPubKey              string
@@ -75,7 +74,6 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		UnbondingCompletionTime time.Time
 		Commission              Commission
 		MinSelfDelegation       sdk.Dec
-		Votes                   sdk.Int
 	}{
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              sdk.MustBech32ifyConsPub(v.ConsPubKey),
@@ -116,7 +114,7 @@ func (v Validators) ToSDKValidators() (validators []exported.ValidatorI) {
 }
 
 // NewValidator initializes a new validator
-func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
+func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description, minSelfDelegation sdk.Dec) Validator {
 	return Validator{
 		OperatorAddress:         operator,
 		ConsPubKey:              pubKey,
@@ -128,7 +126,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 		UnbondingHeight:         int64(0),
 		UnbondingCompletionTime: time.Unix(0, 0).UTC(),
 		Commission:              NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-		MinSelfDelegation:       DefaultMinSelfDelegation,
+		MinSelfDelegation:       minSelfDelegation,
 	}
 }
 
@@ -189,7 +187,7 @@ type bechValidator struct {
 	Status sdk.BondStatus `json:"status" yaml:"status"`
 	// delegated tokens (incl. self-delegation)
 	Tokens sdk.Int `json:"tokens" yaml:"tokens"`
-	// total shares issued to a validator's votes
+	// total shares on a validator
 	DelegatorShares sdk.Dec `json:"delegator_shares" yaml:"delegator_shares"`
 	// description terms for the validator
 	Description Description `json:"description" yaml:"description"`
@@ -428,7 +426,7 @@ func (v Validator) BondedTokens() sdk.Int {
 // ConsensusPower gets the consensus-engine power
 func (v Validator) ConsensusPower() int64 {
 	if v.IsBonded() {
-		return v.PotentialConsensusPowerByVotes()
+		return v.PotentialConsensusPowerByShares()
 	}
 	return 0
 }

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okchain/x/staking/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -16,7 +18,7 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -33,8 +35,8 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 		baseProxyRegAction{bAction, ProxiedDelegator, true},
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 		proxyBindAction{bAction, ValidDelegator2, ProxiedDelegator},
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 		proxyUnBindAction{bAction, ValidDelegator1},
 
 		baseProxyRegAction{bAction, ProxiedDelegator, false},
@@ -57,21 +59,21 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 			nil, []sdk.AccAddress{ValidDelegator1, ValidDelegator2}),
 	}}
 
-	proxyVoteChecker3 := andChecker{[]actResChecker{
+	proxyAddSharesChecker3 := andChecker{[]actResChecker{
 		queryDelegatorProxyCheck(ValidDelegator1, false, true, &expZeroDec, &ProxiedDelegator, nil),
 		queryDelegatorProxyCheck(ValidDelegator2, false, true, &expZeroDec, &ProxiedDelegator, nil),
 		queryDelegatorProxyCheck(ProxiedDelegator, true, false, &expProxiedToken2, nil, nil),
 
 		queryDelegatorCheck(ValidDelegator1, true, []sdk.ValAddress{}, nil, &DelegatedToken1, nil),
 		queryDelegatorCheck(ProxiedDelegator, true, []sdk.ValAddress{startUpValidator.GetOperator()}, nil, &proxyOriginTokens, nil),
-		queryVotesToCheck(startUpValidator.GetOperator(), 1, []sdk.AccAddress{ProxiedDelegator}),
+		querySharesToCheck(startUpValidator.GetOperator(), 1, []sdk.AccAddress{ProxiedDelegator}),
 	}}
 
 	prxUnbindChecker4 := andChecker{[]actResChecker{
 		queryDelegatorProxyCheck(ValidDelegator1, false, false, &expZeroDec, nil, nil),
 		queryDelegatorProxyCheck(ProxiedDelegator, true, false, &DelegatedToken2, nil, nil),
 		validatorDelegatorShareIncreased(false),
-		delegatorVotesInvariantCheck(),
+		delegatorAddSharesInvariantCheck(),
 		nonNegativePowerInvariantCustomCheck(),
 		positiveDelegatorInvariantCheck(),
 		moduleAccountInvariantsCustomCheck(),
@@ -84,7 +86,7 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 		prxBindChecker1.GetChecker(),
 		prxBindChecker2.GetChecker(),
 		noErrorInHandlerResult(false),
-		proxyVoteChecker3.GetChecker(),
+		proxyAddSharesChecker3.GetChecker(),
 		prxUnbindChecker4.GetChecker(),
 		queryDelegatorProxyCheck(ProxiedDelegator, false, false, &expZeroDec, nil, nil),
 	}
@@ -104,7 +106,7 @@ func TestDelegator(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -121,17 +123,17 @@ func TestDelegator(t *testing.T) {
 		newDelegatorAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(10), sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 
-		// send vote messages
-		delegatorsVoteAction{bAction, false, false, 0, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, false, 0, []sdk.AccAddress{ValidDelegator2}},
-		delegatorsVoteAction{bAction, false, false, 1, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, false, int(params.MaxValsToVote) + 1, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, true, 1, []sdk.AccAddress{ValidDelegator1}},
+		// send add shares messages
+		delegatorsAddSharesAction{bAction, false, false, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, false, 0, []sdk.AccAddress{ValidDelegator2}},
+		delegatorsAddSharesAction{bAction, false, false, 1, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, false, int(params.MaxValsToAddShares) + 1, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, true, false, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, true, 1, []sdk.AccAddress{ValidDelegator1}},
 		endBlockAction{bAction},
 
-		// send undelegate message
+		// send withdraw message
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), "testtoken"},
 		delegatorUnbondAction{bAction, ValidDelegator2, sdk.ZeroDec(), sdk.DefaultBondDenom},
 		delegatorUnbondAction{bAction, ValidDelegator1, tokenPerTime.MulInt64(2), sdk.DefaultBondDenom},
@@ -140,8 +142,8 @@ func TestDelegator(t *testing.T) {
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
 
-		// vote after dlg.share == 0, expect failed
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		// add shares after dlg.share == 0, expect failed
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
 	}
 
 	actionsAndChecker := []actResChecker{
@@ -155,7 +157,7 @@ func TestDelegator(t *testing.T) {
 		noErrorInHandlerResult(false),
 		validatorStatusChecker(sdk.Bonded.String()),
 
-		// check vote response
+		// check adding shares response
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
@@ -166,7 +168,7 @@ func TestDelegator(t *testing.T) {
 		noErrorInHandlerResult(false),
 		nil,
 
-		// check undelegate response
+		// check withdraw response
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(false),
@@ -178,7 +180,7 @@ func TestDelegator(t *testing.T) {
 		//   3. Check ValidDelegator1's not exists any more
 		queryDelegatorCheck(ValidDelegator1, false, []sdk.ValAddress{}, &zeroDec, &zeroDec, nil),
 
-		// check vote after dlg.share == 0
+		// check adding shares after dlg.share == 0
 		noErrorInHandlerResult(false),
 	}
 
@@ -196,7 +198,7 @@ func TestProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -230,10 +232,10 @@ func TestProxy(t *testing.T) {
 		proxyBindAction{bAction, ValidDelegator1, ProxiedDelegator},
 		proxyBindAction{bAction, ValidDelegator2, ProxiedDelegator},
 
-		// vote
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
-		delegatorsVoteAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
-		delegatorsVoteAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		// add shares
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator1}},
+		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
+		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 
 		// redelegate & unbond
 		newDelegatorAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
@@ -269,7 +271,7 @@ func TestProxy(t *testing.T) {
 		noErrorInHandlerResult(true),
 		noErrorInHandlerResult(true),
 
-		// vote
+		// add shares
 		noErrorInHandlerResult(false),
 		noErrorInHandlerResult(true),
 		noErrorInHandlerResult(true),
@@ -303,7 +305,7 @@ func TestRebindProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -381,7 +383,7 @@ func TestLimitedProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 

@@ -22,12 +22,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
-		case types.MsgDelegate:
-			return handleMsgDelegate(ctx, msg, k)
-		case types.MsgUndelegate:
-			return handleMsgUndelegate(ctx, msg, k)
-		case types.MsgVote:
-			return handleMsgVote(ctx, msg, k)
+		case types.MsgDeposit:
+			return handleMsgDeposit(ctx, msg, k)
+		case types.MsgWithdraw:
+			return handleMsgWithdraw(ctx, msg, k)
+		case types.MsgAddShares:
+			return handleMsgAddShares(ctx, msg, k)
 		case types.MsgBindProxy:
 			return handleMsgBindProxy(ctx, msg, k)
 		case types.MsgUnbindProxy:
@@ -75,7 +75,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 
 			quantity, err := k.CompleteUndelegation(ctx, delAddr)
 			if err != nil {
-				ctx.Logger().Error(fmt.Sprintf("complete undelegate failed: %s", err.Result().Data))
+				ctx.Logger().Error(fmt.Sprintf("complete withdraw failed: %s", err.Result().Data))
 			} else {
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
@@ -113,7 +113,9 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 				ctx.ConsensusParams().Validator.PubKeyTypes).Result()
 		}
 	}
-	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description)
+
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
+	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description, minSelfDelegation)
 	commission := NewCommission(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(0))
 	validator, err := validator.SetInitialCommission(commission)
 	if err != nil {
@@ -122,9 +124,9 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
-	// vote msd for validator itself
+	// add shares of equal value of msd for validator itself
 	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
-	if err = k.VoteMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
+	if err = k.AddSharesAsMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return err.Result()
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)

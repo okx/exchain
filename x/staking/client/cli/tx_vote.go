@@ -2,9 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/cosmos/cosmos-sdk/client"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -34,28 +33,29 @@ $ %s tx staking destroy-validator --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgDestroyValidator(voterAddr)
+			msg := types.NewMsgDestroyValidator(delAddr)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 
 		},
 	}
 }
 
-// GetCmdDelegate gets command for delegating
-func GetCmdDelegate(cdc *codec.Codec) *cobra.Command {
+// GetCmdDeposit gets command for deposit
+func GetCmdDeposit(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delegate [amount]",
-		Args:  cobra.ExactArgs(1),
-		Short: "delegate an amount of okt.",
+		Use:  "deposit [amount]",
+		Args: cobra.ExactArgs(1),
+		Short: fmt.Sprintf("deposit an amount of %s to delegator account; deposited %s in delegator account is a prerequisite for adding shares",
+			sdk.DefaultBondDenom, sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Delegate an amount of okt.
+			fmt.Sprintf(`Deposit an amount of %s to delegator account. Deposited %s in delegator account is a prerequisite for adding shares.
 
 Example:
-$ %s tx staking delegate 1000okt --from mykey
+$ %s tx staking deposit 1000%s --from mykey
 `,
-				version.ClientName,
+				sdk.DefaultBondDenom, sdk.DefaultBondDenom, version.ClientName, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,26 +68,26 @@ $ %s tx staking delegate 1000okt --from mykey
 			}
 
 			delAddr := cliCtx.GetFromAddress()
-			msg := types.NewMsgDelegate(delAddr, amount)
+			msg := types.NewMsgDeposit(delAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 	return cmd
 }
 
-// GetCmdUndelegate gets command for undelegating
-func GetCmdUndelegate(cdc *codec.Codec) *cobra.Command {
+// GetCmdWithdraw gets command for withdrawing the deposit
+func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "unbond [amount]",
+		Use:   "withdraw [amount]",
 		Args:  cobra.ExactArgs(1),
-		Short: "unbond shares and withdraw the same amount of votes",
+		Short: fmt.Sprintf("withdraw an amount of %s and the corresponding shares from all validators", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Unbond shares and withdraw the same amount of votes.
+			fmt.Sprintf(`Withdraw an amount of %s and the corresponding shares from all validators.
 
 Example:
-$ %s tx staking unbond 1okt
+$ %s tx staking withdraw 1%s
 `,
-				version.ClientName,
+				sdk.DefaultBondDenom, version.ClientName, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -100,38 +100,38 @@ $ %s tx staking unbond 1okt
 			}
 
 			delAddr := cliCtx.GetFromAddress()
-			msg := types.NewMsgUndelegate(delAddr, amount)
+			msg := types.NewMsgWithdraw(delAddr, amount)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 	return cmd
 }
 
-// GetCmdVote gets command for multi voting
-func GetCmdVote(cdc *codec.Codec) *cobra.Command {
+// GetCmdAddShares gets command for multi voting
+func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "vote [validator-addr1, validator-addr2, validator-addr3, ... validator-addrN] [flags]",
+		Use:   "add-shares [validator-addr1, validator-addr2, validator-addr3, ... validator-addrN] [flags]",
 		Args:  cobra.ExactArgs(1),
-		Short: "vote on validators",
+		Short: fmt.Sprintf("add shares to one or more validators by all deposited %s", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
-			fmt.Sprintf("Vote on one or more validator(s).\n\nExample:\n$ %s tx staking vote "+
+			fmt.Sprintf("Add shares to one or more validators by all deposited %s.\n\nExample:\n$ %s tx staking add-shares "+
 				"okchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5,"+
 				"okchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42a3gl7g,"+
 				"okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m,"+
 				"okchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6mph5rx --from mykey\n",
-				version.ClientName),
+				sdk.DefaultBondDenom, version.ClientName),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 			valAddrs, err := getValsSet(args[0])
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgVote(voterAddr, valAddrs)
+			msg := types.NewMsgAddShares(delAddr, valAddrs)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 
 		},
@@ -175,9 +175,9 @@ $ %s tx staking proxy reg --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgRegProxy(voterAddr, true)
+			msg := types.NewMsgRegProxy(delAddr, true)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -201,9 +201,9 @@ $ %s tx staking proxy unreg --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgRegProxy(voterAddr, false)
+			msg := types.NewMsgRegProxy(delAddr, false)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -227,13 +227,13 @@ $ %s tx staking proxy bind okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya --from
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
 			proxyAddress, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid address：%s", args[0])
 			}
-			msg := types.NewMsgBindProxy(voterAddr, proxyAddress)
+			msg := types.NewMsgBindProxy(delAddr, proxyAddress)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -257,9 +257,9 @@ $ %s tx staking proxy unbind --from mykey
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(auth.DefaultTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			voterAddr := cliCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
-			msg := types.NewMsgUnbindProxy(voterAddr)
+			msg := types.NewMsgUnbindProxy(delAddr)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
