@@ -293,7 +293,9 @@ func (k Keeper) getTransactionListV2(ctx sdk.Context, addr string, txType int, a
 func (k Keeper) getAllTickers() []types.Ticker {
 	var tickers []types.Ticker
 	for _, ticker := range k.Cache.LatestTicker {
-		tickers = append(tickers, *ticker)
+		if ticker != nil {
+			tickers = append(tickers, *ticker)
+		}
 	}
 	return tickers
 }
