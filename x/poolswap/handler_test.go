@@ -300,3 +300,12 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 //	}
 //
 //}
+
+func TestGetInputPrice(t *testing.T) {
+	defaultFeeRate := sdk.NewDecWithPrec(3, 3)
+	inputAmount := sdk.NewDecWithPrec(1, 8)
+	inputReserve := sdk.NewDec(100)
+	outputReserve := sdk.NewDec(100)
+	res := getInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
+	require.Equal(t, inputAmount, res)
+}

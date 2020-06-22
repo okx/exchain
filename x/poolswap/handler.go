@@ -433,8 +433,8 @@ func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sd
 	//if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
 	//	panic("should not happen")
 	//}
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate))
+	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
 	numerator := inputAmountWithFee.Mul(outputReserve)
-	denominator := inputReserve.Add(inputAmountWithFee)
+	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return numerator.Quo(denominator)
 }
