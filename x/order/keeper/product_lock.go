@@ -12,6 +12,9 @@ func (k Keeper) IsProductLocked(ctx sdk.Context, product string) bool {
 
 // nolint
 func (k Keeper) SetProductLock(ctx sdk.Context, product string, lock *types.ProductLock) {
+	if lock == nil {
+		panic("failed. a nil pointer appears")
+	}
 	k.dexKeeper.LockTokenPair(ctx, product, lock)
 }
 
