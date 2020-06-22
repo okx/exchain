@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -37,6 +38,9 @@ func loadMaintainConf(confDir string, fileName string) (*Config, error) {
 }
 
 func dumpMaintainConf(maintainConf *Config, confDir string, fileName string) (err error) {
+	if maintainConf == nil {
+		return errors.New("failed. a nil pointer appears")
+	}
 	fPath := confDir + string(os.PathSeparator) + fileName
 
 	if _, err := os.Stat(confDir); err != nil {
