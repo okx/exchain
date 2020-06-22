@@ -29,7 +29,7 @@ import (
 var (
 	// the genesis file in unittest/ should be modified with this
 	privateKey     = "de0e9d9e7bac1366f7d8719a450dab03c9b704172ba43e0a25a7be1d51c69a87"
-	totalModuleNum = 20
+	totalModuleNum = 21
 )
 
 func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
