@@ -6,7 +6,7 @@ import (
 	token "github.com/okex/okchain/x/token/types"
 )
 
-// ParamSubspace defines the expected Subspace interfacace
+// ParamSubspace defines the expected Subspace interface
 type ParamSubspace interface {
 	WithKeyTable(table params.KeyTable) params.Subspace
 	Get(ctx sdk.Context, key []byte, ptr interface{})
@@ -14,13 +14,13 @@ type ParamSubspace interface {
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
 }
 
-// BankKeeper defines the expected bank interfacace
+// BankKeeper defines the expected bank interface
 type BankKeeper interface {
 	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, error)
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 }
 
-// SupplyKeeper defines the expected supply interfacace
+// SupplyKeeper defines the expected supply interface
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
 		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
@@ -30,7 +30,7 @@ type SupplyKeeper interface {
 	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
 }
 
-// TokenKeeper defines the expected token interfacace
+// TokenKeeper defines the expected token interface
 type TokenKeeper interface {
 	GetTokenInfo(ctx sdk.Context, symbol string) token.Token
 	NewToken(ctx sdk.Context, token token.Token)
