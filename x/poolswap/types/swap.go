@@ -15,12 +15,12 @@ const PoolTokenPrefix = "poolswap-"
 
 // SwapTokenPair defines token pair exchange
 type SwapTokenPair struct {
-	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"`
-	BasePooledCoin  sdk.DecCoin `json:"base_pooled_coin"`
-	PoolTokenName   string      `json:"pool_token_name"` //the name of poolToken
+	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"` // The volume of quote token in the token pair exchange pool
+	BasePooledCoin  sdk.DecCoin `json:"base_pooled_coin"`  // The volume of base token in the token pair exchange pool
+	PoolTokenName   string      `json:"pool_token_name"`   // The name of pool token
 }
 
-// NewSwapTokenPair new SwapTokenPair
+// NewSwapTokenPair is a constructor function for SwapTokenPair
 func NewSwapTokenPair(quotePooledCoin sdk.DecCoin, basePooledCoin sdk.DecCoin, poolTokenName string) *SwapTokenPair {
 	swapTokenPair := &SwapTokenPair{
 		QuotePooledCoin: quotePooledCoin,
@@ -57,7 +57,7 @@ func InitPoolToken(poolTokenName string) token.Token {
 	}
 }
 
-// ValidatePoolTokenName validates the format of specified poolTokenName
+// ValidatePoolTokenName validates the format of specified pool token name
 func ValidatePoolTokenName(tokenName string) bool {
 	var poolTokenFormat = fmt.Sprintf(`^(%s)[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?$`, PoolTokenPrefix)
 	var poolTokenRegExp = regexp.MustCompile(poolTokenFormat)

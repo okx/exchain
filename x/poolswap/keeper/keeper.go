@@ -81,7 +81,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		return poolToken, fmt.Errorf("poolToken %s not exist", symbol)
+		return poolToken, fmt.Errorf("Pool token %s does not exist", symbol)
 	}
 	return poolToken, nil
 }
