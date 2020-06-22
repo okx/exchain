@@ -12,6 +12,9 @@ import (
 )
 
 func preMatchProcessing(book *types.DepthBook) (buyAmountSum, sellAmountSum []sdk.Dec) {
+	if book == nil {
+		panic("failed. a nil pointer appears")
+	}
 	bookLength := len(book.Items)
 	if bookLength == 0 {
 		return
