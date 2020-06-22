@@ -18,7 +18,7 @@ import (
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:   "poolswap",
-		Short: "poolswap module",
+		Short: "Poolswap transactions subcommands",
 	}
 
 	txCmd.AddCommand(client.PostCommands(
