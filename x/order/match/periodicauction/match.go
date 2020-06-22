@@ -440,6 +440,9 @@ func executeLockedProduct(ctx sdk.Context, k keeper.Keeper,
 
 func executeMatch(ctx sdk.Context, k keeper.Keeper, products []string,
 	updatedProductsBasePrice map[string]types.MatchResult, lockMap *types.ProductLockMap) {
+	if lockMap == nil {
+		panic("failed. a nil pointer appears")
+	}
 	logger := ctx.Logger().With("module", "order")
 	feeParams := k.GetParams(ctx)
 	blockRemainDeals := feeParams.MaxDealsPerBlock
