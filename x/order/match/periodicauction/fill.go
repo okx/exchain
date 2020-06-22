@@ -209,6 +209,9 @@ func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keep
 
 func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, fillQuantity sdk.Dec,
 	feeParams *types.Params) sdk.DecCoins {
+	if order == nil || feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	// charge fee
 	fee := orderkeeper.GetZeroFee()
 	if order.Status == types.OrderStatusFilled {
