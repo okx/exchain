@@ -227,13 +227,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The available base amount are less than MinBaseAmount",
+			Log:  "Failed: available base amount are less than least base amount",
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The available quote amount are less than MinQuoteAmount",
+			Log:  "Failed: available quote amount are less than least quote amount",
 		}
 	}
 
