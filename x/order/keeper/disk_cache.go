@@ -187,6 +187,9 @@ func (c *DiskCache) GetNewDepthbookKeys() []string {
 
 // insertOrder inserts a new order into orderIDsMap
 func (c *DiskCache) insertOrder(order *types.Order) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	// 1. update depthBookMap
 	depthBook, ok := c.depthBookMap.data[order.Product]
 	if !ok {
