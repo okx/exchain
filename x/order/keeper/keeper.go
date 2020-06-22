@@ -511,6 +511,9 @@ func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
 
 // nolint
 func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	// update order to keeper
 	k.SetOrder(ctx, order.OrderID, order)
 	// record updated orderID
