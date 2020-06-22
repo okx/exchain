@@ -113,6 +113,10 @@ func (c *DiskCache) addOrderIDs(key string, orderIDs []string) {
 }
 
 func (c *DiskCache) addDepthBook(product string, book *types.DepthBook) {
+	if book == nil {
+		panic("failed. a nil pointer appears")
+	}
+
 	c.depthBookMap.data[product] = book
 }
 
