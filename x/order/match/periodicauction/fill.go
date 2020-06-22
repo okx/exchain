@@ -191,7 +191,9 @@ func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 
 func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 	fillPrice, fillQuantity sdk.Dec) {
-
+	if order == nil {
+		panic("failed. a nil pointer appears")
+	}
 	symbols := strings.Split(order.Product, "_")
 	// transfer tokens
 	var outputCoins, inputCoins sdk.DecCoins
