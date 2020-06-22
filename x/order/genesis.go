@@ -34,6 +34,9 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data GenesisState) {
 
 	// reset open order& depth book
 	for _, order := range data.OpenOrders {
+		if order == nil {
+			panic("failed. a nil pointer appears")
+		}
 		height := types.GetBlockHeightFromOrderID(order.OrderID)
 
 		futureHeight := height + data.Params.OrderExpireBlocks
