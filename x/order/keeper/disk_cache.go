@@ -83,6 +83,10 @@ func (c *DiskCache) GetOrderIDsMapCopy() *OrderIDsMap {
 }
 
 func (c *DiskCache) getOrderIDs(key string) []string {
+	if c.orderIDsMap == nil {
+		return nil
+	}
+
 	return c.orderIDsMap.Data[key]
 }
 
