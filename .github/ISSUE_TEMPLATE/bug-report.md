@@ -14,6 +14,10 @@ v    Please also ensure that this is not a duplicate issue :)
 
 <!-- Concisely describe the issue -->
 
+## Expected Result
+
+<!-- What result is expected after the issue addressed? -->
+
 ## Version
 
 <!-- git commit hash, output of `okchaincli --version`, output of `okchaind --version` -->

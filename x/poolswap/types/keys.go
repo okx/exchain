@@ -10,7 +10,7 @@ const (
 	// RouterKey to be used for routing msgs
 	RouterKey = ModuleName
 
-	// QuerierRoute to be used for querierer msgs
+	// QuerierRoute to be used for querier msgs
 	QuerierRoute = ModuleName
 
 	// QuerySwapTokenPair query endpoints supported by the swap Querier
