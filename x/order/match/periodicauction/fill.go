@@ -241,7 +241,9 @@ func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, f
 // If an order is fully filled but still lock some coins, unlock it.
 func fillOrder(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 	fillPrice, fillQuantity sdk.Dec, feeParams *types.Params) *types.Deal {
-
+	if order == nil || feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	// update order
 	order.Fill(fillPrice, fillQuantity)
 
