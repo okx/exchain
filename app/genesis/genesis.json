@@ -236,6 +236,7 @@
         "max_bonded_validators": 21,
         "max_validators_to_add_shares": 30,
         "min_delegation": "0.00010000",
+        "min_self_delegation": "10000.00000000",
         "unbonding_time": "1209600000000000"
       },
       "proxy_delegator_keys": null,

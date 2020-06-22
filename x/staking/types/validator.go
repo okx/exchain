@@ -114,7 +114,7 @@ func (v Validators) ToSDKValidators() (validators []exported.ValidatorI) {
 }
 
 // NewValidator initializes a new validator
-func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
+func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description, minSelfDelegation sdk.Dec) Validator {
 	return Validator{
 		OperatorAddress:         operator,
 		ConsPubKey:              pubKey,
@@ -126,7 +126,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 		UnbondingHeight:         int64(0),
 		UnbondingCompletionTime: time.Unix(0, 0).UTC(),
 		Commission:              NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-		MinSelfDelegation:       DefaultMinSelfDelegation,
+		MinSelfDelegation:       minSelfDelegation,
 	}
 }
 

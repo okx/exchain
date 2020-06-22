@@ -29,7 +29,7 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 		{"token is not exist", []string{"toa", "tob"}, []int{1, 1}, "nota", sdk.CodeInternal},
 		{"token is not exist", nil, nil, "nota", sdk.CodeInternal},
 		{"token is exist", []string{"boa", "bob"}, []int{1, 1}, "boa", sdk.CodeOK},
-		{"token is pooltoken", []string{"tkoa", "tkob"}, []int{1, 2}, "tkob", sdk.CodeInvalidCoins},
+		{"token is pool token", []string{"tkoa", "tkob"}, []int{1, 2}, "tkob", sdk.CodeInvalidCoins},
 	}
 
 	for _, testCase := range tests {
