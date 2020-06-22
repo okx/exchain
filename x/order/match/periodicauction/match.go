@@ -392,7 +392,9 @@ func executeLockedProduct(ctx sdk.Context, k keeper.Keeper,
 	updatedProductsBasePrice map[string]types.MatchResult, lockMap *types.ProductLockMap,
 	feeParams *types.Params, blockRemainDeals int64, product string,
 	logger log.Logger) int64 {
-
+	if lockMap == nil || feeParams == nil {
+		panic("failed. a nil pointer appears")
+	}
 	if blockRemainDeals <= 0 {
 		return blockRemainDeals
 	}
