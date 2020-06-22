@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 	"strings"
-
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okchain/x/debug/types"
@@ -13,18 +13,18 @@ import (
 // GetDebugCmd returns the cli query commands for this module
 func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 
-	//queryRoute := types.ModuleName
+	queryRoute := types.ModuleName
 
 	// get rid of debug command from query
 	queryCmd := &cobra.Command{
-		//Use:   "debug",
-		//Short: "Debugging subcommands",
+		Use:   "debug",
+		Short: "Debugging subcommands",
 	}
 
-	//queryCmd.AddCommand(client.GetCommands(
-	//	CmdSetLogLevel(queryRoute, cdc),
-	//	CmdDumpStore(queryRoute, cdc),
-	//)...)
+	queryCmd.AddCommand(client.GetCommands(
+		CmdSetLogLevel(queryRoute, cdc),
+		CmdDumpStore(queryRoute, cdc),
+	)...)
 
 	return queryCmd
 }
