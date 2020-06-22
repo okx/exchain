@@ -8,23 +8,23 @@ import (
 	"testing"
 )
 
-func TestVoteValidatorsAndWithdrawVote(t *testing.T) {
+func TestAddSharesToValidatorsAndWithdraw(t *testing.T) {
 	ctx, _, mkeeper := CreateTestInput(t, false, 0)
 	keeper := mkeeper.Keeper
 	valsOld := createVals(ctx, 4, keeper)
 
-	// never vote before
+	// never add shares before
 	dlgAddr := addrDels[0]
-	lastVals, lastVotes := keeper.GetLastValsVotedExisted(ctx, dlgAddr)
+	lastVals, lastShares := keeper.GetLastValsAddedSharesExisted(ctx, dlgAddr)
 	require.Nil(t, lastVals)
-	require.True(t, lastVotes.IsZero())
+	require.True(t, lastShares.IsZero())
 
-	// withdraw the votes last time
-	keeper.WithdrawLastVotes(ctx, dlgAddr, lastVals, lastVotes)
+	// withdraw the shares last time
+	keeper.WithdrawLastShares(ctx, dlgAddr, lastVals, lastShares)
 
-	// votes validators
-	voteOrig := sdk.NewDec(10000)
-	_, e := keeper.VoteValidators(ctx, dlgAddr, valsOld, voteOrig)
+	// add shares to validators
+	sharesOrig := sdk.NewDec(10000)
+	_, e := keeper.AddSharesToValidators(ctx, dlgAddr, valsOld, sharesOrig)
 	require.Nil(t, e)
 
 	// check valsOld status
@@ -33,10 +33,10 @@ func TestVoteValidatorsAndWithdrawVote(t *testing.T) {
 		require.True(t, valsNew[i].DelegatorShares.GT(valsOld[i].DelegatorShares),
 			valsNew[i].Standardize().String(), valsOld[i].Standardize().String())
 
-		// check votes
-		vote, found := keeper.GetVote(ctx, dlgAddr, valsNew[i].OperatorAddress)
+		// check shares
+		shares, found := keeper.GetShares(ctx, dlgAddr, valsNew[i].OperatorAddress)
 		require.True(t, found)
-		require.True(t, vote.GT(lastVotes), vote)
+		require.True(t, shares.GT(lastShares), shares)
 	}
 
 	// standardize
@@ -50,7 +50,7 @@ func TestVoteValidatorsAndWithdrawVote(t *testing.T) {
 func createVals(ctx sdk.Context, num int, keeper Keeper) types.Validators {
 	vals := make(types.Validators, num)
 	for i := 0; i < num; i++ {
-		vals[i] = types.NewValidator(addrVals[i], PKs[i], types.Description{})
+		vals[i] = types.NewValidator(addrVals[i], PKs[i], types.Description{}, types.DefaultMinSelfDelegation)
 		keeper.SetValidator(ctx, vals[i])
 	}
 

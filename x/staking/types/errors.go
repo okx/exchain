@@ -20,7 +20,7 @@ const (
 
 	CodeInvalidMinSelfDelegation CodeType = 104
 	CodeInvalidProxy             CodeType = 105
-	CodeInvalidVote              CodeType = 106
+	CodeInvalidShareAdding       CodeType = 106
 )
 
 // ErrNilValidatorAddr returns an error when an empty validator address appears
@@ -33,7 +33,7 @@ func ErrBadValidatorAddr(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "validator address is invalid")
 }
 
-// ErrNoValidatorFound returns an error when a validator isn't existed
+// ErrNoValidatorFound returns an error when a validator doesn't exist
 func ErrNoValidatorFound(codespace sdk.CodespaceType, valAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidValidator, "validator %s does not exist", valAddr)
 }
@@ -129,22 +129,22 @@ func ErrInsufficientShares(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "insufficient delegation shares")
 }
 
-// ErrNoUnbondingDelegation returns an error when the unbonding delegation isn't existed
+// ErrNoUnbondingDelegation returns an error when the unbonding delegation doesn't exist
 func ErrNoUnbondingDelegation(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation, "no unbonding delegation found")
 }
 
-// ErrVoteDismission returns an error when a zero-msd validator becomes the voting target
-func ErrVoteDismission(codespace sdk.CodespaceType, valAddr string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidVote,
-		"failed. destroyed validator %s isn't allowed to vote. please get rid of it from the "+
-			"voting list by voting other validators again or unbond all delegated tokens", valAddr)
+// ErrAddSharesToDismission returns an error when a zero-msd validator becomes the shares adding target
+func ErrAddSharesToDismission(codespace sdk.CodespaceType, valAddr string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidShareAdding,
+		"failed. destroyed validator %s isn't allowed to add shares to. please get rid of it from the "+
+			"shares adding list by adding shares to other validators again or unbond all delegated tokens", valAddr)
 }
 
-// ErrNoAvailableValsToVote returns an error when none of the validators in voting list is available to vote
-func ErrNoAvailableValsToVote(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidVote,
-		"failed. there's no available validators to vote among the voting list")
+// ErrNoAvailableValsToAddShares returns an error when none of the validators in shares adding list is available
+func ErrNoAvailableValsToAddShares(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidShareAdding,
+		"failed. there's no available validators among the shares adding list")
 }
 
 // ErrDelegatorNotAProxy returns an error when the target delegator to bind is not registered as a proxy
@@ -165,10 +165,10 @@ func ErrAlreadyProxied(codespace sdk.CodespaceType, delegator string) sdk.Error 
 		"failed. delegator %s has already registered as a proxy", delegator)
 }
 
-// ErrVoteDuringProxy returns an error when a delegator who has binded trys to vote by itself
-func ErrVoteDuringProxy(codespace sdk.CodespaceType, delegator string, proxy string) sdk.Error {
+// ErrAddSharesDuringProxy returns an error when a delegator who has bound tries to add shares to validators by itself
+func ErrAddSharesDuringProxy(codespace sdk.CodespaceType, delegator string, proxy string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
-		"failed. ban from voting before unbinding proxy relationship between %s and %s", delegator, proxy)
+		"failed. ban from adding shares to validators before unbinding proxy relationship between %s and %s", delegator, proxy)
 }
 
 // ErrDoubleProxy returns an error when a delegator trys to bind more than one proxy
@@ -177,7 +177,7 @@ func ErrDoubleProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 		"failed. proxy isn't allowed to bind with other proxy %s", delegator)
 }
 
-// ErrNotFoundProxy returns an error when the proxy is not existed
+// ErrNotFoundProxy returns an error when the proxy doesn't exist
 func ErrNotFoundProxy(codespace sdk.CodespaceType, delegator string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
 		"failed. no proxy with %s", delegator)
@@ -189,7 +189,7 @@ func ErrInvalidDelegation(codespace sdk.CodespaceType, delegator string) sdk.Err
 		"failed. invalid delegation on %s", delegator)
 }
 
-// ErrNilValidatorAddrs returns an error when there's no target validator address in MsgVote
+// ErrNilValidatorAddrs returns an error when there's no target validator address in MsgAddShares
 func ErrNilValidatorAddrs(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput,
 		"failed. validator addresses are nil")
@@ -201,13 +201,13 @@ func ErrExceedValidatorAddrs(codespace sdk.CodespaceType, num int) sdk.Error {
 		"failed. the number of validator addresses is over the limit %d", num)
 }
 
-// ErrNoDelegationVote returns an error when there's no delegation to support voting
-func ErrNoDelegationVote(codespace sdk.CodespaceType, voter string) sdk.Error {
+// ErrNoDelegationToAddShares returns an error when there's no delegation to support adding shares to validators
+func ErrNoDelegationToAddShares(codespace sdk.CodespaceType, delegator string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
-		"failed. there's no delegation of %s", voter)
+		"failed. there's no delegation of %s", delegator)
 }
 
-// ErrNotInDelegating returns an error when the UndelegationInfo was not existed during it's unbonding period
+// ErrNotInDelegating returns an error when the UndelegationInfo doesn't exist during it's unbonding period
 func ErrNotInDelegating(codespace sdk.CodespaceType, addr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
 		"failed. the addr %s is not in the status of undelegating", addr)
@@ -225,10 +225,10 @@ func ErrInsufficientQuantity(codespace sdk.CodespaceType, quantity, minLimit str
 		"failed. insufficient quantity. [min limit]:%s, [quantity]:%s", minLimit, quantity)
 }
 
-// ErrMoreMinSelfDelegation returns an error when the msd doesn't match the rest of votes on a validator
+// ErrMoreMinSelfDelegation returns an error when the msd doesn't match the rest of shares on a validator
 func ErrMoreMinSelfDelegation(codespace sdk.CodespaceType, valAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidMinSelfDelegation,
-		"failed. min self delegation of %s is more than its votes", valAddr)
+		"failed. min self delegation of %s is more than its shares", valAddr)
 }
 
 // ErrNoMinSelfDelegation returns an error when the msd has already been unbonded
@@ -249,27 +249,27 @@ func ErrInvalidProxyUpdating(codespace sdk.CodespaceType) sdk.Error {
 		"failed. the total delegated tokens on the proxy will be negative after this update")
 }
 
-// ErrAlreadyVoted returns an error when a delegator trys to bind proxy after voting
-func ErrAlreadyVoted(codespace sdk.CodespaceType, delAddr string) sdk.Error {
+// ErrAlreadyAddedShares returns an error when a delegator tries to bind proxy after adding shares
+func ErrAlreadyAddedShares(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProxy,
-		"failed. delegator %s isn't allowed to bind proxy while it has voted. please unbond the delegation first", delAddr)
+		"failed. delegator %s isn't allowed to bind proxy while it has added shares. please unbond the delegation first", delAddr)
 }
 
-// ErrNoDelegatorExisted returns an error when the info if a certain delegator isn't existed
+// ErrNoDelegatorExisted returns an error when the info if a certain delegator doesn't exist
 func ErrNoDelegatorExisted(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidDelegation,
-		"failed. delegator %s isn't existed", delAddr)
+		"failed. delegator %s doesn't exist", delAddr)
 }
 
 // ErrTargetValsDuplicate returns an error when the target validators in voting list are duplicate
 func ErrTargetValsDuplicate(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidVote,
+	return sdk.NewError(codespace, CodeInvalidShareAdding,
 		"failed. duplicate target validators")
 }
 
-// ErrAlreadyBinded returns an error when a delegator keeps binding a proxy before proxy register
-func ErrAlreadyBinded(codespace sdk.CodespaceType, delAddr string) sdk.Error {
+// ErrAlreadyBound returns an error when a delegator keeps binding a proxy before proxy register
+func ErrAlreadyBound(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProxy,
-		"failed. %s has already binded a proxy. it's necessary to unbind before proxy register",
+		"failed. %s has already bound a proxy. it's necessary to unbind before proxy register",
 		delAddr)
 }

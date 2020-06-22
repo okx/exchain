@@ -41,6 +41,7 @@ import (
 	upgradeClient "github.com/okex/okchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/okchain/x/poolswap"
 )
 
 var (
@@ -80,6 +81,7 @@ var (
 		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
 		debug.AppModuleBasic{},
+		poolswap.AppModuleBasic{},
 	)
 
 	// module account permissions for bankKeeper and supplyKeeper
@@ -94,6 +96,7 @@ var (
 		order.ModuleName:          nil,
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
+		poolswap.ModuleName:       {supply.Minter, supply.Burner},
 	}
 )
 
@@ -123,6 +126,7 @@ type ProtocolV0 struct {
 	tokenKeeper    token.Keeper
 	dexKeeper      dex.Keeper
 	orderKeeper    order.Keeper
+	swapKeeper     poolswap.Keeper
 	protocolKeeper proto.ProtocolKeeper
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
@@ -269,6 +273,7 @@ func (p *ProtocolV0) produceKeepers() {
 	orderSubspace := p.paramsKeeper.Subspace(order.DefaultParamspace)
 	upgradeSubspace := p.paramsKeeper.Subspace(upgrade.DefaultParamspace)
 	dexSubspace := p.paramsKeeper.Subspace(dex.DefaultParamspace)
+	swapSubSpace := p.paramsKeeper.Subspace(poolswap.DefaultParamspace)
 
 	// 2.add keepers
 	p.accountKeeper = auth.NewAccountKeeper(p.cdc, p.keys[auth.StoreKey], authSubspace, auth.ProtoBaseAccount)
@@ -306,6 +311,8 @@ func (p *ProtocolV0) produceKeepers() {
 		p.tokenKeeper, p.supplyKeeper, p.dexKeeper, orderSubspace, auth.FeeCollectorName,
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
+
+	p.swapKeeper = poolswap.NewKeeper(p.supplyKeeper, p.tokenKeeper, p.cdc, p.keys[poolswap.StoreKey], swapSubSpace)
 
 	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.accountKeeper,
 		p.cdc, p.logger, appConfig, streamMetrics)
@@ -371,6 +378,7 @@ func (p *ProtocolV0) setManager() {
 		gov.NewAppModule(version.ProtocolVersionV0, p.govKeeper, p.supplyKeeper),
 		order.NewAppModule(version.ProtocolVersionV0, p.orderKeeper, p.supplyKeeper),
 		token.NewAppModule(version.ProtocolVersionV0, p.tokenKeeper, p.supplyKeeper),
+		poolswap.NewAppModule(p.swapKeeper),
 
 		// TODO
 		dex.NewAppModule(version.ProtocolVersionV0, p.dexKeeper, p.supplyKeeper),
@@ -417,6 +425,7 @@ func (p *ProtocolV0) setManager() {
 		token.ModuleName,
 		dex.ModuleName,
 		order.ModuleName,
+		poolswap.ModuleName,
 		upgrade.ModuleName,
 		crisis.ModuleName,
 		genutil.ModuleName,

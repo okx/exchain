@@ -19,7 +19,6 @@ func TestMsg(t *testing.T) {
 	product := common.TestToken + "_" + common.NativeToken
 
 	msgList := NewMsgList(addr, common.TestToken, common.NativeToken, sdk.NewDec(10))
-	msgDelist := NewMsgDelist(addr, product)
 	msgDeposit := NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(100)), addr)
 	msgWithdraw := NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(100)), addr)
 	msgTransferOwnership := NewMsgTransferOwnership(addr, addr, product)
@@ -38,8 +37,6 @@ func TestMsg(t *testing.T) {
 	}{
 		{"msgList", msgList,
 			Want{"dex", "list", sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msgList)), []sdk.AccAddress{addr}}},
-		{"msgDelist", msgDelist,
-			Want{"dex", "delist", sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msgDelist)), []sdk.AccAddress{addr}}},
 		{"msgDeposit", msgDeposit,
 			Want{"dex", typeMsgDeposit, sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msgDeposit)), []sdk.AccAddress{addr}}},
 		{"msgWithdraw", msgWithdraw,
@@ -80,11 +77,9 @@ func TestMsg(t *testing.T) {
 		result bool
 	}{
 		{"msgList", msgList, true},
-		{"msgDelist", msgDelist, true},
 		{"msgDeposit", msgDeposit, true},
 		{"msgWithdraw", msgWithdraw, true},
 
-		{"delist-no-product", NewMsgDelist(addr, ""), false},
 		{"deposit-invalid-amount", NewMsgDeposit(product, sdk.DecCoin{"", sdk.NewDec(1)}, addr), false},
 		{"deposit-no-depositor", NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
 		{"withdraw-invalid-amount", NewMsgWithdraw(product, sdk.DecCoin{"", sdk.NewDec(1)}, addr), false},

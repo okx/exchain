@@ -21,15 +21,15 @@ const (
 	// Default maximum number of bonded validators
 	DefaultMaxValidators = config.DefaultMaxValidators
 
-	DefaultEpoch         uint16 = config.DefaultBlocksPerEpoch
-	DefaultMaxValsToVote uint16 = config.DefaultMaxValsToVote
+	DefaultEpoch              uint16 = config.DefaultBlocksPerEpoch
+	DefaultMaxValsToAddShares uint16 = config.DefaultMaxValsToVote
 )
 
 var (
 	// DefaultMinDelegation is the limit value of delegation or undelegation
 	DefaultMinDelegation = config.DefaultMinDelegation
 	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
-	DefaultMinSelfDelegation = sdk.NewDecWithPrec(1, 3)
+	DefaultMinSelfDelegation = sdk.NewDec(10000)
 )
 
 // nolint - Keys for parameter access
@@ -40,9 +40,9 @@ var (
 	KeyEpoch             = []byte("BlocksPerEpoch")    // how many blocks each epoch has
 	KeyTheEndOfLastEpoch = []byte("TheEndOfLastEpoch") // a block height that is the end of last epoch
 
-	KeyMaxValsToVote          = []byte("MaxValsToVote")
-	KeyMinSelfDelegationLimit = []byte("MinSelfDelegationLimit")
-	KeyMinDelegation          = []byte("MinDelegation")
+	KeyMaxValsToAddShares = []byte("MaxValsToAddShares")
+	KeyMinDelegation      = []byte("MinDelegation")
+	KeyMinSelfDelegation  = []byte("MinSelfDelegation")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -55,25 +55,28 @@ type Params struct {
 	// maximum number of validators (max uint16 = 65535)
 	MaxValidators uint16 `json:"max_bonded_validators" yaml:"max_bonded_validators"`
 	// epoch for validator update
-	Epoch         uint16 `json:"epoch" yaml:"epoch"`
-	MaxValsToVote uint16 `json:"max_validators_to_vote" yaml:"max_validators_to_vote"`
+	Epoch              uint16 `json:"epoch" yaml:"epoch"`
+	MaxValsToAddShares uint16 `json:"max_validators_to_add_shares" yaml:"max_validators_to_add_shares"`
 	// bondable coin denomination
 	BondDenom string `json:"bond_denom" yaml:"bond_denom"`
 	// limited amount of delegate
 	MinDelegation sdk.Dec `json:"min_delegation" yaml:"min_delegation"`
+	// validator's self declared minimum self delegation
+	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(unbondingTime time.Duration, maxValidators uint16, bondDenom string, epoch uint16, maxValsToVote uint16,
-	minDelegation sdk.Dec) Params {
+func NewParams(unbondingTime time.Duration, maxValidators uint16, bondDenom string, epoch uint16, maxValsToAddShares uint16,
+	minDelegation sdk.Dec, minSelfDelegation sdk.Dec) Params {
 
 	return Params{
-		UnbondingTime: unbondingTime,
-		MaxValidators: maxValidators,
-		BondDenom:     bondDenom,
-		Epoch:         epoch,
-		MaxValsToVote: maxValsToVote,
-		MinDelegation: minDelegation,
+		UnbondingTime:      unbondingTime,
+		MaxValidators:      maxValidators,
+		BondDenom:          bondDenom,
+		Epoch:              epoch,
+		MaxValsToAddShares: maxValsToAddShares,
+		MinDelegation:      minDelegation,
+		MinSelfDelegation:  minSelfDelegation,
 	}
 }
 
@@ -84,8 +87,9 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMaxValidators, Value: &p.MaxValidators},
 		{Key: KeyBondDenom, Value: &p.BondDenom},
 		{Key: KeyEpoch, Value: &p.Epoch},
-		{Key: KeyMaxValsToVote, Value: &p.MaxValsToVote},
+		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation},
+		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation},
 	}
 }
 
@@ -102,7 +106,8 @@ func DefaultParams() Params {
 	return NewParams(
 		DefaultUnbondingTime, DefaultMaxValidators,
 		sdk.DefaultBondDenom, DefaultEpoch,
-		DefaultMaxValsToVote, DefaultMinDelegation,
+		DefaultMaxValsToAddShares, DefaultMinDelegation,
+		DefaultMinSelfDelegation,
 	)
 }
 
@@ -113,9 +118,10 @@ func (p Params) String() string {
   Max Validators:   	 	%d
   Epoch: 					%d
   Bonded Coin Denom: 		%s
-  MaxValsToVote:     		%d
-  MinDelegation				%d`,
-		p.UnbondingTime, p.MaxValidators, p.Epoch, p.BondDenom, p.MaxValsToVote, p.MinDelegation)
+  MaxValsToAddShares:       %d
+  MinDelegation				%d
+  MinSelfDelegation         %d`,
+		p.UnbondingTime, p.MaxValidators, p.Epoch, p.BondDenom, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation)
 }
 
 // Validate gives a quick validity check for a set of params
@@ -129,8 +135,8 @@ func (p Params) Validate() error {
 	if p.Epoch == 0 {
 		return fmt.Errorf("staking parameter Epoch must be a positive integer")
 	}
-	if p.MaxValsToVote == 0 {
-		return fmt.Errorf("staking parameter MaxValsToVote must be a positive integer")
+	if p.MaxValsToAddShares == 0 {
+		return fmt.Errorf("staking parameter MaxValsToAddShares must be a positive integer")
 	}
 
 	return nil
