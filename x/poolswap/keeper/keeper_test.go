@@ -26,7 +26,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	require.Nil(t, err)
 	require.EqualValues(t, symbol, poolToken.WholeName)
 
-	//pool token is Interest token
+	// pool token is Interest token
 	require.EqualValues(t, types.GenerateTokenType, poolToken.Type)
 
 	// check pool token total supply

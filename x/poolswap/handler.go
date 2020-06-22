@@ -70,7 +70,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "swapTokenPair already exists",
+			Log:  "Failed: exchange already exists",
 		}
 	}
 
@@ -81,7 +81,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "pool token already exists",
+			Log:  "Failed: pool token already exists",
 		}
 	}
 	k.NewPoolToken(ctx, poolName)
@@ -103,7 +103,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "blockTime exceeded deadline",
+			Log:  "Failed: block time exceeded deadline",
 		}
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
@@ -119,7 +119,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("get poolToken %s failed: %s", swapTokenPair.PoolTokenName, err.Error()),
+			Log:  fmt.Sprintf("failed to get pool token %s : %s", swapTokenPair.PoolTokenName, err.Error()),
 		}
 	}
 	if swapTokenPair.QuotePooledCoin.Amount.IsZero() && swapTokenPair.BasePooledCoin.Amount.IsZero() {
@@ -130,20 +130,20 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		if poolToken.TotalSupply.IsZero() {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
-				Log:  fmt.Sprintf("unexpected totalSupply in poolToken %s", poolToken.String()),
+				Log:  fmt.Sprintf("unexpected totalSupply in pool token %s", poolToken.String()),
 			}
 		}
 		liquidity = msg.QuoteAmount.Amount.Quo(swapTokenPair.QuotePooledCoin.Amount).Mul(poolToken.TotalSupply)
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("invalid swapTokenPair %s", swapTokenPair.String()),
+			Log:  fmt.Sprintf("invalid token pair %s", swapTokenPair.String()),
 		}
 	}
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The required baseTokens are greater than MaxBaseAmount",
+			Log:  "The required base token amount are greater than MaxBaseAmount",
 		}
 	}
 	if liquidity.LT(msg.MinLiquidity) {
@@ -159,12 +159,11 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		baseTokens,
 	}
 	coins = coins.Sort()
-	//TODO another coin connot send to pool
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  fmt.Sprintf("insufficient Coins %s", err.Error()),
+			Log:  fmt.Sprintf("insufficient coins %s", err.Error()),
 		}
 	}
 	// update swapTokenPair
@@ -178,7 +177,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "fail to mint poolCoins",
+			Log:  "failed to mint pool token",
 		}
 	}
 
@@ -194,7 +193,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "blockTime exceeded deadline",
+			Log:  "Failed: block time exceeded deadline",
 		}
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
@@ -210,13 +209,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("get poolToken %s failed: %s", swapTokenPair.PoolTokenName, err.Error()),
+			Log:  fmt.Sprintf("failed to get pool token %s : %s", swapTokenPair.PoolTokenName, err.Error()),
 		}
 	}
 	if poolTokenAmount.LT(liquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  "insufficient poolToken",
+			Log:  "insufficient pool token",
 		}
 	}
 
@@ -228,13 +227,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The available baseAmount are less than MinBaseAmount",
+			Log:  "The available base amount are less than MinBaseAmount",
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The available quoteAmount are less than MinQuoteAmount",
+			Log:  "The available quote amount are less than MinQuoteAmount",
 		}
 	}
 
@@ -248,7 +247,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  "insufficient Coins",
+			Log:  "insufficient coins",
 		}
 	}
 	// update swapTokenPair
@@ -262,7 +261,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "fail to burn poolCoins",
+			Log:  "failed to burn pool token",
 		}
 	}
 
@@ -285,7 +284,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "blockTime exceeded deadline",
+			Log:  "Failed: block time exceeded deadline",
 		}
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
@@ -300,7 +299,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
+			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
 		}
 	}
 
@@ -320,7 +319,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "blockTime exceeded deadline",
+			Log:  "Failed: block time exceeded deadline",
 		}
 	}
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -360,7 +359,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
+			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
 		}
 	}
 

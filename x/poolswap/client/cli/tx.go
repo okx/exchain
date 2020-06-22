@@ -110,9 +110,9 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&liquidity, "liquidity", "l", "", "Liquidity number of sender will mint if total pool token supply is greater than 0")
-	cmd.Flags().StringVarP(&minBaseAmount, "min-base-amount", "", "", "Maximum number of base amount deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
-	cmd.Flags().StringVarP(&minQuoteAmount, "min-quote-amount", "q", "", "The number of quote amount. For example \"100okb\"")
+	cmd.Flags().StringVarP(&liquidity, "liquidity", "l", "", "Liquidity amount of sender will burn")
+	cmd.Flags().StringVarP(&minBaseAmount, "min-base-amount", "", "", "Minimum number of base amount withdrawn")
+	cmd.Flags().StringVarP(&minQuoteAmount, "min-quote-amount", "q", "", "Minimum number of quote amount withdrawn")
 	cmd.Flags().StringVarP(&deadlineDuration, "deadline-duration", "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
 	return cmd
 }
@@ -132,7 +132,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&token, "token", "t", "", "CreateExchange by token name")
+	cmd.Flags().StringVarP(&token, "token", "t", "", "Create exchange by token name")
 	return cmd
 }
 
@@ -180,12 +180,12 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&soldTokenAmount, "sell-amount", "", "",
-		"amount expected to sell")
+		"Amount expected to sell")
 	cmd.Flags().StringVarP(&minBoughtTokenAmount, "min-buy-amount", "", "",
-		"minimum amount expected to buy.")
+		"Minimum amount expected to buy")
 	cmd.Flags().StringVarP(&recipient, "recipient", "", "",
-		"address to receive the amount bought")
+		"The address to receive the amount bought")
 	cmd.Flags().StringVarP(&deadline, "deadline", "", "100s",
-		"time after which this transaction can no longer be executed.")
+		"Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
 	return cmd
 }

@@ -5,11 +5,11 @@ import (
 	"github.com/okex/okchain/x/poolswap/types"
 )
 
-// IsTokenExist checkout token is exit
+// IsTokenExist check token is exist
 func (k Keeper) IsTokenExist(ctx sdk.Context, token string) error {
 	isExist := k.tokenKeeper.TokenExist(ctx, token)
 	if !isExist {
-		return sdk.ErrInternal("Failed: token not exits")
+		return sdk.ErrInternal("Failed: token does not exist")
 	}
 
 	t := k.tokenKeeper.GetTokenInfo(ctx, token)
