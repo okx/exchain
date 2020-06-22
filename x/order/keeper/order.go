@@ -39,6 +39,9 @@ func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecC
 
 // PlaceOrder updates BlockOrderNum, DepthBook, execute TryPlaceOrder, and set the specified order to keeper
 func (k Keeper) PlaceOrder(ctx sdk.Context, order *types.Order) error {
+	if order == nil {
+		return errors.New("failed. a nil pointer appears")
+	}
 	fee, err := k.TryPlaceOrder(ctx, order)
 	if err != nil {
 		return err
