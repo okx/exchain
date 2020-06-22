@@ -124,7 +124,9 @@ func execRule3(book *types.DepthBook, offset int, refPrice sdk.Dec, pricePrecisi
 //         price. Then choose the price which is closest to reference price.
 func periodicAuctionMatchPrice(book *types.DepthBook, pricePrecision int64,
 	refPrice sdk.Dec) (bestPrice sdk.Dec, maxExecution sdk.Dec) {
-
+	if book == nil {
+		panic("failed. a nil pointer appears")
+	}
 	buyAmountSum, sellAmountSum := preMatchProcessing(book)
 	if len(buyAmountSum) == 0 {
 		return sdk.ZeroDec(), sdk.ZeroDec()
