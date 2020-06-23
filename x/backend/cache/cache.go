@@ -28,9 +28,6 @@ func (c *Cache) Flush() {
 
 // AddTransaction append transaction to cache Transactions
 func (c *Cache) AddTransaction(transaction *types.Transaction) {
-	if transaction == nil {
-		panic("failed. a nil pointer appears")
-	}
 	c.Transactions = append(c.Transactions, transaction)
 }
 
