@@ -1039,11 +1039,13 @@ func (orm *ORM) AddOrders(orders []*types.Order) (addedCnt int, err error) {
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, order := range orders {
-		ret := tx.Create(order)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if order != nil {
+			ret := tx.Create(order)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
