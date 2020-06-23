@@ -12,9 +12,6 @@ import (
 )
 
 func preMatchProcessing(book *types.DepthBook) (buyAmountSum, sellAmountSum []sdk.Dec) {
-	if book == nil {
-		panic("failed. a nil pointer appears")
-	}
 	bookLength := len(book.Items)
 	if bookLength == 0 {
 		return
@@ -80,9 +77,6 @@ func execRule2(buyAmountSum, sellAmountSum []sdk.Dec, indexesRule1 []int) (index
 
 func execRule3(book *types.DepthBook, offset int, refPrice sdk.Dec, pricePrecision int64,
 	indexesRule2 []int, imbalance []sdk.Dec) (bestPrice sdk.Dec) {
-	if book == nil {
-		panic("failed. a nil pointer appears")
-	}
 	indexLen2 := len(indexesRule2)
 	if imbalance[indexesRule2[0]-offset].GT(sdk.ZeroDec()) {
 		// rule3a: all imbalances are positive, buy side pressure
@@ -124,9 +118,7 @@ func execRule3(book *types.DepthBook, offset int, refPrice sdk.Dec, pricePrecisi
 //         price. Then choose the price which is closest to reference price.
 func periodicAuctionMatchPrice(book *types.DepthBook, pricePrecision int64,
 	refPrice sdk.Dec) (bestPrice sdk.Dec, maxExecution sdk.Dec) {
-	if book == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	buyAmountSum, sellAmountSum := preMatchProcessing(book)
 	if len(buyAmountSum) == 0 {
 		return sdk.ZeroDec(), sdk.ZeroDec()
@@ -358,9 +350,7 @@ func lockProduct(ctx sdk.Context, k keeper.Keeper, logger log.Logger, product st
 func executeMatchedUpdatedProduct(ctx sdk.Context, k keeper.Keeper,
 	updatedProductsBasePrice map[string]types.MatchResult, feeParams *types.Params, blockRemainDeals int64,
 	product string, logger log.Logger) int64 {
-	if feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	matchResult := updatedProductsBasePrice[product]
 	buyExecutedCnt := sdk.ZeroDec()
 	sellExecutedCnt := sdk.ZeroDec()
@@ -392,9 +382,7 @@ func executeLockedProduct(ctx sdk.Context, k keeper.Keeper,
 	updatedProductsBasePrice map[string]types.MatchResult, lockMap *types.ProductLockMap,
 	feeParams *types.Params, blockRemainDeals int64, product string,
 	logger log.Logger) int64 {
-	if lockMap == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	if blockRemainDeals <= 0 {
 		return blockRemainDeals
 	}
