@@ -38,7 +38,6 @@ type (
 
 	// Messages
 	MsgList              = types.MsgList
-	MsgDelist            = types.MsgDelist
 	MsgDeposit           = types.MsgDeposit
 	MsgWithdraw          = types.MsgWithdraw
 	MsgTransferOwnership = types.MsgTransferOwnership
@@ -64,7 +63,6 @@ var (
 	DefaultParams       = types.DefaultParams
 
 	NewMsgList     = types.NewMsgList
-	NewMsgDelist   = types.NewMsgDelist
 	NewMsgDeposit  = types.NewMsgDeposit
 	NewMsgWithdraw = types.NewMsgWithdraw
 

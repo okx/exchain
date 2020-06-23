@@ -59,6 +59,8 @@ type IKeeper interface {
 	GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperator, isExist bool)
 	GetOperatorInfo(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperatorInfo, isExist bool)
 	IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool))
+	GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64)
+	SetMaxTokenPairID(ctx sdk.Context, tokenPairMaxID uint64)
 }
 
 // StakingKeeper defines the expected staking Keeper (noalias)

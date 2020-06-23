@@ -29,7 +29,7 @@ import (
 var (
 	// the genesis file in unittest/ should be modified with this
 	privateKey     = "de0e9d9e7bac1366f7d8719a450dab03c9b704172ba43e0a25a7be1d51c69a87"
-	totalModuleNum = 19
+	totalModuleNum = 20
 )
 
 func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
@@ -109,7 +109,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 		_, _, _ = app.ExportAppStateAndValidators(true, jailWhiteList)
 	})
 
-	// situation 4 : validator in the jail white list is not existed in the skakingKeeper
+	// situation 4 : validator in the jail white list doesn't exist in the stakingKeeper
 	jailWhiteList = []string{"okchainvaloper1qryc3z7jxlk7ma56qcaz75ksely65havrmtufv"}
 	require.Panics(t, func() {
 		_, _, _ = app.ExportAppStateAndValidators(true, jailWhiteList)

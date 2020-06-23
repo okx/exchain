@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -386,15 +387,17 @@ func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 }
 
 // GetProductOwner gets the OwnerAddress of specified product from dexKeeper
-func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress {
+func (k Keeper) GetProductOwner(ctx sdk.Context, product string) (sdk.AccAddress, error) {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
+	if tokenPair == nil {
+		return sdk.AccAddress{}, fmt.Errorf("failed. token pair %s doesn't exist", product)
+	}
 
 	operator, exists := k.GetDexKeeper().GetOperator(ctx, tokenPair.Owner)
 	if !exists {
-		return nil
-	} else {
-		return operator.HandlingFeeAddress
+		return sdk.AccAddress{}, fmt.Errorf("failed. dex operator %s doesn't exist", tokenPair.Owner)
 	}
+	return operator.HandlingFeeAddress, nil
 }
 
 // AddFeeDetail adds detail message of fee to tokenKeeper
@@ -412,8 +415,11 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from
 	if coins.IsZero() {
 		return "", nil
 	}
-	to := k.GetProductOwner(ctx, product)
-	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, to.String())
+	to, err := k.GetProductOwner(ctx, product)
+	if err != nil {
+		return "", err
+	}
+	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, "")
 	if err := k.tokenKeeper.SendCoinsFromAccountToAccount(ctx, from, to, coins); err != nil {
 		log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
 		return "", err

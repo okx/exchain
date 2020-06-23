@@ -3,6 +3,8 @@ package upgrade
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/staking/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	//"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/staking"
@@ -23,7 +25,7 @@ func TestEndBlocker(t *testing.T) {
 
 	// create validator
 	description := staking.NewDescription("moniker1", "identity1", "website1", "details1")
-	validator := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description)
+	validator := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description, types.DefaultMinSelfDelegation)
 	validator.Status = sdk.Bonded
 	validator.DelegatorShares = sdk.OneDec()
 
@@ -71,7 +73,7 @@ func TestEndBlockerTallySuccess(t *testing.T) {
 	description := staking.NewDescription("moniker2", "identity2", "website2", "details2")
 
 	// get validator && proposer
-	validatorPro := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description)
+	validatorPro := staking.NewValidator(sdk.ValAddress(accAddrs[0]), pubKeys[0], description, types.DefaultMinSelfDelegation)
 	validatorPro.Status = sdk.Bonded
 	validatorPro.DelegatorShares = sdk.OneDec()
 	stakingKeeper.SetValidator(ctx, validatorPro)
@@ -82,7 +84,7 @@ func TestEndBlockerTallySuccess(t *testing.T) {
 
 	// add vote to tally
 	for i := 1; i < 4; i++ {
-		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
+		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description, types.DefaultMinSelfDelegation)
 		validator.Status = sdk.Bonded
 		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)
