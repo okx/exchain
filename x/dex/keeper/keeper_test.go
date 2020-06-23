@@ -41,8 +41,8 @@ func TestSaveTokenPair(t *testing.T) {
 	err := keeper.SaveTokenPair(ctx, tokenPair0)
 	require.Nil(t, err)
 
-	tokenPairNumber := keeper.GetTokenPairNum(ctx)
-	require.Equal(t, uint64(1), tokenPairNumber)
+	maxTokenPairID := keeper.GetMaxTokenPairID(ctx)
+	require.Equal(t, uint64(1), maxTokenPairID)
 
 	// SaveTokenPair with id
 	tokenPairId := uint64(100)
@@ -51,8 +51,8 @@ func TestSaveTokenPair(t *testing.T) {
 	err = keeper.SaveTokenPair(ctx, tokenPair1)
 	require.Nil(t, err)
 
-	tokenPairNumber = keeper.GetTokenPairNum(ctx)
-	require.Equal(t, tokenPairId, tokenPairNumber)
+	maxTokenPairID = keeper.GetMaxTokenPairID(ctx)
+	require.Equal(t, tokenPairId, maxTokenPairID)
 
 	// SaveTokenPair with smaller id
 	tokenPair2 := getTestTokenPair()
@@ -60,8 +60,8 @@ func TestSaveTokenPair(t *testing.T) {
 	err = keeper.SaveTokenPair(ctx, tokenPair2)
 	require.Nil(t, err)
 
-	tokenPairNumber = keeper.GetTokenPairNum(ctx)
-	require.Equal(t, tokenPairId, tokenPairNumber)
+	maxTokenPairID = keeper.GetMaxTokenPairID(ctx)
+	require.Equal(t, tokenPairId, maxTokenPairID)
 
 }
 
