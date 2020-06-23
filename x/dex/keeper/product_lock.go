@@ -25,9 +25,6 @@ func (k Keeper) getProductLock(ctx sdk.Context, product string) *ordertypes.Prod
 
 // LockTokenPair locks token pair
 func (k Keeper) LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock) {
-	if lock == nil {
-		panic("a nil pointer appears")
-	}
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockProductKey(product), k.cdc.MustMarshalBinaryLengthPrefixed(*lock))
 }

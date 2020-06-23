@@ -104,7 +104,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var deposits []depositsData
 	for _, product := range tokenPairs {
 		if product == nil {
-			return res, types.ErrNilPointer()
+			panic("the nil pointer is not expected")
 		}
 		if product.Owner.String() == params.Owner {
 			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
@@ -147,7 +147,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 
 	for _, tokenPair := range tokenPairs {
 		if tokenPair == nil {
-			return res, types.ErrNilPointer()
+			panic("the nil pointer is not expected")
 		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
@@ -188,7 +188,7 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 	tokenPairLen := len(tokenPairs)
 	for i := 0; i < tokenPairLen; i++ {
 		if tokenPairs[i] == nil {
-			return res, types.ErrNilPointer()
+			panic("the nil pointer is not expected")
 		}
 		if tokenPairs[i].Delisting {
 			tokenPairNames = append(tokenPairNames, fmt.Sprintf("%s_%s", tokenPairs[i].BaseAssetSymbol, tokenPairs[i].QuoteAssetSymbol))

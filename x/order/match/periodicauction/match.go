@@ -320,7 +320,7 @@ func calcMatchPriceAndExecution(ctx sdk.Context, k keeper.Keeper, products []str
 	for _, product := range products {
 		tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
 		if tokenPair == nil {
-			panic("a nil pointer appears")
+			panic("the nil pointer is not expected")
 		}
 		book := k.GetDepthBookCopy(product)
 		bestPrice, maxExecution := periodicAuctionMatchPrice(book, tokenPair.MaxPriceDigit,

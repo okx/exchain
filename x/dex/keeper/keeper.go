@@ -72,24 +72,18 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 // SaveTokenPair saves the token pair to db
 // key is base:quote
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
-	if tokenPair == nil {
-		return types.ErrNilPointer()
-	}
-
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
-	tokenPairNumber := k.GetTokenPairNum(ctx)
+	maxTokenPairID := k.GetMaxTokenPairID(ctx)
 	// list new tokenPair
 	if tokenPair.ID == 0 {
-		tokenPair.ID = tokenPairNumber + 1
+		tokenPair.ID = maxTokenPairID + 1
 	}
 
-	// update tokenPairNumber to db
+	// update maxTokenPairID to db
 	// to load exported data from genesis file.
-	if tokenPair.ID > tokenPairNumber {
-		tokenPairNumber = tokenPair.ID
-		tokenPairNumberInByte := k.cdc.MustMarshalBinaryBare(tokenPairNumber)
-		store.Set(types.TokenPairNumberKey, tokenPairNumberInByte)
+	if tokenPair.ID > maxTokenPairID {
+		k.SetMaxTokenPairID(ctx, tokenPair.ID)
 	}
 
 	keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
@@ -196,18 +190,13 @@ func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to s
 }
 
 // UpdateTokenPair updates token pair in the store and the cache
-func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) sdk.Error {
-	if tokenPair == nil {
-		return types.ErrNilPointer()
-	}
+func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
 
 	if k.observerKeeper != nil {
 		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
-
-	return nil
 }
 
 // CheckTokenPairUnderDexDelist checks if token pair is under delist. for x/order: It's not allowed to place an order about the tokenpair under dex delist
@@ -244,8 +233,8 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
-
-	return k.UpdateTokenPair(ctx, product, tokenPair)
+	k.UpdateTokenPair(ctx, product, tokenPair)
+	return nil
 }
 
 // Withdraw withdraws amount of tokens from a product
@@ -286,8 +275,8 @@ func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amo
 
 	// update token pair
 	tokenPair.Deposits = tokenPair.Deposits.Sub(amount)
-
-	return k.UpdateTokenPair(ctx, product, tokenPair)
+	k.UpdateTokenPair(ctx, product, tokenPair)
+	return nil
 }
 
 // GetTokenPairsOrdered returns token pairs ordered by product
@@ -354,9 +343,7 @@ func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccA
 	// transfer ownership
 	tokenPair.Owner = to
 	tokenPair.Deposits = types.DefaultTokenPairDeposit
-	if sdkErr := k.UpdateTokenPair(ctx, product, tokenPair); sdkErr != nil {
-		return sdkErr
-	}
+	k.UpdateTokenPair(ctx, product, tokenPair)
 	k.updateUserTokenPair(ctx, product, from, to)
 
 	return nil
@@ -453,14 +440,21 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
-// GetTokenPairNum returns num of token pair
-func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
+// GetMaxTokenPairID returns the max ID of token pair
+func (k Keeper) GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
-	b := store.Get(types.TokenPairNumberKey)
+	b := store.Get(types.MaxTokenPairIDKey)
 	if b != nil {
-		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairNumber)
+		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairMaxID)
 	}
 	return
+}
+
+// SetMaxTokenPairID sets the max ID of token pair
+func (k Keeper) SetMaxTokenPairID(ctx sdk.Context, MaxtokenPairID uint64) {
+	store := ctx.KVStore(k.tokenPairStoreKey)
+	b := k.cdc.MustMarshalBinaryBare(MaxtokenPairID)
+	store.Set(types.MaxTokenPairIDKey, b)
 }
 
 func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
