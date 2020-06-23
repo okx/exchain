@@ -1001,11 +1001,13 @@ func (orm *ORM) AddFeeDetails(feeDetails []*token.FeeDetail) (addedCnt int, err 
 	cnt := 0
 
 	for _, feeDetail := range feeDetails {
-		ret := tx.Create(feeDetail)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if feeDetail != nil {
+			ret := tx.Create(feeDetail)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
