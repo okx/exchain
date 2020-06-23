@@ -106,7 +106,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	tokenPairs = keeper.GetTokenPairsOrdered(ctx)
 
 	var deposits []depositsData
-	for _, product := range tokenPairs {
+	for i, product := range tokenPairs {
 		if product == nil {
 			panic("the nil pointer is not expected")
 		}
