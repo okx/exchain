@@ -49,7 +49,8 @@ type (
 	Params        = types.Params
 	WithdrawInfo  = types.WithdrawInfo
 	WithdrawInfos = types.WithdrawInfos
-	Operators	  = types.DEXOperators
+	DEXOperator   = types.DEXOperator
+	Operators     = types.DEXOperators
 )
 
 var (
