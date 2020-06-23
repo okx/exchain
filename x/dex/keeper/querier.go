@@ -210,7 +210,7 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 // nolint
 func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]byte, sdk.Error) {
 	var params types.QueryDexOperatorParams
-	err := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
@@ -220,7 +220,7 @@ func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]by
 		return nil, types.ErrUnknownOperator(params.Addr)
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.GetCDC(), operator)
+	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operator)
 	if err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
@@ -237,7 +237,7 @@ func queryOperators(ctx sdk.Context, keeper IKeeper) ([]byte, sdk.Error) {
 		return false
 	})
 
-	bz, err := codec.MarshalJSONIndent(keeper.GetCDC(), operatorInfos)
+	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operatorInfos)
 	if err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
