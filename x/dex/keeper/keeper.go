@@ -147,7 +147,7 @@ func (k Keeper) GetTokenPairs(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	return tokenPairs
 }
 
-// GetUserTokenPairs returns all user token pairs from store without cache
+// GetUserTokenPairs returns all token pairs belong to an account from store
 func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	userTokenPairPrefix := types.GetUserTokenPairAddressPrefix(owner)
