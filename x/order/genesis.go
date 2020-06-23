@@ -66,9 +66,7 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) (data GenesisState) {
 		product := fmt.Sprintf("%s_%s", pair.BaseAssetSymbol, pair.QuoteAssetSymbol)
 		// update token pairs price
 		pair.InitPrice = keeper.GetLastPrice(ctx, product)
-		if sdkErr := keeper.GetDexKeeper().UpdateTokenPair(ctx, product, pair); sdkErr != nil {
-			panic(sdkErr.Error())
-		}
+		keeper.GetDexKeeper().UpdateTokenPair(ctx, product, pair)
 
 		// get open orders
 		depthBook := keeper.GetDepthBookFromDB(ctx, product)

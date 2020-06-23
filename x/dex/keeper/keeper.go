@@ -72,9 +72,6 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 // SaveTokenPair saves the token pair to db
 // key is base:quote
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
-	if tokenPair == nil {
-		return types.ErrNilPointer()
-	}
 
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
@@ -201,18 +198,13 @@ func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to s
 }
 
 // UpdateTokenPair updates token pair in the store and the cache
-func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) sdk.Error {
-	if tokenPair == nil {
-		return types.ErrNilPointer()
-	}
+func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Set(types.GetTokenPairAddress(product), k.cdc.MustMarshalBinaryBare(*tokenPair))
 
 	if k.observerKeeper != nil {
 		k.observerKeeper.OnTokenPairUpdated(ctx)
 	}
-
-	return nil
 }
 
 // CheckTokenPairUnderDexDelist checks if token pair is under delist. for x/order: It's not allowed to place an order about the tokenpair under dex delist
@@ -249,8 +241,8 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
-
-	return k.UpdateTokenPair(ctx, product, tokenPair)
+	k.UpdateTokenPair(ctx, product, tokenPair)
+	return nil
 }
 
 // Withdraw withdraws amount of tokens from a product
@@ -291,8 +283,8 @@ func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amo
 
 	// update token pair
 	tokenPair.Deposits = tokenPair.Deposits.Sub(amount)
-
-	return k.UpdateTokenPair(ctx, product, tokenPair)
+	k.UpdateTokenPair(ctx, product, tokenPair)
+	return nil
 }
 
 // GetTokenPairsOrdered returns token pairs ordered by product
@@ -359,9 +351,7 @@ func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccA
 	// transfer ownership
 	tokenPair.Owner = to
 	tokenPair.Deposits = types.DefaultTokenPairDeposit
-	if sdkErr := k.UpdateTokenPair(ctx, product, tokenPair); sdkErr != nil {
-		return sdkErr
-	}
+	k.UpdateTokenPair(ctx, product, tokenPair)
 	k.updateUserTokenPair(ctx, product, from, to)
 
 	return nil

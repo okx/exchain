@@ -103,9 +103,7 @@ func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {
 			return
 		}
 		tokenPair.Delisting = false
-		if sdkErr := k.UpdateTokenPair(ctx, tokenPairName, tokenPair); sdkErr != nil {
-			ctx.Logger().Error(sdkErr.Error())
-		}
+		k.UpdateTokenPair(ctx, tokenPairName, tokenPair)
 	}
 }
 
@@ -120,9 +118,7 @@ func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Prop
 			return
 		}
 		tokenPair.Delisting = true
-		if sdkErr := k.UpdateTokenPair(ctx, tokenPairName, tokenPair); sdkErr != nil {
-			ctx.Logger().Error(sdkErr.Error())
-		}
+		k.UpdateTokenPair(ctx, tokenPairName, tokenPair)
 	}
 }
 

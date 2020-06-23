@@ -13,7 +13,6 @@ const (
 	codeDelistOwnerNotMatch     sdk.CodeType = 3
 	codeInvalidBalanceNotEnough sdk.CodeType = 4
 	codeInvalidAsset            sdk.CodeType = 5
-	codeNilPointer              sdk.CodeType = 6
 )
 
 // CodeType to Message
@@ -59,9 +58,4 @@ func ErrInvalidAsset(message string) sdk.Error {
 func ErrTokenPairExisted(baseAsset, quoteAsset string) sdk.Error {
 	return sdk.NewError(DefaultCodespace, codeInvalidAsset,
 		fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))
-}
-
-// ErrNilPointer returns an error when a nil pointer appears
-func ErrNilPointer() sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeNilPointer, "failed. a nil pointer appears")
 }
