@@ -13,9 +13,7 @@ import (
 func fillBuyOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,
 	bestPrice, maxExecution sdk.Dec, buyExecuted *sdk.Dec,
 	blockRemainDeals int64, feeParams *types.Params) ([]types.Deal, int64) {
-	if buyExecuted == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	var buyDeals []types.Deal
 	book := keeper.GetDepthBookCopy(product)
 
@@ -60,9 +58,7 @@ func fillBuyOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,
 func fillSellOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,
 	bestPrice, maxExecution sdk.Dec, sellExecuted *sdk.Dec,
 	blockRemainDeals int64, feeParams *types.Params) ([]types.Deal, int64) {
-	if sellExecuted == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	var sellDeals []types.Deal
 	book := keeper.GetDepthBookCopy(product)
 
@@ -116,9 +112,7 @@ func fillDepthBook(ctx sdk.Context,
 	sellExecutedCnt *sdk.Dec,
 	blockRemainDeals int64,
 	feeParams *types.Params) ([]types.Deal, int64) {
-	if buyExecutedCnt == nil || sellExecutedCnt == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	var deals []types.Deal
 	if maxExecution.IsZero() {
 		return deals, blockRemainDeals
@@ -142,9 +136,7 @@ func fillDepthBook(ctx sdk.Context,
 func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 	needFillAmount sdk.Dec, fillPrice sdk.Dec, feeParams *types.Params,
 	remainDeals int64) ([]types.Deal, sdk.Dec, int64) {
-	if feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	deals := []types.Deal{}
 	filledAmount := sdk.ZeroDec()
 	orderIDsMap := keeper.GetDiskCache().GetOrderIDsMapCopy()
@@ -191,9 +183,7 @@ func fillOrderByKey(ctx sdk.Context, keeper orderkeeper.Keeper, key string,
 
 func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 	fillPrice, fillQuantity sdk.Dec) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	symbols := strings.Split(order.Product, "_")
 	// transfer tokens
 	var outputCoins, inputCoins sdk.DecCoins
@@ -209,9 +199,6 @@ func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keep
 
 func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, fillQuantity sdk.Dec,
 	feeParams *types.Params) sdk.DecCoins {
-	if order == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
 	// charge fee
 	fee := orderkeeper.GetZeroFee()
 	if order.Status == types.OrderStatusFilled {
@@ -241,9 +228,7 @@ func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, f
 // If an order is fully filled but still lock some coins, unlock it.
 func fillOrder(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 	fillPrice, fillQuantity sdk.Dec, feeParams *types.Params) *types.Deal {
-	if order == nil || feeParams == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	// update order
 	order.Fill(fillPrice, fillQuantity)
 
