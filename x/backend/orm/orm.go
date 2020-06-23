@@ -242,11 +242,13 @@ func (orm *ORM) AddDeals(deals []*types.Deal) (addedCnt int, err error) {
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, deal := range deals {
-		ret := tx.Create(deal)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if deal != nil {
+			ret := tx.Create(deal)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
