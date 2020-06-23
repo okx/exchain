@@ -72,7 +72,6 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 // SaveTokenPair saves the token pair to db
 // key is base:quote
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
-
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
 	tokenPairNumber := k.GetTokenPairNum(ctx)

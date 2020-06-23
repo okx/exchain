@@ -8,9 +8,10 @@ import (
 
 // const CodeType
 const (
-	codeInvalidProduct          sdk.CodeType = 1
-	codeTokenPairNotFound       sdk.CodeType = 2
-	codeDelistOwnerNotMatch     sdk.CodeType = 3
+	codeInvalidProduct      sdk.CodeType = 1
+	codeTokenPairNotFound   sdk.CodeType = 2
+	codeDelistOwnerNotMatch sdk.CodeType = 3
+
 	codeInvalidBalanceNotEnough sdk.CodeType = 4
 	codeInvalidAsset            sdk.CodeType = 5
 )
