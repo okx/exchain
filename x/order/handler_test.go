@@ -961,6 +961,11 @@ func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*t
 
 	err = mapp.dexKeeper.SaveTokenPair(ctx, &tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
+
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	require.NotNil(t, acc)
 	//place buy order

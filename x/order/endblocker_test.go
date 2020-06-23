@@ -398,6 +398,10 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 	tokenPairDex := dex.GetBuiltInTokenPair()
 	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPairDex)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	EndBlocker(ctx, k)
