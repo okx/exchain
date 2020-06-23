@@ -152,11 +152,13 @@ func (orm *ORM) AddMatchResults(results []*types.MatchResult) (addedCnt int, err
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, result := range results {
-		ret := tx.Create(result)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if result != nil {
+			ret := tx.Create(result)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
