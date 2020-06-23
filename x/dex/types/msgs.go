@@ -43,6 +43,14 @@ func (msg MsgList) ValidateBasic() sdk.Error {
 	if msg.ListAsset == msg.QuoteAsset {
 		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list product because base asset is same as quote asset"))
 	}
+
+	if !msg.InitPrice.IsPositive() {
+		return sdk.ErrUnknownRequest("invalid init price")
+	}
+
+	if msg.Owner.Empty() {
+		return sdk.ErrInvalidAddress("missing owner address")
+	}
 	return nil
 }
 
@@ -80,7 +88,7 @@ func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 
@@ -121,7 +129,7 @@ func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 

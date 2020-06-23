@@ -150,7 +150,7 @@ func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	switch proposal.Status {
 	case types.StatusDepositPeriod:
 		tallyResult = types.EmptyTallyResult(keeper.totalPower(ctx))
-	case types.StatusPassed, types.StatusRejected:
+	case types.StatusPassed, types.StatusRejected, types.StatusFailed:
 		tallyResult = proposal.FinalTallyResult
 	default:
 		// proposal is in voting period
