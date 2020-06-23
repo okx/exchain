@@ -165,3 +165,11 @@ type QueryTxListParamsV2 struct {
 	Before  string
 	Limit   int
 }
+
+type DexFees struct {
+	Timestamp       int64  `json:"timestamp"`
+	OrderID         string `json:"order_id"`
+	Product         string `json:"product"`
+	Fee             string `json:"fee"`
+	HandlingFeeAddr string `json:"handling_fee_addr"`
+}

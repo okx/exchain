@@ -20,8 +20,8 @@ import (
 // RegisterRoutes - Central function to define routes that get registered by the main application
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/products", productsHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/deposits", depositsHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/match_order", matchOrderHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dex/deposits/{address}", depositsHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dex/product_rank", matchOrderHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dexoperator/{address}", operatorHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dexoperators", operatorsHandler(cliCtx)).Methods("GET")
 }
@@ -65,16 +65,13 @@ func productsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 
 func depositsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		address := r.URL.Query().Get("address")
+
+		vars := mux.Vars(r)
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
-		if len(address) == 0 || address == "" {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorMissingRequiredParam)
-			return
-		}
 		var params = &types.QueryDexInfoParams{}
-		err := params.SetPageAndPerPage(address, pageStr, perPageStr)
+		err := params.SetPageAndPerPage(vars["address"], pageStr, perPageStr)
 
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)
@@ -170,7 +167,6 @@ func operatorHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 	}
 }
 
-
 func operatorsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, _, err := cliContext.Query(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryOperators))
@@ -190,7 +186,6 @@ func operatorsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *
 
 	}
 }
-
 
 // DelistProposalRESTHandler defines dex proposal handler
 func DelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {

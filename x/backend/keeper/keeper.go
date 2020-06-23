@@ -121,6 +121,11 @@ func (k Keeper) GetTransactionList(ctx sdk.Context, addr string, txType, startTi
 	return k.Orm.GetTransactionList(addr, txType, startTime, endTime, offset, limit)
 }
 
+// nolint
+func (k Keeper) GetDexFees(ctx sdk.Context, dexHandlingAddr, product string, offset, limit int) ([]types.DexFees, int) {
+	return k.Orm.GetDexFees(dexHandlingAddr, product, offset, limit)
+}
+
 func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)

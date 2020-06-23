@@ -314,6 +314,42 @@ func (orm *ORM) GetDeals(address, product, side string, startTime, endTime int64
 	return deals, total
 }
 
+// nolint
+func (orm *ORM) GetDexFees(dexHandlingAddr, product string, offset, limit int) ([]types.DexFees, int) {
+	var deals []types.Deal
+	query := orm.db.Model(types.Deal{})
+
+	if dexHandlingAddr != "" {
+		query = query.Where("fee_receiver = ?", dexHandlingAddr)
+	}
+	if product != "" {
+		query = query.Where("product = ?", product)
+	}
+
+	var total int
+	query.Count(&total)
+	if offset >= total {
+		return nil, total
+	}
+
+	query.Order("timestamp desc").Offset(offset).Limit(limit).Find(&deals)
+	if len(deals) == 0 {
+		return nil, 0
+	}
+	var dexFees []types.DexFees
+	for _, deal := range deals {
+		dexFees = append(dexFees, types.DexFees{
+			Timestamp:       deal.Timestamp,
+			OrderID:         deal.OrderID,
+			Product:         deal.Product,
+			Fee:             deal.Fee,
+			HandlingFeeAddr: deal.FeeReceiver,
+		})
+	}
+
+	return dexFees, total
+}
+
 func (orm *ORM) getDealsByTimestampRange(product string, startTS, endTS int64) ([]types.Deal, error) {
 	var deals []types.Deal
 	r := orm.db.Model(types.Deal{}).Where(

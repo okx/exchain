@@ -162,3 +162,25 @@ func NewQueryTxListParams(addr string, txType, startTime, endTime int64, page, p
 		PerPage:   perPage,
 	}
 }
+
+// nolint
+type QueryDexFeesParams struct {
+	DexHandlingAddr string
+	Product         string
+	Page            int
+	PerPage         int
+}
+
+// NewQueryDexFeesParams creates a new instance of QueryDexFeesParams
+func NewQueryDexFeesParams(dexHandlingAddr, product string, page, perPage int) QueryDexFeesParams {
+	if page == 0 && perPage == 0 {
+		page = DefaultPage
+		perPage = DefaultPerPage
+	}
+	return QueryDexFeesParams{
+		DexHandlingAddr: dexHandlingAddr,
+		Product:         product,
+		Page:            page,
+		PerPage:         perPage,
+	}
+}
