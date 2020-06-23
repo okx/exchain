@@ -721,6 +721,10 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	tokenPairDex := dex.GetBuiltInTokenPair()
 	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPairDex)

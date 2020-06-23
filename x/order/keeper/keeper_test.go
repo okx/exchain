@@ -311,6 +311,10 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// place order err
 	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "108", "1")

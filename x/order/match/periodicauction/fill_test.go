@@ -23,6 +23,11 @@ func TestFillDepthBook(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
+
 	// mock orders, DepthBook, and orderIDsMap
 	keeper.ResetCache(ctx)
 	orders := []*types.Order{
@@ -124,6 +129,11 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
+
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
 		mockOrder("", types.TestTokenPair, types.BuyOrder, "9.8", "1.0"),
@@ -225,6 +235,10 @@ func TestPartialFillDepthBook(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -385,6 +399,10 @@ func TestFillBuyOrders(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -425,6 +443,10 @@ func TestFillSellOrders(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -504,6 +526,10 @@ func TestFillOrderByKey(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -543,6 +569,10 @@ func TestFillOrderByKeyByNotExistKey(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -581,6 +611,10 @@ func TestFillOrder(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders, DepthBook, and orderIDsMap
 	orders := []*types.Order{
@@ -648,6 +682,10 @@ func TestChargeFee(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	keeper.ResetCache(ctx)
 	orders := []*types.Order{

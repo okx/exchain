@@ -7,17 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/order/keeper"
-
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/dex"
+	"github.com/okex/okchain/x/order/keeper"
 	"github.com/okex/okchain/x/order/types"
 	token "github.com/okex/okchain/x/token/types"
 )
@@ -37,6 +35,10 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders
 	orders := []*types.Order{
@@ -138,6 +140,10 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// mock orders
 	orders := []*types.Order{
@@ -658,10 +664,10 @@ func TestEndBlocker(t *testing.T) {
 	handler := NewOrderHandler(k)
 
 	blockHeight := startHeight
-	for i:=0;i<100000;i++ {
+	for i := 0; i < 100000; i++ {
 		msg := buildRandomOrderMsg(addrKeysSlice[0].Address)
 		result := handler(ctx, msg)
-		if (i + 1) % 1000 == 0 {
+		if (i+1)%1000 == 0 {
 			blockHeight = blockHeight + 1
 			ctx = ctx.WithBlockHeight(blockHeight)
 		}
@@ -670,7 +676,7 @@ func TestEndBlocker(t *testing.T) {
 	// call EndBlocker to execute periodic match
 	EndBlocker(ctx, k)
 
-	quantityList := [3]string{"200","500","1000"}
+	quantityList := [3]string{"200", "500", "1000"}
 	for _, quantity := range quantityList {
 		startTime := time.Now()
 		blockHeight = blockHeight + 1
