@@ -452,9 +452,6 @@ func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 
 // SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
-	if params == nil {
-		panic("failed. a nil pointer appears")
-	}
 	k.paramSpace.SetParamSet(ctx, params)
 	k.cache.SetParams(params)
 }
@@ -496,9 +493,6 @@ func (k Keeper) GetBestBidAndAsk(ctx sdk.Context, product string) (sdk.Dec, sdk.
 
 // RemoveOrderFromDepthBook removes order from depthBook, and updates cancelNum, expireNum, updatedOrderIDs from cache
 func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	k.addUpdatedOrderID(order.OrderID)
 	if feeType == types.FeeTypeOrderCancel {
 		k.cache.IncreaseCancelNum()
@@ -511,9 +505,6 @@ func (k Keeper) RemoveOrderFromDepthBook(order *types.Order, feeType string) {
 
 // nolint
 func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	// update order to keeper
 	k.SetOrder(ctx, order.OrderID, order)
 	// record updated orderID
@@ -528,9 +519,6 @@ func (k Keeper) UpdateOrder(order *types.Order, ctx sdk.Context) {
 
 // nolint
 func (k Keeper) InsertOrderIntoDepthBook(order *types.Order) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	k.diskCache.insertOrder(order)
 }
 
