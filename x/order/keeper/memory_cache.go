@@ -45,9 +45,6 @@ func (c *Cache) addUpdatedOrderID(orderID string) {
 }
 
 func (c *Cache) setBlockMatchResult(result *types.BlockMatchResult) {
-	if result == nil {
-		panic("failed. a nil pointer appears")
-	}
 	c.blockMatchResult = result
 }
 
@@ -101,9 +98,6 @@ func (c *Cache) getBlockMatchResult() *types.BlockMatchResult {
 
 // nolint
 func (c *Cache) SetParams(params *types.Params) {
-	if params == nil {
-		panic("failed. a nil pointer appears")
-	}
 	c.params = params
 }
 
