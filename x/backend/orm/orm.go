@@ -1114,11 +1114,13 @@ func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, transaction := range transactions {
-		ret := tx.Create(transaction)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if transaction != nil {
+			ret := tx.Create(transaction)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
