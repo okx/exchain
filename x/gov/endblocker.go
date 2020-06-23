@@ -85,6 +85,7 @@ func handleActiveProposals(ctx sdk.Context, k keeper.Keeper, logger log.Logger) 
 		proposal.FinalTallyResult = tallyResults
 		k.SetProposal(ctx, proposal)
 		k.RemoveFromActiveProposalQueue(ctx, proposal.ProposalID, proposal.VotingEndTime)
+		k.DeleteVotes(ctx, proposal.ProposalID)
 
 		logger.Info(
 			fmt.Sprintf("proposal %d (%s) tallied; result: %s",

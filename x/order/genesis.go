@@ -34,6 +34,9 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data GenesisState) {
 
 	// reset open order& depth book
 	for _, order := range data.OpenOrders {
+		if order == nil {
+			panic("the nil pointer is not expected")
+		}
 		height := types.GetBlockHeightFromOrderID(order.OrderID)
 
 		futureHeight := height + data.Params.OrderExpireBlocks
@@ -63,6 +66,9 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) (data GenesisState) {
 	var openOrders []*types.Order
 	var num int64 = 1
 	for _, pair := range tokenPairs {
+		if pair == nil {
+			panic("the nil pointer is not expected")
+		}
 		product := fmt.Sprintf("%s_%s", pair.BaseAssetSymbol, pair.QuoteAssetSymbol)
 		// update token pairs price
 		pair.InitPrice = keeper.GetLastPrice(ctx, product)
