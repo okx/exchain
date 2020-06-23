@@ -3,7 +3,6 @@ package keeper
 import (
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okchain/x/dex/types"
@@ -45,7 +44,6 @@ type IKeeper interface {
 	GetParams(ctx sdk.Context) (params types.Params)
 	SetParams(ctx sdk.Context, params types.Params)
 	GetFeeCollector() string
-	GetCDC() *codec.Codec
 	TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error
 	LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock)
 	LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap
