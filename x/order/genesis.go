@@ -58,7 +58,7 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data GenesisState) {
 // with InitGenesis
 func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
-	tokenPairs := keeper.GetDexKeeper().GetTokenPairsFromStore(ctx)
+	tokenPairs := keeper.GetDexKeeper().GetTokenPairs(ctx)
 
 	var openOrders []*types.Order
 	var num int64 = 1

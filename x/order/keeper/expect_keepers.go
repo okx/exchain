@@ -42,7 +42,6 @@ type DexKeeper interface {
 	SortProducts(ctx sdk.Context, products []string)
 	SaveTokenPair(ctx sdk.Context, tokenPair *dex.TokenPair) error
 	UpdateTokenPair(ctx sdk.Context, product string, tokenPair *dex.TokenPair) sdk.Error
-	GetTokenPairsFromStore(ctx sdk.Context) []*dex.TokenPair
 	CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (isDelisting bool, err error)
 	LockTokenPair(ctx sdk.Context, product string, lock *types.ProductLock)
 	UnlockTokenPair(ctx sdk.Context, product string)

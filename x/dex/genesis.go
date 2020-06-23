@@ -68,7 +68,7 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 // with InitGenesis
 func ExportGenesis(ctx sdk.Context, keeper IKeeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
-	tokenPairs := keeper.GetTokenPairsFromStore(ctx)
+	tokenPairs := keeper.GetTokenPairs(ctx)
 	var withdrawInfos WithdrawInfos
 	keeper.IterateWithdrawInfo(ctx, func(_ int64, withdrawInfo WithdrawInfo) (stop bool) {
 		withdrawInfos = append(withdrawInfos, withdrawInfo)
