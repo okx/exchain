@@ -43,9 +43,6 @@ func (k Keeper) DropExpireBlockHeight(ctx sdk.Context, blockHeight int64) {
 // ===============================================
 // nolint
 func (k Keeper) SetOrder(ctx sdk.Context, orderID string, order *types.Order) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	store := ctx.KVStore(k.orderStoreKey)
 	store.Set(types.GetOrderKey(orderID), k.cdc.MustMarshalBinaryBare(order))
 }

@@ -18,9 +18,6 @@ import (
 )
 
 func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
-	if params == nil {
-		panic("failed. a nil pointer appears")
-	}
 	switch msg := msg.(type) {
 	case types.MsgNewOrders:
 		gas = msg.CalculateGas(params.NewOrderMsgGasUnit)

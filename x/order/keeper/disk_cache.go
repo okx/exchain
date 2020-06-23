@@ -109,10 +109,6 @@ func (c *DiskCache) addOrderIDs(key string, orderIDs []string) {
 }
 
 func (c *DiskCache) addDepthBook(product string, book *types.DepthBook) {
-	if book == nil {
-		panic("failed. a nil pointer appears")
-	}
-
 	c.depthBookMap.data[product] = book
 }
 
@@ -183,9 +179,6 @@ func (c *DiskCache) GetNewDepthbookKeys() []string {
 
 // insertOrder inserts a new order into orderIDsMap
 func (c *DiskCache) insertOrder(order *types.Order) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	// 1. update depthBookMap
 	depthBook, ok := c.depthBookMap.data[order.Product]
 	if !ok {
@@ -218,9 +211,7 @@ func (c *DiskCache) closeOrder(orderID string) {
 
 // remove an order from orderIDsMap when order cancelled/expired
 func (c *DiskCache) removeOrder(order *types.Order) {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
+
 	// update depth book map
 	depthBook := c.getDepthBook(order.Product)
 	if depthBook != nil {

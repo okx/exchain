@@ -19,9 +19,6 @@ type GetFeeKeeper interface {
 
 // GetOrderNewFee is used to calculate the handling fee that needs to be locked when placing an order
 func GetOrderNewFee(order *types.Order) sdk.DecCoins {
-	if order == nil {
-		panic("failed. a nil pointer appears")
-	}
 	orderExpireBlocks := sdk.NewDec(order.OrderExpireBlocks)
 	amount := order.FeePerBlock.Amount.Mul(orderExpireBlocks)
 	return sdk.DecCoins{sdk.NewDecCoinFromDec(order.FeePerBlock.Denom, amount)}
