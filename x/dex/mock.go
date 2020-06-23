@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -111,14 +110,6 @@ func (k *mockDexKeeper) Deposit(ctx sdk.Context, product string, from sdk.AccAdd
 		return sdk.ErrInternal("raise an mock exception here")
 	}
 	return nil
-}
-
-// GetCDC mocks GetCDC of dex.Keeper
-func (k *mockDexKeeper) GetCDC() *codec.Codec {
-	if k.failToMarshal {
-		return nil
-	}
-	return k.Keeper.GetCDC()
 }
 
 // Withdraw mocks Withdraw of dex.Keeper
