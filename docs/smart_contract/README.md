@@ -1,9 +1,5 @@
 
-* [Creating a Smart Contract](#creating-a-smart-contract)
-   * [1、Implementing the Smart Contract](#1implementing-the-smart-contract)
-   * [2、Testing the Smart Contract (rust)](#2testing-the-smart-contract-rust)
-   * [3、Production Builds](#3production-builds)
-* [Running a Smart Contract](#running-a-smart-contract)
+* [The Guidelines for deploy an existing Smart Contract and interact with it afterwards](#The Guidelines for deploy an existing Smart Contract and interact with it afterwards)
    * [1、Prepare](#1prepare)
       * [1.1、Set up okchaincli](#11set-up-okchaincli)
          * [1.1.1、Build okchaincli](#111build-okchaincli)
@@ -16,58 +12,15 @@
    * [3、Instantiate Contract](#3instantiate-contract)
    * [4、Invoke Contract](#4invoke-contract)
    * [5、Query Contract](#5query-contract)
+* [Creating your own Smart Contract](#Creating your own Smart Contract)
+   * [1、Implementing the Smart Contract](#1implementing-the-smart-contract)
+   * [2、Testing the Smart Contract (rust)](#2testing-the-smart-contract-rust)
+   * [3、Production Builds](#3production-builds)
 
-# Creating a Smart Contract
 
-If you want to get started building you own, the simplest way is to go to the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template) repository and follow the instructions. This will give you a simple contract along with tests, and a properly configured build environment. From there you can edit the code to add your desired logic and publish it as an independent repo.
+# The Guidelines for deploy an existing Smart Contract and interact with it afterwards
 
-## 1、Implementing the Smart Contract
-
-If you start from the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template), you may notice that all of the Wasm exports are taken care of by `lib.rs`, which should shouldn't need to modify. What you need to do is simply look in `contract.rs` and implement `init` ,`handle` and `query` functions, defining your custom `InitMsg` , `HandleMsg` and `QueryMsg` structs for parsing your custom message types (as json):
-
-~~~rust
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: InitMsg,
-) -> StdResult<InitResponse> {}
-
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: HandleMsg,
-) -> StdResult<HandleResponse> {}
-
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> StdResult<Binary> {}
-~~~
-
-## 2、Testing the Smart Contract (rust)
-
-For quick unit tests and useful error messages, it is often helpful to compile the code using native build system and then test all code except for the `extern "C"` functions (which should just be small wrappers around the real logic).
-
-If you have non-trivial logic in the contract, please write tests using rust's standard tooling. If you run `cargo test`, it will compile into native code using the `debug` profile, and you get the normal test environment you know and love. Notably, you can add plenty of requirements to `[dev-dependencies]` in `Cargo.toml` and they will be available for your testing joy. As long as they are only used in `#[cfg(test)]` blocks, they will never make it into the (release) Wasm builds and have no overhead on the production artifact.
-
-## 3、Production Builds
-
-The above build process (`cargo wasm`) works well to produce wasm output for testing. However, it is quite large, around 1.5 MB likely, and not suitable for posting to the blockchain. Furthermore, it is very helpful if we have reproducible build step so others can prove the on-chain wasm code was generated from the published rust code.
-
-For that, we have a separate repo, [cosmwasm-opt](https://github.com/CosmWasm/cosmwasm-opt) that provides a [docker image](https://hub.docker.com/r/CosmWasm/cosmwasm-opt/tags) for building. For more info, look at [cosmwasm-opt README](https://github.com/CosmWasm/cosmwasm-opt/blob/master/README.md#usage), but the quickstart guide is:
-
-~~~bash
-docker run --rm -v "$(pwd)":/code \
-  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.8.0
-~~~
-
-It will output a highly size-optimized build as `contract.wasm` in `$CODE`. With our example contract, the size went down to 126kB (from 1.6MB from `cargo wasm`). If we didn't use serde-json, this would be much smaller still...
-
-# Running a Smart Contract
-
-If you followed the instructions above, you should have a runable smart contract. To better describe the usage of smart contracts on okchain , we will use the erc20 example to show the whole process.
+A smart contract is a computer program or a transaction protocol which is intended to automatically execute, control or document legally relevant events and actions according to the terms of a contract or an agreement. To better describe the usage of smart contracts on okchain , we will use the erc20 example to show the whole process.
 
 ## 1、Prepare
 
@@ -84,9 +37,8 @@ Because we don't have a stable cosmwasm version yet, so we decide not to provide
 here is the instructions to build okchaincli:
 
 ~~~bash
-git clone https://github.com/okex/okchain.git
+git clone https://github.com/okex/okchain.git -b okchain-wasm
 cd okchain
-git checkout -b okchain-wasm
 make install
 ~~~
 
@@ -154,7 +106,9 @@ Telegram:  `Okchain`
 
 ### 1.3、 Prepare wasm contract file
 
-Download the erc20 contract file: [contract.wasm](https://github.com/CosmWasm/cosmwasm-examples/blob/master/erc20/contract.wasm)
+One of the most significant tokens is known as ERC-20, which has emerged as the technical standard used for all smart contracts on the Ethereum blockchain for token implementation. As it is so famous in blockchain industry, so we decided to provide an erc-20 implementation to show the powerful of wasm smart contract. You can download the erc20 contract wasm file: [contract.wasm](https://raw.githubusercontent.com/CosmWasm/cosmwasm-examples/master/erc20/contract.wasm), the rust code can be found in this link: [erc20](https://github.com/CosmWasm/cosmwasm-examples/tree/master/erc20).
+
+The contract provide the following function: `init`, `Approve`, `Transfer`, `TransferFrom`, `Burn`, `Balance`, `Allowance`, which is the main function of the erc20 protocol. The following instructions will show you how to use it in our okchain-wasm test-net.
 
 ## 2、Install Contract
 
@@ -260,3 +214,52 @@ okchaincli query wasm contract-state  smart okchain18vd8fpwxzck93qlwghaj6arh4p7c
 // query account2 balance
 okchaincli query wasm contract-state  smart okchain18vd8fpwxzck93qlwghaj6arh4p7c5n897czf0h "{\"balance\":{\"address\":\"okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay\"}}"
 ~~~
+
+
+# Creating your own Smart Contract
+
+If you want to get started building you own, the simplest way is to go to the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template) repository and follow the instructions. This will give you a simple contract along with tests, and a properly configured build environment. From there you can edit the code to add your desired logic and publish it as an independent repo.
+
+## 1、Implementing the Smart Contract
+
+If you start from the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template), you may notice that all of the Wasm exports are taken care of by `lib.rs`, which should shouldn't need to modify. What you need to do is simply look in `contract.rs` and implement `init` ,`handle` and `query` functions, defining your custom `InitMsg` , `HandleMsg` and `QueryMsg` structs for parsing your custom message types (as json):
+
+~~~rust
+pub fn init<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: InitMsg,
+) -> StdResult<InitResponse> {}
+
+pub fn handle<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: HandleMsg,
+) -> StdResult<HandleResponse> {}
+
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    msg: QueryMsg,
+) -> StdResult<Binary> {}
+~~~
+
+## 2、Testing the Smart Contract (rust)
+
+For quick unit tests and useful error messages, it is often helpful to compile the code using native build system and then test all code except for the `extern "C"` functions (which should just be small wrappers around the real logic).
+
+If you have non-trivial logic in the contract, please write tests using rust's standard tooling. If you run `cargo test`, it will compile into native code using the `debug` profile, and you get the normal test environment you know and love. Notably, you can add plenty of requirements to `[dev-dependencies]` in `Cargo.toml` and they will be available for your testing joy. As long as they are only used in `#[cfg(test)]` blocks, they will never make it into the (release) Wasm builds and have no overhead on the production artifact.
+
+## 3、Production Builds
+
+The above build process (`cargo wasm`) works well to produce wasm output for testing. However, it is quite large, around 1.5 MB likely, and not suitable for posting to the blockchain. Furthermore, it is very helpful if we have reproducible build step so others can prove the on-chain wasm code was generated from the published rust code.
+
+For that, we have a separate repo, [cosmwasm-opt](https://github.com/CosmWasm/cosmwasm-opt) that provides a [docker image](https://hub.docker.com/r/CosmWasm/cosmwasm-opt/tags) for building. For more info, look at [cosmwasm-opt README](https://github.com/CosmWasm/cosmwasm-opt/blob/master/README.md#usage), but the quickstart guide is:
+
+~~~bash
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/rust-optimizer:0.8.0
+~~~
+
+It will output a highly size-optimized build as `contract.wasm` in `$CODE`. With our example contract, the size went down to 126kB (from 1.6MB from `cargo wasm`). If we didn't use serde-json, this would be much smaller still...
