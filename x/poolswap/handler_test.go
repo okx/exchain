@@ -2,6 +2,7 @@ package poolswap
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -308,4 +309,68 @@ func TestGetInputPrice(t *testing.T) {
 	outputReserve := sdk.NewDec(100)
 	res := getInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
 	require.Equal(t, inputAmount, res)
+}
+
+func TestRandomData(t *testing.T) {
+	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000000)
+	keeper := mapp.swapKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	testToken := initToken(types.TestBasePooledToken)
+
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	handler := NewHandler(keeper)
+	mapp.tokenKeeper.NewToken(ctx, testToken)
+	addr := addrKeysSlice[0].Address
+	for i := 0; i < 1000000; i++ {
+		var msg sdk.Msg
+		t := rand.Intn(3)
+		switch t {
+		case 0:
+			msg = buildRandomMsgAddLiquidity(addr)
+		case 1:
+			msg = buildRandomMsgRemoveLiquidity(addr)
+		case 2:
+			msg = buildRandomMsgTokenToNativeToken(addr)
+		}
+		handler(ctx, msg)
+	}
+
+}
+
+func buildRandomMsgAddLiquidity(addr sdk.AccAddress) types.MsgAddLiquidity {
+	minLiquidity := sdk.NewDec(0)
+	d := rand.Intn(100) + 1
+	d2 := rand.Intn(100) + 1
+	maxBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(int64(d), 8))
+	quoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d2), 8))
+	deadLine := time.Now().Unix()
+	msg := types.NewMsgAddLiquidity(minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr)
+	return msg
+}
+
+func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity {
+	d := rand.Intn(100) + 1
+	liquidity := sdk.NewDecWithPrec(int64(d), 4)
+	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(1))
+	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDec(1))
+	deadLine := time.Now().Unix()
+	msg := types.NewMsgRemoveLiquidity(liquidity, minBaseAmount, minQuoteAmount, deadLine, addr)
+	return msg
+}
+
+func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToNativeToken {
+	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
+	d := rand.Intn(100) + 1
+	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
+	deadLine := time.Now().Unix()
+	judge := rand.Intn(2)
+	var msg types.MsgTokenToNativeToken
+	if judge == 0 {
+		msg = types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+	} else {
+		msg = types.NewMsgTokenToNativeToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+	}
+
+	return msg
 }

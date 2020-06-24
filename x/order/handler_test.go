@@ -3,6 +3,7 @@ package order
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -981,4 +982,38 @@ func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*t
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
 	require.NotNil(t, acc1)
 	return acc0.GetCoins()
+}
+
+func TestConCurrentKeeperWrite(t *testing.T) {
+	keyList := []string{"abc", "def", "dfkj", "ksdf", "aksdff", "ijks", "ksdfds", "nvos", "alind", "lkls", "ienfi"}
+	order := types.MockOrder(types.FormatOrderID(10, 1), "btc-a8a_xxb", types.BuyOrder, "11", "1")
+	for i := 0; i < 10; i++ {
+		getHash(t, keyList, order)
+		randomExchange(keyList)
+	}
+}
+
+func randomExchange(inputArray []string) {
+	maxIndex := len(inputArray)
+	for i := 0; i < 5; i++ {
+		i1 := rand.Intn(maxIndex)
+		i2 := rand.Intn(maxIndex)
+		t := inputArray[i1]
+		inputArray[i1] = inputArray[i2]
+		inputArray[i2] = t
+	}
+
+}
+func getHash(t *testing.T, orderIdList []string, order *Order) {
+	app, _ := getMockApp(t, 0)
+	keeper := app.orderKeeper
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
+	app.supplyKeeper.SetSupply(ctx, supply.NewSupply(app.TotalCoinsSupply))
+	for _, key := range orderIdList {
+		keeper.SetOrder(ctx, key, order)
+	}
+	res := app.Commit()
+	fmt.Println(orderIdList)
+	fmt.Println(res)
 }
