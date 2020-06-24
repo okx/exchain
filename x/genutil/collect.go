@@ -95,66 +95,68 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 	var addressesIPs []string
 
 	for _, fo := range fos {
-		filename := filepath.Join(genTxsDir, fo.Name())
-		if !fo.IsDir() && (filepath.Ext(filename) != ".json") {
-			continue
-		}
+		if fo != nil {
+			filename := filepath.Join(genTxsDir, fo.Name())
+			if !fo.IsDir() && (filepath.Ext(filename) != ".json") {
+				continue
+			}
 
-		// get the genStdTx
-		var jsonRawTx []byte
-		if jsonRawTx, err = ioutil.ReadFile(filename); err != nil {
-			return appGenTxs, persistentPeers, err
-		}
-		var genStdTx authtypes.StdTx
-		if err = cdc.UnmarshalJSON(jsonRawTx, &genStdTx); err != nil {
-			return appGenTxs, persistentPeers, err
-		}
-		appGenTxs = append(appGenTxs, genStdTx)
+			// get the genStdTx
+			var jsonRawTx []byte
+			if jsonRawTx, err = ioutil.ReadFile(filename); err != nil {
+				return appGenTxs, persistentPeers, err
+			}
+			var genStdTx authtypes.StdTx
+			if err = cdc.UnmarshalJSON(jsonRawTx, &genStdTx); err != nil {
+				return appGenTxs, persistentPeers, err
+			}
+			appGenTxs = append(appGenTxs, genStdTx)
 
-		// the memo flag is used to store
-		// the ip and node-id, for example this may be:
-		// "528fd3df22b31f4969b05652bfe8f0fe921321d5@192.168.2.37:26656"
-		nodeAddrIP := genStdTx.GetMemo()
-		if len(nodeAddrIP) == 0 {
-			return appGenTxs, persistentPeers, fmt.Errorf(
-				"couldn't find node's address and IP in %s", fo.Name())
-		}
+			// the memo flag is used to store
+			// the ip and node-id, for example this may be:
+			// "528fd3df22b31f4969b05652bfe8f0fe921321d5@192.168.2.37:26656"
+			nodeAddrIP := genStdTx.GetMemo()
+			if len(nodeAddrIP) == 0 {
+				return appGenTxs, persistentPeers, fmt.Errorf(
+					"couldn't find node's address and IP in %s", fo.Name())
+			}
 
-		// genesis transactions must be single-message
-		msgs := genStdTx.GetMsgs()
-		if len(msgs) != 1 {
-			return appGenTxs, persistentPeers, errors.New(
-				"each genesis transaction must provide a single genesis message")
-		}
+			// genesis transactions must be single-message
+			msgs := genStdTx.GetMsgs()
+			if len(msgs) != 1 {
+				return appGenTxs, persistentPeers, errors.New(
+					"each genesis transaction must provide a single genesis message")
+			}
 
-		// TODO abstract out staking message validation back to staking
-		msg := msgs[0].(stakingtypes.MsgCreateValidator)
-		// validate delegator and validator addresses and funds against the accounts in the state
-		delAddr := msg.DelegatorAddress.String()
-		valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
+			// TODO abstract out staking message validation back to staking
+			msg := msgs[0].(stakingtypes.MsgCreateValidator)
+			// validate delegator and validator addresses and funds against the accounts in the state
+			delAddr := msg.DelegatorAddress.String()
+			valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
 
-		delAcc, delOk := addrMap[delAddr]
-		if !delOk {
-			return appGenTxs, persistentPeers, fmt.Errorf(
-				"account %v not in genesis.json: %+v", delAddr, addrMap)
-		}
+			delAcc, delOk := addrMap[delAddr]
+			if !delOk {
+				return appGenTxs, persistentPeers, fmt.Errorf(
+					"account %v not in genesis.json: %+v", delAddr, addrMap)
+			}
 
-		_, valOk := addrMap[valAddr]
-		if !valOk {
-			return appGenTxs, persistentPeers, fmt.Errorf(
-				"account %v not in genesis.json: %+v", valAddr, addrMap)
-		}
+			_, valOk := addrMap[valAddr]
+			if !valOk {
+				return appGenTxs, persistentPeers, fmt.Errorf(
+					"account %v not in genesis.json: %+v", valAddr, addrMap)
+			}
 
-		if delAcc.GetCoins().AmountOf(msg.MinSelfDelegation.Denom).LT(msg.MinSelfDelegation.Amount) {
-			return appGenTxs, persistentPeers, fmt.Errorf(
-				"insufficient fund for delegation %v: %v < %v",
-				delAcc.GetAddress(), delAcc.GetCoins().AmountOf(msg.MinSelfDelegation.Denom), msg.MinSelfDelegation.Amount,
-			)
-		}
+			if delAcc.GetCoins().AmountOf(msg.MinSelfDelegation.Denom).LT(msg.MinSelfDelegation.Amount) {
+				return appGenTxs, persistentPeers, fmt.Errorf(
+					"insufficient fund for delegation %v: %v < %v",
+					delAcc.GetAddress(), delAcc.GetCoins().AmountOf(msg.MinSelfDelegation.Denom), msg.MinSelfDelegation.Amount,
+				)
+			}
 
-		// exclude itself from persistent peers
-		if msg.Description.Moniker != moniker {
-			addressesIPs = append(addressesIPs, nodeAddrIP)
+			// exclude itself from persistent peers
+			if msg.Description.Moniker != moniker {
+				addressesIPs = append(addressesIPs, nodeAddrIP)
+			}
 		}
 	}
 
