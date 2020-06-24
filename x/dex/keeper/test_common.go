@@ -173,6 +173,7 @@ func GetBuiltInTokenPair() *types.TokenPair {
 		panic(err)
 	}
 	return &types.TokenPair{
+		ID:               1,
 		BaseAssetSymbol:  common.TestToken,
 		QuoteAssetSymbol: sdk.DefaultBondDenom,
 		InitPrice:        sdk.MustNewDecFromStr("10.0"),

@@ -322,7 +322,6 @@ func calcMatchPriceAndExecution(ctx sdk.Context, k keeper.Keeper, products []str
 		if tokenPair == nil {
 			continue
 		}
-
 		book := k.GetDepthBookCopy(product)
 		bestPrice, maxExecution := periodicAuctionMatchPrice(book, tokenPair.MaxPriceDigit,
 			k.GetLastPrice(ctx, product))

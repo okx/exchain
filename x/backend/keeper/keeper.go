@@ -123,7 +123,9 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
 	for _, tp := range tokenPairs {
-		products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
+		if tp != nil {
+			products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
+		}
 	}
 
 	k.Cache.ProductsBuf = products
@@ -196,7 +198,9 @@ func (k Keeper) GetTickers(products []string, count int) []types.Ticker {
 			}
 		} else {
 			for _, ticker := range k.Cache.LatestTicker {
-				tickers = append(tickers, *ticker)
+				if ticker != nil {
+					tickers = append(tickers, *ticker)
+				}
 			}
 		}
 	}
@@ -284,7 +288,9 @@ func (k Keeper) getTransactionListV2(ctx sdk.Context, addr string, txType int, a
 func (k Keeper) getAllTickers() []types.Ticker {
 	var tickers []types.Ticker
 	for _, ticker := range k.Cache.LatestTicker {
-		tickers = append(tickers, *ticker)
+		if ticker != nil {
+			tickers = append(tickers, *ticker)
+		}
 	}
 	return tickers
 }
