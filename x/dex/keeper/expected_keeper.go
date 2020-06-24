@@ -32,7 +32,6 @@ type IKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*types.TokenPair
 	GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) []*types.TokenPair
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
-	GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair)
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, tokenPairName string)
 	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error
