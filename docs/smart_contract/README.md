@@ -1,3 +1,6 @@
+[toc]
+
+
 # Creating a Smart Contract
 
 If you want to get started building you own, the simplest way is to go to the [cosmwasm-template](https://github.com/CosmWasm/cosmwasm-template) repository and follow the instructions. This will give you a simple contract along with tests, and a properly configured build environment. From there you can edit the code to add your desired logic and publish it as an independent repo.
@@ -48,15 +51,60 @@ It will output a highly size-optimized build as `contract.wasm` in `$CODE`. With
 
 # Running a Smart Contract
 
-If you followed the instructions above, you should have a runable smart contract. To better describe the usage of smart contracts on okchain , we will use an erc20 example to show the whole process.
+If you followed the instructions above, you should have a runable smart contract. To better describe the usage of smart contracts on okchain , we will use the erc20 example to show the whole process.
 
 ## 1、Prepare
 
-### 1.1、 Prepare wasm contract file
+### 1.1、Set up okchaincli
 
-Download the erc20 contract file: [contract.wasm](https://github.com/CosmWasm/cosmwasm-examples/blob/master/erc20/contract.wasm)
+As cosmwasm is under repaid development and have't release a stable version, so we recommend to use our official okchain-wasm test-net.
 
-### 1.2、Prepare Okchain account
+Here is the instructions to help you connect to our okchain-wasm test-net.
+
+#### 1.1.1、Build okchaincli
+
+Because we don't have a stable cosmwasm version yet, so we decide not to provide a binary download now, you will need to build the okchaincli by yourself. Before you run the next commands, make sure you have install a right version of golang and configure it rightly (we recommend a version of go1.12.7, as for how to configure golang, please google it and there will be a lot of result)
+
+here is the instructions to build okchaincli:
+
+~~~bash
+git clone https://github.com/okex/okchain.git
+cd okchain
+git checkout -b okchain-wasm
+make install
+~~~
+
+#### 1.1.2、Set up okchaincli env
+
+Before you  connect to our okchain-wasm test-net and play with it, we recommend you to configure your okchaincli, it will save you lots of time to type configuration command.
+
+~~~bash
+okchaincli config chain-id okchain 
+okchaincli config output json    
+okchaincli config indent true
+okchaincli config node tcp://3.112.102.224:26657
+okchaincli config trust-node true
+~~~
+
+### 1.2、Prepare okchain account
+
+So we are ready to play with okchain-wasm test-net, before do that,  you will need some accounts to represent yourself to Interact with others.
+
+#### 1.2.1、Create okchain accounts
+
+If you don't have any okchain accounts int okchain-wasm test-net yet, you can follow these command to add by yourself:
+
+~~~bash
+$okchaincli keys add <name> [flags]
+~~~
+
+usage:
+
+~~~bash
+$okchaincli keys add yourAccountName
+~~~
+
+The next command will show your accounts list you have created:
 
 ~~~bash
 $okchaincli keys list
@@ -76,15 +124,21 @@ $okchaincli keys list
 ]
 ~~~
 
-Before any operation, make sure the accounts list above have enough token in okchain system. 
+#### 1.2.2、Require Test Tokens
 
-~~~bash
-okchaincli tx send okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y 10000okt  --gas auto --gas-adjustment=2.0 --gas-prices=0.00001okt -y -b block
-~~~
+Before any operation, make sure the accounts list above have enough token in okchain-wasm test-net. 
 
-~~~bash
-okchaincli tx send okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya okchain1jt8kk0jyvdnvzmfxgrdm40smv3p752hw6qn8ay 10000okt  --gas 200000 --fees 0.1okt -y -b block
-~~~
+You can contract us to ask  test tokens:
+
+Wechat: 
+
+Telegram:  `Okchain`
+
+**Warning**: The tet token here is diffenrent from the **Okchain test-net**, the token here is for **Okchain-wasm test-net**!
+
+### 1.3、 Prepare wasm contract file
+
+Download the erc20 contract file: [contract.wasm](https://github.com/CosmWasm/cosmwasm-examples/blob/master/erc20/contract.wasm)
 
 ## 2、Install Contract
 
