@@ -1,5 +1,5 @@
 
-* [The Guidelines for deploy an existing Smart Contract and interact with it afterwards](#The Guidelines for deploy an existing Smart Contract and interact with it afterwards)
+* [The Guidelines for deploy an existing Smart Contract and interact with it afterwards](#The-Guidelines-for-deploy-an-existing-Smart-Contract-and-interact-with-it-afterwards)
    * [1、Prepare](#1prepare)
       * [1.1、Set up okchaincli](#11set-up-okchaincli)
          * [1.1.1、Build okchaincli](#111build-okchaincli)
@@ -12,7 +12,7 @@
    * [3、Instantiate Contract](#3instantiate-contract)
    * [4、Invoke Contract](#4invoke-contract)
    * [5、Query Contract](#5query-contract)
-* [Creating your own Smart Contract](#Creating your own Smart Contract)
+* [Creating your own Smart Contract](#Creating-your-own-Smart-Contract)
    * [1、Implementing the Smart Contract](#1implementing-the-smart-contract)
    * [2、Testing the Smart Contract (rust)](#2testing-the-smart-contract-rust)
    * [3、Production Builds](#3production-builds)
