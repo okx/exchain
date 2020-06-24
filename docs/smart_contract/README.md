@@ -1,5 +1,21 @@
-[toc]
 
+* [Creating a Smart Contract](#creating-a-smart-contract)
+   * [1、Implementing the Smart Contract](#1implementing-the-smart-contract)
+   * [2、Testing the Smart Contract (rust)](#2testing-the-smart-contract-rust)
+   * [3、Production Builds](#3production-builds)
+* [Running a Smart Contract](#running-a-smart-contract)
+   * [1、Prepare](#1prepare)
+      * [1.1、Set up okchaincli](#11set-up-okchaincli)
+         * [1.1.1、Build okchaincli](#111build-okchaincli)
+         * [1.1.2、Set up okchaincli env](#112set-up-okchaincli-env)
+      * [1.2、Prepare okchain account](#12prepare-okchain-account)
+        * [1.2.1、Create okchain accounts](#121create-okchain-accounts)
+         * [1.2.2、Require Test Tokens](#122require-test-tokens)
+      * [1.3、 Prepare wasm contract file](#13-prepare-wasm-contract-file)
+   * [2、Install Contract](#2install-contract)
+   * [3、Instantiate Contract](#3instantiate-contract)
+   * [4、Invoke Contract](#4invoke-contract)
+   * [5、Query Contract](#5query-contract)
 
 # Creating a Smart Contract
 
