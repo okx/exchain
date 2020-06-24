@@ -73,13 +73,13 @@ If you followed the instructions above, you should have a runable smart contract
 
 ### 1.1、Set up okchaincli
 
-As cosmwasm is under repaid development and have't release a stable version, so we recommend to use our official okchain-wasm test-net.
+As cosmwasm is under repaid development and have't release a stable version, so we recommend to use our official okchain-wasm test-net to run your smart contract.
 
 Here is the instructions to help you connect to our okchain-wasm test-net.
 
 #### 1.1.1、Build okchaincli
 
-Because we don't have a stable cosmwasm version yet, so we decide not to provide a binary download now, you will need to build the okchaincli by yourself. Before you run the next commands, make sure you have install a right version of golang and configure it rightly (we recommend a version of go1.12.7, as for how to configure golang, please google it and there will be a lot of result)
+Because we don't have a stable cosmwasm version yet, so we decide not to provide a binary download now, you will need to build the okchaincli by yourself. Before you run the next commands, make sure you have install a right version of golang and configure it rightly (we recommend a version of go1.12.7, as for how to configure golang, please google it and there will be a lots of results)
 
 here is the instructions to build okchaincli:
 
@@ -108,7 +108,7 @@ So we are ready to play with okchain-wasm test-net, before do that,  you will ne
 
 #### 1.2.1、Create okchain accounts
 
-If you don't have any okchain accounts int okchain-wasm test-net yet, you can follow these command to add by yourself:
+If you don't have any okchain accounts in okchain-wasm test-net yet, you can follow these command to add by yourself:
 
 ~~~bash
 $okchaincli keys add <name> [flags]
@@ -144,13 +144,13 @@ $okchaincli keys list
 
 Before any operation, make sure the accounts list above have enough token in okchain-wasm test-net. 
 
-You can contract us to ask  test tokens:
+You can contract us to ask for test tokens:
 
 Wechat: 
 
 Telegram:  `Okchain`
 
-**Warning**: The tet token here is diffenrent from the **Okchain test-net**, the token here is for **Okchain-wasm test-net**!
+**Warning**: The test token here is different from the **Okchain test-net**, the token here is just for **Okchain-wasm test-net**!
 
 ### 1.3、 Prepare wasm contract file
 
