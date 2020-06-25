@@ -35,7 +35,7 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
 
 	var params types.QueryDexInfoParams
-	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
+	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
@@ -68,7 +68,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 		tokenPairs = tokenPairs[offset : offset+limit]
 	}
 
-	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), tokenPairs)
+	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, tokenPairs)
 	if errMarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
 	}
@@ -84,7 +84,7 @@ type depositsData struct {
 func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
 
 	var params types.QueryDexInfoParams
-	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
+	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
@@ -103,6 +103,9 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	var deposits []depositsData
 	for _, product := range tokenPairs {
+		if product == nil {
+			panic("the nil pointer is not expected")
+		}
 		if product.Owner.String() == params.Owner {
 			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
 		}
@@ -123,7 +126,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		return deposits[i].ProductDeposits.IsLT(deposits[j].ProductDeposits)
 	})
 
-	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), deposits)
+	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, deposits)
 	if errMarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
 	}
@@ -133,16 +136,19 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
 
 	var params types.QueryDexInfoParams
-	errUnmarshal := keeper.GetCDC().UnmarshalJSON(req.Data, &params)
+	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
-	var products = []string{}
+	var products []string
 
 	for _, tokenPair := range tokenPairs {
+		if tokenPair == nil {
+			panic("the nil pointer is not expected")
+		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
 
@@ -157,7 +163,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 		products = products[offset : offset+limit]
 	}
 
-	res, errMarshal := codec.MarshalJSONIndent(keeper.GetCDC(), products)
+	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, products)
 
 	if errMarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
@@ -168,7 +174,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 
 func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
 	params := keeper.GetParams(ctx)
-	res, errUnmarshal := codec.MarshalJSONIndent(keeper.GetCDC(), params)
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
@@ -181,12 +187,15 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 	tokenPairs := keeper.GetTokenPairs(ctx)
 	tokenPairLen := len(tokenPairs)
 	for i := 0; i < tokenPairLen; i++ {
+		if tokenPairs[i] == nil {
+			panic("the nil pointer is not expected")
+		}
 		if tokenPairs[i].Delisting {
 			tokenPairNames = append(tokenPairNames, fmt.Sprintf("%s_%s", tokenPairs[i].BaseAssetSymbol, tokenPairs[i].QuoteAssetSymbol))
 		}
 	}
 
-	res, errUnmarshal := codec.MarshalJSONIndent(keeper.GetCDC(), tokenPairNames)
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, tokenPairNames)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errUnmarshal.Error()))
 	}

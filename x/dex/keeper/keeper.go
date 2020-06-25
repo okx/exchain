@@ -59,11 +59,6 @@ func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
 }
 
-// GetCDC returns cdc
-func (k Keeper) GetCDC() *codec.Codec {
-	return k.cdc
-}
-
 // GetTokenKeeper returns token Keeper
 func (k Keeper) GetTokenKeeper() TokenKeeper {
 	return k.tokenKeeper
@@ -136,13 +131,8 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 	return &tokenPair
 }
 
-// GetTokenPairs returns all the token pairs
-func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
-	return k.GetTokenPairsFromStore(ctx)
-}
-
-// GetTokenPairsFromStore returns all token pairs from store without cache
-func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
+// GetTokenPairs returns all token pairs from store without cache
+func (k Keeper) GetTokenPairs(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairKey)
 	defer iter.Close()
@@ -157,7 +147,7 @@ func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.Tok
 	return tokenPairs
 }
 
-// GetUserTokenPairs returns all token pairs from store without cache
+// GetUserTokenPairs returns all token pairs belong to an account from store
 func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	userTokenPairPrefix := types.GetUserTokenPairAddressPrefix(owner)
@@ -239,7 +229,7 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", depositCoins.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient deposit coins(need %s)", depositCoins.String()))
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -433,7 +423,7 @@ func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
 	if !ok {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address%s", addr.String()))
+		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address %s", addr.String()))
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
