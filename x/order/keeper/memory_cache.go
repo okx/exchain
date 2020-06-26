@@ -121,7 +121,6 @@ func (c *Cache) getUpdatedOrderIDs() []string {
 func (c *Cache) toggleCopyTxHandlerMsgResult() []bitset.BitSet {
 	txResultCopy := make([]bitset.BitSet, 0, len(c.handlerTxMsgResult))
 	txResultCopy = append(txResultCopy, c.handlerTxMsgResult...)
-	//copy(txResultCopy, c.handlerTxMsgResult)
 	c.handlerTxMsgResult = []bitset.BitSet{}
 
 	return txResultCopy

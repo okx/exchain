@@ -109,7 +109,6 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -131,7 +130,6 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeInsufficientCoins, orderRes[0].Code)
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
@@ -285,20 +283,19 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeUnauthorized, orderRes[0].Code)
+
 	// invalid orderID
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, "InvalidID-0001")
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
+
 	// busy product
 	keeper.SetProductLock(ctx, order.Product, &types.ProductLock{})
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
 	keeper.UnlockProduct(ctx, order.Product)
 
 	// normal
@@ -326,7 +323,6 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
-	//require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
 }
 
 func TestHandleInvalidMsg(t *testing.T) {
@@ -437,7 +433,6 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	result1 := handler(ctx, msg)
 	res1 := parseOrderResult(result1)
 	require.Nil(t, res1)
-	//require.EqualValues(t, sdk.CodeInternal, res1[0].Code)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	//check result & order
