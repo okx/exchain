@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/willf/bitset"
 
 	"github.com/okex/okchain/x/common/perf"
 	"github.com/okex/okchain/x/order/keeper"
@@ -180,10 +181,12 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 	}
 
 	rs := make([]types.OrderResult, 0, len(msg.OrderItems))
-	for _, item := range msg.OrderItems {
+	var handlerResult bitset.BitSet
+	for idx, item := range msg.OrderItems {
 		res, cacheItem, err := handleNewOrder(ctx, k, msg.Sender, item, ratio, logger)
 		if err == nil {
 			cacheItem.Write()
+			handlerResult.Set(uint(idx))
 		}
 		rs = append(rs, res)
 	}
@@ -193,6 +196,12 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 	}
 	event = event.AppendAttributes(sdk.NewAttribute("orders", string(rss)))
 	ctx.EventManager().EmitEvent(event)
+
+	if handlerResult.None() {
+		return sdk.Result{Code: sdk.CodeInternal}
+	}
+
+	k.AddTxHandlerMsgResult(handlerResult)
 	return sdk.Result{
 		Events: ctx.EventManager().Events(),
 	}
@@ -275,11 +284,15 @@ func handleCancelOrder(context sdk.Context, k Keeper, sender sdk.AccAddress, ord
 
 func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders, logger log.Logger) sdk.Result {
 	cancelRes := []types.OrderResult{}
-	for _, orderID := range msg.OrderIDs {
+	var handlerResult bitset.BitSet
+	for idx, orderID := range msg.OrderIDs {
 
 		res, cacheItem := handleCancelOrder(ctx, k, msg.Sender, orderID, logger)
 		cancelRes = append(cancelRes, res)
 		cacheItem.Write()
+		if res.Code == sdk.CodeOK {
+			handlerResult.Set(uint(idx))
+		}
 
 		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
 			"    msg<Sender:%s,ID:%s>\n"+
@@ -296,6 +309,12 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 	event = event.AppendAttributes(sdk.NewAttribute("orders", string(rss)))
 	ctx.EventManager().EmitEvent(event)
+
+	if handlerResult.None() {
+		return sdk.Result{Code: sdk.CodeInternal}
+	}
+
+	k.AddTxHandlerMsgResult(handlerResult)
 	return sdk.Result{
 		Events: ctx.EventManager().Events(),
 	}
