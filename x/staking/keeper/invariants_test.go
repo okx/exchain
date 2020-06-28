@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSanityCheck(t *testing.T) {
+func TestDelegatorAddSharesInvariant(t *testing.T) {
 	initPower := int64(1000000)
 	ctx, _, mKeeper := CreateTestInput(t, false, initPower)
 	k := mKeeper.Keeper
@@ -65,15 +65,17 @@ func TestSanityCheck(t *testing.T) {
 	k.SetDelegator(ctx, delegator)
 
 	// sanity check pass
-	checkErr := k.SanityCheck(ctx)
-	require.Nil(t, checkErr)
+	invariantFunc := DelegatorAddSharesInvariant(k)
+	require.NotNil(t, invariantFunc)
+	_, broken := invariantFunc(ctx)
+	require.False(t, broken)
 
 	// sanity check pass failed
 	validator, found := k.GetValidator(ctx, vAddr1)
 	require.True(t, found)
 	validator.DelegatorShares = validator.DelegatorShares.Add(sdk.OneDec())
 	k.SetValidator(ctx, validator)
-	checkErr = k.SanityCheck(ctx)
-	require.NotNil(t, checkErr)
+	_, broken = invariantFunc(ctx)
+	require.True(t, broken)
 
 }
