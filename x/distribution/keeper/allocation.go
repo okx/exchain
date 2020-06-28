@@ -17,7 +17,7 @@ var (
 
 // AllocateTokens allocates fees from fee_collector
 //1. 25% rewards to validators, equally.
-//2. 75% rewards to validators and candidators, by votes' wight
+//2. 75% rewards to validators and candidates, by shares' weight
 func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	previousProposer sdk.ConsAddress, previousVotes []abci.VoteInfo) {
 	logger := k.Logger(ctx)
@@ -64,8 +64,8 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	feeByEqual, feeByVote := feesToVals.MulDecTruncate(valPortion), feesToVals.MulDecTruncate(votePortion)
 	feesToCommunity := feesCollected.Sub(feeByEqual.Add(feeByVote))
 	remainByEqual := k.allocateByEqual(ctx, feeByEqual, previousVotes) //allocate rewards equally between validators
-	remainByVote := k.allocateByVote(ctx, feeByVote)                   //allocate rewards by votes
-	feesToCommunity = feesToCommunity.Add(remainByEqual.Add(remainByVote))
+	remainByShare := k.allocateByShares(ctx, feeByVote)                //allocate rewards by shares
+	feesToCommunity = feesToCommunity.Add(remainByEqual.Add(remainByShare))
 
 	// allocate community funding
 	if !feesToCommunity.IsZero() {
@@ -105,15 +105,15 @@ func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.DecCoins, previousV
 	return remaining
 }
 
-func (k Keeper) allocateByVote(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
+func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
 	logger := k.Logger(ctx)
 
-	//allocate tokens proportionally by votes to validators and candidators
+	//allocate tokens proportionally by votes to validators and candidates
 	var validators []stakingexported.ValidatorI
 	k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 		if validator != nil {
 			if validator.IsJailed() {
-				logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by votes weight",
+				logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by shares weight",
 					validator.GetOperator()))
 			} else {
 				validators = append(validators, validator)
@@ -122,7 +122,7 @@ func (k Keeper) allocateByVote(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoi
 		return false
 	})
 
-	//calculate total Votes-Weight
+	//calculate total Shares-Weight
 	var totalVotes = sdk.NewDec(0)
 	sum := len(validators)
 	for i := 0; i < sum; i++ {
@@ -135,7 +135,7 @@ func (k Keeper) allocateByVote(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoi
 		powerFraction := val.GetDelegatorShares().QuoTruncate(totalVotes)
 		reward := rewards.MulDecTruncate(powerFraction)
 		k.AllocateTokensToValidator(ctx, val, reward)
-		logger.Debug("allocate by votes", val.GetOperator(), reward.String())
+		logger.Debug("allocate by shares", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
 	}
 	return remaining
