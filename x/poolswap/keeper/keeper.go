@@ -87,8 +87,8 @@ func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Tok
 }
 
 // GetPoolTokenAmount gets the amount of the specified poolToken name
-func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenNmae string) (sdk.Dec, error) {
-	poolToken, err := k.GetPoolTokenInfo(ctx, poolTokenNmae)
+func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) (sdk.Dec, error) {
+	poolToken, err := k.GetPoolTokenInfo(ctx, poolTokenName)
 	return poolToken.TotalSupply, err
 }
 
