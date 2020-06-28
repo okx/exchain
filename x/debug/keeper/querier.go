@@ -19,8 +19,8 @@ func NewDebugger(keeper Keeper) sdk.Querier {
 			return dumpStore(ctx, req, keeper)
 		case types.SetLogLevel:
 			return setLogLevel(path[1:])
-		case types.SanityCheck:
-			return sanityCheck(ctx, keeper)
+		case types.SanityCheckShares:
+			return sanityCheckShares(ctx, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown common query endpoint")
 		}
@@ -48,7 +48,7 @@ func setLogLevel(paths []string) ([]byte, sdk.Error) {
 	return nil, nil
 }
 
-func sanityCheck(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
+func sanityCheckShares(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	stakingKeeper, ok := keeper.stakingKeeper.(staking.Keeper)
 	if !ok {
 		return nil, sdk.ErrInternal("staking keeper mismatch")

@@ -13,7 +13,7 @@ const (
 	// QuerierRoute is the querier route for the debug module
 	QuerierRoute = ModuleName
 
-	DumpStore   = "dump"
-	SetLogLevel = "set-loglevel"
-	SanityCheck = "sanity-check"
+	DumpStore         = "dump"
+	SetLogLevel       = "set-loglevel"
+	SanityCheckShares = "sanity-check-shares"
 )

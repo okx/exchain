@@ -90,12 +90,12 @@ $ okchaincli debug set-loglevel "upgrade:error"
 // CmdSanityCheck does sanity check
 func CmdSanityCheck(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "sanity-check",
-		Short: "sanity check for all modules",
+		Use:   "sanity-check-shares",
+		Short: "check the total share of validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			res, _, err := cliCtx.QueryWithData(
-				fmt.Sprintf("custom/%s/%s", queryRoute, types.SanityCheck), nil)
+				fmt.Sprintf("custom/%s/%s", queryRoute, types.SanityCheckShares), nil)
 			if err != nil {
 				return err
 			}
