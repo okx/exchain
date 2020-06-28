@@ -96,14 +96,14 @@ $okchaincli keys list
 
 Before any operation, make sure the accounts list above have enough token in okchain-wasm test-net. 
 
-You can use the following water tap account to refuel your account (don't be too greedy):
+You can use the following faucet address to refuel your account (don't be too greedy):
 
 ~~~bash
-// 1 recovery 'water-tap' account
-okchaincli keys add --recover water-tap -m "egg slab chef tribe air illegal extra shoulder donate steel organ ready" -y
+// 1. recovery faucet address
+okchaincli keys add --recover water-tap -m "chief smoke celery voyage mutual ocean guess mistake decade rent corn bless" -y
 
-// 2 send okt to your account from `water-tap` account
-okchaincli tx send okchain1u8htd33cn464kc8l0up5xmdu722qxtr8ylyqtu okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y 1000okt --gas 200000 --gas-prices=0.1okt -y -b block
+// 2. send okt to your account from faucet address
+okchaincli tx send okchain1v9fxy6t3uydmgrzu4tjymlcaagj0gahc34yu64 okchain1gsn3jf86x253z4990tf8hpsy6cqk9rxk5tll0y 1000okt --gas 200000 --gas-prices=0.1okt -y -b block
 ~~~
 
 **Warning**: The test token here is different from the **Okchain test-net**, the token here is just for **Okchain-wasm test-net**!
