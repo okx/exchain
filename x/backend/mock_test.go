@@ -163,7 +163,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.supplyKeeper,
 		[]exported.ModuleAccountI{feeCollector}))
 
-	intQuantity := 100
+	intQuantity := 100000
 	coins, _ := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
 		intQuantity, common.NativeToken, intQuantity, common.TestToken))
 
@@ -213,12 +213,12 @@ func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
 	}
 }
 
-func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg sdk.Msg) auth.StdTx {
+func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg []sdk.Msg) auth.StdTx {
 	accs := app.AccountKeeper.GetAccount(ctx, addrKeys.Address)
 	accNum := accs.GetAccountNumber()
 	seqNum := accs.GetSequence()
 
-	tx := mock.GenTx([]sdk.Msg{msg}, []uint64{uint64(accNum)}, []uint64{uint64(seqNum)}, addrKeys.PrivKey)
+	tx := mock.GenTx(msg, []uint64{uint64(accNum)}, []uint64{uint64(seqNum)}, addrKeys.PrivKey)
 	res := app.Check(tx)
 	if !res.IsOK() {
 		panic("something wrong in checking transaction")
