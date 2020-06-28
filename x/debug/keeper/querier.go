@@ -3,6 +3,8 @@ package keeper
 import (
 	"strings"
 
+	"github.com/okex/okchain/x/staking"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/debug/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -17,6 +19,8 @@ func NewDebugger(keeper Keeper) sdk.Querier {
 			return dumpStore(ctx, req, keeper)
 		case types.SetLogLevel:
 			return setLogLevel(path[1:])
+		case types.SanityCheckShares:
+			return sanityCheckShares(ctx, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown common query endpoint")
 		}
@@ -42,4 +46,17 @@ func setLogLevel(paths []string) ([]byte, sdk.Error) {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("log level set failed", err.Error()))
 	}
 	return nil, nil
+}
+
+func sanityCheckShares(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
+	stakingKeeper, ok := keeper.stakingKeeper.(staking.Keeper)
+	if !ok {
+		return nil, sdk.ErrInternal("staking keeper mismatch")
+	}
+	invariantFunc := staking.DelegatorAddSharesInvariant(stakingKeeper)
+	msg, broken := invariantFunc(ctx)
+	if broken {
+		return nil, sdk.ErrInternal(msg)
+	}
+	return []byte("sanity check passed"), nil
 }

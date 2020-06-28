@@ -33,6 +33,7 @@ import (
 	"github.com/okex/okchain/x/order"
 	"github.com/okex/okchain/x/params"
 	paramsclient "github.com/okex/okchain/x/params/client"
+	"github.com/okex/okchain/x/poolswap"
 	"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/stream"
 	"github.com/okex/okchain/x/token"
@@ -40,7 +41,6 @@ import (
 	upgradeClient "github.com/okex/okchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
-	"github.com/okex/okchain/x/poolswap"
 )
 
 var (
@@ -343,7 +343,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.upgradeKeeper = upgrade.NewKeeper(
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
-	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, auth.FeeCollectorName, p.Stop)
+	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, auth.FeeCollectorName, p.Stop)
 }
 
 // moduleAccountAddrs returns all the module account addresses
