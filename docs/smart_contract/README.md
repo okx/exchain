@@ -123,7 +123,7 @@ Usage:
 Usage:
 
 ~~~bash
-okchaincli tx wasm store  ./erc20.wasm --from captain --gas 2000000 --fees 2okt -y -b block
+okchaincli tx wasm store  ./erc20.wasm --from account1 --gas 2000000 --fees 2okt -y -b block
 ~~~
 
 Get `code_id` from output:
