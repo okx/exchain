@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
@@ -226,9 +227,9 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 // if DEXOperator not exist, register a new DEXOperator
 // else update Website or HandlingFeeAddress
 type MsgCreateOperator struct {
-	Owner              sdk.AccAddress
-	Website            string
-	HandlingFeeAddress sdk.AccAddress
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
 }
 
 // NewMsgCreateOperator creates a new MsgCreateOperator
