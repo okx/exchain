@@ -106,7 +106,7 @@ Telegram:  `Okchain`
 
 ### 1.3、 Prepare wasm contract file
 
-One of the most significant tokens is known as ERC-20, which has emerged as the technical standard used for all smart contracts on the Ethereum blockchain for token implementation. As it is so famous in blockchain industry, so we decided to provide an erc-20 implementation to show the powerful of wasm smart contract. You can download the erc20 contract wasm file: [contract.wasm](https://raw.githubusercontent.com/CosmWasm/cosmwasm-examples/master/erc20/contract.wasm), the rust code can be found in this link: [erc20](https://github.com/CosmWasm/cosmwasm-examples/tree/master/erc20).
+One of the most significant tokens is known as ERC-20, which has emerged as the technical standard used for all smart contracts on the Ethereum blockchain for token implementation. As it is so famous in blockchain industry, so we decided to provide an erc-20 implementation to show the powerful of wasm smart contract. You can download the erc20 contract wasm file: [contract.wasm](https://raw.githubusercontent.com/CosmWasm/cosmwasm-examples/erc20-0.4.0/erc20/contract.wasm), the rust code can be found in this link: [erc20](https://github.com/CosmWasm/cosmwasm-examples/tree/erc20-0.4.0/erc20).
 
 The contract provide the following function: `init`, `Approve`, `Transfer`, `TransferFrom`, `Burn`, `Balance`, `Allowance`, which is the main function of the erc20 protocol. The following instructions will show you how to use it in our okchain-wasm test-net.
 
