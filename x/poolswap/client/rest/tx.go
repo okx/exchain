@@ -31,9 +31,9 @@ func swapExchangeHandler(cliCtx context.CLIContext) func(http.ResponseWriter, *h
 		exchange := types.SwapTokenPair{}
 		codec.Cdc.MustUnmarshalJSON(res, exchange)
 		response := common.GetBaseResponse(exchange)
-		resBytes, err2 := json.Marshal(response)
-		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+		resBytes, err := json.Marshal(response)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
 		}
 		rest.PostProcessResponse(w, cliCtx, resBytes)
