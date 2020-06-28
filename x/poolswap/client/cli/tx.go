@@ -87,21 +87,21 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			liquidityDec, err := sdk.NewDecFromStr(liquidity)
+			liquidityDec, sdkErr := sdk.NewDecFromStr(liquidity)
+			if sdkErr != nil {
+				return sdkErr
+			}
+			minBaseAmountDecCoin, err := sdk.ParseDecCoin(minBaseAmount)
 			if err != nil {
 				return err
 			}
-			minBaseAmountDecCoin, err2 := sdk.ParseDecCoin(minBaseAmount)
-			if err2 != nil {
-				return err2
+			minQuoteAmountDecCoin, err := sdk.ParseDecCoin(minQuoteAmount)
+			if err != nil {
+				return err
 			}
-			minQuoteAmountDecCoin, err2 := sdk.ParseDecCoin(minQuoteAmount)
-			if err2 != nil {
-				return err2
-			}
-			duration, err3 := time.ParseDuration(deadlineDuration)
-			if err3 != nil {
-				return err3
+			duration, err := time.ParseDuration(deadlineDuration)
+			if err != nil {
+				return err
 			}
 			deadline := time.Now().Add(duration).Unix()
 			msg := types.NewMsgRemoveLiquidity(liquidityDec, minBaseAmountDecCoin, minQuoteAmountDecCoin, deadline, cliCtx.FromAddress)
