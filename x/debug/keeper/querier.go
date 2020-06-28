@@ -17,6 +17,8 @@ func NewDebugger(keeper Keeper) sdk.Querier {
 			return dumpStore(ctx, req, keeper)
 		case types.SetLogLevel:
 			return setLogLevel(path[1:])
+		case types.SanityCheck:
+			return sanityCheck(ctx, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown common query endpoint")
 		}
@@ -42,4 +44,12 @@ func setLogLevel(paths []string) ([]byte, sdk.Error) {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("log level set failed", err.Error()))
 	}
 	return nil, nil
+}
+
+func sanityCheck(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
+	err := keeper.stakingKeeper.SanityCheck(ctx)
+	if err != nil {
+		return nil, sdk.ErrInternal(err.Error())
+	}
+	return []byte("sanity check passed"), nil
 }
