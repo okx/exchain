@@ -44,21 +44,21 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			minLiquidityDec, err := sdk.NewDecFromStr(minLiquidity)
+			minLiquidityDec, sdkErr := sdk.NewDecFromStr(minLiquidity)
+			if sdkErr != nil {
+				return sdkErr
+			}
+			maxBaseAmountDecCoin, err := sdk.ParseDecCoin(maxBaseAmount)
 			if err != nil {
 				return err
 			}
-			maxBaseAmountDecCoin, err2 := sdk.ParseDecCoin(maxBaseAmount)
-			if err2 != nil {
-				return err2
+			quoteAmountDecCoin, err := sdk.ParseDecCoin(quoteAmount)
+			if err != nil {
+				return err
 			}
-			quoteAmountDecCoin, err2 := sdk.ParseDecCoin(quoteAmount)
-			if err2 != nil {
-				return err2
-			}
-			duration, err3 := time.ParseDuration(deadlineDuration)
-			if err3 != nil {
-				return err3
+			duration, err := time.ParseDuration(deadlineDuration)
+			if err != nil {
+				return err
 			}
 			deadline := time.Now().Add(duration).Unix()
 			msg := types.NewMsgAddLiquidity(minLiquidityDec, maxBaseAmountDecCoin, quoteAmountDecCoin, deadline, cliCtx.FromAddress)
