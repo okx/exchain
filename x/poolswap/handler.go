@@ -126,14 +126,14 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		baseTokens.Amount = msg.MaxBaseAmount.Amount
 		liquidity = sdk.NewDec(1)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
-		baseTokens.Amount = msg.QuoteAmount.Amount.Mul(swapTokenPair.BasePooledCoin.Amount).Quo(swapTokenPair.QuotePooledCoin.Amount)
+		baseTokens.Amount = mulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
 		if poolToken.TotalSupply.IsZero() {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
 				Log:  fmt.Sprintf("unexpected totalSupply in poolToken %s", poolToken.String()),
 			}
 		}
-		liquidity = msg.QuoteAmount.Amount.Quo(swapTokenPair.QuotePooledCoin.Amount).Mul(poolToken.TotalSupply)
+		liquidity = mulAndQuo(msg.QuoteAmount.Amount, poolToken.TotalSupply, swapTokenPair.QuotePooledCoin.Amount)
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -158,7 +158,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		msg.QuoteAmount,
 		baseTokens,
 	}
-	coins = coins.Sort()
+	coins = coinSort(coins)
 	//TODO another coin connot send to pool
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
@@ -220,15 +220,15 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		}
 	}
 
-	baseDec := swapTokenPair.BasePooledCoin.Amount.Mul(liquidity).Quo(poolTokenAmount)
-	quoteDec := swapTokenPair.QuotePooledCoin.Amount.Mul(liquidity).Quo(poolTokenAmount)
+	baseDec := mulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
+	quoteDec := mulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
 	baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The available baseAmount are less than MinBaseAmount",
+			Log:  fmt.Sprintf("The available baseAmount(%s) are less than MinBaseAmount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
@@ -243,7 +243,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		baseAmount,
 		quoteAmount,
 	}
-	coins = coins.Sort()
+	coins = coinSort(coins)
 	err = k.SendCoinsFromPoolToAccount(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
@@ -434,7 +434,28 @@ func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sd
 	//	panic("should not happen")
 	//}
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
-	numerator := inputAmountWithFee.Mul(outputReserve)
 	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
-	return numerator.Quo(denominator)
+	return mulAndQuo(inputAmountWithFee, outputReserve, denominator)
+}
+
+func coinSort(coins sdk.DecCoins) sdk.DecCoins {
+	var newCoins sdk.DecCoins
+	for _, coin := range coins {
+		if coin.Amount.IsPositive() {
+			newCoins = append(newCoins, coin)
+		}
+	}
+	newCoins = newCoins.Sort()
+	return newCoins
+}
+
+var (
+	// 10^8
+	auxiliaryDec = sdk.NewDec(100000000)
+)
+
+// mulAndQuo returns a * b / c
+func mulAndQuo(a, b, c sdk.Dec) sdk.Dec {
+	a = a.Mul(auxiliaryDec)
+	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
 }

@@ -316,16 +316,23 @@ func TestRandomData(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 	testToken := initToken(types.TestBasePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
+	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	result := handler(ctx, msgCreateExchange)
+	require.Equal(t, "", result.Log)
 	addr := addrKeysSlice[0].Address
-	for i := 0; i < 1000000; i++ {
+	result = handler(ctx, buildRandomMsgAddLiquidity(addr))
+	require.True(t, result.Code.IsOK())
+
+	for i := 0; i < 100; i++ {
 		var msg sdk.Msg
-		t := rand.Intn(3)
-		switch t {
+		judge := rand.Intn(3)
+		switch judge {
 		case 0:
 			msg = buildRandomMsgAddLiquidity(addr)
 		case 1:
@@ -333,7 +340,16 @@ func TestRandomData(t *testing.T) {
 		case 2:
 			msg = buildRandomMsgTokenToNativeToken(addr)
 		}
-		handler(ctx, msg)
+		res := handler(ctx, msg)
+		if !res.Code.IsOK() {
+			fmt.Println(mapp.tokenKeeper.GetCoins(ctx, addr))
+			swapTokenPair, err := mapp.swapKeeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
+			require.Nil(t, err)
+			fmt.Println(swapTokenPair)
+			poolToken, err := mapp.swapKeeper.GetPoolTokenInfo(ctx, swapTokenPair.PoolTokenName)
+			fmt.Println("poolToken: " + poolToken.TotalSupply.String())
+			fmt.Println(res.Log)
+		}
 	}
 
 }
@@ -350,10 +366,9 @@ func buildRandomMsgAddLiquidity(addr sdk.AccAddress) types.MsgAddLiquidity {
 }
 
 func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity {
-	d := rand.Intn(100) + 1
-	liquidity := sdk.NewDecWithPrec(int64(d), 4)
-	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(1))
-	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDec(1))
+	liquidity := sdk.NewDec(1)
+	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(1, 8))
+	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(1, 8))
 	deadLine := time.Now().Unix()
 	msg := types.NewMsgRemoveLiquidity(liquidity, minBaseAmount, minQuoteAmount, deadLine, addr)
 	return msg
