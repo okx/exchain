@@ -6,7 +6,7 @@
          * [1.1.2、Set up okchaincli env](#112set-up-okchaincli-env)
       * [1.2、Prepare okchain account](#12prepare-okchain-account)
         * [1.2.1、Create okchain accounts](#121create-okchain-accounts)
-         * [1.2.2、Require Test Tokens](#122require-test-tokens)
+         * [1.2.2、Get Test Token](#122get-test-token)
       * [1.3、 Prepare wasm contract file](#13-prepare-wasm-contract-file)
    * [2、Install Contract](#2install-contract)
    * [3、Instantiate Contract](#3instantiate-contract)
