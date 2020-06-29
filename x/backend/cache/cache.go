@@ -27,8 +27,8 @@ func (c *Cache) Flush() {
 }
 
 // AddTransaction append transaction to cache Transactions
-func (c *Cache) AddTransaction(transaction *types.Transaction) {
-	c.Transactions = append(c.Transactions, transaction)
+func (c *Cache) AddTransaction(transaction []*types.Transaction) {
+	c.Transactions = append(c.Transactions, transaction...)
 }
 
 // nolint

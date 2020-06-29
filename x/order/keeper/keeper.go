@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/willf/bitset"
 	"log"
 	"sync"
 
@@ -323,6 +324,14 @@ func (k Keeper) GetUpdatedOrderIDs() []string {
 	return k.cache.getUpdatedOrderIDs()
 }
 
+// GetTxHandlerMsgResult: be careful, only call by backend module, other module should never use it!
+func (k Keeper) GetTxHandlerMsgResult() []bitset.BitSet {
+	if !k.enableBackend {
+		return nil
+	}
+	return k.cache.toggleCopyTxHandlerMsgResult()
+}
+
 // nolint
 func (k Keeper) addUpdatedOrderID(orderID string) {
 	if k.enableBackend {
@@ -537,4 +546,11 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 		}
 	}
 	return cleanProducts
+}
+
+// nolint
+func (k Keeper) AddTxHandlerMsgResult(resultSet bitset.BitSet) {
+	if k.enableBackend {
+		k.cache.addTxHandlerMsgResult(resultSet)
+	}
 }
