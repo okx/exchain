@@ -6,25 +6,30 @@ import (
 	"github.com/okex/okchain/x/common"
 	orderTypes "github.com/okex/okchain/x/order/types"
 	tokenTypes "github.com/okex/okchain/x/token/types"
+	"github.com/willf/bitset"
 )
 
 // GenerateTx return transaction, called at DeliverTx
 func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, timestamp int64) []*Transaction {
-	txs := make([]*Transaction, 0, 2)
+	orderHandlerTxResult := orderKeeper.GetTxHandlerMsgResult()
+	idx := int(0)
+	var txs []*Transaction
+
 	for _, msg := range tx.GetMsgs() {
 		switch msg.Type() {
 		case "send": // token/send
 			txFrom, txTo := buildTransactionsTransfer(tx, msg.(tokenTypes.MsgSend), txHash, timestamp)
 			txs = append(txs, txFrom, txTo)
 		case "new": // order/new
-			transaction := buildTransactionNew(msg.(orderTypes.MsgNewOrders), txHash, ctx, timestamp)
-			txs = append(txs, transaction)
+			transaction := buildTransactionNew(orderHandlerTxResult[idx], msg.(orderTypes.MsgNewOrders),
+				txHash, ctx, timestamp)
+			txs = append(txs, transaction...)
+			idx++
 		case "cancel": // order/cancel
-			transaction := buildTransactionCancel(msg.(orderTypes.MsgCancelOrders), txHash, ctx, orderKeeper,
-				timestamp)
-			if transaction != nil {
-				txs = append(txs, transaction)
-			}
+			transaction := buildTransactionCancel(orderHandlerTxResult[idx], msg.(orderTypes.MsgCancelOrders),
+				txHash, ctx, orderKeeper, timestamp)
+			txs = append(txs, transaction...)
+			idx++
 		default: // In other cases, do nothing
 			continue
 		}
@@ -58,44 +63,69 @@ func buildTransactionsTransfer(tx *auth.StdTx, msg tokenTypes.MsgSend, txHash st
 	return txFrom, txTo
 }
 
-func buildTransactionNew(msg orderTypes.MsgNewOrders, txHash string, ctx sdk.Context, timestamp int64) *Transaction {
-	side := TxSideBuy
-	if msg.OrderItems[0].Side == orderTypes.SellOrder {
-		side = TxSideSell
+func buildTransactionNew(handlerMsgResult bitset.BitSet, msg orderTypes.MsgNewOrders, txHash string, ctx sdk.Context, timestamp int64) []*Transaction {
+	var result []*Transaction
+
+	for idx, item := range msg.OrderItems {
+		if !handlerMsgResult.Test(uint(idx)) {
+			continue
+		}
+
+		side := TxSideBuy
+		if item.Side == orderTypes.SellOrder {
+			side = TxSideSell
+		}
+
+		tx := Transaction{
+			TxHash:    txHash,
+			Address:   msg.Sender.String(),
+			Type:      TxTypeOrderNew,
+			Side:      int64(side),
+			Symbol:    item.Product,
+			Quantity:  item.Quantity.String(),
+			Fee:       sdk.DecCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String(), // TODO: get fee from params
+			Timestamp: timestamp,
+		}
+
+		result = append(result, &tx)
 	}
-	return &Transaction{
-		TxHash:    txHash,
-		Address:   msg.Sender.String(),
-		Type:      TxTypeOrderNew,
-		Side:      int64(side),
-		Symbol:    msg.OrderItems[0].Product,
-		Quantity:  msg.OrderItems[0].Quantity.String(),
-		Fee:       sdk.DecCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String(), // TODO: get fee from params
-		Timestamp: timestamp,
-	}
+
+	return result
 }
 
-func buildTransactionCancel(msg orderTypes.MsgCancelOrders, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, timestamp int64) *Transaction {
-	order := orderKeeper.GetOrder(ctx, msg.OrderIDs[0])
-	if order == nil {
-		return nil
+func buildTransactionCancel(handlerMsgResult bitset.BitSet, msg orderTypes.MsgCancelOrders, txHash string, ctx sdk.Context, orderKeeper OrderKeeper, timestamp int64) []*Transaction {
+	var result []*Transaction
+
+	for idx, orderID := range msg.OrderIDs {
+		if !handlerMsgResult.Test(uint(idx)) {
+			continue
+		}
+
+		order := orderKeeper.GetOrder(ctx, orderID)
+		if order == nil {
+			continue
+		}
+		side := TxSideBuy
+		if order.Side == orderTypes.SellOrder {
+			side = TxSideSell
+		}
+		cancelFeeStr := order.GetExtraInfoWithKey(orderTypes.OrderExtraInfoKeyCancelFee)
+		if cancelFeeStr == "" {
+			cancelFeeStr = sdk.DecCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String()
+		}
+		tx := Transaction{
+			TxHash:    txHash,
+			Address:   msg.Sender.String(),
+			Type:      TxTypeOrderCancel,
+			Side:      int64(side),
+			Symbol:    order.Product,
+			Quantity:  order.Quantity.String(),
+			Fee:       cancelFeeStr,
+			Timestamp: timestamp,
+		}
+
+		result = append(result, &tx)
 	}
-	side := TxSideBuy
-	if order.Side == orderTypes.SellOrder {
-		side = TxSideSell
-	}
-	cancelFeeStr := order.GetExtraInfoWithKey(orderTypes.OrderExtraInfoKeyCancelFee)
-	if cancelFeeStr == "" {
-		cancelFeeStr = sdk.DecCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String()
-	}
-	return &Transaction{
-		TxHash:    txHash,
-		Address:   msg.Sender.String(),
-		Type:      TxTypeOrderCancel,
-		Side:      int64(side),
-		Symbol:    order.Product,
-		Quantity:  order.Quantity.String(),
-		Fee:       cancelFeeStr,
-		Timestamp: timestamp,
-	}
+
+	return result
 }

@@ -7,12 +7,14 @@ import (
 	ordertypes "github.com/okex/okchain/x/order/types"
 	"github.com/okex/okchain/x/stream/exported"
 	"github.com/okex/okchain/x/token"
+	"github.com/willf/bitset"
 )
 
 //OrderKeeper expected order keeper
 type OrderKeeper interface {
 	GetOrder(ctx sdk.Context, orderID string) *order.Order
 	GetUpdatedOrderIDs() []string
+	GetTxHandlerMsgResult() []bitset.BitSet
 	GetBlockOrderNum(ctx sdk.Context, blockHeight int64) int64
 	GetBlockMatchResult() *ordertypes.BlockMatchResult
 	GetLastPrice(ctx sdk.Context, product string) sdk.Dec

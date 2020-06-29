@@ -162,7 +162,7 @@ func expireOrdersInExpiredBlock(ctx sdk.Context, k keeper.Keeper, expiredBlockHe
 	logger := ctx.Logger().With("module", "order")
 	orderNum := k.GetBlockOrderNum(ctx, expiredBlockHeight)
 	var index int64
-	for ; index < orderNum; index++ {
+	for index = 0; index < orderNum; index++ {
 		orderID := types.FormatOrderID(expiredBlockHeight, index+1)
 		order := k.GetOrder(ctx, orderID)
 		if order != nil && order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
@@ -320,7 +320,7 @@ func calcMatchPriceAndExecution(ctx sdk.Context, k keeper.Keeper, products []str
 	for _, product := range products {
 		tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
 		if tokenPair == nil {
-			panic("the nil pointer is not expected")
+			continue
 		}
 		book := k.GetDepthBookCopy(product)
 		bestPrice, maxExecution := periodicAuctionMatchPrice(book, tokenPair.MaxPriceDigit,
