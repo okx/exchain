@@ -23,7 +23,7 @@ type DEXOperatorInfo struct {
 	Website            string         `json:"website"`
 	InitHeight         int64          `json:"init_height"`
 	TxHash             string         `json:"tx_hash"`
-	HandlingFees       string         `json:"handling_fees"`
+	//HandlingFees       string         `json:"handling_fees"`
 }
 
 // nolint
@@ -45,10 +45,9 @@ func (o DEXOperatorInfo) String() string {
   Handling Fee Address: %s
   Website:              %s
   Init Height:          %d
-  TxHash:               %s
-  HandlingFees:         %s`,
+  TxHash:               %s`,
 		o.Address, o.HandlingFeeAddress, o.Website,
-		o.InitHeight, o.TxHash, o.HandlingFees,
+		o.InitHeight, o.TxHash,
 	)
 }
 

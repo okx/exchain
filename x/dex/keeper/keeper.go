@@ -472,9 +472,9 @@ func (k Keeper) GetOperatorInfo(ctx sdk.Context, addr sdk.AccAddress) (
 	operator, isExist := k.GetOperator(ctx, addr)
 	operatorInfo = types.NewDEXOperatorInfo(operator)
 
-	if isExist {
-		operatorInfo.HandlingFees = k.bankKeeper.GetCoins(ctx, operatorInfo.HandlingFeeAddress).String()
-	}
+	//if isExist {
+	//	operatorInfo.HandlingFees = k.bankKeeper.GetCoins(ctx, operatorInfo.HandlingFeeAddress).String()
+	//}
 	return operatorInfo, isExist
 }
 

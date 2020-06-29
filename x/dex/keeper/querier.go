@@ -232,7 +232,7 @@ func queryOperators(ctx sdk.Context, keeper IKeeper) ([]byte, sdk.Error) {
 	var operatorInfos types.DEXOperatorInfos
 	keeper.IterateOperators(ctx, func(operator types.DEXOperator) bool {
 		info := types.NewDEXOperatorInfo(operator)
-		info.HandlingFees = keeper.GetBankKeeper().GetCoins(ctx, info.HandlingFeeAddress).String()
+		//info.HandlingFees = keeper.GetBankKeeper().GetCoins(ctx, info.HandlingFeeAddress).String()
 		operatorInfos = append(operatorInfos, info)
 		return false
 	})
