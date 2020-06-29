@@ -310,8 +310,8 @@ func checkWebsite(website string) sdk.Error {
 	if err != nil {
 		return ErrInvalidWebsiteURL(err.Error())
 	}
-	if u.Scheme != "http" {
-		return ErrInvalidWebsiteURL(fmt.Sprintf("got: %s, expected: %s", u.Scheme, "http"))
+	if u.Scheme != "http" || u.Scheme != "https" {
+		return ErrInvalidWebsiteURL(fmt.Sprintf("got: %s, expected: http or https", u.Scheme))
 	}
 	return nil
 }
