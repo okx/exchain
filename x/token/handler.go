@@ -407,7 +407,7 @@ func handleMsgTokenActive(ctx sdk.Context, keeper Keeper, msg types.MsgTokenActi
 	}
 
 	// check owner
-	if !bytes.Equal(certifiedToken.Owner.Bytes(), msg.Activator.Bytes()) {
+	if !certifiedToken.Owner.Equals(msg.Activator) {
 		return sdk.ErrUnauthorized("Not the token's owner").Result()
 	}
 
