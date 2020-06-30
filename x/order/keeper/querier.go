@@ -56,7 +56,7 @@ type QueryDepthBookParams struct {
 
 // NewQueryDepthBookParams creates a new instance of QueryProposalParams
 func NewQueryDepthBookParams(product string, size int) QueryDepthBookParams {
-	if size == 0 {
+	if size <= 0 {
 		size = DefaultBookSize
 	}
 	return QueryDepthBookParams{
@@ -85,6 +85,9 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(
 			sdk.AppendMsgToErr("incorrectly formatted request Data", err.Error()))
+	}
+	if params.Size <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d", params.Size))
 	}
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
@@ -186,7 +189,9 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
 	}
-
+	if params.Size <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d", params.Size))
+	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 
 	var asks []BookResItem

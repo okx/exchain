@@ -39,7 +39,9 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-
+	if params.PerPage <= 0 || params.Page <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+	}
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
@@ -88,7 +90,9 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-
+	if params.PerPage <= 0 || params.Page <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+	}
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
@@ -140,7 +144,9 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-
+	if params.PerPage <= 0 || params.Page <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
 	var products []string
