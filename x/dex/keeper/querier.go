@@ -40,7 +40,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 	if params.PerPage <= 0 || params.Page <= 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
@@ -91,7 +91,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 	if params.PerPage <= 0 || params.Page <= 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
@@ -145,7 +145,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 	if params.PerPage <= 0 || params.Page <= 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: %d or %d", params.Page, params.PerPage))
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
