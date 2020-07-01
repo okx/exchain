@@ -14,6 +14,7 @@ import (
 	stakingrest "github.com/okex/okchain/x/staking/client/rest"
 	"github.com/okex/okchain/x/token"
 	tokensrest "github.com/okex/okchain/x/token/client/rest"
+	wasmrest "github.com/okex/okchain/x/wasm/client/rest"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -37,6 +38,7 @@ func registerRoutesV1(rs *lcd.RestServer) {
 	backendrest.RegisterRoutes(rs.CliCtx, v1Router)
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
+	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
 }
 
 func registerRoutesV2(rs *lcd.RestServer) {
