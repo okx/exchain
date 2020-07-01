@@ -82,7 +82,7 @@ func TestInitGenesis(t *testing.T) {
 	newCtx := newMapp.BaseApp.NewContext(false, abci.Header{})
 
 	exportGenesis.Tokens[0].OriginalTotalSupply = sdk.NewDec(66666)
-	exportGenesis.Tokens[0].TotalSupply = sdk.NewDec(66666)
+	//exportGenesis.Tokens[0].TotalSupply = sdk.NewDec(66666)
 	decCoin.Denom = tokens[0].Symbol
 	decCoin.Amount = sdk.NewDec(7777)
 	exportGenesis.LockedAssets[0].Coins = sdk.DecCoins{decCoin}
@@ -149,9 +149,9 @@ func TestIssueToken(t *testing.T) {
 		OriginalSymbol:      genesisState.Tokens[0].OriginalSymbol,
 		WholeName:           genesisState.Tokens[0].WholeName,
 		OriginalTotalSupply: genesisState.Tokens[0].OriginalTotalSupply,
-		TotalSupply:         genesisState.Tokens[0].TotalSupply,
-		Owner:               genesisState.Tokens[0].Owner,
-		Mintable:            genesisState.Tokens[0].Mintable,
+		//TotalSupply:         genesisState.Tokens[0].TotalSupply,
+		Owner:    genesisState.Tokens[0].Owner,
+		Mintable: genesisState.Tokens[0].Mintable,
 	}
 	require.EqualValues(t, expectToken, token)
 
@@ -162,9 +162,9 @@ func TestIssueToken(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
-		Owner:               nil,
-		Mintable:            true,
+		//TotalSupply:         sdk.NewDec(1000000000),
+		Owner:    nil,
+		Mintable: true,
 	}}
 
 	coins = sdk.NewCoins(sdk.NewDecCoinFromDec(coin[0].Symbol, coin[0].OriginalTotalSupply))

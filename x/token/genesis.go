@@ -49,9 +49,9 @@ func defaultGenesisStateOKT() types.Token {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "OKT",
 		OriginalTotalSupply: totalSupply,
-		TotalSupply:         totalSupply,
-		Owner:               addr,
-		Mintable:            true,
+		//TotalSupply:         totalSupply,
+		Owner:    addr,
+		Mintable: true,
 	}
 }
 
@@ -137,7 +137,7 @@ func IssueOKT(ctx sdk.Context, k Keeper, genesisState json.RawMessage, acc auth.
 		}
 		coins := k.GetCoins(ctx, t.Owner)
 		if !strings.Contains(coins.String(), t.Symbol) {
-			coins = append(coins, sdk.NewDecCoinFromDec(t.Symbol, t.TotalSupply))
+			coins = append(coins, sdk.NewDecCoinFromDec(t.Symbol, t.OriginalTotalSupply))
 			sort.Sort(coins)
 
 			err := k.bankKeeper.SetCoins(ctx, t.Owner, coins)

@@ -31,9 +31,9 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		TotalSupply:         sdk.ZeroDec(),
-		Owner:               []byte("gyl"),
-		Mintable:            true,
+		//TotalSupply:         sdk.ZeroDec(),
+		Owner:    []byte("gyl"),
+		Mintable: true,
 	}
 	keeper.NewToken(ctx, token)
 
@@ -60,9 +60,9 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		TotalSupply:         sdk.ZeroDec(),
-		Owner:               []byte("gyl"),
-		Mintable:            true,
+		//TotalSupply:         sdk.ZeroDec(),
+		Owner:    []byte("gyl"),
+		Mintable: true,
 	}
 	store := ctx.KVStore(keeper.tokenStoreKey)
 	store.Set(types.TokenNumberKey, []byte("0"))
@@ -79,7 +79,7 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
 	require.Nil(t, err)
 
-	feeType:="test fee type"
+	feeType := "test fee type"
 	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, feeType)
 	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, feeType)
 

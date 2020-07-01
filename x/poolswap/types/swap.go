@@ -50,10 +50,10 @@ func InitPoolToken(poolTokenName string) token.Token {
 		OriginalSymbol:      poolTokenName,
 		WholeName:           poolTokenName,
 		OriginalTotalSupply: sdk.NewDec(0),
-		TotalSupply:         sdk.NewDec(0),
-		Owner:               supply.NewModuleAddress(ModuleName),
-		Type:                GenerateTokenType,
-		Mintable:            true,
+		//TotalSupply:         sdk.NewDec(0),
+		Owner:    supply.NewModuleAddress(ModuleName),
+		Type:     GenerateTokenType,
+		Mintable: true,
 	}
 }
 
