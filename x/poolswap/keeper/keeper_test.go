@@ -30,8 +30,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	require.EqualValues(t, types.GenerateTokenType, poolToken.Type)
 
 	// check pool token total supply
-	amount, err := keeper.GetPoolTokenAmount(ctx, symbol)
-	require.Nil(t, err)
+	amount := keeper.GetPoolTokenAmount(ctx, symbol)
 	require.EqualValues(t, sdk.MustNewDecFromStr("0"), amount)
 
 	mintToken := sdk.NewDecCoinFromDec(symbol, sdk.NewDec(1000000))

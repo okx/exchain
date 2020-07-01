@@ -51,10 +51,10 @@ func genToken(mapp *TestInput, ctx sdk.Context, tokennames []string, tokentypes 
 			OriginalSymbol:      t,
 			WholeName:           t,
 			OriginalTotalSupply: sdk.NewDec(0),
-			TotalSupply:         sdk.NewDec(0),
-			Owner:               supply.NewModuleAddress(types.ModuleName),
-			Mintable:            true,
-			Type:                tokentypes[i],
+			//TotalSupply:         sdk.NewDec(0),
+			Owner:    supply.NewModuleAddress(types.ModuleName),
+			Mintable: true,
+			Type:     tokentypes[i],
 		}
 		mapp.tokenKeeper.NewToken(ctx, tok)
 	}

@@ -61,10 +61,10 @@ func initToken(name string) token.Token {
 		OriginalSymbol:      name,
 		WholeName:           name,
 		OriginalTotalSupply: sdk.NewDec(0),
-		TotalSupply:         sdk.NewDec(0),
-		Owner:               supply.NewModuleAddress(ModuleName),
-		Type:                1,
-		Mintable:            true,
+		//TotalSupply:         sdk.NewDec(0),
+		Owner:    supply.NewModuleAddress(ModuleName),
+		Type:     1,
+		Mintable: true,
 	}
 }
 
