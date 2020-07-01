@@ -248,6 +248,9 @@ func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
 
 // ValidateBasic Implements Msg
 func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
 	return checkWebsite(msg.Website)
 }
 
@@ -267,9 +270,9 @@ func (msg MsgCreateOperator) GetSigners() []sdk.AccAddress {
 // if DEXOperator not exist, register a new DEXOperator
 // else update Website or HandlingFeeAddress
 type MsgUpdateOperator struct {
-	Owner              sdk.AccAddress
-	Website            string
-	HandlingFeeAddress sdk.AccAddress
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
 }
 
 // NewMsgUpdateOperator creates a new MsgUpdateOperator
@@ -288,6 +291,9 @@ func (msg MsgUpdateOperator) Type() string { return typeMsgUpdateOperator }
 
 // ValidateBasic Implements Msg
 func (msg MsgUpdateOperator) ValidateBasic() sdk.Error {
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
 	return checkWebsite(msg.Website)
 }
 
