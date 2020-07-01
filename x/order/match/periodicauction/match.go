@@ -160,13 +160,14 @@ func bestPriceFromRefPrice(minPrice, maxPrice, refPrice sdk.Dec) sdk.Dec {
 
 func expireOrdersInExpiredBlock(ctx sdk.Context, k keeper.Keeper, expiredBlockHeight int64) {
 	logger := ctx.Logger().With("module", "order")
-	orderNum := k.GetBlockOrderNum(ctx, expiredBlockHeight)
-	var index int64
-	for index = 0; index < orderNum; index++ {
-		orderID := types.FormatOrderID(expiredBlockHeight, index+1)
-		order := k.GetOrder(ctx, orderID)
-		if order != nil && order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
-			k.ExpireOrder(ctx, order, logger)
+	store := ctx.KVStore(k.GetOrderStoreKey())
+	iter := sdk.KVStorePrefixIterator(store, types.GetOrderKey(types.FormatOrderIDPrefix(expiredBlockHeight)))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var order types.Order
+		k.GetCdc().MustUnmarshalBinaryBare(iter.Value(), &order)
+		if order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
+			k.ExpireOrder(ctx, &order, logger)
 			logger.Info(fmt.Sprintf("order (%s) expired", order.OrderID))
 		}
 	}
