@@ -47,7 +47,7 @@ make install
 Before you  connect to our okchain-wasm test-net and play with it, we recommend you to configure your okchaincli, it will save you lots of time to type configuration command.
 
 ~~~bash
-okchaincli config chain-id okchain 
+okchaincli config chain-id okchain-wasm 
 okchaincli config output json    
 okchaincli config indent true
 okchaincli config node tcp://3.112.102.224:26657
