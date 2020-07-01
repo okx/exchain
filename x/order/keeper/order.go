@@ -101,7 +101,7 @@ func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, l
 	return fee
 }
 
-func (k Keeper) ExpireOrdersInExpiredBlock(ctx sdk.Context, expiredBlockHeight int64) {
+func (k Keeper) DropExpiredOrdersByBlockHeight(ctx sdk.Context, expiredBlockHeight int64) {
 	logger := ctx.Logger().With("module", "order")
 	store := ctx.KVStore(k.orderStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.GetOrderKey(types.FormatOrderIDPrefix(expiredBlockHeight)))

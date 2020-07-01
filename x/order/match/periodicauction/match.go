@@ -198,7 +198,7 @@ func cacheExpiredBlockToCurrentHeight(ctx sdk.Context, keeper keeper.Keeper) {
 		var expiredHeight int64
 		expiredBlocks := keeper.GetExpireBlockHeight(ctx, height)
 		for _, expiredHeight = range expiredBlocks {
-			keeper.ExpireOrdersInExpiredBlock(ctx, expiredHeight)
+			keeper.DropExpiredOrdersByBlockHeight(ctx, expiredHeight)
 			logger.Info(fmt.Sprintf("currentHeight(%d), expire orders at blockHeight(%d)",
 				curBlockHeight, expiredHeight))
 		}
