@@ -471,8 +471,8 @@ func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		perPageStr := r.URL.Query().Get("per_page")
 
 		// validate request
-		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+		if addr == "" && product == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address and product is empty")
 			return
 		}
 		var page, perPage int
