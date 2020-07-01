@@ -339,7 +339,7 @@ func TestExpireOrdersInExpiredBlock(t *testing.T) {
 		require.EqualValues(t, nil, err)
 	}
 
-	expireOrdersInExpiredBlock(ctx, keeper, ctx.BlockHeight())
+	keeper.ExpireOrdersInExpiredBlock(ctx, ctx.BlockHeight())
 
 	order := keeper.GetOrder(ctx, "ID0000000000-1")
 	require.NotEqual(t, nil, order)
@@ -407,7 +407,7 @@ func TestCacheExpiredBlockToCurrentHeight(t *testing.T) {
 		require.EqualValues(t, nil, err)
 	}
 
-	expireOrdersInExpiredBlock(ctx, keeper, ctx.BlockHeight())
+	keeper.ExpireOrdersInExpiredBlock(ctx, ctx.BlockHeight())
 	keeper.SetExpireBlockHeight(ctx, ctx.BlockHeight(), []int64{ctx.BlockHeight()})
 
 	cacheExpiredBlockToCurrentHeight(ctx, keeper)

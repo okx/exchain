@@ -549,11 +549,3 @@ func (k Keeper) AddTxHandlerMsgResult(resultSet bitset.BitSet) {
 		k.cache.addTxHandlerMsgResult(resultSet)
 	}
 }
-
-func (k Keeper) GetOrderStoreKey() sdk.StoreKey {
-	return k.orderStoreKey
-}
-
-func (k Keeper) GetCdc() *codec.Codec {
-	return k.cdc
-}
