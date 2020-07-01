@@ -1,15 +1,10 @@
 package token
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
 	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/token/types"
 )
@@ -125,28 +120,4 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 		LockedAssets: lockedAsset,
 		LockedFees:   lockedFees,
 	}
-}
-
-// IssueOKT issues okt in initchain
-func IssueOKT(ctx sdk.Context, k Keeper, genesisState json.RawMessage, acc auth.Account) error {
-	var data GenesisState
-	types.ModuleCdc.MustUnmarshalJSON(genesisState, &data)
-	for _, t := range data.Tokens {
-		if t.Owner.Empty() && acc != nil {
-			t.Owner = acc.GetAddress()
-		}
-		coins := k.GetCoins(ctx, t.Owner)
-		if !strings.Contains(coins.String(), t.Symbol) {
-			coins = append(coins, sdk.NewDecCoinFromDec(t.Symbol, t.TotalSupply))
-			sort.Sort(coins)
-
-			err := k.bankKeeper.SetCoins(ctx, t.Owner, coins)
-			if err != nil {
-				return err
-			}
-		}
-
-		k.NewToken(ctx, t)
-	}
-	return nil
 }
