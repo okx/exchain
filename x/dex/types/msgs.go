@@ -303,6 +303,9 @@ func (msg MsgUpdateOperator) GetSigners() []sdk.AccAddress {
 }
 
 func checkWebsite(website string) sdk.Error {
+	if len(website) == 0 {
+		return nil
+	}
 	if len(website) > 1024 {
 		return ErrInvalidWebsiteLength(len(website), 1024)
 	}
