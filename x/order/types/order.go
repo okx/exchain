@@ -255,6 +255,15 @@ func FormatOrderID(blockHeight, orderNum int64) string {
 }
 
 // nolint
+func FormatOrderIDPrefix(blockHeight int64) string {
+	format := "ID%010d-"
+	if blockHeight > 9999999999 {
+		format = "ID%d-"
+	}
+	return fmt.Sprintf(format, blockHeight)
+}
+
+// nolint
 func GetBlockHeightFromOrderID(orderID string) int64 {
 	var blockHeight int64
 	var id int64
