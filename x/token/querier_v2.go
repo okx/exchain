@@ -66,13 +66,13 @@ func queryAccountV2(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 func queryTokensV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	tokens := keeper.GetTokensInfo(ctx)
 
-	var tokenInfos types.Tokens
+	var tokensResp types.Tokens
 	for _, token := range tokens {
-		tokenInfo := types.GenTokenResp(token)
-		tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
-		tokenInfos = append(tokenInfos, tokenInfo)
+		tokenResp := types.GenTokenResp(token)
+		tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
+		tokensResp = append(tokensResp, tokenResp)
 	}
-	res, err := common.JSONMarshalV2(tokenInfos)
+	res, err := common.JSONMarshalV2(tokensResp)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
@@ -87,9 +87,9 @@ func queryTokenV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, sdk.ErrInvalidCoins("unknown token")
 	}
 
-	tokenInfo := types.GenTokenResp(token)
-	tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
-	res, err := common.JSONMarshalV2(tokenInfo)
+	tokenResp := types.GenTokenResp(token)
+	tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
+	res, err := common.JSONMarshalV2(tokenResp)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
