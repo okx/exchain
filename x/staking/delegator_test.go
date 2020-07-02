@@ -270,7 +270,6 @@ func TestProxy(t *testing.T) {
 		queryDelegatorCheck(ProxiedDelegator, true, nil, nil, nil, nil),
 	}}
 
-
 	actionsAndChecker := []actResChecker{
 		nil,
 		validatorStatusChecker(sdk.Unbonded.String()),
@@ -381,7 +380,7 @@ func TestRebindProxy(t *testing.T) {
 			&zeroDec, nil, nil),
 	}}
 
-	voteActionChecker := andChecker{checkers:[]actResChecker{
+	voteActionChecker := andChecker{checkers: []actResChecker{
 		noErrorInHandlerResult(true),
 		queryDelegatorProxyCheck(ProxiedDelegator, true, false,
 			&DelegatedToken1, nil, []sdk.AccAddress{ValidDelegator1}),
@@ -509,7 +508,7 @@ func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 	params.MaxValidators = uint16(len(originVaSet))
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 	startUpStatus := baseValidatorStatus{startUpValidator}
 	orgValsLen := len(originVaSet)
 	fullVaSet := make([]sdk.ValAddress, orgValsLen+1)
@@ -518,14 +517,12 @@ func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 
 	bAction := baseAction{}
 
-
 	step1Actions := IActions{
 		delegatorRegProxyAction{bAction, ProxiedDelegator, true},
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ProxiedDelegator}},
 		delegatorWithdrawAction{bAction, ProxiedDelegator, sdk.OneDec(), sdk.DefaultBondDenom},
 		proxyBindAction{bAction, ProxiedDelegator, ProxiedDelegator},
 		proxyUnBindAction{bAction, ProxiedDelegator},
-
 	}
 
 	step2Actions := IActions{
@@ -551,10 +548,10 @@ func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 		delegatorWithdrawAction{bAction, ProxiedDelegator, sdk.OneDec(), sdk.DefaultBondDenom},
 	}
 
-	for s1:=0; s1 < len(step1Actions); s1++ {
-		for s2 :=0; s2 < len(step2Actions); s2++ {
-			for s3 :=0; s3 <len(step3Actions); s3++ {
-				for s4 :=0; s4 <len(step4Actions); s4++ {
+	for s1 := 0; s1 < len(step1Actions); s1++ {
+		for s2 := 0; s2 < len(step2Actions); s2++ {
+			for s3 := 0; s3 < len(step3Actions); s3++ {
+				for s4 := 0; s4 < len(step4Actions); s4++ {
 					inputActions := []IAction{
 						createValidatorAction{bAction, nil},
 						delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
@@ -569,7 +566,7 @@ func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
 
 					actionsAndChecker, caseName := generateActionsAndCheckers(inputActions, 3)
 
-					t.Logf("============================================== indexes:[%d,%d,%d,%d]  %s ==============================================", s1,s2,s3,s4, caseName)
+					t.Logf("============================================== indexes:[%d,%d,%d,%d]  %s ==============================================", s1, s2, s3, s4, caseName)
 					_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 					smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
 					smTestCase.SetupValidatorSetAndDelegatorSet(int(params.MaxValidators))
@@ -608,9 +605,9 @@ func defaultConstraintChecker(checkVa bool, checkD2 bool) actResChecker {
 func generateActionsAndCheckers(stepActions IActions, skipActCnt int) (ResCheckers, string) {
 	checkers := ResCheckers{}
 	caseName := ""
-	for i:=0; i < len(stepActions); i++ {
+	for i := 0; i < len(stepActions); i++ {
 		a := stepActions[i]
-		caseName =  caseName + fmt.Sprintf("step_%d_%s#$", i, a.desc())
+		caseName = caseName + fmt.Sprintf("step_%d_%s#$", i, a.desc())
 		if i >= skipActCnt {
 			checkVa := a.desc() != "destroyVa"
 			checkD2 := a.desc() != "dlg2WithdrawAll"
