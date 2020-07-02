@@ -67,7 +67,7 @@ func orderBookHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "Bad request: size is invalid")
 			return
 		}
-		params := keeper.NewQueryDepthBookParams(product, size)
+		params := keeper.NewQueryDepthBookParams(product, uint(size))
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())

@@ -40,8 +40,8 @@ func GetCmdQueryProducts(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			ownerAddress := viper.GetString("owner")
-			page := viper.GetInt("page-number")
-			perPage := viper.GetInt("items-per-page")
+			page := viper.GetUint("page-number")
+			perPage := viper.GetUint("items-per-page")
 			queryParams, err := types.NewQueryDexInfoParams(ownerAddress, page, perPage)
 			if err != nil {
 				return err
@@ -60,8 +60,8 @@ func GetCmdQueryProducts(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP("owner", "", "", "address of the product owner")
-	cmd.Flags().IntP("page-number", "p", types.DefaultPage, "page num")
-	cmd.Flags().IntP("items-per-page", "i", types.DefaultPerPage, "items per page")
+	cmd.Flags().UintP("page-number", "p", types.DefaultPage, "page num")
+	cmd.Flags().UintP("items-per-page", "i", types.DefaultPerPage, "items per page")
 
 	return cmd
 }
@@ -74,8 +74,8 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			ownerAddress := args[0]
-			page := viper.GetInt("page-number")
-			perPage := viper.GetInt("items-per-page")
+			page := viper.GetUint("page-number")
+			perPage := viper.GetUint("items-per-page")
 			queryParams, err := types.NewQueryDexInfoParams(ownerAddress, page, perPage)
 			if err != nil {
 				return err
@@ -94,8 +94,8 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().IntP("page-number", "p", types.DefaultPage, "page num")
-	cmd.Flags().IntP("items-per-page", "i", types.DefaultPerPage, "items per page")
+	cmd.Flags().UintP("page-number", "p", types.DefaultPage, "page num")
+	cmd.Flags().UintP("items-per-page", "i", types.DefaultPerPage, "items per page")
 	return cmd
 }
 
@@ -105,8 +105,8 @@ func GetCmdQueryMatchOrder(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Use:   "match-order",
 		Short: "Query the match order of token pairs",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			page := viper.GetInt("page-number")
-			perPage := viper.GetInt("items-per-page")
+			page := viper.GetUint("page-number")
+			perPage := viper.GetUint("items-per-page")
 			queryParams, err := types.NewQueryDexInfoParams("", page, perPage)
 			if err != nil {
 				return err
@@ -125,8 +125,8 @@ func GetCmdQueryMatchOrder(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().IntP("page-number", "p", types.DefaultPage, "page num")
-	cmd.Flags().IntP("items-per-page", "i", types.DefaultPerPage, "items per page")
+	cmd.Flags().UintP("page-number", "p", types.DefaultPage, "page num")
+	cmd.Flags().UintP("items-per-page", "i", types.DefaultPerPage, "items per page")
 	return cmd
 }
 
