@@ -512,12 +512,12 @@ Where proposal.json contains:
    },
   "deposit": [
     {
-      "denom": okt,
+      "denom": %s,
       "amount": "10000"
     }
   ]
 }
-`, version.ClientName)),
+`, version.ClientName, sdk.DefaultBondDenom)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
