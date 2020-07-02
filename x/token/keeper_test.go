@@ -305,6 +305,12 @@ func TestKeeper_SetCertifiedToken(t *testing.T) {
 	proposalID := uint64(1)
 	keeper.SetCertifiedToken(ctx, proposalID, expected_token)
 
-	token := keeper.GetCertifiedToken(ctx, proposalID)
+	token, isExist := keeper.GetCertifiedToken(ctx, proposalID)
+	require.True(t, isExist)
 	require.EqualValues(t, expected_token, token)
+
+	keeper.DeleteCertifiedToken(ctx, proposalID)
+	token, isExist = keeper.GetCertifiedToken(ctx, proposalID)
+	require.False(t, isExist)
+	require.EqualValues(t, types.CertifiedToken{}, token)
 }

@@ -401,9 +401,13 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 }
 
 func handleMsgTokenActive(ctx sdk.Context, keeper Keeper, msg types.MsgTokenActive, logger log.Logger) sdk.Result {
-	certifiedToken := keeper.GetCertifiedToken(ctx, msg.ProposalID)
+	certifiedToken, isExist := keeper.GetCertifiedToken(ctx, msg.ProposalID)
+	if !isExist {
+		sdk.ErrInternal(fmt.Sprintf("the certified token %s does not exist or the proposal %d did not pass",
+			certifiedToken.Symbol, msg.ProposalID)).Result()
+	}
 	if keeper.TokenExist(ctx, certifiedToken.Symbol) {
-		return sdk.ErrInternal(fmt.Sprintf("%s already exists", certifiedToken.Symbol)).Result()
+		return sdk.ErrInternal(fmt.Sprintf("the certified token %s has been activated", certifiedToken.Symbol)).Result()
 	}
 
 	// check owner
@@ -442,6 +446,9 @@ func handleMsgTokenActive(ctx sdk.Context, keeper Keeper, msg types.MsgTokenActi
 
 	// set token info
 	keeper.NewToken(ctx, token)
+
+	// delete the CertifiedToken info by proposalID
+	keeper.DeleteCertifiedToken(ctx, msg.ProposalID)
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()

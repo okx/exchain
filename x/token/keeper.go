@@ -404,22 +404,25 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 	return name, true
 }
 
+// nolint
 func (k Keeper) SetCertifiedToken(ctx sdk.Context, proposalID uint64, token types.CertifiedToken) {
 	store := ctx.KVStore(k.tokenStoreKey)
 
 	store.Set(types.GetCertifiedTokenProposal(proposalID), k.cdc.MustMarshalBinaryBare(token))
 }
 
-func (k Keeper) GetCertifiedToken(ctx sdk.Context, proposalID uint64) (token types.CertifiedToken) {
+// nolint
+func (k Keeper) GetCertifiedToken(ctx sdk.Context, proposalID uint64) (token types.CertifiedToken, isExist bool) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	bz := store.Get(types.GetCertifiedTokenProposal(proposalID))
 	if bz == nil {
-		return
+		return token, false
 	}
 	k.cdc.MustUnmarshalBinaryBare(bz, &token)
-	return
+	return token, true
 }
 
+// nolint
 func (k Keeper) GetCertifiedTokensWithProposalID(ctx sdk.Context) (tokens []types.CertifiedTokenExport) {
 	store := ctx.KVStore(k.tokenStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.CertifiedTokenKey)
@@ -435,4 +438,11 @@ func (k Keeper) GetCertifiedTokensWithProposalID(ctx sdk.Context) (tokens []type
 		iter.Next()
 	}
 	return tokens
+}
+
+// nolint
+func (k Keeper) DeleteCertifiedToken(ctx sdk.Context, proposalID uint64) {
+	store := ctx.KVStore(k.tokenStoreKey)
+
+	store.Delete(types.GetCertifiedTokenProposal(proposalID))
 }
