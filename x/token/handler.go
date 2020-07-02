@@ -88,9 +88,8 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 		OriginalSymbol:      msg.OriginalSymbol,
 		WholeName:           msg.WholeName,
 		OriginalTotalSupply: totalSupply,
-		//TotalSupply:         totalSupply,
-		Owner:    msg.Owner,
-		Mintable: msg.Mintable,
+		Owner:               msg.Owner,
+		Mintable:            msg.Mintable,
 	}
 
 	// generate a random symbol

@@ -27,9 +27,8 @@ func TestQueryOrder(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		//TotalSupply:         sdk.NewDec(1000000000),
-		Owner:    testAccounts[0].baseAccount.Address,
-		Mintable: true,
+		Owner:               testAccounts[0].baseAccount.Address,
+		Mintable:            true,
 	}
 
 	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
@@ -67,9 +66,8 @@ func TestQueryTokens(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		//TotalSupply:         sdk.NewDec(1000000000),
-		Owner:    testAccounts[0].baseAccount.Address,
-		Mintable: true,
+		Owner:               testAccounts[0].baseAccount.Address,
+		Mintable:            true,
 	}
 
 	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
@@ -152,9 +150,8 @@ func TestQueryUserTokens(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		//TotalSupply:         sdk.NewDec(1000000000),
-		Owner:    testAccounts[0].baseAccount.Address,
-		Mintable: true,
+		Owner:               testAccounts[0].baseAccount.Address,
+		Mintable:            true,
 	}
 
 	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
@@ -192,9 +189,8 @@ func TestQueryCurrency(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		//TotalSupply:         sdk.NewDec(1000000000),
-		Owner:    testAccounts[0].baseAccount.Address,
-		Mintable: true,
+		Owner:               testAccounts[0].baseAccount.Address,
+		Mintable:            true,
 	}
 
 	keeper.NewToken(ctx, token)
@@ -235,9 +231,8 @@ func TestQueryAccount(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		//TotalSupply:         sdk.NewDec(1000000000),
-		Owner:    testAccounts[0].baseAccount.Address,
-		Mintable: true,
+		Owner:               testAccounts[0].baseAccount.Address,
+		Mintable:            true,
 	}
 
 	originalCoinsInfo := types.CoinsInfo{
@@ -326,18 +321,16 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 			Symbol:              common.NativeToken,
 			OriginalSymbol:      common.NativeToken,
 			OriginalTotalSupply: sdk.NewDec(1000000000),
-			//TotalSupply:         sdk.NewDec(1000000000),
-			Owner:    testAccounts[0].baseAccount.Address,
-			Mintable: true,
+			Owner:               testAccounts[0].baseAccount.Address,
+			Mintable:            true,
 		},
 		{
 			Description:         "not_exist",
 			Symbol:              "xxb",
 			OriginalSymbol:      "xxb",
 			OriginalTotalSupply: sdk.ZeroDec(),
-			//TotalSupply:         sdk.ZeroDec(),
-			Owner:    testAccounts[0].baseAccount.Address,
-			Mintable: false,
+			Owner:               testAccounts[0].baseAccount.Address,
+			Mintable:            false,
 		},
 	}
 	for _, token := range tokens {

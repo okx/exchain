@@ -50,7 +50,7 @@ func getCmdTokenInfo(queryRoute string, cdc *codec.Codec) *cobra.Command {
 					return nil
 				}
 
-				var token types.TokenInfo
+				var token types.TokenResp
 				cdc.MustUnmarshalJSON(res, &token)
 				return cliCtx.PrintOutput(token)
 			case owner != "":

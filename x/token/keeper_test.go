@@ -31,9 +31,8 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		//TotalSupply:         sdk.ZeroDec(),
-		Owner:    []byte("gyl"),
-		Mintable: true,
+		Owner:               []byte("gyl"),
+		Mintable:            true,
 	}
 	keeper.NewToken(ctx, token)
 
@@ -60,9 +59,8 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		//TotalSupply:         sdk.ZeroDec(),
-		Owner:    []byte("gyl"),
-		Mintable: true,
+		Owner:               []byte("gyl"),
+		Mintable:            true,
 	}
 	store := ctx.KVStore(keeper.tokenStoreKey)
 	store.Set(types.TokenNumberKey, []byte("0"))

@@ -208,12 +208,6 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 
 	liquidity := msg.Liquidity
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
-	//if err != nil {
-	//	return sdk.Result{
-	//		Code: sdk.CodeInternal,
-	//		Log:  fmt.Sprintf("failed to get pool token %s : %s", swapTokenPair.PoolTokenName, err.Error()),
-	//	}
-	//}
 	if poolTokenAmount.LT(liquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,

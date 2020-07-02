@@ -47,7 +47,7 @@ func queryInfo(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Kee
 		return nil, sdk.ErrInvalidCoins("unknown token")
 	}
 
-	tokenInfo := types.GenTokenInfo(token)
+	tokenInfo := types.GenTokenResp(token)
 	tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokenInfo)
 	if err != nil {
@@ -70,7 +70,7 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 
 	var tokenInfos types.Tokens
 	for _, token := range tokens {
-		tokenInfo := types.GenTokenInfo(token)
+		tokenInfo := types.GenTokenResp(token)
 		tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
 		tokenInfos = append(tokenInfos, tokenInfo)
 	}

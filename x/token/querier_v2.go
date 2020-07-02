@@ -68,7 +68,7 @@ func queryTokensV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 
 	var tokenInfos types.Tokens
 	for _, token := range tokens {
-		tokenInfo := types.GenTokenInfo(token)
+		tokenInfo := types.GenTokenResp(token)
 		tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
 		tokenInfos = append(tokenInfos, tokenInfo)
 	}
@@ -87,7 +87,7 @@ func queryTokenV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 		return nil, sdk.ErrInvalidCoins("unknown token")
 	}
 
-	tokenInfo := types.GenTokenInfo(token)
+	tokenInfo := types.GenTokenResp(token)
 	tokenInfo.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
 	res, err := common.JSONMarshalV2(tokenInfo)
 	if err != nil {

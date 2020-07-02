@@ -170,8 +170,8 @@ func MergeCoinInfo(availableCoins, lockedCoins sdk.DecCoins) (coinsInfo CoinsInf
 	return coinsInfo
 }
 
-func GenTokenInfo(token Token) TokenInfo {
-	return TokenInfo{
+func GenTokenResp(token Token) TokenResp {
+	return TokenResp{
 		Description:         token.Description,
 		Symbol:              token.Symbol,
 		OriginalSymbol:      token.OriginalSymbol,

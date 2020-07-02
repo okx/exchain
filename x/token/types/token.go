@@ -7,15 +7,14 @@ import (
 )
 
 type Token struct {
-	Description         string  `json:"description" v2:"description"`                     // e.g. "OK Group Global Utility Token"
-	Symbol              string  `json:"symbol" v2:"symbol"`                               // e.g. "okt"
-	OriginalSymbol      string  `json:"original_symbol" v2:"original_symbol"`             // e.g. "OKT"
-	WholeName           string  `json:"whole_name" v2:"whole_name"`                       // e.g. "OKT"
-	OriginalTotalSupply sdk.Dec `json:"original_total_supply" v2:"original_total_supply"` // e.g. 1000000000.00000000
-	//TotalSupply         sdk.Dec        `json:"total_supply" v2:"total_supply"`                   // e.g. 1000000000.00000000
-	Type     int            `json:"type"`                   //e.g. 1 common token, 2 interest token
-	Owner    sdk.AccAddress `json:"owner" v2:"owner"`       // e.g. okchain1upyg3vl6vqaxqvzts69zpus2c027p7paw63s99
-	Mintable bool           `json:"mintable" v2:"mintable"` // e.g. false
+	Description         string         `json:"description" v2:"description"`                     // e.g. "OK Group Global Utility Token"
+	Symbol              string         `json:"symbol" v2:"symbol"`                               // e.g. "okt"
+	OriginalSymbol      string         `json:"original_symbol" v2:"original_symbol"`             // e.g. "OKT"
+	WholeName           string         `json:"whole_name" v2:"whole_name"`                       // e.g. "OKT"
+	OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"` // e.g. 1000000000.00000000
+	Type                int            `json:"type"`                                             //e.g. 1 common token, 2 interest token
+	Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. okchain1upyg3vl6vqaxqvzts69zpus2c027p7paw63s99
+	Mintable            bool           `json:"mintable" v2:"mintable"`                           // e.g. false
 }
 
 func (token Token) String() string {
@@ -26,19 +25,19 @@ func (token Token) String() string {
 	return string(b)
 }
 
-type TokenInfo struct {
+type TokenResp struct {
 	Description         string         `json:"description" v2:"description"`
 	Symbol              string         `json:"symbol" v2:"symbol"`
 	OriginalSymbol      string         `json:"original_symbol" v2:"original_symbol"`
 	WholeName           string         `json:"whole_name" v2:"whole_name"`
 	OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"`
-	TotalSupply         sdk.Dec        `json:"total_supply" v2:"total_supply"`
 	Type                int            `json:"type"`
 	Owner               sdk.AccAddress `json:"owner" v2:"owner"`
 	Mintable            bool           `json:"mintable" v2:"mintable"`
+	TotalSupply         sdk.Dec        `json:"total_supply" v2:"total_supply"`
 }
 
-func (token TokenInfo) String() string {
+func (token TokenResp) String() string {
 	b, err := json.Marshal(token)
 	if err != nil {
 		return "{}"
@@ -46,7 +45,7 @@ func (token TokenInfo) String() string {
 	return string(b)
 }
 
-type Tokens []TokenInfo
+type Tokens []TokenResp
 
 func (tokens Tokens) String() string {
 	b, err := json.Marshal(tokens)
@@ -69,12 +68,6 @@ func (currency Currency) String() string {
 	}
 	return string(b)
 }
-
-//type ByDenom sdk.DecCoins
-//
-//func (d ByDenom) Len() int           { return len(d) }
-//func (d ByDenom) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
-//func (d ByDenom) Less(i, j int) bool { return d[i].Denom < d[j].Denom }
 
 type Transfer struct {
 	To     string `json:"to"`
@@ -118,15 +111,9 @@ func NewCoinInfo(symbol, available, locked string) *CoinInfo {
 	}
 }
 
-//type QueryPage struct {
-//	Page    int `json:"page"`
-//	PerPage int `json:"per_page"`
-//}
-
 type AccountParam struct {
 	Symbol string `json:"symbol"`
 	Show   string `json:"show"`
-	//QueryPage
 }
 
 type AccountParamV2 struct {
