@@ -95,6 +95,9 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 	var addressesIPs []string
 
 	for _, fo := range fos {
+		if fo == nil {
+			continue
+		}
 		filename := filepath.Join(genTxsDir, fo.Name())
 		if !fo.IsDir() && (filepath.Ext(filename) != ".json") {
 			continue

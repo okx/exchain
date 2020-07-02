@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+	"github.com/willf/bitset"
 	"log"
 	"sync"
 
@@ -322,6 +324,14 @@ func (k Keeper) GetUpdatedOrderIDs() []string {
 	return k.cache.getUpdatedOrderIDs()
 }
 
+// GetTxHandlerMsgResult: be careful, only call by backend module, other module should never use it!
+func (k Keeper) GetTxHandlerMsgResult() []bitset.BitSet {
+	if !k.enableBackend {
+		return nil
+	}
+	return k.cache.toggleCopyTxHandlerMsgResult()
+}
+
 // nolint
 func (k Keeper) addUpdatedOrderID(orderID string) {
 	if k.enableBackend {
@@ -386,9 +396,12 @@ func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
 }
 
 // GetProductOwner gets the OwnerAddress of specified product from dexKeeper
-func (k Keeper) GetProductOwner(ctx sdk.Context, product string) sdk.AccAddress {
+func (k Keeper) GetProductOwner(ctx sdk.Context, product string) (sdk.AccAddress, error) {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
-	return tokenPair.Owner
+	if tokenPair == nil {
+		return sdk.AccAddress{}, fmt.Errorf("failed. token pair %s doesn't exist", product)
+	}
+	return tokenPair.Owner, nil
 }
 
 // AddFeeDetail adds detail message of fee to tokenKeeper
@@ -406,7 +419,10 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from
 	if coins.IsZero() {
 		return nil
 	}
-	to := k.GetProductOwner(ctx, product)
+	to, err := k.GetProductOwner(ctx, product)
+	if err != nil {
+		return err
+	}
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType)
 	if err := k.tokenKeeper.SendCoinsFromAccountToAccount(ctx, from, to, coins); err != nil {
 		log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
@@ -525,4 +541,11 @@ func (k Keeper) FilterDelistedProducts(ctx sdk.Context, products []string) []str
 		}
 	}
 	return cleanProducts
+}
+
+// nolint
+func (k Keeper) AddTxHandlerMsgResult(resultSet bitset.BitSet) {
+	if k.enableBackend {
+		k.cache.addTxHandlerMsgResult(resultSet)
+	}
 }

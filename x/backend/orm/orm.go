@@ -152,11 +152,13 @@ func (orm *ORM) AddMatchResults(results []*types.MatchResult) (addedCnt int, err
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, result := range results {
-		ret := tx.Create(result)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if result != nil {
+			ret := tx.Create(result)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
@@ -240,11 +242,13 @@ func (orm *ORM) AddDeals(deals []*types.Deal) (addedCnt int, err error) {
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, deal := range deals {
-		ret := tx.Create(deal)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if deal != nil {
+			ret := tx.Create(deal)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
@@ -997,11 +1001,13 @@ func (orm *ORM) AddFeeDetails(feeDetails []*token.FeeDetail) (addedCnt int, err 
 	cnt := 0
 
 	for _, feeDetail := range feeDetails {
-		ret := tx.Create(feeDetail)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if feeDetail != nil {
+			ret := tx.Create(feeDetail)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
@@ -1033,11 +1039,13 @@ func (orm *ORM) AddOrders(orders []*types.Order) (addedCnt int, err error) {
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, order := range orders {
-		ret := tx.Create(order)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if order != nil {
+			ret := tx.Create(order)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
@@ -1055,11 +1063,13 @@ func (orm *ORM) UpdateOrders(orders []*types.Order) (addedCnt int, err error) {
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, order := range orders {
-		ret := tx.Save(order)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if order != nil {
+			ret := tx.Save(order)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 
@@ -1114,11 +1124,13 @@ func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int
 	defer orm.deferRollbackTx(tx, err)
 
 	for _, transaction := range transactions {
-		ret := tx.Create(transaction)
-		if ret.Error != nil {
-			return cnt, ret.Error
-		} else {
-			cnt++
+		if transaction != nil {
+			ret := tx.Create(transaction)
+			if ret.Error != nil {
+				return cnt, ret.Error
+			} else {
+				cnt++
+			}
 		}
 	}
 

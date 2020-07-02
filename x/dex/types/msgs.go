@@ -43,6 +43,14 @@ func (msg MsgList) ValidateBasic() sdk.Error {
 	if msg.ListAsset == msg.QuoteAsset {
 		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list product because base asset is same as quote asset"))
 	}
+
+	if !msg.InitPrice.IsPositive() {
+		return sdk.ErrUnknownRequest("invalid init price")
+	}
+
+	if msg.Owner.Empty() {
+		return sdk.ErrInvalidAddress("missing owner address")
+	}
 	return nil
 }
 
@@ -54,45 +62,6 @@ func (msg MsgList) GetSignBytes() []byte {
 
 // GetSigners Implements Msg
 func (msg MsgList) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Owner}
-}
-
-// MsgDelist - high level transaction of the dex module
-type MsgDelist struct {
-	Owner   sdk.AccAddress `json:"owner"`
-	Product string         `json:"product"`
-}
-
-// NewMsgDelist creates a new MsgDelist
-func NewMsgDelist(owner sdk.AccAddress, product string) MsgDelist {
-	return MsgDelist{
-		Owner:   owner,
-		Product: product,
-	}
-}
-
-// Route Implements Msg
-func (msg MsgDelist) Route() string { return RouterKey }
-
-// Type Implements Msg
-func (msg MsgDelist) Type() string { return "delist" }
-
-// ValidateBasic Implements Msg
-func (msg MsgDelist) ValidateBasic() sdk.Error {
-	if msg.Product == "" || len(msg.Product) == 0 {
-		return ErrInvalidProduct(msg.Product)
-	}
-	return nil
-}
-
-// GetSignBytes Implements Msg
-func (msg MsgDelist) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-// GetSigners Implements Msg.
-func (msg MsgDelist) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
@@ -119,7 +88,7 @@ func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 
@@ -160,7 +129,7 @@ func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 

@@ -50,6 +50,7 @@ var (
 	NewDescription                     = types.NewDescription
 	NewMsgAddShares                    = types.NewMsgAddShares
 	NewGenesisState                    = types.NewGenesisState
+	DelegatorAddSharesInvariant        = keeper.DelegatorAddSharesInvariant
 
 	// variable aliases
 	ModuleCdc     = types.ModuleCdc
@@ -67,4 +68,5 @@ type (
 	Delegator                 = types.Delegator
 	UndelegationInfo          = types.UndelegationInfo
 	ProxyDelegatorKeyExported = types.ProxyDelegatorKeyExported
+	SharesResponses           = types.SharesResponses
 )

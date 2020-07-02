@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okchain/x/staking/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -17,7 +19,7 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -105,7 +107,7 @@ func TestDelegator(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -200,7 +202,7 @@ func TestProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -332,7 +334,7 @@ func TestRebindProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
@@ -443,7 +445,7 @@ func TestLimitedProxy(t *testing.T) {
 	params.Epoch = 2
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{})
+	startUpValidator := NewValidator(StartUpValidatorAddr, StartUpValidatorPubkey, Description{}, types.DefaultMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 

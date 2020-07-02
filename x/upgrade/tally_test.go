@@ -3,6 +3,8 @@ package upgrade
 import (
 	"testing"
 
+	"github.com/okex/okchain/x/staking/types"
+
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,7 +16,7 @@ func TestTallyPassed(t *testing.T) {
 	ctx, keeper, stakingKeeper, _ := testPrepare(t)
 	description := staking.NewDescription("moniker1", "identity1", "website1", "details1")
 	for i := 0; i < 4; i++ {
-		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
+		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description, types.DefaultMinSelfDelegation)
 		validator.Status = sdk.Bonded
 		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)
@@ -29,7 +31,7 @@ func TestTallyNotPassed(t *testing.T) {
 	ctx, keeper, stakingKeeper, _ := testPrepare(t)
 	description := staking.NewDescription("moniker2", "identity2", "website2", "details2")
 	for i := 0; i < 4; i++ {
-		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description)
+		validator := staking.NewValidator(sdk.ValAddress(accAddrs[i]), pubKeys[i], description, types.DefaultMinSelfDelegation)
 		validator.Status = sdk.Bonded
 		validator.DelegatorShares = sdk.OneDec()
 		stakingKeeper.SetValidator(ctx, validator)

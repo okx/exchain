@@ -10,25 +10,32 @@ import (
 
 // GenesisState - all slashing state that must be provided at genesis
 type GenesisState struct {
-	Params        Params                    `json:"params"`
-	TokenPairs    []*TokenPair              `json:"token_pairs"`
-	WithdrawInfos WithdrawInfos             `json:"withdraw_infos"`
-	ProductLocks  ordertypes.ProductLockMap `json:"product_locks"`
+	Params         Params                    `json:"params"`
+	TokenPairs     []*TokenPair              `json:"token_pairs"`
+	WithdrawInfos  WithdrawInfos             `json:"withdraw_infos"`
+	ProductLocks   ordertypes.ProductLockMap `json:"product_locks"`
+	MaxTokenPairID uint64                    `json:"max_token_pair_id" yaml:"max_token_pair_id"`
 }
 
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
 // TODO: check how the added params' influence export facility
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Params:        *DefaultParams(),
-		TokenPairs:    nil,
-		WithdrawInfos: nil,
-		ProductLocks:  *ordertypes.NewProductLockMap(),
+		Params:         *DefaultParams(),
+		TokenPairs:     nil,
+		WithdrawInfos:  nil,
+		ProductLocks:   *ordertypes.NewProductLockMap(),
+		MaxTokenPairID: 0,
 	}
 }
 
 // ValidateGenesis validates the slashing genesis parameters
 func ValidateGenesis(data GenesisState) error {
+	for _, pair := range data.TokenPairs {
+		if pair.ID <= 0 {
+			return fmt.Errorf("invalid tx tokenPair ID: %d", pair.ID)
+		}
+	}
 	return nil
 }
 
@@ -43,6 +50,9 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 
 	// set params
 	keeper.SetParams(ctx, data.Params)
+
+	// set maxID
+	keeper.SetMaxTokenPairID(ctx, data.MaxTokenPairID)
 
 	// reset token pair
 	for _, pair := range data.TokenPairs {
@@ -68,16 +78,17 @@ func InitGenesis(ctx sdk.Context, keeper IKeeper, data GenesisState) {
 // with InitGenesis
 func ExportGenesis(ctx sdk.Context, keeper IKeeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
-	tokenPairs := keeper.GetTokenPairsFromStore(ctx)
+	tokenPairs := keeper.GetTokenPairs(ctx)
 	var withdrawInfos WithdrawInfos
 	keeper.IterateWithdrawInfo(ctx, func(_ int64, withdrawInfo WithdrawInfo) (stop bool) {
 		withdrawInfos = append(withdrawInfos, withdrawInfo)
 		return false
 	})
 	return GenesisState{
-		Params:        params,
-		TokenPairs:    tokenPairs,
-		WithdrawInfos: withdrawInfos,
-		ProductLocks:  *keeper.LoadProductLocks(ctx),
+		Params:         params,
+		TokenPairs:     tokenPairs,
+		WithdrawInfos:  withdrawInfos,
+		ProductLocks:   *keeper.LoadProductLocks(ctx),
+		MaxTokenPairID: keeper.GetMaxTokenPairID(ctx),
 	}
 }

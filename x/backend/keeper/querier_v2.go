@@ -163,6 +163,9 @@ func queryInstrumentsV2(ctx sdk.Context, path []string, req abci.RequestQuery, k
 
 	var result []*types.InstrumentV2
 	for _, t := range tokenPairs {
+		if t == nil {
+			panic("the nil pointer is not expected")
+		}
 		result = append(result, types.ConvertTokenPairToInstrumentV2(t))
 	}
 

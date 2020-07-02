@@ -176,7 +176,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 			delegator.ProxyAddress.String()).Result()
 	}
 
-	// 1. get last validators which were added shares to and existed in the store
+	// 1. get last validators which were added shares to and existing in the store
 	lastVals, lastShares := k.GetLastValsAddedSharesExisted(ctx, msg.DelAddr)
 
 	// 2. withdraw the shares last time
@@ -302,7 +302,7 @@ func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) 
 
 func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k keeper.Keeper) (result sdk.Result) {
 	valAddr := sdk.ValAddress(msg.DelAddr)
-	// 0.check to see if the validator which belongs to the delegator is existed
+	// 0.check to see if the validator which belongs to the delegator exists
 	validator, found := k.GetValidator(ctx, valAddr)
 	if !found {
 		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()

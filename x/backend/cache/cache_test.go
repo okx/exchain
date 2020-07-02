@@ -22,10 +22,7 @@ func TestCache(t *testing.T) {
 		{TxHash: "hash3", Type: types.TxTypeOrderCancel, Address: "addr1", Symbol: types.TestTokenPair, Side: types.TxSideSell, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 200},
 		{TxHash: "hash4", Type: types.TxTypeTransfer, Address: "addr2", Symbol: common.TestToken, Side: types.TxSideTo, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},
 	}
-
-	for _, tx := range txs {
-		cache.AddTransaction(tx)
-	}
+	cache.AddTransaction(txs)
 
 	require.Equal(t, txs, cache.GetTransactions())
 

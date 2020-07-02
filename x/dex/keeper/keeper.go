@@ -59,11 +59,6 @@ func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
 }
 
-// GetCDC returns cdc
-func (k Keeper) GetCDC() *codec.Codec {
-	return k.cdc
-}
-
 // GetTokenKeeper returns token Keeper
 func (k Keeper) GetTokenKeeper() TokenKeeper {
 	return k.tokenKeeper
@@ -79,16 +74,17 @@ func (k Keeper) deleteUserTokenPair(ctx sdk.Context, owner sdk.AccAddress, pair 
 func (k Keeper) SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 
-	var tokenPairNumber uint64
-	// to load exported data from genesis file.
+	maxTokenPairID := k.GetMaxTokenPairID(ctx)
+	// list new tokenPair
 	if tokenPair.ID == 0 {
-		tokenPairNumber = k.GetTokenPairNum(ctx)
-		tokenPair.ID = tokenPairNumber + 1
+		tokenPair.ID = maxTokenPairID + 1
 	}
 
-	tokenPairNumber = tokenPair.ID
-	tokenPairNumberInByte := k.cdc.MustMarshalBinaryBare(tokenPairNumber)
-	store.Set(types.TokenPairNumberKey, tokenPairNumberInByte)
+	// update maxTokenPairID to db
+	// to load exported data from genesis file.
+	if tokenPair.ID > maxTokenPairID {
+		k.SetMaxTokenPairID(ctx, tokenPair.ID)
+	}
 
 	keyPair := tokenPair.BaseAssetSymbol + "_" + tokenPair.QuoteAssetSymbol
 	store.Set(types.GetTokenPairAddress(keyPair), k.cdc.MustMarshalBinaryBare(tokenPair))
@@ -135,13 +131,8 @@ func (k Keeper) GetTokenPairFromStore(ctx sdk.Context, product string) *types.To
 	return &tokenPair
 }
 
-// GetTokenPairs returns all the token pairs
-func (k Keeper) GetTokenPairs(ctx sdk.Context) []*types.TokenPair {
-	return k.GetTokenPairsFromStore(ctx)
-}
-
-// GetTokenPairsFromStore returns all token pairs from store without cache
-func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
+// GetTokenPairs returns all token pairs from store without cache
+func (k Keeper) GetTokenPairs(ctx sdk.Context) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.TokenPairKey)
 	defer iter.Close()
@@ -156,7 +147,7 @@ func (k Keeper) GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.Tok
 	return tokenPairs
 }
 
-// GetUserTokenPairs returns all token pairs from store without cache
+// GetUserTokenPairs returns all token pairs belong to an account from store
 func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenPairs []*types.TokenPair) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	userTokenPairPrefix := types.GetUserTokenPairAddressPrefix(owner)
@@ -169,7 +160,10 @@ func (k Keeper) GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) (tokenP
 		key := iter.Key()
 		tokenPairName := string(key[prefixLen:])
 
-		tokenPairs = append(tokenPairs, k.GetTokenPairFromStore(ctx, tokenPairName))
+		tokenPair := k.GetTokenPairFromStore(ctx, tokenPairName)
+		if tokenPair != nil {
+			tokenPairs = append(tokenPairs, tokenPair)
+		}
 	}
 
 	return tokenPairs
@@ -209,8 +203,7 @@ func (k Keeper) UpdateTokenPair(ctx sdk.Context, product string, tokenPair *type
 func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (isDelisting bool, err error) {
 	tp := k.GetTokenPair(ctx, product)
 	if tp != nil {
-		isDelisting = k.GetTokenPair(ctx, product).Delisting
-		err = nil
+		isDelisting = tp.Delisting
 	} else {
 		isDelisting = true
 		err = errors.Errorf("product %s doesn't exist", product)
@@ -236,7 +229,7 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because  insufficient deposit coins(need %s)", depositCoins.String()))
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient deposit coins(need %s)", depositCoins.String()))
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -430,7 +423,7 @@ func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
 	if !ok {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address%s", addr.String()))
+		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address %s", addr.String()))
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
@@ -447,14 +440,21 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
-// GetTokenPairNum returns num of token pair
-func (k Keeper) GetTokenPairNum(ctx sdk.Context) (tokenPairNumber uint64) {
+// GetMaxTokenPairID returns the max ID of token pair
+func (k Keeper) GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
-	b := store.Get(types.TokenPairNumberKey)
+	b := store.Get(types.MaxTokenPairIDKey)
 	if b != nil {
-		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairNumber)
+		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairMaxID)
 	}
 	return
+}
+
+// SetMaxTokenPairID sets the max ID of token pair
+func (k Keeper) SetMaxTokenPairID(ctx sdk.Context, MaxtokenPairID uint64) {
+	store := ctx.KVStore(k.tokenPairStoreKey)
+	b := k.cdc.MustMarshalBinaryBare(MaxtokenPairID)
+	store.Set(types.MaxTokenPairIDKey, b)
 }
 
 func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {

@@ -101,25 +101,26 @@ func TestKeeper_Tx(t *testing.T) {
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
-	msgOrderNew := orderTypes.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	msgOrderCancel := orderTypes.NewMsgCancelOrder(addrKeysSlice[0].Address, orderTypes.FormatOrderID(2, 1))
+	msgOrderNew := buildNewOrderMsg(addrKeysSlice[0].Address, types.TestTokenPair, "10.0", "1.0")
+	msgOrderCancel1 := buildCancelOrderMsg(addrKeysSlice[0].Address, 2, len(msgOrderNew.OrderItems)/2)
+	msgOrderCancel2 := buildCancelOrderMsg(addrKeysSlice[0].Address, 2, len(msgOrderNew.OrderItems))
 	sendCoins, err := sdk.ParseDecCoins("100" + common.TestToken)
 	require.Nil(t, err)
 	msgSend := tokenTypes.NewMsgTokenSend(addrKeysSlice[0].Address, addrKeysSlice[1].Address, sendCoins)
 
 	txs := []auth.StdTx{
-		buildTx(mapp, ctx, addrKeysSlice[0], msgOrderNew),
-		buildTx(mapp, ctx, addrKeysSlice[0], msgOrderCancel),
-		buildTx(mapp, ctx, addrKeysSlice[0], msgSend),
+		buildTx(mapp, ctx, addrKeysSlice[0], []sdk.Msg{msgOrderNew}),
+		buildTx(mapp, ctx, addrKeysSlice[0], []sdk.Msg{msgOrderCancel1, msgOrderCancel2}),
+		buildTx(mapp, ctx, addrKeysSlice[0], []sdk.Msg{msgSend}),
 	}
 
 	mockApplyBlock(mapp, ctx, txs)
 
 	ctx = mapp.NewContext(true, abci.Header{})
-	getTxs, _ := mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[0].Address.String(), 0, 0, 0, 0, 100)
-	require.EqualValues(t, 3, len(getTxs))
+	getTxs, _ := mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[0].Address.String(), 0, 0, 0, 0, 200)
+	require.EqualValues(t, 2*len(msgOrderNew.OrderItems) + 1, len(getTxs))
 
-	getTxs, _ = mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[1].Address.String(), 0, 0, 0, 0, 100)
+	getTxs, _ = mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[1].Address.String(), 0, 0, 0, 0, 200)
 	require.EqualValues(t, 1, len(getTxs))
 }
 
@@ -360,4 +361,45 @@ func TestKeeper_getCandles(t *testing.T) {
 		require.True(t, latestKline[5] == expectedVolumes[i])
 		require.True(t, len(restDatas) == expectedKlineCount[i])
 	}
+}
+
+
+func buildNewOrderMsg(sender sdk.AccAddress, product string, price string, quantity string) orderTypes.MsgNewOrders{
+	var OrderItems []orderTypes.OrderItem
+	for i :=0 ;i < 25; i++ {
+		OrderItems = append(OrderItems,orderTypes.OrderItem{
+				Product:  product,
+				Side:     types.BuyOrder,
+				Price:    sdk.MustNewDecFromStr(price),
+				Quantity: sdk.MustNewDecFromStr(quantity),
+			} )
+	}
+
+	for i :=0 ;i < 25; i++ {
+		OrderItems = append(OrderItems,orderTypes.OrderItem{
+			Product:  product,
+			Side:     types.SellOrder,
+			Price:    sdk.MustNewDecFromStr(price),
+			Quantity: sdk.MustNewDecFromStr(quantity),
+		} )
+	}
+
+	return orderTypes.MsgNewOrders{
+		Sender: sender,
+		OrderItems: OrderItems,
+	}
+}
+
+func buildCancelOrderMsg(sender sdk.AccAddress, blockHeight, orderNum int) orderTypes.MsgCancelOrders{
+	var orderIds []string
+	for idx := 0; idx < orderNum; idx++ {
+		orderIds = append(orderIds, orderTypes.FormatOrderID(int64(blockHeight), int64(idx + 1)))
+	}
+
+	msgCancelOrder := orderTypes.MsgCancelOrders{
+		Sender:   sender,
+		OrderIDs: orderIds,
+	}
+
+	return msgCancelOrder
 }

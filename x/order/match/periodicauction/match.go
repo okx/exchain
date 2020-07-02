@@ -158,20 +158,6 @@ func bestPriceFromRefPrice(minPrice, maxPrice, refPrice sdk.Dec) sdk.Dec {
 	return refPrice
 }
 
-func expireOrdersInExpiredBlock(ctx sdk.Context, k keeper.Keeper, expiredBlockHeight int64) {
-	logger := ctx.Logger().With("module", "order")
-	orderNum := k.GetBlockOrderNum(ctx, expiredBlockHeight)
-	var index int64
-	for ; index < orderNum; index++ {
-		orderID := types.FormatOrderID(expiredBlockHeight, index+1)
-		order := k.GetOrder(ctx, orderID)
-		if order != nil && order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
-			k.ExpireOrder(ctx, order, logger)
-			logger.Info(fmt.Sprintf("order (%s) expired", order.OrderID))
-		}
-	}
-}
-
 func markCurBlockToFutureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) {
 	curBlockHeight := ctx.BlockHeight()
 	feeParams := keeper.GetParams(ctx)
@@ -212,7 +198,7 @@ func cacheExpiredBlockToCurrentHeight(ctx sdk.Context, keeper keeper.Keeper) {
 		var expiredHeight int64
 		expiredBlocks := keeper.GetExpireBlockHeight(ctx, height)
 		for _, expiredHeight = range expiredBlocks {
-			expireOrdersInExpiredBlock(ctx, keeper, expiredHeight)
+			keeper.DropExpiredOrdersByBlockHeight(ctx, expiredHeight)
 			logger.Info(fmt.Sprintf("currentHeight(%d), expire orders at blockHeight(%d)",
 				curBlockHeight, expiredHeight))
 		}
@@ -319,6 +305,9 @@ func calcMatchPriceAndExecution(ctx sdk.Context, k keeper.Keeper, products []str
 
 	for _, product := range products {
 		tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
+		if tokenPair == nil {
+			continue
+		}
 		book := k.GetDepthBookCopy(product)
 		bestPrice, maxExecution := periodicAuctionMatchPrice(book, tokenPair.MaxPriceDigit,
 			k.GetLastPrice(ctx, product))
