@@ -31,7 +31,7 @@ var (
 // AppModuleBasic is a struct of app module basics object
 type AppModuleBasic struct{}
 
-// Name returns module desc
+// Name returns the staking module's name.
 func (AppModuleBasic) Name() string {
 	return ModuleName
 }
@@ -118,7 +118,7 @@ func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 	keeper.RegisterInvariantsCustom(ir, am.keeper)
 }
 
-// Route returns module message route desc
+// Route returns the message routing key for the staking module.
 func (AppModule) Route() string {
 	return RouterKey
 }
@@ -128,7 +128,7 @@ func (am AppModule) NewHandler() sdk.Handler {
 	return NewHandler(am.keeper)
 }
 
-// QuerierRoute returns module querier route desc
+// QuerierRoute returns the staking module's querier route name.
 func (AppModule) QuerierRoute() string {
 	return QuerierRoute
 }
