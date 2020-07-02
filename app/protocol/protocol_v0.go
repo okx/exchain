@@ -457,19 +457,7 @@ func (p *ProtocolV0) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abc
 	var genesisState simapp.GenesisState
 	p.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 
-	var accGenesisState genaccounts.GenesisState
-	p.cdc.MustUnmarshalJSON(genesisState[genaccounts.ModuleName], &accGenesisState)
-
-	var acc auth.Account
-	if len(accGenesisState) > 0 {
-		acc = accGenesisState[0].ToAccount()
-	}
-
-	if err := token.IssueOKT(ctx, p.tokenKeeper, genesisState[token.ModuleName], acc); err != nil {
-		panic(err)
-	}
 	return p.mm.InitGenesis(ctx, genesisState)
-
 }
 
 // BeginBlocker set function to BaseApp as a hook

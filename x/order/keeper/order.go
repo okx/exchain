@@ -100,3 +100,18 @@ func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, l
 	k.RemoveOrderFromDepthBook(order, feeType)
 	return fee
 }
+
+func (k Keeper) DropExpiredOrdersByBlockHeight(ctx sdk.Context, expiredBlockHeight int64) {
+	logger := ctx.Logger().With("module", "order")
+	store := ctx.KVStore(k.orderStoreKey)
+	iter := sdk.KVStorePrefixIterator(store, types.GetOrderKey(types.FormatOrderIDPrefix(expiredBlockHeight)))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var order types.Order
+		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &order)
+		if order.Status == types.OrderStatusOpen && !k.IsProductLocked(ctx, order.Product) {
+			k.ExpireOrder(ctx, &order, logger)
+			logger.Info(fmt.Sprintf("order (%s) expired", order.OrderID))
+		}
+	}
+}

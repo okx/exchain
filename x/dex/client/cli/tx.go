@@ -75,6 +75,9 @@ $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 			if err != nil {
 				return err
 			}
+			if len(baseAsset) == 0 {
+				return errors.New("failed. empty base asset")
+			}
 			quoteAsset, err := flags.GetString(FlagQuoteAsset)
 			if err != nil {
 				return err
@@ -90,7 +93,7 @@ $ okchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 		},
 	}
 
-	cmd.Flags().StringP(FlagBaseAsset, "", "btc", FlagBaseAsset+" should be issued before listed to opendex")
+	cmd.Flags().StringP(FlagBaseAsset, "", "", FlagBaseAsset+" should be issued before listed to opendex")
 	cmd.Flags().StringP(FlagQuoteAsset, "", common.NativeToken, FlagQuoteAsset+" should be issued before listed to opendex")
 	cmd.Flags().StringP(FlagInitPrice, "", "0.01", FlagInitPrice+" should be valid price")
 

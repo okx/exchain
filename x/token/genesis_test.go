@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common"
 	"github.com/okex/okchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -123,59 +122,4 @@ func TestInitGenesis(t *testing.T) {
 		return false
 	})
 	require.Equal(t, newExportGenesis.LockedFees, actualLockeedFees)
-}
-
-func TestIssueToken(t *testing.T) {
-	mapp, keeper, _ := getMockDexApp(t, 0)
-	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
-
-	//ctx, keeper, _, _ := CreateParam(t, false)
-	genesisState := defaultGenesisState()
-	gs := types.ModuleCdc.MustMarshalJSON(genesisState)
-
-	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(genesisState.Tokens[0].Symbol,
-		genesisState.Tokens[0].OriginalTotalSupply))
-	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
-	require.NoError(t, err)
-
-	acc, _ := CreateGenAccounts(1, nil)
-	err2 := IssueOKT(ctx, keeper, gs, acc[0].ToBaseAccount())
-	require.NoError(t, err2)
-	token := keeper.GetTokenInfo(ctx, genesisState.Tokens[0].Symbol)
-	expectToken := types.Token{
-		Description:         genesisState.Tokens[0].Description,
-		Symbol:              genesisState.Tokens[0].Symbol,
-		OriginalSymbol:      genesisState.Tokens[0].OriginalSymbol,
-		WholeName:           genesisState.Tokens[0].WholeName,
-		OriginalTotalSupply: genesisState.Tokens[0].OriginalTotalSupply,
-		TotalSupply:         genesisState.Tokens[0].TotalSupply,
-		Owner:               genesisState.Tokens[0].Owner,
-		Mintable:            genesisState.Tokens[0].Mintable,
-	}
-	require.EqualValues(t, expectToken, token)
-
-	//coin with no owner
-	coin := []types.Token{{
-		Description:         "OK Group Global Utility Token",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
-		WholeName:           common.NativeToken,
-		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
-		Owner:               nil,
-		Mintable:            true,
-	}}
-
-	coins = sdk.NewCoins(sdk.NewDecCoinFromDec(coin[0].Symbol, coin[0].OriginalTotalSupply))
-	err = keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
-	require.NoError(t, err)
-
-	genesisState.Tokens = coin
-	gs = types.ModuleCdc.MustMarshalJSON(genesisState)
-	err2 = IssueOKT(ctx, keeper, gs, acc[0].ToBaseAccount())
-	require.NoError(t, err2)
-
-	err2 = validateGenesis(genesisState)
-	require.Error(t, err2)
 }
