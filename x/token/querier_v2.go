@@ -66,7 +66,13 @@ func queryAccountV2(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 func queryTokensV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	tokens := keeper.GetTokensInfo(ctx)
 
-	res, err := common.JSONMarshalV2(tokens)
+	var tokensResp types.Tokens
+	for _, token := range tokens {
+		tokenResp := types.GenTokenResp(token)
+		tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
+		tokensResp = append(tokensResp, tokenResp)
+	}
+	res, err := common.JSONMarshalV2(tokensResp)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
@@ -77,12 +83,13 @@ func queryTokenV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	name := path[0]
 
 	token := keeper.GetTokenInfo(ctx, name)
-
 	if token.Symbol == "" {
 		return nil, sdk.ErrInvalidCoins("unknown token")
 	}
 
-	res, err := common.JSONMarshalV2(token)
+	tokenResp := types.GenTokenResp(token)
+	tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
+	res, err := common.JSONMarshalV2(tokenResp)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}

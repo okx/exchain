@@ -27,12 +27,11 @@ func TestQueryOrder(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
 
-	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.TotalSupply))
+	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	require.NoError(t, err)
 
@@ -67,12 +66,11 @@ func TestQueryTokens(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
 
-	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.TotalSupply))
+	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	require.NoError(t, err)
 
@@ -125,9 +123,9 @@ func TestQueryTokens(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
-		Owner:               []byte("abc"),
-		Mintable:            true,
+		//TotalSupply:         sdk.NewDec(1000000000),
+		Owner:    []byte("abc"),
+		Mintable: true,
 	}
 
 	keeper.NewToken(ctx, token)
@@ -152,12 +150,11 @@ func TestQueryUserTokens(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
 
-	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.TotalSupply))
+	coins := sdk.NewCoins(sdk.NewDecCoinFromDec(token.Symbol, token.OriginalTotalSupply))
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	require.NoError(t, err)
 
@@ -192,12 +189,12 @@ func TestQueryCurrency(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
 
 	keeper.NewToken(ctx, token)
+	keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDec(1000000000)))
 
 	//var originTokens []types.Token
 	originalTokens := []types.Currency{
@@ -234,7 +231,6 @@ func TestQueryAccount(t *testing.T) {
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		OriginalTotalSupply: sdk.NewDec(1000000000),
-		TotalSupply:         sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
@@ -325,7 +321,6 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 			Symbol:              common.NativeToken,
 			OriginalSymbol:      common.NativeToken,
 			OriginalTotalSupply: sdk.NewDec(1000000000),
-			TotalSupply:         sdk.NewDec(1000000000),
 			Owner:               testAccounts[0].baseAccount.Address,
 			Mintable:            true,
 		},
@@ -334,7 +329,6 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 			Symbol:              "xxb",
 			OriginalSymbol:      "xxb",
 			OriginalTotalSupply: sdk.ZeroDec(),
-			TotalSupply:         sdk.ZeroDec(),
 			Owner:               testAccounts[0].baseAccount.Address,
 			Mintable:            false,
 		},
