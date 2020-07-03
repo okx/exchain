@@ -81,7 +81,6 @@ func TestInitGenesis(t *testing.T) {
 	newCtx := newMapp.BaseApp.NewContext(false, abci.Header{})
 
 	exportGenesis.Tokens[0].OriginalTotalSupply = sdk.NewDec(66666)
-	exportGenesis.Tokens[0].TotalSupply = sdk.NewDec(66666)
 	decCoin.Denom = tokens[0].Symbol
 	decCoin.Amount = sdk.NewDec(7777)
 	exportGenesis.LockedAssets[0].Coins = sdk.DecCoins{decCoin}

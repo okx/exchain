@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	notAllowedPrefix = "poolswap"
-	notAllowedOriginSymbol  = regexp.MustCompile(fmt.Sprintf("^%s.*?", notAllowedPrefix))
-	regOriginalSymbol = regexp.MustCompile("^[a-z][a-z0-9]{0,5}$")
-	reWholeName       = `[a-zA-Z0-9[:space:]]{1,30}`
-	reWhole           = regexp.MustCompile(fmt.Sprintf(`^%s$`, reWholeName))
+	notAllowedPrefix       = "poolswap"
+	notAllowedOriginSymbol = regexp.MustCompile(fmt.Sprintf("^%s.*?", notAllowedPrefix))
+	regOriginalSymbol      = regexp.MustCompile("^[a-z][a-z0-9]{0,5}$")
+	reWholeName            = `[a-zA-Z0-9[:space:]]{1,30}`
+	reWhole                = regexp.MustCompile(fmt.Sprintf(`^%s$`, reWholeName))
 )
 
 func WholeNameCheck(wholeName string) (newName string, isValid bool) {
@@ -168,4 +168,17 @@ func MergeCoinInfo(availableCoins, lockedCoins sdk.DecCoins) (coinsInfo CoinsInf
 	}
 	sort.Sort(coinsInfo)
 	return coinsInfo
+}
+
+func GenTokenResp(token Token) TokenResp {
+	return TokenResp{
+		Description:         token.Description,
+		Symbol:              token.Symbol,
+		OriginalSymbol:      token.OriginalSymbol,
+		WholeName:           token.WholeName,
+		OriginalTotalSupply: token.OriginalTotalSupply,
+		Type:                token.Type,
+		Owner:               token.Owner,
+		Mintable:            token.Mintable,
+	}
 }

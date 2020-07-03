@@ -44,7 +44,6 @@ func defaultGenesisStateOKT() types.Token {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "OKT",
 		OriginalTotalSupply: totalSupply,
-		TotalSupply:         totalSupply,
 		Owner:               addr,
 		Mintable:            true,
 	}
