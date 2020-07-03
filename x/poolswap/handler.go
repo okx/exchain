@@ -160,7 +160,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 
 	coins = coinSort(coins)
-	//TODO another coin connot send to pool
+
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
 		return sdk.Result{
@@ -229,7 +229,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: The available baseAmount(%s) are less than MinBaseAmount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
+			Log:  fmt.Sprintf("Failed: The available base Amount(%s) are less than min base Amount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
@@ -431,9 +431,6 @@ func swapTokenNativeToken(
 }
 
 func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	//if !inputReserve.IsPositive() || !outputReserve.IsPositive() {
-	//	panic("should not happen")
-	//}
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
 	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return mulAndQuo(inputAmountWithFee, outputReserve, denominator)
