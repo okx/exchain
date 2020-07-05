@@ -73,7 +73,7 @@ func TestValidatorSMCreateValidatorWithValidatorSet(t *testing.T) {
 
 	actionsAndChecker := []actResChecker{
 		validatorStatusChecker(sdk.Unbonded.String()),
-		validatorDelegatorShareIncreased(true),
+		queryValidatorCheck(sdk.Unbonded, false, nil, nil, nil),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Bonded.String()),
@@ -109,7 +109,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 
 		endBlockAction{bAction},
 		// clear the shares on the startUpValidator
-		delegatorUnbondAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
@@ -119,6 +119,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 		validatorDelegatorShareLeft(true),
 		validatorKickedOff(true),
 		validatorStatusChecker(sdk.Bonded.String()),
+		queryValidatorCheck(sdk.Bonded, true, nil, nil, nil),
 	}}
 
 	actionsAndChecker := []actResChecker{
@@ -133,7 +134,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorDelegatorShareLeft(false),
 		validatorStatusChecker(sdk.Unbonding.String()),
-		validatorStatusChecker(sdk.Unbonding.String()),
+		queryValidatorCheck(sdk.Unbonding, true, nil, nil, nil),
 		validatorRemoved(true),
 	}
 
@@ -174,6 +175,7 @@ func TestValidatorSMEvilFullLifeCircle(t *testing.T) {
 		validatorDelegatorShareLeft(true),
 		validatorKickedOff(true),
 		validatorStatusChecker(sdk.Bonded.String()),
+		queryValidatorCheck(sdk.Bonded, true, nil, nil, nil),
 	}}
 
 	actionsAndChecker := []actResChecker{
@@ -186,7 +188,7 @@ func TestValidatorSMEvilFullLifeCircle(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
-		validatorStatusChecker(sdk.Unbonded.String()),
+		queryValidatorCheck(sdk.Unbonded, true, nil, nil, nil),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
@@ -227,12 +229,18 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail(t *testing.T) {
 		validatorDelegatorShareLeft(true),
 		validatorKickedOff(true),
 		validatorStatusChecker(sdk.Bonded.String()),
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, true, nil, nil, nil, nil),
+		queryValidatorCheck(sdk.Bonded, true, nil, nil, nil),
 	}}
 
 	unJailedChecker := andChecker{[]actResChecker{
 		validatorDelegatorShareLeft(true),
 		validatorKickedOff(false),
 		validatorStatusChecker(sdk.Unbonding.String()),
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, true, nil, nil, nil, nil),
+		queryValidatorCheck(sdk.Unbonding, false, nil, nil, nil),
 	}}
 
 	actionsAndChecker := []actResChecker{
@@ -247,7 +255,7 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail(t *testing.T) {
 		unJailedChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
-		validatorStatusChecker(sdk.Bonded.String()),
+		queryValidatorCheck(sdk.Bonded, false, nil, nil, nil),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
@@ -302,7 +310,7 @@ func TestValidatorSMEvilFullLifeCircleWithUnjail2(t *testing.T) {
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorKickedOff(false),
-		validatorStatusChecker(sdk.Bonded.String()),
+		queryValidatorCheck(sdk.Bonded, false, nil, nil, nil),
 	}
 
 	smTestCase := newValidatorSMTestCase(mk, params, startUpStatus, inputActions, actionsAndChecker, t)
@@ -374,10 +382,22 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 	addSharesChecker := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(true),
 		validatorStatusChecker(sdk.Unbonded.String()),
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, true, nil, nil, nil, nil),
+		queryValidatorCheck(sdk.Unbonded, false, nil, nil, nil),
 	}}
 
-	withdrawChecker := andChecker{[]actResChecker{
+	withdrawChecker1 := andChecker{[]actResChecker{
 		validatorDelegatorShareIncreased(false),
+		queryValidatorCheck(sdk.Bonded, false, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator1, true, nil, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, false, nil, nil, nil, nil),
+	}}
+
+	withdrawChecker2 := andChecker{[]actResChecker{
+		validatorDelegatorShareIncreased(false),
+		queryValidatorCheck(sdk.Bonded, false, nil, nil, nil),
+		queryDelegatorCheck(ValidDelegator2, false, nil, nil, nil, nil),
 	}}
 
 	inputActions := []IAction{
@@ -388,7 +408,8 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorUnbondAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
@@ -403,7 +424,8 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		addSharesChecker.GetChecker(),
 		validatorStatusChecker(sdk.Unbonded.String()),
 		validatorStatusChecker(sdk.Bonded.String()),
-		withdrawChecker.GetChecker(),
+		withdrawChecker1.GetChecker(),
+		withdrawChecker2.GetChecker(),
 		validatorStatusChecker(sdk.Bonded.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
 		validatorStatusChecker(sdk.Unbonding.String()),
@@ -478,6 +500,7 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		queryAllValidatorCheck([]sdk.BondStatus{sdk.Unbonded, sdk.Bonded, sdk.Unbonding}, []int{1, 4, 0}),
 		querySharesToCheck(startUpStatus.getValidator().OperatorAddress, 1, []sdk.AccAddress{ValidDelegator2}),
 		queryPoolCheck(&expAllBondedToken1, &expAllUnBondedToken1),
+		queryValidatorCheck(sdk.Unbonded, false, nil, nil, nil),
 	}}
 
 	// All Deleagtor Unbond the delegation left
@@ -490,6 +513,7 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		queryAllValidatorCheck([]sdk.BondStatus{sdk.Unbonded, sdk.Bonded, sdk.Unbonding}, []int{1, 4, 0}),
 		querySharesToCheck(startUpStatus.getValidator().OperatorAddress, 0, []sdk.AccAddress{}),
 		queryPoolCheck(&expAllBondedToken2, &expDlgGrpUnbonded2),
+		queryValidatorCheck(sdk.Unbonded, false, nil, nil, nil),
 	}}
 
 	inputActions := []IAction{
@@ -500,10 +524,10 @@ func TestValidatorSMMultiVoting(t *testing.T) {
 		delegatorsAddSharesAction{bAction, true, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorsUnBondAction{bAction, true, false},
+		delegatorsWithdrawAction{bAction, true, false},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
 	}
@@ -568,7 +592,7 @@ func TestValidatorSMDestroyValidatorUnbonding2UnBonded2Removed(t *testing.T) {
 		endBlockAction{bAction},
 
 		// delegators unbond all tokens back, validator has no msd & delegator shares now, delegator removed
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 	}
 
 	expZeroDec := sdk.ZeroDec()
@@ -642,7 +666,7 @@ func TestValidatorSMDestroyValidatorUnbonding2Removed(t *testing.T) {
 		endBlockAction{bAction},
 
 		// delegators unbond all tokens back, validator has no msd & delegator shares now, delegator removed
-		delegatorsUnBondAction{bAction, true, true},
+		delegatorsWithdrawAction{bAction, true, true},
 
 		// second unbonding time pass, no delegator shares left, unbonding --> validator removed
 		waitUntilUnbondingTimeExpired{bAction},

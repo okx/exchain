@@ -43,12 +43,13 @@ func queryInfo(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Kee
 	name := path[0]
 
 	token := keeper.GetTokenInfo(ctx, name)
-
 	if token.Symbol == "" {
 		return nil, sdk.ErrInvalidCoins("unknown token")
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, token)
+	tokenResp := types.GenTokenResp(token)
+	tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokenResp)
 	if err != nil {
 		panic("could not marshal result to JSON")
 	}
@@ -67,7 +68,13 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 		tokens = keeper.GetTokensInfo(ctx)
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokens)
+	var tokensResp types.Tokens
+	for _, token := range tokens {
+		tokenResp := types.GenTokenResp(token)
+		tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, token.Symbol)
+		tokensResp = append(tokensResp, tokenResp)
+	}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokensResp)
 	if err != nil {
 		panic("could not marshal result to JSON")
 	}

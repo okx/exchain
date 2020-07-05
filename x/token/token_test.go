@@ -569,11 +569,9 @@ func TestCreateTokenIssue(t *testing.T) {
 	tokenStoreKeyNum, lockStoreKeyNum := keeper.getNumKeys(ctx)
 	require.Equal(t, int64(3), tokenStoreKeyNum)
 	require.Equal(t, int64(0), lockStoreKeyNum)
-	//require.Equal(t, int64(0), tokenPairStoreKeyNum)
 
 	tokenInfo := keeper.GetTokenInfo(ctx, tokenName)
 	require.EqualValues(t, sdk.MustNewDecFromStr("500"), tokenInfo.OriginalTotalSupply)
-	require.EqualValues(t, sdk.MustNewDecFromStr("500"), tokenInfo.TotalSupply)
 }
 
 func TestCreateTokenBurn(t *testing.T) {

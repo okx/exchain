@@ -31,7 +31,6 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		TotalSupply:         sdk.ZeroDec(),
 		Owner:               []byte("gyl"),
 		Mintable:            true,
 	}
@@ -60,7 +59,6 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
-		TotalSupply:         sdk.ZeroDec(),
 		Owner:               []byte("gyl"),
 		Mintable:            true,
 	}
