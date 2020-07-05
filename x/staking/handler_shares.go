@@ -35,6 +35,15 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrDoubleProxy(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
 	}
 
+	// same proxy, only update shares
+	if delegator.HasProxy() && delegator.ProxyAddress.Equals(proxyDelegator.DelegatorAddress) {
+		updateTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
+		if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, updateTokens); err != nil {
+			return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
+		}
+		return sdk.Result{Events: ctx.EventManager().Events()}
+	}
+
 	// unbind from the original proxy
 	if len(delegator.ProxyAddress) != 0 {
 		if sdkErr := unbindProxy(ctx, delegator.DelegatorAddress, k); sdkErr != nil {
