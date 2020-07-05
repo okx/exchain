@@ -2,8 +2,6 @@ package types
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -43,8 +41,8 @@ type SharesResponses []SharesResponse
 // String returns a human readable string representation of SharesResponses
 func (srs SharesResponses) String() (strFormat string) {
 	for _, sr := range srs {
-		strFormat = fmt.Sprintf("%s%s\n", strFormat, sr.String())
+		strFormat = fmt.Sprintf("%s %s:%s", strFormat, sr.DelAddr.String(), sr.Shares.String())
 	}
 
-	return strings.TrimSpace(strFormat)
+	return strFormat
 }
