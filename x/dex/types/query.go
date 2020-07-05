@@ -32,10 +32,10 @@ func NewQueryDexInfoParams(owner string, page, perPage uint) (queryDexInfoParams
 		}
 	}
 
-	if page <= 0 {
+	if page == 0 {
 		return QueryDexInfoParams{}, fmt.Errorf("invalid page：%d", page)
 	}
-	if perPage <= 0 {
+	if perPage == 0 {
 		return QueryDexInfoParams{}, fmt.Errorf("invalid per-page：%d", perPage)
 	}
 	return QueryDexInfoParams{

@@ -105,10 +105,10 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 			bids = append(bids, BookResItem{item.Price.String(), item.BuyQuantity.String()})
 		}
 	}
-	if len(asks) > int(params.Size) {
+	if uint(len(asks)) > params.Size {
 		asks = asks[:params.Size]
 	}
-	if len(bids) > int(params.Size) {
+	if uint(len(bids)) > params.Size {
 		bids = bids[:params.Size]
 	}
 
@@ -204,10 +204,10 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 			bids = append(bids, BookResItem{item.Price.String(), item.BuyQuantity.String()})
 		}
 	}
-	if len(asks) > int(params.Size) {
+	if uint(len(asks)) > params.Size {
 		asks = asks[:params.Size]
 	}
-	if len(bids) > int(params.Size) {
+	if uint(len(bids)) > params.Size {
 		bids = bids[:params.Size]
 	}
 
