@@ -39,9 +39,13 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-	if params.PerPage == 0 || params.Page == 0 {
+
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+
+	if offset <= 0 || limit <= 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
+
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
@@ -58,8 +62,6 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	sort.SliceStable(tokenPairs, func(i, j int) bool {
 		return tokenPairs[i].ID < tokenPairs[j].ID
 	})
-
-	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
 	switch {
 	case len(tokenPairs) < offset:
@@ -90,7 +92,9 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-	if params.PerPage == 0 || params.Page == 0 {
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+
+	if offset <= 0 || limit <= 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	var tokenPairs []*types.TokenPair
@@ -114,8 +118,6 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits})
 		}
 	}
-
-	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
 	switch {
 	case len(deposits) < offset:
@@ -144,7 +146,9 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
-	if params.PerPage == 0 || params.Page == 0 {
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+
+	if offset <= 0 || limit <= 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
@@ -157,8 +161,6 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
-
-	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
 	switch {
 	case len(products) < offset:
