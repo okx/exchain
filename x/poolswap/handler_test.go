@@ -62,7 +62,6 @@ func initToken(name string) token.Token {
 		OriginalSymbol:      name,
 		WholeName:           name,
 		OriginalTotalSupply: sdk.NewDec(0),
-		TotalSupply:         sdk.NewDec(0),
 		Owner:               supply.NewModuleAddress(ModuleName),
 		Type:                1,
 		Mintable:            true,
@@ -305,8 +304,7 @@ func TestRandomData(t *testing.T) {
 			swapTokenPair, err := mapp.swapKeeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
 			require.Nil(t, err)
 			fmt.Println(swapTokenPair)
-			poolToken, err := mapp.swapKeeper.GetPoolTokenInfo(ctx, swapTokenPair.PoolTokenName)
-			fmt.Println("poolToken: " + poolToken.TotalSupply.String())
+			fmt.Println("poolToken: " + keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName).String())
 			fmt.Println(res.Log)
 		}
 	}

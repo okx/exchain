@@ -127,13 +127,16 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		liquidity = sdk.NewDec(1)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
 		baseTokens.Amount = mulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
-		if poolToken.TotalSupply.IsZero() {
+
+		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
+		if totalSupply.IsZero() {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
 				Log:  fmt.Sprintf("unexpected totalSupply in pool token %s", poolToken.String()),
 			}
 		}
-		liquidity = mulAndQuo(msg.QuoteAmount.Amount, poolToken.TotalSupply, swapTokenPair.QuotePooledCoin.Amount)
+		liquidity = mulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
+
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -207,13 +210,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	}
 
 	liquidity := msg.Liquidity
-	poolTokenAmount, err := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
-	if err != nil {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("failed to get pool token %s : %s", swapTokenPair.PoolTokenName, err.Error()),
-		}
-	}
+	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,

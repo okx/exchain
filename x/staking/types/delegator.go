@@ -13,9 +13,9 @@ type Delegator struct {
 	DelegatorAddress     sdk.AccAddress   `json:"delegator_address" yaml:"delegator_address"`
 	ValidatorAddresses   []sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
 	Shares               sdk.Dec          `json:"shares" yaml:"shares"`
-	Tokens               sdk.Dec          `json:"tokens" yaml:"tokens"`
+	Tokens               sdk.Dec          `json:"tokens" yaml:"tokens"` // self-delegated tokens
 	IsProxy              bool             `json:"is_proxy" yaml:"is_proxy"`
-	TotalDelegatedTokens sdk.Dec          `json:"total_delegated_tokens" yaml:"total_delegated_tokens"`
+	TotalDelegatedTokens sdk.Dec          `json:"total_delegated_tokens" yaml:"total_delegated_tokens"` // total tokens delegated by other delegators
 	ProxyAddress         sdk.AccAddress   `json:"proxy_address" yaml:"proxy_address"`
 }
 
