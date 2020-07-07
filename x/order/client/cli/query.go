@@ -71,7 +71,7 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			product := args[0]
-			size := viper.GetInt("size")
+			size := viper.GetUint("size")
 			params := keeper.NewQueryDepthBookParams(product, size)
 			bz, err := cdc.MarshalJSON(params)
 			if err != nil {
@@ -90,7 +90,7 @@ The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}
 			return nil
 		},
 	}
-	cmd.Flags().Int("size", keeper.DefaultBookSize, "depth book single-side size")
+	cmd.Flags().Uint("size", keeper.DefaultBookSize, "depth book single-side size")
 	return cmd
 }
 

@@ -48,7 +48,7 @@ func depthBookHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		params := keeper.NewQueryDepthBookParams(product, size)
+		params := keeper.NewQueryDepthBookParams(product, uint(size))
 		req, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)

@@ -29,6 +29,9 @@ func BytesToInt64(buf []byte) int64 {
 
 // GetPage returns the offset and limit for data query
 func GetPage(page, perPage int) (offset, limit int) {
+	if page <= 0 || perPage <= 0 {
+		return
+	}
 	offset = (page - 1) * perPage
 	limit = perPage
 	return

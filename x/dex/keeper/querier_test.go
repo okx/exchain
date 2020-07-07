@@ -128,15 +128,15 @@ func TestQueryParam(t *testing.T) {
 	tests := []struct {
 		name    string
 		owner   string
-		page    int
-		perPage int
+		page    uint
+		perPage uint
 		result  bool
 	}{
 		{"new-no-owner", "", 1, 50, true},
 		{"new-with-owner", types.TestTokenPairOwner, 1, 50, true},
 		{"new-wrong-address", "wrong-address", 1, 50, false},
-		{"new-wrong-page", "", -100, 50, false},
-		{"new-wrong-per-page", "", 1, -50, false},
+		{"new-wrong-page", "", 0, 50, false},
+		{"new-wrong-per-page", "", 1, 0, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

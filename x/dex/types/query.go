@@ -17,12 +17,12 @@ const (
 // QueryDexInfoParams defines query params of dex info
 type QueryDexInfoParams struct {
 	Owner   string
-	Page    int
-	PerPage int
+	Page    uint
+	PerPage uint
 }
 
 // NewQueryDexInfoParams creates query params of dex info
-func NewQueryDexInfoParams(owner string, page, perPage int) (queryDexInfoParams QueryDexInfoParams, err error) {
+func NewQueryDexInfoParams(owner string, page, perPage uint) (queryDexInfoParams QueryDexInfoParams, err error) {
 	if len(owner) == 0 {
 		owner = ""
 	} else {
@@ -32,10 +32,10 @@ func NewQueryDexInfoParams(owner string, page, perPage int) (queryDexInfoParams 
 		}
 	}
 
-	if page <= 0 {
+	if page == 0 {
 		return QueryDexInfoParams{}, fmt.Errorf("invalid page：%d", page)
 	}
-	if perPage <= 0 {
+	if perPage == 0 {
 		return QueryDexInfoParams{}, fmt.Errorf("invalid per-page：%d", perPage)
 	}
 	return QueryDexInfoParams{
@@ -78,7 +78,7 @@ func (q *QueryDexInfoParams) SetPageAndPerPage(owner, pageStr, perPageStr string
 	}
 
 	q.Owner = owner
-	q.Page = page
-	q.PerPage = perPage
+	q.Page = uint(page)
+	q.PerPage = uint(perPage)
 	return nil
 }
