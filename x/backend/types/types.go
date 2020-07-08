@@ -42,6 +42,12 @@ type Ticker struct {
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
 }
 
+func (t *Ticker) GetChannelInfo() (channel, filter string, err error)  {
+	channel = "dex_spot/ticker"
+	filter = t.Product
+	return
+}
+
 // PrettyString return string of ticker data
 func (t *Ticker) PrettyString() string {
 	return fmt.Sprintf("[Ticker] Symbol: %s, Price: %f, TStr: %s, Timestamp: %d, OCHLV(%f, %f, %f, %f, %f) [%f, %s])",

@@ -22,13 +22,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeTransactions(keeper)
 		keeper.Flush()
 		keeper.Logger.Debug(fmt.Sprintf("end backend endblocker: block---%d", ctx.BlockHeight()))
-	}
 
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(types.EventTypeBackend,
-			sdk.NewAttribute("channel", "dex_spot/ticker"),
-			sdk.NewAttribute("filter", "tbtc_tusdk"),
-			sdk.NewAttribute("data", fmt.Sprintf("{'high':100, 'low':100, 'blockheight':%d}", ctx.BlockHeight()))))
+		keeper.EmitAllWsItems(ctx)
+	}
 
 }
 

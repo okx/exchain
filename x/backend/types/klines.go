@@ -40,6 +40,23 @@ type IKline interface {
 	GetBrifeInfo() []string
 }
 
+var (
+	kline2channel = map[string]string{
+		klineM1:     "dex_spot/candle60s",
+		klineM3:     "dex_spot/candle180s",
+		klineM5:     "dex_spot/candle300s",
+		klineM15:    "dex_spot/candle900s",
+		klineM30:    "dex_spot/candle1800s",
+		klineM60:    "dex_spot/candle3600s",
+		klineM120:   "dex_spot/candle7200s",
+		klineM240:   "dex_spot/candle14400s",
+		klineM360:   "dex_spot/candle21600s",
+		klineM720:   "dex_spot/candle43200s",
+		klineM1440:  "dex_spot/candle86400s",
+		klineM10080: "dex_spot/candle604800s",
+	}
+)
+
 // nolint
 type IKlines []IKline
 
@@ -86,6 +103,14 @@ type BaseKline struct {
 	Low       float64 `gorm:"type:DOUBLE" json:"low"`
 	Volume    float64 `gorm:"type:DOUBLE" json:"volume"`
 	impl      IKline
+}
+
+func (b *BaseKline) GetChannelInfo() (channel, filter string, err error) {
+	channel, ok := kline2channel[b.impl.GetTableName()]
+	if !ok {
+		return "", "", errors.Errorf("failed to find channel for %s", b.GetTableName())
+	}
+	return channel, b.Product, nil
 }
 
 // GetFreqInSecond return interval time

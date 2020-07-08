@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -29,9 +30,8 @@ type Keeper struct {
 	stopChan     chan struct{}
 	Config       *config.Config
 	Logger       log.Logger
-
-	// memory cache
-	Cache *cache.Cache
+	wsChan       chan types.IWebsocket	// Websocket channel, it's only available when websocket config enabled
+	Cache *cache.Cache              // Memory cache
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
@@ -44,6 +44,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		cdc:          cdc,
 		Logger:       logger,
 		Config:       cfg,
+		wsChan:nil,
 	}
 
 	if k.Config.EnableBackend {
@@ -54,7 +55,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 			k.stopChan = make(chan struct{})
 
 			if k.Config.EnableMktCompute {
-				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger)
+				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
 				// init ticker buffer
 				ts := time.Now().Unix()
 
@@ -63,8 +64,46 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		}
 	}
 
+	// TODO: check enable logic from config logic
+	if true {
+		k.wsChan = make(chan types.IWebsocket, 1024)
+	}
+
 	logger.Debug(fmt.Sprintf("%+v", k.Config))
 	return k
+}
+
+func (k Keeper) pushWSItem(obj types.IWebsocket) {
+	if k.wsChan != nil {
+		k.wsChan <- obj
+	}
+}
+
+func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
+	if k.wsChan == nil {
+		return
+	}
+
+	for len(k.wsChan) > 0 {
+		item, ok := <- k.wsChan
+		if ok {
+			jstr, jerr := json.Marshal(item)
+			channel, filter, err := item.GetChannelInfo()
+			if jerr != nil && err != nil {
+				ctx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"backend",
+						sdk.NewAttribute("channel", channel+":"+filter),
+						sdk.NewAttribute("data", string(jstr))))
+			} else {
+				k.Logger.Error("failed to EmitAllWsItems ", "Json Error", jerr, "GetChannelInfo Error", err)
+				break
+			}
+
+		} else {
+			break
+		}
+	}
 }
 
 // Stop close database
@@ -240,7 +279,9 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 	if len(tickerMap) > 0 {
 		for product, ticker := range tickerMap {
 			k.Cache.LatestTicker[product] = ticker
+			k.pushWSItem(ticker)
 		}
+
 		k.Orm.Debug(fmt.Sprintf("UpdateTickersBuffer LatestTickerMap: %+v", k.Cache.LatestTicker))
 	} else {
 		k.Orm.Debug(fmt.Sprintf("UpdateTickersBuffer No product's deal refresh in [%d, %d), latestTicker: %+v", startTS, endTS, k.Cache.LatestTicker))
