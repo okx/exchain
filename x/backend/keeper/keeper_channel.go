@@ -12,14 +12,16 @@ import (
 )
 
 func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper) {
-	if klines != nil && len(klines) >0 {
+	keeper.Logger.Debug("pushAllKline1m_1", "klines", klines)
+	if klines != nil && len(klines) > 0 {
 		for _, klineArr := range klines {
 			if klineArr == nil {
 				continue
 			}
 
 			for _, k := range klineArr {
-				keeper.pushWSItem(k)
+				keeper.Logger.Debug("pushAllKline1m_2", "kline", &k)
+				keeper.pushWSItem(&k)
 			}
 		}
 	}
@@ -56,13 +58,15 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 			return
 		}
 
-		crrtTS := o.GetMaxBlockTimestamp()
+		crrtBlkTS := o.GetMaxBlockTimestamp()
 		(*log).Debug(fmt.Sprintf("[backend] entering generateKline1M [%d, %d) [%s, %s)",
-			anchorEndTS, crrtTS, types.TimeString(anchorEndTS), types.TimeString(crrtTS)))
+			anchorEndTS, crrtBlkTS, types.TimeString(anchorEndTS), types.TimeString(crrtBlkTS)))
 
-		anchorStart, _, newKline1s, err := o.CreateKline1min(anchorEndTS, crrtTS, &ds)
+		anchorStart, _, newKline1s, err := o.CreateKline1min(anchorEndTS, crrtBlkTS, &ds)
+		(*log).Debug(fmt.Sprintf("[backend] generateKline1M's actually merge period [%s, %s)",
+			types.TimeString(anchorEndTS), types.TimeString(anchorStart)))
 		if err != nil {
-			(*log).Debug(fmt.Sprintf("[backend] error: %s", err.Error()))
+			(*log).Debug(fmt.Sprintf("[backend] generateKline1M error: %s", err.Error()))
 
 		} else {
 			pushAllKline1m(newKline1s, keeper)
@@ -120,8 +124,8 @@ func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper) {
 			}
 
 			for _, k := range klineArr {
-				baseLine := k.(types.BaseKline)
-				keeper.pushWSItem(&baseLine)
+				baseLine := k.(types.IWebsocket)
+				keeper.pushWSItem(baseLine)
 			}
 		}
 	}

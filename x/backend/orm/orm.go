@@ -491,7 +491,7 @@ func (dm *MergeResultDataSource) getOpenClosePrice(startTS, endTS int64, product
 
 // CreateKline1min batch insert into Kline1M
 func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSource) (
-	anchorEndTS int64, newKlineCnt int, newKlineInfo map[string][]types.KlineM1, err error) {
+	anchorEndTS int64, newProductCnt int, newKlineInfo map[string][]types.KlineM1, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
@@ -537,7 +537,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 				var cnt int
 
 				if err = rows.Scan(&product, &quantity, &high, &low, &cnt); err != nil {
-					orm.Error("failed to execute scan result, error:" + err.Error())
+					orm.Error("failed to execute scan result, error:" + err.Error() + " sql: " + sql)
 				}
 				if cnt > 0 {
 
@@ -576,9 +576,9 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 			// TODO: it should be a replacement here.
 			ret := tx.Create(&kline)
 			if ret.Error != nil {
-				orm.Error(fmt.Sprintf("Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
+				orm.Error(fmt.Sprintf("[backend] failed to create kline Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
 			} else {
-				orm.Debug(fmt.Sprintf("%s %s", types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
+				orm.Debug(fmt.Sprintf("[backend] success to create in %s, %s %s", kline.GetTableName(), types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
 			}
 
 		}
@@ -586,6 +586,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	tx.Commit()
 
 	anchorEndTS = anchorStartTime.Unix()
+	(*orm.logger).Debug(fmt.Sprintf("[backend] CreateKline1min return klinesMap: %+v", productKlines))
 	return anchorEndTS, len(productKlines), productKlines, nil
 }
 

@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -42,14 +43,19 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
 		cdc:          cdc,
-		Logger:       logger,
+		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
 		wsChan:nil,
 	}
 
+	// TODO: check enable logic from config logic
+	if true {
+		k.wsChan = make(chan types.IWebsocket, 1024)
+	}
+
 	if k.Config.EnableBackend {
 		k.Cache = cache.NewCache()
-		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &logger)
+		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &k.Logger)
 		if err == nil {
 			k.Orm = orm
 			k.stopChan = make(chan struct{})
@@ -63,19 +69,27 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 			}
 		}
 	}
-
-	// TODO: check enable logic from config logic
-	if true {
-		k.wsChan = make(chan types.IWebsocket, 1024)
-	}
-
 	logger.Debug(fmt.Sprintf("%+v", k.Config))
 	return k
 }
 
 func (k Keeper) pushWSItem(obj types.IWebsocket) {
+	k.Logger.Debug("pushWSItem", "typeof(obj)", reflect.TypeOf(obj), "chan", k.wsChan)
 	if k.wsChan != nil {
-		k.wsChan <- obj
+		switch obj.(type) {
+		case *types.Ticker:
+			k.wsChan <- obj.(*types.Ticker)
+		case *types.BaseKline:
+			k.wsChan <- obj.(*types.BaseKline)
+		case *types.KlineM1:
+			k.wsChan <- obj.(*types.KlineM1)
+		case *types.KlineM3:
+			k.wsChan <- obj.(*types.KlineM3)
+		case *types.KlineM5:
+			k.wsChan <- obj.(*types.KlineM5)
+		default:
+			k.wsChan <- obj
+		}
 	}
 }
 
@@ -85,12 +99,15 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 		return
 	}
 
+	k.Logger.Debug("EmitAllWsItems", "eventCnt", len(k.wsChan))
+
 	for len(k.wsChan) > 0 {
 		item, ok := <- k.wsChan
 		if ok {
 			jstr, jerr := json.Marshal(item)
 			channel, filter, err := item.GetChannelInfo()
-			if jerr != nil && err != nil {
+			if jerr == nil && err == nil {
+				k.Logger.Debug("EmitAllWsItems Item", "data", string(jstr))
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
 						"backend",
