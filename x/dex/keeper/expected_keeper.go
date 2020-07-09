@@ -3,7 +3,6 @@ package keeper
 import (
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okchain/x/dex/types"
@@ -33,7 +32,6 @@ type IKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*types.TokenPair
 	GetUserTokenPairs(ctx sdk.Context, owner sdk.AccAddress) []*types.TokenPair
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
-	GetTokenPairsFromStore(ctx sdk.Context) (tokenPairs []*types.TokenPair)
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, tokenPairName string)
 	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error
@@ -45,7 +43,6 @@ type IKeeper interface {
 	GetParams(ctx sdk.Context) (params types.Params)
 	SetParams(ctx sdk.Context, params types.Params)
 	GetFeeCollector() string
-	GetCDC() *codec.Codec
 	TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error
 	LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock)
 	LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap
@@ -59,6 +56,8 @@ type IKeeper interface {
 	GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperator, isExist bool)
 	GetOperatorInfo(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperatorInfo, isExist bool)
 	IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool))
+	GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64)
+	SetMaxTokenPairID(ctx sdk.Context, tokenPairMaxID uint64)
 }
 
 // StakingKeeper defines the expected staking Keeper (noalias)

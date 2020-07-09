@@ -12,7 +12,18 @@ v    Please also ensure that this is not a duplicate issue :)
 
 ## Summary of Bug
 
+### 1. Describe
 <!-- Concisely describe the issue -->
+
+### 2. Impact
+<!-- What impact to the system the issue results -->
+
+### 3. Recover
+<!-- How does system go back to normal once it happens? -->
+
+## Expected Result
+
+<!-- What result is expected after the issue addressed? -->
 
 ## Version
 

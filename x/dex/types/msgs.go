@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
@@ -45,6 +46,14 @@ func (msg MsgList) ValidateBasic() sdk.Error {
 	if msg.ListAsset == msg.QuoteAsset {
 		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list product because base asset is same as quote asset"))
 	}
+
+	if !msg.InitPrice.IsPositive() {
+		return sdk.ErrUnknownRequest("invalid init price")
+	}
+
+	if msg.Owner.Empty() {
+		return sdk.ErrInvalidAddress("missing owner address")
+	}
 	return nil
 }
 
@@ -56,45 +65,6 @@ func (msg MsgList) GetSignBytes() []byte {
 
 // GetSigners Implements Msg
 func (msg MsgList) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Owner}
-}
-
-// MsgDelist - high level transaction of the dex module
-type MsgDelist struct {
-	Owner   sdk.AccAddress `json:"owner"`
-	Product string         `json:"product"`
-}
-
-// NewMsgDelist creates a new MsgDelist
-func NewMsgDelist(owner sdk.AccAddress, product string) MsgDelist {
-	return MsgDelist{
-		Owner:   owner,
-		Product: product,
-	}
-}
-
-// Route Implements Msg
-func (msg MsgDelist) Route() string { return RouterKey }
-
-// Type Implements Msg
-func (msg MsgDelist) Type() string { return "delist" }
-
-// ValidateBasic Implements Msg
-func (msg MsgDelist) ValidateBasic() sdk.Error {
-	if msg.Product == "" || len(msg.Product) == 0 {
-		return ErrInvalidProduct(msg.Product)
-	}
-	return nil
-}
-
-// GetSignBytes Implements Msg
-func (msg MsgDelist) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-// GetSigners Implements Msg.
-func (msg MsgDelist) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
 }
 
@@ -121,7 +91,7 @@ func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 
@@ -162,7 +132,7 @@ func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
 		return sdk.ErrInvalidAddress(msg.Depositor.String())
 	}
-	if !msg.Amount.IsValid() {
+	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.Amount.String())
 	}
 
@@ -257,9 +227,9 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 // if DEXOperator not exist, register a new DEXOperator
 // else update Website or HandlingFeeAddress
 type MsgCreateOperator struct {
-	Owner              sdk.AccAddress
-	Website            string
-	HandlingFeeAddress sdk.AccAddress
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
 }
 
 // NewMsgCreateOperator creates a new MsgCreateOperator
@@ -278,6 +248,9 @@ func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
 
 // ValidateBasic Implements Msg
 func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
 	return checkWebsite(msg.Website)
 }
 
@@ -297,9 +270,9 @@ func (msg MsgCreateOperator) GetSigners() []sdk.AccAddress {
 // if DEXOperator not exist, register a new DEXOperator
 // else update Website or HandlingFeeAddress
 type MsgUpdateOperator struct {
-	Owner              sdk.AccAddress
-	Website            string
-	HandlingFeeAddress sdk.AccAddress
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
 }
 
 // NewMsgUpdateOperator creates a new MsgUpdateOperator
@@ -318,6 +291,9 @@ func (msg MsgUpdateOperator) Type() string { return typeMsgUpdateOperator }
 
 // ValidateBasic Implements Msg
 func (msg MsgUpdateOperator) ValidateBasic() sdk.Error {
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
 	return checkWebsite(msg.Website)
 }
 
@@ -333,6 +309,9 @@ func (msg MsgUpdateOperator) GetSigners() []sdk.AccAddress {
 }
 
 func checkWebsite(website string) sdk.Error {
+	if len(website) == 0 {
+		return nil
+	}
 	if len(website) > 1024 {
 		return ErrInvalidWebsiteLength(len(website), 1024)
 	}
@@ -340,8 +319,8 @@ func checkWebsite(website string) sdk.Error {
 	if err != nil {
 		return ErrInvalidWebsiteURL(err.Error())
 	}
-	if u.Scheme != "http" {
-		return ErrInvalidWebsiteURL(fmt.Sprintf("got: %s, expected: %s", u.Scheme, "http"))
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return ErrInvalidWebsiteURL(fmt.Sprintf("got: %s, expected: http or https", u.Scheme))
 	}
 	return nil
 }

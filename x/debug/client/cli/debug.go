@@ -24,6 +24,7 @@ func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 	queryCmd.AddCommand(client.GetCommands(
 		CmdSetLogLevel(queryRoute, cdc),
 		CmdDumpStore(queryRoute, cdc),
+		CmdSanityCheck(queryRoute, cdc),
 	)...)
 
 	return queryCmd
@@ -81,6 +82,24 @@ $ okchaincli debug set-loglevel "upgrade:error"
 			}
 
 			fmt.Println("Succeed to set the okchaind log level.")
+			return nil
+		},
+	}
+}
+
+// CmdSanityCheck does sanity check
+func CmdSanityCheck(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "sanity-check-shares",
+		Short: "check the total share of validator",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s", queryRoute, types.SanityCheckShares), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
 			return nil
 		},
 	}

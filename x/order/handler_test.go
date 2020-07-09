@@ -108,8 +108,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
+	require.Nil(t, orderRes)
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -130,8 +129,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInsufficientCoins, orderRes[0].Code)
+	require.Nil(t, orderRes)
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
@@ -284,21 +282,20 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	msg := types.NewMsgCancelOrder(addrKeysSlice[1].Address, order.OrderID)
 	result := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnauthorized, orderRes[0].Code)
+	require.Nil(t, orderRes)
+
 	// invalid orderID
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, "InvalidID-0001")
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeUnknownRequest, orderRes[0].Code)
+	require.Nil(t, orderRes)
+
 	// busy product
 	keeper.SetProductLock(ctx, order.Product, &types.ProductLock{})
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
+	require.Nil(t, orderRes)
 	keeper.UnlockProduct(ctx, order.Product)
 
 	// normal
@@ -325,8 +322,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
 	result = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
-	require.NotNil(t, orderRes)
-	require.EqualValues(t, sdk.CodeInternal, orderRes[0].Code)
+	require.Nil(t, orderRes)
 }
 
 func TestHandleInvalidMsg(t *testing.T) {
@@ -436,7 +432,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	result1 := handler(ctx, msg)
 	res1 := parseOrderResult(result1)
-	require.EqualValues(t, sdk.CodeInternal, res1[0].Code)
+	require.Nil(t, res1)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	//check result & order
@@ -721,6 +717,10 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	tokenPairDex := dex.GetBuiltInTokenPair()
 	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPairDex)
@@ -957,6 +957,11 @@ func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*t
 
 	err = mapp.dexKeeper.SaveTokenPair(ctx, &tokenPair)
 	require.Nil(t, err)
+	mapp.dexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
+
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	require.NotNil(t, acc)
 	//place buy order

@@ -44,9 +44,9 @@ var (
 
 	// TokenPairKey is the store key for token pair
 	TokenPairKey = []byte{0x01}
-	// TokenPairNumberKey is the store key for token pair num
-	TokenPairNumberKey = []byte{0x02}
-	// TokenPairLockKeyPrefix is the store key  prefix for token pair
+	// MaxTokenPairIDKey is the store key for token pair max ID
+	MaxTokenPairIDKey = []byte{0x02}
+	// TokenPairLockKeyPrefix is the store key for token pair prefix
 	TokenPairLockKeyPrefix = []byte{0x03}
 
 	// DEXOperatorKeyPrefix is the store key prefix for DEXOperator

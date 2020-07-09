@@ -46,7 +46,7 @@ func defaultGenesisStateOKT() types.Token {
 	return types.Token{
 		Description:         "OK Group Global Utility Token",
 		Symbol:              common.NativeToken,
-		OriginalSymbol:      "OKT",
+		OriginalSymbol:      common.NativeToken,
 		WholeName:           "OKT",
 		OriginalTotalSupply: totalSupply,
 		TotalSupply:         totalSupply,
