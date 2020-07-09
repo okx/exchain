@@ -22,7 +22,6 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeTransactions(keeper)
 		keeper.Flush()
 		keeper.Logger.Debug(fmt.Sprintf("end backend endblocker: block---%d", ctx.BlockHeight()))
-
 		keeper.EmitAllWsItems(ctx)
 	}
 

@@ -106,6 +106,10 @@ type BaseKline struct {
 }
 
 func (b *BaseKline) GetChannelInfo() (channel, filter string, err error) {
+	if b.impl == nil {
+		return "", "", errors.New("failed to find channel because of no specific kline type found")
+	}
+
 	channel, ok := kline2channel[b.impl.GetTableName()]
 	if !ok {
 		return "", "", errors.Errorf("failed to find channel for %s", b.GetTableName())

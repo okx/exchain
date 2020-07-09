@@ -79,6 +79,7 @@ func (k Keeper) pushWSItem(obj types.IWebsocket) {
 	}
 }
 
+// Emit all of the WSItems as tendermint events
 func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 	if k.wsChan == nil {
 		return
