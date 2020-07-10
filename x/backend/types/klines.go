@@ -189,6 +189,13 @@ func (b *BaseKline) GetBrifeInfo() []string {
 	return m
 }
 
+func (b *BaseKline) FormatResult() interface{} {
+	result := map[string] interface{}{}
+	result["instrument_id"] = b.Product
+	result["candle"] = b.GetBrifeInfo()
+	return result
+}
+
 // TimeString  format time
 func TimeString(ts int64) string {
 	return time.Unix(ts, 0).Local().Format("20060102_150405")

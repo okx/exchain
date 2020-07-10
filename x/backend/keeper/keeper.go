@@ -74,22 +74,23 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 }
 
 func (k Keeper) pushWSItem(obj types.IWebsocket) {
-	k.Logger.Debug("pushWSItem", "typeof(obj)", reflect.TypeOf(obj), "chan", k.wsChan)
 	if k.wsChan != nil {
-		switch obj.(type) {
-		case *types.Ticker:
-			k.wsChan <- obj.(*types.Ticker)
-		case *types.BaseKline:
-			k.wsChan <- obj.(*types.BaseKline)
-		case *types.KlineM1:
-			k.wsChan <- obj.(*types.KlineM1)
-		case *types.KlineM3:
-			k.wsChan <- obj.(*types.KlineM3)
-		case *types.KlineM5:
-			k.wsChan <- obj.(*types.KlineM5)
-		default:
-			k.wsChan <- obj
-		}
+		k.Logger.Debug("pushWSItem", "typeof(obj)", reflect.TypeOf(obj))
+		k.wsChan <- obj
+		//switch obj.(type) {
+		//case *types.Ticker:
+		//	k.wsChan <- obj.(*types.Ticker)
+		//case *types.BaseKline:
+		//	k.wsChan <- obj.(*types.BaseKline)
+		//case *types.KlineM1:
+		//	k.wsChan <- obj.(*types.KlineM1)
+		//case *types.KlineM3:
+		//	k.wsChan <- obj.(*types.KlineM3)
+		//case *types.KlineM5:
+		//	k.wsChan <- obj.(*types.KlineM5)
+		//default:
+		//	k.wsChan <- obj
+		//}
 	}
 }
 
@@ -104,7 +105,8 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 	for len(k.wsChan) > 0 {
 		item, ok := <- k.wsChan
 		if ok {
-			jstr, jerr := json.Marshal(item)
+			formatedResult := item.FormatResult()
+			jstr, jerr := json.Marshal(formatedResult)
 			channel, filter, err := item.GetChannelInfo()
 			if jerr == nil && err == nil {
 				k.Logger.Debug("EmitAllWsItems Item", "data", string(jstr))

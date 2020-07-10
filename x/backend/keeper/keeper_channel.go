@@ -59,7 +59,7 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 		}
 
 		crrtBlkTS := o.GetMaxBlockTimestamp()
-		(*log).Debug(fmt.Sprintf("[backend] entering generateKline1M [%d, %d) [%s, %s)",
+		(*log).Debug(fmt.Sprintf("[backend] line1M [%d, %d) [%s, %s)",
 			anchorEndTS, crrtBlkTS, types.TimeString(anchorEndTS), types.TimeString(crrtBlkTS)))
 
 		anchorStart, _, newKline1s, err := o.CreateKline1min(anchorEndTS, crrtBlkTS, &ds)
@@ -146,8 +146,9 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 	anchorEndTS, _, newKlines, err := o.MergeKlineM1(startTS, endTS, destIKline)
 	if err != nil {
 		o.Error(fmt.Sprintf("[backend] MergeKlineM1 error: %s", err.Error()))
+	} else {
+		pushAllKlineXm(newKlines, keeper)
 	}
-	pushAllKlineXm(newKlines, keeper)
 
 	//waitInSecond := int(60+KlineX_GOROUTINE_WAIT_IN_SECOND-time.Now().Second()) % 60
 	crrTS := time.Now().Unix()
@@ -162,12 +163,16 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 			return
 		}
 
-		crrtTS := o.GetMaxBlockTimestamp()
+		latestBlockTS := o.GetMaxBlockTimestamp()
 
 		o.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
-			destIKline.GetFreqInSecond(), anchorEndTS, crrtTS, types.TimeString(anchorEndTS), types.TimeString(crrtTS)))
+			destIKline.GetFreqInSecond(), anchorEndTS, latestBlockTS, types.TimeString(anchorEndTS), types.TimeString(latestBlockTS)))
 
-		anchorStart, _, newKlines, err := o.MergeKlineM1(anchorEndTS, crrtTS, destIKline)
+		anchorStart, _, newKlines, err := o.MergeKlineM1(anchorEndTS, latestBlockTS, destIKline)
+
+		o.Debug(fmt.Sprintf("[backend] generateKlinesMX-#%d#'s actually merge period [%s, %s)",
+			destIKline.GetFreqInSecond(), types.TimeString(anchorEndTS), types.TimeString(anchorStart)))
+
 		if err != nil {
 			o.Error(fmt.Sprintf("[backend] error: %s", err.Error()))
 
