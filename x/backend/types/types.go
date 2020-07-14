@@ -42,23 +42,15 @@ type Ticker struct {
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
 }
 
+func (t *Ticker) GetTimestamp() int64  {
+	return t.Timestamp
+}
+
 func (t *Ticker) GetChannelInfo() (channel, filter string, err error) {
 	channel = "dex_spot/ticker"
 	filter = t.Product
 	return
 }
-
-//func (b *BaseKline) GetBrifeInfo() []string {
-//	m := []string{
-//		time.Unix(b.GetTimestamp(), 0).UTC().Format("2006-01-02T15:04:05.000Z"),
-//		fmt.Sprintf("%.4f", b.GetOpen()),
-//		fmt.Sprintf("%.4f", b.GetHigh()),
-//		fmt.Sprintf("%.4f", b.GetLow()),
-//		fmt.Sprintf("%.4f", b.GetClose()),
-//		fmt.Sprintf("%.8f", b.GetVolume()),
-//	}
-//	return m
-//}
 
 func (t *Ticker) FormatResult() interface{} {
 	result := map[string]string{

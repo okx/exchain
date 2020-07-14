@@ -11,7 +11,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper) {
+func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper, nextStartTS int64) {
 	keeper.Logger.Debug("pushAllKline1m_1", "klines", klines)
 	if klines != nil && len(klines) > 0 {
 		for _, klineArr := range klines {
@@ -24,6 +24,11 @@ func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper) {
 				keeper.pushWSItem(&k)
 			}
 		}
+	}
+
+	if nextStartTS > 0 {
+		notifyEvt := types.NewFakeWSEvent(types.KlineTypeM1, "", nextStartTS)
+		keeper.pushWSItem(notifyEvt)
 	}
 }
 
@@ -39,12 +44,12 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 
 	//ds := DealDataSource{orm: orm}
 	ds := orm.MergeResultDataSource{Orm: o}
-	anchorEndTS, _, newKline1s, err := o.CreateKline1min(startTS, endTS, &ds)
+	anchorNewStartTS, _, newKline1s, err := o.CreateKline1min(startTS, endTS, &ds)
 	if err != nil {
 		(*log).Debug(fmt.Sprintf("[backend] error: %+v \n", err))
 	}
 
-	pushAllKline1m(newKline1s, keeper)
+	pushAllKline1m(newKline1s, keeper, anchorNewStartTS)
 
 	waitInSecond := int(60+types.Kline1GoRoutineWaitInSecond-time.Now().Second()) % 60
 	timer := time.NewTimer(time.Duration(waitInSecond * int(time.Second)))
@@ -60,21 +65,24 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 
 		crrtBlkTS := o.GetMaxBlockTimestamp()
 		(*log).Debug(fmt.Sprintf("[backend] line1M [%d, %d) [%s, %s)",
-			anchorEndTS, crrtBlkTS, types.TimeString(anchorEndTS), types.TimeString(crrtBlkTS)))
+			anchorNewStartTS, crrtBlkTS, types.TimeString(anchorNewStartTS), types.TimeString(crrtBlkTS)))
 
-		anchorStart, _, newKline1s, err := o.CreateKline1min(anchorEndTS, crrtBlkTS, &ds)
+		anchorNextStart, _, newKline1s, err := o.CreateKline1min(anchorNewStartTS, crrtBlkTS, &ds)
 		(*log).Debug(fmt.Sprintf("[backend] generateKline1M's actually merge period [%s, %s)",
-			types.TimeString(anchorEndTS), types.TimeString(anchorStart)))
+			types.TimeString(anchorNewStartTS), types.TimeString(anchorNextStart)))
 		if err != nil {
 			(*log).Debug(fmt.Sprintf("[backend] generateKline1M error: %s", err.Error()))
 
 		} else {
-			pushAllKline1m(newKline1s, keeper)
-			anchorEndTS = anchorStart
-			if klineNotifyChans != nil {
-				for _, ch := range *klineNotifyChans {
-					ch <- struct{}{}
+			// if new klines created, push them
+			if anchorNextStart > anchorNewStartTS {
+				pushAllKline1m(newKline1s, keeper, anchorNewStartTS)
+				if klineNotifyChans != nil {
+					for _, ch := range *klineNotifyChans {
+						ch <- struct{}{}
+					}
 				}
+				anchorNewStartTS = anchorNextStart
 			}
 
 		}
@@ -116,7 +124,7 @@ func generateSyncKlineMXChans() *map[int]chan struct{} {
 }
 
 
-func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper) {
+func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper, klineType string, nextStartTS int64) {
 	if klines != nil && len(klines) >0 {
 		for _, klineArr := range klines {
 			if klineArr == nil {
@@ -128,6 +136,11 @@ func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper) {
 				keeper.pushWSItem(baseLine)
 			}
 		}
+	}
+
+	if nextStartTS > 0 {
+		fe := types.NewFakeWSEvent(klineType, "", nextStartTS)
+		keeper.pushWSItem(fe)
 	}
 }
 
@@ -143,11 +156,11 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 	destIKline := destK.(types.IKline)
 
 	startTS, endTS := int64(0), time.Now().Unix()-int64(destIKline.GetFreqInSecond())
-	anchorEndTS, _, newKlines, err := o.MergeKlineM1(startTS, endTS, destIKline)
+	anchorNewStartTS, _, newKlines, err := o.MergeKlineM1(startTS, endTS, destIKline)
 	if err != nil {
 		o.Error(fmt.Sprintf("[backend] MergeKlineM1 error: %s", err.Error()))
 	} else {
-		pushAllKlineXm(newKlines, keeper)
+		pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
 	}
 
 	//waitInSecond := int(60+KlineX_GOROUTINE_WAIT_IN_SECOND-time.Now().Second()) % 60
@@ -166,19 +179,21 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 		latestBlockTS := o.GetMaxBlockTimestamp()
 
 		o.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
-			destIKline.GetFreqInSecond(), anchorEndTS, latestBlockTS, types.TimeString(anchorEndTS), types.TimeString(latestBlockTS)))
+			destIKline.GetFreqInSecond(), anchorNewStartTS, latestBlockTS, types.TimeString(anchorNewStartTS), types.TimeString(latestBlockTS)))
 
-		anchorStart, _, newKlines, err := o.MergeKlineM1(anchorEndTS, latestBlockTS, destIKline)
+		anchorNextStart, _, newKlines, err := o.MergeKlineM1(anchorNewStartTS, latestBlockTS, destIKline)
 
 		o.Debug(fmt.Sprintf("[backend] generateKlinesMX-#%d#'s actually merge period [%s, %s)",
-			destIKline.GetFreqInSecond(), types.TimeString(anchorEndTS), types.TimeString(anchorStart)))
+			destIKline.GetFreqInSecond(), types.TimeString(anchorNewStartTS), types.TimeString(anchorNextStart)))
 
 		if err != nil {
 			o.Error(fmt.Sprintf("[backend] error: %s", err.Error()))
 
 		} else {
-			anchorEndTS = anchorStart
-			pushAllKlineXm(newKlines, keeper)
+			if anchorNextStart > anchorNewStartTS {
+				anchorNewStartTS = anchorNextStart
+				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
+			}
 		}
 	}
 
@@ -186,7 +201,7 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 		select {
 		case <-notifyChan:
 			time.Sleep(time.Second)
-			if anchorEndTS > 0 && time.Now().Unix() < anchorEndTS+int64(destIKline.GetFreqInSecond()) {
+			if anchorNewStartTS > 0 && time.Now().Unix() < anchorNewStartTS+int64(destIKline.GetFreqInSecond()) {
 				break
 			} else {
 				work()
