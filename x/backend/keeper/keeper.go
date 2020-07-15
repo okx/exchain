@@ -31,8 +31,8 @@ type Keeper struct {
 	stopChan     chan struct{}
 	Config       *config.Config
 	Logger       log.Logger
-	wsChan       chan types.IWebsocket	// Websocket channel, it's only available when websocket config enabled
-	Cache *cache.Cache              // Memory cache
+	wsChan       chan types.IWebsocket // Websocket channel, it's only available when websocket config enabled
+	Cache        *cache.Cache          // Memory cache
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
@@ -45,12 +45,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		cdc:          cdc,
 		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
-		wsChan:nil,
-	}
-
-	// TODO: check enable logic from config logic
-	if true {
-		k.wsChan = make(chan types.IWebsocket, 1024)
+		wsChan:       nil,
 	}
 
 	if k.Config.EnableBackend {
@@ -61,6 +56,8 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 			k.stopChan = make(chan struct{})
 
 			if k.Config.EnableMktCompute {
+				// websocket channel
+				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
 				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
 				// init ticker buffer
 				ts := time.Now().Unix()
@@ -89,13 +86,13 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 	k.Logger.Debug("EmitAllWsItems", "eventCnt", len(k.wsChan))
 
 	// TODO: Add filter to reduce events to send
-	allChannelNotifies := map[string] int64{}
+	allChannelNotifies := map[string]int64{}
 	updatedChannels := map[string]bool{}
 	for len(k.wsChan) > 0 {
-		item, ok := <- k.wsChan
+		item, ok := <-k.wsChan
 		if ok {
 			channel, filter, err := item.GetChannelInfo()
-			fullchannel := channel+":"+filter
+			fullchannel := channel + ":" + filter
 
 			formatedResult := item.FormatResult()
 			if formatedResult == nil {
@@ -131,7 +128,7 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 
 		tokenPairs := k.getAllProducts(ctx)
 		for _, tp := range tokenPairs {
-			
+
 			klines, err := k.getCandlesWithTimeFromORM(tp, freq, 1, ts)
 			if err != nil || len(klines) == 0 {
 				k.Logger.Error("EmitAllWsItems[#2] failed to getCandlesWithTimeFromORM", "error", err)
@@ -161,7 +158,6 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 				break
 			}
 		}
-
 
 	}
 

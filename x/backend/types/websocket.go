@@ -1,5 +1,7 @@
 package types
 
+const WebsocketChanCapacity = 2048
+
 type IWebsocket interface {
 	GetChannelInfo() (channel, filter string, err error)
 	FormatResult() interface{}
