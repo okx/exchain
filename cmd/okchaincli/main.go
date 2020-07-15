@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	//"github.com/okex/okchain/x/stream/quoteslite"
 	"os"
 	"path"
 
@@ -25,7 +24,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/go-amino"
-	"github.com/tendermint/tendermint/cmd/tendermint/commands"
 	"github.com/tendermint/tendermint/libs/cli"
 )
 
@@ -69,13 +67,11 @@ func main() {
 		client.LineBreak,
 		lcd.ServeCommand(cdc, registerRoutes),
 		client.LineBreak,
-		//quoteslite.LiteCmd,
 		client.LineBreak,
 		keys.Commands(),
 		client.LineBreak,
 		version.Cmd,
 		client.NewCompletionCmd(rootCmd, true),
-		commands.LiteCmd,
 	)
 
 	// add flags and prefix all env exposed with OKCHAIN
