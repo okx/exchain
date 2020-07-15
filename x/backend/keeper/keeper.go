@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -29,9 +31,8 @@ type Keeper struct {
 	stopChan     chan struct{}
 	Config       *config.Config
 	Logger       log.Logger
-
-	// memory cache
-	Cache *cache.Cache
+	wsChan       chan types.IWebsocket // Websocket channel, it's only available when websocket config enabled
+	Cache        *cache.Cache          // Memory cache
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
@@ -42,19 +43,22 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
 		cdc:          cdc,
-		Logger:       logger,
+		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
+		wsChan:       nil,
 	}
 
 	if k.Config.EnableBackend {
 		k.Cache = cache.NewCache()
-		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &logger)
+		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &k.Logger)
 		if err == nil {
 			k.Orm = orm
 			k.stopChan = make(chan struct{})
 
 			if k.Config.EnableMktCompute {
-				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger)
+				// websocket channel
+				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
 				// init ticker buffer
 				ts := time.Now().Unix()
 
@@ -62,9 +66,101 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 			}
 		}
 	}
-
 	logger.Debug(fmt.Sprintf("%+v", k.Config))
 	return k
+}
+
+func (k Keeper) pushWSItem(obj types.IWebsocket) {
+	if k.wsChan != nil {
+		k.Logger.Debug("pushWSItem", "typeof(obj)", reflect.TypeOf(obj))
+		k.wsChan <- obj
+	}
+}
+
+// Emit all of the WSItems as tendermint events
+func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
+	if k.wsChan == nil {
+		return
+	}
+
+	k.Logger.Debug("EmitAllWsItems", "eventCnt", len(k.wsChan))
+
+	// TODO: Add filter to reduce events to send
+	allChannelNotifies := map[string]int64{}
+	updatedChannels := map[string]bool{}
+	for len(k.wsChan) > 0 {
+		item, ok := <-k.wsChan
+		if ok {
+			channel, filter, err := item.GetChannelInfo()
+			fullchannel := channel + ":" + filter
+
+			formatedResult := item.FormatResult()
+			if formatedResult == nil {
+				allChannelNotifies[channel] = item.GetTimestamp()
+				continue
+			}
+
+			jstr, jerr := json.Marshal(formatedResult)
+			if jerr == nil && err == nil {
+				k.Logger.Debug("EmitAllWsItems Item[#1]", "type", reflect.TypeOf(item), "data", string(jstr))
+				ctx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"backend",
+						sdk.NewAttribute("channel", fullchannel),
+						sdk.NewAttribute("data", string(jstr))))
+
+				updatedChannels[fullchannel] = true
+
+			} else {
+				k.Logger.Error("failed to EmitAllWsItems[#1] ", "Json Error", jerr, "GetChannelInfo Error", err)
+				break
+			}
+
+		} else {
+			break
+		}
+	}
+
+	// Push All product kline when trigger by FakeEvent
+	for klineType, ts := range allChannelNotifies {
+
+		freq := types.GetFreqByKlineType(klineType)
+
+		tokenPairs := k.getAllProducts(ctx)
+		for _, tp := range tokenPairs {
+
+			klines, err := k.getCandlesWithTimeFromORM(tp, freq, 1, ts)
+			if err != nil || len(klines) == 0 {
+				k.Logger.Error("EmitAllWsItems[#2] failed to getCandlesWithTimeFromORM", "error", err)
+				continue
+			}
+			lastKline := klines[len(klines)-1]
+			item := lastKline.(types.IWebsocket)
+
+			channel, filter, err := item.GetChannelInfo()
+			fullchannel := channel + ":" + filter
+			bSkip, ok := updatedChannels[fullchannel]
+			if bSkip || ok {
+				continue
+			}
+
+			formatedResult := item.FormatResult()
+			jstr, jerr := json.Marshal(formatedResult)
+			if jerr == nil && err == nil {
+				k.Logger.Debug("EmitAllWsItems Item[#2]", "type", reflect.TypeOf(item), "data", string(jstr))
+				ctx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"backend",
+						sdk.NewAttribute("channel", fullchannel),
+						sdk.NewAttribute("data", string(jstr))))
+			} else {
+				k.Logger.Error("EmitAllWsItems[#2] failed to EmitAllWsItems ", "Json Error", jerr, "GetChannelInfo Error", err)
+				break
+			}
+		}
+
+	}
+
 }
 
 // Stop close database
@@ -139,7 +235,7 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 }
 
 // nolint
-func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int64) (r [][]string, err error) {
+func (k Keeper) getCandlesWithTimeFromORM(product string, granularity, size int, ts int64) (r []types.IKline, err error) {
 	if !k.Config.EnableBackend {
 		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
 	}
@@ -154,10 +250,20 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 	if err == nil {
 		err := k.Orm.GetLatestKlinesByProduct(product, size, ts, klines)
 		iklines := types.ToIKlinesArray(klines, ts, true)
+		return iklines, err
+	}
+	return nil, err
+
+}
+
+// nolint
+func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int64) (r [][]string, err error) {
+
+	iklines, err := k.getCandlesWithTimeFromORM(product, granularity, size, ts)
+	if err == nil {
 		restData := types.ToRestfulData(&iklines, size)
 		return restData, err
 	}
-
 	return nil, err
 }
 
@@ -242,7 +348,9 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 	if len(tickerMap) > 0 {
 		for product, ticker := range tickerMap {
 			k.Cache.LatestTicker[product] = ticker
+			k.pushWSItem(ticker)
 		}
+
 		k.Orm.Debug(fmt.Sprintf("UpdateTickersBuffer LatestTickerMap: %+v", k.Cache.LatestTicker))
 	} else {
 		k.Orm.Debug(fmt.Sprintf("UpdateTickersBuffer No product's deal refresh in [%d, %d), latestTicker: %+v", startTS, endTS, k.Cache.LatestTicker))

@@ -67,6 +67,7 @@ func main() {
 		client.LineBreak,
 		lcd.ServeCommand(cdc, registerRoutes),
 		client.LineBreak,
+		client.LineBreak,
 		keys.Commands(),
 		client.LineBreak,
 		version.Cmd,

@@ -3,8 +3,8 @@ package types
 
 import (
 	"fmt"
-
 	orderTypes "github.com/okex/okchain/x/order/types"
+	"time"
 )
 
 const (
@@ -40,6 +40,31 @@ type Ticker struct {
 	Volume           float64 `json:"volume"`            // Volume in 24h
 	Change           float64 `json:"change"`            // (Close - Open)
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
+}
+
+func (t *Ticker) GetTimestamp() int64  {
+	return t.Timestamp
+}
+
+func (t *Ticker) GetChannelInfo() (channel, filter string, err error) {
+	channel = "dex_spot/ticker"
+	filter = t.Product
+	return
+}
+
+func (t *Ticker) FormatResult() interface{} {
+	result := map[string]string{
+		"product":   t.Product,
+		"symbol":    t.Symbol,
+		"timestamp": time.Unix(t.Timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z"),
+		"open":      fmt.Sprintf("%.4f", t.Open),
+		"high":      fmt.Sprintf("%.4f", t.High),
+		"low":       fmt.Sprintf("%.4f", t.Low),
+		"close":     fmt.Sprintf("%.4f", t.Close),
+		"volume":    fmt.Sprintf("%.8f", t.Volume),
+		"price":     fmt.Sprintf("%.4f", t.Price),
+	}
+	return result
 }
 
 // PrettyString return string of ticker data
