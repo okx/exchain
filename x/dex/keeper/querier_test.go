@@ -13,7 +13,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func TestQuerier_ProductsAndDepositsAndMatchOrder(t *testing.T) {
+func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
@@ -42,7 +42,7 @@ func TestQuerier_ProductsAndDepositsAndMatchOrder(t *testing.T) {
 	require.Nil(t, err)
 	querier := NewQuerier(testInput.DexKeeper)
 
-	var normalPath = []string{types.QueryProducts, types.QueryDeposits, types.QueryMatchOrder}
+	var normalPath = []string{types.QueryProducts, types.QueryMatchOrder}
 
 	for _, path := range normalPath {
 		// successful case
@@ -88,6 +88,64 @@ func TestQuerier_ProductsAndDepositsAndMatchOrder(t *testing.T) {
 	require.NotNil(t, err)
 	require.True(t, dataOther == nil)
 
+}
+
+func TestQuerier_Deposits(t *testing.T) {
+	testInput := createTestInputWithBalance(t, 1, 10000)
+	ctx := testInput.Ctx
+	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
+	require.Nil(t, err)
+	tokenPair0 := &types.TokenPair{
+		BaseAssetSymbol:  "bToken0",
+		QuoteAssetSymbol: common.NativeToken,
+		Owner:            addr,
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		BlockHeight:      8,
+	}
+
+	tokenPair1 := &types.TokenPair{
+		BaseAssetSymbol:  "bToken1",
+		QuoteAssetSymbol: common.NativeToken,
+		Owner:            addr,
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		BlockHeight:      10,
+	}
+
+	// SaveTokenPair
+	err = testInput.DexKeeper.SaveTokenPair(ctx, tokenPair0)
+	require.Nil(t, err)
+	err = testInput.DexKeeper.SaveTokenPair(ctx, tokenPair1)
+	require.Nil(t, err)
+	querier := NewQuerier(testInput.DexKeeper)
+	path := types.QueryDeposits
+	// successful case
+	queryParams := types.NewQueryDepositParams(types.TestTokenPairOwner, "", common.NativeToken, 1, 50)
+	bz, err := amino.MarshalJSON(queryParams)
+	require.Nil(t, err)
+	data, err := querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
+	require.Nil(t, err)
+	require.True(t, data != nil)
+
+	// error case : failed to query data because  param is nil
+	dataUnmarshalJSON, err := querier(ctx, []string{path}, abci.RequestQuery{Data: nil})
+	require.Error(t, err)
+	require.True(t, dataUnmarshalJSON == nil)
+
+	// successful case : query data while page limit is out range of data amount
+	queryParams = types.NewQueryDepositParams(types.TestTokenPairOwner, "", "", 2, 50)
+	bz, err = amino.MarshalJSON(queryParams)
+	require.Nil(t, err)
+	data, err = querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
+	require.Nil(t, err)
+	require.True(t, data != nil)
+
+	// successful case : query data while  page limit is in range of data amount
+	queryParams = types.NewQueryDepositParams(types.TestTokenPairOwner, "", "", 1, 1)
+	bz, err = amino.MarshalJSON(queryParams)
+	require.Nil(t, err)
+	data, err = querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
+	require.Nil(t, err)
+	require.True(t, data != nil)
 }
 
 func TestQuerier_QueryParams(t *testing.T) {
