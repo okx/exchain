@@ -76,12 +76,11 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			ownerAddress := args[0]
+			baseAsset := viper.GetString("base-asset")
+			quoteAsset := viper.GetString("quote-asset")
 			page := viper.GetInt("page-number")
 			perPage := viper.GetInt("items-per-page")
-			queryParams, err := types.NewQueryDexInfoParams(ownerAddress, page, perPage)
-			if err != nil {
-				return err
-			}
+			queryParams := types.NewQueryDepositParams(ownerAddress, baseAsset, quoteAsset, page, perPage)
 			bz, err := cdc.MarshalJSON(queryParams)
 			if err != nil {
 				return err
@@ -96,6 +95,8 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().String("base-asset", "", "base asset")
+	cmd.Flags().String("quote-asset", "", "quote asset")
 	cmd.Flags().IntP("page-number", "p", types.DefaultPage, "page num")
 	cmd.Flags().IntP("items-per-page", "i", types.DefaultPerPage, "items per page")
 	return cmd

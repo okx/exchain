@@ -93,3 +93,27 @@ func NewQueryDexOperatorParams(addr sdk.AccAddress) QueryDexOperatorParams {
 		Addr: addr,
 	}
 }
+
+// nolint
+type QueryDepositParams struct {
+	Address    string
+	BaseAsset  string
+	QuoteAsset string
+	Page       int
+	PerPage    int
+}
+
+// NewQueryDepositParams creates a new instance of QueryDepositParams
+func NewQueryDepositParams(address, baseAsset, quoteAsset string, page, perPage int) QueryDepositParams {
+	if page == 0 && perPage == 0 {
+		page = DefaultPage
+		perPage = DefaultPerPage
+	}
+	return QueryDepositParams{
+		Address:    address,
+		BaseAsset:  baseAsset,
+		QuoteAsset: quoteAsset,
+		Page:       page,
+		PerPage:    perPage,
+	}
+}

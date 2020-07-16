@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -426,7 +427,6 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	return bz, nil
 }
 
-// nolint: unparam
 func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	var params types.QueryDexFeesParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
@@ -435,10 +435,29 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
-	deals, total := keeper.GetDexFees(ctx, params.DexHandlingAddr, params.Product, offset, limit)
+
+	var fees []types.DexFees
+	var total int
+	if params.BaseAsset == "" && params.QuoteAsset == "" {
+		fees, total = keeper.GetDexFees(ctx, params.DexHandlingAddr, "", offset, limit)
+	} else { // filter base asset and quote asset
+		tokenPairs := keeper.dexKeeper.GetTokenPairs(ctx)
+		for _, tokenPair := range tokenPairs {
+			if params.BaseAsset != "" && !strings.Contains(tokenPair.BaseAssetSymbol, params.BaseAsset) {
+				continue
+			}
+			if params.QuoteAsset != "" && !strings.Contains(tokenPair.QuoteAssetSymbol, params.QuoteAsset) {
+				continue
+			}
+			partialFees, partial := keeper.GetDexFees(ctx, params.DexHandlingAddr, tokenPair.Name(), offset, limit)
+			fees = append(fees, partialFees...)
+			total += partial
+		}
+	}
+
 	var response *common.ListResponse
-	if len(deals) > 0 {
-		response = common.GetListResponse(total, params.Page, params.PerPage, deals)
+	if len(fees) > 0 {
+		response = common.GetListResponse(total, params.Page, params.PerPage, fees)
 	} else {
 		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
 	}
