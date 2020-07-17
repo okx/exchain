@@ -141,6 +141,15 @@ func (b *BaseKline) GetChannelInfo() (channel, filter string, err error) {
 	return channel, b.Product, nil
 }
 
+func (b *BaseKline) GetFullChannel() string {
+	channel, filter, e := b.GetChannelInfo()
+	if e == nil {
+		return channel + ":" + filter
+	} else {
+		return "InvalidChannelName"
+	}
+}
+
 // GetFreqInSecond return interval time
 func (b *BaseKline) GetFreqInSecond() int {
 	if b.impl != nil {

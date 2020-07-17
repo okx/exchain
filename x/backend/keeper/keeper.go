@@ -32,6 +32,7 @@ type Keeper struct {
 	Config       *config.Config
 	Logger       log.Logger
 	wsChan       chan types.IWebsocket // Websocket channel, it's only available when websocket config enabled
+	ticker3sChan chan types.IWebsocket // Websocket channel, it's used by tickers merge triggered 3s once
 	Cache        *cache.Cache          // Memory cache
 }
 
@@ -58,11 +59,14 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 			if k.Config.EnableMktCompute {
 				// websocket channel
 				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+				k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
 				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
 				// init ticker buffer
 				ts := time.Now().Unix()
 
 				k.UpdateTickersBuffer(ts-types.SecondsInADay*14, ts, nil)
+
+				go k.mergeTicker3SecondEvents()
 			}
 		}
 	}
@@ -74,6 +78,12 @@ func (k Keeper) pushWSItem(obj types.IWebsocket) {
 	if k.wsChan != nil {
 		k.Logger.Debug("pushWSItem", "typeof(obj)", reflect.TypeOf(obj))
 		k.wsChan <- obj
+	}
+}
+
+func (k Keeper) pushTickerItems(obj types.IWebsocket) {
+	if k.ticker3sChan != nil {
+		k.ticker3sChan <- obj
 	}
 }
 
@@ -91,8 +101,8 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 	for len(k.wsChan) > 0 {
 		item, ok := <-k.wsChan
 		if ok {
-			channel, filter, err := item.GetChannelInfo()
-			fullchannel := channel + ":" + filter
+			channel, _, err := item.GetChannelInfo()
+			fullchannel := item.GetFullChannel()
 
 			formatedResult := item.FormatResult()
 			if formatedResult == nil {
@@ -102,7 +112,7 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 
 			jstr, jerr := json.Marshal(formatedResult)
 			if jerr == nil && err == nil {
-				k.Logger.Debug("EmitAllWsItems Item[#1]", "type", reflect.TypeOf(item), "data", string(jstr))
+				k.Logger.Debug("EmitAllWsItems Item[#1]", "type", reflect.TypeOf(item), "channel", fullchannel, "data", string(jstr))
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
 						"backend",
@@ -137,8 +147,7 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 			lastKline := klines[len(klines)-1]
 			item := lastKline.(types.IWebsocket)
 
-			channel, filter, err := item.GetChannelInfo()
-			fullchannel := channel + ":" + filter
+			fullchannel := item.GetFullChannel()
 			bSkip, ok := updatedChannels[fullchannel]
 			if bSkip || ok {
 				continue
@@ -146,7 +155,7 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 
 			formatedResult := item.FormatResult()
 			jstr, jerr := json.Marshal(formatedResult)
-			if jerr == nil && err == nil {
+			if jerr == nil {
 				k.Logger.Debug("EmitAllWsItems Item[#2]", "type", reflect.TypeOf(item), "data", string(jstr))
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
@@ -349,6 +358,7 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 		for product, ticker := range tickerMap {
 			k.Cache.LatestTicker[product] = ticker
 			k.pushWSItem(ticker)
+			k.pushTickerItems(ticker)
 		}
 
 		k.Orm.Debug(fmt.Sprintf("UpdateTickersBuffer LatestTickerMap: %+v", k.Cache.LatestTicker))
@@ -406,4 +416,51 @@ func (k Keeper) getAllTickers() []types.Ticker {
 		}
 	}
 	return tickers
+}
+
+func (k Keeper) mergeTicker3SecondEvents() (err error) {
+
+	sysTicker := time.NewTicker(time.Second)
+
+	merge := func() *types.MergedTickersEvent {
+		tickersMap := map[string]types.IWebsocket{}
+		for len(k.ticker3sChan) > 0 {
+			ticker, ok := <- k.ticker3sChan
+			if !ok {
+				break
+			}
+
+			if ticker.FormatResult() == nil {
+				continue
+			}
+
+			tickersMap[ticker.GetFullChannel()] = ticker
+		}
+
+		allTickers := []interface{}{}
+		for _, ticker := range tickersMap {
+			allTickers = append(allTickers, ticker.FormatResult())
+		}
+
+		if len(allTickers) > 0 {
+			return types.NewMergedTickersEvent(time.Now().Unix(), 3, allTickers)
+		}
+
+		return nil
+
+	}
+
+	for {
+		select {
+		case t := <-sysTicker.C:
+			if t.Second() % 3 == 0 {
+				mEvt := merge()
+				if mEvt != nil {
+					k.pushWSItem(mEvt)
+				}
+			}
+		case <- k.stopChan:
+			break
+		}
+	}
 }

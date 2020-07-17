@@ -52,6 +52,9 @@ func (t *Ticker) GetChannelInfo() (channel, filter string, err error) {
 	return
 }
 
+func (t *Ticker) GetFullChannel() string {
+	return "dex_spot/ticker" + ":" + t.Product
+}
 func (t *Ticker) FormatResult() interface{} {
 	result := map[string]string{
 		"product":   t.Product,
