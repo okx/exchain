@@ -717,7 +717,7 @@ func (orm *ORM) getLatestKlineM1ByProduct(product string, limit int) (*[]types.K
 
 // MergeKlineM1  merge KlineM1 data to KlineM*
 func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
-	anchorEndTS int64, newKlineTypeCnt int, newKlines map[string][]interface{},  err error) {
+	anchorEndTS int64, newKlineTypeCnt int, newKlines map[string][]interface{}, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
@@ -835,7 +835,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 	tx.Commit()
 
 	anchorEndTS = anchorStartTime.Unix()
-	return anchorEndTS, len(productKlines), productKlines,nil
+	return anchorEndTS, len(productKlines), productKlines, nil
 }
 
 // RefreshTickers Latest 24H KlineM1 to Ticker
@@ -1261,12 +1261,12 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	// 2. Batch Insert Deals
 	dealVItems := []string{}
 	for _, d := range deals {
-		vItem := fmt.Sprintf("('%d','%d','%s','%s','%s','%s','%f','%f','%s')",
-			d.Timestamp, d.BlockHeight, d.OrderID, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee)
+		vItem := fmt.Sprintf("('%d','%d','%s','%s','%s','%s','%f','%f','%s', '%s')",
+			d.Timestamp, d.BlockHeight, d.OrderID, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee, d.FeeReceiver)
 		dealVItems = append(dealVItems, vItem)
 	}
 	if len(dealVItems) > 0 {
-		dealsSQL := fmt.Sprintf("INSERT INTO `deals` (`timestamp`,`block_height`,`order_id`,`sender`,`product`,`side`,`price`,`quantity`,`fee`) "+
+		dealsSQL := fmt.Sprintf("INSERT INTO `deals` (`timestamp`,`block_height`,`order_id`,`sender`,`product`,`side`,`price`,`quantity`,`fee`,`fee_receiver`) "+
 			"VALUES %s", strings.Join(dealVItems, ","))
 		ret := trx.Exec(dealsSQL)
 		if ret.Error != nil {
