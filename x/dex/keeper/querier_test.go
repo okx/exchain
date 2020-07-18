@@ -46,8 +46,7 @@ func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 
 	for _, path := range normalPath {
 		// successful case
-		queryParams, err := types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 50)
-		require.Nil(t, err)
+		queryParams := types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 50)
 		bz, err := amino.MarshalJSON(queryParams)
 		require.Nil(t, err)
 		data, err := querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
@@ -60,8 +59,7 @@ func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 		require.True(t, dataUnmarshalJSON == nil)
 
 		// successful case : query data while page limit is out range of data amount
-		queryParams, err = types.NewQueryDexInfoParams(types.TestTokenPairOwner, 2, 50)
-		require.Nil(t, err)
+		queryParams = types.NewQueryDexInfoParams(types.TestTokenPairOwner, 2, 50)
 		bz, err = amino.MarshalJSON(queryParams)
 		require.Nil(t, err)
 		data, err = querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
@@ -69,8 +67,7 @@ func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 		require.True(t, data != nil)
 
 		// successful case : query data while  page limit is in range of data amount
-		queryParams, err = types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 1)
-		require.Nil(t, err)
+		queryParams = types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 1)
 		bz, err = amino.MarshalJSON(queryParams)
 		require.Nil(t, err)
 		data, err = querier(ctx, []string{path}, abci.RequestQuery{Data: bz})
@@ -80,8 +77,7 @@ func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 	}
 
 	// error case : failed to query because query path is wrong
-	queryParams, err := types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 50)
-	require.Nil(t, err)
+	queryParams := types.NewQueryDexInfoParams(types.TestTokenPairOwner, 1, 50)
 	bz, err := amino.MarshalJSON(queryParams)
 	require.Nil(t, err)
 	dataOther, err := querier(ctx, []string{"others"}, abci.RequestQuery{Data: bz})
