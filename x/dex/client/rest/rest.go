@@ -33,12 +33,23 @@ func productsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
-		var params = &types.QueryDexInfoParams{}
-		err := params.SetPageAndPerPage(ownerAddress, pageStr, perPageStr)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)
-			return
+		var page, perPage int
+		var err error
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliContext, err.Error())
+				return
+			}
 		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliContext, err.Error())
+				return
+			}
+		}
+		params := types.NewQueryDexInfoParams(ownerAddress, page, perPage)
 		bz, err := cliContext.Codec.MarshalJSON(&params)
 
 		if err != nil {
@@ -85,7 +96,8 @@ func depositsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 				return
 			}
 		}
-		var params = types.NewQueryDepositParams(address, baseAsset, quoteAsset, page, perPage)
+
+		params := types.NewQueryDepositParams(address, baseAsset, quoteAsset, page, perPage)
 		bz, err := cliContext.Codec.MarshalJSON(&params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliContext, err.Error())
@@ -108,12 +120,24 @@ func matchOrderHandler(cliContext context.CLIContext) func(http.ResponseWriter, 
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
-		var params = &types.QueryDexInfoParams{}
-		err := params.SetPageAndPerPage("", pageStr, perPageStr)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)
-			return
+		var page, perPage int
+		var err error
+		if pageStr != "" {
+			page, err = strconv.Atoi(pageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliContext, err.Error())
+				return
+			}
 		}
+		if perPageStr != "" {
+			perPage, err = strconv.Atoi(perPageStr)
+			if err != nil {
+				common.HandleErrorMsg(w, cliContext, err.Error())
+				return
+			}
+		}
+
+		params := types.NewQueryDexInfoParams("", page, perPage)
 		bz, err := cliContext.Codec.MarshalJSON(&params)
 
 		if err != nil {

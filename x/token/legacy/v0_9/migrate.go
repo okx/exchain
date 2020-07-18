@@ -20,7 +20,6 @@ func Migrate(oldGenState v08token.GenesisState, oldgovParams v08gov.GovParams) G
 			OriginalSymbol:      token.OriginalSymbol,
 			WholeName:           token.WholeName,
 			OriginalTotalSupply: sdk.NewDec(token.TotalSupply),
-			TotalSupply:         sdk.NewDec(token.TotalSupply),
 			Owner:               token.Owner,
 			Mintable:            token.Mintable,
 		}

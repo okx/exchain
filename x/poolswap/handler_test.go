@@ -2,6 +2,7 @@ package poolswap
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -61,7 +62,6 @@ func initToken(name string) token.Token {
 		OriginalSymbol:      name,
 		WholeName:           name,
 		OriginalTotalSupply: sdk.NewDec(0),
-		TotalSupply:         sdk.NewDec(0),
 		Owner:               supply.NewModuleAddress(ModuleName),
 		Type:                1,
 		Mintable:            true,
@@ -258,4 +258,91 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 
 	}
+}
+
+func TestGetInputPrice(t *testing.T) {
+	defaultFeeRate := sdk.NewDecWithPrec(3, 3)
+	inputAmount := sdk.NewDecWithPrec(1, 8)
+	inputReserve := sdk.NewDec(100)
+	outputReserve := sdk.NewDec(100)
+	res := getInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
+	require.Equal(t, inputAmount, res)
+}
+
+func TestRandomData(t *testing.T) {
+	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000000)
+	keeper := mapp.swapKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
+	testToken := initToken(types.TestBasePooledToken)
+
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	handler := NewHandler(keeper)
+	mapp.tokenKeeper.NewToken(ctx, testToken)
+	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	result := handler(ctx, msgCreateExchange)
+	require.Equal(t, "", result.Log)
+	addr := addrKeysSlice[0].Address
+	result = handler(ctx, buildRandomMsgAddLiquidity(addr))
+	require.True(t, result.Code.IsOK())
+
+	for i := 0; i < 100; i++ {
+		var msg sdk.Msg
+		judge := rand.Intn(3)
+		switch judge {
+		case 0:
+			msg = buildRandomMsgAddLiquidity(addr)
+		case 1:
+			msg = buildRandomMsgRemoveLiquidity(addr)
+		case 2:
+			msg = buildRandomMsgTokenToNativeToken(addr)
+		}
+		res := handler(ctx, msg)
+		if !res.Code.IsOK() {
+			fmt.Println(mapp.tokenKeeper.GetCoins(ctx, addr))
+			swapTokenPair, err := mapp.swapKeeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
+			require.Nil(t, err)
+			fmt.Println(swapTokenPair)
+			fmt.Println("poolToken: " + keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName).String())
+			fmt.Println(res.Log)
+		}
+	}
+
+}
+
+func buildRandomMsgAddLiquidity(addr sdk.AccAddress) types.MsgAddLiquidity {
+	minLiquidity := sdk.NewDec(0)
+	d := rand.Intn(100) + 1
+	d2 := rand.Intn(100) + 1
+	maxBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(int64(d), 8))
+	quoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d2), 8))
+	deadLine := time.Now().Unix()
+	msg := types.NewMsgAddLiquidity(minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr)
+	return msg
+}
+
+func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity {
+	liquidity := sdk.NewDec(1)
+	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(1, 8))
+	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(1, 8))
+	deadLine := time.Now().Unix()
+	msg := types.NewMsgRemoveLiquidity(liquidity, minBaseAmount, minQuoteAmount, deadLine, addr)
+	return msg
+}
+
+func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToNativeToken {
+	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
+	d := rand.Intn(100) + 1
+	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
+	deadLine := time.Now().Unix()
+	judge := rand.Intn(2)
+	var msg types.MsgTokenToNativeToken
+	if judge == 0 {
+		msg = types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+	} else {
+		msg = types.NewMsgTokenToNativeToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+	}
+
+	return msg
 }

@@ -45,6 +45,12 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+	}
+
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
@@ -63,7 +69,6 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	})
 
 	total := len(tokenPairs)
-	offset, limit := common.GetPage(params.Page, params.PerPage)
 	switch {
 	case total < offset:
 		tokenPairs = tokenPairs[0:0]
@@ -107,6 +112,11 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		return nil, sdk.ErrUnknownRequest("bad request: address、base_asset and quote_asset could not be empty at the same time")
 	}
 
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+	}
+
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
 	var deposits []depositsData
@@ -129,7 +139,6 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol), tokenPair.Deposits, i + 1, tokenPair.BlockHeight, tokenPair.Owner})
 	}
 	total := len(deposits)
-	offset, limit := common.GetPage(params.Page, params.PerPage)
 
 	switch {
 	case total < offset:
@@ -166,7 +175,11 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
 	var products []string
@@ -177,8 +190,6 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
-
-	offset, limit := common.GetPage(params.Page, params.PerPage)
 
 	switch {
 	case len(products) < offset:

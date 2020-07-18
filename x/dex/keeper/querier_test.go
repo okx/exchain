@@ -193,49 +193,15 @@ func TestQueryParam(t *testing.T) {
 		{"new-no-owner", "", 1, 50, true},
 		{"new-with-owner", types.TestTokenPairOwner, 1, 50, true},
 		{"new-wrong-address", "wrong-address", 1, 50, false},
-		{"new-wrong-page", "", -100, 50, false},
-		{"new-wrong-per-page", "", 1, -50, false},
+		{"new-wrong-page", "", 0, 50, false},
+		{"new-wrong-per-page", "", 1, 0, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params, err := types.NewQueryDexInfoParams(tt.owner, tt.page, tt.perPage)
+			params := types.NewQueryDexInfoParams(tt.owner, tt.page, tt.perPage)
 			if tt.result {
-				require.Nil(t, err, "test: %v", tt.name)
 				require.NotNil(t, params)
 			} else {
-				require.Error(t, err, "test: %v", tt.name)
-				require.NotNil(t, params)
-			}
-		})
-	}
-
-	// SetPageAndPerPage
-
-	var params types.QueryDexInfoParams
-
-	testSets := []struct {
-		name    string
-		owner   string
-		page    string
-		perPage string
-		result  bool
-	}{
-		{"set-no-owner", "", "1", "50", true},
-		{"set-with-owner", types.TestTokenPairOwner, "1", "50", true},
-		{"set-wrong-address", "wrong-address", "1", "50", false},
-		{"set-wrong-page", "", "-100", "50", false},
-		{"set-page-string", "", "no-number", "50", false},
-		{"set-wrong-per-page", "", "1", "-50", false},
-		{"set-per-page-string", "", "1", "no-number", false},
-	}
-	for _, tt := range testSets {
-		t.Run(tt.name, func(t *testing.T) {
-			err := params.SetPageAndPerPage(tt.owner, tt.page, tt.perPage)
-			if tt.result {
-				require.Nil(t, err, "test: %v", tt.name)
-				require.NotNil(t, params)
-			} else {
-				require.Error(t, err, "test: %v", tt.name)
 				require.NotNil(t, params)
 			}
 		})
