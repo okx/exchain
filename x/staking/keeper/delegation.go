@@ -57,7 +57,12 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 
 	}
 	// 4.update shares when delAddr has added already
-	return k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens)
+	finalTokens := delegator.Tokens
+	// finalTokens should add TotalDelegatedTokens when delegator is proxy
+	if delegator.IsProxy {
+		finalTokens = finalTokens.Add(delegator.TotalDelegatedTokens)
+	}
+	return k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens)
 }
 
 // Withdraw handles the process of withdrawing token from deposit account
@@ -95,7 +100,12 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 		delegator.Tokens = leftTokens
 		k.SetDelegator(ctx, delegator)
 		if !delegator.HasProxy() {
-			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens); err != nil {
+			finalTokens := delegator.Tokens
+			// finalTokens should add TotalDelegatedTokens when delegator is proxy
+			if delegator.IsProxy {
+				finalTokens = finalTokens.Add(delegator.TotalDelegatedTokens)
+			}
+			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens); err != nil {
 				return time.Time{}, err
 			}
 		}
