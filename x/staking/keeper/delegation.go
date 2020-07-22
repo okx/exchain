@@ -78,11 +78,16 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 		return time.Time{}, types.ErrInsufficientDelegation(types.DefaultCodespace, quantity.String(), delegator.Tokens.String())
 	}
 
+	// proxy have to unreg before withdrawing total tokens
+	leftTokens := delegator.Tokens.Sub(quantity)
+	if delegator.IsProxy && leftTokens.IsZero() {
+		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(types.DefaultCodespace, delAddr.String())
+	}
+
 	// 1.some okt transfer bondPool into unbondPool
 	k.bondedTokensToNotBonded(ctx, token)
 
 	// 2.delete delegator in store, or set back
-	leftTokens := delegator.Tokens.Sub(quantity)
 	if delegator.HasProxy() {
 		if sdkErr := k.UpdateProxy(ctx, delegator, quantity.Mul(sdk.NewDec(-1))); sdkErr != nil {
 			return time.Time{}, sdkErr

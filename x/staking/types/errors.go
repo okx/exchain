@@ -249,6 +249,12 @@ func ErrInvalidProxyUpdating(codespace sdk.CodespaceType) sdk.Error {
 		"failed. the total delegated tokens on the proxy will be negative after this update")
 }
 
+// ErrInvalidProxyWithdrawTotal returns an error when proxy withdraws total tokens
+func ErrInvalidProxyWithdrawTotal(codespace sdk.CodespaceType, addr string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidProxy,
+		"failed. proxy %s have to unreg before withdrawing total tokens", addr)
+}
+
 // ErrAlreadyAddedShares returns an error when a delegator tries to bind proxy after adding shares
 func ErrAlreadyAddedShares(codespace sdk.CodespaceType, delAddr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidProxy,
