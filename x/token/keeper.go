@@ -67,11 +67,12 @@ func (k Keeper) GetTokenInfo(ctx sdk.Context, symbol string) types.Token {
 		return token
 	}
 	k.cdc.MustUnmarshalBinaryBare(bz, &token)
-
-	supply := k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(token.Symbol)
-	token.TotalSupply = supply
-
 	return token
+}
+
+// nolint
+func (k Keeper) GetTokenTotalSupply(ctx sdk.Context, symbol string) sdk.Dec {
+	return k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(symbol)
 }
 
 // TokenExist checks whether the token with symbol exist or not
@@ -90,10 +91,6 @@ func (k Keeper) GetTokensInfo(ctx sdk.Context) (tokens []types.Token) {
 		var token types.Token
 		tokenBytes := iter.Value()
 		k.cdc.MustUnmarshalBinaryBare(tokenBytes, &token)
-
-		supply := k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(token.Symbol)
-		token.TotalSupply = supply
-
 		tokens = append(tokens, token)
 		iter.Next()
 	}
@@ -130,13 +127,11 @@ func (k Keeper) GetCurrenciesInfo(ctx sdk.Context) (currencies []types.Currency)
 		k.cdc.MustUnmarshalBinaryBare(tokenBytes, &token)
 
 		supply := k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(token.Symbol)
-		token.TotalSupply = supply
-
 		currencies = append(currencies,
 			types.Currency{
 				Description: token.Description,
 				Symbol:      token.Symbol,
-				TotalSupply: token.OriginalTotalSupply,
+				TotalSupply: supply,
 			})
 		iter.Next()
 	}

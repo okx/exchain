@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/okex/okchain/x/dex/types"
 
@@ -37,11 +39,16 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 }
 
 func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
-
 	var params types.QueryDexInfoParams
 	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+	}
+
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 
 	var tokenPairs []*types.TokenPair
@@ -61,18 +68,24 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 		return tokenPairs[i].ID < tokenPairs[j].ID
 	})
 
-	offset, limit := common.GetPage(params.Page, params.PerPage)
-
+	total := len(tokenPairs)
 	switch {
-	case len(tokenPairs) < offset:
+	case total < offset:
 		tokenPairs = tokenPairs[0:0]
-	case len(tokenPairs) < offset+limit:
+	case total < offset+limit:
 		tokenPairs = tokenPairs[offset:]
 	default:
 		tokenPairs = tokenPairs[offset : offset+limit]
 	}
 
-	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, tokenPairs)
+	var response *common.ListResponse
+	if len(tokenPairs) > 0 {
+		response = common.GetListResponse(total, params.Page, params.PerPage, tokenPairs)
+	} else {
+		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
+	}
+
+	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
 	}
@@ -89,38 +102,48 @@ type depositsData struct {
 }
 
 func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res []byte, err sdk.Error) {
-
-	var params types.QueryDexInfoParams
+	var params types.QueryDepositParams
 	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
 
-	var tokenPairs []*types.TokenPair
-	if params.Owner != "" {
-		if _, err := sdk.AccAddressFromBech32(params.Owner); err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", params.Owner))
-		}
+	if params.Address == "" && params.BaseAsset == "" && params.QuoteAsset == "" {
+		return nil, sdk.ErrUnknownRequest("bad request: address、base_asset and quote_asset could not be empty at the same time")
 	}
 
-	tokenPairs = keeper.GetTokenPairsOrdered(ctx)
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+	}
+
+	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
 	var deposits []depositsData
-	for i, product := range tokenPairs {
-		if product == nil {
-			panic("the nil pointer is not expected")
+	for i, tokenPair := range tokenPairs {
+		if tokenPair == nil {
+			return nil, sdk.ErrInternal("unexpected token pair")
 		}
-		if product.Owner.String() == params.Owner {
-			deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", product.BaseAssetSymbol, product.QuoteAssetSymbol), product.Deposits, i + 1, product.BlockHeight, product.Owner})
+		// filter address
+		if params.Address != "" && tokenPair.Owner.String() != params.Address {
+			continue
 		}
+		// filter base asset
+		if params.BaseAsset != "" && !strings.Contains(tokenPair.BaseAssetSymbol, params.BaseAsset) {
+			continue
+		}
+		// filter quote asset
+		if params.QuoteAsset != "" && !strings.Contains(tokenPair.QuoteAssetSymbol, params.QuoteAsset) {
+			continue
+		}
+		deposits = append(deposits, depositsData{fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol), tokenPair.Deposits, i + 1, tokenPair.BlockHeight, tokenPair.Owner})
 	}
-
-	offset, limit := common.GetPage(params.Page, params.PerPage)
+	total := len(deposits)
 
 	switch {
-	case len(deposits) < offset:
+	case total < offset:
 		deposits = deposits[0:0]
-	case len(deposits) < offset+limit:
+	case total < offset+limit:
 		deposits = deposits[offset:]
 	default:
 		deposits = deposits[offset : offset+limit]
@@ -130,10 +153,18 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 		return deposits[i].ProductDeposits.IsLT(deposits[j].ProductDeposits)
 	})
 
-	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, deposits)
+	var response *common.ListResponse
+	if total > 0 {
+		response = common.GetListResponse(total, params.Page, params.PerPage, deposits)
+	} else {
+		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
+	}
+
+	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
 	}
+
 	return res, nil
 }
 
@@ -144,7 +175,11 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	if errUnmarshal != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
 	}
+	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
+	if offset < 0 || limit <= 0 {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
 	var products []string
@@ -155,8 +190,6 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 		}
 		products = append(products, fmt.Sprintf("%s_%s", tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol))
 	}
-
-	offset, limit := common.GetPage(params.Page, params.PerPage)
 
 	switch {
 	case len(products) < offset:

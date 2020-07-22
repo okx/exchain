@@ -465,16 +465,16 @@ func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		addr := r.URL.Query().Get("address")
-		product := r.URL.Query().Get("product")
+		address := r.URL.Query().Get("address")
+		baseAsset := r.URL.Query().Get("base_asset")
+		quoteAsset := r.URL.Query().Get("quote_asset")
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
-
-		// validate request
-		if addr == "" && product == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address and product is empty")
+		if address == "" && baseAsset == "" && quoteAsset == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address、base_asset and quote_asset could not be empty at the same time")
 			return
 		}
+
 		var page, perPage int
 		var err error
 		if pageStr != "" {
@@ -492,7 +492,7 @@ func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			}
 		}
 
-		params := types.NewQueryDexFeesParams(addr, product, page, perPage)
+		params := types.NewQueryDexFeesParams(address, baseAsset, quoteAsset, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())

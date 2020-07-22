@@ -490,13 +490,14 @@ func (dm *MergeResultDataSource) getOpenClosePrice(startTS, endTS int64, product
 }
 
 // CreateKline1min batch insert into Kline1M
-func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSource) (anchorEndTS int64, newK int, err error) {
+func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSource) (
+	anchorEndTS int64, newProductCnt int, newKlineInfo map[string][]types.KlineM1, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
 	// 1. Get anchor start time.
 	if endTS <= startTS {
-		return -1, 0, fmt.Errorf("EndTimestamp %d <= StartTimestamp %d, somewhere goes wrong", endTS, startTS)
+		return -1, 0, nil, fmt.Errorf("EndTimestamp %d <= StartTimestamp %d, somewhere goes wrong", endTS, startTS)
 	}
 
 	acTS := startTS
@@ -509,7 +510,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 		minDataSourceTS := dataSource.getDataSourceMinTimestamp()
 		// No Deals to handle if minDataSourceTS == -1, anchorEndTS <-- startTS
 		if minDataSourceTS == -1 {
-			return startTS, 0, errors.New("No Deals to handled, return without converting job.")
+			return startTS, 0, nil, errors.New("No Deals to handled, return without converting job.")
 		} else {
 			acTS = minDataSourceTS
 		}
@@ -536,7 +537,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 				var cnt int
 
 				if err = rows.Scan(&product, &quantity, &high, &low, &cnt); err != nil {
-					orm.Error("failed to execute scan result, error:" + err.Error())
+					orm.Error("failed to execute scan result, error:" + err.Error() + " sql: " + sql)
 				}
 				if cnt > 0 {
 
@@ -575,9 +576,9 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 			// TODO: it should be a replacement here.
 			ret := tx.Create(&kline)
 			if ret.Error != nil {
-				orm.Error(fmt.Sprintf("Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
+				orm.Error(fmt.Sprintf("[backend] failed to create kline Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
 			} else {
-				orm.Debug(fmt.Sprintf("%s %s", types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
+				orm.Debug(fmt.Sprintf("[backend] success to create in %s, %s %s", kline.GetTableName(), types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
 			}
 
 		}
@@ -585,7 +586,8 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	tx.Commit()
 
 	anchorEndTS = anchorStartTime.Unix()
-	return anchorEndTS, len(productKlines), nil
+	(*orm.logger).Debug(fmt.Sprintf("[backend] CreateKline1min return klinesMap: %+v", productKlines))
+	return anchorEndTS, len(productKlines), productKlines, nil
 }
 
 func (orm *ORM) deleteKlinesBefore(unixTS int64, kline interface{}) (err error) {
@@ -714,17 +716,18 @@ func (orm *ORM) getLatestKlineM1ByProduct(product string, limit int) (*[]types.K
 }
 
 // MergeKlineM1  merge KlineM1 data to KlineM*
-func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anchorEndTS int64, newKCnt int, err error) {
+func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
+	anchorEndTS int64, newKlineTypeCnt int, newKlines map[string][]interface{}, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
 
 	klineM1 := types.MustNewKlineFactory("kline_m1", nil)
 	// 0. destKline should not be KlineM1 & endTS should be greater than startTS
 	if destKline.GetFreqInSecond() <= klineM1.(types.IKline).GetFreqInSecond() {
-		return startTS, 0, fmt.Errorf("destKline's updating Freq #%d# should be greater than 60", destKline.GetFreqInSecond())
+		return startTS, 0, nil, fmt.Errorf("destKline's updating Freq #%d# should be greater than 60", destKline.GetFreqInSecond())
 	}
 	if endTS <= startTS {
-		return -1, 0, fmt.Errorf("EndTimestamp %d <= StartTimestamp %d, somewhere goes wrong", endTS, startTS)
+		return -1, 0, nil, fmt.Errorf("EndTimestamp %d <= StartTimestamp %d, somewhere goes wrong", endTS, startTS)
 	}
 
 	// 1. Get anchor start time.
@@ -738,7 +741,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 		minTS := orm.getKlineMinTimestamp(klineM1.(types.IKline))
 		// No Deals to handle if minDealTS == -1, anchorEndTS <-- startTS
 		if minTS == -1 {
-			return startTS, 0, errors.New("DestKline:" + destKline.GetTableName() + ". No KlineM1 to handled, return without converting job.")
+			return startTS, 0, nil, errors.New("DestKline:" + destKline.GetTableName() + ". No KlineM1 to handled, return without converting job.")
 		} else {
 			acTS = minTS
 		}
@@ -832,7 +835,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (anch
 	tx.Commit()
 
 	anchorEndTS = anchorStartTime.Unix()
-	return anchorEndTS, len(productKlines), nil
+	return anchorEndTS, len(productKlines), productKlines, nil
 }
 
 // RefreshTickers Latest 24H KlineM1 to Ticker
@@ -1258,12 +1261,12 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	// 2. Batch Insert Deals
 	dealVItems := []string{}
 	for _, d := range deals {
-		vItem := fmt.Sprintf("('%d','%d','%s','%s','%s','%s','%f','%f','%s')",
-			d.Timestamp, d.BlockHeight, d.OrderID, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee)
+		vItem := fmt.Sprintf("('%d','%d','%s','%s','%s','%s','%f','%f','%s', '%s')",
+			d.Timestamp, d.BlockHeight, d.OrderID, d.Sender, d.Product, d.Side, d.Price, d.Quantity, d.Fee, d.FeeReceiver)
 		dealVItems = append(dealVItems, vItem)
 	}
 	if len(dealVItems) > 0 {
-		dealsSQL := fmt.Sprintf("INSERT INTO `deals` (`timestamp`,`block_height`,`order_id`,`sender`,`product`,`side`,`price`,`quantity`,`fee`) "+
+		dealsSQL := fmt.Sprintf("INSERT INTO `deals` (`timestamp`,`block_height`,`order_id`,`sender`,`product`,`side`,`price`,`quantity`,`fee`,`fee_receiver`) "+
 			"VALUES %s", strings.Join(dealVItems, ","))
 		ret := trx.Exec(dealsSQL)
 		if ret.Error != nil {
