@@ -466,18 +466,6 @@ func (k Keeper) GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator type
 	return operator, true
 }
 
-// GetOperatorInfo gets the DEXOperatorInfo and checks whether the operator with address exist or not
-func (k Keeper) GetOperatorInfo(ctx sdk.Context, addr sdk.AccAddress) (
-	operatorInfo types.DEXOperatorInfo, isExist bool) {
-	operator, isExist := k.GetOperator(ctx, addr)
-	operatorInfo = types.NewDEXOperatorInfo(operator)
-
-	//if isExist {
-	//	operatorInfo.HandlingFees = k.bankKeeper.GetCoins(ctx, operatorInfo.HandlingFeeAddress).String()
-	//}
-	return operatorInfo, isExist
-}
-
 // IterateOperators iterates over the all the operators and performs a callback function
 func (k Keeper) IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
