@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"fmt"
-	"github.com/willf/bitset"
 	"log"
 	"sync"
+
+	"github.com/willf/bitset"
 
 	"github.com/okex/okchain/x/common/monitor"
 
@@ -420,7 +421,7 @@ func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.Dec
 
 // SendFeesToProductOwner sends fees from the specified address to productOwner
 func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
-	feeType string, product string) (receiver string, err error) {
+	feeType string, product string) (feeReceiver string, err error) {
 	if coins.IsZero() {
 		return "", nil
 	}
