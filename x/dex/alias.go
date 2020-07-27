@@ -44,13 +44,12 @@ type (
 	MsgUpdateOperator    = types.MsgUpdateOperator
 	MsgCreateOperator    = types.MsgCreateOperator
 
-	//
 	TokenPair     = types.TokenPair
 	Params        = types.Params
 	WithdrawInfo  = types.WithdrawInfo
 	WithdrawInfos = types.WithdrawInfos
 	DEXOperator   = types.DEXOperator
-	Operators     = types.DEXOperators
+	DEXOperators  = types.DEXOperators
 )
 
 var (

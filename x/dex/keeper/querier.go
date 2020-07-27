@@ -248,7 +248,7 @@ func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]by
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
 
-	operator, isExist := keeper.GetOperatorInfo(ctx, params.Addr)
+	operator, isExist := keeper.GetOperator(ctx, params.Addr)
 	if !isExist {
 		return nil, types.ErrUnknownOperator(params.Addr)
 	}
@@ -262,15 +262,14 @@ func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]by
 
 // nolint
 func queryOperators(ctx sdk.Context, keeper IKeeper) ([]byte, sdk.Error) {
-	var operatorInfos types.DEXOperatorInfos
+	var operators types.DEXOperators
 	keeper.IterateOperators(ctx, func(operator types.DEXOperator) bool {
-		info := types.NewDEXOperatorInfo(operator)
 		//info.HandlingFees = keeper.GetBankKeeper().GetCoins(ctx, info.HandlingFeeAddress).String()
-		operatorInfos = append(operatorInfos, info)
+		operators = append(operators, operator)
 		return false
 	})
 
-	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operatorInfos)
+	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operators)
 	if err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}

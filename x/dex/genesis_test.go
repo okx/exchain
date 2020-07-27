@@ -21,7 +21,7 @@ func TestInitGenesis(t *testing.T) {
 	tokenPair := GetBuiltInTokenPair()
 	tokenPairs = append(tokenPairs, tokenPair)
 
-	var operators Operators
+	var operators DEXOperators
 	operators = append(operators, types.DEXOperator{
 		Address:            tokenPair.Owner,
 		HandlingFeeAddress: tokenPair.Owner,

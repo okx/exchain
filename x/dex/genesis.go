@@ -14,7 +14,7 @@ type GenesisState struct {
 	TokenPairs     []*TokenPair              `json:"token_pairs"`
 	WithdrawInfos  WithdrawInfos             `json:"withdraw_infos"`
 	ProductLocks   ordertypes.ProductLockMap `json:"product_locks"`
-	Operators      Operators                 `json:"operators"`
+	Operators      DEXOperators              `json:"operators"`
 	MaxTokenPairID uint64                    `json:"max_token_pair_id" yaml:"max_token_pair_id"`
 }
 
