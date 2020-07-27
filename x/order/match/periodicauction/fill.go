@@ -200,7 +200,7 @@ func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keep
 }
 
 func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, fillQuantity sdk.Dec,
-	feeParams *types.Params) (sdk.DecCoins, *types.Deal) {
+	feeParams *types.Params) (dealFee sdk.DecCoins, feeReceiver string) {
 	// charge fee
 	fee := orderkeeper.GetZeroFee()
 	if order.Status == types.OrderStatusFilled {
@@ -217,15 +217,12 @@ func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, f
 			ctx.Logger().Error(fmt.Sprintf("Send fee failed:%s\n", err.Error()))
 		}
 	}
-	dealFee := orderkeeper.GetDealFee(order, fillQuantity, ctx, keeper, feeParams)
-	prdOwner, err := keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
+	dealFee = orderkeeper.GetDealFee(order, fillQuantity, ctx, keeper, feeParams)
+	feeReceiver, err := keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
 	if err == nil {
 		order.RecordOrderDealFee(fee)
-		deal := types.Deal{OrderID: order.OrderID, Side: order.Side, Quantity: fillQuantity, Fee: dealFee.String(), FeeReceiver: prdOwner}
-		return dealFee, &deal
-	} else {
-		return nil, nil
 	}
+	return
 }
 
 // Fill an order. Update order, charge fee and transfer tokens. Return a deal.
@@ -244,7 +241,7 @@ func fillOrder(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper,
 		order.Unlock()
 	}
 
-	_, deal := chargeFee(order, ctx, keeper, fillQuantity, feeParams)
+	dealFee, feeReceiver := chargeFee(order, ctx, keeper, fillQuantity, feeParams)
 	keeper.UpdateOrder(order, ctx) // update order info on filled
-	return deal
+	return &types.Deal{OrderID: order.OrderID, Side: order.Side, Quantity: fillQuantity, Fee: dealFee.String(), FeeReceiver: feeReceiver}
 }
