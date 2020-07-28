@@ -19,6 +19,7 @@ import (
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/token"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -1016,7 +1017,10 @@ func (orm *ORM) RefreshTickers(startTS, endTS int64, productList []string) (m ma
 		t.Low = lowest
 		t.Symbol = p
 		t.Product = p
-		t.Change = t.Close - t.Open
+		dClose := decimal.NewFromFloat(t.Close)
+		dOpen := decimal.NewFromFloat(t.Open)
+		dChange := dClose.Sub(dOpen)
+		t.Change, _ = dChange.Float64()
 		t.ChangePercentage = fmt.Sprintf("%.2f", t.Change*100/t.Open) + "%"
 		t.Price = t.Close
 		t.Timestamp = endTS
@@ -1121,7 +1125,7 @@ func (orm *ORM) GetOrderList(address, product, side string, open bool, offset, l
 	startTS, endTS int64, hideNoFill bool) ([]types.Order, int) {
 	var orders []types.Order
 
-	if startTS == 0 && endTS == 0 {
+	if endTS == 0 {
 		endTS = time.Now().Unix()
 	}
 
