@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -19,7 +21,6 @@ import (
 	"github.com/okex/okchain/x/backend/types"
 	"github.com/okex/okchain/x/token"
 	"github.com/pkg/errors"
-	"github.com/shopspring/decimal"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -112,8 +113,6 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 func (orm *ORM) Debug(msg string) {
 	if orm.logger != nil {
 		(*orm.logger).Debug(msg)
-	} else {
-		fmt.Println(msg)
 	}
 }
 
@@ -121,10 +120,7 @@ func (orm *ORM) Debug(msg string) {
 func (orm *ORM) Error(msg string) {
 	if orm.logger != nil {
 		(*orm.logger).Error(msg)
-	} else {
-		fmt.Println(msg)
 	}
-
 }
 
 func (orm *ORM) deferRollbackTx(trx *gorm.DB, returnErr error) {

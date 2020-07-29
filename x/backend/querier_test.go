@@ -91,7 +91,6 @@ func TestQuerier_queryMatchList(t *testing.T) {
 }
 
 func TestQuerier_queryDealsList(t *testing.T) {
-
 	_, ctx, querier, _ := mockQuerier(t)
 	params := types.NewQueryDealsParams("NotExists", types.TestTokenPair, 0, 0, 1, 100, "")
 	request := abci.RequestQuery{}
@@ -105,7 +104,7 @@ func TestQuerier_queryDealsList(t *testing.T) {
 	errUnmarshal := json.Unmarshal(bytesBuffer, finalResult)
 	require.Nil(t, errUnmarshal)
 	fmt.Println(fmt.Sprintf("finalResult: %+v, bytes: %s", finalResult, bytesBuffer))
-	assert.True(t, err == nil)
+	require.NotNil(t, err)
 
 	params = types.NewQueryDealsParams("NotExists", types.TestTokenPair, 0, 0, 1, 100, types.BuyOrder)
 	request = abci.RequestQuery{}
@@ -113,7 +112,7 @@ func TestQuerier_queryDealsList(t *testing.T) {
 	require.Nil(t, errMarshal)
 	bytesBuffer, err = querier(ctx, path, request)
 	fmt.Println(fmt.Sprintf("finalResult: %+v, bytes: %s", finalResult, bytesBuffer))
-	assert.True(t, err == nil)
+	require.NotNil(t, err)
 }
 
 func TestQuerier_queryCandleList(t *testing.T) {
