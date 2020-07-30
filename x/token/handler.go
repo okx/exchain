@@ -251,9 +251,16 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 }
 
 func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) sdk.Result {
+	if !keeper.bankKeeper.GetSendEnabled(ctx) {
+		return types.ErrSendDisabled(DefaultCodespace).Result()
+	}
+
 	var transfers string
 	var coinNum int
 	for _, transferUnit := range msg.Transfers {
+		if keeper.bankKeeper.BlacklistedAddr(transferUnit.To) {
+			return types.ErrBlockedRecipient(DefaultCodespace, transferUnit.To.String()).Result()
+		}
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
@@ -281,6 +288,13 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 }
 
 func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log.Logger) sdk.Result {
+	if !keeper.bankKeeper.GetSendEnabled(ctx) {
+		return types.ErrSendDisabled(DefaultCodespace).Result()
+	}
+
+	if keeper.bankKeeper.BlacklistedAddr(msg.ToAddress) {
+		return types.ErrBlockedRecipient(DefaultCodespace, msg.ToAddress.String()).Result()
+	}
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
