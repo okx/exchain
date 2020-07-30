@@ -105,7 +105,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.QueryRouter().AddRoute(QuerierRoute, NewQuerier(mockDexApp.tokenKeeper))
 
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
-	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
+	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
 	intQuantity := int64(100)
 	valTokens := sdk.NewDec(intQuantity)
@@ -223,7 +223,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	mockDexApp.QueryRouter().AddRoute(QuerierRoute, NewQuerier(mockDexApp.tokenKeeper))
 
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
-	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
+	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
 	intQuantity := int64(10000000)
 	valTokens := sdk.NewDec(intQuantity)
@@ -253,7 +253,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	return mockDexApp, mockDexApp.tokenKeeper, handler
 }
 
-func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
+func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.Keeper,
 	blacklistedAddrs []exported.ModuleAccountI) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)
@@ -261,6 +261,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
 		for _, macc := range blacklistedAddrs {
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
+		bankKeeper.SetSendEnabled(ctx, true)
 		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 		return abci.ResponseInitChain{}
 	}
