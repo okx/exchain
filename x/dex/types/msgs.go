@@ -248,6 +248,9 @@ func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
 
 // ValidateBasic Implements Msg
 func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
+	if msg.Owner.Empty() {
+		return sdk.ErrInvalidAddress("missing owner address")
+	}
 	if msg.HandlingFeeAddress.Empty() {
 		return sdk.ErrInvalidAddress("missing handling fee address")
 	}

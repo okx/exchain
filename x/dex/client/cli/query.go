@@ -24,7 +24,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	queryCmd.AddCommand(client.GetCommands(
 		GetCmdQueryProducts(queryRoute, cdc),
 		GetCmdQueryDeposits(queryRoute, cdc),
-		GetCmdQueryMatchOrder(queryRoute, cdc),
+		GetCmdQueryProductRank(queryRoute, cdc),
 		GetCmdQueryParams(queryRoute, cdc),
 		GetCmdQueryProductsUnderDelisting(queryRoute, cdc),
 		GetCmdQueryOperator(queryRoute, cdc),
@@ -100,8 +100,8 @@ func GetCmdQueryDeposits(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdQueryMatchOrder queries match order of products
-func GetCmdQueryMatchOrder(queryRoute string, cdc *codec.Codec) *cobra.Command {
+// GetCmdQueryProductRank queries products ranked by deposits
+func GetCmdQueryProductRank(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "product-rank",
 		Short: "Query the rank of token pairs",
