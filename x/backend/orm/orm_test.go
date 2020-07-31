@@ -204,15 +204,16 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	if endTS%60 == 0 {
 		endTS += 1
 	}
-	anchorEndTS, cnt, err := orm.CreateKline1min(0, endTS, &ds)
+	anchorEndTS, cnt, newKlinesM1, err := orm.CreateKline1min(0, endTS, &ds)
 	fmt.Printf("CreateKline1min ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 3)
+	assert.True(t, len(newKlinesM1) == cnt)
 
 	products, _ := orm.getAllUpdatedProducts(0, time.Now().Unix())
 	assert.True(t, len(products) > 0)
 	fmt.Printf("%+v \n", products)
 
-	_, cnt, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
+	_, cnt, newKlinesM1, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
 	fmt.Printf("CreateKline1min ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 1)
 
@@ -231,9 +232,10 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	assert.True(t, klineM3 != nil && e == nil)
 	klineM15, e := types.NewKlineFactory("kline_m15", nil)
 	assert.True(t, klineM15 != nil && e == nil)
-	anchorEndTS, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
+	anchorEndTS, _, newKlines, err := orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
 	require.Nil(t, err)
-	_, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM15.(types.IKline))
+	require.True(t, len(newKlines) > 0)
+	_, _, newKlines, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM15.(types.IKline))
 	require.Nil(t, err)
 	klineM15List := []types.KlineM15{}
 	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM15List)
@@ -245,7 +247,7 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 		fmt.Println((*t).PrettyString())
 	}
 
-	_, _, err = orm.MergeKlineM1(anchorEndTS, time.Now().Unix()+1, klineM3.(types.IKline))
+	_, _, newKlines, err = orm.MergeKlineM1(anchorEndTS, time.Now().Unix()+1, klineM3.(types.IKline))
 	require.Nil(t, err)
 	klineM3List := []types.KlineM3{}
 	err = orm.GetLatestKlinesByProduct(product, 100, -1, &klineM3List)
@@ -277,7 +279,7 @@ func TestORM_MergeKlineM1(t *testing.T) {
 	klineM3, e := types.NewKlineFactory("kline_m3", nil)
 	assert.True(t, klineM3 != nil && e == nil)
 
-	_, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
+	_, _, _, err = orm.MergeKlineM1(0, time.Now().Unix()+1, klineM3.(types.IKline))
 	require.Nil(t, err)
 
 	klineM3List := []types.KlineM3{}
@@ -385,7 +387,7 @@ func constructLocalBackendDB(orm *ORM) (err error) {
 	m := types.GetAllKlineMap()
 	crrTs := time.Now().Unix()
 	ds := DealDataSource{orm: orm}
-	if _, _, err := orm.CreateKline1min(0, crrTs, &ds); err != nil {
+	if _, _, _, err := orm.CreateKline1min(0, crrTs, &ds); err != nil {
 		return err
 	}
 
@@ -394,7 +396,7 @@ func constructLocalBackendDB(orm *ORM) (err error) {
 			continue
 		}
 		kline, _ := types.NewKlineFactory(tname, nil)
-		if _, _, err = orm.MergeKlineM1(0, crrTs, kline.(types.IKline)); err != nil {
+		if _, _, _, err = orm.MergeKlineM1(0, crrTs, kline.(types.IKline)); err != nil {
 			return err
 		}
 	}

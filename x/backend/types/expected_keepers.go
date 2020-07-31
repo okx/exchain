@@ -30,6 +30,7 @@ type TokenKeeper interface {
 // DexKeeper expected dex keeper
 type DexKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*dextypes.TokenPair
+	GetTokenPair(ctx sdk.Context, product string) *dextypes.TokenPair
 	SetObserverKeeper(keeper exported.StreamKeeper)
 }
 
