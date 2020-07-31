@@ -1084,7 +1084,7 @@ func TestBlockedAddrSend(t *testing.T) {
 	ctx := app.BaseApp.NewContext(true, abci.Header{})
 	// blocked addr
 	blockedAddr := supply.NewModuleAddress(auth.FeeCollectorName)
-	// unblock addr
+	// unblocked addr
 	toPriKey := secp256k1.GenPrivKey()
 	toPubKey := toPriKey.PubKey()
 	validAddr := sdk.AccAddress(toPubKey.Address())
