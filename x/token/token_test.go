@@ -67,7 +67,6 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp = &MockDexApp{
 		App: mapp,
 
-		keyBank:    sdk.NewKVStoreKey("bank"),
 		keyToken:   sdk.NewKVStoreKey("token"),
 		keyLock:    sdk.NewKVStoreKey("lock"),
 		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
