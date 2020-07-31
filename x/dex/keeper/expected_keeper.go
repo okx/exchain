@@ -38,6 +38,7 @@ type IKeeper interface {
 	Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error
 	GetSupplyKeeper() SupplyKeeper
 	GetTokenKeeper() TokenKeeper
+	GetBankKeeper() BankKeeper
 	GetParamSubspace() params.Subspace
 	GetParams(ctx sdk.Context) (params types.Params)
 	SetParams(ctx sdk.Context, params types.Params)
@@ -51,6 +52,9 @@ type IKeeper interface {
 	CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error
 	IterateWithdrawInfo(ctx sdk.Context, fn func(index int64, withdrawInfo types.WithdrawInfo) (stop bool))
 	DeleteWithdrawCompleteTimeAddress(ctx sdk.Context, timestamp time.Time, delAddr sdk.AccAddress)
+	SetOperator(ctx sdk.Context, operator types.DEXOperator)
+	GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperator, isExist bool)
+	IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool))
 	GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64)
 	SetMaxTokenPairID(ctx sdk.Context, tokenPairMaxID uint64)
 }
