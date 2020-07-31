@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/okex/okchain/x/dex/types"
@@ -33,21 +32,10 @@ func productsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
-		var page, perPage int
-		var err error
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
 		}
 		params := types.NewQueryDexInfoParams(ownerAddress, page, perPage)
 		bz, err := cliContext.Codec.MarshalJSON(&params)
@@ -80,21 +68,10 @@ func depositsHandler(cliContext context.CLIContext) func(http.ResponseWriter, *h
 			common.HandleErrorMsg(w, cliContext, "bad request: address、base_asset and quote_asset could not be empty at the same time")
 			return
 		}
-		var page, perPage int
-		var err error
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
 		}
 
 		params := types.NewQueryDepositParams(address, baseAsset, quoteAsset, page, perPage)
@@ -120,21 +97,10 @@ func matchOrderHandler(cliContext context.CLIContext) func(http.ResponseWriter, 
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
-		var page, perPage int
-		var err error
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliContext, err.Error())
-				return
-			}
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliContext, err.Error())
+			return
 		}
 
 		params := types.NewQueryDexInfoParams("", page, perPage)
