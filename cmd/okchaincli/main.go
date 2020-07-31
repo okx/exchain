@@ -5,8 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/okex/okchain/app"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
@@ -16,8 +14,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	tokencli "github.com/okex/okchain/x/token/client/cli"
+	"github.com/okex/okchain/app"
 	debugcli "github.com/okex/okchain/x/debug/client/cli"
+	tokencli "github.com/okex/okchain/x/token/client/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -22,7 +22,9 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeTransactions(keeper)
 		keeper.Flush()
 		keeper.Logger.Debug(fmt.Sprintf("end backend endblocker: block---%d", ctx.BlockHeight()))
+		keeper.EmitAllWsItems(ctx)
 	}
+
 }
 
 func storeTransactions(keeper Keeper) {
@@ -153,6 +155,7 @@ func GetNewDealsAndMatchResultsAtEndBlock(ctx sdk.Context, orderKeeper types.Ord
 					Quantity:    quantity,
 					Fee:         record.Fee,
 					Timestamp:   ctx.BlockHeader().Time.Unix(),
+					FeeReceiver: record.FeeReceiver,
 				}
 				deals = append(deals, deal)
 

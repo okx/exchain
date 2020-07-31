@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	types2 "github.com/okex/okchain/x/dex/types"
 	"os"
 	"testing"
 	"time"
@@ -290,6 +291,7 @@ func FireEndBlockerPeriodicMatch(t *testing.T, enableBackend bool) (mockDexApp *
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 
+	mapp.dexKeeper.SetOperator(ctx, types2.DEXOperator{Address:tokenPair.Owner, HandlingFeeAddress:tokenPair.Owner})
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 	// mock orders

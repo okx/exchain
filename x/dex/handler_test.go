@@ -30,6 +30,7 @@ func TestHandler_HandleMsgList(t *testing.T) {
 
 	address := mApp.GenesisAccounts[0].GetAddress()
 	listMsg := NewMsgList(address, "btc", common.NativeToken, sdk.NewDec(10))
+	mDexKeeper.SetOperator(ctx, types.DEXOperator{Address:address, HandlingFeeAddress:address})
 
 	handlerFunctor := NewHandler(mApp.dexKeeper)
 

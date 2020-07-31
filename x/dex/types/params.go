@@ -13,6 +13,7 @@ import (
 var (
 	keyDexListFee             = []byte("DexListFee")
 	keyTransferOwnershipFee   = []byte("TransferOwnershipFee")
+	keyRegisterOperatorFee    = []byte("RegisterOperatorFee")
 	keyDelistMaxDepositPeriod = []byte("DelistMaxDepositPeriod")
 	keyDelistMinDeposit       = []byte("DelistMinDeposit")
 	keyDelistVotingPeriod     = []byte("DelistVotingPeriod")
@@ -24,6 +25,7 @@ type Params struct {
 	ListFee              sdk.DecCoin `json:"list_fee"`
 	TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
 	//DelistFee            sdk.DecCoins `json:"delist_fee"`
+	RegisterOperatorFee sdk.DecCoin `json:"register_operator_fee"`
 
 	//  maximum period for okt holders to deposit on a dex delist proposal
 	DelistMaxDepositPeriod time.Duration `json:"delist_max_deposit_period"`
@@ -40,6 +42,7 @@ func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 	return params.ParamSetPairs{
 		{Key: keyDexListFee, Value: &p.ListFee},
 		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee},
+		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee},
 		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod},
 		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit},
 		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod},
@@ -60,6 +63,7 @@ func DefaultParams() *Params {
 	return &Params{
 		ListFee:                defaultListFee,
 		TransferOwnershipFee:   defaultTransferOwnershipFee,
+		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec()),
 		DelistMaxDepositPeriod: time.Hour * 24,
 		DelistMinDeposit:       sdk.DecCoins{defaultDelistMinDeposit},
 		DelistVotingPeriod:     time.Hour * 72,
@@ -69,7 +73,7 @@ func DefaultParams() *Params {
 
 // String implements the stringer interface.
 func (p Params) String() string {
-	return fmt.Sprintf("Params: \nDexListFee:%s\nTransferOwnershipFee:%s\nDelistMaxDepositPeriod:%s\n"+
+	return fmt.Sprintf("Params: \nDexListFee:%s\nTransferOwnershipFee:%s\nRegisterOperatorFee:%s\nDelistMaxDepositPeriod:%s\n"+
 		"DelistMinDeposit:%s\nDelistVotingPeriod:%s\nWithdrawPeriod:%d\n",
-		p.ListFee, p.TransferOwnershipFee, p.DelistMaxDepositPeriod, p.DelistMinDeposit, p.DelistVotingPeriod, p.WithdrawPeriod)
+		p.ListFee, p.TransferOwnershipFee, p.RegisterOperatorFee, p.DelistMaxDepositPeriod, p.DelistMinDeposit, p.DelistVotingPeriod, p.WithdrawPeriod)
 }

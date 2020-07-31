@@ -54,6 +54,11 @@ func (k Keeper) GetSupplyKeeper() SupplyKeeper {
 	return k.supplyKeeper
 }
 
+// GetBankKeeper returns bank Keeper
+func (k Keeper) GetBankKeeper() BankKeeper {
+	return k.bankKeeper
+}
+
 // GetFeeCollector returns feeCollectorName
 func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
@@ -448,6 +453,41 @@ func (k Keeper) GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64) {
 		k.cdc.MustUnmarshalBinaryBare(b, &tokenPairMaxID)
 	}
 	return
+}
+
+// GetOperator gets the DEXOperator and checks whether the operator with address exist or not
+func (k Keeper) GetOperator(ctx sdk.Context, addr sdk.AccAddress) (operator types.DEXOperator, isExist bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.GetOperatorAddressKey(addr))
+	if bz == nil {
+		return operator, false
+	}
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &operator)
+	return operator, true
+}
+
+// IterateOperators iterates over the all the operators and performs a callback function
+func (k Keeper) IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool)) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.DEXOperatorKeyPrefix)
+
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var operator types.DEXOperator
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &operator)
+
+		if cb(operator) {
+			break
+		}
+	}
+}
+
+// SetOperator save the operator information
+func (k Keeper) SetOperator(ctx sdk.Context, operator types.DEXOperator) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetOperatorAddressKey(operator.Address)
+	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(operator)
+	store.Set(key, bytes)
 }
 
 // SetMaxTokenPairID sets the max ID of token pair
