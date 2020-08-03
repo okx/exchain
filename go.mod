@@ -29,6 +29,7 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190704165056-9c2d0518ed81 // indirect
+	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -45,7 +46,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.37.9-okchain7
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.37.9-okchain8
 	github.com/tendermint/iavl => github.com/okex/iavl v0.12.4-okchain
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.32.10-okchain1
 )

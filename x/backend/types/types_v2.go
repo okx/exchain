@@ -31,6 +31,7 @@ type Deal struct {
 	Price       float64 `gorm:"type:DOUBLE" json:"price" v2:"price"`
 	Quantity    float64 `gorm:"type:DOUBLE" json:"volume" v2:"volume"`
 	Fee         string  `gorm:"type:varchar(20)" json:"fee" v2:"fee"`
+	FeeReceiver string  `gorm:"index;type:varchar(80)" json:"fee_receiver" v2:"fee_receiver"`
 }
 
 type TickerV2 struct {
@@ -163,4 +164,12 @@ type QueryTxListParamsV2 struct {
 	After   string
 	Before  string
 	Limit   int
+}
+
+type DexFees struct {
+	Timestamp       int64  `json:"timestamp"`
+	OrderID         string `json:"order_id"`
+	Product         string `json:"product"`
+	Fee             string `json:"fee"`
+	HandlingFeeAddr string `json:"handling_fee_addr"`
 }

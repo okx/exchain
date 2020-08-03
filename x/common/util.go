@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -25,6 +26,27 @@ func Int64ToBytes(i int64) []byte {
 // BytesToInt64 converts bytes to int64
 func BytesToInt64(buf []byte) int64 {
 	return int64(binary.BigEndian.Uint64(buf))
+}
+
+// Paginate converts page params for a paginated query,
+func Paginate(pageStr, perPageStr string) (page int, perPage int, err error) {
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil {
+			return
+		}
+	}
+	if perPageStr != "" {
+		perPage, err = strconv.Atoi(perPageStr)
+		if err != nil {
+			return
+		}
+	}
+	if page < 0 || perPage < 0 {
+		err = fmt.Errorf("negative page %d or per_page %d is invalid", page, perPage)
+		return
+	}
+	return
 }
 
 // GetPage returns the offset and limit for data query

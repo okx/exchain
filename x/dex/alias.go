@@ -41,12 +41,15 @@ type (
 	MsgDeposit           = types.MsgDeposit
 	MsgWithdraw          = types.MsgWithdraw
 	MsgTransferOwnership = types.MsgTransferOwnership
+	MsgUpdateOperator    = types.MsgUpdateOperator
+	MsgCreateOperator    = types.MsgCreateOperator
 
-	//
 	TokenPair     = types.TokenPair
 	Params        = types.Params
 	WithdrawInfo  = types.WithdrawInfo
 	WithdrawInfos = types.WithdrawInfos
+	DEXOperator   = types.DEXOperator
+	DEXOperators  = types.DEXOperators
 )
 
 var (

@@ -1,10 +1,12 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
@@ -24,6 +26,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/order/list/{openOrClosed}", orderListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -130,7 +134,6 @@ func matchHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "bad request: product is empty")
 			return
 		}
-		var page, perPage int
 		var start, end int64
 		var err error
 		if startStr != "" {
@@ -145,19 +148,11 @@ func matchHandler(cliCtx context.CLIContext) http.HandlerFunc {
 				return
 			}
 		}
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
 		}
 
 		params := types.NewQueryMatchParams(product, start, end, page, perPage)
@@ -192,7 +187,6 @@ func dealHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
 			return
 		}
-		var page, perPage int
 		var start, end int64
 		var err error
 		if startStr != "" {
@@ -207,19 +201,11 @@ func dealHandler(cliCtx context.CLIContext) http.HandlerFunc {
 				return
 			}
 		}
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
 		}
 
 		params := types.NewQueryDealsParams(addr, product, start, end, page, perPage, sideStr)
@@ -250,21 +236,10 @@ func feeDetailListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
 			return
 		}
-		var page, perPage int
-		var err error
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
 		}
 		params := types.NewQueryFeeDetailsParams(addr, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
@@ -305,24 +280,8 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
 			return
 		}
-		var page, perPage int
 		var start, end int64
 		var err error
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-
 		if startStr == "" {
 			startStr = "0"
 		}
@@ -334,6 +293,12 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		mErr := types.NewErrorsMerged(errStart, errEnd)
 		if mErr != nil {
 			common.HandleErrorMsg(w, cliCtx, mErr.Error())
+			return
+		}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
 		}
 
@@ -372,7 +337,6 @@ func txListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
 			return
 		}
-		var page, perPage int
 		var txType, start, end int64
 		var err error
 		if txTypeStr != "" {
@@ -393,19 +357,11 @@ func txListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 				return
 			}
 		}
-		if pageStr != "" {
-			page, err = strconv.Atoi(pageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
-		}
-		if perPageStr != "" {
-			perPage, err = strconv.Atoi(perPageStr)
-			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
-				return
-			}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
 		}
 		params := types.NewQueryTxListParams(addr, txType, start, end, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
@@ -434,6 +390,57 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 		res, err := cli.GetBlockTxHashes(cliCtx, &blockHeight)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h, err := client.GetChainHeight(cliCtx)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+		res := common.GetBaseResponse(h)
+		bz, err := json.Marshal(res)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+		}
+		rest.PostProcessResponse(w, cliCtx, bz)
+	}
+}
+
+func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		address := r.URL.Query().Get("address")
+		baseAsset := r.URL.Query().Get("base_asset")
+		quoteAsset := r.URL.Query().Get("quote_asset")
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+		if address == "" && baseAsset == "" && quoteAsset == "" {
+			common.HandleErrorMsg(w, cliCtx, "bad request: address、base_asset and quote_asset could not be empty at the same time")
+			return
+		}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		params := types.NewQueryDexFeesParams(address, baseAsset, quoteAsset, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDexFeesList), bz)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return

@@ -26,12 +26,14 @@ import (
 
 // Dex tags
 const (
-	FlagBaseAsset  = "base-asset"
-	FlagQuoteAsset = "quote-asset"
-	FlagInitPrice  = "init-price"
-	FlagProduct    = "product"
-	FlagFrom       = "from"
-	FlagTo         = "to"
+	FlagBaseAsset          = "base-asset"
+	FlagQuoteAsset         = "quote-asset"
+	FlagInitPrice          = "init-price"
+	FlagProduct            = "product"
+	FlagFrom               = "from"
+	FlagTo                 = "to"
+	FlagWebsite            = "website"
+	FlagHandlingFeeAddress = "handling-fee-address"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -47,6 +49,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		getCmdWithdraw(cdc),
 		getCmdTransferOwnership(cdc),
 		getMultiSignsCmd(cdc),
+		getCmdRegisterOperator(cdc),
+		getCmdEditOperator(cdc),
 	)...)
 
 	return txCmd
@@ -300,4 +304,88 @@ Where proposal.json contains:
 		},
 	}
 
+}
+
+func getCmdRegisterOperator(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "register-operator",
+		Short: "register a dex operator",
+		Args:  cobra.ExactArgs(0),
+		Long: strings.TrimSpace(`Register a dex operator:
+
+$ okchaincli tx dex register-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
+`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			if err := auth.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
+				return err
+			}
+
+			flags := cmd.Flags()
+			website, err := flags.GetString(FlagWebsite)
+			if err != nil {
+				return err
+			}
+			feeAddrStr, err := flags.GetString(FlagHandlingFeeAddress)
+			if err != nil {
+				return err
+			}
+			feeAddr, err := sdk.AccAddressFromBech32(feeAddrStr)
+			if err != nil {
+				return sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", feeAddrStr))
+			}
+			owner := cliCtx.GetFromAddress()
+			operatorMsg := types.NewMsgCreateOperator(website, owner, feeAddr)
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{operatorMsg})
+		},
+	}
+
+	cmd.Flags().String(FlagWebsite, "", `A valid http link to describe DEXOperator which ends with "operator.json" defined in OIP-{xxx}，and its length should be less than 1024`)
+	cmd.Flags().String(FlagHandlingFeeAddress, "", "An address to receive fees of tokenpair's matched order")
+
+	return cmd
+}
+
+func getCmdEditOperator(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "edit-operator",
+		Short: "edit a dex operator",
+		Args:  cobra.ExactArgs(0),
+		Long: strings.TrimSpace(`Edit a dex operator:
+
+$ okchaincli tx dex edit-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
+`),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			if err := auth.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
+				return err
+			}
+
+			flags := cmd.Flags()
+			website, err := flags.GetString(FlagWebsite)
+			if err != nil {
+				return err
+			}
+			feeAddrStr, err := flags.GetString(FlagHandlingFeeAddress)
+			if err != nil {
+				return err
+			}
+			feeAddr, err := sdk.AccAddressFromBech32(feeAddrStr)
+			if err != nil {
+				return sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", feeAddrStr))
+			}
+			owner := cliCtx.GetFromAddress()
+			operatorMsg := types.NewMsgUpdateOperator(website, owner, feeAddr)
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{operatorMsg})
+		},
+	}
+
+	cmd.Flags().String(FlagWebsite, "", `A valid http link to describe DEXOperator which ends with "operator.json" defined in OIP-{xxx}，and its length should be less than 1024`)
+	cmd.Flags().String(FlagHandlingFeeAddress, "", "An address to receive fees of tokenpair's matched order")
+
+	return cmd
 }

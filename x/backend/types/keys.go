@@ -17,6 +17,7 @@ const (
 	QueryTxList       = "txs"
 	QueryCandleList   = "candles"
 	QueryTickerList   = "tickers"
+	QueryDexFeesList  = "dexFees"
 
 	// v2
 	QueryTickerListV2   = "tickerListV2"
