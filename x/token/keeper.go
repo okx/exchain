@@ -164,6 +164,10 @@ func (k Keeper) NewToken(ctx sdk.Context, token types.Token) {
 
 // send tokens(one or more coins) from one account to another
 func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error {
+	if k.bankKeeper.BlacklistedAddr(to) {
+		return types.ErrBlockedRecipient(DefaultCodespace, to.String())
+	}
+
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
 }
 

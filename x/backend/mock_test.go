@@ -160,7 +160,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.QueryRouter().AddRoute(token.QuerierRoute, token.NewQuerier(mockApp.tokenKeeper))
 
 	mockApp.SetEndBlocker(getEndBlocker(mockApp.orderKeeper, mockApp.backendKeeper))
-	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.supplyKeeper,
+	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.bankKeeper, mockApp.supplyKeeper,
 		[]exported.ModuleAccountI{feeCollector}))
 
 	intQuantity := 100
@@ -200,7 +200,7 @@ func getEndBlocker(orderKeeper keeper.Keeper, backendKeeper Keeper) sdk.EndBlock
 	}
 }
 
-func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
+func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.Keeper,
 	blacklistedAddrs []exported.ModuleAccountI) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)
@@ -208,6 +208,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
 		for _, macc := range blacklistedAddrs {
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
+		bankKeeper.SetSendEnabled(ctx, true)
 		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 		return abci.ResponseInitChain{}
 	}

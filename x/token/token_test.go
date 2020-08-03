@@ -74,7 +74,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	blacklistedAddrs := make(map[string]bool)
-	blacklistedAddrs[feeCollectorAcc.String()] = true
+	blacklistedAddrs[feeCollectorAcc.Address.String()] = true
 
 	mockDexApp.bankKeeper = bank.NewBaseKeeper(
 		mockDexApp.AccountKeeper,
@@ -105,7 +105,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.QueryRouter().AddRoute(QuerierRoute, NewQuerier(mockDexApp.tokenKeeper))
 
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
-	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
+	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
 	intQuantity := int64(100)
 	valTokens := sdk.NewDec(intQuantity)
@@ -223,7 +223,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	mockDexApp.QueryRouter().AddRoute(QuerierRoute, NewQuerier(mockDexApp.tokenKeeper))
 
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
-	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
+	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
 	intQuantity := int64(10000000)
 	valTokens := sdk.NewDec(intQuantity)
@@ -253,7 +253,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	return mockDexApp, mockDexApp.tokenKeeper, handler
 }
 
-func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
+func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.Keeper,
 	blacklistedAddrs []exported.ModuleAccountI) sdk.InitChainer {
 	return func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		mapp.InitChainer(ctx, req)
@@ -261,6 +261,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper supply.Keeper,
 		for _, macc := range blacklistedAddrs {
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
+		bankKeeper.SetSendEnabled(ctx, true)
 		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 		return abci.ResponseInitChain{}
 	}
@@ -1076,4 +1077,52 @@ func TestTxSuccessFeeTable(t *testing.T) {
 			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
 		})
 	}
+}
+
+func TestBlockedAddrSend(t *testing.T) {
+	app, testAccounts := getMockAppToHandleFee(t, 30000, 1)
+	ctx := app.BaseApp.NewContext(true, abci.Header{})
+	// blocked addr
+	blockedAddr := supply.NewModuleAddress(auth.FeeCollectorName)
+	// unblocked addr
+	toPriKey := secp256k1.GenPrivKey()
+	toPubKey := toPriKey.PubKey()
+	validAddr := sdk.AccAddress(toPubKey.Address())
+
+	// build send msg
+	decCoin := sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(50))
+	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, validAddr, sdk.DecCoins{decCoin})
+	failedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, blockedAddr, sdk.DecCoins{decCoin})
+
+	// build multi-send msg
+	multiSendStr := `[{"to":"` + validAddr.String() + `","amount":" 100` + common.NativeToken + `"}]`
+	transfers, err := types.StrToTransfers(multiSendStr)
+	require.NoError(t, err)
+	successfulMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	multiSendStr = `[{"to":"` + blockedAddr.String() + `","amount":" 100` + common.NativeToken + `"}]`
+	transfers, err = types.StrToTransfers(multiSendStr)
+	require.NoError(t, err)
+	failedMultiSendMsg := types.NewMsgMultiSend(testAccounts[0].baseAccount.Address, transfers)
+
+	successfulTestSets := []struct {
+		description string
+		balance     string
+		msg         sdk.Msg
+		account     *testAccount
+	}{
+		// 0.01okt as fixed fee in each stdTx
+		{"success to send  : 50+0.01", "29949.99000000", successfulSendMsg, testAccounts[0]},
+		{"fail to send  : 0.01", "29949.98000000", failedSendMsg, testAccounts[0]},
+		{"success to multi-send  : 100+0.01", "29849.97000000", successfulMultiSendMsg, testAccounts[0]},
+		{"fail to multi-send  : 0.01", "29849.96000000", failedMultiSendMsg, testAccounts[0]},
+	}
+	for i, tt := range successfulTestSets {
+		t.Run(tt.description, func(t *testing.T) {
+			stdTx := createTokenMsg(t, app, ctx, tt.account, tt.msg)
+			ctx = mockApplyBlock(t, app, []auth.StdTx{stdTx}, int64(i+3))
+			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
+		})
+	}
+
 }
