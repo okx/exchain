@@ -32,7 +32,6 @@ var mockBlockHeight int64 = -1
 type MockDexApp struct {
 	*mock.App
 
-	keyBank    *sdk.KVStoreKey
 	keyToken   *sdk.KVStoreKey
 	keyLock    *sdk.KVStoreKey
 	keySupply  *sdk.KVStoreKey
