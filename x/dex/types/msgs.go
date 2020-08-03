@@ -2,16 +2,19 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	"net/url"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
 	typeMsgDeposit           = "deposit"
 	typeMsgWithdraw          = "withdraw"
 	typeMsgTransferOwnership = "transferOwnership"
+	typeMsgUpdateOperator    = "updateOperator"
+	typeMsgCreateOperator    = "createOperator"
 )
 
 // MsgList - high level transaction of the dex module
@@ -217,4 +220,110 @@ func (msg MsgTransferOwnership) checkMultiSign() bool {
 	msg.ToSignature = auth.StdSignature{}
 	toValid := toSignature.VerifyBytes(msg.GetSignBytes(), toSignature.Signature)
 	return toValid
+}
+
+// MsgCreateOperator register a new DEXOperator or update it
+// Addr represent an DEXOperator
+// if DEXOperator not exist, register a new DEXOperator
+// else update Website or HandlingFeeAddress
+type MsgCreateOperator struct {
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
+}
+
+// NewMsgCreateOperator creates a new MsgCreateOperator
+func NewMsgCreateOperator(website string, owner, handlingFeeAddress sdk.AccAddress) MsgCreateOperator {
+	if handlingFeeAddress.Empty() {
+		handlingFeeAddress = owner
+	}
+	return MsgCreateOperator{owner, strings.TrimSpace(website), handlingFeeAddress}
+}
+
+// Route Implements Msg
+func (msg MsgCreateOperator) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
+
+// ValidateBasic Implements Msg
+func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
+	if msg.Owner.Empty() {
+		return sdk.ErrInvalidAddress("missing owner address")
+	}
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
+	return checkWebsite(msg.Website)
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgCreateOperator) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgCreateOperator) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Owner}
+}
+
+// MsgUpdateOperator register a new DEXOperator or update it
+// Addr represent an DEXOperator
+// if DEXOperator not exist, register a new DEXOperator
+// else update Website or HandlingFeeAddress
+type MsgUpdateOperator struct {
+	Owner              sdk.AccAddress `json:"owner"`
+	Website            string         `json:"website"`
+	HandlingFeeAddress sdk.AccAddress `json:"handling_fee_address"`
+}
+
+// NewMsgUpdateOperator creates a new MsgUpdateOperator
+func NewMsgUpdateOperator(website string, owner, handlingFeeAddress sdk.AccAddress) MsgUpdateOperator {
+	if handlingFeeAddress.Empty() {
+		handlingFeeAddress = owner
+	}
+	return MsgUpdateOperator{owner, strings.TrimSpace(website), handlingFeeAddress}
+}
+
+// Route Implements Msg
+func (msg MsgUpdateOperator) Route() string { return RouterKey }
+
+// Type Implements Msg
+func (msg MsgUpdateOperator) Type() string { return typeMsgUpdateOperator }
+
+// ValidateBasic Implements Msg
+func (msg MsgUpdateOperator) ValidateBasic() sdk.Error {
+	if msg.HandlingFeeAddress.Empty() {
+		return sdk.ErrInvalidAddress("missing handling fee address")
+	}
+	return checkWebsite(msg.Website)
+}
+
+// GetSignBytes Implements Msg
+func (msg MsgUpdateOperator) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// GetSigners Implements Msg
+func (msg MsgUpdateOperator) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Owner}
+}
+
+func checkWebsite(website string) sdk.Error {
+	if len(website) == 0 {
+		return nil
+	}
+	if len(website) > 1024 {
+		return ErrInvalidWebsiteLength(len(website), 1024)
+	}
+	u, err := url.Parse(website)
+	if err != nil {
+		return ErrInvalidWebsiteURL(err.Error())
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return ErrInvalidWebsiteURL(fmt.Sprintf("got: %s, expected: http or https", u.Scheme))
+	}
+	return nil
 }

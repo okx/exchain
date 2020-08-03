@@ -33,6 +33,10 @@ const (
 	QueryMatchOrder = "match-order"
 	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters = "params"
+	// QueryOperator defines operator query route path
+	QueryOperator = "operator"
+	// QueryOperators defines operators query route path
+	QueryOperators = "operators"
 )
 
 var (
@@ -44,6 +48,13 @@ var (
 	MaxTokenPairIDKey = []byte{0x02}
 	// TokenPairLockKeyPrefix is the store key for token pair prefix
 	TokenPairLockKeyPrefix = []byte{0x03}
+
+	// DEXOperatorKeyPrefix is the store key prefix for DEXOperator
+	DEXOperatorKeyPrefix = []byte{0x04}
+
+	// DEXOperatorTokenPairCntPrefix is the store key prefix for DEXOperator's tokenpair count
+	DEXOperatorTokenPairCntPrefix = []byte{0x05}
+
 	// WithdrawAddressKeyPrefix is the store key for withdraw address
 	WithdrawAddressKeyPrefix = []byte{0x53}
 	// WithdrawTimeKeyPrefix is the store key for withdraw time
@@ -104,4 +115,9 @@ func GetLockProductKey(product string) []byte {
 // GetKey returns keys between index 1 to the end
 func GetKey(it sdk.Iterator) string {
 	return string(it.Key()[1:])
+}
+
+// GetOperatorAddressKey returns key of operator address
+func GetOperatorAddressKey(addr sdk.AccAddress) []byte {
+	return append(DEXOperatorKeyPrefix, addr.Bytes()...)
 }

@@ -78,8 +78,8 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 	require.Nil(t, err)
 
 	feeType := "test fee type"
-	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, feeType)
-	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, feeType)
+	keeper.AddFeeDetail(ctx, addrs[0].String(), fee, feeType, "")
+	keeper.AddFeeDetail(ctx, addrs[1].String(), fee, feeType, "")
 
 	feeList := keeper.GetFeeDetailList()
 	require.Equal(t, 2, len(feeList))

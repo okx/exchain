@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/okex/okchain/x/common/perf"
 	"github.com/okex/okchain/x/dex/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/perf"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -40,6 +41,16 @@ func NewHandler(k IKeeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgTransferOwnership(ctx, k, msg, logger)
 			}
+		case MsgCreateOperator:
+			name = "handleMsgCreateOperator"
+			handlerFun = func() sdk.Result {
+				return handleMsgCreateOperator(ctx, k, msg, logger)
+			}
+		case MsgUpdateOperator:
+			name = "handleMsgUpdateOperator"
+			handlerFun = func() sdk.Result {
+				return handleMsgUpdateOperator(ctx, k, msg, logger)
+			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -57,6 +68,10 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
 		return sdk.ErrInvalidCoins(
 			fmt.Sprintf("%s or %s is not valid", msg.ListAsset, msg.QuoteAsset)).Result()
+	}
+
+	if _, exists := keeper.GetOperator(ctx, msg.Owner); !exists {
+		return types.ErrUnknownOperator(msg.Owner).Result()
 	}
 
 	tokenPair := &TokenPair{
@@ -151,6 +166,15 @@ func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger 
 
 func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransferOwnership,
 	logger log.Logger) sdk.Result {
+
+	if _, exist := keeper.GetOperator(ctx, msg.FromAddress); !exist {
+		return types.ErrUnknownOperator(msg.FromAddress).Result()
+	}
+
+	if _, exist := keeper.GetOperator(ctx, msg.ToAddress); !exist {
+		return types.ErrUnknownOperator(msg.ToAddress).Result()
+	}
+
 	if sdkErr := keeper.TransferOwnership(ctx, msg.Product, msg.FromAddress, msg.ToAddress); sdkErr != nil {
 		return sdkErr.Result()
 	}
@@ -173,5 +197,67 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 			sdk.NewAttribute(sdk.AttributeKeyFee, feeCoins.String()),
 		),
 	)
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOperator, logger log.Logger) sdk.Result {
+
+	logger.Debug(fmt.Sprintf("handleMsgCreateOperator msg: %+v", msg))
+
+	if _, isExist := keeper.GetOperator(ctx, msg.Owner); isExist {
+		return types.ErrExistOperator(msg.Owner).Result()
+	}
+	operator := types.DEXOperator{
+		Address:            msg.Owner,
+		HandlingFeeAddress: msg.HandlingFeeAddress,
+		Website:            msg.Website,
+		InitHeight:         ctx.BlockHeight(),
+		TxHash:             fmt.Sprintf("%X", tmhash.Sum(ctx.TxBytes())),
+	}
+	keeper.SetOperator(ctx, operator)
+
+	// deduction fee
+	feeCoins := keeper.GetParams(ctx).RegisterOperatorFee.ToCoins()
+	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+			feeCoins.String())).Result()
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeyFee, feeCoins.String()),
+		),
+	)
+
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOperator, logger log.Logger) sdk.Result {
+
+	logger.Debug(fmt.Sprintf("handleMsgUpdateOperator msg: %+v", msg))
+
+	operator, isExist := keeper.GetOperator(ctx, msg.Owner)
+	if !isExist {
+		return types.ErrUnknownOperator(msg.Owner).Result()
+	}
+	if !operator.Address.Equals(msg.Owner) {
+		return sdk.ErrUnauthorized("Not the operator's owner").Result()
+	}
+
+	operator.HandlingFeeAddress = msg.HandlingFeeAddress
+	operator.Website = msg.Website
+
+	keeper.SetOperator(ctx, operator)
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+		),
+	)
+
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }

@@ -8,10 +8,11 @@ import (
 
 // nolint
 type Deal struct {
-	OrderID  string  `json:"order_id"`
-	Side     string  `json:"side"`
-	Quantity sdk.Dec `json:"quantity"`
-	Fee      string  `json:"fee"`
+	OrderID     string  `json:"order_id"`
+	Side        string  `json:"side"`
+	Quantity    sdk.Dec `json:"quantity"`
+	Fee         string  `json:"fee"`
+	FeeReceiver string  `json:"fee_receiver"`
 }
 
 // nolint

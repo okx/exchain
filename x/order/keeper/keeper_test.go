@@ -311,6 +311,10 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
+	testInput.DexKeeper.SetOperator(ctx, dex.DEXOperator{
+		Address:            tokenPair.Owner,
+		HandlingFeeAddress: tokenPair.Owner,
+	})
 
 	// place order err
 	order := mockOrder("", types.TestTokenPair, types.BuyOrder, "108", "1")
@@ -329,7 +333,7 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 	dealFee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.2592")}}
 	require.EqualValues(t, fee, dealFee)
 
-	err = keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
+	_, err = keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)
 	require.Nil(t, err)
 }
 
