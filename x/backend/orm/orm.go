@@ -383,35 +383,39 @@ func (orm *ORM) getOpenCloseKline(startTS, endTS int64, product string, firstK i
 }
 
 func (orm *ORM) getMinTimestamp(tbName string) int64 {
-
 	sql := fmt.Sprintf("select min(Timestamp) as ts from %s", tbName)
 	ts := int64(-1)
+	count := 0
 
-	r := orm.db.Raw(sql).Row()
-	if r != nil {
-		if err := r.Scan(&ts); err != nil {
-			orm.Error("failed to execute scan result, error:" + err.Error())
-		}
+	raw := orm.db.Raw(sql)
+	raw.Count(&count)
+	if count == 0 {
+		return ts
+	}
+
+	if err := raw.Row().Scan(&ts); err != nil {
+		orm.Error("failed to execute scan result, error:" + err.Error())
 	}
 
 	return ts
-
 }
 
 func (orm *ORM) getMaxTimestamp(tbName string) int64 {
-
 	sql := fmt.Sprintf("select max(Timestamp) as ts from %s", tbName)
 	ts := int64(-1)
+	count := 0
 
-	r := orm.db.Raw(sql).Row()
-	if r != nil {
-		if err := r.Scan(&ts); err != nil {
-			orm.Error("failed to execute scan result, error:" + err.Error())
-		}
+	raw := orm.db.Raw(sql)
+	raw.Count(&count)
+	if count == 0 {
+		return ts
+	}
+
+	if err := raw.Row().Scan(&ts); err != nil {
+		orm.Error("failed to execute scan result, error:" + err.Error())
 	}
 
 	return ts
-
 }
 
 func (orm *ORM) getDealsMinTimestamp() int64 {

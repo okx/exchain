@@ -364,7 +364,7 @@ func GetBlockTxHashesCommand(queryRoute string, cdc *codec.Codec) *cobra.Command
 	cmd := &cobra.Command{
 		Use:   "block-tx-hashes [height]",
 		Short: "Get txs hash list for a the block at given height",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			height, err := strconv.ParseInt(args[0], 10, 64)
@@ -372,7 +372,7 @@ func GetBlockTxHashesCommand(queryRoute string, cdc *codec.Codec) *cobra.Command
 				return err
 			}
 
-			txHashes, err := GetBlockTxHashes(cliCtx, &height)
+			txHashes, err := GetBlockTxHashes(cliCtx, height)
 			if err != nil {
 				return err
 			}
@@ -390,7 +390,7 @@ func GetBlockTxHashesCommand(queryRoute string, cdc *codec.Codec) *cobra.Command
 }
 
 // GetBlockTxHashes return tx hashes in the block of the given height
-func GetBlockTxHashes(cliCtx context.CLIContext, height *int64) ([]string, error) {
+func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error) {
 	// get the node
 	node, err := cliCtx.GetNode()
 	if err != nil {
@@ -400,7 +400,7 @@ func GetBlockTxHashes(cliCtx context.CLIContext, height *int64) ([]string, error
 	// header -> BlockchainInfo
 	// header, tx -> Block
 	// results -> BlockResults
-	res, err := node.Block(height)
+	res, err := node.Block(&height)
 	if err != nil {
 		return nil, err
 	}
