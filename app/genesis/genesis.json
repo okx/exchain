@@ -59,6 +59,8 @@
     },
     "debug": null,
     "dex": {
+      "max_token_pair_id": "0",
+      "operators": null,
       "params": {
         "delist_max_deposit_period": "86400000000000",
         "delist_min_deposit": [
@@ -70,6 +72,10 @@
         "delist_voting_period": "259200000000000",
         "list_fee": {
           "amount": "20000.00000000",
+          "denom": "okt"
+        },
+        "register_operator_fee": {
+          "amount": "0.00000000",
           "denom": "okt"
         },
         "transfer_ownership_fee": {
@@ -206,12 +212,6 @@
         "voting_period": "259200000000000"
       }
     },
-    "poolswap": {
-      "params": {
-        "fee_rate": "0.00300000"
-      },
-      "swap_token_pair_records": null
-    },
     "slashing": {
       "missed_blocks": {},
       "params": {
@@ -280,8 +280,6 @@
           "original_total_supply": "1000000000.00000000",
           "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
           "symbol": "okt",
-          "total_supply": "1000000000.00000000",
-          "type": "0",
           "whole_name": "OKT"
         }
       ]
