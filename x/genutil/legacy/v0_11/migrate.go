@@ -54,7 +54,7 @@ func Migrate(appState genutil.AppMap) genutil.AppMap {
 		v010Codec.MustUnmarshalJSON(appState[v010token.ModuleName], &tokenGenState)
 
 		delete(appState, v010token.ModuleName)
-		appState[v011staking.ModuleName] = v011Codec.MustMarshalJSON(v011token.Migrate(tokenGenState))
+		appState[v011token.ModuleName] = v011Codec.MustMarshalJSON(v011token.Migrate(tokenGenState))
 	}
 
 	return appState
