@@ -12,7 +12,7 @@ const (
 )
 
 type (
-	// GenesisState - all slashing state that must be provided at genesis
+	// GenesisState - all order state that must be provided at genesis
 	GenesisState struct {
 		Params     Params         `json:"params"`
 		OpenOrders []*v0_10.Order `json:"open_orders"`

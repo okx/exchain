@@ -13,7 +13,7 @@ const (
 )
 
 type (
-	// GenesisState - all slashing state that must be provided at genesis
+	// GenesisState - all dex state that must be provided at genesis
 	GenesisState struct {
 		Params         Params               `json:"params"`
 		TokenPairs     []*v0_10.TokenPair   `json:"token_pairs"`

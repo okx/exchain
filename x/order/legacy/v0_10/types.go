@@ -5,7 +5,7 @@ import sdk "github.com/cosmos/cosmos-sdk/types"
 const ModuleName = "order"
 
 type (
-	// GenesisState - all slashing state that must be provided at genesis
+	// GenesisState - all order state that must be provided at genesis
 	GenesisState struct {
 		Params     Params   `json:"params"`
 		OpenOrders []*Order `json:"open_orders"`
