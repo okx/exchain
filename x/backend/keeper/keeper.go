@@ -60,7 +60,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 				// websocket channel
 				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
 				k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
+				go generateKline1M(k)
 				// init ticker buffer
 				ts := time.Now().Unix()
 
@@ -425,7 +425,7 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 	merge := func() *types.MergedTickersEvent {
 		tickersMap := map[string]types.IWebsocket{}
 		for len(k.ticker3sChan) > 0 {
-			ticker, ok := <- k.ticker3sChan
+			ticker, ok := <-k.ticker3sChan
 			if !ok {
 				break
 			}
@@ -453,13 +453,13 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 	for {
 		select {
 		case t := <-sysTicker.C:
-			if t.Second() % 3 == 0 {
+			if t.Second()%3 == 0 {
 				mEvt := merge()
 				if mEvt != nil {
 					k.pushWSItem(mEvt)
 				}
 			}
-		case <- k.stopChan:
+		case <-k.stopChan:
 			break
 		}
 	}

@@ -37,7 +37,7 @@ type IKline interface {
 	GetLow() float64
 	GetVolume() float64
 	PrettyTimeString() string
-	GetBrifeInfo() []string
+	GetBriefInfo() []string
 }
 
 var (
@@ -56,7 +56,7 @@ var (
 		KlineTypeM10080: "dex_spot/candle604800s",
 	}
 
-	klineType2Freq = map[string]int {
+	klineType2Freq = map[string]int{
 		KlineTypeM1:     60,
 		KlineTypeM3:     180,
 		KlineTypeM5:     300,
@@ -69,7 +69,6 @@ var (
 		KlineTypeM720:   43200,
 		KlineTypeM1440:  86400,
 		KlineTypeM10080: 604800,
-
 	}
 )
 
@@ -209,8 +208,8 @@ func (b *BaseKline) GetVolume() float64 {
 	return b.Volume
 }
 
-// GetBrifeInfo return array of kline data
-func (b *BaseKline) GetBrifeInfo() []string {
+// GetBriefInfo return array of kline data
+func (b *BaseKline) GetBriefInfo() []string {
 	m := []string{
 		time.Unix(b.GetTimestamp(), 0).UTC().Format("2006-01-02T15:04:05.000Z"),
 		fmt.Sprintf("%.4f", b.GetOpen()),
@@ -223,9 +222,9 @@ func (b *BaseKline) GetBrifeInfo() []string {
 }
 
 func (b *BaseKline) FormatResult() interface{} {
-	result := map[string] interface{}{}
+	result := map[string]interface{}{}
 	result["instrument_id"] = b.Product
-	result["candle"] = b.GetBrifeInfo()
+	result["candle"] = b.GetBriefInfo()
 	return result
 }
 
@@ -744,7 +743,7 @@ func ToRestfulData(klines *[]IKline, limit int) [][]string {
 	}
 
 	for _, k := range (*klines)[from:to] {
-		m = append(m, k.GetBrifeInfo())
+		m = append(m, k.GetBriefInfo())
 	}
 	return m
 }

@@ -204,8 +204,8 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	if endTS%60 == 0 {
 		endTS += 1
 	}
-	anchorEndTS, cnt, newKlinesM1, err := orm.CreateKline1min(0, endTS, &ds)
-	fmt.Printf("CreateKline1min ERROR: %+v", err)
+	anchorEndTS, cnt, newKlinesM1, err := orm.CreateKline1M(0, endTS, &ds)
+	fmt.Printf("CreateKline1M ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 3)
 	assert.True(t, len(newKlinesM1) == cnt)
 
@@ -213,8 +213,8 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	assert.True(t, len(products) > 0)
 	fmt.Printf("%+v \n", products)
 
-	_, cnt, newKlinesM1, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
-	fmt.Printf("CreateKline1min ERROR: %+v", err)
+	_, cnt, newKlinesM1, err = orm.CreateKline1M(anchorEndTS, time.Now().Unix()+1, &ds)
+	fmt.Printf("CreateKline1M ERROR: %+v", err)
 	assert.True(t, err == nil, cnt == 1)
 
 	maxTS := orm.getKlineMaxTimestamp(&types.KlineM1{})
@@ -387,7 +387,7 @@ func constructLocalBackendDB(orm *ORM) (err error) {
 	m := types.GetAllKlineMap()
 	crrTs := time.Now().Unix()
 	ds := DealDataSource{orm: orm}
-	if _, _, _, err := orm.CreateKline1min(0, crrTs, &ds); err != nil {
+	if _, _, _, err := orm.CreateKline1M(0, crrTs, &ds); err != nil {
 		return err
 	}
 

@@ -490,8 +490,8 @@ func (dm *MergeResultDataSource) getOpenClosePrice(startTS, endTS int64, product
 	return openDeal.Price, closeDeal.Price
 }
 
-// CreateKline1min batch insert into Kline1M
-func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSource) (
+// CreateKline1M batch insert into Kline1M
+func (orm *ORM) CreateKline1M(startTS, endTS int64, dataSource IKline1MDataSource) (
 	anchorEndTS int64, newProductCnt int, newKlineInfo map[string][]types.KlineM1, err error) {
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -517,9 +517,6 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 		}
 	}
 
-	tx := orm.db.Begin()
-	defer orm.deferRollbackTx(tx, err)
-
 	anchorTime := time.Unix(acTS, 0).UTC()
 	anchorStartTime := time.Date(
 		anchorTime.Year(), anchorTime.Month(), anchorTime.Day(), anchorTime.Hour(), anchorTime.Minute(), 0, 0, time.UTC)
@@ -529,6 +526,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	nextTimeStamp := nextTime.Unix()
 	for nextTimeStamp <= endTS {
 		sql := dataSource.getMaxMinSumByGroupSQL(anchorStartTime.Unix(), nextTime.Unix())
+		orm.Debug(fmt.Sprintf("CreateKline1M sql:%s", sql))
 		rows, err := orm.db.Raw(sql).Rows()
 
 		if rows != nil && err == nil {
@@ -538,10 +536,9 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 				var cnt int
 
 				if err = rows.Scan(&product, &quantity, &high, &low, &cnt); err != nil {
-					orm.Error("failed to execute scan result, error:" + err.Error() + " sql: " + sql)
+					orm.Error(fmt.Sprintf("CreateKline1M failed to execute scan result, error:%s sql:%s", err.Error(), sql))
 				}
 				if cnt > 0 {
-
 					openPrice, closePrice := dataSource.getOpenClosePrice(anchorStartTime.Unix(), nextTime.Unix(), product)
 
 					b := types.BaseKline{
@@ -560,26 +557,26 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 			}
 
 			if err = rows.Close(); err != nil {
-				orm.Error("failed to execute close rows, error:" + err.Error())
+				orm.Error(fmt.Sprintf("CreateKline1M failed to execute close rows, error:%s", err.Error()))
 			}
 		}
 
 		anchorStartTime = nextTime
 		nextTime = anchorStartTime.Add(time.Minute)
 		nextTimeStamp = nextTime.Unix()
-
 	}
 
 	// 3. Batch insert into Kline1Min
-
+	tx := orm.db.Begin()
+	defer orm.deferRollbackTx(tx, err)
 	for _, klines := range productKlines {
 		for _, kline := range klines {
 			// TODO: it should be a replacement here.
 			ret := tx.Create(&kline)
 			if ret.Error != nil {
-				orm.Error(fmt.Sprintf("[backend] failed to create kline Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
+				orm.Error(fmt.Sprintf("CreateKline1M failed to create kline Error: %+v, kline: %s", ret.Error, kline.PrettyTimeString()))
 			} else {
-				orm.Debug(fmt.Sprintf("[backend] success to create in %s, %s %s", kline.GetTableName(), types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
+				orm.Debug(fmt.Sprintf("CreateKline1M success to create in %s, %s %s", kline.GetTableName(), types.TimeString(kline.Timestamp), kline.PrettyTimeString()))
 			}
 
 		}
@@ -587,7 +584,7 @@ func (orm *ORM) CreateKline1min(startTS, endTS int64, dataSource IKline1MDataSou
 	tx.Commit()
 
 	anchorEndTS = anchorStartTime.Unix()
-	(*orm.logger).Debug(fmt.Sprintf("[backend] CreateKline1min return klinesMap: %+v", productKlines))
+	orm.Debug(fmt.Sprintf("CreateKline1M return klinesMap: %+v", productKlines))
 	return anchorEndTS, len(productKlines), productKlines, nil
 }
 
