@@ -343,7 +343,7 @@ func (p *ProtocolV0) produceKeepers() {
 func (p *ProtocolV0) moduleAccountAddrs() map[string]bool {
 	modAccAddrs := make(map[string]bool)
 	for acc := range maccPerms {
-		modAccAddrs[p.supplyKeeper.GetModuleAddress(acc).String()] = true
+		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
 	}
 
 	return modAccAddrs
