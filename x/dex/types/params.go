@@ -24,8 +24,7 @@ var (
 type Params struct {
 	ListFee              sdk.DecCoin `json:"list_fee"`
 	TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
-	//DelistFee            sdk.DecCoins `json:"delist_fee"`
-	RegisterOperatorFee sdk.DecCoin `json:"register_operator_fee"`
+	RegisterOperatorFee  sdk.DecCoin `json:"register_operator_fee"`
 
 	//  maximum period for okt holders to deposit on a dex delist proposal
 	DelistMaxDepositPeriod time.Duration `json:"delist_max_deposit_period"`
