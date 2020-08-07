@@ -15,7 +15,6 @@ const (
 	CodeInvalidAsset            sdk.CodeType = 6
 	CodeInvalidCommon           sdk.CodeType = 7
 	CodeBlockedRecipient        sdk.CodeType = 8
-	CodeSendDisabled            sdk.CodeType = 9
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
