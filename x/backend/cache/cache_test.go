@@ -13,8 +13,6 @@ func TestCache(t *testing.T) {
 	require.Equal(t, 0, len(cache.Transactions))
 	require.Equal(t, 2000, cap(cache.Transactions))
 	require.Equal(t, 0, len(cache.LatestTicker))
-	require.Equal(t, 0, len(cache.ProductsBuf))
-	require.Equal(t, 200, cap(cache.ProductsBuf))
 
 	txs := []*types.Transaction{
 		{TxHash: "hash1", Type: types.TxTypeTransfer, Address: "addr1", Symbol: common.TestToken, Side: types.TxSideFrom, Quantity: "10.0", Fee: "0.1" + common.NativeToken, Timestamp: 100},

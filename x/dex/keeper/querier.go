@@ -47,7 +47,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
-	if offset < 0 || limit <= 0 {
+	if offset < 0 || limit < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 
@@ -113,7 +113,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	}
 
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
-	if offset < 0 || limit <= 0 {
+	if offset < 0 || limit < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 
@@ -177,7 +177,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	}
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
-	if offset < 0 || limit <= 0 {
+	if offset < 0 || limit < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
 	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)

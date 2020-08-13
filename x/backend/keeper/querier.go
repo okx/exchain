@@ -133,7 +133,7 @@ func queryDeals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	if params.Side != "" && params.Side != orderTypes.BuyOrder && params.Side != orderTypes.SellOrder {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("Side should not be %s", params.Side))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 
@@ -159,7 +159,7 @@ func queryMatchResults(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -188,7 +188,7 @@ func queryFeeDetails(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 
@@ -280,6 +280,11 @@ func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 		products = keeper.getAllProducts(ctx)
 	}
 
+	// set default count to 10
+	if params.Count <= 0 {
+		params.Count = 10
+	}
+
 	addedTickers := []types.Ticker{}
 	tickers := keeper.GetTickers(products, params.Count)
 	for _, p := range products {
@@ -345,6 +350,11 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 		products = keeper.getAllProducts(ctx)
 	}
 
+	// set default count to 10
+	if params.Count <= 0 {
+		params.Count = 10
+	}
+
 	var addedTickers []map[string]string
 	for _, p := range products {
 
@@ -408,7 +418,7 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -439,7 +449,7 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -464,7 +474,7 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)

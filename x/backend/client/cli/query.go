@@ -168,7 +168,7 @@ func GetCmdCandles(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 	cmd.Flags().IntP("granularity", "g", 60, "[60/180/300/900/1800/3600/7200/14400/21600/43200/86400/604800], second in unit")
 	cmd.Flags().StringP("product", "p", "", "name of token pair")
-	cmd.Flags().IntP("limit", "", 1, "at most 1000")
+	cmd.Flags().IntP("limit", "", 10, "at most 1000")
 	return cmd
 }
 

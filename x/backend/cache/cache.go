@@ -9,7 +9,6 @@ type Cache struct {
 
 	// persist in memory
 	LatestTicker map[string]*types.Ticker
-	ProductsBuf  []string
 }
 
 // NewCache return  cache pointer address, called at NewKeeper
@@ -17,7 +16,6 @@ func NewCache() *Cache {
 	return &Cache{
 		Transactions: make([]*types.Transaction, 0, 2000),
 		LatestTicker: make(map[string]*types.Ticker),
-		ProductsBuf:  make([]string, 0, 200),
 	}
 }
 
