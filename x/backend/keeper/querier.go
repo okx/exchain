@@ -214,7 +214,10 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Product != "" && keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
+	if params.Product == "" {
+		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+	}
+	if keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
 	}
 
@@ -241,7 +244,10 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Product != "" && keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
+	if params.Product == "" {
+		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+	}
+	if keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
 	}
 
