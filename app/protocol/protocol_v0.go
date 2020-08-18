@@ -480,10 +480,16 @@ func validateMsgHook(orderKeeper order.Keeper) auth.ValidateMsgHandler {
 			switch assertedMsg := msg.(type) {
 			case order.MsgNewOrders:
 				hasNewOrCancelOrdersMsg = true
-				return order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
+				result := order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
+				if !result.IsOK() {
+					return result
+				}
 			case order.MsgCancelOrders:
 				hasNewOrCancelOrdersMsg = true
-				return order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+				result := order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+				if !result.IsOK() {
+					return result
+				}
 			}
 		}
 		if len(msgs) > 1 && hasNewOrCancelOrdersMsg {
