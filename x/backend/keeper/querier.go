@@ -343,8 +343,6 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data, ", err.Error()))
 	}
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	tickers, err := keeper.marketKeeper.GetTickers()
 
 	var products []string
 	if params.Product != "" {
@@ -361,12 +359,15 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 		params.Count = 10
 	}
 
-	var addedTickers []map[string]string
-	for _, p := range products {
+	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
+	allTickers, err := keeper.marketKeeper.GetTickers()
 
+	var filterTickers []map[string]string
+	for _, p := range products {
 		exists := false
-		for _, t := range tickers {
+		for _, t := range allTickers {
 			if p == t["product"] {
+				filterTickers = append(filterTickers, t)
 				exists = true
 				break
 			}
@@ -386,24 +387,20 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 				//"changePercentage": "0.00%",
 				"timestamp": time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
 			}
-			addedTickers = append(addedTickers, tmpTicker)
+			filterTickers = append(filterTickers, tmpTicker)
 		}
 
 	}
 
-	if len(addedTickers) > 0 {
-		tickers = append(tickers, addedTickers...)
-	}
-
-	if len(tickers) > params.Count {
-		tickers = tickers[0:params.Count]
+	if len(filterTickers) > params.Count {
+		filterTickers = filterTickers[0:params.Count]
 	}
 
 	var response *common.BaseResponse
 	if err != nil {
 		response = common.GetErrorResponse(-1, "", err.Error())
 	} else {
-		response = common.GetBaseResponse(tickers)
+		response = common.GetBaseResponse(filterTickers)
 	}
 
 	bz, err := json.Marshal(response)
