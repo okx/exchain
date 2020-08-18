@@ -475,12 +475,21 @@ func MakeCodec() *codec.Codec {
 
 func validateMsgHook(orderKeeper order.Keeper) auth.ValidateMsgHandler {
 	return func(newCtx sdk.Context, msgs []sdk.Msg) sdk.Result {
+		hasNewOrCancelOrdersMsg := false
 		for _, msg := range msgs {
 			switch assertedMsg := msg.(type) {
 			case order.MsgNewOrders:
+				hasNewOrCancelOrdersMsg = true
 				return order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
 			case order.MsgCancelOrders:
+				hasNewOrCancelOrdersMsg = true
 				return order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			}
+		}
+		if len(msgs) > 1 && hasNewOrCancelOrdersMsg {
+			return sdk.Result{
+				Code: sdk.CodeUnknownRequest,
+				Log:  "It is not expected that msgs with placeOrder type or cancelOrder type in the msg array",
 			}
 		}
 		return sdk.Result{}
