@@ -474,31 +474,34 @@ func MakeCodec() *codec.Codec {
 }
 
 func validateMsgHook(orderKeeper order.Keeper) auth.ValidateMsgHandler {
-	return func(newCtx sdk.Context, msgs []sdk.Msg) sdk.Result {
-		hasNewOrCancelOrdersMsg := false
+	return func(newCtx sdk.Context, msgs []sdk.Msg) (res sdk.Result) {
+
+		wrongMsgRes := sdk.Result{
+			Code: sdk.CodeUnknownRequest,
+			Log:  "It is not allowed that a transaction with more than one message contains placeOrder or cancelOrder message",
+		}
+
 		for _, msg := range msgs {
 			switch assertedMsg := msg.(type) {
 			case order.MsgNewOrders:
-				hasNewOrCancelOrdersMsg = true
-				result := order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
-				if !result.IsOK() {
-					return result
+				if len(msgs) > 1 {
+					res = wrongMsgRes
+					break
 				}
+				res = order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
 			case order.MsgCancelOrders:
-				hasNewOrCancelOrdersMsg = true
-				result := order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
-				if !result.IsOK() {
-					return result
+				if len(msgs) > 1 {
+					res = wrongMsgRes
+					break
 				}
+				res = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			}
+
+			if !res.IsOK() {
+				break
 			}
 		}
-		if len(msgs) > 1 && hasNewOrCancelOrdersMsg {
-			return sdk.Result{
-				Code: sdk.CodeUnknownRequest,
-				Log:  "It is not expected that msgs with placeOrder type or cancelOrder type in the msg array",
-			}
-		}
-		return sdk.Result{}
+		return
 	}
 }
 
