@@ -42,6 +42,11 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of delist proposal should be a validator")
 	}
 
+	// check the propose of the msg is equal the proposer in proposal content
+	if !proposer.Equals(delistProposal.Proposer) {
+		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of proposal msg should be equal the proposer in proposal content")
+	}
+
 	// check whether the baseAsset is in the Dex list
 	queryTokenPair := k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	if queryTokenPair == nil {

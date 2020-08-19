@@ -19,7 +19,6 @@ var (
 const (
 	orderModule        = "order"
 	dexModule          = "dex"
-	swapModule         = "poolswap"
 	tokenModule        = "token"
 	stakingModule      = "staking"
 	govModule          = "gov"
@@ -143,7 +142,6 @@ func newPerf() *performance {
 	}
 	p.moduleInfoMap[orderModule] = newHanlderMetrics()
 	p.moduleInfoMap[dexModule] = newHanlderMetrics()
-	p.moduleInfoMap[swapModule] = newHanlderMetrics()
 	p.moduleInfoMap[tokenModule] = newHanlderMetrics()
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
@@ -312,7 +310,6 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	p.app = &appInfo{seqNum: p.app.seqNum}
 	p.moduleInfoMap[orderModule] = newHanlderMetrics()
 	p.moduleInfoMap[dexModule] = newHanlderMetrics()
-	p.moduleInfoMap[swapModule] = newHanlderMetrics()
 	p.moduleInfoMap[tokenModule] = newHanlderMetrics()
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
