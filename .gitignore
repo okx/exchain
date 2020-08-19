@@ -67,6 +67,3 @@ dependency-graph.png
 contract_tests/*
 dev/cache/*
 result.txt
-
-# ut
-!app/genesis/genesis.json
