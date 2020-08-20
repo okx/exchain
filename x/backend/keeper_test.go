@@ -118,7 +118,7 @@ func TestKeeper_Tx(t *testing.T) {
 
 	ctx = mapp.NewContext(true, abci.Header{})
 	getTxs, _ := mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[0].Address.String(), 0, 0, 0, 0, 200)
-	require.EqualValues(t, 2*len(msgOrderNew.OrderItems) + 1, len(getTxs))
+	require.EqualValues(t, 2*len(msgOrderNew.OrderItems)+1, len(getTxs))
 
 	getTxs, _ = mapp.backendKeeper.GetTransactionList(ctx, addrKeysSlice[1].Address.String(), 0, 0, 0, 0, 200)
 	require.EqualValues(t, 1, len(getTxs))
@@ -193,7 +193,7 @@ func TestKeeper_FixJira85(t *testing.T) {
 
 	// 3. UpdateTickers Again
 	ts := time.Now().Unix()
-	mapp.backendKeeper.UpdateTickersBuffer(ts-types.SecondsInADay, ts+1, mapp.backendKeeper.Cache.ProductsBuf)
+	mapp.backendKeeper.UpdateTickersBuffer(ts-types.SecondsInADay, ts+1, nil)
 	tickers = mapp.backendKeeper.GetTickers(nil, 100)
 	require.True(t, len(tickers) > 1)
 	for _, ti := range tickers {
@@ -363,37 +363,36 @@ func TestKeeper_getCandles(t *testing.T) {
 	}
 }
 
-
-func buildNewOrderMsg(sender sdk.AccAddress, product string, price string, quantity string) orderTypes.MsgNewOrders{
+func buildNewOrderMsg(sender sdk.AccAddress, product string, price string, quantity string) orderTypes.MsgNewOrders {
 	var OrderItems []orderTypes.OrderItem
-	for i :=0 ;i < 25; i++ {
-		OrderItems = append(OrderItems,orderTypes.OrderItem{
-				Product:  product,
-				Side:     types.BuyOrder,
-				Price:    sdk.MustNewDecFromStr(price),
-				Quantity: sdk.MustNewDecFromStr(quantity),
-			} )
+	for i := 0; i < 25; i++ {
+		OrderItems = append(OrderItems, orderTypes.OrderItem{
+			Product:  product,
+			Side:     types.BuyOrder,
+			Price:    sdk.MustNewDecFromStr(price),
+			Quantity: sdk.MustNewDecFromStr(quantity),
+		})
 	}
 
-	for i :=0 ;i < 25; i++ {
-		OrderItems = append(OrderItems,orderTypes.OrderItem{
+	for i := 0; i < 25; i++ {
+		OrderItems = append(OrderItems, orderTypes.OrderItem{
 			Product:  product,
 			Side:     types.SellOrder,
 			Price:    sdk.MustNewDecFromStr(price),
 			Quantity: sdk.MustNewDecFromStr(quantity),
-		} )
+		})
 	}
 
 	return orderTypes.MsgNewOrders{
-		Sender: sender,
+		Sender:     sender,
 		OrderItems: OrderItems,
 	}
 }
 
-func buildCancelOrderMsg(sender sdk.AccAddress, blockHeight, orderNum int) orderTypes.MsgCancelOrders{
+func buildCancelOrderMsg(sender sdk.AccAddress, blockHeight, orderNum int) orderTypes.MsgCancelOrders {
 	var orderIds []string
 	for idx := 0; idx < orderNum; idx++ {
-		orderIds = append(orderIds, orderTypes.FormatOrderID(int64(blockHeight), int64(idx + 1)))
+		orderIds = append(orderIds, orderTypes.FormatOrderID(int64(blockHeight), int64(idx+1)))
 	}
 
 	msgCancelOrder := orderTypes.MsgCancelOrders{

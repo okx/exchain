@@ -55,7 +55,7 @@ func generateKline1M(keeper Keeper) {
 	ticker := time.NewTicker(interval)
 
 	go CleanUpKlines(keeper.stopChan, keeper.Orm, keeper.Config)
-	var klineNotifyChans *map[int]chan struct{}
+	klineNotifyChans := generateSyncKlineMXChans()
 	work := func() {
 		currentBlockTimestamp := keeper.Orm.GetMaxBlockTimestamp()
 		if currentBlockTimestamp == 0 {
@@ -87,7 +87,6 @@ func generateKline1M(keeper Keeper) {
 
 	work()
 
-	klineNotifyChans = generateSyncKlineMXChans()
 	for freq, ntfCh := range *klineNotifyChans {
 		go generateKlinesMX(ntfCh, freq, keeper)
 	}

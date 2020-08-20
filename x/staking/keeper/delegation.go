@@ -57,7 +57,12 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 
 	}
 	// 4.update shares when delAddr has added already
-	return k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens)
+	finalTokens := delegator.Tokens
+	// finalTokens should add TotalDelegatedTokens when delegator is proxy
+	if delegator.IsProxy {
+		finalTokens = finalTokens.Add(delegator.TotalDelegatedTokens)
+	}
+	return k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens)
 }
 
 // Withdraw handles the process of withdrawing token from deposit account
@@ -73,11 +78,16 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 		return time.Time{}, types.ErrInsufficientDelegation(types.DefaultCodespace, quantity.String(), delegator.Tokens.String())
 	}
 
+	// proxy has to unreg before withdrawing total tokens
+	leftTokens := delegator.Tokens.Sub(quantity)
+	if delegator.IsProxy && leftTokens.IsZero() {
+		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(types.DefaultCodespace, delAddr.String())
+	}
+
 	// 1.some okt transfer bondPool into unbondPool
 	k.bondedTokensToNotBonded(ctx, token)
 
 	// 2.delete delegator in store, or set back
-	leftTokens := delegator.Tokens.Sub(quantity)
 	if delegator.HasProxy() {
 		if sdkErr := k.UpdateProxy(ctx, delegator, quantity.Mul(sdk.NewDec(-1))); sdkErr != nil {
 			return time.Time{}, sdkErr
@@ -95,7 +105,12 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 		delegator.Tokens = leftTokens
 		k.SetDelegator(ctx, delegator)
 		if !delegator.HasProxy() {
-			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, delegator.Tokens); err != nil {
+			finalTokens := delegator.Tokens
+			// finalTokens should add TotalDelegatedTokens when delegator is proxy
+			if delegator.IsProxy {
+				finalTokens = finalTokens.Add(delegator.TotalDelegatedTokens)
+			}
+			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens); err != nil {
 				return time.Time{}, err
 			}
 		}

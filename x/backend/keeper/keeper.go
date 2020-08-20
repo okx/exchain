@@ -234,12 +234,9 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
 	for _, tp := range tokenPairs {
 		if tp != nil {
-			products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
+			products = append(products, tp.Name())
 		}
 	}
-
-	k.Cache.ProductsBuf = products
-
 	return products
 }
 
@@ -420,7 +417,7 @@ func (k Keeper) getAllTickers() []types.Ticker {
 
 func (k Keeper) mergeTicker3SecondEvents() (err error) {
 
-	sysTicker := time.NewTicker(time.Second)
+	sysTicker := time.NewTicker(3 * time.Second)
 
 	merge := func() *types.MergedTickersEvent {
 		tickersMap := map[string]types.IWebsocket{}
@@ -452,12 +449,10 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 
 	for {
 		select {
-		case t := <-sysTicker.C:
-			if t.Second()%3 == 0 {
-				mEvt := merge()
-				if mEvt != nil {
-					k.pushWSItem(mEvt)
-				}
+		case <-sysTicker.C:
+			mEvt := merge()
+			if mEvt != nil {
+				k.pushWSItem(mEvt)
 			}
 		case <-k.stopChan:
 			break

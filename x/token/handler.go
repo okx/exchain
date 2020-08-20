@@ -251,6 +251,10 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 }
 
 func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) sdk.Result {
+	if !keeper.bankKeeper.GetSendEnabled(ctx) {
+		return types.ErrSendDisabled(DefaultCodespace).Result()
+	}
+
 	var transfers string
 	var coinNum int
 	for _, transferUnit := range msg.Transfers {
@@ -281,6 +285,9 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 }
 
 func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log.Logger) sdk.Result {
+	if !keeper.bankKeeper.GetSendEnabled(ctx) {
+		return types.ErrSendDisabled(DefaultCodespace).Result()
+	}
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {

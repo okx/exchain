@@ -8,7 +8,7 @@ import (
 	"github.com/okex/okchain/x/order/types"
 )
 
-// GenesisState - all slashing state that must be provided at genesis
+// GenesisState - all order state that must be provided at genesis
 type GenesisState struct {
 	Params     types.Params   `json:"params"`
 	OpenOrders []*types.Order `json:"open_orders"`
