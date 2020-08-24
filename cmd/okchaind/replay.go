@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/tendermint/tendermint/mock"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/server"
 
-	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/proxy"
 
 	"github.com/spf13/viper"
@@ -39,11 +39,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Use:   "replay",
 		Short: "Replay blocks from local db",
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx.Logger.Info("--------- replay start ---------")
+			log.Println("--------- replay start ---------")
 			dataDir := viper.GetString(dataDirFlag)
 			//blockHeight := viper.GetInt64(blockHeightFlag)
 			replayBlock(ctx, dataDir)
-			ctx.Logger.Info("--------- replay success ---------")
+			log.Println("--------- replay success ---------")
 		},
 	}
 	cmd.Flags().StringP(dataDirFlag, "d", ".okchaind/data", "Directory of block data for replaying")
@@ -60,8 +60,8 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	panicError(err)
 	currentBlockHeight := res.LastBlockHeight
 	currentAppHash := res.LastBlockAppHash
-	ctx.Logger.Info("current block height", "height", currentBlockHeight)
-	ctx.Logger.Info("current app hash", "appHash", fmt.Sprintf("%X", currentAppHash))
+	log.Println("current block height", "height", currentBlockHeight)
+	log.Println("current app hash", "appHash", fmt.Sprintf("%X", currentAppHash))
 
 	stateStoreDB, err := openDB(ctx, stateDB)
 	panicError(err)
@@ -101,10 +101,10 @@ func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
 	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
-	return createAndStartProxyAppConns(clientCreator, ctx.Logger)
+	return createAndStartProxyAppConns(clientCreator)
 }
 
-func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
+func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppConns, error) {
 	proxyApp := proxy.NewAppConns(clientCreator)
 	if err := proxyApp.Start(); err != nil {
 		return nil, fmt.Errorf("error starting proxy app connections: %v", err)
@@ -160,15 +160,16 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
-	ctx.Logger.Info("origin latest block height", "height", originLatestBlockHeight)
+	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
 	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
+		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
-		ctx.Logger.Info("commit state", "state", fmt.Sprintf("%+v", state))
+		//ctx.Logger.Info("commit state", "state", fmt.Sprintf("%+v", state))
 	}
 }
