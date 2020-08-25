@@ -5,25 +5,18 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/tendermint/tendermint/mock"
-	"github.com/tendermint/tendermint/store"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/types"
-
-	"github.com/tendermint/tendermint/node"
-
-	dbm "github.com/tendermint/tm-db"
-
 	"github.com/cosmos/cosmos-sdk/server"
-
-	"github.com/tendermint/tendermint/proxy"
-
-	"github.com/spf13/viper"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/mock"
+	"github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/proxy"
 	sm "github.com/tendermint/tendermint/state"
+	"github.com/tendermint/tendermint/store"
+	"github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
