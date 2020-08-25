@@ -27,11 +27,10 @@ import (
 )
 
 const (
-	dataDirFlag     = "data_dir"
-	blockHeightFlag = "block_height"
-	applicationDB   = "application"
-	blockStoreDB    = "blockstore"
-	stateDB         = "state"
+	dataDirFlag   = "data_dir"
+	applicationDB = "application"
+	blockStoreDB  = "blockstore"
+	stateDB       = "state"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -41,13 +40,11 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
 			dataDir := viper.GetString(dataDirFlag)
-			//blockHeight := viper.GetInt64(blockHeightFlag)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
 		},
 	}
 	cmd.Flags().StringP(dataDirFlag, "d", ".okchaind/data", "Directory of block data for replaying")
-	//cmd.Flags().Int64P(blockHeightFlag, "b", 1, "Block height ")
 	return cmd
 }
 
@@ -63,7 +60,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	log.Println("current block height", "height", currentBlockHeight)
 	log.Println("current app hash", "appHash", fmt.Sprintf("%X", currentAppHash))
 
-	stateStoreDB, err := openDB(ctx, stateDB)
+	rootDir := ctx.Config.RootDir
+	dataDir := filepath.Join(rootDir, "data")
+	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
@@ -89,14 +88,14 @@ func panicError(err error) {
 	}
 }
 
-func openDB(ctx *server.Context, dbName string) (db dbm.DB, err error) {
-	rootDir := ctx.Config.RootDir
-	dataDir := filepath.Join(rootDir, "data")
+func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
 	return sdk.NewLevelDB(dbName, dataDir)
 }
 
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
-	db, err := openDB(ctx, applicationDB)
+	rootDir := ctx.Config.RootDir
+	dataDir := filepath.Join(rootDir, "data")
+	db, err := openDB(applicationDB, dataDir)
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
@@ -156,7 +155,7 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
-	originBlockStoreDB, err := sdk.NewLevelDB(blockStoreDB, originDataDir)
+	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
@@ -170,6 +169,5 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
-		//ctx.Logger.Info("commit state", "state", fmt.Sprintf("%+v", state))
 	}
 }
