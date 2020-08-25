@@ -130,7 +130,6 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	if err != nil {
 		return err
 	}
-	//fmt.Println(res.Validators)
 	if state.LastBlockHeight == types.GetStartBlockHeight() { //we only update state when we are in initial state
 		// If the app returned validators or consensus params, update the state.
 		if len(res.Validators) > 0 {
