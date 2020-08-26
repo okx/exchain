@@ -177,8 +177,7 @@ func generateKlinesMX(notifyChan chan int64, refreshInterval int, keeper Keeper)
 
 		} else {
 			if len(newKlines) > 0 {
-				anchorNewStartTS = anchorNextStart
-				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
+				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNextStart)
 			}
 		}
 	}
