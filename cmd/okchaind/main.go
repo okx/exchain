@@ -52,7 +52,7 @@ func main() {
 	rootCmd.AddCommand(genaccscli.AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome))
 	rootCmd.AddCommand(client.NewCompletionCmd(rootCmd, true))
 	rootCmd.AddCommand(testnetCmd(ctx, cdc, app.ModuleBasics, genaccounts.AppModuleBasic{}))
-
+	rootCmd.AddCommand(replayCmd(ctx))
 	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes)
 	rootCmd.PersistentFlags().String(client.FlagKeyPass, client.DefaultKeyPass, "Pass word of sender")
 
