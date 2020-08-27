@@ -418,6 +418,24 @@ func (orm *ORM) getMaxTimestamp(tbName string) int64 {
 	return ts
 }
 
+func (orm *ORM) getMergingKlineTimestamp(tbName string, timestamp int64) int64 {
+	sql := fmt.Sprintf("select max(Timestamp) as ts from %s where Timestamp <=%d", tbName, timestamp)
+	ts := int64(-1)
+	count := 0
+
+	raw := orm.db.Raw(sql)
+	raw.Count(&count)
+	if count == 0 {
+		return ts
+	}
+
+	if err := raw.Row().Scan(&ts); err != nil {
+		orm.Error("failed to execute scan result, error:" + err.Error())
+	}
+
+	return ts
+}
+
 func (orm *ORM) getDealsMinTimestamp() int64 {
 	return orm.getMinTimestamp("deals")
 }
@@ -730,8 +748,9 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 
 	// 1. Get anchor start time.
 	acTS := startTS
-	maxTSPersistent := orm.getKlineMaxTimestamp(destKline)
-	if maxTSPersistent > 0 && maxTSPersistent > startTS {
+	maxTSPersistent := orm.getMergingKlineTimestamp(destKline.GetTableName(), startTS)
+	if maxTSPersistent > 0 {
+
 		acTS = maxTSPersistent
 	}
 
@@ -745,9 +764,6 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 		}
 	}
 
-	tx := orm.db.Begin()
-	defer orm.deferRollbackTx(tx, err)
-
 	var anchorStartTime time.Time
 	if maxTSPersistent > 0 {
 		anchorTime := time.Unix(acTS, 0).UTC()
@@ -759,19 +775,19 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 
 	// 2. Get anchor end time.
 	anchorEndTime := endTS
-	orm.Debug(fmt.Sprintf("[backend] MergeKlineM1 KlinesMX-#%d# [%s, %s)",
+	orm.Debug(fmt.Sprintf("[backend] MergeKlineM1 KlinesMX-#%d# [%s, %s]",
 		destKline.GetFreqInSecond(), types.TimeString(anchorStartTime.Unix()), types.TimeString(anchorEndTime)))
 
 	// 3. Collect product's kline by deals
 	productKlines := map[string][]interface{}{}
 	interval := time.Duration(int(time.Second) * destKline.GetFreqInSecond())
 	nextTime := anchorStartTime.Add(interval)
-	nextTimeStamp := nextTime.Unix()
-	for nextTimeStamp <= anchorEndTime {
+	for anchorStartTime.Unix() <= anchorEndTime {
 
 		sql := fmt.Sprintf("select %d, product, sum(volume) as volume, max(high) as high, min(low) as low, count(*) as cnt from %s "+
 			"where Timestamp >= %d and Timestamp < %d group by product", anchorStartTime.Unix(), klineM1.(types.IKline).GetTableName(), anchorStartTime.Unix(), nextTime.Unix())
-
+		orm.Debug(fmt.Sprintf("[backend] MergeKlineM1 KlinesMX-#%d# sql=%s",
+			destKline.GetFreqInSecond(), sql))
 		rows, err := orm.db.Raw(sql).Rows()
 
 		if rows != nil && err == nil {
@@ -814,15 +830,14 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 
 		anchorStartTime = nextTime
 		nextTime = anchorStartTime.Add(interval)
-		nextTimeStamp = nextTime.Unix()
 	}
 
 	// 4. Batch insert into Kline1Min
-
+	tx := orm.db.Begin()
+	defer orm.deferRollbackTx(tx, err)
 	for _, klines := range productKlines {
 		for _, kline := range klines {
-			// TODO: it should be a replacement here.
-			ret := tx.Create(kline)
+			ret := tx.Delete(kline).Create(kline)
 			if ret.Error != nil {
 				orm.Error(fmt.Sprintf("Error: %+v, kline: %s", ret.Error, kline.(types.IKline).PrettyTimeString()))
 			} else {
