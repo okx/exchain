@@ -750,7 +750,6 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 	acTS := startTS
 	maxTSPersistent := orm.getMergingKlineTimestamp(destKline.GetTableName(), startTS)
 	if maxTSPersistent > 0 {
-
 		acTS = maxTSPersistent
 	}
 
