@@ -750,7 +750,6 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 	acTS := startTS
 	maxTSPersistent := orm.getMergingKlineTimestamp(destKline.GetTableName(), startTS)
 	if maxTSPersistent > 0 {
-
 		acTS = maxTSPersistent
 	}
 
@@ -782,7 +781,7 @@ func (orm *ORM) MergeKlineM1(startTS, endTS int64, destKline types.IKline) (
 	productKlines := map[string][]interface{}{}
 	interval := time.Duration(int(time.Second) * destKline.GetFreqInSecond())
 	nextTime := anchorStartTime.Add(interval)
-	for anchorStartTime.Unix() <= anchorEndTime {
+	for nextTime.Unix() <= anchorEndTime {
 
 		sql := fmt.Sprintf("select %d, product, sum(volume) as volume, max(high) as high, min(low) as low, count(*) as cnt from %s "+
 			"where Timestamp >= %d and Timestamp < %d group by product", anchorStartTime.Unix(), klineM1.(types.IKline).GetTableName(), anchorStartTime.Unix(), nextTime.Unix())

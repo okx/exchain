@@ -163,7 +163,7 @@ func generateKlinesMX(notifyChan chan int64, refreshInterval int, keeper Keeper)
 		if latestBlockTS == 0 {
 			return
 		}
-
+		latestBlockTS += int64(destIKline.GetFreqInSecond())
 		keeper.Logger.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
 			destIKline.GetFreqInSecond(), startTS, latestBlockTS, types.TimeString(startTS), types.TimeString(latestBlockTS)))
 
@@ -177,8 +177,7 @@ func generateKlinesMX(notifyChan chan int64, refreshInterval int, keeper Keeper)
 
 		} else {
 			if len(newKlines) > 0 {
-				anchorNewStartTS = anchorNextStart
-				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
+				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNextStart)
 			}
 		}
 	}
