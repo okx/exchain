@@ -1,0 +1,6 @@
+package pulsarclient
+
+const (
+	MARKET_CAL_SERVICE_DEX_SPOT_BIZ_TYPE    = int32(1001)
+	MARKET_CAL_SERVICE_DEX_SPOT_MARKET_TYPE = int32(1)
+)
