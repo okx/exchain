@@ -68,7 +68,7 @@ func (mp *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[s
 	for _, matchResult := range matchResults {
 		go func(matchResult backend.MatchResult) {
 			defer wg.Done()
-			marketId, ok := GetMarketIdFromMap(matchResult.Product) //attention,maybe marketId is 0
+			marketId, ok := marketIdMap[matchResult.Product] //attention,maybe marketId is 0
 			if !ok {
 				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
 				errChan <- err

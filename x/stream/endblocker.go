@@ -101,7 +101,6 @@ func releaseLockWithStatus(s *Stream, taskConst TaskConst, err error) (TaskConst
 }
 
 func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
-
 	sd := TaskWithData{}
 	sd.Task = NewTask(ctx.BlockHeight())
 	sd.dataMap = make(map[StreamKind]types.IStreamData)

@@ -247,14 +247,14 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if params.Product == "" {
 		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
 	}
-	if keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
+	tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product)
+	if tokenPair == nil {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
 	}
 
 	ctx.Logger().Debug(fmt.Sprintf("queryCandleList : %+v", params))
 	// should init token pair map here
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	restData, err := keeper.getCandlesByMarketKeeper(params.Product, params.Granularity, params.Size)
+	restData, err := keeper.getCandlesByMarketKeeper(tokenPair.ID, params.Granularity, params.Size)
 
 	var response *common.BaseResponse
 	if err != nil {
@@ -359,8 +359,7 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 		params.Count = 10
 	}
 
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	allTickers, err := keeper.marketKeeper.GetTickers()
+	allTickers, err := keeper.marketKeeper.GetTickerByProducts(products)
 
 	var filterTickers []map[string]string
 	for _, p := range products {

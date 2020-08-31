@@ -230,12 +230,10 @@ func (k Keeper) GetDexFees(ctx sdk.Context, dexHandlingAddr, product string, off
 }
 
 func (k Keeper) getAllProducts(ctx sdk.Context) []string {
-	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
-	for _, tp := range tokenPairs {
-		if tp != nil {
-			products = append(products, tp.Name())
-		}
+	products := make([]string, len(tokenPairs))
+	for i := 0; i < len(tokenPairs); i++ {
+		products[i] = tokenPairs[i].Name()
 	}
 	return products
 }
@@ -273,7 +271,7 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 	return nil, err
 }
 
-func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) (r [][]string, err error) {
+func (k Keeper) getCandlesByMarketKeeper(productID uint64, granularity, size int) (r [][]string, err error) {
 	if !k.Config.EnableBackend {
 		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
 	}
@@ -288,7 +286,7 @@ func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) 
 		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
 	}
 
-	klines, err := k.marketKeeper.GetKlineByInstrument(product, granularity, size)
+	klines, err := k.marketKeeper.GetKlineByProductID(productID, granularity, size)
 	if err == nil && klines != nil && len(klines) > 0 {
 		return klines, err
 	}

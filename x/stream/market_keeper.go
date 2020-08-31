@@ -10,7 +10,6 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/backend"
 	"github.com/okex/okchain/x/stream/pulsarclient"
 	"github.com/okex/okchain/x/stream/pushservice/conn"
@@ -28,22 +27,10 @@ type MarketKeeper backend.MarketKeeper
 type BaseMarketKeeper struct {
 }
 
-func (k *BaseMarketKeeper) getMarketInfos(instrument string) (bizType int32, marketId int64, marketType int32) {
-	marketId, _ = pulsarclient.GetMarketIdFromMap(instrument)
-	return pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_BIZ_TYPE, marketId, pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_MARKET_TYPE
-}
-
 // QUO:OPT_KLINE:${BIZ_TYPE}_${MARKET_ID}_${MARKET_TYPE}:${GRANULARITY}
-func (k *BaseMarketKeeper) getLatestCandlesKey(instrument string, granularity int) string {
-	bizType, marketId, marketType := k.getMarketInfos(instrument)
-	ptn := fmt.Sprintf("QUO:OPT_KLINE:%d_%d_%d:%d", bizType, marketId, marketType, granularity)
-	return ptn
-}
-
-// QUO:KLINE_DATA:${BIZ_TYPE}_${MARKET_ID}_${MARKET_TYPE}:${GRANULARITY}
-func (k *BaseMarketKeeper) getLatestCandlesKey_Deprecated(instrument string, granularity int) string {
-	bizType, marketId, marketType := k.getMarketInfos(instrument)
-	ptn := fmt.Sprintf("QUO:KLINE_DATA:%d_%d_%d:%d", bizType, marketId, marketType, granularity)
+func (k *BaseMarketKeeper) getLatestCandlesKey(productID uint64, granularity int) string {
+	ptn := fmt.Sprintf("QUO:OPT_KLINE:%d_%d_%d:%d", pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_BIZ_TYPE,
+		productID, pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_MARKET_TYPE, granularity)
 	return ptn
 }
 
@@ -67,13 +54,9 @@ func NewRedisMarketKeeper(client *conn.Client, logger log.Logger) *RedisMarketKe
 	return &k
 }
 
-func (k *RedisMarketKeeper) InitTokenPairMap(ctx sdk.Context, dexKeeper backend.DexKeeper) {
-	pulsarclient.InitTokenPairMap(ctx, dexKeeper)
-}
-
-func (k *RedisMarketKeeper) GetKlineByInstrument(instrument string, granularity, size int) ([][]string, error) {
-	key := k.getLatestCandlesKey(instrument, granularity)
-	k.logger.Debug("GetKlineByInstrument", "product", instrument, "key", key)
+func (k *RedisMarketKeeper) GetKlineByProductID(productID uint64, granularity, size int) ([][]string, error) {
+	key := k.getLatestCandlesKey(productID, granularity)
+	k.logger.Debug("GetKlineByInstrument", "productID", productID, "key", key)
 	r, err := k.client.HGetAll(key)
 	k.logger.Debug("GetKlineByInstrument", "values", r, "error", err)
 	klines := make([][]string, 0, len(r))
@@ -109,13 +92,12 @@ func (k *RedisMarketKeeper) GetKlineByInstrument(instrument string, granularity,
 	return klines, nil
 }
 
-func (k *RedisMarketKeeper) GetTickers() ([]map[string]string, error) {
-	tickers := []map[string]string{}
-	marketIdMap := pulsarclient.GetMarketIdMap()
-	k.logger.Debug("RedisMarketKeeper", "marketIdMap", marketIdMap)
-	for instName := range marketIdMap {
-		key := k.getTickerCacheKey(instName)
-		k.logger.Debug("RedisMarketKeeper", "key", key)
+func (k *RedisMarketKeeper) GetTickerByProducts(products []string) ([]map[string]string, error) {
+	var tickers []map[string]string
+	k.logger.Debug("GetTickerByInstruments", "instruments", products)
+	for _, product := range products {
+		key := k.getTickerCacheKey(product)
+		k.logger.Debug("GetTickerByInstruments", "key", key)
 		r, _ := k.client.Get(key)
 		ticker := map[string]string{}
 		if len(r) > 0 {
@@ -129,8 +111,4 @@ func (k *RedisMarketKeeper) GetTickers() ([]map[string]string, error) {
 	}
 
 	return tickers, nil
-}
-
-func (k *RedisMarketKeeper) GetTickerByInstruments(instruments []string) map[string]backend.Ticker {
-	return nil
 }
