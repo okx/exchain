@@ -1,4 +1,4 @@
-package quoteslite
+package websocket
 
 import (
 	"fmt"
@@ -9,10 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/libs/log"
-)
-
-const (
-	wsEndpoint = "/websocket"
 )
 
 var (
@@ -36,7 +32,7 @@ func bridgeMsgHandler(w http.ResponseWriter, r *http.Request, logger log.Logger)
 		return c.WriteControl(websocket.PongMessage, []byte(string("pong")), time.Now().Add(writeWait))
 	})
 
-	connCtx := newOKWSContext()
+	connCtx := newContext()
 	signal.Notify(connCtx.signalCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	newOKWSConn(connCtx, c, logger)
 }

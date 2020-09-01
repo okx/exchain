@@ -1,4 +1,4 @@
-package quoteslite
+package websocket
 
 import (
 	"sync"

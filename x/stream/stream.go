@@ -6,7 +6,7 @@ import (
 
 	"github.com/okex/okchain/x/stream/eureka"
 	"github.com/okex/okchain/x/stream/nacos"
-	"github.com/okex/okchain/x/stream/quoteslite"
+	"github.com/okex/okchain/x/stream/websocket"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/google/uuid"
@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	LATEST_STREAM_TASK_KEY         = "latest_stream_task"
-	DISTRIBUTE_STREAM_LOCK         = "stream_lock"
-	DISTRIBUTE_STREAM_LOCK_TIMEOUT = 30000
+	latestTaskKey         = "latest_stream_task"
+	distributeLock        = "stream_lock"
+	distributeLockTimeout = 30000
 )
 
 // Stream maintains the engines
@@ -124,7 +124,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	se.taskChan = make(chan TaskWithData, 1)
 	se.resultChan = make(chan Task, 1)
 	se.distrLatestTask = nil
-	se.coordinator = NewCoordinator(logger, se.taskChan, se.resultChan, DISTRIBUTE_STREAM_LOCK_TIMEOUT, se.engines)
+	se.coordinator = NewCoordinator(logger, se.taskChan, se.resultChan, distributeLockTimeout, se.engines)
 	go se.coordinator.run()
 
 	// start stream cache queue
@@ -137,7 +137,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 
 	// Enable websocket
 	if se.engines[EngineWebSocketKind] != nil {
-		go quoteslite.StartWSServer(logger, se.engines[EngineWebSocketKind].Url())
+		go websocket.StartWSServer(logger, se.engines[EngineWebSocketKind].Url())
 	}
 
 	return se

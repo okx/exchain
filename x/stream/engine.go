@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/okchain/x/stream/quoteslite"
+	"github.com/okex/okchain/x/stream/websocket"
 
 	"github.com/pkg/errors"
 
@@ -54,7 +54,6 @@ var EngineKind2StreamKindMap = map[EngineKind]StreamKind{
 	EngineWebSocketKind: StreamWebSocketKind,
 }
 
-// ***********************************
 type MySqlEngine struct {
 	url    string
 	logger log.Logger
@@ -103,7 +102,6 @@ func (e *MySqlEngine) Write(data types.IStreamData, success *bool) {
 
 }
 
-// ***********************************
 type PulsarEngine struct {
 	url            string
 	logger         log.Logger
@@ -159,7 +157,6 @@ func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 	}
 }
 
-// ***********************************
 type RedisEngine struct {
 	url    string
 	logger log.Logger
@@ -213,7 +210,7 @@ func GetEngineCreator(eKind EngineKind, sKind StreamKind) (EngineCreator, error)
 		fmt.Sprintf("%d_%d", EngineAnalysisKind, StreamMysqlKind):      NewMySqlEngine,
 		fmt.Sprintf("%d_%d", EngineNotifyKind, StreamRedisKind):        NewRedisEngine,
 		fmt.Sprintf("%d_%d", EngineKlineKind, StreamPulsarKind):        NewPulsarEngine,
-		fmt.Sprintf("%d_%d", EngineWebSocketKind, StreamWebSocketKind): quoteslite.NewWebSocketEngine,
+		fmt.Sprintf("%d_%d", EngineWebSocketKind, StreamWebSocketKind): websocket.NewEngine,
 	}
 
 	key := fmt.Sprintf("%d_%d", eKind, sKind)
@@ -225,7 +222,6 @@ func GetEngineCreator(eKind EngineKind, sKind StreamKind) (EngineCreator, error)
 	}
 }
 
-// ***********************************
 func ParseStreamEngineConfig(logger log.Logger, cfg *appCfg.StreamConfig) (map[EngineKind]types.IStreamEngine, error) {
 	if cfg.Engine == "" {
 		return nil, errors.New("stream engine config is empty")

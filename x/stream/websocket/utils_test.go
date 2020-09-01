@@ -1,13 +1,13 @@
-package quoteslite
+package websocket
 
 import (
-	okex "github.com/okex/okchain/x/stream/quoteslite/okwebsocket"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSubscriptionTopic2Query(t *testing.T) {
-	topic := okex.SubscriptionTopic{
+	topic := SubscriptionTopic{
 		Channel: "dex_spot/ticker",
 		Filter:  "tbtc_tusdk",
 	}

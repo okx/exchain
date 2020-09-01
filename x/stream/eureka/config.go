@@ -57,14 +57,14 @@ type Port struct {
 	Enabled string `xml:"enabled,attr" json:"@enabled"`
 }
 
-// DataCenterInfo 数据中心信息
+// DataCenterInfo
 type DataCenterInfo struct {
 	Name     string              `xml:"name" json:"name"`
 	Class    string              `xml:"class,attr" json:"@class"`
 	Metadata *DataCenterMetadata `xml:"metadata,omitempty" json:"metadata,omitempty"`
 }
 
-// DataCenterMetadata 数据中心信息元数据
+// DataCenterMetadata
 type DataCenterMetadata struct {
 	AmiLaunchIndex   string `xml:"ami-launch-index,omitempty" json:"ami-launch-index,omitempty"`
 	LocalHostname    string `xml:"local-hostname,omitempty" json:"local-hostname,omitempty"`
@@ -79,13 +79,13 @@ type DataCenterMetadata struct {
 	InstanceType     string `xml:"instance-type,omitempty" json:"instance-type,omitempty"`
 }
 
-// LeaseInfo 续约信息
+// LeaseInfo
 type LeaseInfo struct {
 	RenewalIntervalInSecs int `xml:"renewalIntervalInSecs,omitempty" json:"renewalIntervalInSecs,omitempty"`
 	DurationInSecs        int `xml:"durationInSecs,omitempty" json:"durationInSecs,omitempty"`
 }
 
-// newInstance 创建服务实例
+// newInstance
 func newInstance(config *eurekaConfig) *Instance {
 	instance := &Instance{
 		InstanceID: fmt.Sprintf("%s:%s:%d", config.appIp, config.appName, config.port),
@@ -98,19 +98,19 @@ func newInstance(config *eurekaConfig) *Instance {
 		},
 		VipAddress:       config.appName,
 		SecureVipAddress: config.appName,
-		// 续约信息
+
 		LeaseInfo: &LeaseInfo{
 			RenewalIntervalInSecs: config.renewalIntervalInSecs,
 			DurationInSecs:        config.durationInSecs,
 		},
 		Status:           "UP",
 		OverriddenStatus: "UNKNOWN",
-		// 数据中心
+
 		DataCenterInfo: &DataCenterInfo{
 			Name:  "MyOwn",
 			Class: "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
 		},
-		// 元数据
+
 		Metadata: config.metadata,
 	}
 	instance.HomePageURL = fmt.Sprintf("http://%s:%d", config.appIp, config.port)

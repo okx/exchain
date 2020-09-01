@@ -43,7 +43,7 @@ func TestSendMsg(t *testing.T) {
 	require.NoError(t, err)
 	logger.Info("send zero matchResult")
 
-	marketIdMap["gyl_"+common.NativeToken] = int64(9999)
+	marketIdMap["xxb_"+common.NativeToken] = int64(9999)
 	results10 := make([]*backend.MatchResult, 0, 10)
 	timestamp := time.Now().Unix()
 	for i := 0; i < 10; i++ {
@@ -83,46 +83,4 @@ func TestSendMsg(t *testing.T) {
 	}
 	require.NoError(t, err)
 	logger.Info("send 10 matchResult success")
-
-	/*
-	   		results1000 := make([]*backend.MatchResult, 0, 1000)
-	   		timestamp = time.Now().Unix()
-	   		for i:=0;i < 1000; i++ {
-	   			results1000 = append(results1000, &backend.MatchResult{
-	   				BlockHeight: int64(i),
-	   				Product:     types.TestTokenPair,
-	   				Price:       rand.Float64(),
-	   				Quantity:    rand.Float64(),
-	   				Timestamp:   timestamp,
-	   			})
-	   		}
-
-	   		pds = PulsarData{Height:12,matchResults:results1000}
-	   		_,err = mp.SendAllMsg(&pds,logger)
-	   		if err != nil {
-	   			logger.Info("send 1000 matchResults failed")
-	   			return
-	   		}
-	   		logger.Info("send 1000 matchResult success")
-
-	   /*
-	   		results10000 := make([]*backend.MatchResult, 0, 10000)
-	   		timestamp = time.Now().Unix()
-	   		for i:=0;i < 10000; i++ {
-	   			results10000 = append(results10000, &backend.MatchResult{
-	   				BlockHeight: int64(i),
-	   				Product:     types.TestTokenPair,
-	   				Price:       rand.Float64(),
-	   				Quantity:    rand.Float64(),
-	   				Timestamp:   timestamp,
-	   			})
-	   		}
-
-	   		pds = PulsarData{Height:13,matchResults:results10000}
-	   		_,err = mp.SendMsg(&pds,logger)
-	   		if err != nil {
-	   			logger.Info("send 10000 matchResults failed")
-	   			return
-	   		}
-	   		logger.Info("send 10000 matchResult success")*/
 }

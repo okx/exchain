@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okchain/x/stream/quoteslite"
+	"github.com/okex/okchain/x/stream/websocket"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okchain/x/stream/analyservice"
@@ -52,13 +52,13 @@ func prepareStreamTask(blockHeight int64, s *Stream) (taskConst TaskConst, err e
 
 	// fetch distribute lock
 	locked, err := s.scheduler.FetchDistLock(
-		DISTRIBUTE_STREAM_LOCK, s.scheduler.GetLockerId(), atomTaskTimeout)
+		distributeLock, s.scheduler.GetLockerId(), atomTaskTimeout)
 
 	if !locked || err != nil {
 		return STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, err
 	}
 
-	tmpState, err := s.scheduler.GetDistState(LATEST_STREAM_TASK_KEY)
+	tmpState, err := s.scheduler.GetDistState(latestTaskKey)
 	if err != nil {
 		return releaseLockWithStatus(s, STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, err)
 	}
@@ -91,7 +91,7 @@ func prepareStreamTask(blockHeight int64, s *Stream) (taskConst TaskConst, err e
 }
 
 func releaseLockWithStatus(s *Stream, taskConst TaskConst, err error) (TaskConst, error) {
-	rSuccess, rErr := s.scheduler.ReleaseDistLock(DISTRIBUTE_STREAM_LOCK, s.scheduler.GetLockerId())
+	rSuccess, rErr := s.scheduler.ReleaseDistLock(distributeLock, s.scheduler.GetLockerId())
 	if rSuccess == false || rErr != nil {
 		return STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, rErr
 	} else {
@@ -128,8 +128,8 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			pulsarclient.InitTokenPairMap(ctx, s.dexKeeper)
 			data = pData
 		case EngineWebSocketKind:
-			quoteslite.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)
-			wsdata := quoteslite.NewWebSocketPushData()
+			websocket.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)
+			wsdata := websocket.NewPushData()
 			wsdata.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.Cache)
 			data = wsdata
 		}
@@ -149,7 +149,7 @@ func executeStreamTask(s *Stream, sd *TaskWithData) (taskConst TaskConst, err er
 
 	stateStr := taskResult.toJsonStr()
 	success, err := s.scheduler.UnlockDistLockWithState(
-		DISTRIBUTE_STREAM_LOCK, s.scheduler.GetLockerId(), LATEST_STREAM_TASK_KEY, stateStr)
+		distributeLock, s.scheduler.GetLockerId(), latestTaskKey, stateStr)
 
 	if success && err == nil {
 		s.distrLatestTask = &taskResult

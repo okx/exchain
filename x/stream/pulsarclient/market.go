@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	marketIdMap = make(map[string]int64, 500)
+	marketIdMap = make(map[string]int64, 200)
 	initMapOnce sync.Once
 )
 
@@ -48,11 +48,6 @@ func (p *PulsarProducer) RefreshMarketIdMap(data *PulsarData, logger log.Logger)
 		}
 	}
 	return nil
-}
-
-func getTokenPairName(BaseAssetSymbol, QuoteAssetSymbol string) string {
-	pairName := BaseAssetSymbol + "_" + QuoteAssetSymbol
-	return pairName
 }
 
 func getMarketServiceUrl(eurekaUrl, registerAppName string) (string, error) {

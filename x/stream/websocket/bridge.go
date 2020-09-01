@@ -1,4 +1,4 @@
-package quoteslite
+package websocket
 
 import (
 	"context"
@@ -11,24 +11,23 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/gorilla/websocket"
-	okex "github.com/okex/okchain/x/stream/quoteslite/okwebsocket"
 	"github.com/tendermint/tendermint/libs/log"
 	rpccli "github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-type okWSContext struct {
+type Context struct {
 	interruptedCh chan interface{}
 	signalCh      chan os.Signal
 }
 
-func (ctx *okWSContext) closeAll() {
+func (ctx *Context) closeAll() {
 	close(ctx.signalCh)
 	close(ctx.interruptedCh)
 }
 
-func newOKWSContext() *okWSContext {
-	ctx := okWSContext{
+func newContext() *Context {
+	ctx := Context{
 		interruptedCh: make(chan interface{}, 4),
 		signalCh:      make(chan os.Signal),
 	}
@@ -36,10 +35,10 @@ func newOKWSContext() *okWSContext {
 	return &ctx
 }
 
-type okWSConn struct {
+type Conn struct {
 	cliConn      *websocket.Conn
 	rpcConn      *rpccli.HTTP
-	ctx          *okWSContext
+	ctx          *Context
 	logger       log.Logger
 	loginAddress string
 
@@ -49,13 +48,12 @@ type okWSConn struct {
 	rpcStopChan  chan interface{}
 }
 
-func newOKWSConn(ctx *okWSContext, cliConn *websocket.Conn, logger log.Logger) *okWSConn {
-
+func newOKWSConn(ctx *Context, cliConn *websocket.Conn, logger log.Logger) *Conn {
 	if ctx == nil || cliConn == nil {
 		return nil
 	}
 
-	conn := okWSConn{
+	conn := Conn{
 		cliConn:      cliConn,
 		rpcConn:      nil,
 		ctx:          ctx,
@@ -71,7 +69,7 @@ func newOKWSConn(ctx *okWSContext, cliConn *websocket.Conn, logger log.Logger) *
 	return &conn
 }
 
-func (conn *okWSConn) start() {
+func (conn *Conn) start() {
 	conn.logger.Debug("starting bi-direction communication")
 
 	go conn.handleFinalise()
@@ -81,7 +79,7 @@ func (conn *okWSConn) start() {
 	go conn.handleConvert()
 }
 
-func (conn *okWSConn) stopAll() {
+func (conn *Conn) stopAll() {
 	conn.logger.Debug("okWSConn.stopAll start")
 
 	// 1. close all the connection
@@ -109,7 +107,7 @@ func (conn *okWSConn) stopAll() {
 	conn.logger.Debug("okWSConn.stopAll finished")
 }
 
-func (conn *okWSConn) handleFinalise() {
+func (conn *Conn) handleFinalise() {
 	conn.logger.Debug("handleFinalise start")
 
 	select {
@@ -121,7 +119,7 @@ func (conn *okWSConn) handleFinalise() {
 	conn.logger.Debug("handleFinalise finished")
 }
 
-func (conn *okWSConn) handleCliRead() {
+func (conn *Conn) handleCliRead() {
 	defer func() {
 		if err := recover(); err != nil {
 			conn.logger.Error(fmt.Sprintf("handleCliRead recover panic:%v", err))
@@ -139,7 +137,7 @@ func (conn *okWSConn) handleCliRead() {
 			switch inMsgType {
 			case websocket.TextMessage:
 			case websocket.BinaryMessage:
-				txtMsg, err = okex.GzipDecode(msg)
+				txtMsg, err = gzipDecode(msg)
 			default:
 				continue
 			}
@@ -158,7 +156,7 @@ func (conn *okWSConn) handleCliRead() {
 	conn.logger.Debug("handleCliRead finished")
 }
 
-func (conn *okWSConn) handleCliWrite() {
+func (conn *Conn) handleCliWrite() {
 	defer func() {
 		if err := recover(); err != nil {
 			conn.logger.Error(fmt.Sprintf("handleCliWrite recover panic:%v", err))
@@ -192,17 +190,13 @@ func (conn *okWSConn) handleCliWrite() {
 	conn.logger.Debug("handleCliWrite finished")
 }
 
-func (conn *okWSConn) convert2WSTableResponseFromMap(resultEvt ctypes.ResultEvent, topic *okex.SubscriptionTopic) (r interface{}, e error) {
-
-	//for k, v := range resultEvt.Events {
-	//	conn.logger.Debug("verbose event items", "k", k, "v", v)
-	//}
+func (conn *Conn) convert2WSTableResponseFromMap(resultEvt ctypes.ResultEvent, topic *SubscriptionTopic) (r interface{}, e error) {
 	innerChannel, e := topic.ToString()
 	if e != nil {
 		return nil, e
 	}
 
-	resp := okex.WSTableResponse{
+	resp := TableResponse{
 		Table:  topic.Channel,
 		Action: "update",
 		Data:   nil,
@@ -228,13 +222,13 @@ func (conn *okWSConn) convert2WSTableResponseFromMap(resultEvt ctypes.ResultEven
 	return resp, e
 }
 
-func (conn *okWSConn) convertWSTableResponseFromList(resultEvt ctypes.ResultEvent, topic *okex.SubscriptionTopic) (r interface{}, e error) {
+func (conn *Conn) convertWSTableResponseFromList(resultEvt ctypes.ResultEvent, topic *SubscriptionTopic) (r interface{}, e error) {
 	innerChannel, e := topic.ToString()
 	if e != nil {
 		return nil, e
 	}
 
-	resp := okex.WSTableResponse{
+	resp := TableResponse{
 		Table:  topic.Channel,
 		Action: "update",
 		Data:   nil,
@@ -257,7 +251,7 @@ func (conn *okWSConn) convertWSTableResponseFromList(resultEvt ctypes.ResultEven
 	return resp, e
 }
 
-func (conn *okWSConn) handleRPCEventReceived() {
+func (conn *Conn) handleRPCEventReceived() {
 	defer func() {
 		if err := recover(); err != nil {
 			conn.logger.Error(fmt.Sprintf("handleRPCEventReceived recover panic:%v", err))
@@ -265,11 +259,11 @@ func (conn *okWSConn) handleRPCEventReceived() {
 	}()
 	conn.logger.Debug("handleRPCEventReceived start")
 
-	convertors := map[string]func(event ctypes.ResultEvent, topic *okex.SubscriptionTopic) (interface{}, error){
-		okex.DexSpotAccount:     conn.convert2WSTableResponseFromMap,
-		okex.DexSpotTicker:      conn.convert2WSTableResponseFromMap,
-		okex.DexSpotOrder:       conn.convertWSTableResponseFromList,
-		okex.DexSpotAllTicker3s: conn.convertWSTableResponseFromList,
+	convertors := map[string]func(event ctypes.ResultEvent, topic *SubscriptionTopic) (interface{}, error){
+		DexSpotAccount:     conn.convert2WSTableResponseFromMap,
+		DexSpotTicker:      conn.convert2WSTableResponseFromMap,
+		DexSpotOrder:       conn.convertWSTableResponseFromList,
+		DexSpotAllTicker3s: conn.convertWSTableResponseFromList,
 	}
 
 	for {
@@ -305,27 +299,27 @@ func (conn *okWSConn) handleRPCEventReceived() {
 	conn.logger.Debug("handleRPCEventReceived finished")
 }
 
-func (conn *okWSConn) cliPing() (err error) {
+func (conn *Conn) cliPing() (err error) {
 	msg := "pong"
 	conn.cliOutChan <- msg
 	return err
 }
 
-func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
+func (conn *Conn) cliSubscribe(op *BaseOp) (err error) {
 
 	// 1. get all of the subscription info
-	topics := []*okex.SubscriptionTopic{}
-	if op != nil && op.Op == okex.CHNL_EVENT_SUBSCRIBE && op.Args != nil && len(op.Args) > 0 {
+	var topics []*SubscriptionTopic
+	if op != nil && op.Op == eventSubscribe && op.Args != nil && len(op.Args) > 0 {
 		subStrs := op.Args
 		for _, subStr := range subStrs {
-			topic := okex.FormSubscriptionTopic(subStr)
+			topic := FormSubscriptionTopic(subStr)
 			if topic == nil {
 				continue
 			}
 			// private channel
 			if topic.NeedLogin() {
 				if conn.loginAddress == "" {
-					errResp := okex.WSErrorResponse{
+					errResp := ErrorResponse{
 						Event:     "error",
 						Message:   fmt.Sprintf("User not logged in / User must be logined in, before subscribe:%s", topic.Channel),
 						ErrorCode: 30041,
@@ -339,7 +333,7 @@ func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
 
 		}
 	} else {
-		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, okex.CHNL_EVENT_SUBSCRIBE)
+		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, eventSubscribe)
 	}
 
 	// 2. if rpc client does not exist, create one
@@ -363,7 +357,7 @@ func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
 
 			if rpcErr == nil {
 				conn.logger.Debug(fmt.Sprintf("%s subscribe to %s", subscriber, query))
-				eventResp := okex.WSEventResponse{
+				eventResp := EventResponse{
 					Event:   op.Op,
 					Channel: channel,
 				}
@@ -373,7 +367,7 @@ func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
 				go conn.receiveRPCResultEvents(eventCh, subscriber, channel)
 
 			} else {
-				errResp := okex.WSErrorResponse{
+				errResp := ErrorResponse{
 					Event:     "error",
 					Message:   fmt.Sprintf("fail to subscribe %s, error: %s", channel, rpcErr.Error()),
 					ErrorCode: 30043,
@@ -384,8 +378,8 @@ func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
 	}
 
 	// 4. push initial data
-	initialDataMap := map[string]func(topic *okex.SubscriptionTopic){
-		okex.DexSpotDepthBook: conn.initialDepthBook,
+	initialDataMap := map[string]func(topic *SubscriptionTopic){
+		DexSpotDepthBook: conn.initialDepthBook,
 	}
 	for _, topic := range topics {
 		initialDataFunc, ok := initialDataMap[topic.Channel]
@@ -398,13 +392,13 @@ func (conn *okWSConn) cliSubscribe(op *okex.BaseOp) (err error) {
 	return err
 }
 
-func (conn *okWSConn) initialDepthBook(topic *okex.SubscriptionTopic) {
+func (conn *Conn) initialDepthBook(topic *SubscriptionTopic) {
 	depthBookRes, ok := GetDepthBookFromCache(topic.Filter)
 	conn.logger.Debug("initialDepthBook", "depthBookRes", depthBookRes, "ok", ok)
 	if !ok {
 		return
 	}
-	resp := okex.WSTableResponse{
+	resp := TableResponse{
 		Table:  topic.Channel,
 		Action: "partial",
 		Data:   []interface{}{depthBookRes},
@@ -412,7 +406,7 @@ func (conn *okWSConn) initialDepthBook(topic *okex.SubscriptionTopic) {
 	conn.cliOutChan <- resp
 }
 
-func (conn *okWSConn) receiveRPCResultEvents(eventCh <-chan ctypes.ResultEvent, subscriber, channel string) {
+func (conn *Conn) receiveRPCResultEvents(eventCh <-chan ctypes.ResultEvent, subscriber, channel string) {
 	conn.logger.Debug("receiveRPCResultEvents start", subscriber, channel)
 
 	time.Sleep(time.Millisecond)
@@ -435,24 +429,24 @@ func (conn *okWSConn) receiveRPCResultEvents(eventCh <-chan ctypes.ResultEvent, 
 	conn.logger.Debug("receiveRPCResultEvents finished", subscriber, channel)
 }
 
-func (conn *okWSConn) getSubsciber() string {
+func (conn *Conn) getSubsciber() string {
 	return conn.cliConn.RemoteAddr().String()
 }
 
-func (conn *okWSConn) cliUnSubscribe(op *okex.BaseOp) (err error) {
+func (conn *Conn) cliUnSubscribe(op *BaseOp) (err error) {
 	// 1. check op is a valid unsubscribe op
-	topics := []*okex.SubscriptionTopic{}
-	if op != nil && op.Op == okex.CHNL_EVENT_UNSUBSCRIBE && op.Args != nil && len(op.Args) > 0 {
+	var topics []*SubscriptionTopic
+	if op != nil && op.Op == eventUnsubscribe && op.Args != nil && len(op.Args) > 0 {
 		subStrs := op.Args
 		for _, subStr := range subStrs {
-			topic := okex.FormSubscriptionTopic(subStr)
+			topic := FormSubscriptionTopic(subStr)
 			if topic == nil {
 				continue
 			}
 			// private channel
 			if topic.NeedLogin() {
 				if conn.loginAddress == "" {
-					errResp := okex.WSErrorResponse{
+					errResp := ErrorResponse{
 						Event:     "error",
 						Message:   fmt.Sprintf("User not logged in / User must be logined in, before subscribe:%s", topic.Channel),
 						ErrorCode: 30041,
@@ -465,7 +459,7 @@ func (conn *okWSConn) cliUnSubscribe(op *okex.BaseOp) (err error) {
 			topics = append(topics, topic)
 		}
 	} else {
-		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, okex.CHNL_EVENT_UNSUBSCRIBE)
+		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, eventUnsubscribe)
 	}
 
 	if conn.rpcConn == nil {
@@ -480,14 +474,14 @@ func (conn *okWSConn) cliUnSubscribe(op *okex.BaseOp) (err error) {
 			rpcErr := conn.rpcConn.Unsubscribe(ctx, subscriber, query)
 			if rpcErr == nil {
 				conn.logger.Debug(fmt.Sprintf("%s unsubscribe to %s", subscriber, query))
-				eventResp := okex.WSEventResponse{
+				eventResp := EventResponse{
 					Event:   op.Op,
 					Channel: channel,
 				}
 				conn.cliOutChan <- eventResp
 
 			} else {
-				errResp := okex.WSErrorResponse{
+				errResp := ErrorResponse{
 					Event:     "error",
 					Message:   fmt.Sprintf("fail to unsubscribe %s, error: %s", channel, rpcErr.Error()),
 					ErrorCode: 30043,
@@ -500,10 +494,10 @@ func (conn *okWSConn) cliUnSubscribe(op *okex.BaseOp) (err error) {
 	return err
 }
 
-func (conn *okWSConn) cliLogin(op *okex.BaseOp) error {
-	if op == nil || op.Op != okex.CHNL_EVENT_LOGIN || len(op.Args) != 1 {
-		err := fmt.Errorf("invalid request, when doing: %s", okex.CHNL_EVENT_LOGIN)
-		errResp := okex.WSErrorResponse{
+func (conn *Conn) cliLogin(op *BaseOp) error {
+	if op == nil || op.Op != eventLogin || len(op.Args) != 1 {
+		err := fmt.Errorf("invalid request, when doing: %s", eventLogin)
+		errResp := ErrorResponse{
 			Event:     "error",
 			Message:   err.Error(),
 			ErrorCode: 30043,
@@ -517,7 +511,7 @@ func (conn *okWSConn) cliLogin(op *okex.BaseOp) error {
 	return nil
 }
 
-func (conn *okWSConn) handleConvert() {
+func (conn *Conn) handleConvert() {
 	defer func() {
 		if err := recover(); err != nil {
 			conn.logger.Error(fmt.Sprintf("handleConvert recover panic:%v", err))
@@ -528,10 +522,10 @@ func (conn *okWSConn) handleConvert() {
 	//conn.wg.Add(1)
 	//defer conn.wg.Done()
 
-	cliEventMap := map[string]func(op *okex.BaseOp) error{
-		okex.CHNL_EVENT_SUBSCRIBE:   conn.cliSubscribe,
-		okex.CHNL_EVENT_UNSUBSCRIBE: conn.cliUnSubscribe,
-		okex.CHNL_EVENT_LOGIN:       conn.cliLogin,
+	cliEventMap := map[string]func(op *BaseOp) error{
+		eventSubscribe:   conn.cliSubscribe,
+		eventUnsubscribe: conn.cliUnSubscribe,
+		eventLogin:       conn.cliLogin,
 	}
 
 	for {
@@ -542,7 +536,7 @@ func (conn *okWSConn) handleConvert() {
 				break
 			}
 
-			op := okex.BaseOp{}
+			op := BaseOp{}
 			if jsonErr := json.Unmarshal(cliInMsg, &op); jsonErr == nil {
 				conn.logger.Debug(fmt.Sprintf("handleConvert BaseOp: %+v", op))
 				f := cliEventMap[op.Op]

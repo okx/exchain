@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	atomTaskTimeout int = DISTRIBUTE_STREAM_LOCK_TIMEOUT * 0.98
+	atomTaskTimeout int = distributeLockTimeout * 0.98
 )
 
 type Coordinator struct {
