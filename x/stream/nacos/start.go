@@ -14,7 +14,7 @@ import (
 
 // StartNacosClient start eureka client and register rest service in eureka
 func StartNacosClient(logger log.Logger, urls string, namespace string, name string) {
-	ip, port, err := common.ResolveRestIpAndPort()
+	ip, port, err := common.ResolveRestIPAndPort()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
 		return
@@ -63,6 +63,7 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 }
 
 func getServerConfigs(urls string) ([]constant.ServerConfig, error) {
+	// nolint
 	var configs []constant.ServerConfig
 	for _, url := range strings.Split(urls, ",") {
 		laddr := strings.Split(url, ":")

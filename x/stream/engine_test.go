@@ -15,8 +15,7 @@ import (
 const (
 	REDISURL  = "redis://127.0.0.1:16379"
 	PULSARURL = "127.0.0.1:6650"
-	//MYSQLURL  = "127.0.0.1:13306"
-	MYSQLURL = "okdexer:okdex123!@tcp(127.0.0.1:13306)/okdex"
+	MYSQLURL  = "okdexer:okdex123!@tcp(127.0.0.1:13306)/okdex"
 )
 
 func TestParseStreamEngineConfig(t *testing.T) {
@@ -24,7 +23,8 @@ func TestParseStreamEngineConfig(t *testing.T) {
 	// clear redis
 	pool, err := common.NewPool(REDISURL, "", logger)
 	require.Nil(t, err)
-	pool.Get().Do("FLUSHALL")
+	_, err = pool.Get().Do("FLUSHALL")
+	require.Nil(t, err)
 	// clear viper
 	viper.Reset()
 
@@ -38,15 +38,6 @@ func TestParseStreamEngineConfig(t *testing.T) {
 	engines, err = ParseStreamEngineConfig(logger, cfg)
 	require.NotNil(t, err)
 	require.Nil(t, engines)
-
-	// NewMySqlEngine failed
-	//viper.Reset()
-	//flagSet = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
-	//flagSet.String(FlagStreamEngine, "analysis|mysql|"+MYSQLURL, "")
-	//viper.BindPFlags(flagSet)
-	//engines, err = ParseStreamEngineConfig(logger)
-	//require.NotNil(t, err)
-	//require.Nil(t, engines)
 
 	cfg.Engine = "analysis|xxxx|" + MYSQLURL
 	engines, err = ParseStreamEngineConfig(logger, cfg)
@@ -84,11 +75,12 @@ func TestNewMySqlEngine(t *testing.T) {
 	// clear redis
 	pool, err := common.NewPool(REDISURL, "", logger)
 	require.Nil(t, err)
-	pool.Get().Do("FLUSHALL")
-	//clear viper
+	_, err = pool.Get().Do("FLUSHALL")
+	require.Nil(t, err)
+	// clear viper
 	viper.Reset()
 
-	engine, err := NewMySqlEngine(MYSQLURL, logger, nil)
+	engine, err := NewMySQLEngine(MYSQLURL, logger, nil)
 	require.Nil(t, err)
 	require.NotNil(t, engine)
 }
@@ -98,8 +90,9 @@ func TestNewRedisEngine(t *testing.T) {
 	// clear redis
 	pool, err := common.NewPool(REDISURL, "", logger)
 	require.Nil(t, err)
-	pool.Get().Do("FLUSHALL")
-	//clear viper
+	_, err = pool.Get().Do("FLUSHALL")
+	require.Nil(t, err)
+	// clear viper
 	viper.Reset()
 
 	engine, err := NewRedisEngine("", logger, nil)
@@ -116,15 +109,10 @@ func TestNewPulsarEngine(t *testing.T) {
 	// clear redis
 	pool, err := common.NewPool(REDISURL, "", logger)
 	require.Nil(t, err)
-	pool.Get().Do("FLUSHALL")
-	//clear viper
+	_, err = pool.Get().Do("FLUSHALL")
+	require.Nil(t, err)
+	// clear viper
 	viper.Reset()
-
-	//engine, err := NewPulsarEngine(PULSARURL, logger)
-	//require.NotNil(t, err)
-	//require.Nil(t, engine)
-
-	//tk := token.Keeper{TokenPairNewSignalChan: make(chan token.TokenPair)}
 	cfg := appCfg.DefaultStreamConfig()
 	engine, err := NewPulsarEngine(PULSARURL, logger, cfg)
 	require.Nil(t, err)

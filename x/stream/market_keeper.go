@@ -16,12 +16,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// expected market keeper which would get data from pulsar & redis
-//type MarketKeeper interface {
-//	GetTickerByInstrument(instrument string) *backend.Ticker
-//	GetTickerByInstruments(instruments []string) map[string]backend.Ticker
-//	GetKlineByInstrument(instrument string, granularity, size int) []backend.BaseKline
-//}
 type MarketKeeper backend.MarketKeeper
 
 type BaseMarketKeeper struct {
@@ -29,8 +23,8 @@ type BaseMarketKeeper struct {
 
 // QUO:OPT_KLINE:${BIZ_TYPE}_${MARKET_ID}_${MARKET_TYPE}:${GRANULARITY}
 func (k *BaseMarketKeeper) getLatestCandlesKey(productID uint64, granularity int) string {
-	ptn := fmt.Sprintf("QUO:OPT_KLINE:%d_%d_%d:%d", pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_BIZ_TYPE,
-		productID, pulsarclient.MARKET_CAL_SERVICE_DEX_SPOT_MARKET_TYPE, granularity)
+	ptn := fmt.Sprintf("QUO:OPT_KLINE:%d_%d_%d:%d", pulsarclient.MarketCalServiceDexSpotBizType,
+		productID, pulsarclient.MarketCalServiceDexSpotMarketType, granularity)
 	return ptn
 }
 
@@ -98,7 +92,10 @@ func (k *RedisMarketKeeper) GetTickerByProducts(products []string) ([]map[string
 	for _, product := range products {
 		key := k.getTickerCacheKey(product)
 		k.logger.Debug("GetTickerByInstruments", "key", key)
-		r, _ := k.client.Get(key)
+		r, err := k.client.Get(key)
+		if err != nil {
+			return tickers, err
+		}
 		ticker := map[string]string{}
 		if len(r) > 0 {
 			err := json.Unmarshal([]byte(r), &ticker)

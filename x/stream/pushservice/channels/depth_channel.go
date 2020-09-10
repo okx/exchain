@@ -2,18 +2,18 @@ package channels
 
 import "fmt"
 
-func GetSpotDepthKey(productId string) string {
+func GetSpotDepthKey(productID string) string {
 	return GetSpotKey(
 		DEPTHCHANNEL,
 		"depth",
-		[]string{productId},
+		[]string{productID},
 	)
 }
 
-func GetCSpotDepthKey(productId string) string {
+func GetCSpotDepthKey(productID string) string {
 	return fmt.Sprintf("%s:", GetSpotKey(
 		DEPTHCHANNELC,
 		"depth",
-		[]string{productId},
+		[]string{productID},
 	))
 }

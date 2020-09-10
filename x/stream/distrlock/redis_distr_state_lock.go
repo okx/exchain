@@ -30,12 +30,12 @@ var unlockScriptWithState = redis.NewScript(1, `
 type RedisDistributeStateService struct {
 	pool     *redis.Pool
 	logger   log.Logger
-	lockerId string // unique identifier of locker
+	lockerID string // unique identifier of locker
 }
 
-func NewRedisDistributeStateService(redisUrl string, redisPass string, logger log.Logger, lockerId string) (*RedisDistributeStateService, error) {
+func NewRedisDistributeStateService(redisURL string, redisPass string, logger log.Logger, lockerID string) (*RedisDistributeStateService, error) {
 
-	pool, err := common.NewPool(redisUrl, redisPass, logger)
+	pool, err := common.NewPool(redisURL, redisPass, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -43,15 +43,15 @@ func NewRedisDistributeStateService(redisUrl string, redisPass string, logger lo
 	s := &RedisDistributeStateService{
 		pool:     pool,
 		logger:   logger,
-		lockerId: lockerId,
+		lockerID: lockerID,
 	}
 
 	return s, nil
 
 }
 
-func (s *RedisDistributeStateService) GetLockerId() string {
-	return s.lockerId
+func (s *RedisDistributeStateService) GetLockerID() string {
+	return s.lockerID
 }
 
 func (s *RedisDistributeStateService) GetDistState(stateKey string) (string, error) {

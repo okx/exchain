@@ -18,9 +18,8 @@ func (st *SubscriptionTopic) ToString() (topic string, err error) {
 
 	if len(st.Filter) > 0 {
 		return st.Channel + ":" + st.Filter, nil
-	} else {
-		return st.Channel, nil
 	}
+	return st.Channel, nil
 }
 
 func FormSubscriptionTopic(str string) *SubscriptionTopic {

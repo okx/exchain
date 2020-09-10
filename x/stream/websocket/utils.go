@@ -19,12 +19,12 @@ func subscriptionTopic2Query(topic *SubscriptionTopic) (channel, query string) {
 }
 
 func query2SubscriptionTopic(query string) *SubscriptionTopic {
-	subQuerys := strings.Split(query, "AND")
-	if subQuerys != nil && len(subQuerys) == 2 {
-		backendQuery := subQuerys[1]
+	subQuery := strings.Split(query, "AND")
+	if len(subQuery) == 2 {
+		backendQuery := subQuery[1]
 		items := strings.Split(backendQuery, "=")
-		if items != nil && len(items) == 2 {
-			topicStr := strings.Replace(items[1], "'", "", -1)
+		if len(items) == 2 {
+			topicStr := strings.ReplaceAll(items[1], "'", "")
 			topic := FormSubscriptionTopic(topicStr)
 			return topic
 		}

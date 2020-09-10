@@ -19,7 +19,7 @@ type DataAnalysis struct {
 	Trans         []*backend.Transaction  `json:"trans"`
 	MatchResults  []*backend.MatchResult  `json:"matchResults"`
 	DepthBook     keeper.BookRes          `json:"depthBook"`
-	AccStates     []token.AccountResponse `json:accStates`
+	AccStates     []token.AccountResponse `json:"accStates"`
 }
 
 func (d *DataAnalysis) Empty() bool {
@@ -43,10 +43,15 @@ func NewDataAnalysis() *DataAnalysis {
 	return &DataAnalysis{}
 }
 
+// nolint
 func (d *DataAnalysis) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper,
 	tokenKeeper types.TokenKeeper, cache *common.Cache) {
 	d.Height = ctx.BlockHeight()
-	d.Deals, d.MatchResults, _ = common.GetDealsAndMatchResult(ctx, orderKeeper)
+	var err error
+	d.Deals, d.MatchResults, err = common.GetDealsAndMatchResult(ctx, orderKeeper)
+	if err != nil {
+		ctx.Logger().Error("stream SetData error", "msg", err.Error())
+	}
 	d.NewOrders = common.GetNewOrders(ctx, orderKeeper)
 	d.UpdatedOrders = backend.GetUpdatedOrdersAtEndBlock(ctx, orderKeeper)
 	d.FeeDetails = tokenKeeper.GetFeeDetailList()

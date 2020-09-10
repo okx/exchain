@@ -22,13 +22,13 @@ type Writer interface {
 }
 
 type RedisBlock struct {
-	Height        int64                      `json:"height"`     //blockHeight
-	OrdersMap     map[string][]backend.Order `json:"orders"`     //key: address
-	DepthBooksMap map[string]BookRes         `json:"depthBooks"` //key: product
+	Height        int64                      `json:"height"`     // blockHeight
+	OrdersMap     map[string][]backend.Order `json:"orders"`     // key: address
+	DepthBooksMap map[string]BookRes         `json:"depthBooks"` // key: product
 
-	AccountsMap map[string]token.CoinInfo      `json:"accounts"`    //key: instrument_id:<address>
-	Instruments map[string]struct{}            `json:"instruments"` //P3K:spot:instruments
-	MatchesMap  map[string]backend.MatchResult `json:"matches"`     //key: product
+	AccountsMap map[string]token.CoinInfo      `json:"accounts"`    // key: instrument_id:<address>
+	Instruments map[string]struct{}            `json:"instruments"` // P3K:spot:instruments
+	MatchesMap  map[string]backend.MatchResult `json:"matches"`     // key: product
 }
 
 func NewRedisBlock() *RedisBlock {
@@ -43,7 +43,10 @@ func NewRedisBlock() *RedisBlock {
 	}
 }
 func (rb RedisBlock) String() string {
-	b, _ := json.Marshal(rb)
+	b, err := json.Marshal(rb)
+	if err != nil {
+		panic(err)
+	}
 	return string(b)
 }
 func (rb *RedisBlock) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, cache *common.Cache) {
@@ -82,21 +85,17 @@ func (rb *RedisBlock) Clear() {
 	rb.MatchesMap = make(map[string]backend.MatchResult)
 }
 
-func (b *RedisBlock) storeInstruments(ctx sdk.Context, dexKeeper types.DexKeeper) {
+func (rb *RedisBlock) storeInstruments(ctx sdk.Context, dexKeeper types.DexKeeper) {
 	logger := ctx.Logger().With("module", "stream")
 	pairs := dexKeeper.GetTokenPairs(ctx)
 	for _, pair := range pairs {
 		product := fmt.Sprintf("%s_%s", pair.BaseAssetSymbol, pair.QuoteAssetSymbol)
-		b.Instruments[product] = struct{}{}
-		b.Instruments[pair.BaseAssetSymbol] = struct{}{}
-		b.Instruments[pair.QuoteAssetSymbol] = struct{}{}
+		rb.Instruments[product] = struct{}{}
+		rb.Instruments[pair.BaseAssetSymbol] = struct{}{}
+		rb.Instruments[pair.QuoteAssetSymbol] = struct{}{}
 	}
-	//curs := k.GetCurrencysInfo(ctx)
-	//for _, curs := range curs {
-	//	b.Instruments[curs.Symbol] = struct{}{}
-	//}
 	logger.Debug("storeInstruments",
-		"instruments", b.Instruments,
+		"instruments", rb.Instruments,
 	)
 }
 
@@ -104,42 +103,50 @@ func getAddressProductPrefix(s1, s2 string) string {
 	return s1 + ":" + s2
 }
 
-func (b *RedisBlock) storeNewOrders(ctx sdk.Context, orderKeeper types.OrderKeeper, blockHeight int64) {
-
+// nolint
+func (rb *RedisBlock) storeNewOrders(ctx sdk.Context, orderKeeper types.OrderKeeper, blockHeight int64) {
 	logger := ctx.Logger().With("module", "stream")
-	orders, _ := backend.GetNewOrdersAtEndBlock(ctx, orderKeeper)
+	orders, err := backend.GetNewOrdersAtEndBlock(ctx, orderKeeper)
+	if err != nil {
+		logger.Error("RedisBlock storeNewOrders error", "msg", err.Error())
+	}
 	for _, o := range orders {
+		// key := o.Sender
 		key := getAddressProductPrefix(o.Product, o.Sender)
-		//key := o.Sender
-		b.OrdersMap[key] = append(b.OrdersMap[key], *o)
+		rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
 		logger.Debug("storeNewOrders", "order", o)
 	}
 }
 
-func (b *RedisBlock) updateOrders(ctx sdk.Context, orderKeeper types.OrderKeeper) {
+// nolint
+func (rb *RedisBlock) updateOrders(ctx sdk.Context, orderKeeper types.OrderKeeper) {
 	logger := ctx.Logger().With("module", "stream")
 	orders := backend.GetUpdatedOrdersAtEndBlock(ctx, orderKeeper)
 	for _, o := range orders {
+		// key := o.Sender
 		key := getAddressProductPrefix(o.Product, o.Sender)
-		//key := o.Sender
-		if _, ok := b.OrdersMap[key]; ok {
-			if i, found := find(b.OrdersMap[key], *o); found {
-				b.OrdersMap[key][i] = *o
+		if _, ok := rb.OrdersMap[key]; ok {
+			if i, found := find(rb.OrdersMap[key], *o); found {
+				rb.OrdersMap[key][i] = *o
 			} else {
-				b.OrdersMap[key] = append(b.OrdersMap[key], *o)
+				rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
 			}
 		} else {
-			b.OrdersMap[key] = append(b.OrdersMap[key], *o)
+			rb.OrdersMap[key] = append(rb.OrdersMap[key], *o)
 		}
 		logger.Debug("updateOrders", "order", o)
 	}
 }
 
-func (b *RedisBlock) storeMatches(ctx sdk.Context, orderKeeper types.OrderKeeper) {
+// nolint
+func (rb *RedisBlock) storeMatches(ctx sdk.Context, orderKeeper types.OrderKeeper) {
 	logger := ctx.Logger().With("module", "stream")
-	_, matches, _ := backend.GetNewDealsAndMatchResultsAtEndBlock(ctx, orderKeeper)
+	_, matches, err := backend.GetNewDealsAndMatchResultsAtEndBlock(ctx, orderKeeper)
+	if err != nil {
+		logger.Error("RedisBlock storeMatches error", "msg", err.Error())
+	}
 	for _, m := range matches {
-		b.MatchesMap[m.Product] = *m
+		rb.MatchesMap[m.Product] = *m
 		logger.Debug("storeMatches", "match", m)
 	}
 }
@@ -157,13 +164,13 @@ type BookRes struct {
 	Timestamp string     `json:"timestamp"`
 }
 
-func (bri *BookResItem) toJsonList() []string {
+func (bri *BookResItem) toJSONList() []string {
 	return []string{bri.Price, bri.Quantity, bri.OrderCount}
 }
 
 // nolint: unparam
 //ask: small -> big, bids: big -> small
-func (b *RedisBlock) storeDepthBooks(ctx sdk.Context, orderKeeper types.OrderKeeper, size int) {
+func (rb *RedisBlock) storeDepthBooks(ctx sdk.Context, orderKeeper types.OrderKeeper, size int) {
 	logger := ctx.Logger().With("module", "stream")
 
 	products := orderKeeper.GetUpdatedDepthbookKeys()
@@ -174,7 +181,7 @@ func (b *RedisBlock) storeDepthBooks(ctx sdk.Context, orderKeeper types.OrderKee
 	for _, product := range products {
 		depthBook := orderKeeper.GetDepthBookCopy(product)
 		bookRes := ConvertBookRes(product, orderKeeper, depthBook, size)
-		b.DepthBooksMap[product] = bookRes
+		rb.DepthBooksMap[product] = bookRes
 		logger.Debug("storeDepthBooks", "product", product, "depthBook", bookRes)
 	}
 }
@@ -187,7 +194,7 @@ func ConvertBookRes(product string, orderKeeper types.OrderKeeper, depthBook *or
 			key := ordertype.FormatOrderIDsKey(product, item.Price, ordertype.SellOrder)
 			ids := orderKeeper.GetProductPriceOrderIDs(key)
 			bri := BookResItem{item.Price.String(), item.SellQuantity.String(), fmt.Sprintf("%d", len(ids))}
-			asks = append([][]string{bri.toJsonList()}, asks...)
+			asks = append([][]string{bri.toJSONList()}, asks...)
 
 		}
 		if item.BuyQuantity.IsPositive() {
@@ -195,7 +202,7 @@ func ConvertBookRes(product string, orderKeeper types.OrderKeeper, depthBook *or
 			ids := orderKeeper.GetProductPriceOrderIDs(key)
 			bri := BookResItem{item.Price.String(), item.BuyQuantity.String(), fmt.Sprintf("%d", len(ids))}
 			// bids = append([][]string{bri.toJsonList()}, bids...)
-			bids = append(bids, bri.toJsonList())
+			bids = append(bids, bri.toJSONList())
 		}
 	}
 	if len(asks) > size {
@@ -214,7 +221,7 @@ func ConvertBookRes(product string, orderKeeper types.OrderKeeper, depthBook *or
 	return bookRes
 }
 
-func (b *RedisBlock) storeAccount(ctx sdk.Context, updatedAccount []sdk.AccAddress, tokenKeeper types.TokenKeeper) {
+func (rb *RedisBlock) storeAccount(ctx sdk.Context, updatedAccount []sdk.AccAddress, tokenKeeper types.TokenKeeper) {
 	logger := ctx.Logger().With("module", "stream")
 
 	for _, acc := range updatedAccount {
@@ -222,7 +229,7 @@ func (b *RedisBlock) storeAccount(ctx sdk.Context, updatedAccount []sdk.AccAddre
 		for _, coinInfo := range coinsInfo {
 			// key := acc.String() + ":" + coinInfo.Symbol
 			key := coinInfo.Symbol + ":" + acc.String()
-			b.AccountsMap[key] = coinInfo
+			rb.AccountsMap[key] = coinInfo
 		}
 		logger.Debug("storeAccount",
 			"address", acc.String(),
@@ -233,7 +240,7 @@ func (b *RedisBlock) storeAccount(ctx sdk.Context, updatedAccount []sdk.AccAddre
 
 var _ types.IStreamData = (*RedisBlock)(nil)
 
-//impl IsStreamData interface
+// BlockHeight impl IsStreamData interface
 func (rb RedisBlock) BlockHeight() int64 {
 	return rb.Height
 }

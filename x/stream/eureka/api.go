@@ -11,13 +11,13 @@ import (
 )
 
 // POST /eureka/v2/apps/appID
-func register(instance *Instance, serverUrl string, appName string) error {
+func register(instance *Instance, serverURL string, appName string) error {
 	b, err := json.Marshal(&InstanceInfo{Instance: instance})
 	if err != nil {
 		return err
 	}
 
-	urlAction := serverUrl + "/eureka/apps" + "/" + appName
+	urlAction := serverURL + "/eureka/apps" + "/" + appName
 	req, err := http.NewRequest(http.MethodPost, urlAction, bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -28,6 +28,7 @@ func register(instance *Instance, serverUrl string, appName string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return fmt.Errorf("status code is %d, not in range [200, 300)", resp.StatusCode)
 	}
@@ -35,8 +36,8 @@ func register(instance *Instance, serverUrl string, appName string) error {
 }
 
 // DELETE /eureka/v2/apps/appID/instanceID
-func unRegister(serverUrl string, appName string, instanceId string) error {
-	urlAction := serverUrl + "/eureka/apps" + "/" + appName + "/" + instanceId
+func unRegister(serverURL string, appName string, instanceID string) error {
+	urlAction := serverURL + "/eureka/apps" + "/" + appName + "/" + instanceID
 	req, err := http.NewRequest(http.MethodDelete, urlAction, nil)
 	if err != nil {
 		return err
@@ -46,15 +47,16 @@ func unRegister(serverUrl string, appName string, instanceId string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}
 	return nil
 }
 
-// GET /eureka/v2/apps
-func getAllInstance(serverUrl string) (*Applications, error) {
-	urlAction := serverUrl + "/eureka/apps"
+// nolint
+func getAllInstance(serverURL string) (*Applications, error) {
+	urlAction := serverURL + "/eureka/apps"
 	req, err := http.NewRequest(http.MethodGet, urlAction, nil)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,7 @@ func getAllInstance(serverUrl string) (*Applications, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}
@@ -73,8 +76,6 @@ func getAllInstance(serverUrl string) (*Applications, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
 	res := &Applications{}
 	err = xml.Unmarshal(b, res)
 	if err != nil {
@@ -83,8 +84,8 @@ func getAllInstance(serverUrl string) (*Applications, error) {
 	return res, nil
 }
 
-func GetOneInstance(serverUrl string, appName string) (*Application, error) {
-	urlAction := serverUrl + "/eureka/apps" + "/" + appName
+func GetOneInstance(serverURL string, appName string) (*Application, error) {
+	urlAction := serverURL + "/eureka/apps" + "/" + appName
 	req, err := http.NewRequest(http.MethodGet, urlAction, nil)
 	if err != nil {
 		return nil, err
@@ -95,6 +96,7 @@ func GetOneInstance(serverUrl string, appName string) (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}
@@ -103,7 +105,6 @@ func GetOneInstance(serverUrl string, appName string) (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	res := &Application{}
 	err = xml.Unmarshal(b, res)
@@ -114,12 +115,12 @@ func GetOneInstance(serverUrl string, appName string) (*Application, error) {
 }
 
 // PUT /eureka/apps/appID/instanceID
-func heartbeat(serverUrl string, appName string, instanceId string) error {
+func heartbeat(serverURL string, appName string, instanceID string) error {
 	params := url.Values{
 		"status": {"UP"},
 	}
 
-	urlAction := serverUrl + "/eureka/apps" + "/" + appName + "/" + instanceId + "?" + params.Encode()
+	urlAction := serverURL + "/eureka/apps" + "/" + appName + "/" + instanceID + "?" + params.Encode()
 	req, err := http.NewRequest(http.MethodPut, urlAction, nil)
 	if err != nil {
 		return err
@@ -129,6 +130,7 @@ func heartbeat(serverUrl string, appName string, instanceId string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}

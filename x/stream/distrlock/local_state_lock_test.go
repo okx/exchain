@@ -16,9 +16,10 @@ func TestLocalServiceSmoke(t *testing.T) {
 
 	s, err := NewLocalStateService(logger, "TestLocalServiceSmoke", "/tmp/TestLocalServiceSmoke")
 	require.Nil(t, err)
-	s.RemoveStateFile(stateLockKey)
+	err = s.RemoveStateFile(stateLockKey)
+	require.Nil(t, err)
 
-	require.Equal(t, "TestLocalServiceSmoke", s.GetLockerId())
+	require.Equal(t, "TestLocalServiceSmoke", s.GetLockerID())
 	state, err := s.GetDistState(stateLockKey)
 	require.Nil(t, err)
 	require.Equal(t, "", state)
@@ -30,12 +31,12 @@ func TestLocalServiceSmoke(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, stateValue, state)
 
-	got, err := s.FetchDistLock(stateLockKey, s.GetLockerId(), 1)
+	got, err := s.FetchDistLock(stateLockKey, s.GetLockerID(), 1)
 	require.True(t, got && err == nil)
 
-	released, err := s.ReleaseDistLock(stateLockKey, s.GetLockerId())
+	released, err := s.ReleaseDistLock(stateLockKey, s.GetLockerID())
 	require.True(t, released && err == nil)
 
-	ok, err := s.UnlockDistLockWithState(stateLockKey, s.GetLockerId(), latestTaskKey, stateValue)
+	ok, err := s.UnlockDistLockWithState(stateLockKey, s.GetLockerID(), latestTaskKey, stateValue)
 	require.True(t, ok && err == nil)
 }

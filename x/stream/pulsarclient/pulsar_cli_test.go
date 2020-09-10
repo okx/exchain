@@ -43,7 +43,7 @@ func TestSendMsg(t *testing.T) {
 	require.NoError(t, err)
 	logger.Info("send zero matchResult")
 
-	marketIdMap["xxb_"+common.NativeToken] = int64(9999)
+	marketIDMap["xxb_"+common.NativeToken] = int64(9999)
 	results10 := make([]*backend.MatchResult, 0, 10)
 	timestamp := time.Now().Unix()
 	for i := 0; i < 10; i++ {
@@ -65,7 +65,7 @@ func TestSendMsg(t *testing.T) {
 	logger.Info("send 10 matchResult success")
 
 	results10 = make([]*backend.MatchResult, 0, 10)
-	marketIdMap[common.TestToken+common.NativeToken] = int64(10000)
+	marketIDMap[common.TestToken+common.NativeToken] = int64(10000)
 	for i := 0; i < 10; i++ {
 		results10 = append(results10, &backend.MatchResult{
 			BlockHeight: int64(i),

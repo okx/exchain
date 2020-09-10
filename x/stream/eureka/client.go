@@ -16,23 +16,23 @@ import (
 // eurekaClient client for eureka
 type eurekaClient struct {
 	// for monitor system signal
-	signalChan chan os.Signal
-	mutex      sync.RWMutex
-	running    bool
-	config     *eurekaConfig
-	instance   *Instance
-
-	applications *Applications
+	signalChan   chan os.Signal
+	mutex        sync.RWMutex
+	running      bool
+	config       *eurekaConfig
+	instance     *Instance
+	applications *Applications // nolint
 }
 
 // eurekaConfig config for eureka
 type eurekaConfig struct {
-	serverUrl                    string // server url
-	renewalIntervalInSecs        int    // the heart-beat interval
+	serverURL             string // server url
+	renewalIntervalInSecs int    // the heart-beat interval
+	// nolint
 	registryFetchIntervalSeconds int    // the fetching interval
 	durationInSecs               int    // the expired time
 	appName                      string // application name
-	appIp                        string // application ip
+	appIP                        string // application ip
 	port                         int    // server port
 	metadata                     map[string]interface{}
 }
@@ -41,7 +41,7 @@ type eurekaConfig struct {
 func (c *eurekaClient) sendHeartbeat(logger log.Logger) {
 	for {
 		if c.running {
-			if err := heartbeat(c.config.serverUrl, c.config.appName, c.instance.InstanceID); err != nil {
+			if err := heartbeat(c.config.serverURL, c.config.appName, c.instance.InstanceID); err != nil {
 				logger.Error(fmt.Sprintf("failed to send heart-beat: %s", err.Error()))
 			} else {
 				logger.Debug("send heart-beat with application instance successfully")
@@ -58,16 +58,14 @@ func (c *eurekaClient) handleSignal(logger log.Logger) {
 	if c.signalChan == nil {
 		c.signalChan = make(chan os.Signal)
 	}
-	signal.Notify(c.signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
+	signal.Notify(c.signalChan, syscall.SIGTERM, syscall.SIGINT)
 	for {
 		switch <-c.signalChan {
 		case syscall.SIGINT:
 			fallthrough
-		case syscall.SIGKILL:
-			fallthrough
 		case syscall.SIGTERM:
 			logger.Info("receive exit signal, client instance going to de-egister")
-			err := unRegister(c.config.serverUrl, c.config.appName, c.instance.InstanceID)
+			err := unRegister(c.config.serverURL, c.config.appName, c.instance.InstanceID)
 			if err != nil {
 				logger.Error(fmt.Sprintf("failed to unregister the instance. error: %s", err.Error()))
 			} else {
@@ -78,11 +76,11 @@ func (c *eurekaClient) handleSignal(logger log.Logger) {
 	}
 }
 
-// DoRefresh get the new instances from server in a regular time
+// nolint
 func (c *eurekaClient) refresh(logger log.Logger) {
 	for {
 		if c.running {
-			if applications, err := getAllInstance(c.config.serverUrl); err != nil {
+			if applications, err := getAllInstance(c.config.serverURL); err != nil {
 				logger.Error(fmt.Sprintf("failed to refresh the instances from server. error: %s", err.Error()))
 			} else {
 				c.mutex.Lock()
@@ -104,8 +102,8 @@ func newClient(config *eurekaConfig) *eurekaClient {
 }
 
 func initConfig(config *eurekaConfig) {
-	if config.serverUrl == "" {
-		config.serverUrl = "http://localhost:8761/eureka"
+	if config.serverURL == "" {
+		config.serverURL = "http://localhost:8761/eureka"
 	}
 	if config.renewalIntervalInSecs == 0 {
 		config.renewalIntervalInSecs = 30
@@ -118,8 +116,8 @@ func initConfig(config *eurekaConfig) {
 	} else {
 		config.appName = strings.ToLower(config.appName)
 	}
-	if config.appIp == "" {
-		config.appIp = common.GetLocalIp()
+	if config.appIP == "" {
+		config.appIP = common.GetLocalIP()
 	}
 	if config.port == 0 {
 		config.port = 80

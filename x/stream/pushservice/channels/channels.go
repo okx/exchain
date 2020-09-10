@@ -25,7 +25,7 @@ const (
 )
 
 func getKey(channel, service, op string, args []string) string {
-	if args == nil || len(args) == 0 {
+	if len(args) == 0 {
 		return fmt.Sprintf("%s:%s:%s", channel, service, op)
 	}
 	return fmt.Sprintf("%s:%s:%s:%s", channel, service, op, strings.Join(args, ":"))

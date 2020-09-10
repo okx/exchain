@@ -46,5 +46,8 @@ func bridgeMsgHandlerWithLogger(logger log.Logger) func(w http.ResponseWriter, r
 func StartWSServer(logger log.Logger, endpoint string) {
 	http.HandleFunc("/ws/v3", bridgeMsgHandlerWithLogger(logger))
 	logger.Info("Starting WebSocket server on ", endpoint)
-	http.ListenAndServe(endpoint, nil)
+	err := http.ListenAndServe(endpoint, nil)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -19,13 +19,13 @@ type PulsarProducer struct {
 	producers                     []*pulsar.ManagedProducer
 	partion                       int64
 	marketServiceEnable           bool
-	marketEurekaUrl               string
+	marketEurekaURL               string
 	marketEurekaRegisteredAppName string
 }
 
 func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, asyncErrs *chan error) *PulsarProducer {
 	var mp = &PulsarProducer{producers: make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
-		partion: int64(cfg.MarketPulsarPartition), marketServiceEnable: cfg.MarketServiceEnable, marketEurekaUrl: cfg.EurekaServerUrl,
+		partion: int64(cfg.MarketPulsarPartition), marketServiceEnable: cfg.MarketServiceEnable, marketEurekaURL: cfg.EurekaServerUrl,
 		marketEurekaRegisteredAppName: cfg.MarketQuotationsEurekaName}
 
 	for i := 0; i < cfg.MarketPulsarPartition; i++ {
@@ -38,7 +38,7 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 			MaxReconnectDelay:     time.Minute,
 			ManagedClientConfig: pulsar.ManagedClientConfig{
 				ClientConfig: pulsar.ClientConfig{
-					Addr: url, //"192.168.80.186:6650",
+					Addr: url,
 					Errs: *asyncErrs,
 				},
 			},
@@ -49,13 +49,13 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 	return mp
 }
 
-var bizType = MARKET_CAL_SERVICE_DEX_SPOT_BIZ_TYPE
-var marketType = MARKET_CAL_SERVICE_DEX_SPOT_MARKET_TYPE
+var bizType = MarketCalServiceDexSpotBizType
+var marketType = MarketCalServiceDexSpotMarketType
 var iscalc = true
 
-func (mp *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[string]int, error) {
+func (p *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "pulsar")
-	result := make(map[string]int, 0)
+	result := make(map[string]int)
 	matchResults := data.matchResults
 	result["matchResults"] = len(matchResults)
 	if len(matchResults) == 0 {
@@ -68,7 +68,7 @@ func (mp *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[s
 	for _, matchResult := range matchResults {
 		go func(matchResult backend.MatchResult) {
 			defer wg.Done()
-			marketId, ok := marketIdMap[matchResult.Product] //attention,maybe marketId is 0
+			marketID, ok := marketIDMap[matchResult.Product]
 			if !ok {
 				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
 				errChan <- err
@@ -78,12 +78,12 @@ func (mp *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[s
 			timestamp := matchResult.Timestamp * 1000
 			matchResultMsg := MatchResultMsg{
 				BizType:        &bizType,
-				MarketId:       &marketId,
+				MarketId:       &marketID,
 				MarketType:     &marketType,
 				Size:           &matchResult.Quantity,
 				Price:          &matchResult.Price,
 				CreatedTime:    &timestamp,
-				InstrumentId:   &marketId,
+				InstrumentId:   &marketID,
 				InstrumentName: &matchResult.Product,
 				IsCalc:         &iscalc,
 			}
@@ -96,13 +96,13 @@ func (mp *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[s
 
 			sctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancle()
-			_, err = mp.producers[marketId%(mp.partion)].Send(sctx, msg)
+			_, err = p.producers[marketID%(p.partion)].Send(sctx, msg)
 			if err != nil {
 				errChan <- err
 				return
 			}
 			logger.Debug(fmt.Sprintf("successfully send matchResult [marketId:%d, CreatedTime:%s, BlockHeight:%d, Quantity:%f, Price:%f, InstrumentName:%s]",
-				marketId, time.Unix(matchResult.Timestamp, 0).Format("2006-01-02 15:04:05"), matchResult.BlockHeight, matchResult.Quantity, matchResult.Price, matchResult.Product))
+				marketID, time.Unix(matchResult.Timestamp, 0).Format("2006-01-02 15:04:05"), matchResult.BlockHeight, matchResult.Quantity, matchResult.Price, matchResult.Product))
 
 			// b, _ := json.Marshal(matchResultMsg) //removed in production,
 			// log.Debug("Send", "matchResultMsg", string(b), "height", matchResult.BlockHeight)

@@ -1,10 +1,10 @@
 package stream
 
 type CacheQueue struct {
-	queue chan StreamContext
+	queue chan Context
 }
 
-type StreamContext struct {
+type Context struct {
 	blockHeight int64
 	stream      *Stream
 	taskData    *TaskWithData
@@ -12,7 +12,7 @@ type StreamContext struct {
 
 func newCacheQueue(queueNum int) *CacheQueue {
 	cacheQueue := &CacheQueue{
-		queue: make(chan StreamContext, queueNum),
+		queue: make(chan Context, queueNum),
 	}
 	return cacheQueue
 }
@@ -24,6 +24,6 @@ func (cq *CacheQueue) Start() {
 	}
 }
 
-func (cq *CacheQueue) Enqueue(sc StreamContext) {
+func (cq *CacheQueue) Enqueue(sc Context) {
 	cq.queue <- sc
 }

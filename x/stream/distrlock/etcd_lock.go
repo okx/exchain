@@ -2,13 +2,11 @@ package distrlock
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/etcd-io/etcd/clientv3/concurrency"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -55,8 +53,9 @@ func (lock *EtcdLock) UnLock(key, token string) {
 	}
 }
 
-func NewEtcdDistrLock(etcdUrl string, logger log.Logger) (*EtcdLock, error) {
-	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{etcdUrl}, DialTimeout: 5 * time.Second})
+// NewEtcdDistrLock creates EtcdLock
+func NewEtcdDistrLock(url string, logger log.Logger) (*EtcdLock, error) {
+	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{url}, DialTimeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
@@ -72,19 +71,4 @@ func NewEtcdDistrLock(etcdUrl string, logger log.Logger) (*EtcdLock, error) {
 		logger:  logger,
 	}
 	return redisLock, nil
-}
-
-func ParseEtcdLock(logger log.Logger) (*EtcdLock, error) {
-	etcdUrl := viper.GetString(FlagEtcdLock)
-	if etcdUrl == "" {
-		return nil, errors.New("empty etcd lock")
-	}
-
-	distrLock, err := NewEtcdDistrLock(etcdUrl, logger)
-	if err != nil {
-		logger.Error(fmt.Sprintf("init etcd lock failed: %v", err))
-	} else {
-		logger.Info("init etcd lock successfully", "etcdUrl", etcdUrl)
-	}
-	return distrLock, err
 }

@@ -4,28 +4,28 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
 
 	"github.com/okex/okchain/x/stream/common"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/log"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 type header struct {
 	RqeApp  string  `json:"reqApp"`
-	ReqIp   string  `json:"reqIp"`
+	ReqIP   string  `json:"reqIp"`
 	ReqTime int64   `json:"reqTime"`
 	ReqData reqdata `json:"reqData"`
 }
 
 type reqdata struct {
-	MarketId       int64   `json:"marketId"`
+	MarketID       int64   `json:"marketId"`
 	MarketType     int     `json:"marketType"`
 	BizType        int     `json:"bizType"`
 	MsgType        int     `json:"msgType"`
-	InstrumentId   int64   `json:"instrumentId"`
+	InstrumentID   int64   `json:"instrumentId"`
 	InstrumentName string  `json:"instrumentName"`
 	PricePrecision int     `json:"pricePrecision"`
 	SizePrecision  int     `json:"sizePrecision"`
@@ -42,12 +42,12 @@ type respbody struct {
 }
 
 type respdata struct {
-	Id             int64   `json:"id"`
-	MarketId       int64   `json:"marketId"`
+	ID             int64   `json:"id"`
+	MarketID       int64   `json:"marketId"`
 	MarketType     int     `json:"marketType"`
 	BizType        int     `json:"bizType"`
 	MsgType        int     `json:"msgType"`
-	InstrumentId   int64   `json:"instrumentId"`
+	InstrumentID   int64   `json:"instrumentId"`
 	InstrumentName string  `json:"instrumentName"`
 	PricePrecision int     `json:"pricePrecision"`
 	SizePrecision  int     `json:"sizePrecision"`
@@ -58,10 +58,10 @@ type respdata struct {
 	ModiftTime     int64   `json:"modifyTime"`
 }
 
-func RegisterNewTokenPair(tokenPairId int64, tokenPairName string, marketServiceUrl string, logger log.Logger) (err error) {
+func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketServiceURL string, logger log.Logger) (err error) {
 	defer func() {
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to register to market service %s. RegisterNewTokenPair error: %s", marketServiceUrl, err.Error()))
+			logger.Error(fmt.Sprintf("failed to register to market service %s. RegisterNewTokenPair error: %s", marketServiceURL, err.Error()))
 		}
 
 		if e := recover(); e != nil {
@@ -69,15 +69,21 @@ func RegisterNewTokenPair(tokenPairId int64, tokenPairName string, marketService
 		}
 	}()
 
-	data := reqdata{tokenPairId, 1, 1001, 2, tokenPairId, tokenPairName, 10, 4, 2, 1}
+	data := reqdata{tokenPairID, 1, 1001, 2, tokenPairID, tokenPairName, 10, 4, 2, 1}
 	appname := "okdex-kline"
 	unixtime := time.Now().Unix()
-	localip := common.GetLocalIp()
+	localip := common.GetLocalIP()
 
 	head := header{appname, localip, unixtime, data}
-	jsonhead, _ := json.Marshal(head) //转换成JSON返回的是byte[]
+	jsonhead, err := json.Marshal(head)
+	if err != nil {
+		return err
+	}
 
-	req, _ := http.NewRequest("POST", marketServiceUrl, bytes.NewBuffer(jsonhead))
+	req, err := http.NewRequest("POST", marketServiceURL, bytes.NewBuffer(jsonhead))
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -87,13 +93,16 @@ func RegisterNewTokenPair(tokenPairId int64, tokenPairName string, marketService
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 	bodydata := &respbody{}
 	err = json.Unmarshal(bodyBytes, bodydata)
 
 	if resp.Status != "200 " || err != nil || !bodydata.IsSuccess {
 		return errors.New(fmt.Sprintf("the response status code is %s (expecet: 200), receiveData: %s. error: %s", resp.Status, string(bodyBytes), err.Error()))
 	}
-	logger.Info(fmt.Sprintf("successfully register %s to market server %s. data: %v", tokenPairName, marketServiceUrl, string(bodyBytes)))
+	logger.Info(fmt.Sprintf("successfully register %s to market server %s. data: %v", tokenPairName, marketServiceURL, string(bodyBytes)))
 	return nil
 }

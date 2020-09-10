@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func ResolveRestIpAndPort() (string, int, error) {
+func ResolveRestIPAndPort() (string, int, error) {
 	laddr := strings.Split(viper.GetString(server.FlagExternalListenAddr), ":")
 	ip := laddr[0]
 	if ip == "127.0.0.1" {
-		return GetLocalIp(), 26659, nil
+		return GetLocalIP(), 26659, nil
 	}
 	port, err := strconv.Atoi(laddr[1])
 	if err != nil {
@@ -22,8 +22,8 @@ func ResolveRestIpAndPort() (string, int, error) {
 	return ip, port, nil
 }
 
-// GetLocalIp get local ip
-func GetLocalIp() string {
+// GetLocalIP get local ip
+func GetLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
@@ -37,4 +37,3 @@ func GetLocalIp() string {
 	}
 	return ""
 }
-

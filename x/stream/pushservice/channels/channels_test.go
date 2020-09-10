@@ -71,12 +71,10 @@ func TestDepthChannel(t *testing.T) {
 	for _, testCase := range testCases {
 		key := GetSpotDepthKey(testCase)
 		require.Equal(t, fmt.Sprintf("P3D:dex_spot:depth:%s", testCase), key)
-		//fmt.Println(key)
 	}
 	for _, testCase := range testCases {
 		key := GetCSpotDepthKey(testCase)
 		require.Equal(t, fmt.Sprintf("P3DC:dex_spot:depth:%s:", testCase), key)
-		//fmt.Println(key)
 	}
 }
 

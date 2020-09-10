@@ -20,6 +20,7 @@ func NewPulsarData() *PulsarData {
 	}
 }
 
+// nolint
 func (p *PulsarData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, cache *common.Cache) {
 	p.Height = ctx.BlockHeight()
 	p.matchResults = common.GetMatchResults(ctx, orderKeeper)

@@ -127,8 +127,11 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64, cfg *app
 	mockApp.SetInitChainer(getInitChainer(mockApp.App, mockApp.supplyKeeper,
 		[]exported.ModuleAccountI{feeCollector}))
 
-	coins, _ := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
+	coins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
 		balance, common.NativeToken, balance, common.TestToken))
+	if err != nil {
+		panic(err)
+	}
 
 	keysSlice, genAccs := CreateGenAccounts(numGenAccs, coins)
 	addrKeysSlice = keysSlice
@@ -148,8 +151,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64, cfg *app
 
 	require.NoError(t, mockApp.CompleteSetup(mockApp.keyOrder))
 	mock.SetGenesis(mockApp.App, genAccs)
-
-	return
+	return mockApp, addrKeysSlice
 }
 
 func getBeginBlocker(mapp *MockApp) sdk.BeginBlocker {
@@ -194,7 +196,7 @@ func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg sdk.Msg)
 	accNum := accs.GetAccountNumber()
 	seqNum := accs.GetSequence()
 
-	tx := mock.GenTx([]sdk.Msg{msg}, []uint64{uint64(accNum)}, []uint64{uint64(seqNum)}, addrKeys.PrivKey)
+	tx := mock.GenTx([]sdk.Msg{msg}, []uint64{accNum}, []uint64{seqNum}, addrKeys.PrivKey)
 	res := app.Check(tx)
 	if !res.IsOK() {
 		panic(fmt.Sprintf("something wrong in checking transaction: %v", res))

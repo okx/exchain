@@ -21,7 +21,7 @@ func NewEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (types.I
 	return engine, nil
 }
 
-func (engine *Engine) Url() string {
+func (engine *Engine) URL() string {
 	return engine.url
 }
 
@@ -41,12 +41,12 @@ func (engine *Engine) Write(data types.IStreamData, success *bool) {
 	defer func() {
 		if e := recover(); e != nil {
 			*success = false
-			engine.logger.Error("WebSocketEngine Write", "err", e)
+			engine.logger.Error("error: WebSocketEngine Write", "err", e)
 		}
 	}()
 
 	wsData := data.(*PushData)
-	engine.logger.Debug(fmt.Sprintf("WebSocketEngine Write data:%v", wsData.RedisBlock))
+	engine.logger.Debug(fmt.Sprintf("error: WebSocketEngine Write data:%v", wsData.RedisBlock))
 	events := sdk.Events{}
 
 	// 1. collect dex_spot/account events

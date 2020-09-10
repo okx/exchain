@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/okex/okchain/x/stream/eureka"
@@ -31,7 +30,6 @@ const (
 type Stream struct {
 	orderKeeper    types.OrderKeeper    // The reference to the OrderKeeper to get deals
 	tokenKeeper    types.TokenKeeper    // The reference to the TokenKeeper to get fee details
-	accountKeeper  types.AccountKeeper  //for account
 	marketKeeper   backend.MarketKeeper // The reference to MarketKeeper to get ticker/klines
 	dexKeeper      types.DexKeeper
 	cdc            *codec.Codec // The wire codec for binary encoding/decoding.
@@ -43,7 +41,7 @@ type Stream struct {
 	// Fore. 20190809
 	scheduler       types.IDistributeStateService
 	distrLatestTask *Task
-	taskChan        chan TaskWithData
+	taskChan        chan *TaskWithData
 	resultChan      chan Task
 	coordinator     *Coordinator
 	cacheQueue      *CacheQueue
@@ -67,16 +65,16 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	logger.Debug("NewStream", "config", *se.cfg)
 
 	// start eureka client
-	if cfg.BackendConfig.EnableBackend == true && se.cfg.EurekaServerUrl != "" {
+	if cfg.BackendConfig.EnableBackend && se.cfg.EurekaServerUrl != "" {
 		eureka.StartEurekaClient(logger, se.cfg.EurekaServerUrl, se.cfg.RestApplicationName)
 	}
 	// start nacos client
-	if cfg.BackendConfig.EnableBackend == true && se.cfg.NacosServerUrl != "" {
+	if cfg.BackendConfig.EnableBackend && se.cfg.NacosServerUrl != "" {
 		nacos.StartNacosClient(logger, se.cfg.NacosServerUrl, se.cfg.NacosNamespaceId, se.cfg.RestApplicationName)
 	}
 	// Enable marketKeeper if KlineQueryConnect is set.
 	if se.cfg.KlineQueryConnect != "" {
-		address, password, err := common.ParseRedisUrl(se.cfg.KlineQueryConnect, se.cfg.RedisRequirePass)
+		address, password, err := common.ParseRedisURL(se.cfg.KlineQueryConnect, se.cfg.RedisRequirePass)
 		if err != nil {
 			logger.Error("Fail to parse redis url ", se.cfg.KlineQueryConnect, " error: ", err.Error())
 		} else {
@@ -121,7 +119,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	se.logger.Info(fmt.Sprintf("%d engines created, verbose info: %+v", len(se.engines), se.engines))
 	se.AnalysisEnable = se.engines[EngineAnalysisKind] != nil
 
-	se.taskChan = make(chan TaskWithData, 1)
+	se.taskChan = make(chan *TaskWithData, 1)
 	se.resultChan = make(chan Task, 1)
 	se.distrLatestTask = nil
 	se.coordinator = NewCoordinator(logger, se.taskChan, se.resultChan, distributeLockTimeout, se.engines)
@@ -137,22 +135,22 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 
 	// Enable websocket
 	if se.engines[EngineWebSocketKind] != nil {
-		go websocket.StartWSServer(logger, se.engines[EngineWebSocketKind].Url())
+		go websocket.StartWSServer(logger, se.engines[EngineWebSocketKind].URL())
 	}
 
 	return se
 }
 
-func newRedisLockServiceWithConf(redisUrl string, redisPass string, workerId string, logger log.Logger) (types.IDistributeStateService, error) {
-	if redisUrl == "" {
-		return nil, errors.New(fmt.Sprintf("no valid redisUrl found, no IDistributeStateService is created, redisUrl: %s", redisUrl))
+func newRedisLockServiceWithConf(redisURL string, redisPass string, workerID string, logger log.Logger) (types.IDistributeStateService, error) {
+	if redisURL == "" {
+		return nil, fmt.Errorf("no valid redisUrl found, no IDistributeStateService is created, redisUrl: %s", redisURL)
 	}
-	if workerId == "" {
-		workerId = uuid.New().String()
+	if workerID == "" {
+		workerID = uuid.New().String()
 	} else {
-		workerId = workerId + "-" + uuid.New().String()
+		workerID = workerID + "-" + uuid.New().String()
 	}
 
-	scheduler, err := distrlock.NewRedisDistributeStateService(redisUrl, redisPass, logger, workerId)
+	scheduler, err := distrlock.NewRedisDistributeStateService(redisURL, redisPass, logger, workerID)
 	return scheduler, err
 }

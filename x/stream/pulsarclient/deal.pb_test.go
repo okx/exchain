@@ -11,7 +11,7 @@ import (
 
 func TestPb(t *testing.T) {
 	name := "xkb_oxb"
-	marketId := marketIdMap[name]
+	marketID := marketIDMap[name]
 	size := rand.Float64()
 	price := rand.Float64()
 	timestamp := time.Now().Unix()
@@ -21,12 +21,12 @@ func TestPb(t *testing.T) {
 
 	matchResultMsg := MatchResultMsg{
 		BizType:          &bizType,
-		MarketId:         &marketId,
+		MarketId:         &marketID,
 		MarketType:       &marketType,
 		Size:             &size,
 		Price:            &price,
 		CreatedTime:      &timestamp,
-		InstrumentId:     &marketId,
+		InstrumentId:     &marketID,
 		InstrumentName:   &name,
 		IsCalc:           &iscalc,
 		UserId:           &i64,
@@ -44,7 +44,6 @@ func TestPb(t *testing.T) {
 	getAllmethod(&matchResultMsg)
 	matchResultMsg.Descriptor()
 	matchResultMsg.XXX_DiscardUnknown()
-	matchResultMsg.String()
 
 	msg, err := proto.Marshal(&matchResultMsg)
 	require.NoError(t, err)

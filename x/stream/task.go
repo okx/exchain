@@ -11,66 +11,64 @@ import (
 type TaskConst int
 
 const (
-	STREAM_TASK_STATUS_INVALID TaskConst = 0 + iota
-	STREAM_TASK_STATUS_SUCCESS
-	STREAM_TASK_STATUS_FAIL
-	STREAM_TASK_STATUS_PARTITIAL_SUCCESS
+	TaskStatusInvalid TaskConst = 0 + iota
+	TaskStatusSuccess
+	TaskStatusStatusFail
+	TaskStatusPartialSuccess
 )
 
 const (
-	// Phrase 1
-	STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART TaskConst = 100 + iota
-	STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK
-	STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK
-	STREAM_TASK_PHRASE1_NEXT_ACTION_RERUN_TASK
-	STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN
+	// Phase 1
+	TaskPhase1NextActionRestart TaskConst = 100 + iota
+	TaskPhase1NextActionJumpNextBlock
+	TaskPhase1NextActionNewTask
+	TaskPhase1NextActionReturnTask
+	TaskPhase1NextActionUnknown
 
-	// Phrase 2
-	STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART TaskConst = 200 + iota
-	STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK
+	// Phase 2
+	TaskPhase2NextActionRestart TaskConst = 200 + iota
+	TaskPhase2NextActionJumpNextBlock
 )
 
-var StreamConstDesc = map[TaskConst]string{
-	STREAM_TASK_STATUS_INVALID:                    "STREAM_TASK_STATUS_INVALID",
-	STREAM_TASK_STATUS_SUCCESS:                    "STREAM_TASK_STATUS_SUCCESS",
-	STREAM_TASK_STATUS_FAIL:                       "STREAM_TASK_STATUS_FAIL",
-	STREAM_TASK_STATUS_PARTITIAL_SUCCESS:          "STREAM_TASK_STATUS_PARTITIAL_SUCCESS",
-	STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART:       "STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART",
-	STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK: "STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK",
-	STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK:      "STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK",
-	STREAM_TASK_PHRASE1_NEXT_ACTION_RERUN_TASK:    "STREAM_TASK_PHRASE1_NEXT_ACTION_RERUN_TASK",
-	STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN:       "STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN",
-	STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART:       "STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART",
-	STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK: "STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK",
+var TaskConstDesc = map[TaskConst]string{
+	TaskStatusInvalid:                 "STREAM_TASK_STATUS_INVALID",
+	TaskStatusSuccess:                 "STREAM_TASK_STATUS_SUCCESS",
+	TaskStatusStatusFail:              "STREAM_TASK_STATUS_FAIL",
+	TaskStatusPartialSuccess:          "STREAM_TASK_STATUS_PARTITIAL_SUCCESS",
+	TaskPhase1NextActionRestart:       "STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART",
+	TaskPhase1NextActionJumpNextBlock: "STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK",
+	TaskPhase1NextActionNewTask:       "STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK",
+	TaskPhase1NextActionReturnTask:    "STREAM_TASK_PHRASE1_NEXT_ACTION_RERUN_TASK",
+	TaskPhase1NextActionUnknown:       "STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN",
+	TaskPhase2NextActionRestart:       "STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART",
+	TaskPhase2NextActionJumpNextBlock: "STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK",
 }
 
 type Task struct {
-	Height    int64               `json:"Height"`
-	DoneMap   map[StreamKind]bool `json:"DoneMap"`
-	UpdatedAt int64               `json:"UpdatedAt"`
+	Height    int64         `json:"Height"`
+	DoneMap   map[Kind]bool `json:"DoneMap"`
+	UpdatedAt int64         `json:"UpdatedAt"`
 }
 
 func NewTask(blockHeight int64) *Task {
-	doneMap := make(map[StreamKind]bool)
-	//doneMap[StreamMysqlKind] = false
-	//doneMap[StreamRedisKind] = false
-	//doneMap[StreamPulsarKind] = false
-	//doneMap[StreamWebSocketKind] = false
-
+	doneMap := make(map[Kind]bool)
 	return &Task{
 		Height:  blockHeight,
 		DoneMap: doneMap,
 	}
 }
 
-func parseTaskFromJsonStr(s string) (*Task, error) {
+func parseTaskFromJSON(s string) (*Task, error) {
 	st := Task{}
 	e := json.Unmarshal([]byte(s), &st)
 	return &st, e
 }
 
-func (t *Task) toJsonStr() string {
-	r, _ := json.Marshal(t)
+func (t *Task) toJSON() string {
+	r, err := json.Marshal(t)
+	if err != nil {
+		panic(err)
+	}
 	return string(r)
 }
 
@@ -90,34 +88,34 @@ func (t *Task) GetStatus() TaskConst {
 	doneCnt := allTaskCnt - unDoneCnt
 
 	if doneCnt == allTaskCnt {
-		return STREAM_TASK_STATUS_SUCCESS
+		return TaskStatusSuccess
 	}
 
-	if 0 < doneCnt && doneCnt < allTaskCnt {
-		return STREAM_TASK_STATUS_PARTITIAL_SUCCESS
+	if doneCnt > 0 && doneCnt < allTaskCnt {
+		return TaskStatusPartialSuccess
 	}
 
-	if 0 == doneCnt {
-		return STREAM_TASK_STATUS_FAIL
+	if doneCnt == 0 {
+		return TaskStatusStatusFail
 	}
 
-	return STREAM_TASK_STATUS_INVALID
+	return TaskStatusInvalid
 }
 
 type TaskWithData struct {
 	*Task
-	dataMap map[StreamKind]types.IStreamData
+	dataMap map[Kind]types.IStreamData
 }
 
 type AtomTaskResult struct {
-	sType       StreamKind
+	sType       Kind
 	successDone bool
 }
 
 type AtomTaskRunner struct {
 	data   types.IStreamData
 	engine types.IStreamEngine
-	sType  StreamKind
+	sType  Kind
 	result chan AtomTaskResult
 	logger log.Logger
 }

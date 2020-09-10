@@ -88,10 +88,10 @@ type LeaseInfo struct {
 // newInstance
 func newInstance(config *eurekaConfig) *Instance {
 	instance := &Instance{
-		InstanceID: fmt.Sprintf("%s:%s:%d", config.appIp, config.appName, config.port),
-		HostName:   config.appIp,
+		InstanceID: fmt.Sprintf("%s:%s:%d", config.appIP, config.appName, config.port),
+		HostName:   config.appIP,
 		App:        config.appName,
-		IPAddr:     config.appIp,
+		IPAddr:     config.appIP,
 		Port: &Port{
 			Port:    config.port,
 			Enabled: "true",
@@ -113,7 +113,7 @@ func newInstance(config *eurekaConfig) *Instance {
 
 		Metadata: config.metadata,
 	}
-	instance.HomePageURL = fmt.Sprintf("http://%s:%d", config.appIp, config.port)
-	instance.StatusPageURL = fmt.Sprintf("http://%s:%d/info", config.appIp, config.port)
+	instance.HomePageURL = fmt.Sprintf("http://%s:%d", config.appIP, config.port)
+	instance.StatusPageURL = fmt.Sprintf("http://%s:%d/info", config.appIP, config.port)
 	return instance
 }

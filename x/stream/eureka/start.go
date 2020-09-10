@@ -9,16 +9,16 @@ import (
 
 // StartEurekaClient start eureka client and register rest service in eureka
 func StartEurekaClient(logger log.Logger, url string, name string) {
-	ip, port, err := common.ResolveRestIpAndPort()
+	ip, port, err := common.ResolveRestIPAndPort()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
 		return
 	}
 
 	c := newClient(&eurekaConfig{
-		serverUrl:             url,
+		serverURL:             url,
 		appName:               name,
-		appIp:                 ip,
+		appIP:                 ip,
 		port:                  port,
 		renewalIntervalInSecs: 30,
 		durationInSecs:        90,
@@ -40,7 +40,7 @@ func registerEurekaInstance(c *eurekaClient, logger log.Logger) error {
 	c.running = true
 	c.mutex.Unlock()
 	// register
-	err := register(c.instance, c.config.serverUrl, c.config.appName)
+	err := register(c.instance, c.config.serverURL, c.config.appName)
 	if err != nil {
 		return err
 	}

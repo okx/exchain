@@ -22,7 +22,7 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 
 	// prepare task data
 	sd := createStreamTaskWithData(ctx, k.stream)
-	sc := StreamContext{
+	sc := Context{
 		blockHeight: ctx.BlockHeight(),
 		stream:      k.stream,
 		taskData:    sd,
@@ -47,63 +47,59 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 
 func prepareStreamTask(blockHeight int64, s *Stream) (taskConst TaskConst, err error) {
 	if s.distrLatestTask != nil && s.distrLatestTask.Height > blockHeight {
-		return STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK, nil
+		return TaskPhase1NextActionJumpNextBlock, nil
 	}
 
 	// fetch distribute lock
 	locked, err := s.scheduler.FetchDistLock(
-		distributeLock, s.scheduler.GetLockerId(), atomTaskTimeout)
+		distributeLock, s.scheduler.GetLockerID(), atomTaskTimeout)
 
 	if !locked || err != nil {
-		return STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, err
+		return TaskPhase1NextActionRestart, err
 	}
 
 	tmpState, err := s.scheduler.GetDistState(latestTaskKey)
 	if err != nil {
-		return releaseLockWithStatus(s, STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, err)
+		return releaseLockWithStatus(s, TaskPhase1NextActionRestart, err)
 	}
 
 	if len(tmpState) > 0 {
-		s.distrLatestTask, _ = parseTaskFromJsonStr(tmpState)
-		if s.distrLatestTask.Height > blockHeight {
-			return releaseLockWithStatus(s, STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK, nil)
-		} else {
-			if s.distrLatestTask.Height == blockHeight {
-				if s.distrLatestTask.GetStatus() == STREAM_TASK_STATUS_SUCCESS {
-					return releaseLockWithStatus(s, STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK, nil)
-				} else {
-					return STREAM_TASK_PHRASE1_NEXT_ACTION_RERUN_TASK, nil
-				}
-			} else {
-				if s.distrLatestTask.Height+1 == blockHeight {
-					return STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK, nil
-				} else {
-					return releaseLockWithStatus(s, STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN,
-						fmt.Errorf("EndBlock-(%d) should never run into here, distrLatestBlock: %+v",
-							blockHeight, s.distrLatestTask))
-				}
-			}
+		s.distrLatestTask, err = parseTaskFromJSON(tmpState)
+		if err != nil {
+			return releaseLockWithStatus(s, TaskPhase1NextActionRestart, err)
 		}
-	} else {
-		return STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK, nil
+		if s.distrLatestTask.Height > blockHeight {
+			return releaseLockWithStatus(s, TaskPhase1NextActionJumpNextBlock, nil)
+		}
+		if s.distrLatestTask.Height == blockHeight {
+			if s.distrLatestTask.GetStatus() == TaskStatusSuccess {
+				return releaseLockWithStatus(s, TaskPhase1NextActionJumpNextBlock, nil)
+			}
+			return TaskPhase1NextActionReturnTask, nil
+		}
+		if s.distrLatestTask.Height+1 == blockHeight {
+			return TaskPhase1NextActionNewTask, nil
+		}
+		return releaseLockWithStatus(s, TaskPhase1NextActionUnknown,
+			fmt.Errorf("error: EndBlock-(%d) should never run into here, distrLatestBlock: %+v",
+				blockHeight, s.distrLatestTask))
 	}
+	return TaskPhase1NextActionNewTask, nil
 
 }
 
 func releaseLockWithStatus(s *Stream, taskConst TaskConst, err error) (TaskConst, error) {
-	rSuccess, rErr := s.scheduler.ReleaseDistLock(distributeLock, s.scheduler.GetLockerId())
-	if rSuccess == false || rErr != nil {
-		return STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART, rErr
-	} else {
-		return taskConst, err
+	rSuccess, rErr := s.scheduler.ReleaseDistLock(distributeLock, s.scheduler.GetLockerID())
+	if !rSuccess || rErr != nil {
+		return TaskPhase1NextActionRestart, rErr
 	}
-
+	return taskConst, err
 }
 
 func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 	sd := TaskWithData{}
 	sd.Task = NewTask(ctx.BlockHeight())
-	sd.dataMap = make(map[StreamKind]types.IStreamData)
+	sd.dataMap = make(map[Kind]types.IStreamData)
 
 	for engineType := range s.engines {
 		streamKind, ok := EngineKind2StreamKindMap[engineType]
@@ -140,48 +136,46 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 	return &sd
 }
 
-func executeStreamTask(s *Stream, sd *TaskWithData) (taskConst TaskConst, err error) {
-
-	s.logger.Debug(fmt.Sprintf("executeStreamTask: task %+v, data: %+v", *sd.Task, sd.dataMap))
-	s.taskChan <- *sd
+func executeStreamTask(s *Stream, task *TaskWithData) (taskConst TaskConst, err error) {
+	s.logger.Debug(fmt.Sprintf("executeStreamTask: task %+v, data: %+v", *task.Task, task.dataMap))
+	s.taskChan <- task
 	taskResult := <-s.resultChan
 	s.logger.Debug(fmt.Sprintf("executeStreamTask: taskResult %+v", taskResult))
 
-	stateStr := taskResult.toJsonStr()
+	stateStr := taskResult.toJSON()
 	success, err := s.scheduler.UnlockDistLockWithState(
-		distributeLock, s.scheduler.GetLockerId(), latestTaskKey, stateStr)
+		distributeLock, s.scheduler.GetLockerID(), latestTaskKey, stateStr)
 
 	if success && err == nil {
 		s.distrLatestTask = &taskResult
-		if s.distrLatestTask.GetStatus() != STREAM_TASK_STATUS_SUCCESS {
-			return STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART, nil
-		} else {
-			return STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK, nil
+		if s.distrLatestTask.GetStatus() != TaskStatusSuccess {
+			return TaskPhase2NextActionRestart, nil
 		}
+		return TaskPhase2NextActionJumpNextBlock, nil
 	}
 
-	return STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART, err
+	return TaskPhase2NextActionRestart, err
 
 }
 
-func execute(sc StreamContext) {
+func execute(sc Context) {
 	for {
 		p1Status, p1err := prepareStreamTask(sc.blockHeight, sc.stream)
 		if p1err != nil {
 			sc.stream.logger.Error(p1err.Error())
 		}
-		sc.stream.logger.Debug(fmt.Sprintf("P1Status: %s", StreamConstDesc[p1Status]))
+		sc.stream.logger.Debug(fmt.Sprintf("P1Status: %s", TaskConstDesc[p1Status]))
 		switch p1Status {
-		case STREAM_TASK_PHRASE1_NEXT_ACTION_RESTART:
+		case TaskPhase1NextActionRestart:
 			time.Sleep(1500 * time.Millisecond)
 			continue
-		case STREAM_TASK_PHRASE1_NEXT_ACTION_UNKNOWN:
-			err := fmt.Errorf("StreamPlugin's unexpected exception, %+v", p1err)
+		case TaskPhase1NextActionUnknown:
+			err := fmt.Errorf("stream unexpected exception, %+v", p1err)
 			panic(err)
-		case STREAM_TASK_PHRASE1_NEXT_ACTION_JUMP_NEXT_BLK:
+		case TaskPhase1NextActionJumpNextBlock:
 			return
 		default:
-			if p1Status != STREAM_TASK_PHRASE1_NEXT_ACTION_NEW_TASK {
+			if p1Status != TaskPhase1NextActionNewTask {
 				sc.taskData.Task = sc.stream.distrLatestTask
 			}
 			p2Status, p2err := executeStreamTask(sc.stream, sc.taskData)
@@ -189,12 +183,12 @@ func execute(sc StreamContext) {
 				sc.stream.logger.Error(p2err.Error())
 			}
 
-			sc.stream.logger.Debug(fmt.Sprintf("P2Status: %s", StreamConstDesc[p2Status]))
+			sc.stream.logger.Debug(fmt.Sprintf("P2Status: %s", TaskConstDesc[p2Status]))
 
 			switch p2Status {
-			case STREAM_TASK_PHRASE2_NEXT_ACTION_RESTART:
+			case TaskPhase2NextActionRestart:
 				time.Sleep(5000 * time.Millisecond)
-			case STREAM_TASK_PHRASE2_NEXT_ACTION_JUMP_NEXT_BLK:
+			case TaskPhase2NextActionJumpNextBlock:
 				return
 			}
 		}

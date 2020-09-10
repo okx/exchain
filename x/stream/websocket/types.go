@@ -39,7 +39,7 @@ func (data PushData) DataType() types.StreamDataKind {
 
 type EventResponse struct {
 	Event   string `json:"event"`
-	Success string `json:success`
+	Success string `json:"success"`
 	Channel string `json:"Channel"`
 }
 
@@ -49,7 +49,7 @@ func (r *EventResponse) Valid() bool {
 
 type TableResponse struct {
 	Table  string        `json:"table"`
-	Action string        `json:"action",default:""`
+	Action string        `json:"action"`
 	Data   []interface{} `json:"data"`
 }
 

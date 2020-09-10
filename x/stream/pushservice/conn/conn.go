@@ -14,9 +14,9 @@ type Client struct {
 	log      log.Logger
 }
 
-func NewClient(redisUrl, redisPassword string, db int, log log.Logger) (client *Client, err error) {
+func NewClient(redisURL, redisPassword string, db int, log log.Logger) (client *Client, err error) {
 	rc := redis.NewClient(&redis.Options{
-		Addr:     redisUrl,
+		Addr:     redisURL,
 		Password: redisPassword, // no password set
 		DB:       db,            // use default DB
 	})
@@ -25,7 +25,7 @@ func NewClient(redisUrl, redisPassword string, db int, log log.Logger) (client *
 	return client, err
 }
 
-//PrivatePub push data to private topic
+// PrivatePub push data to private topic
 func (c Client) PrivatePub(key, val string) (err error) {
 	logger := c.log.With("module", "redis-Client")
 	err = c.redisCli.Publish(key, val).Err()
@@ -39,7 +39,7 @@ func (c Client) PrivatePub(key, val string) (err error) {
 	return
 }
 
-//PublicPub push data to public topic
+// PublicPub push data to public topic
 func (c Client) PublicPub(key, val string) (err error) {
 	logger := c.log.With("module", "redis-Client")
 	err = c.redisCli.Publish(key, val).Err()
@@ -53,7 +53,7 @@ func (c Client) PublicPub(key, val string) (err error) {
 	return
 }
 
-//DepthPub push data to depth topic
+// DepthPub push data to depth topic
 func (c Client) DepthPub(key, val string) (err error) {
 	logger := c.log.With("module", "redis-Client")
 	err = c.redisCli.Publish(key, val).Err()
@@ -67,7 +67,7 @@ func (c Client) DepthPub(key, val string) (err error) {
 	return
 }
 
-//Set push data to redis, only used by public channel
+// Set push data to redis, only used by public channel
 func (c Client) Set(key, val string) (err error) {
 	logger := c.log.With("module", "redis-Client")
 	err = c.redisCli.Set(key, val, 0).Err()
@@ -81,7 +81,7 @@ func (c Client) Set(key, val string) (err error) {
 	return nil
 }
 
-//Get get data from redis
+// Get get data from redis
 func (c Client) Get(key string) (val string, err error) {
 	val, err = c.redisCli.Get(key).Result()
 	if err != nil {
@@ -90,7 +90,7 @@ func (c Client) Get(key string) (val string, err error) {
 	return val, nil
 }
 
-//MGet get data from redis, many keys once
+// MGet get data from redis, many keys once
 func (c Client) MGet(keys []string) (vals []interface{}, err error) {
 	vals, err = c.redisCli.MGet(keys...).Result()
 	if err != nil {
@@ -99,12 +99,12 @@ func (c Client) MGet(keys []string) (vals []interface{}, err error) {
 	return vals, nil
 }
 
-//Close close redis connect to server
+// Close close redis connect to server
 func (c Client) Close() error {
 	return c.redisCli.Close()
 }
 
-//HGetAll
+// HGetAll
 func (c Client) HGetAll(key string) (vals map[string]string, err error) {
 	vals, err = c.redisCli.HGetAll(key).Result()
 	if err != nil {

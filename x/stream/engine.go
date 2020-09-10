@@ -23,15 +23,15 @@ import (
 	"github.com/okex/okchain/x/stream/types"
 )
 
-type StreamKind byte
+type Kind byte
 type EngineKind byte
 
 const (
-	StreamNilKind       StreamKind = 0x00
-	StreamMysqlKind     StreamKind = 0x01
-	StreamRedisKind     StreamKind = 0x02
-	StreamPulsarKind    StreamKind = 0x03
-	StreamWebSocketKind StreamKind = 0x04
+	StreamNilKind       Kind = 0x00
+	StreamMysqlKind     Kind = 0x01
+	StreamRedisKind     Kind = 0x02
+	StreamPulsarKind    Kind = 0x03
+	StreamWebSocketKind Kind = 0x04
 
 	EngineNilKind       EngineKind = 0x00
 	EngineAnalysisKind  EngineKind = 0x01
@@ -40,42 +40,42 @@ const (
 	EngineWebSocketKind EngineKind = 0x04
 )
 
-var StreamKind2EngineKindMap = map[StreamKind]EngineKind{
+var StreamKind2EngineKindMap = map[Kind]EngineKind{
 	StreamMysqlKind:     EngineAnalysisKind,
 	StreamRedisKind:     EngineNotifyKind,
 	StreamPulsarKind:    EngineKlineKind,
 	StreamWebSocketKind: EngineWebSocketKind,
 }
 
-var EngineKind2StreamKindMap = map[EngineKind]StreamKind{
+var EngineKind2StreamKindMap = map[EngineKind]Kind{
 	EngineAnalysisKind:  StreamMysqlKind,
 	EngineNotifyKind:    StreamRedisKind,
 	EngineKlineKind:     StreamPulsarKind,
 	EngineWebSocketKind: StreamWebSocketKind,
 }
 
-type MySqlEngine struct {
+type MySQLEngine struct {
 	url    string
 	logger log.Logger
 	orm    *backend.ORM
 }
 
-func NewMySqlEngine(url string, log log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
+func NewMySQLEngine(url string, log log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
 	ormTmp := analyservice.NewMysqlORM(url)
 	log.Info("NewAnalysisService succeed")
 	// connect mysql through streamUrl
-	return &MySqlEngine{
+	return &MySQLEngine{
 		url:    url,
 		logger: log,
 		orm:    ormTmp,
 	}, nil
 }
 
-func (e *MySqlEngine) Url() string {
+func (e *MySQLEngine) URL() string {
 	return e.url
 }
 
-func (e *MySqlEngine) Write(data types.IStreamData, success *bool) {
+func (e *MySQLEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering MySqlEngine write")
 	enData, ok := data.(*analyservice.DataAnalysis)
 	if !ok {
@@ -129,7 +129,7 @@ func NewPulsarEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (t
 	}, nil
 }
 
-func (e *PulsarEngine) Url() string {
+func (e *PulsarEngine) URL() string {
 	return e.url
 }
 
@@ -140,7 +140,7 @@ func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 		panic(fmt.Sprintf("Convert data %+v to PulsarData failed", data))
 	}
 
-	err := e.pulsarProducer.RefreshMarketIdMap(enData, e.logger)
+	err := e.pulsarProducer.RefreshMarketIDMap(enData, e.logger)
 	if err != nil {
 		e.logger.Error(fmt.Sprintf("pulsar engine RefreshMarketIdMap failed: %s", err.Error()))
 		*success = false
@@ -164,11 +164,11 @@ type RedisEngine struct {
 }
 
 func NewRedisEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
-	redisUrl, redisPassword, err := common.ParseRedisUrl(url, cfg.RedisRequirePass)
+	redisURL, redisPassword, err := common.ParseRedisURL(url, cfg.RedisRequirePass)
 	if err != nil {
 		return nil, err
 	}
-	srv, err := pushservice.NewPushService(redisUrl, redisPassword, 0, logger)
+	srv, err := pushservice.NewPushService(redisURL, redisPassword, 0, logger)
 	if err != nil {
 		logger.Error("NewPushService failed ", err.Error())
 		return nil, err
@@ -181,7 +181,7 @@ func NewRedisEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (ty
 	}, nil
 }
 
-func (e *RedisEngine) Url() string {
+func (e *RedisEngine) URL() string {
 	return e.url
 }
 
@@ -205,9 +205,9 @@ func (e *RedisEngine) Write(data types.IStreamData, success *bool) {
 
 type EngineCreator func(url string, logger log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error)
 
-func GetEngineCreator(eKind EngineKind, sKind StreamKind) (EngineCreator, error) {
+func GetEngineCreator(eKind EngineKind, sKind Kind) (EngineCreator, error) {
 	m := map[string]EngineCreator{
-		fmt.Sprintf("%d_%d", EngineAnalysisKind, StreamMysqlKind):      NewMySqlEngine,
+		fmt.Sprintf("%d_%d", EngineAnalysisKind, StreamMysqlKind):      NewMySQLEngine,
 		fmt.Sprintf("%d_%d", EngineNotifyKind, StreamRedisKind):        NewRedisEngine,
 		fmt.Sprintf("%d_%d", EngineKlineKind, StreamPulsarKind):        NewPulsarEngine,
 		fmt.Sprintf("%d_%d", EngineWebSocketKind, StreamWebSocketKind): websocket.NewEngine,
@@ -217,9 +217,8 @@ func GetEngineCreator(eKind EngineKind, sKind StreamKind) (EngineCreator, error)
 	c, ok := m[key]
 	if ok {
 		return c, nil
-	} else {
-		return nil, fmt.Errorf("No EngineCreator found for EngineKine %d & StreamKine %d ", eKind, sKind)
 	}
+	return nil, fmt.Errorf("no EngineCreator found for EngineKine %d & StreamKine %d ", eKind, sKind)
 }
 
 func ParseStreamEngineConfig(logger log.Logger, cfg *appCfg.StreamConfig) (map[EngineKind]types.IStreamEngine, error) {
@@ -240,19 +239,18 @@ func ParseStreamEngineConfig(logger log.Logger, cfg *appCfg.StreamConfig) (map[E
 
 		engineType := StringToEngineKind(enginesConf[0])
 		streamType := StringToStreamKind(enginesConf[1])
-		streamUrl := enginesConf[2]
+		streamURL := enginesConf[2]
 
 		creatorFunc, err := GetEngineCreator(engineType, streamType)
 		if err != nil {
 			return nil, err
-		} else {
-			engine, err := creatorFunc(streamUrl, logger, cfg)
-			if err != nil {
-				return nil, err
-			}
-			engines[engineType] = engine
-
 		}
+
+		engine, err := creatorFunc(streamURL, logger, cfg)
+		if err != nil {
+			return nil, err
+		}
+		engines[engineType] = engine
 	}
 
 	return engines, nil
@@ -274,7 +272,7 @@ func StringToEngineKind(kind string) EngineKind {
 	}
 }
 
-func StringToStreamKind(kind string) StreamKind {
+func StringToStreamKind(kind string) Kind {
 	kind = strings.ToLower(kind)
 	switch kind {
 	case "mysql":

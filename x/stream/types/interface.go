@@ -8,8 +8,7 @@ type EngineEnqueue func(data IStreamData) bool
 
 // ***********************************
 type IStreamEngine interface {
-	//Enqueue(scheduler IScheduler)
-	Url() string
+	URL() string
 	Write(data IStreamData, success *bool)
 }
 
@@ -44,7 +43,7 @@ func (datas IStreamDatas) Sort() IStreamDatas {
 
 // Distributed State Service Interface
 type IDistributeStateService interface {
-	GetLockerId() string
+	GetLockerID() string
 	GetDistState(stateKey string) (string, error)
 	SetDistState(stateKey string, stateValue string) error
 	FetchDistLock(lockKey string, locker string, expiredInMS int) (bool, error)

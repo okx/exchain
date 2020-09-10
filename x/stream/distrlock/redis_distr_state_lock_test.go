@@ -10,13 +10,13 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-const ConstRedisUrl = "redis://127.0.0.1:16379"
+const ConstRedisURL = "redis://127.0.0.1:16379"
 const ConstLocker = "unittest"
 const ConstStateKey = "unittest-sk"
 
 func getRedisDistributeStateService() (*RedisDistributeStateService, error) {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	ss, err := NewRedisDistributeStateService(ConstRedisUrl, "", logger, ConstLocker)
+	ss, err := NewRedisDistributeStateService(ConstRedisURL, "", logger, ConstLocker)
 	return ss, err
 }
 
@@ -25,7 +25,8 @@ func TestRedisDistributeStateService_SetGetDistState(t *testing.T) {
 	require.True(t, ss != nil, ss)
 	require.True(t, err == nil, err)
 
-	random, _ := uuid.NewRandom()
+	random, err := uuid.NewRandom()
+	require.Nil(t, err)
 	testKey := ConstStateKey
 	s, err := ss.GetDistState(testKey)
 	require.True(t, s == "", s)
@@ -46,7 +47,8 @@ func TestRedisDistributeStateService_SetGetDistState(t *testing.T) {
 }
 
 func TestRedisDistributeStateService_FetchReleaseDistLock(t *testing.T) {
-	ss, _ := getRedisDistributeStateService()
+	ss, err := getRedisDistributeStateService()
+	require.Nil(t, err)
 
 	expiredInMS := 1000
 
@@ -73,14 +75,15 @@ func TestRedisDistributeStateService_FetchReleaseDistLock(t *testing.T) {
 	require.True(t, success, success)
 	require.True(t, err == nil, err)
 
-	//5. fakelocker fail to release dlock when the very lock has been released.
+	// 5. fakelocker fail to release dlock when the very lock has been released.
 	success, err = ss.ReleaseDistLock(lockKey, fakeLocker)
 	require.True(t, !success, success)
 	require.True(t, err == nil, err)
 }
 
 func TestRedisDistributeStateService_UnlockDistLockWithState(t *testing.T) {
-	ss, _ := getRedisDistributeStateService()
+	ss, err := getRedisDistributeStateService()
+	require.Nil(t, err)
 
 	expiredInMS := 5000
 	lockKey := "TestGlobalLock"
@@ -92,7 +95,8 @@ func TestRedisDistributeStateService_UnlockDistLockWithState(t *testing.T) {
 	require.True(t, success, success)
 	require.True(t, err == nil, err)
 
-	r, _ := uuid.NewRandom()
+	r, err := uuid.NewRandom()
+	require.Nil(t, err)
 	nextStateValue := "_______" + r.String()
 	success, err = ss.UnlockDistLockWithState(lockKey, ConstLocker, ConstStateKey, nextStateValue)
 	require.True(t, success, success)

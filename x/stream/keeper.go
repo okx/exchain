@@ -64,7 +64,7 @@ func (k Keeper) OnAddNewTokenPair(ctx sdk.Context, tokenPair *dex.TokenPair) {
 
 // OnTokenPairUpdated called by dex when token pair updated
 func (k Keeper) OnTokenPairUpdated(ctx sdk.Context) {
-	k.stream.logger.Debug(fmt.Sprintf("OnTokenPairUpdated:true"))
+	k.stream.logger.Debug("OnTokenPairUpdated:true")
 	k.stream.Cache.SetTokenPairChanged(true)
 }
 

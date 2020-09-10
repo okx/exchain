@@ -9,7 +9,7 @@ const (
 	// time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 	// rpc Websocket timeout
-	maxRpcContextTimeout = writeWait
+	maxRPCContextTimeout = writeWait
 
 	eventTypeBackend  = "backend"
 	rpcChannelKey     = "backend.channel"

@@ -90,7 +90,10 @@ func (conn *Conn) stopAll() {
 	}
 
 	if conn.rpcConn != nil {
-		conn.rpcConn.Stop()
+		err := conn.rpcConn.Stop()
+		if err != nil {
+			conn.logger.Error("rpcConn stop error", "msg", err.Error())
+		}
 		conn.logger.Debug("okWSConn'connection to rpc websocket is closed.")
 	}
 
@@ -110,11 +113,9 @@ func (conn *Conn) stopAll() {
 func (conn *Conn) handleFinalise() {
 	conn.logger.Debug("handleFinalise start")
 
-	select {
-	case msg := <-conn.ctx.interruptedCh:
-		conn.logger.Debug("handleFinalise get interrupted signal", "msg", msg)
-		conn.stopAll()
-	}
+	msg := <-conn.ctx.interruptedCh
+	conn.logger.Debug("handleFinalise get interrupted signal", "msg", msg)
+	conn.stopAll()
 
 	conn.logger.Debug("handleFinalise finished")
 }
@@ -164,30 +165,21 @@ func (conn *Conn) handleCliWrite() {
 	}()
 
 	conn.logger.Debug("handleCliWrite start")
-	for {
-		select {
-		case outMsg, ok := <-conn.cliOutChan:
-			if !ok {
-				break
-			}
+	for outMsg := range conn.cliOutChan {
+		var err error
+		if msg, ok := outMsg.(string); ok {
+			err = conn.cliConn.WriteMessage(websocket.TextMessage, []byte(msg))
+		} else {
+			err = conn.cliConn.WriteJSON(outMsg)
+		}
 
-			var err error
-			switch outMsg.(type) {
-			case string:
-				err = conn.cliConn.WriteMessage(websocket.TextMessage, []byte(outMsg.(string)))
-			default:
-				err = conn.cliConn.WriteJSON(outMsg)
-			}
+		conn.logger.Debug("handleCliWrite write", "OutMsg", outMsg)
 
-			conn.logger.Debug("handleCliWrite write", "OutMsg", outMsg)
-
-			if err != nil {
-				conn.ctx.interruptedCh <- err
-				break
-			}
+		if err != nil {
+			conn.ctx.interruptedCh <- err
+			break
 		}
 	}
-	conn.logger.Debug("handleCliWrite finished")
 }
 
 func (conn *Conn) convert2WSTableResponseFromMap(resultEvt ctypes.ResultEvent, topic *SubscriptionTopic) (r interface{}, e error) {
@@ -266,37 +258,28 @@ func (conn *Conn) handleRPCEventReceived() {
 		DexSpotAllTicker3s: conn.convertWSTableResponseFromList,
 	}
 
-	for {
-		select {
-		case evt, ok := <-conn.rpcEventChan:
-			if !ok {
-				break
+	for evt := range conn.rpcEventChan {
+		topic := query2SubscriptionTopic(evt.Query)
+		if topic != nil {
+			convertFunc := convertors[topic.Channel]
+			if convertFunc == nil {
+				convertFunc = conn.convert2WSTableResponseFromMap
 			}
 
-			topic := query2SubscriptionTopic(evt.Query)
-			if topic != nil {
-				convertFunc := convertors[topic.Channel]
-				if convertFunc == nil {
-					convertFunc = conn.convert2WSTableResponseFromMap
+			if convertFunc != nil {
+				r, e := convertFunc(evt, topic)
+				if e == nil {
+					conn.cliOutChan <- r
+				} else {
+					conn.ctx.interruptedCh <- e
+					break
 				}
-
-				if convertFunc != nil {
-					r, e := convertFunc(evt, topic)
-					if e == nil {
-						conn.cliOutChan <- r
-					} else {
-						conn.ctx.interruptedCh <- e
-						break
-					}
-				}
-			} else {
-				conn.logger.Debug("handleRPCEventReceived get event", "event", evt.Events)
-				conn.ctx.interruptedCh <- evt
 			}
+		} else {
+			conn.logger.Debug("handleRPCEventReceived get event", "event", evt.Events)
+			conn.ctx.interruptedCh <- evt
 		}
 	}
-
-	conn.logger.Debug("handleRPCEventReceived finished")
 }
 
 func (conn *Conn) cliPing() (err error) {
@@ -333,6 +316,7 @@ func (conn *Conn) cliSubscribe(op *BaseOp) (err error) {
 
 		}
 	} else {
+		// nolint
 		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, eventSubscribe)
 	}
 
@@ -350,8 +334,8 @@ func (conn *Conn) cliSubscribe(op *BaseOp) (err error) {
 	if err == nil && conn.rpcConn != nil {
 		subscriber := conn.getSubsciber()
 		for _, topic := range topics {
+			ctx, cancel := context.WithTimeout(context.Background(), maxRPCContextTimeout)
 
-			ctx, _ := context.WithTimeout(context.Background(), maxRpcContextTimeout)
 			channel, query := subscriptionTopic2Query(topic)
 			eventCh, rpcErr := conn.rpcConn.Subscribe(ctx, subscriber, query)
 
@@ -374,6 +358,7 @@ func (conn *Conn) cliSubscribe(op *BaseOp) (err error) {
 				}
 				conn.cliOutChan <- errResp
 			}
+			cancel()
 		}
 	}
 
@@ -419,14 +404,11 @@ func (conn *Conn) receiveRPCResultEvents(eventCh <-chan ctypes.ResultEvent, subs
 				break
 			}
 			conn.rpcEventChan <- event
-			//conn.logger.Debug("receiveRPCResultEvents get event", conn.getSubsciber(), event.Query)
 
 		case <-conn.rpcStopChan:
 			break
 		}
 	}
-
-	conn.logger.Debug("receiveRPCResultEvents finished", subscriber, channel)
 }
 
 func (conn *Conn) getSubsciber() string {
@@ -459,6 +441,7 @@ func (conn *Conn) cliUnSubscribe(op *BaseOp) (err error) {
 			topics = append(topics, topic)
 		}
 	} else {
+		// nolint
 		err = fmt.Errorf("BaseOp {%+v} is not a valid one, expected type: %s", op, eventUnsubscribe)
 	}
 
@@ -466,10 +449,10 @@ func (conn *Conn) cliUnSubscribe(op *BaseOp) (err error) {
 		// 2. if rpcConn is not initialized, raise error
 		err = fmt.Errorf("RPC WS Client hasn't been initialized properly")
 	} else {
-		// 3. do unsubscibe work
+		// 3. do unsubscribe work
 		subscriber := conn.getSubsciber()
 		for _, topic := range topics {
-			ctx, _ := context.WithTimeout(context.Background(), maxRpcContextTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), maxRPCContextTimeout)
 			channel, query := subscriptionTopic2Query(topic)
 			rpcErr := conn.rpcConn.Unsubscribe(ctx, subscriber, query)
 			if rpcErr == nil {
@@ -488,6 +471,7 @@ func (conn *Conn) cliUnSubscribe(op *BaseOp) (err error) {
 				}
 				conn.cliOutChan <- errResp
 			}
+			cancel()
 		}
 	}
 
@@ -516,11 +500,9 @@ func (conn *Conn) handleConvert() {
 		if err := recover(); err != nil {
 			conn.logger.Error(fmt.Sprintf("handleConvert recover panic:%v", err))
 		}
+		conn.logger.Debug("handleConvert finished")
 	}()
 	conn.logger.Debug("handleConvert start")
-
-	//conn.wg.Add(1)
-	//defer conn.wg.Done()
 
 	cliEventMap := map[string]func(op *BaseOp) error{
 		eventSubscribe:   conn.cliSubscribe,
@@ -528,24 +510,15 @@ func (conn *Conn) handleConvert() {
 		eventLogin:       conn.cliLogin,
 	}
 
-	for {
+	for cliInMsg := range conn.cliInChan {
 		var err error
-		select {
-		case cliInMsg, ok := <-conn.cliInChan:
-			if !ok {
-				break
-			}
-
-			op := BaseOp{}
-			if jsonErr := json.Unmarshal(cliInMsg, &op); jsonErr == nil {
-				conn.logger.Debug(fmt.Sprintf("handleConvert BaseOp: %+v", op))
-				f := cliEventMap[op.Op]
-				err = f(&op)
-			} else {
-				if string(cliInMsg) == "ping" {
-					err = conn.cliPing()
-				}
-			}
+		op := BaseOp{}
+		if jsonErr := json.Unmarshal(cliInMsg, &op); jsonErr == nil {
+			conn.logger.Debug(fmt.Sprintf("handleConvert BaseOp: %+v", op))
+			f := cliEventMap[op.Op]
+			err = f(&op)
+		} else if string(cliInMsg) == "ping" {
+			err = conn.cliPing()
 		}
 
 		if err != nil {
@@ -553,6 +526,4 @@ func (conn *Conn) handleConvert() {
 			break
 		}
 	}
-
-	conn.logger.Debug("handleConvert finished")
 }

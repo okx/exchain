@@ -14,12 +14,12 @@ import (
 // It mainly works when paired with LocalWebSocketEngine.
 type LocalStateService struct {
 	logger      log.Logger
-	lockerId    string // unique identifier of locker
+	lockerID    string // unique identifier of locker
 	lockFileDir string
 	mutex       *sync.Mutex
 }
 
-func NewLocalStateService(logger log.Logger, lockerId string, lockFileDir string) (s *LocalStateService, err error) {
+func NewLocalStateService(logger log.Logger, lockerID string, lockFileDir string) (s *LocalStateService, err error) {
 
 	_, err = os.Stat(lockFileDir)
 	if err != nil {
@@ -29,12 +29,12 @@ func NewLocalStateService(logger log.Logger, lockerId string, lockFileDir string
 	if err == nil {
 		s = &LocalStateService{
 			logger:      logger,
-			lockerId:    lockerId,
+			lockerID:    lockerID,
 			lockFileDir: lockFileDir,
 			mutex:       &sync.Mutex{},
 		}
 	}
-	logger.Debug(fmt.Sprintf("NewLocalStateService lockerId: %s lockFileDir: %s", lockerId, lockFileDir))
+	logger.Debug(fmt.Sprintf("NewLocalStateService lockerId: %s lockFileDir: %s", lockerID, lockFileDir))
 	return s, err
 }
 
@@ -44,11 +44,11 @@ func (s *LocalStateService) RemoveStateFile(stateKey string) error {
 }
 
 func (s *LocalStateService) getFullPath(stateName string) string {
-	return s.lockFileDir + string(os.PathSeparator) + s.lockerId + "." + stateName
+	return s.lockFileDir + string(os.PathSeparator) + s.lockerID + "." + stateName
 }
 
-func (s *LocalStateService) GetLockerId() string {
-	return s.lockerId
+func (s *LocalStateService) GetLockerID() string {
+	return s.lockerID
 }
 
 func (s *LocalStateService) GetDistState(stateKey string) (state string, err error) {
@@ -74,7 +74,7 @@ func (s *LocalStateService) SetDistState(stateKey string, stateValue string) err
 	defer s.mutex.Unlock()
 
 	stateFilePath := s.getFullPath(stateKey)
-	err := ioutil.WriteFile(stateFilePath, []byte(stateValue), 0666)
+	err := ioutil.WriteFile(stateFilePath, []byte(stateValue), 0600)
 
 	return err
 }

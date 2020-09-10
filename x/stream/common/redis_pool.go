@@ -1,7 +1,6 @@
 package common
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -20,8 +19,8 @@ const (
 // scheme (https://www.iana.org/assignments/uri-schemes/prov/redis).
 // eg. redis://user:password@localhost:6379, redis://localhost:16379
 // return: address, password, error
-func ParseRedisUrl(redisUrl, requirePass string) (string, string, error) {
-	u, err := url.Parse(redisUrl)
+func ParseRedisURL(redisURL, requirePass string) (string, string, error) {
+	u, err := url.Parse(redisURL)
 	if err != nil {
 		return "", "", err
 	}
@@ -48,14 +47,13 @@ func ParseRedisUrl(redisUrl, requirePass string) (string, string, error) {
 	return address, password, nil
 }
 
-func NewPool(redisUrl string, redisPass string, logger log.Logger) (*redis.Pool, error) {
-	// parse redisUrl
-	address, password, err := ParseRedisUrl(redisUrl, redisPass)
+func NewPool(redisURL string, redisPass string, logger log.Logger) (*redis.Pool, error) {
+	address, password, err := ParseRedisURL(redisURL, redisPass)
 	if err != nil {
 		return nil, err
 	}
 	logger.Info(fmt.Sprintf("parsed redis url: %s, address: %s, password: %s",
-		redisUrl, address, password))
+		redisURL, address, password))
 
 	// new redis pool
 	pool := &redis.Pool{
@@ -84,7 +82,7 @@ func NewPool(redisUrl string, redisPass string, logger log.Logger) (*redis.Pool,
 	conn := pool.Get()
 	defer conn.Close()
 	if conn.Err() != nil {
-		return nil, errors.New(fmt.Sprintf("unable to connect to redis: %v", redisUrl))
+		return nil, fmt.Errorf("unable to connect to redis: %v", redisURL)
 	}
 	return pool, nil
 }
