@@ -13,6 +13,7 @@ type Token struct {
 	WholeName           string         `json:"whole_name" v2:"whole_name"`                       // e.g. "OKT"
 	OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"` // e.g. 1000000000.00000000
 	Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. okchain1upyg3vl6vqaxqvzts69zpus2c027p7paw63s99
+	Type                int            `json:"type"`                                             //e.g. 1 common token, 2 interest token
 	Mintable            bool           `json:"mintable" v2:"mintable"`                           // e.g. false
 }
 
@@ -31,6 +32,7 @@ type TokenResp struct {
 	WholeName           string         `json:"whole_name" v2:"whole_name"`
 	OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"`
 	Owner               sdk.AccAddress `json:"owner" v2:"owner"`
+	Type                int            `json:"type"`
 	Mintable            bool           `json:"mintable" v2:"mintable"`
 	TotalSupply         sdk.Dec        `json:"total_supply" v2:"total_supply"`
 }

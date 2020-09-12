@@ -178,6 +178,7 @@ func GenTokenResp(token Token) TokenResp {
 		WholeName:           token.WholeName,
 		OriginalTotalSupply: token.OriginalTotalSupply,
 		Owner:               token.Owner,
+		Type:                token.Type,
 		Mintable:            token.Mintable,
 	}
 }
