@@ -25,7 +25,7 @@
         "coins": [
           {
             "amount": "9000000.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ],
         "delegated_free": [],
@@ -54,7 +54,7 @@
     "crisis": {
       "constant_fee": {
         "amount": "1000.00000000",
-        "denom": "tokt"
+        "denom": "okt"
       }
     },
     "debug": null,
@@ -66,21 +66,21 @@
         "delist_min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ],
         "delist_voting_period": "259200000000000",
         "list_fee": {
           "amount": "20000.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "register_operator_fee": {
           "amount": "0.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "transfer_ownership_fee": {
           "amount": "10.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "withdraw_period": "259200000000000"
       },
@@ -123,7 +123,7 @@
                   },
                   "min_self_delegation": {
                     "amount": "0.00100000",
-                    "denom": "tokt"
+                    "denom": "okt"
                   },
                   "pubkey": "okchainvalconspub1zcjduepqqxsxcjjletkq40ypzuqz8n925pk0ycw9h8g4saw27adyf2t93szsvpk77u",
                   "validator_address": "okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"
@@ -136,7 +136,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "MX+gzxaThOt7qpgX8mNGlgqpv3mbLQGvErMaA9VjsAk4WHyvcGQXWxuu2PwDhExApbhZQrBtz+5fZ7ZWcbSo9Q=="
+                "signature": "ZuRwla7Kpt6H3etoJ6peAwzaC6k8m8lu7lQozm4oQKIpYEaoWAIZAqZBbAaqebKmIov3f22Ys4xDOlCt2teHlg=="
               }
             ]
           }
@@ -149,7 +149,7 @@
         "min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ]
       },
@@ -174,7 +174,7 @@
         "minted_per_block": [
           {
             "amount": "0.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ],
         "next_block_to_update": "0"
@@ -182,7 +182,7 @@
       "params": {
         "blocks_per_year": "10519200",
         "inflation_rate": "0.01000000",
-        "mint_denom": "tokt"
+        "mint_denom": "okt"
       }
     },
     "order": {
@@ -191,7 +191,7 @@
         "cancel_order_msg_gas_unit": "30000",
         "fee_per_block": {
           "amount": "0.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "max_deals_per_block": "1000",
         "new_order_msg_gas_unit": "40000",
@@ -206,7 +206,7 @@
         "min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ],
         "voting_period": "259200000000000"
@@ -231,7 +231,7 @@
       "last_total_power": "0",
       "last_validator_powers": null,
       "params": {
-        "bond_denom": "tokt",
+        "bond_denom": "okt",
         "epoch": 252,
         "max_bonded_validators": 21,
         "max_validators_to_add_shares": 30,
@@ -253,33 +253,33 @@
       "params": {
         "burn_fee": {
           "amount": "10.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "issue_fee": {
           "amount": "2500.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "mint_fee": {
           "amount": "10.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "modify_fee": {
           "amount": "0.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         },
         "transfer_ownership_fee": {
           "amount": "10.00000000",
-          "denom": "tokt"
+          "denom": "okt"
         }
       },
       "tokens": [
         {
           "description": "OK Group Global Utility Token",
           "mintable": true,
-          "original_symbol": "tokt",
+          "original_symbol": "okt",
           "original_total_supply": "1000000000.00000000",
           "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
-          "symbol": "tokt",
+          "symbol": "okt",
           "whole_name": "OKT"
         }
       ]
@@ -302,7 +302,7 @@
         "app_upgrade_min_deposit": [
           {
             "amount": "100.00000000",
-            "denom": "tokt"
+            "denom": "okt"
           }
         ],
         "app_upgrade_voting_period": "259200000000000"
