@@ -69,8 +69,8 @@ func TestToken(t *testing.T) {
 			OriginalSymbol:      common.NativeToken,
 			WholeName:           "btc",
 			OriginalTotalSupply: sdk.NewDec(1000000),
-			Owner:               nil,
 			Type:                0,
+			Owner:               nil,
 			Mintable:            false,
 		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.00000000","type":0,"owner":"","mintable":false}`},
 		{Token{
@@ -79,8 +79,8 @@ func TestToken(t *testing.T) {
 			OriginalSymbol:      common.NativeToken,
 			WholeName:           "ok coin",
 			OriginalTotalSupply: sdk.NewDec(1000000000),
-			Owner:               addr,
 			Type:                0,
+			Owner:               addr,
 			Mintable:            true,
 		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","type":0,"owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
 	}
