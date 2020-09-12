@@ -9,15 +9,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okchain/x/debug"
 	"github.com/okex/okchain/x/dex"
+	"github.com/okex/okchain/x/poolswap"
 	"github.com/okex/okchain/x/staking"
 
-	//distr "github.com/okex/okchain/x/distribution"
 	distr "github.com/okex/okchain/x/distribution"
 	"github.com/okex/okchain/x/gov"
 	"github.com/okex/okchain/x/order"
 	"github.com/okex/okchain/x/params"
 
-	//"github.com/okex/okchain/x/staking"
 	"github.com/okex/okchain/x/token"
 	"github.com/okex/okchain/x/upgrade"
 )
@@ -39,6 +38,7 @@ var (
 		upgrade.StoreKey,
 		dex.StoreKey, dex.TokenPairStoreKey,
 		debug.StoreKey,
+		poolswap.StoreKey,
 	)
 
 	transientStoreKeysMap = sdk.NewTransientStoreKeys(staking.TStoreKey, params.TStoreKey)
