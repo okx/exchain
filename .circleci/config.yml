@@ -65,7 +65,7 @@ jobs:
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
             excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)"
-            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade" "./x/poolswap")
+            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade" "./x/ammswap")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
