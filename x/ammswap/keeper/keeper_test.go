@@ -12,7 +12,7 @@ import (
 )
 
 func TestKeeper_GetPoolTokenInfo(t *testing.T) {
-	addrTest := "okchain1a20d4xmqj4m9shtm0skt0aaahsgeu4h6746fs2"
+	addrTest := "okexchain1a20d4xmqj4m9shtm0skt0aaahsgeu4h6746fs2"
 	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})

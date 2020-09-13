@@ -54,7 +54,7 @@ func getCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details for a single vote on a proposal given its identifier.
 
 Example:
-$ %s query gov vote 1 okchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov vote 1 okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 `,
 				version.ClientName,
 			),
@@ -172,7 +172,7 @@ func getCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details for a single proposal deposit on a proposal by its identifier.
 
 Example:
-$ %s query gov deposit 1 okchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov deposit 1 okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 `,
 				version.ClientName,
 			),

@@ -14,7 +14,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QuerySwapTokenPair:
 			return querySwapTokenPair(ctx, path[1:], req, k)
-
+		case types.QueryParams:
+			return queryParams(ctx, path[1:], req, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown swap query endpoint")
 		}
@@ -31,4 +32,8 @@ func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, k
 	}
 	bz := keeper.cdc.MustMarshalJSON(tokenPair)
 	return bz, nil
+}
+
+func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	return keeper.cdc.MustMarshalJSON(keeper.GetParams(ctx)), nil
 }

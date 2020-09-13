@@ -1,6 +1,6 @@
 {
   "genesis_time": "2020-01-01T10:16:17.025816Z",
-  "chain_id": "okchain",
+  "chain_id": "okexchain",
   "consensus_params": {
     "block": {
       "max_bytes": "22020096",
@@ -21,7 +21,7 @@
     "accounts": [
       {
         "account_number": "0",
-        "address": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+        "address": "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9",
         "coins": [
           {
             "amount": "9000000.00000000",
@@ -38,6 +38,12 @@
         "start_time": "0"
       }
     ],
+    "ammswap": {
+      "params": {
+        "fee_rate": "0.00300000"
+      },
+      "swap_token_pair_records": null
+    },
     "auth": {
       "params": {
         "max_memo_characters": "256",
@@ -109,12 +115,12 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "33935a25b0a0806372c93903a15fe73f66752254@127.0.0.1:26656",
+            "memo": "7f75cd135d02418d17d1092fe3a4ffc1c5d1aebb@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okchain/staking/MsgCreateValidator",
                 "value": {
-                  "delegator_address": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+                  "delegator_address": "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9",
                   "description": {
                     "details": "",
                     "identity": "",
@@ -125,8 +131,8 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okchainvalconspub1zcjduepqqxsxcjjletkq40ypzuqz8n925pk0ycw9h8g4saw27adyf2t93szsvpk77u",
-                  "validator_address": "okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"
+                  "pubkey": "okexchainvalconspub1zcjduepqfcprr6x7d44wu4nt0suey3fz6pzp274486s5lua9vx7l3w3xhw2splls6m",
+                  "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
             ],
@@ -136,7 +142,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "ZuRwla7Kpt6H3etoJ6peAwzaC6k8m8lu7lQozm4oQKIpYEaoWAIZAqZBbAaqebKmIov3f22Ys4xDOlCt2teHlg=="
+                "signature": "XPFRaWTwZ1sXRR2DBza8ZH7NX59kLiYpidGTcdsmutI/fE7W4huSZ/j1p//zjAo3U9R4PTSZkGHB9DwiO/ZX2w=="
               }
             ]
           }
@@ -212,12 +218,6 @@
         "voting_period": "259200000000000"
       }
     },
-    "ammswap": {
-      "params": {
-        "fee_rate": "0.00300000"
-      },
-      "swap_token_pair_records": null
-    },
     "slashing": {
       "missed_blocks": {},
       "params": {
@@ -284,7 +284,7 @@
           "mintable": true,
           "original_symbol": "okt",
           "original_total_supply": "1000000000.00000000",
-          "owner": "okchain10q0rk5qnyag7wfvvt7rtphlw589m7frsmyq4ya",
+          "owner": "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9",
           "symbol": "okt",
           "type": "0",
           "whole_name": "OKT"

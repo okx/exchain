@@ -44,7 +44,7 @@ func GetCmdSetWithdrawAddr(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Set the withdraw address for rewards associated with a delegator address.
 
 Example:
-$ %s tx distr set-withdraw-addr okchain1hw4r48aww06ldrfeuq2v438ujnl6alszzzqpph --from mykey
+$ %s tx distr set-withdraw-addr okexchain1hw4r48aww06ldrfeuq2v438ujnl6alszzzqpph --from mykey
 `,
 				version.ClientName,
 			),
