@@ -1,7 +1,7 @@
 # OKExChain
 The Infrastructure of Decentralized Exchange
 
-![banner](./docs/images/okchain-image.jpg)
+![banner](./docs/images/okexchain-image.jpg)
 
 [![version](https://img.shields.io/github/tag/okex/okexchain.svg)](https://github.com/okex/okexchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/okexchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okexchain/tree/master)
@@ -16,13 +16,13 @@ This repository hosts `OKExChain`, the implementation of the OKExChain based on 
 **Note**: Requires [Go 1.12](https://golang.org/dl/)
 
 ## Getting Started
-See the [documentation](https://okchain-docs.readthedocs.io/en/latest/index.html).
+See the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).
 
 ## OKExChain Testnet
 
-To run a full-node for the testnet of the OKExChain, first [install `okchaind`](https://okchain-docs.readthedocs.io/en/latest/getting-start/install-okchain.html), then follow [the guide](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html).
+To run a full-node for the testnet of the OKExChain, first [install `okexchaind`](https://okexchain-docs.readthedocs.io/en/latest/getting-start/install-okchain.html), then follow [the guide](https://okexchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html).
 
-For status updates and genesis file, see the [genesis](https://okchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html#genesis-seeds).
+For status updates and genesis file, see the [genesis](https://okexchain-docs.readthedocs.io/en/latest/getting-start/join-okchain-testnet.html#genesis-seeds).
 
 ## Quick Start
 
