@@ -10,7 +10,7 @@ Version=v0.11.1
 CosmosSDK=v0.37.9
 Tendermint=v0.32.10
 Iavl=v0.12.4
-Name=okchain
+Name=okexchain
 ServerName=okexchaind
 ClientName=okexchaincli
 # the height of the 1st block is GenesisHeight+1
@@ -49,9 +49,9 @@ BUILD_TESTNET_FLAGS := $(BUILD_FLAGS)
 
 all: install
 
-install: okchain
+install: okexchain
 
-okchain:
+okexchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
 
@@ -115,12 +115,12 @@ endif
 build-linux:
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
-build-docker-okchainnode:
+build-docker-okexchainnode:
 	$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
 localnet-start: build-linux localnet-stop
-	@if ! [ -f build/node0/okexchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okexchaind:Z okchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
+	@if ! [ -f build/node0/okexchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okexchaind:Z okexchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
 	docker-compose up -d
 
 # Stop testnet

@@ -5,7 +5,7 @@ import (
 )
 
 // MultiStakingHooks combines multiple staking hooks, all hook functions are run in array sequence
-// TODO:need to trim the staking hooks as the okchain design
+// TODO:need to trim the staking hooks as the okexchain design
 type MultiStakingHooks []StakingHooks
 
 // NewMultiStakingHooks creates a new object of MultiStakingHooks

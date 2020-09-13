@@ -25,7 +25,7 @@ func registerRoutes(rs *lcd.RestServer) {
 }
 
 func registerRoutesV1(rs *lcd.RestServer) {
-	v1Router := rs.Mux.PathPrefix("/okchain/v1").Name("v1").Subrouter()
+	v1Router := rs.Mux.PathPrefix("/okexchain/v1").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
 	authrest.RegisterRoutes(rs.CliCtx, v1Router)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -40,7 +40,7 @@ func registerRoutesV1(rs *lcd.RestServer) {
 }
 
 func registerRoutesV2(rs *lcd.RestServer) {
-	v2Router := rs.Mux.PathPrefix("/okchain/v2").Name("v1").Subrouter()
+	v2Router := rs.Mux.PathPrefix("/okexchain/v2").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v2Router)
 	authrest.RegisterRoutes(rs.CliCtx, v2Router)
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)

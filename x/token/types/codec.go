@@ -6,16 +6,16 @@ import (
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgTokenIssue{}, "okchain/token/MsgIssue", nil)
-	cdc.RegisterConcrete(MsgTokenBurn{}, "okchain/token/MsgBurn", nil)
-	cdc.RegisterConcrete(MsgTokenMint{}, "okchain/token/MsgMint", nil)
-	cdc.RegisterConcrete(MsgMultiSend{}, "okchain/token/MsgMultiTransfer", nil)
-	cdc.RegisterConcrete(MsgSend{}, "okchain/token/MsgTransfer", nil)
-	cdc.RegisterConcrete(MsgTransferOwnership{}, "okchain/token/MsgTransferOwnership", nil)
-	cdc.RegisterConcrete(MsgTokenModify{}, "okchain/token/MsgModify", nil)
+	cdc.RegisterConcrete(MsgTokenIssue{}, "okexchain/token/MsgIssue", nil)
+	cdc.RegisterConcrete(MsgTokenBurn{}, "okexchain/token/MsgBurn", nil)
+	cdc.RegisterConcrete(MsgTokenMint{}, "okexchain/token/MsgMint", nil)
+	cdc.RegisterConcrete(MsgMultiSend{}, "okexchain/token/MsgMultiTransfer", nil)
+	cdc.RegisterConcrete(MsgSend{}, "okexchain/token/MsgTransfer", nil)
+	cdc.RegisterConcrete(MsgTransferOwnership{}, "okexchain/token/MsgTransferOwnership", nil)
+	cdc.RegisterConcrete(MsgTokenModify{}, "okexchain/token/MsgModify", nil)
 
 	// for test
-	//cdc.RegisterConcrete(MsgTokenDestroy{}, "okchain/token/MsgDestroy", nil)
+	//cdc.RegisterConcrete(MsgTokenDestroy{}, "okexchain/token/MsgDestroy", nil)
 }
 
 // generic sealed codec to be used throughout this module

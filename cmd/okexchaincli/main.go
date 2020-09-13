@@ -71,8 +71,8 @@ func main() {
 		client.NewCompletionCmd(rootCmd, true),
 	)
 
-	// add flags and prefix all env exposed with OKCHAIN
-	executor := cli.PrepareMainCmd(rootCmd, "OKCHAIN", app.DefaultCLIHome)
+	// add flags and prefix all env exposed with OKEXCHAIN
+	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
 
 	if err := executor.Execute(); err != nil {
 		fmt.Printf("Failed executing CLI command: %s, exiting...\n", err)

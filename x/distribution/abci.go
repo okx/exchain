@@ -22,7 +22,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	if ctx.BlockHeight() > tmtypes.GetStartBlockHeight()+1 {
 		previousProposer := k.GetPreviousProposerConsAddr(ctx)
 
-		/* allocate tokens by okchain custom rule */
+		/* allocate tokens by okexchain custom rule */
 		k.AllocateTokens(ctx, previousTotalPower, previousProposer, req.LastCommitInfo.GetVotes())
 	}
 

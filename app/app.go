@@ -21,16 +21,16 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-const appName = "OKChainApp"
+const appName = "OKExChainApp"
 
-// OKChainApp extends BaseApp(ABCI application)
-type OKChainApp struct {
+// OKExChainApp extends BaseApp(ABCI application)
+type OKExChainApp struct {
 	*baseapp.BaseApp
 }
 
-// NewOKChainApp returns a reference to an initialized OKChainApp.
-func NewOKChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
-	invCheckPeriod uint, baseAppOptions ...func(*baseapp.BaseApp)) *OKChainApp {
+// NewOKExChainApp returns a reference to an initialized OKExChainApp.
+func NewOKExChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bool,
+	invCheckPeriod uint, baseAppOptions ...func(*baseapp.BaseApp)) *OKExChainApp {
 	bApp := baseapp.NewBaseApp(appName, logger, db, nil, baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	// set app version
@@ -38,7 +38,7 @@ func NewOKChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLates
 	// set protocol version
 	bApp.ProtocolVersion = int32(version.CurrentProtocolVersion)
 
-	app := &OKChainApp{
+	app := &OKExChainApp{
 		BaseApp: bApp,
 	}
 	// set hook function postEndBlocker
@@ -70,13 +70,13 @@ func NewOKChainApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLates
 }
 
 // LoadHeight loads data on a particular height
-func (app *OKChainApp) LoadHeight(height int64) error {
+func (app *OKExChainApp) LoadHeight(height int64) error {
 	//return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 	return app.LoadVersion(height, protocol.GetMainStoreKey())
 }
 
 // hook function for BaseApp's EndBlock(upgrade)
-func (app *OKChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
+func (app *OKExChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
 	var found bool
 	var appVersionBytes []byte
 
@@ -124,9 +124,9 @@ func (app *OKChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
 	}
 }
 
-func (app *OKChainApp) recoverLocalEnv(loadLatest bool) {
+func (app *OKExChainApp) recoverLocalEnv(loadLatest bool) {
 	// the current field in AppProtocolEngine is 0
-	// on the beginning for the running of NewOKChainApp()
+	// on the beginning for the running of NewOKExChainApp()
 
 	// it will mount protocolv0.GetKVStoreKeysMap()
 	app.MountKVStores(protocol.GetKVStoreKeysMap())

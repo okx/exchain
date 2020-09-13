@@ -15,7 +15,7 @@ const (
 
 func init() {
 	govTypes.RegisterProposalType(ProposalAppUpgrade)
-	govTypes.RegisterProposalTypeCodec(AppUpgradeProposal{}, "okchain/upgrade/AppUpgradeProposal")
+	govTypes.RegisterProposalTypeCodec(AppUpgradeProposal{}, "okexchain/upgrade/AppUpgradeProposal")
 }
 
 // AppUpgradeProposal implements content interface

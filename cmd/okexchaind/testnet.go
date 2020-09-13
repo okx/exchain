@@ -113,8 +113,8 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 	nodeIDs := make([]string, numValidators)
 	valPubKeys := make([]crypto.PubKey, numValidators)
 
-	okchainConfig := srvconfig.DefaultConfig()
-	okchainConfig.MinGasPrices = minGasPrices
+	okexchainConfig := srvconfig.DefaultConfig()
+	okexchainConfig.MinGasPrices = minGasPrices
 
 	var (
 		accs     []genaccounts.GenesisAccount
@@ -233,8 +233,8 @@ func InitTestnet(cmd *cobra.Command, config *tmconfig.Config, cdc *codec.Codec,
 			return err
 		}
 
-		okchainConfigFilePath := filepath.Join(nodeDir, "config/okexchaind.toml")
-		srvconfig.WriteConfigFile(okchainConfigFilePath, okchainConfig)
+		okexchainConfigFilePath := filepath.Join(nodeDir, "config/okexchaind.toml")
+		srvconfig.WriteConfigFile(okexchainConfigFilePath, okexchainConfig)
 	}
 
 	if err := initGenFiles(cdc, mbm, chainID, accs, genFiles, numValidators); err != nil {

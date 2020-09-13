@@ -83,7 +83,7 @@ type StakingHooks interface {
 	// Must be called when a validator begins unbonding
 	AfterValidatorBeginUnbonding(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress)
 
-	// required by okchain
+	// required by okexchain
 	// Must be called when a validator is destroyed by tx
 	AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress)
 }

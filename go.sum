@@ -205,6 +205,8 @@ github.com/okex/iavl v0.12.4-okchain h1:BAFmygzhx6k4KGnLrY87ZrJvRSb+wf8Oo4e2KhUw
 github.com/okex/iavl v0.12.4-okchain/go.mod h1:8LHakzt8/0G3/I8FUU0ReNx98S/EP6eyPJkAUvEXT/o=
 github.com/okex/tendermint v0.32.10-okchain1 h1:mEsl6YGb7mCkJaXZxnIZO6/jmF947X39wFa4oI8gKgE=
 github.com/okex/tendermint v0.32.10-okchain1/go.mod h1:5/B1XZjNYtVBso8o1l/Eg4A0Mhu42lDcmftoQl95j/E=
+github.com/okex/tendermint v0.32.10-okchain1.0.20200913153921-dc2711baf44d h1:4iUGAg5XoIFrg61lc4Ka3zG6kQUf3WcqMMFGtbwoTUM=
+github.com/okex/tendermint v0.32.10-okchain1.0.20200913153921-dc2711baf44d/go.mod h1:5/B1XZjNYtVBso8o1l/Eg4A0Mhu42lDcmftoQl95j/E=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

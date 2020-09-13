@@ -10,7 +10,7 @@ import (
 	"github.com/okex/okexchain/x/staking/types"
 )
 
-// RegisterInvariantsCustom registers all staking invariants for okchain
+// RegisterInvariantsCustom registers all staking invariants for okexchain
 func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 
 	ir.RegisterRoute(types.ModuleName, "module-accounts",

@@ -38,7 +38,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	logger, err := flags.ParseLogLevel("*:error", logger, "error")
 	require.Nil(t, err)
 	defer db.Close()
-	app := NewOKChainApp(logger, db, nil, true, 0)
+	app := NewOKExChainApp(logger, db, nil, true, 0)
 
 	// make  simulation of abci.RequestInitChain
 	genDoc, err := tm.GenesisDocFromFile("./genesis/genesis.json")
@@ -96,7 +96,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	require.Equal(t, 1, len(vals))
 
 	// situation 2: with jail white list
-	jailWhiteList := []string{"okchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"}
+	jailWhiteList := []string{"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"}
 	_, _, err = app.ExportAppStateAndValidators(true, jailWhiteList)
 	require.NoError(t, err)
 
@@ -110,7 +110,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	})
 
 	// situation 4 : validator in the jail white list doesn't exist in the stakingKeeper
-	jailWhiteList = []string{"okchainvaloper1qryc3z7jxlk7ma56qcaz75ksely65havrmtufv"}
+	jailWhiteList = []string{"okexchainvaloper1qryc3z7jxlk7ma56qcaz75ksely65havrmtufv"}
 	require.Panics(t, func() {
 		_, _, _ = app.ExportAppStateAndValidators(true, jailWhiteList)
 	})
@@ -188,7 +188,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	})
 }
 
-func TestOKChainApp_MountKVStores(t *testing.T) {
+func TestOKExChainApp_MountKVStores(t *testing.T) {
 	db := dbm.NewMemDB()
 	defer db.Close()
 	bApp := baseapp.NewBaseApp(appName, nil, db, nil)
@@ -196,7 +196,7 @@ func TestOKChainApp_MountKVStores(t *testing.T) {
 	m := make(map[string]*sdk.KVStoreKey)
 	m["testKey"] = sdk.NewKVStoreKey("testValue")
 
-	app := OKChainApp{bApp}
+	app := OKExChainApp{bApp}
 	app.MountKVStores(m)
 	require.NoError(t, app.GetCommitMultiStore().LoadVersion(0))
 	store := app.GetCommitMultiStore().GetKVStore(m["testKey"])
@@ -205,7 +205,7 @@ func TestOKChainApp_MountKVStores(t *testing.T) {
 	require.Equal(t, []byte("value"), value)
 }
 
-// make a tx 2 check the abci deliver of OKChainApp
+// make a tx 2 check the abci deliver of OKExChainApp
 func makeTestTx(t *testing.T) auth.StdTx {
 	privKey := getPrivateKey(privateKey)
 	addr := sdk.AccAddress(privKey.PubKey().Address())

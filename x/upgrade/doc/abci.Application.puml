@@ -91,7 +91,7 @@ class Node {
 	prometheusSrv    *http.Server
 }
 
-annotation "命令行执行okchaind start" as A1
+annotation "命令行执行okexchaind start" as A1
 
 class "func startInProcess(*Context, *codec.Codec, AppCreator,func(*lcd.RestServer)) (*node.Node, error)" as M7 << (M,orchid)>>
 class "func NewNode(*cfg.Config,types.PrivValidator,*p2p.NodeKey,proxy.ClientCreator,\nGenesisDocProvider,DBProvider,MetricsProvider,logger log.Logger,...Option) (*Node, error)" as M8 << (M,orchid)>>

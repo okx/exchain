@@ -13,7 +13,7 @@ import (
 )
 
 // DeliverTx implements the Application interface
-func (app *OKChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
 	resp := app.BaseApp.DeliverTx(req)
@@ -26,14 +26,14 @@ func (app *OKChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDe
 }
 
 // InitChain implements the Application interface
-func (app *OKChainApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+func (app *OKExChainApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 
 	app.log("[ABCI interface] ---> InitChain")
 	return app.BaseApp.InitChain(req)
 }
 
 // BeginBlock implements the Application interface
-func (app *OKChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
@@ -47,7 +47,7 @@ func (app *OKChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Response
 }
 
 // EndBlock implements the Application interface
-func (app *OKChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
@@ -57,7 +57,7 @@ func (app *OKChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndB
 }
 
 // Commit implements the Application interface
-func (app *OKChainApp) Commit() abci.ResponseCommit {
+func (app *OKExChainApp) Commit() abci.ResponseCommit {
 	protocol.GetEngine().GetCurrentProtocol().CheckStopped()
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
@@ -68,7 +68,7 @@ func (app *OKChainApp) Commit() abci.ResponseCommit {
 }
 
 // sync txBytes to backend module
-func (app *OKChainApp) syncTx(txBytes []byte) {
+func (app *OKExChainApp) syncTx(txBytes []byte) {
 	if tx, err := auth.DefaultTxDecoder(protocol.GetEngine().GetCurrentProtocol().GetCodec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
@@ -83,6 +83,6 @@ func (app *OKChainApp) syncTx(txBytes []byte) {
 }
 
 // log format
-func (app *OKChainApp) log(format string, a ...interface{}) {
+func (app *OKExChainApp) log(format string, a ...interface{}) {
 	app.Logger().Info(fmt.Sprintf(format, a...))
 }

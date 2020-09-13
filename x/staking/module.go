@@ -114,7 +114,7 @@ func NewAppModule(keeper Keeper, accKeeper types.AccountKeeper,
 
 // RegisterInvariants registers invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// required by okchain
+	// required by okexchain
 	keeper.RegisterInvariantsCustom(ir, am.keeper)
 }
 

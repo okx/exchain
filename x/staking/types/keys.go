@@ -86,7 +86,7 @@ func GetValidatorQueueTimeKey(timestamp time.Time) []byte {
 	return append(ValidatorQueueKey, bz...)
 }
 
-// getValidatorPowerRank gets the power ranking of a validator by okchain's rule
+// getValidatorPowerRank gets the power ranking of a validator by okexchain's rule
 // just according to the shares instead of tokens on a validator
 func getValidatorPowerRank(validator Validator) []byte {
 	// consensus power based on the shares on a validator

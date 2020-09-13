@@ -15,8 +15,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// ExportAppStateAndValidators exports the state of okchain for a genesis file
-func (app *OKChainApp) ExportAppStateAndValidators(forZeroHeight bool, jailWhiteList []string,
+// ExportAppStateAndValidators exports the state of okexchain for a genesis file
+func (app *OKExChainApp) ExportAppStateAndValidators(forZeroHeight bool, jailWhiteList []string,
 ) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
 	// as if they could withdraw from the start of the next block
 	ctx := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
@@ -41,7 +41,7 @@ func (app *OKChainApp) ExportAppStateAndValidators(forZeroHeight bool, jailWhite
 
 // prepare for fresh start at zero height
 // NOTE zero height genesis is a temporary feature which will be deprecated in favour of export at a block height
-func (app *OKChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []string) {
+func (app *OKExChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []string) {
 	var applyWhiteList bool
 
 	// check if there is a whitelist

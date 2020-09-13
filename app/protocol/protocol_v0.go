@@ -71,7 +71,7 @@ var (
 		slashing.AppModuleBasic{},
 		supply.AppModuleBasic{},
 
-		// okchain extended
+		// okexchain extended
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
@@ -98,7 +98,7 @@ var (
 	}
 )
 
-// ProtocolV0 is the struct of the original protocol of okchain
+// ProtocolV0 is the struct of the original protocol of okexchain
 type ProtocolV0 struct {
 	parent         Parent
 	version        uint64
@@ -184,12 +184,12 @@ func (p *ProtocolV0) GetCodec() *codec.Codec {
 	return p.cdc
 }
 
-// CheckStopped gives a quick check whether okchain needs stopped
+// CheckStopped gives a quick check whether okexchain needs stopped
 func (p *ProtocolV0) CheckStopped() {
 	if p.stopped {
-		p.logger.Info("OKChain is going to exit")
+		p.logger.Info("OKExChain is going to exit")
 		server.Stop()
-		p.logger.Info("OKChain was stopped")
+		p.logger.Info("OKExChain was stopped")
 		select {}
 	}
 }
@@ -251,7 +251,7 @@ func (p *ProtocolV0) produceKeepers() {
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
-		p.logger.Error(fmt.Sprintf("the config of OKChain was parsed error : %s", err.Error()))
+		p.logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
 		panic(err)
 	}
 
@@ -466,9 +466,9 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	return p.mm.EndBlock(ctx, req)
 }
 
-// Stop makes okchain exit gracefully
+// Stop makes okexchain exit gracefully
 func (p *ProtocolV0) Stop() {
-	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoID, "OKChain stops notification."))
+	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoID, "OKExChain stops notification."))
 	p.stopped = true
 }
 
