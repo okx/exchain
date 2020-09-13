@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -40,6 +42,14 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add-liquidity",
 		Short: "add liquidity",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`add liquidity.
+
+Example:
+$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+
+`),
+		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -83,6 +93,14 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "remove-liquidity",
 		Short: "remove liquidity",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`remove liquidity.
+
+Example:
+$ okexchaincli tx swap remove-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+
+`),
+		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -123,6 +141,15 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-pair",
 		Short: "create token pair",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`create token pair.
+
+Example:
+$ okexchaincli tx swap create-pair --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+
+`),
+		),
+
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -145,6 +172,14 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token",
 		Short: "swap token",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`swap token.
+
+Example:
+$ okexchaincli tx swap token --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+
+`),
+		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
