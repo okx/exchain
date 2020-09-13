@@ -35,7 +35,7 @@ func GetCmdQueryUpgradeConfig(storeName string, cdc *codec.Codec) *cobra.Command
 		Short: "query app upgrade config",
 		Long: strings.TrimSpace(`Query details about app upgrade config:
 
-$ okchaincli query upgrade config
+$ okexchaincli query upgrade config
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -61,7 +61,7 @@ func GetCmdQueryUpgradeVersion(storeName string, cdc *codec.Codec) *cobra.Comman
 		Short: "query app upgrade version",
 		Long: strings.TrimSpace(`Query details about current app version:
 
-$ okchaincli query upgrade version
+$ okexchaincli query upgrade version
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,7 +87,7 @@ func GetCmdQueryUpgradeFailedVersion(storeName string, cdc *codec.Codec) *cobra.
 		Short: "query app upgrade failed-version",
 		Long: strings.TrimSpace(`Query details about last failed app version:
 
-$ okchaincli query upgrade failed-version
+$ okexchaincli query upgrade failed-version
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

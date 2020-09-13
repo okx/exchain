@@ -23,13 +23,13 @@ doc
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
-cmd/okchaincli/statik/statik.go
+cmd/okexchaincli/statik/statik.go
 mytestnet
 doc/statik/statik.go
 dev/cache
 cmd/launch/launch
-cmd/okchaincli/okchaincli
-cmd/okchaind/okchaind
+cmd/okexchaincli/okchaincli
+cmd/okexchaind/okchaind
 cmd/okchaintool/okchaintool
 cmd/tiger/tiger
 dev/testnet/cache

@@ -52,8 +52,8 @@ all: install
 install: okchain
 
 okchain:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaincli
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
 
 testnet:
 	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okchaind

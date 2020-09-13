@@ -9,8 +9,8 @@ var (
 	MakeCodec = protocol.MakeCodec
 	// ModuleBasics is the variable alias for NewBasicManager
 	ModuleBasics = protocol.ModuleBasics
-	// DefaultCLIHome is the directory for okchaincli
+	// DefaultCLIHome is the directory for okexchaincli
 	DefaultCLIHome = protocol.DefaultCLIHome
-	// DefaultNodeHome is the directory for okchaind
+	// DefaultNodeHome is the directory for okexchaind
 	DefaultNodeHome = protocol.DefaultNodeHome
 )

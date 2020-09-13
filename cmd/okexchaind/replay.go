@@ -37,7 +37,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- replay success ---------")
 		},
 	}
-	cmd.Flags().StringP(dataDirFlag, "d", ".okchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(dataDirFlag, "d", ".okexchaind/data", "Directory of block data for replaying")
 	return cmd
 }
 

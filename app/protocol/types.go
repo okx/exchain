@@ -31,7 +31,7 @@ type Protocol interface {
 	Init()
 	GetCodec() *codec.Codec
 
-	// gracefully stop okchaind
+	// gracefully stop okexchaind
 	CheckStopped()
 
 	// setter

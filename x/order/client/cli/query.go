@@ -63,7 +63,7 @@ func GetCmdDepthBook(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query the depth book of a trading pair",
 		Long: strings.TrimSpace(`Query the depth book of a trading pair:
 
-$ okchaincli query depthbook mytoken_okt
+$ okexchaincli query depthbook mytoken_okt
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
@@ -152,7 +152,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query the parameters of the order process",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ okchaincli query order params
+$ okexchaincli query order params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

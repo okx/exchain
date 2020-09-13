@@ -43,8 +43,8 @@ func main() {
 	// the below functions and eliminate global vars, like we do with the cdc
 
 	rootCmd := &cobra.Command{
-		Use:   "okchaincli",
-		Short: "Command line interface for interacting with okchaind",
+		Use:   "okexchaincli",
+		Short: "Command line interface for interacting with okexchaind",
 	}
 
 	// add --chain-id to persistent flags and mark it required

@@ -8,9 +8,9 @@ services:
       - "26656-26657:26656-26657"
     environment:
       - ID=0
-      - LOG=${LOG:-okchaind.log}
+      - LOG=${LOG:-okexchaind.log}
     volumes:
-      - ./build:/okchaind:Z
+      - ./build:/okexchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
@@ -22,9 +22,9 @@ services:
       - "26659-26660:26656-26657"
     environment:
       - ID=1
-      - LOG=${LOG:-okchaind.log}
+      - LOG=${LOG:-okexchaind.log}
     volumes:
-      - ./build:/okchaind:Z
+      - ./build:/okexchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
@@ -34,11 +34,11 @@ services:
     image: "okchain/node"
     environment:
       - ID=2
-      - LOG=${LOG:-okchaind.log}
+      - LOG=${LOG:-okexchaind.log}
     ports:
       - "26661-26662:26656-26657"
     volumes:
-      - ./build:/okchaind:Z
+      - ./build:/okexchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
@@ -48,11 +48,11 @@ services:
     image: "okchain/node"
     environment:
       - ID=3
-      - LOG=${LOG:-okchaind.log}
+      - LOG=${LOG:-okexchaind.log}
     ports:
       - "26663-26664:26656-26657"
     volumes:
-      - ./build:/okchaind:Z
+      - ./build:/okexchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5

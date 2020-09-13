@@ -47,10 +47,10 @@ var (
 	// check the implements of ProtocolV0
 	_ Protocol = (*ProtocolV0)(nil)
 
-	// DefaultCLIHome is the directory for okchaincli
-	DefaultCLIHome = os.ExpandEnv("$HOME/.okchaincli")
-	// DefaultNodeHome is the directory for okchaind
-	DefaultNodeHome = os.ExpandEnv("$HOME/.okchaind")
+	// DefaultCLIHome is the directory for okexchaincli
+	DefaultCLIHome = os.ExpandEnv("$HOME/.okexchaincli")
+	// DefaultNodeHome is the directory for okexchaind
+	DefaultNodeHome = os.ExpandEnv("$HOME/.okexchaind")
 
 	// ModuleBasics is in charge of setting up basic, non-dependant module elements,
 	// such as codec registration and genesis verification
