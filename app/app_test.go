@@ -96,7 +96,7 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	require.Equal(t, 1, len(vals))
 
 	// situation 2: with jail white list
-	jailWhiteList := []string{"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m"}
+	jailWhiteList := []string{"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"}
 	_, _, err = app.ExportAppStateAndValidators(true, jailWhiteList)
 	require.NoError(t, err)
 
