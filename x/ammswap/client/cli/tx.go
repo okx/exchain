@@ -97,7 +97,7 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`remove liquidity.
 
 Example:
-$ okexchaincli tx swap remove-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1okt
 
 `),
 		),
@@ -145,7 +145,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`create token pair.
 
 Example:
-$ okexchaincli tx swap create-pair --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt 
 
 `),
 		),
@@ -159,7 +159,7 @@ $ okexchaincli tx swap create-pair --max-base-amount 10eth-355 --quote-amount 10
 		},
 	}
 
-	cmd.Flags().StringVarP(&token, "token", "t", "", "Create exchange by token name")
+	cmd.Flags().StringVarP(&token, "token", "t", "", "Create an AMM swap pair by token name")
 	return cmd
 }
 
@@ -176,7 +176,7 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`swap token.
 
 Example:
-$ okexchaincli tx swap token --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
 
 `),
 		),
