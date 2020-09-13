@@ -1,7 +1,7 @@
 # OKExChain
 The Infrastructure of Decentralized Exchange
 
-![banner](./docs/images/okchain-image.jpg)
+![banner](./docs/images/okexchain-image.jpg)
 
 [![version](https://img.shields.io/github/tag/okex/okexchain.svg)](https://github.com/okex/okexchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/okexchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okexchain/tree/master)
