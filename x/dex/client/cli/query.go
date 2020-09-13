@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/dex/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okexchain/x/distribution/types"
 
 	"github.com/tendermint/tendermint/libs/log"
 )

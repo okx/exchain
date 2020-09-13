@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okexchain/x/common/monitor"
 
 	"github.com/tendermint/tendermint/libs/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 )
 
 var (

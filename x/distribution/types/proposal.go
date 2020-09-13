@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	govtypes "github.com/okex/okchain/x/gov/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 )
 
 const (

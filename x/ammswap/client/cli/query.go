@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/spf13/cobra"
 )
 

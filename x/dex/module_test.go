@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/common/version"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/dex/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

@@ -3,11 +3,11 @@ package app
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/common/perf"
+	"github.com/okex/okexchain/x/common/perf"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/app/protocol"
+	"github.com/okex/okexchain/app/protocol"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )

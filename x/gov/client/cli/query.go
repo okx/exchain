@@ -14,7 +14,7 @@ import (
 	gcutils "github.com/cosmos/cosmos-sdk/x/gov/client/utils"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

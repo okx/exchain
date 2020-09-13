@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 	"github.com/spf13/cobra"
 )
 

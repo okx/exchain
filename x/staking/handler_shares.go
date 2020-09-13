@@ -4,8 +4,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/keeper"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/keeper"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper) sdk.Result {

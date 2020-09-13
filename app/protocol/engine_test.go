@@ -17,7 +17,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 	"github.com/stretchr/testify/require"
 )
 

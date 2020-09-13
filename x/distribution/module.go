@@ -12,9 +12,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/okex/okchain/x/distribution/client/cli"
-	"github.com/okex/okchain/x/distribution/client/rest"
-	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okexchain/x/distribution/client/cli"
+	"github.com/okex/okexchain/x/distribution/client/rest"
+	"github.com/okex/okexchain/x/distribution/types"
 )
 
 var (

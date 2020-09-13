@@ -3,15 +3,15 @@ package keeper
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/params"
 
-	//"github.com/okex/okchain/x/staking/exported"
-	"github.com/okex/okchain/x/staking/exported"
+	//"github.com/okex/okexchain/x/staking/exported"
+	"github.com/okex/okexchain/x/staking/exported"
 
-	//stakingtypes "github.com/okex/okchain/x/staking/types"
-	stakingtypes "github.com/okex/okchain/x/staking/types"
-	"github.com/okex/okchain/x/upgrade/types"
+	//stakingtypes "github.com/okex/okexchain/x/staking/types"
+	stakingtypes "github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 // Keeper is the keeper struct of the upgrade store

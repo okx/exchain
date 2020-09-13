@@ -7,8 +7,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/ammswap/types"
-	tokentypes "github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/ammswap/types"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 )
 
 // Keeper of the swap store

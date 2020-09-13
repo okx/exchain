@@ -3,8 +3,8 @@ package upgrade
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 // InitGenesis builds the genesis version for first version
@@ -20,7 +20,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, data types.GenesisState) {
 func ExportGenesis(_ sdk.Context) types.GenesisState {
 	return types.GenesisState{
 		GenesisVersion: types.NewVersionInfo(
-			proto.DefaultUpgradeConfig("https://github.com/okex/okchain/releases/tag/v"+version.Version), true),
+			proto.DefaultUpgradeConfig("https://github.com/okex/okexchain/releases/tag/v"+version.Version), true),
 		Params: types.DefaultParams(),
 	}
 }

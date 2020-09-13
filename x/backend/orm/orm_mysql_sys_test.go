@@ -3,9 +3,9 @@ package orm
 import (
 	"testing"
 
-	"github.com/okex/okchain/x/backend/types"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/backend/types"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/token"
 )
 
 type DangrousORM struct {

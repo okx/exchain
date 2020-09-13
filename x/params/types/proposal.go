@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/params/types"
 
-	govtypes "github.com/okex/okchain/x/gov/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"

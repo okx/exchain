@@ -2,10 +2,10 @@
 package backend
 
 import (
-	"github.com/okex/okchain/x/backend/config"
-	"github.com/okex/okchain/x/backend/keeper"
-	"github.com/okex/okchain/x/backend/orm"
-	"github.com/okex/okchain/x/backend/types"
+	"github.com/okex/okexchain/x/backend/config"
+	"github.com/okex/okexchain/x/backend/keeper"
+	"github.com/okex/okexchain/x/backend/orm"
+	"github.com/okex/okexchain/x/backend/types"
 )
 
 const (

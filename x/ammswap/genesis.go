@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/ammswap/types"
 )
 
 // GenesisState stores genesis data, all slashing state that must be provided at genesis

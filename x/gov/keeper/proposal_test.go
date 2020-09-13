@@ -7,9 +7,9 @@ import (
 	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	//"github.com/okex/okchain/x/common"
-	//dexTypes "github.com/okex/okchain/x/dex/types"
-	"github.com/okex/okchain/x/gov/types"
+	//"github.com/okex/okexchain/x/common"
+	//dexTypes "github.com/okex/okexchain/x/dex/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 //func TestKeeper_SubmitProposal(t *testing.T) {

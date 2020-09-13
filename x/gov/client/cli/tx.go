@@ -15,7 +15,7 @@ import (
 	sdkGovCli "github.com/cosmos/cosmos-sdk/x/gov/client/cli"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 // Proposal flags

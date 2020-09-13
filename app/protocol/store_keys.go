@@ -7,18 +7,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okchain/x/ammswap"
-	"github.com/okex/okchain/x/debug"
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/ammswap"
+	"github.com/okex/okexchain/x/debug"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/staking"
 
-	distr "github.com/okex/okchain/x/distribution"
-	"github.com/okex/okchain/x/gov"
-	"github.com/okex/okchain/x/order"
-	"github.com/okex/okchain/x/params"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/params"
 
-	"github.com/okex/okchain/x/token"
-	"github.com/okex/okchain/x/upgrade"
+	"github.com/okex/okexchain/x/token"
+	"github.com/okex/okexchain/x/upgrade"
 )
 
 // store keys used in all modules

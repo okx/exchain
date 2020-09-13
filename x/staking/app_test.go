@@ -6,8 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"testing"
 
-	"github.com/okex/okchain/x/staking/keeper"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/keeper"
+	"github.com/okex/okexchain/x/staking/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/stretchr/testify/require"

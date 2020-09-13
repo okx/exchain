@@ -5,7 +5,7 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/distribution/keeper"
+	"github.com/okex/okexchain/x/distribution/keeper"
 )
 
 // BeginBlocker set the proposer for determining distribution during endblock

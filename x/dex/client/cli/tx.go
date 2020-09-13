@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okchain/x/gov"
+	"github.com/okex/okexchain/x/gov"
 
 	"github.com/pkg/errors"
 
@@ -18,9 +18,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/common"
-	dexUtils "github.com/okex/okchain/x/dex/client/utils"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/common"
+	dexUtils "github.com/okex/okexchain/x/dex/client/utils"
+	"github.com/okex/okexchain/x/dex/types"
 	"github.com/spf13/cobra"
 )
 

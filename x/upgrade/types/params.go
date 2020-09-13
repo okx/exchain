@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/params"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

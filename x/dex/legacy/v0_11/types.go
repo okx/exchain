@@ -3,7 +3,7 @@ package v0_11
 import (
 	"time"
 
-	"github.com/okex/okchain/x/dex/legacy/v0_10"
+	"github.com/okex/okexchain/x/dex/legacy/v0_10"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

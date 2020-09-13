@@ -5,10 +5,10 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/okex/okchain/app/protocol"
-	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/common/version"
-	"github.com/okex/okchain/x/upgrade"
+	"github.com/okex/okexchain/app/protocol"
+	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/upgrade"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"

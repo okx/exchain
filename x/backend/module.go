@@ -3,8 +3,8 @@ package backend
 import (
 	"encoding/json"
 
-	"github.com/okex/okchain/x/backend/client/cli"
-	"github.com/okex/okchain/x/backend/client/rest"
+	"github.com/okex/okexchain/x/backend/client/cli"
+	"github.com/okex/okexchain/x/backend/client/rest"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"

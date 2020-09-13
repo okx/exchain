@@ -2,11 +2,11 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	dextypes "github.com/okex/okchain/x/dex/types"
-	"github.com/okex/okchain/x/order"
-	ordertypes "github.com/okex/okchain/x/order/types"
-	"github.com/okex/okchain/x/stream/exported"
-	"github.com/okex/okchain/x/token"
+	dextypes "github.com/okex/okexchain/x/dex/types"
+	"github.com/okex/okexchain/x/order"
+	ordertypes "github.com/okex/okexchain/x/order/types"
+	"github.com/okex/okexchain/x/stream/exported"
+	"github.com/okex/okexchain/x/token"
 	"github.com/willf/bitset"
 )
 

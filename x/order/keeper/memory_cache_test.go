@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/order/types"
+	"github.com/okex/okexchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 

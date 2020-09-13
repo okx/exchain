@@ -6,14 +6,14 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/cosmos/cosmos-sdk/x/supply/client/rest"
-	backendrest "github.com/okex/okchain/x/backend/client/rest"
-	dexrest "github.com/okex/okchain/x/dex/client/rest"
-	dist "github.com/okex/okchain/x/distribution"
-	distrest "github.com/okex/okchain/x/distribution/client/rest"
-	orderrest "github.com/okex/okchain/x/order/client/rest"
-	stakingrest "github.com/okex/okchain/x/staking/client/rest"
-	"github.com/okex/okchain/x/token"
-	tokensrest "github.com/okex/okchain/x/token/client/rest"
+	backendrest "github.com/okex/okexchain/x/backend/client/rest"
+	dexrest "github.com/okex/okexchain/x/dex/client/rest"
+	dist "github.com/okex/okexchain/x/distribution"
+	distrest "github.com/okex/okexchain/x/distribution/client/rest"
+	orderrest "github.com/okex/okexchain/x/order/client/rest"
+	stakingrest "github.com/okex/okexchain/x/staking/client/rest"
+	"github.com/okex/okexchain/x/token"
+	tokensrest "github.com/okex/okexchain/x/token/client/rest"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.

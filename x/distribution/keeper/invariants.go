@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/distribution/types"
-	"github.com/okex/okchain/x/staking/exported"
+	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/okexchain/x/staking/exported"
 )
 
 // RegisterInvariants registers all distribution invariants

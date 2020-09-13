@@ -6,8 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/app/protocol"
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/app/protocol"
+	"github.com/okex/okexchain/x/staking"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	tmtypes "github.com/tendermint/tendermint/types"

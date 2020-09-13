@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/okex/okchain/app/protocol"
+	"github.com/okex/okexchain/app/protocol"
 )
 
 var (

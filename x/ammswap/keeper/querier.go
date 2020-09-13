@@ -1,11 +1,11 @@
 package keeper
 
 import (
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/ammswap/types"
 )
 
 // NewQuerier creates a new querier for swap clients.

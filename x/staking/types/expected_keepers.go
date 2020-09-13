@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	stakingexported "github.com/okex/okchain/x/staking/exported"
+	stakingexported "github.com/okex/okexchain/x/staking/exported"
 )
 
 // AccountKeeper defines the expected account keeper (noalias)

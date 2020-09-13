@@ -298,7 +298,7 @@
           "proposal_id": "0",
           "protocol_def": {
             "height": "1",
-            "software": "https://github.com/okex/okchain/releases/tag/v",
+            "software": "https://github.com/okex/okexchain/releases/tag/v",
             "threshold": "0.90000000",
             "version": "0"
           }

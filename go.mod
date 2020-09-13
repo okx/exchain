@@ -1,4 +1,4 @@
-module github.com/okex/okchain
+module github.com/okex/okexchain
 
 go 1.12
 

@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/token/types"
 	"github.com/spf13/cobra"
 )
 

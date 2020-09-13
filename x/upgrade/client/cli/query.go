@@ -7,9 +7,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/upgrade/keeper"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/upgrade/keeper"
+	"github.com/okex/okexchain/x/upgrade/types"
 	"github.com/spf13/cobra"
 )
 

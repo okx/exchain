@@ -3,14 +3,14 @@ package v0_11
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
-	v010dex "github.com/okex/okchain/x/dex/legacy/v0_10"
-	v011dex "github.com/okex/okchain/x/dex/legacy/v0_11"
-	v010order "github.com/okex/okchain/x/order/legacy/v0_10"
-	v011order "github.com/okex/okchain/x/order/legacy/v0_11"
-	v010staking "github.com/okex/okchain/x/staking/legacy/v0_10"
-	v011staking "github.com/okex/okchain/x/staking/legacy/v0_11"
-	v010token "github.com/okex/okchain/x/token/legacy/v0_10"
-	v011token "github.com/okex/okchain/x/token/legacy/v0_11"
+	v010dex "github.com/okex/okexchain/x/dex/legacy/v0_10"
+	v011dex "github.com/okex/okexchain/x/dex/legacy/v0_11"
+	v010order "github.com/okex/okexchain/x/order/legacy/v0_10"
+	v011order "github.com/okex/okexchain/x/order/legacy/v0_11"
+	v010staking "github.com/okex/okexchain/x/staking/legacy/v0_10"
+	v011staking "github.com/okex/okexchain/x/staking/legacy/v0_11"
+	v010token "github.com/okex/okexchain/x/token/legacy/v0_10"
+	v011token "github.com/okex/okexchain/x/token/legacy/v0_11"
 )
 
 // Migrate migrates exported state from v0.10.x to a v0.11.0 genesis state

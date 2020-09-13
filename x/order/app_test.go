@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okexchain/x/common/monitor"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,14 +13,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/token"
 )
 
 type MockApp struct {

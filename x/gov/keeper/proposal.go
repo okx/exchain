@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 // SubmitProposal creates new proposal given a content
