@@ -19,7 +19,7 @@ var (
 const (
 	orderModule        = "order"
 	dexModule          = "dex"
-	swapModule         = "poolswap"
+	swapModule         = "ammswap"
 	tokenModule        = "token"
 	stakingModule      = "staking"
 	govModule          = "gov"

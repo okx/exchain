@@ -212,7 +212,7 @@
         "voting_period": "259200000000000"
       }
     },
-    "poolswap": {
+    "ammswap": {
       "params": {
         "fee_rate": "0.00300000"
       },

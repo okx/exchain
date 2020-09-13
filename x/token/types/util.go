@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	notAllowedPrefix       = "poolswap"
+	notAllowedPrefix       = "ammswap"
 	notAllowedOriginSymbol = regexp.MustCompile(fmt.Sprintf("^%s.*?", notAllowedPrefix))
 	regOriginalSymbol      = regexp.MustCompile("^[a-z][a-z0-9]{0,5}$")
 	reWholeName            = `[a-zA-Z0-9[:space:]]{1,30}`
