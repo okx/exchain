@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/okchain/x/params/types"
+	"github.com/okex/okexchain/x/params/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -33,7 +33,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query parameters of params",
 		Long: strings.TrimSpace(`Query parameters of params:
 
-$ okchaincli query params params
+$ okexchaincli query params params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {

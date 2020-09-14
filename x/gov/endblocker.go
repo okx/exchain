@@ -7,8 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/okexchain/x/gov/keeper"
 )
 
 // EndBlocker called every block, process inflation, update validator set.

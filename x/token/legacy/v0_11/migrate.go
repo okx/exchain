@@ -1,6 +1,6 @@
 package v0_11
 
-import "github.com/okex/okchain/x/token/legacy/v0_10"
+import "github.com/okex/okexchain/x/token/legacy/v0_10"
 
 func Migrate(oldGenState v0_10.GenesisState) GenesisState {
 	tokens := make([]Token, len(oldGenState.Tokens))

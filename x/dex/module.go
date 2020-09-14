@@ -3,10 +3,10 @@ package dex
 import (
 	"encoding/json"
 
-	"github.com/okex/okchain/x/dex/keeper"
+	"github.com/okex/okexchain/x/dex/keeper"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/dex/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -15,8 +15,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/okchain/x/dex/client/cli"
-	"github.com/okex/okchain/x/dex/client/rest"
+	"github.com/okex/okexchain/x/dex/client/cli"
+	"github.com/okex/okexchain/x/dex/client/rest"
 )
 
 var (

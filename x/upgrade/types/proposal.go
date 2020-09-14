@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/proto"
-	govTypes "github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/common/proto"
+	govTypes "github.com/okex/okexchain/x/gov/types"
 )
 
 // const
@@ -15,7 +15,7 @@ const (
 
 func init() {
 	govTypes.RegisterProposalType(ProposalAppUpgrade)
-	govTypes.RegisterProposalTypeCodec(AppUpgradeProposal{}, "okchain/upgrade/AppUpgradeProposal")
+	govTypes.RegisterProposalTypeCodec(AppUpgradeProposal{}, "okexchain/upgrade/AppUpgradeProposal")
 }
 
 // AppUpgradeProposal implements content interface

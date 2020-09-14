@@ -8,8 +8,8 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/exported"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/exported"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // InitGenesis sets the pool and parameters for the provided keeper

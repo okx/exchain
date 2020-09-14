@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/token"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -12,10 +12,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/backend"
-	distr "github.com/okex/okchain/x/distribution"
-	"github.com/okex/okchain/x/staking"
-	"github.com/okex/okchain/x/stream"
+	"github.com/okex/okexchain/x/backend"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/okexchain/x/stream"
 )
 
 var _ Protocol = (*MockProtocol)(nil)

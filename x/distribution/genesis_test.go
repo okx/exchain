@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/distribution/keeper"
+	"github.com/okex/okexchain/x/distribution/keeper"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 

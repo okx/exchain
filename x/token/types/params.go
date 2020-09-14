@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/params"
 )
 
 const (

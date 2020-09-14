@@ -18,9 +18,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/staking"
 
-	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okexchain/x/distribution/types"
 )
 
 //nolint: deadcode unused

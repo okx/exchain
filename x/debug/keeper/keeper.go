@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/debug/types"
+	"github.com/okex/okexchain/x/debug/types"
 )
 
 // keeper of debug module

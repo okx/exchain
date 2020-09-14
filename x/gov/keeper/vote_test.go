@@ -8,7 +8,7 @@ import (
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 func TestKeeper_AddVote(t *testing.T) {

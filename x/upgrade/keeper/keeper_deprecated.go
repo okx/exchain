@@ -2,8 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 // only for unit test

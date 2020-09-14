@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	stakingtypes "github.com/okex/okchain/x/staking/types"
+	stakingtypes "github.com/okex/okexchain/x/staking/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

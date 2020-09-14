@@ -1,7 +1,7 @@
 # Simple usage with a mounted data directory:
 # > docker build -t okchain .
-# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okchaind:/root/.okchaind -v ~/.okchaincli:/root/.okchaincli okchain okchaind init mynode
-# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okchaind:/root/.okchaind -v ~/.okchaincli:/root/.okchaincli okchain okchaind start
+# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okexchaind:/root/.okexchaind -v ~/.okexchaincli:/root/.okexchaincli okchain okexchaind init mynode
+# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okexchaind:/root/.okexchaind -v ~/.okexchaincli:/root/.okexchaincli okchain okexchaind start
 FROM golang:alpine AS build-env
 
 # Install minimum necessary dependencies, remove packages
@@ -25,5 +25,5 @@ WORKDIR /root
 COPY --from=build-env /go/bin/okchaind /usr/bin/okchaind
 COPY --from=build-env /go/bin/okchaincli /usr/bin/okchaincli
 
-# Run okchaind by default, omit entrypoint to ease using container with okchaincli
+# Run okexchaind by default, omit entrypoint to ease using container with okexchaincli
 CMD ["okchaind"]

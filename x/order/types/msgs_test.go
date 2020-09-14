@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/stretchr/testify/require"
 )

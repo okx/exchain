@@ -3,11 +3,11 @@ package token
 import (
 	"testing"
 
-	"github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/token/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 )
 
 // VersionInfo is the struct of version info

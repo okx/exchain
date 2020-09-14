@@ -10,9 +10,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
-	"github.com/okex/okchain/x/backend/client/cli"
-	"github.com/okex/okchain/x/backend/types"
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/backend/client/cli"
+	"github.com/okex/okexchain/x/backend/types"
+	"github.com/okex/okexchain/x/common"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application

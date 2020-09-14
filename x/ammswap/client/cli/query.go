@@ -2,12 +2,14 @@ package cli
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/version"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +27,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	swapQueryCmd.AddCommand(
 		flags.GetCommands(
 			GetCmdSwapTokenPair(queryRoute, cdc),
+			GetCmdQueryParams(queryRoute, cdc),
 		)...,
 	)
 
@@ -49,6 +52,36 @@ func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 			fmt.Println(string(res))
 			return nil
+		},
+	}
+}
+
+// GetCmdQueryProposal implements the query proposal command.
+func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "params",
+		Short: "Query the parameters of the governance process",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the all the parameters for the governance process.
+
+Example:
+$ %s query gov params
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			tp, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/params", queryRoute), nil)
+			if err != nil {
+				return err
+			}
+
+			var params types.Params
+			cdc.MustUnmarshalJSON(tp, &params)
+
+			return cliCtx.PrintOutput(params)
 		},
 	}
 }

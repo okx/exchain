@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
+	okexchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 
 	"github.com/tendermint/tendermint/libs/common"
 )
@@ -13,15 +13,15 @@ import (
 // nolint
 var (
 	DefaultMaintainConfile = "maintain.conf"
-	DefaultNodeHome        = okchaincfg.GetNodeHome()
+	DefaultNodeHome        = okexchaincfg.GetNodeHome()
 	DefaultNodeCofig       = filepath.Join(DefaultNodeHome, "config")
 	DefaultTestConfig      = filepath.Join(DefaultNodeHome, "test_config")
 	DefaultTestDataHome    = filepath.Join(DefaultNodeHome, "test_data")
-	DefaultConfig          = okchaincfg.DefaultBackendConfig
+	DefaultConfig          = okexchaincfg.DefaultBackendConfig
 )
 
 // nolint
-type Config = okchaincfg.BackendConfig
+type Config = okexchaincfg.BackendConfig
 
 func loadMaintainConf(confDir string, fileName string) (*Config, error) {
 	fPath := confDir + string(os.PathSeparator) + fileName

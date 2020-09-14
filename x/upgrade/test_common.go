@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	//"github.com/okex/okchain/x/staking/util"
+	//"github.com/okex/okexchain/x/staking/util"
 
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 
 	"github.com/cosmos/cosmos-sdk/x/supply"
 
@@ -25,13 +25,13 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/params"
 
-	//"github.com/okex/okchain/x/staking"
-	"github.com/okex/okchain/x/staking"
+	//"github.com/okex/okexchain/x/staking"
+	"github.com/okex/okexchain/x/staking"
 
-	//"github.com/okex/okchain/x/staking/types"
-	"github.com/okex/okchain/x/staking/types"
+	//"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )

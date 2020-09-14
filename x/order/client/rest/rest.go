@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
 
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/order/keeper"
-	"github.com/okex/okchain/x/order/types"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/order/keeper"
+	"github.com/okex/okexchain/x/order/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application

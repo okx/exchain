@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/okexchain/x/dex/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"

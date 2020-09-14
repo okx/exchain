@@ -10,7 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // NewQuerier creates a querier for staking REST endpoints
@@ -25,7 +25,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryPool(ctx, k)
 		case types.QueryParameters:
 			return queryParameters(ctx, k)
-			// required by okchain
+			// required by okexchain
 		case types.QueryUnbondingDelegation:
 			return queryUndelegation(ctx, req, k)
 		case types.QueryValidatorAllShares:

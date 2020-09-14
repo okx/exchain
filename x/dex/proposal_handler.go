@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/dex/types"
-	govTypes "github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/dex/types"
+	govTypes "github.com/okex/okexchain/x/gov/types"
 )
 
 // NewProposalHandler handles "gov" type message in "dex"

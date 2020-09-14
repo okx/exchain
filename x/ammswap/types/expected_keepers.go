@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	token "github.com/okex/okchain/x/token/types"
+	token "github.com/okex/okexchain/x/token/types"
 )
 
 // ParamSubspace defines the expected Subspace interface

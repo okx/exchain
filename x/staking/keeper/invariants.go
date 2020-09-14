@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/exported"
+	"github.com/okex/okexchain/x/staking/exported"
 
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
-// RegisterInvariantsCustom registers all staking invariants for okchain
+// RegisterInvariantsCustom registers all staking invariants for okexchain
 func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 
 	ir.RegisterRoute(types.ModuleName, "module-accounts",

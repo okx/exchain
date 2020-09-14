@@ -24,7 +24,7 @@ Callback
 class "func (*localClient) InitChainSync(types.RequestInitChain) (*types.ResponseInitChain, error)" as M5 << (M,orchid) >>
 class "func (*localClient) InitChainAsync(types.RequestInitChain) *ReqRes" as M6 << (M,orchid) >>
 
-class "okchaind -> replay 选项" as M7 << (E,#FF7700) >>
+class "okexchaind -> replay 选项" as M7 << (E,#FF7700) >>
 
 class Handshaker {
 stateDB      dbm.DB
@@ -42,7 +42,7 @@ class "func (*Handshaker) Handshake(proxy.AppConns) error" as M9 << (M,orchid) >
 class "func doHandshake(dbm.DB, sm.State, sm.BlockStore,*types.GenesisDoc, *types.EventBus, proxy.AppConns, log.Logger) error" as M10 << (M,orchid) >>
 class "func NewNode(*cfg.Config, types.PrivValidator, *p2p.NodeKey, proxy.ClientCreator, GenesisDocProvider, DBProvider, MetricsProvider, log.Logger, ...Option) (*Node, error)" as M11 << (M,orchid) >>
 
-class "okchaind -> start 选项" as M12 << (E,#FF7700) >>
+class "okexchaind -> start 选项" as M12 << (E,#FF7700) >>
 M1 <--* BaseApp:维护
 M2 <-- M1:调用
 M3 <-- M2:调用

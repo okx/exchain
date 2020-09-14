@@ -5,11 +5,11 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/gov"
-	"github.com/okex/okchain/x/token"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/okexchain/x/token"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 // GetMinDeposit implements ProposalHandler interface

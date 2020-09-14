@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	govTypes "github.com/okex/okchain/x/gov/types"
+	govTypes "github.com/okex/okexchain/x/gov/types"
 )
 
 // const

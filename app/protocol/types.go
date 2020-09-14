@@ -3,19 +3,19 @@ package protocol
 import (
 	"encoding/json"
 
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/token"
 
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/staking"
 
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 
-	"github.com/okex/okchain/x/backend"
-	distr "github.com/okex/okchain/x/distribution"
-	"github.com/okex/okchain/x/stream"
+	"github.com/okex/okexchain/x/backend"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/stream"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -31,7 +31,7 @@ type Protocol interface {
 	Init()
 	GetCodec() *codec.Codec
 
-	// gracefully stop okchaind
+	// gracefully stop okexchaind
 	CheckStopped()
 
 	// setter

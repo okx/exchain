@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/distribution/keeper"
-	"github.com/okex/okchain/x/distribution/types"
-	govtypes "github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/distribution/keeper"
+	"github.com/okex/okexchain/x/distribution/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 )
 
 // NewHandler manages all distribution tx

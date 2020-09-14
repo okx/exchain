@@ -1,8 +1,8 @@
 package upgrade
 
 import (
-	"github.com/okex/okchain/x/upgrade/keeper"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/upgrade/keeper"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 const (

@@ -19,7 +19,7 @@ v                     without deliberation
 
 <!-- Why do we need this feature? 
 What problems may be addressed by introducing this feature?
-What benefits does okchain stand to gain by including this feature?
+What benefits does okexchain stand to gain by including this feature?
 Are there any disadvantages of including this feature? -->
 
 ## Proposal

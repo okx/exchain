@@ -9,6 +9,8 @@
 .idea
 
 # Build
+okchaind
+okchaincli
 vendor
 build
 tools/
@@ -23,17 +25,18 @@ doc
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
-cmd/okchaincli/statik/statik.go
+cmd/okexchaincli/statik/statik.go
 mytestnet
 doc/statik/statik.go
 dev/cache
 cmd/launch/launch
-cmd/okchaincli/okchaincli
-cmd/okchaind/okchaind
-cmd/okchaintool/okchaintool
+cmd/okexchaincli/okexchaincli
+cmd/okexchaind/okexchaind
+cmd/okexchaintool/okexchaintool
 cmd/tiger/tiger
+cmd/okexchaind/testnet_okchain.go
 dev/testnet/cache
-testnet_okchain.go
+testnet_okexchain.go
 tools
 
 
