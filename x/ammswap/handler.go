@@ -2,6 +2,7 @@ package ammswap
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/app/utils"
 
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
@@ -126,7 +127,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		baseTokens.Amount = msg.MaxBaseAmount.Amount
 		liquidity = sdk.NewDec(1)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
-		baseTokens.Amount = mulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
+		baseTokens.Amount = utils.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
 
 		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 		if totalSupply.IsZero() {
@@ -135,7 +136,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 				Log:  fmt.Sprintf("unexpected totalSupply in pool token %s", poolToken.String()),
 			}
 		}
-		liquidity = mulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
+		liquidity = utils.MulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
 
 	} else {
 		return sdk.Result{
@@ -218,8 +219,8 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		}
 	}
 
-	baseDec := mulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
-	quoteDec := mulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
+	baseDec := utils.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
+	quoteDec := utils.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
 	baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 
@@ -430,7 +431,7 @@ func swapTokenNativeToken(
 func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
 	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
-	return mulAndQuo(inputAmountWithFee, outputReserve, denominator)
+	return utils.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
 
 func coinSort(coins sdk.DecCoins) sdk.DecCoins {
@@ -444,13 +445,3 @@ func coinSort(coins sdk.DecCoins) sdk.DecCoins {
 	return newCoins
 }
 
-var (
-	// 10^8
-	auxiliaryDec = sdk.NewDec(100000000)
-)
-
-// mulAndQuo returns a * b / c
-func mulAndQuo(a, b, c sdk.Dec) sdk.Dec {
-	a = a.Mul(auxiliaryDec)
-	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
-}

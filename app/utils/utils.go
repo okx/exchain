@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"runtime"
 	"strconv"
 	"sync"
@@ -49,4 +50,12 @@ func (base GoroutineID) String() string {
 	}
 	return strconv.FormatUint(n, int(base))
 
+}
+
+// mulAndQuo returns a * b / c
+func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
+	// 10^8
+	auxiliaryDec := sdk.NewDec(100000000)
+	a = a.Mul(auxiliaryDec)
+	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
 }

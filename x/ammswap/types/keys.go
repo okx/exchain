@@ -16,6 +16,10 @@ const (
 	// QuerySwapTokenPair query endpoints supported by the swap Querier
 	QuerySwapTokenPair = "swapTokenPair"
 
+	QuerySwapTokenPairs = "swapTokenPairs"
+
+	QueryRedeemableAssets = "queryRedeemableAssets"
+
 	QueryParams = "params"
 )
 

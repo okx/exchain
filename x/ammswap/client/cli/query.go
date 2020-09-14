@@ -28,6 +28,8 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		flags.GetCommands(
 			GetCmdSwapTokenPair(queryRoute, cdc),
 			GetCmdQueryParams(queryRoute, cdc),
+			GetCmdAllSwapTokenPairs(queryRoute, cdc),
+			GetCmdRedeemableAssets(queryRoute, cdc),
 		)...,
 	)
 
@@ -54,7 +56,7 @@ $ okexchaincli query swap pool-info eth-355
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
 			if err != nil {
-				fmt.Printf("exchange - %s doesn't exist. error:%s \n", tokenName, err.Error())
+				fmt.Printf("token pool - %s doesn't exist. error:%s \n", tokenName, err.Error())
 				return nil
 			}
 
@@ -89,6 +91,63 @@ $ %s query swap params
 			cdc.MustUnmarshalJSON(tp, &params)
 
 			return cliCtx.PrintOutput(params)
+		},
+	}
+}
+
+
+//GetCmdAllSwapTokenPairs lists all info of pools
+func GetCmdAllSwapTokenPairs(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "all-pool-info [token]",
+		Short: "List all info of pools",
+		Long: 	strings.TrimSpace(
+			fmt.Sprintf(`List all info of pools.
+Example:
+$ okexchaincli query swap all-pool-info
+`),
+		),
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QuerySwapTokenPairs), nil)
+			if err != nil {
+				fmt.Printf("query all SwapTokenPairs failed. error:%s \n", err.Error())
+				return nil
+			}
+
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+}
+
+
+//GetCmdRedeemableAssets query redeemable assets by specifying the number of lpt
+func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "redeemable-assets [the name of base token] [the number ofliquidity pool token]",
+		Short: "Query redeemable assets by specifying the number of lpt",
+		Long: 	strings.TrimSpace(
+			fmt.Sprintf(`Query redeemable assets by specifying the number of lpt.
+Example:
+$ okexchaincli query swap redeemable-assets eth-355 1
+`),
+		),
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			baseTokenName := args[0]
+			liquidity := args[1]
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, liquidity), nil)
+			if err != nil {
+				fmt.Printf("query redeemable assets failed. error:%s \n", err.Error())
+				return nil
+			}
+
+			fmt.Println(string(res))
+			return nil
 		},
 	}
 }

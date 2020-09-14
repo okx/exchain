@@ -16,6 +16,10 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return querySwapTokenPair(ctx, path[1:], req, k)
 		case types.QueryParams:
 			return queryParams(ctx, path[1:], req, k)
+		case types.QuerySwapTokenPairs:
+			return querySwapTokenPairs(ctx, path[1:], req, k)
+		case types.QueryRedeemableAssets:
+			return queryRedeemableAssets(ctx, path[1:], req, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown swap query endpoint")
 		}
@@ -36,4 +40,29 @@ func querySwapTokenPair(ctx sdk.Context, path []string, req abci.RequestQuery, k
 
 func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	return keeper.cdc.MustMarshalJSON(keeper.GetParams(ctx)), nil
+}
+
+// nolint
+func querySwapTokenPairs(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
+	err sdk.Error) {
+	return keeper.cdc.MustMarshalJSON(keeper.GetSwapTokenPairs(ctx)), nil
+}
+
+
+// nolint
+func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
+	err sdk.Error) {
+	baseTokenName := path[0]
+	liquidity, decErr := sdk.NewDecFromStr(path[1])
+	if decErr != nil {
+		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")
+	}
+	var tokenList sdk.DecCoins
+	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseTokenName, liquidity)
+	if redeemErr != nil {
+		return nil, sdk.ErrUnknownRequest(redeemErr.Error())
+	}
+	tokenList = append(tokenList, baseToken, quoteToken)
+	bz := keeper.cdc.MustMarshalJSON(tokenList)
+	return bz, nil
 }
