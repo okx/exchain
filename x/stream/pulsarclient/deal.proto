@@ -1,0 +1,25 @@
+syntax = "proto2";
+package pulsarclient;
+
+message MatchResultMsg {
+       required int32 bizType = 1; // 业务线
+       required int64 marketId = 2; // 行情标识
+       required int32 marketType = 3; // 行情类型
+       required double size = 4; // 本次订单成交数量
+       required double price = 5; // 本次订单成交价格
+       required int64 createdTime = 6; // 创建事件时间
+       optional int64 userId = 7; // 用户id
+       optional int32 brokerId = 8; // 券商id
+       optional fixed64 orderId = 9; // 订单id
+       optional int64 instrument_id = 10; // 合约ID
+       optional string instrument_name = 11; // 合约名
+       optional int64 tradeId = 12; // 当前币种第几笔成交编号 -- 成交时严格+1
+       optional int32 tradeside = 13; // 1.maker 2.taker
+       optional int64 oppositeUserId = 14; // 对手单用户id
+       optional int32 oppositeBrokerId = 15; // 对手单券商id
+       optional fixed64 oppositeOrderId = 16; // 对手单订单id
+       optional int32 orderSide = 17; // 订单方向类型: 1.买 2.卖
+       optional int64 eventId = 18; // 事件ID，可用作去重
+       optional int32 eventType = 19; // 撮合输出给柜台的事件类型: 1.订单接受事件 2.修改命令的接受事件 3.订单挂入深度事件 4.订单成交事件 5.撤销订单成功事件 6.撤销订单失败事件 7.修改订单成功事件 8.修改订单失败事件 9.修改失败而撤销订单成功事件（柜台的命令为修改订单，但是撮合匹配时发现已成交张数大于修改后的张数
+       required bool isCalc = 20; //是否参与k线计算
+}

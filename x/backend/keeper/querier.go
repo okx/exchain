@@ -133,7 +133,7 @@ func queryDeals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	if params.Side != "" && params.Side != orderTypes.BuyOrder && params.Side != orderTypes.SellOrder {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("Side should not be %s", params.Side))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 
@@ -159,7 +159,7 @@ func queryMatchResults(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -188,7 +188,7 @@ func queryFeeDetails(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 
@@ -214,7 +214,10 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Product != "" && keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
+	if params.Product == "" {
+		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+	}
+	if keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
 	}
 
@@ -241,14 +244,17 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Product != "" && keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
+	if params.Product == "" {
+		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+	}
+	tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product)
+	if tokenPair == nil {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
 	}
 
 	ctx.Logger().Debug(fmt.Sprintf("queryCandleList : %+v", params))
 	// should init token pair map here
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	restData, err := keeper.getCandlesByMarketKeeper(params.Product, params.Granularity, params.Size)
+	restData, err := keeper.getCandlesByMarketKeeper(tokenPair.ID, params.Granularity, params.Size)
 
 	var response *common.BaseResponse
 	if err != nil {
@@ -278,6 +284,11 @@ func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 		products = append(products, params.Product)
 	} else {
 		products = keeper.getAllProducts(ctx)
+	}
+
+	// set default count to 10
+	if params.Count <= 0 {
+		params.Count = 10
 	}
 
 	addedTickers := []types.Ticker{}
@@ -332,8 +343,6 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data, ", err.Error()))
 	}
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	tickers, err := keeper.marketKeeper.GetTickers()
 
 	var products []string
 	if params.Product != "" {
@@ -345,12 +354,19 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 		products = keeper.getAllProducts(ctx)
 	}
 
-	var addedTickers []map[string]string
-	for _, p := range products {
+	// set default count to 10
+	if params.Count <= 0 {
+		params.Count = 10
+	}
 
+	allTickers, err := keeper.marketKeeper.GetTickerByProducts(products)
+
+	var filterTickers []map[string]string
+	for _, p := range products {
 		exists := false
-		for _, t := range tickers {
+		for _, t := range allTickers {
 			if p == t["product"] {
+				filterTickers = append(filterTickers, t)
 				exists = true
 				break
 			}
@@ -370,24 +386,20 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 				//"changePercentage": "0.00%",
 				"timestamp": time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
 			}
-			addedTickers = append(addedTickers, tmpTicker)
+			filterTickers = append(filterTickers, tmpTicker)
 		}
 
 	}
 
-	if len(addedTickers) > 0 {
-		tickers = append(tickers, addedTickers...)
-	}
-
-	if len(tickers) > params.Count {
-		tickers = tickers[0:params.Count]
+	if len(filterTickers) > params.Count {
+		filterTickers = filterTickers[0:params.Count]
 	}
 
 	var response *common.BaseResponse
 	if err != nil {
 		response = common.GetErrorResponse(-1, "", err.Error())
 	} else {
-		response = common.GetBaseResponse(tickers)
+		response = common.GetBaseResponse(filterTickers)
 	}
 
 	bz, err := json.Marshal(response)
@@ -408,7 +420,7 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -439,7 +451,7 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -464,7 +476,7 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	if params.Page <= 0 || params.PerPage <= 0 {
+	if params.Page < 0 || params.PerPage < 0 {
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)

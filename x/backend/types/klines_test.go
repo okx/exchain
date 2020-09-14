@@ -103,7 +103,7 @@ func TestBaseKLine(t *testing.T) {
 		nil,
 	}
 
-	bi := bk.GetBrifeInfo()
+	bi := bk.GetBriefInfo()
 	assert.True(t, bi[1] == "100.0000")
 	assert.True(t, bi[2] == "103.0000")
 	assert.True(t, bi[3] == "99.0000")
