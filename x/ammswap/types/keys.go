@@ -21,6 +21,8 @@ const (
 	QueryRedeemableAssets = "queryRedeemableAssets"
 
 	QueryParams = "params"
+
+	QueryBuyAmount = "buy"
 )
 
 var (

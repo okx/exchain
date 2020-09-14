@@ -152,6 +152,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
+
 func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
 	swapTokenPairName := baseAmountName + "_" + common.NativeToken
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
@@ -168,4 +169,26 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liqui
 	baseAmount = sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount = sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 	return baseAmount, quoteAmount, nil
+}
+
+//CalculateTokenToBuy calculates the amount to buy
+func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoin, buyTokenDenom string, params types.Params) sdk.DecCoin {
+	var inputReserve, outputReserve sdk.Dec
+	if sellToken.Denom == sdk.DefaultBondDenom {
+		inputReserve = swapTokenPair.QuotePooledCoin.Amount
+		outputReserve = swapTokenPair.BasePooledCoin.Amount
+	} else {
+		inputReserve = swapTokenPair.BasePooledCoin.Amount
+		outputReserve = swapTokenPair.QuotePooledCoin.Amount
+	}
+	tokenBuyAmt := GetInputPrice(sellToken.Amount, inputReserve, outputReserve, params.FeeRate)
+	tokenBuy := sdk.NewDecCoinFromDec(buyTokenDenom, tokenBuyAmt)
+
+	return tokenBuy
+}
+
+func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
+	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
+	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	return utils.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }

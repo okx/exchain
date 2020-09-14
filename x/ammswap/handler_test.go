@@ -2,6 +2,7 @@ package ammswap
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/ammswap/keeper"
 	"math/rand"
 	"testing"
 	"time"
@@ -265,7 +266,7 @@ func TestGetInputPrice(t *testing.T) {
 	inputAmount := sdk.NewDecWithPrec(1, 8)
 	inputReserve := sdk.NewDec(100)
 	outputReserve := sdk.NewDec(100)
-	res := getInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
+	res := keeper.GetInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
 	require.Equal(t, inputAmount, res)
 }
 

@@ -3,6 +3,7 @@ package ammswap
 import (
 	"fmt"
 	"github.com/okex/okexchain/app/utils"
+	"github.com/okex/okexchain/x/ammswap/keeper"
 
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
@@ -128,7 +129,6 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		liquidity = sdk.NewDec(1)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
 		baseTokens.Amount = utils.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
-
 		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 		if totalSupply.IsZero() {
 			return sdk.Result{
@@ -221,6 +221,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 
 	baseDec := utils.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
 	quoteDec := utils.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
+
 	baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 
@@ -295,7 +296,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 		}
 	}
 	params := k.GetParams(ctx)
-	tokenBuy := calculateTokenToBuy(swapTokenPair, msg, params)
+	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -350,11 +351,11 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	params := k.GetParams(ctx)
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
-	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne, params)
+	tokenNative := keeper.CalculateTokenToBuy(swapTokenPairOne, msgOne.SoldTokenAmount, msgOne.MinBoughtTokenAmount.Denom, params)
 
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
-	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo, params)
+	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPairTwo, msgTwo.SoldTokenAmount, msgTwo.MinBoughtTokenAmount.Denom, params)
 
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
@@ -377,22 +378,6 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	event.AppendAttributes(sdk.NewAttribute("recipient", msg.Recipient.String()))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
-}
-
-//calculate the amount to buy
-func calculateTokenToBuy(swapTokenPair SwapTokenPair, msg types.MsgTokenToNativeToken, params types.Params) sdk.DecCoin {
-	var inputReserve, outputReserve sdk.Dec
-	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
-		inputReserve = swapTokenPair.QuotePooledCoin.Amount
-		outputReserve = swapTokenPair.BasePooledCoin.Amount
-	} else {
-		inputReserve = swapTokenPair.BasePooledCoin.Amount
-		outputReserve = swapTokenPair.QuotePooledCoin.Amount
-	}
-	tokenBuyAmt := getInputPrice(msg.SoldTokenAmount.Amount, inputReserve, outputReserve, params.FeeRate)
-	tokenBuy := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, tokenBuyAmt)
-
-	return tokenBuy
 }
 
 func swapTokenNativeToken(
@@ -426,12 +411,6 @@ func swapTokenNativeToken(
 	}
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
 	return sdk.Result{}
-}
-
-func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
-	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
-	return utils.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
 
 func coinSort(coins sdk.DecCoins) sdk.DecCoins {
