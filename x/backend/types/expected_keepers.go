@@ -36,8 +36,6 @@ type DexKeeper interface {
 
 // MarketKeeper expected market keeper which would get data from pulsar & redis
 type MarketKeeper interface {
-	InitTokenPairMap(ctx sdk.Context, dk DexKeeper)
-	GetTickers() ([]map[string]string, error)
-	GetTickerByInstruments(instruments []string) map[string]Ticker
-	GetKlineByInstrument(instrument string, granularity, size int) ([][]string, error)
+	GetTickerByProducts(products []string) ([]map[string]string, error)
+	GetKlineByProductID(productID uint64, granularity, size int) ([][]string, error)
 }

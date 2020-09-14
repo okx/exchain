@@ -389,7 +389,7 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
 		}
-		res, err := cli.GetBlockTxHashes(cliCtx, &blockHeight)
+		res, err := cli.GetBlockTxHashes(cliCtx, blockHeight)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return

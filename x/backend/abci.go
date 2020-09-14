@@ -67,8 +67,15 @@ func storeDealAndMatchResult(ctx sdk.Context, keeper Keeper) {
 		}
 	}
 
-	ts := keeper.Orm.GetMaxBlockTimestamp()
-	keeper.UpdateTickersBuffer(ts-types.SecondsInADay, ts+1, keeper.Cache.ProductsBuf)
+	// update ticker
+	var productList []string
+	for _, result := range results {
+		productList = append(productList, result.Product)
+	}
+	if len(productList) > 0 {
+		ts := keeper.Orm.GetMaxBlockTimestamp()
+		keeper.UpdateTickersBuffer(ts-types.SecondsInADay, ts+1, productList)
+	}
 }
 
 func storeFeeDetails(keeper Keeper) {

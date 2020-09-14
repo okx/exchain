@@ -17,8 +17,8 @@ func queryTickerFromMarketKeeperV2(ctx sdk.Context, path []string, req abci.Requ
 		return nil, sdk.ErrInternal(err.Error())
 	}
 
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	tickers, err := keeper.marketKeeper.GetTickers()
+	products := keeper.getAllProducts(ctx)
+	tickers, err := keeper.marketKeeper.GetTickerByProducts(products)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
@@ -56,8 +56,8 @@ func queryTickerFromMarketKeeperV2(ctx sdk.Context, path []string, req abci.Requ
 }
 
 func queryTickerListFromMarketKeeperV2(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	tickers, err := keeper.marketKeeper.GetTickers()
+	products := keeper.getAllProducts(ctx)
+	tickers, err := keeper.marketKeeper.GetTickerByProducts(products)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
@@ -234,11 +234,13 @@ func queryCandleListFromMarketKeeperV2(ctx sdk.Context, path []string, req abci.
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-
+	tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product)
+	if tokenPair == nil {
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
+	}
 	ctx.Logger().Debug(fmt.Sprintf("queryCandleList : %+v", params))
 	// should init token pair map here
-	keeper.marketKeeper.InitTokenPairMap(ctx, keeper.dexKeeper)
-	restData, err := keeper.getCandlesByMarketKeeper(params.Product, params.Granularity, params.Size)
+	restData, err := keeper.getCandlesByMarketKeeper(tokenPair.ID, params.Granularity, params.Size)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
