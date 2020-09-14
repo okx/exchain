@@ -58,8 +58,7 @@ $ okexchaincli query swap pool-info eth-355
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
 			if err != nil {
-				fmt.Printf("token pool - %s doesn't exist. error:%s \n", tokenName, err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
@@ -143,7 +142,7 @@ $ %s query swap params
 //GetCmdAllSwapTokenPairs lists all info of pools
 func GetCmdAllSwapTokenPairs(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "all-pool-info [token]",
+		Use:   "all-pool-info",
 		Short: "List all info of pools",
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`List all info of pools.
@@ -157,8 +156,7 @@ $ okexchaincli query swap all-pool-info
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QuerySwapTokenPairs), nil)
 			if err != nil {
-				fmt.Printf("query all SwapTokenPairs failed. error:%s \n", err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
@@ -186,8 +184,7 @@ $ okexchaincli query swap redeemable-assets eth-355 1
 			liquidity := args[1]
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, liquidity), nil)
 			if err != nil {
-				fmt.Printf("query redeemable assets failed. error:%s \n", err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
