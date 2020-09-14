@@ -10,18 +10,21 @@ import (
 )
 
 const (
-	KlineTypeM1     = "kline_m1"
-	KlineTypeM3     = "kline_m3"
-	KlineTypeM5     = "kline_m5"
-	KlineTypeM15    = "kline_m15"
-	KlineTypeM30    = "kline_m30"
-	KlineTypeM60    = "kline_m60"
-	KlineTypeM120   = "kline_m120"
-	KlineTypeM240   = "kline_m240"
-	KlineTypeM360   = "kline_m360"
-	KlineTypeM720   = "kline_m720"
-	KlineTypeM1440  = "kline_m1440"
-	KlineTypeM10080 = "kline_m10080"
+	KlineTypeM1      = "kline_m1"
+	KlineTypeM3      = "kline_m3"
+	KlineTypeM5      = "kline_m5"
+	KlineTypeM15     = "kline_m15"
+	KlineTypeM30     = "kline_m30"
+	KlineTypeM60     = "kline_m60"
+	KlineTypeM120    = "kline_m120"
+	KlineTypeM240    = "kline_m240"
+	KlineTypeM360    = "kline_m360"
+	KlineTypeM720    = "kline_m720"
+	KlineTypeM1440   = "kline_m1440"
+	KlineTypeM4320   = "kline_m4320"
+	KlineTypeM10080  = "kline_m10080"
+	KlineTypeM44640  = "kline_m44640"
+	KlineTypeM525600 = "kline_m525600"
 )
 
 // nolint
@@ -37,39 +40,44 @@ type IKline interface {
 	GetLow() float64
 	GetVolume() float64
 	PrettyTimeString() string
-	GetBrifeInfo() []string
+	GetBriefInfo() []string
 }
 
 var (
 	kline2channel = map[string]string{
-		KlineTypeM1:     "dex_spot/candle60s",
-		KlineTypeM3:     "dex_spot/candle180s",
-		KlineTypeM5:     "dex_spot/candle300s",
-		KlineTypeM15:    "dex_spot/candle900s",
-		KlineTypeM30:    "dex_spot/candle1800s",
-		KlineTypeM60:    "dex_spot/candle3600s",
-		KlineTypeM120:   "dex_spot/candle7200s",
-		KlineTypeM240:   "dex_spot/candle14400s",
-		KlineTypeM360:   "dex_spot/candle21600s",
-		KlineTypeM720:   "dex_spot/candle43200s",
-		KlineTypeM1440:  "dex_spot/candle86400s",
-		KlineTypeM10080: "dex_spot/candle604800s",
+		KlineTypeM1:      "dex_spot/candle60s",
+		KlineTypeM3:      "dex_spot/candle180s",
+		KlineTypeM5:      "dex_spot/candle300s",
+		KlineTypeM15:     "dex_spot/candle900s",
+		KlineTypeM30:     "dex_spot/candle1800s",
+		KlineTypeM60:     "dex_spot/candle3600s",
+		KlineTypeM120:    "dex_spot/candle7200s",
+		KlineTypeM240:    "dex_spot/candle14400s",
+		KlineTypeM360:    "dex_spot/candle21600s",
+		KlineTypeM720:    "dex_spot/candle43200s",
+		KlineTypeM1440:   "dex_spot/candle86400s",
+		KlineTypeM4320:   "dex_spot/candle259200s",
+		KlineTypeM10080:  "dex_spot/candle604800s",
+		KlineTypeM44640:  "dex_spot/candle2678400s",
+		KlineTypeM525600: "dex_spot/candle31536000s",
 	}
 
-	klineType2Freq = map[string]int {
-		KlineTypeM1:     60,
-		KlineTypeM3:     180,
-		KlineTypeM5:     300,
-		KlineTypeM15:    900,
-		KlineTypeM30:    1800,
-		KlineTypeM60:    3600,
-		KlineTypeM120:   7200,
-		KlineTypeM240:   14400,
-		KlineTypeM360:   21600,
-		KlineTypeM720:   43200,
-		KlineTypeM1440:  86400,
-		KlineTypeM10080: 604800,
-
+	klineType2Freq = map[string]int{
+		KlineTypeM1:      60,
+		KlineTypeM3:      180,
+		KlineTypeM5:      300,
+		KlineTypeM15:     900,
+		KlineTypeM30:     1800,
+		KlineTypeM60:     3600,
+		KlineTypeM120:    7200,
+		KlineTypeM240:    14400,
+		KlineTypeM360:    21600,
+		KlineTypeM720:    43200,
+		KlineTypeM1440:   86400,
+		KlineTypeM4320:   259200,
+		KlineTypeM10080:  604800,
+		KlineTypeM44640:  2678400,
+		KlineTypeM525600: 31536000,
 	}
 )
 
@@ -209,8 +217,8 @@ func (b *BaseKline) GetVolume() float64 {
 	return b.Volume
 }
 
-// GetBrifeInfo return array of kline data
-func (b *BaseKline) GetBrifeInfo() []string {
+// GetBriefInfo return array of kline data
+func (b *BaseKline) GetBriefInfo() []string {
 	m := []string{
 		time.Unix(b.GetTimestamp(), 0).UTC().Format("2006-01-02T15:04:05.000Z"),
 		fmt.Sprintf("%.4f", b.GetOpen()),
@@ -223,9 +231,9 @@ func (b *BaseKline) GetBrifeInfo() []string {
 }
 
 func (b *BaseKline) FormatResult() interface{} {
-	result := map[string] interface{}{}
+	result := map[string]interface{}{}
 	result["instrument_id"] = b.Product
-	result["candle"] = b.GetBrifeInfo()
+	result["candle"] = b.GetBriefInfo()
 	return result
 }
 
@@ -254,7 +262,7 @@ func NewKlineM1(b *BaseKline) *KlineM1 {
 
 // GetFreqInSecond return 60
 func (k *KlineM1) GetFreqInSecond() int {
-	return 60
+	return klineType2Freq[k.GetTableName()]
 }
 
 // GetTableName return kline_m1
@@ -281,7 +289,7 @@ func (k *KlineM3) GetTableName() string {
 
 // GetFreqInSecond return 180
 func (k *KlineM3) GetFreqInSecond() int {
-	return 60 * 3
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM5 define kline data in 5 minutes
@@ -303,7 +311,7 @@ func (k *KlineM5) GetTableName() string {
 
 // GetFreqInSecond return 300
 func (k *KlineM5) GetFreqInSecond() int {
-	return 60 * 5
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM15 define kline data in 15 minutes
@@ -325,7 +333,7 @@ func (k *KlineM15) GetTableName() string {
 
 // GetFreqInSecond return 900
 func (k *KlineM15) GetFreqInSecond() int {
-	return 60 * 15
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM30 define kline data in 30 minutes
@@ -347,7 +355,7 @@ func (k *KlineM30) GetTableName() string {
 
 // GetFreqInSecond return 1800
 func (k *KlineM30) GetFreqInSecond() int {
-	return 60 * 30
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM60 define kline data in 1 hour
@@ -369,7 +377,7 @@ func (k *KlineM60) GetTableName() string {
 
 // GetFreqInSecond return 3600
 func (k *KlineM60) GetFreqInSecond() int {
-	return 60 * 60
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM120 define kline data in 2 hours
@@ -391,7 +399,7 @@ func (k *KlineM120) GetTableName() string {
 
 // GetFreqInSecond return 7200
 func (k *KlineM120) GetFreqInSecond() int {
-	return 60 * 120
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM240 define kline data in 4 hours
@@ -413,7 +421,7 @@ func (k *KlineM240) GetTableName() string {
 
 // GetFreqInSecond return 14400
 func (k *KlineM240) GetFreqInSecond() int {
-	return 14400
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM360 define kline data in 6 hours
@@ -435,7 +443,7 @@ func (k *KlineM360) GetTableName() string {
 
 // GetFreqInSecond return 21600
 func (k *KlineM360) GetFreqInSecond() int {
-	return 21600
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM720 define kline data in 12 hours
@@ -457,7 +465,7 @@ func (k *KlineM720) GetTableName() string {
 
 // GetFreqInSecond return 43200
 func (k *KlineM720) GetFreqInSecond() int {
-	return 43200
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM1440 define kline data in 1 day
@@ -479,7 +487,29 @@ func (k *KlineM1440) GetTableName() string {
 
 // GetFreqInSecond return 86400
 func (k *KlineM1440) GetFreqInSecond() int {
-	return 86400
+	return klineType2Freq[k.GetTableName()]
+}
+
+// KlineM4320 define kline data in 1 day
+type KlineM4320 struct {
+	*BaseKline
+}
+
+// NewKlineM4320 create a instance of KlineM4320
+func NewKlineM4320(b *BaseKline) *KlineM4320 {
+	k := KlineM4320{b}
+	k.impl = &k
+	return &k
+}
+
+// GetTableName return kline_m4320
+func (k *KlineM4320) GetTableName() string {
+	return KlineTypeM4320
+}
+
+// GetFreqInSecond return 259200
+func (k *KlineM4320) GetFreqInSecond() int {
+	return klineType2Freq[k.GetTableName()]
 }
 
 // KlineM10080 define kline data in 1 week
@@ -501,7 +531,51 @@ func (k *KlineM10080) GetTableName() string {
 
 // GetFreqInSecond return 604800
 func (k *KlineM10080) GetFreqInSecond() int {
-	return 604800
+	return klineType2Freq[k.GetTableName()]
+}
+
+// KlineM44640 define kline data in 1 day
+type KlineM44640 struct {
+	*BaseKline
+}
+
+// NewKlineM44640 create a instance of KlineM44640
+func NewKlineM44640(b *BaseKline) *KlineM44640 {
+	k := KlineM44640{b}
+	k.impl = &k
+	return &k
+}
+
+// GetTableName return kline_m44640
+func (k *KlineM44640) GetTableName() string {
+	return KlineTypeM44640
+}
+
+// GetFreqInSecond return 2678400
+func (k *KlineM44640) GetFreqInSecond() int {
+	return klineType2Freq[k.GetTableName()]
+}
+
+// KlineM525600 define kline data in 1 day
+type KlineM525600 struct {
+	*BaseKline
+}
+
+// NewKlineM525600 create a instance of KlineM525600
+func NewKlineM525600(b *BaseKline) *KlineM525600 {
+	k := KlineM525600{b}
+	k.impl = &k
+	return &k
+}
+
+// GetTableName return kline_m525600
+func (k *KlineM525600) GetTableName() string {
+	return KlineTypeM525600
+}
+
+// GetFreqInSecond return 31536000
+func (k *KlineM525600) GetFreqInSecond() int {
+	return klineType2Freq[k.GetTableName()]
 }
 
 // MustNewKlineFactory will panic when err occurred during  NewKlineFactory
@@ -544,8 +618,14 @@ func NewKlineFactory(name string, baseK *BaseKline) (r interface{}, err error) {
 		return NewKlineM720(b), nil
 	case KlineTypeM1440:
 		return NewKlineM1440(b), nil
+	case KlineTypeM4320:
+		return NewKlineM4320(b), nil
 	case KlineTypeM10080:
 		return NewKlineM10080(b), nil
+	case KlineTypeM44640:
+		return NewKlineM44640(b), nil
+	case KlineTypeM525600:
+		return NewKlineM525600(b), nil
 	}
 
 	return nil, errors.New("No kline constructor function found.")
@@ -553,20 +633,22 @@ func NewKlineFactory(name string, baseK *BaseKline) (r interface{}, err error) {
 
 // GetAllKlineMap return map about kline table names
 func GetAllKlineMap() map[int]string {
-
 	return map[int]string{
-		60:     KlineTypeM1,
-		180:    KlineTypeM3,
-		300:    KlineTypeM5,
-		900:    KlineTypeM15,
-		1800:   KlineTypeM30,
-		3600:   KlineTypeM60,
-		7200:   KlineTypeM120,
-		14400:  KlineTypeM240,
-		21600:  KlineTypeM360,
-		43200:  KlineTypeM720,
-		86400:  KlineTypeM1440,
-		604800: KlineTypeM10080,
+		60:       KlineTypeM1,
+		180:      KlineTypeM3,
+		300:      KlineTypeM5,
+		900:      KlineTypeM15,
+		1800:     KlineTypeM30,
+		3600:     KlineTypeM60,
+		7200:     KlineTypeM120,
+		14400:    KlineTypeM240,
+		21600:    KlineTypeM360,
+		43200:    KlineTypeM720,
+		86400:    KlineTypeM1440,
+		259200:   KlineTypeM4320,
+		604800:   KlineTypeM10080,
+		2678400:  KlineTypeM44640,
+		31536000: KlineTypeM525600,
 	}
 }
 
@@ -580,7 +662,6 @@ func GetKlineTableNameByFreq(freq int) string {
 
 // NewKlinesFactory generate kline type by type of kline
 func NewKlinesFactory(name string) (r interface{}, err error) {
-
 	switch name {
 	case KlineTypeM1:
 		return &[]KlineM1{}, nil
@@ -604,8 +685,14 @@ func NewKlinesFactory(name string) (r interface{}, err error) {
 		return &[]KlineM720{}, nil
 	case KlineTypeM1440:
 		return &[]KlineM1440{}, nil
+	case KlineTypeM4320:
+		return &[]KlineM4320{}, nil
 	case KlineTypeM10080:
 		return &[]KlineM10080{}, nil
+	case KlineTypeM44640:
+		return &[]KlineM44640{}, nil
+	case KlineTypeM525600:
+		return &[]KlineM525600{}, nil
 	}
 
 	return nil, errors.New("No klines constructor function found.")
@@ -666,8 +753,20 @@ func ToIKlinesArray(klines interface{}, endTS int64, doPadding bool) []IKline {
 				r2 := r.(KlineM1440)
 				r2.impl = &r2
 				originKlines = append(originKlines, &r2)
+			case KlineM4320:
+				r2 := r.(KlineM4320)
+				r2.impl = &r2
+				originKlines = append(originKlines, &r2)
 			case KlineM10080:
 				r2 := r.(KlineM10080)
+				r2.impl = &r2
+				originKlines = append(originKlines, &r2)
+			case KlineM44640:
+				r2 := r.(KlineM44640)
+				r2.impl = &r2
+				originKlines = append(originKlines, &r2)
+			case KlineM525600:
+				r2 := r.(KlineM525600)
 				r2.impl = &r2
 				originKlines = append(originKlines, &r2)
 			}
@@ -744,7 +843,7 @@ func ToRestfulData(klines *[]IKline, limit int) [][]string {
 	}
 
 	for _, k := range (*klines)[from:to] {
-		m = append(m, k.GetBrifeInfo())
+		m = append(m, k.GetBriefInfo())
 	}
 	return m
 }
