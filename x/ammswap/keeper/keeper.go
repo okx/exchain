@@ -150,13 +150,13 @@ func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoi
 		inputReserve = swapTokenPair.BasePooledCoin.Amount
 		outputReserve = swapTokenPair.QuotePooledCoin.Amount
 	}
-	tokenBuyAmt := getInputPrice(sellToken.Amount, inputReserve, outputReserve, params.FeeRate)
+	tokenBuyAmt := GetInputPrice(sellToken.Amount, inputReserve, outputReserve, params.FeeRate)
 	tokenBuy := sdk.NewDecCoinFromDec(buyTokenDenom, tokenBuyAmt)
 
 	return tokenBuy
 }
 
-func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
+func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
 	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
 	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return MulAndQuo(inputAmountWithFee, outputReserve, denominator)
