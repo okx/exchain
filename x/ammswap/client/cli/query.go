@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -63,16 +64,15 @@ $ okexchaincli query swap pool-info eth-355
 	}
 }
 
-// GetCmdQueryProposal implements the query proposal command.
 func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "params",
-		Short: "Query the parameters of the governance process",
+		Short: "Query the parameters of the AMM swap system",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the all the parameters for the governance process.
+			fmt.Sprintf(`Query the parameters of the AMM swap system.
 
 Example:
-$ %s query gov params
+$ %s query swap params
 `,
 				version.ClientName,
 			),
