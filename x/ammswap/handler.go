@@ -136,7 +136,12 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			}
 		}
 		liquidity = mulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
-
+		if liquidity.IsZero() {
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log:  fmt.Sprintf("failed to add liquidity"),
+			}
+		}
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -353,7 +358,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
-	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo, params)
+	tokenBuy := calculateTokenToBuy(swapTokenPairTwo, msgTwo, params)
 
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
@@ -366,7 +371,6 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	if !res.IsOK() {
 		return res
 	}
-	//TODO if fail,revert last swap
 	res = swapTokenNativeToken(ctx, k, swapTokenPairTwo, tokenBuy, msgTwo)
 	if !res.IsOK() {
 		return res
@@ -452,5 +456,5 @@ var (
 // mulAndQuo returns a * b / c
 func mulAndQuo(a, b, c sdk.Dec) sdk.Dec {
 	a = a.Mul(auxiliaryDec)
-	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
+	return a.Mul(b).Quo(c).QuoTruncate(auxiliaryDec)
 }
