@@ -34,8 +34,8 @@ func NewHandler(k Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgCreateExchange(ctx, k, msg)
 			}
-		case types.MsgTokenToNativeToken:
-			name = "handleMsgTokenToNativeToken"
+		case types.MsgTokenToToken:
+			name = "handleMsgTokenToToken"
 			handlerFun = func() sdk.Result {
 				return handleMsgTokenToTokenExchange(ctx, k, msg)
 			}
@@ -49,7 +49,7 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
 		return handleMsgTokenToToken(ctx, k, msg)
 	}
@@ -272,7 +272,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -314,7 +314,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNativeToken) sdk.Result {
+func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if msg.Deadline < ctx.BlockTime().Unix() {
@@ -382,7 +382,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 
 func swapTokenNativeToken(
 	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.DecCoin,
-	msg types.MsgTokenToNativeToken,
+	msg types.MsgTokenToToken,
 ) sdk.Result {
 	// transfer coins
 	err := k.SendCoinsToPool(ctx, sdk.DecCoins{msg.SoldTokenAmount}, msg.Sender)

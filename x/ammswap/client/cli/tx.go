@@ -207,7 +207,7 @@ $ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
 				}
 			}
 
-			msg := types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount,
+			msg := types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount,
 				deadline, recip, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})

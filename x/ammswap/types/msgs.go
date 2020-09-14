@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common"
 )
@@ -160,7 +158,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if sdk.ValidateDenom(msg.Token) != nil || ValidatePoolTokenName(msg.Token) {
+	if sdk.ValidateDenom(msg.Token) != nil || ValidatePoolTokenName(msg.Token) || msg.Token == sdk.DefaultBondDenom {
 		return sdk.ErrUnknownRequest("invalid Token")
 	}
 	return nil
@@ -176,8 +174,8 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
-// MsgTokenToNativeToken define the message for swap between token and DefaultBondDenom
-type MsgTokenToNativeToken struct {
+// MsgTokenToToken define the message for swap between token and DefaultBondDenom
+type MsgTokenToToken struct {
 	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       // Amount of Tokens sold.
 	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` // Minimum token purchased.
 	Deadline             int64          `json:"deadline"`                // Time after which this transaction can no longer be executed.
@@ -185,11 +183,11 @@ type MsgTokenToNativeToken struct {
 	Sender               sdk.AccAddress `json:"sender"`                  // Sender
 }
 
-// NewMsgTokenToNativeToken is a constructor function for MsgTokenOKTSwap
-func NewMsgTokenToNativeToken(
+// NewMsgTokenToToken is a constructor function for MsgTokenOKTSwap
+func NewMsgTokenToToken(
 	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
-) MsgTokenToNativeToken {
-	return MsgTokenToNativeToken{
+) MsgTokenToToken {
+	return MsgTokenToToken{
 		SoldTokenAmount:      soldTokenAmount,
 		MinBoughtTokenAmount: minBoughtTokenAmount,
 		Deadline:             deadline,
@@ -199,13 +197,13 @@ func NewMsgTokenToNativeToken(
 }
 
 // Route should return the name of the module
-func (msg MsgTokenToNativeToken) Route() string { return RouterKey }
+func (msg MsgTokenToToken) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgTokenToNativeToken) Type() string { return TypeMsgTokenSwap }
+func (msg MsgTokenToToken) Type() string { return TypeMsgTokenSwap }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {
+func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
@@ -214,10 +212,6 @@ func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidAddress(msg.Recipient.String())
 	}
 
-	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("both token to sell and token to buy do not contain %s,"+
-			" quote token only supports %s", sdk.DefaultBondDenom, sdk.DefaultBondDenom))
-	}
 	if !(msg.SoldTokenAmount.IsPositive()) {
 		return sdk.ErrUnknownRequest("token amount must be positive")
 	}
@@ -232,17 +226,17 @@ func (msg MsgTokenToNativeToken) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgTokenToNativeToken) GetSignBytes() []byte {
+func (msg MsgTokenToToken) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgTokenToNativeToken) GetSigners() []sdk.AccAddress {
+func (msg MsgTokenToToken) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgTokenToNativeToken) GetSwapTokenPair() string {
+func (msg MsgTokenToToken) GetSwapTokenPair() string {
 	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
 		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom
 	}
