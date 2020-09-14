@@ -17,6 +17,8 @@ const (
 	QuerySwapTokenPair = "swapTokenPair"
 
 	QueryParams = "params"
+
+	QueryBuyAmount = "buy"
 )
 
 var (

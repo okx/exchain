@@ -11,6 +11,11 @@ import (
 	tokentypes "github.com/okex/okexchain/x/token/types"
 )
 
+var (
+	// 10^8
+	auxiliaryDec = sdk.NewDec(100000000)
+)
+
 // Keeper of the swap store
 type Keeper struct {
 	supplyKeeper types.SupplyKeeper
@@ -133,4 +138,32 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 // SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
+}
+
+//CalculateTokenToBuy calculates the amount to buy
+func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoin, buyTokenDenom string, params types.Params) sdk.DecCoin {
+	var inputReserve, outputReserve sdk.Dec
+	if sellToken.Denom == sdk.DefaultBondDenom {
+		inputReserve = swapTokenPair.QuotePooledCoin.Amount
+		outputReserve = swapTokenPair.BasePooledCoin.Amount
+	} else {
+		inputReserve = swapTokenPair.BasePooledCoin.Amount
+		outputReserve = swapTokenPair.QuotePooledCoin.Amount
+	}
+	tokenBuyAmt := getInputPrice(sellToken.Amount, inputReserve, outputReserve, params.FeeRate)
+	tokenBuy := sdk.NewDecCoinFromDec(buyTokenDenom, tokenBuyAmt)
+
+	return tokenBuy
+}
+
+func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
+	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
+	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	return MulAndQuo(inputAmountWithFee, outputReserve, denominator)
+}
+
+// MulAndQuo returns a * b / c
+func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
+	a = a.Mul(auxiliaryDec)
+	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
 }
