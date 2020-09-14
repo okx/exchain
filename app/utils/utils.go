@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"math/big"
 	"runtime"
 	"strconv"
 	"sync"
@@ -55,7 +56,7 @@ func (base GoroutineID) String() string {
 // mulAndQuo returns a * b / c
 func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
 	// 10^8
-	auxiliaryDec := sdk.NewDec(100000000)
+	auxiliaryDec := sdk.NewDecFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(sdk.Precision), nil))
 	a = a.Mul(auxiliaryDec)
 	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
 }
