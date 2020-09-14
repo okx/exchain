@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okexchain/x/distribution/types"
 )
 
 // InitGenesis sets distribution information for genesis

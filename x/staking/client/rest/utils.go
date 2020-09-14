@@ -2,7 +2,7 @@ package rest
 
 import (
 	"fmt"
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -11,7 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // contains checks if the a given query contains one of the tx types

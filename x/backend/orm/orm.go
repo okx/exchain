@@ -12,26 +12,26 @@ import (
 
 	"github.com/shopspring/decimal"
 
-	okchaincfg "github.com/cosmos/cosmos-sdk/server/config"
+	okexchaincfg "github.com/cosmos/cosmos-sdk/server/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/okex/okchain/x/backend/types"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/backend/types"
+	"github.com/okex/okexchain/x/token"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 // nolint
 const (
-	EngineTypeSqlite = okchaincfg.BackendOrmEngineTypeSqlite
-	EngineTypeMysql  = okchaincfg.BackendOrmEngineTypeMysql
+	EngineTypeSqlite = okexchaincfg.BackendOrmEngineTypeSqlite
+	EngineTypeMysql  = okexchaincfg.BackendOrmEngineTypeMysql
 )
 
 // nolint
-type OrmEngineInfo = okchaincfg.BackendOrmEngineInfo
+type OrmEngineInfo = okexchaincfg.BackendOrmEngineInfo
 
 // ORM is designed for deal with database by orm
 // http://gorm.io/docs/query.html

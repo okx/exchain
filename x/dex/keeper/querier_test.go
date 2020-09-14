@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/dex/types"
 	"github.com/stretchr/testify/require"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"

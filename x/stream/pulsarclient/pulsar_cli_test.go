@@ -7,8 +7,8 @@ import (
 	"time"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/common"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"
 )

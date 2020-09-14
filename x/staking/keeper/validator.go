@@ -6,7 +6,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // Cache the amino decoding of validators, as it can be the case that repeated slashing calls
@@ -306,7 +306,7 @@ func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 				panic("unexpected validator in unbonding queue; status was not unbonding")
 			}
 			val = k.unbondingToUnbonded(ctx, val)
-			// required by okchain
+			// required by okexchain
 			//if val.GetDelegatorShares().IsZero() {
 			//	k.RemoveValidator(ctx, val.OperatorAddress)
 			//}

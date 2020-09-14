@@ -11,17 +11,17 @@ var (
 	testCases = [][]string{
 		{
 			"BTC",
-			"okchain1_xxx",
+			"okexchain1_xxx",
 			"1",
 		},
 		{
 			"OKT",
-			"okchain1_yyy",
+			"okexchain1_yyy",
 			"2",
 		},
 		{
 			"ETH",
-			"okchain1_zzz",
+			"okexchain1_zzz",
 			"3",
 		},
 	}

@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -25,9 +25,9 @@ func TestAmountToCoins(t *testing.T) {
 func TestStrToTransfers(t *testing.T) {
 	//coinStr := `[{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1BNB,2BTC"},
 	//{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1OKB,2BTC"}]`
-	coinStr := `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
+	coinStr := `[{"to":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","amount":"1` + common.NativeToken + `"}]`
 	coinStrError := `[{"to":"kochain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
-	addr, err := sdk.AccAddressFromBech32("okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3")
+	addr, err := sdk.AccAddressFromBech32("okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f")
 	require.Nil(t, err)
 	_, err = StrToTransfers(coinStrError)
 	require.Error(t, err)
@@ -43,7 +43,7 @@ func TestStrToTransfers(t *testing.T) {
 	}
 	require.EqualValues(t, transfer, transfers)
 
-	coinStr = `[{"to":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3",amount":"1"}]`
+	coinStr = `[{"to":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f",amount":"1"}]`
 	_, err = StrToTransfers(coinStr)
 	require.Error(t, err)
 }

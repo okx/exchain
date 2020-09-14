@@ -7,8 +7,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 
-	"github.com/okex/okchain/x/distribution/client/common"
-	"github.com/okex/okchain/x/distribution/types"
+	"github.com/okex/okexchain/x/distribution/client/common"
+	"github.com/okex/okexchain/x/distribution/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"

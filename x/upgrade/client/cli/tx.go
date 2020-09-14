@@ -10,12 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/upgrade/types"
 	"github.com/spf13/cobra"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/gov"
+	"github.com/okex/okexchain/x/gov"
 )
 
 // GetCmdSubmitProposal implements a command handler for submitting a dex list proposal transaction
@@ -38,7 +38,7 @@ Where proposal.json contains:
   "description": "Update max validators", 
   "protocol_definition": {
     "version": "1",
-    "software": "http://github.com/okex/okchain/v1",
+    "software": "http://github.com/okex/okexchain/v1",
     "height": "1000",
     "threshold": "0.8",
   }

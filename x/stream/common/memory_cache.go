@@ -3,8 +3,8 @@ package common
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/dex/types"
 )
 
 type Cache struct {

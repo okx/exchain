@@ -3,10 +3,10 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/order"
-	"github.com/okex/okchain/x/stream/exported"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/stream/exported"
+	"github.com/okex/okexchain/x/token"
 	"github.com/willf/bitset"
 )
 

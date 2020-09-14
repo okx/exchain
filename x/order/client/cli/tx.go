@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/okex/okchain/x/order/types"
+	"github.com/okex/okexchain/x/order/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

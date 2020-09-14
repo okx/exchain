@@ -7,20 +7,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/order"
-	orderKeeper "github.com/okex/okchain/x/order/keeper"
-	tokenKeeper "github.com/okex/okchain/x/token"
-	token "github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/order"
+	orderKeeper "github.com/okex/okexchain/x/order/keeper"
+	tokenKeeper "github.com/okex/okexchain/x/token"
+	token "github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 func TestGenerateTx(t *testing.T) {
-	txbldr := auth.NewTxBuilder(auth.DefaultTxEncoder(auth.ModuleCdc), 1, 2, 3, 4, false, "okchain", "memo", nil, nil)
+	txbldr := auth.NewTxBuilder(auth.DefaultTxEncoder(auth.ModuleCdc), 1, 2, 3, 4, false, "okexchain", "memo", nil, nil)
 	testInput := orderKeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 

@@ -81,7 +81,7 @@ func TestSdkNewDecCoin(t *testing.T) {
 }
 
 func TestHasSufCoins(t *testing.T) {
-	addr, err := sdk.AccAddressFromBech32("okchain18mxjm0knqjpkaxk2zd2jr67pgrd8c0ctznrds8")
+	addr, err := sdk.AccAddressFromBech32("okexchain18mxjm0knqjpkaxk2zd2jr67pgrd8c0ct0tycvl")
 	require.Nil(t, err)
 
 	availDecCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",

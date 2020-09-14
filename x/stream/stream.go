@@ -3,20 +3,20 @@ package stream
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/stream/eureka"
-	"github.com/okex/okchain/x/stream/nacos"
-	"github.com/okex/okchain/x/stream/websocket"
+	"github.com/okex/okexchain/x/stream/eureka"
+	"github.com/okex/okexchain/x/stream/nacos"
+	"github.com/okex/okexchain/x/stream/websocket"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/google/uuid"
-	"github.com/okex/okchain/x/stream/distrlock"
+	"github.com/okex/okexchain/x/stream/distrlock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/stream/common"
-	"github.com/okex/okchain/x/stream/pushservice"
-	"github.com/okex/okchain/x/stream/types"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/pushservice"
+	"github.com/okex/okexchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

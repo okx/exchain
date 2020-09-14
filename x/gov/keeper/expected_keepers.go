@@ -1,7 +1,7 @@
 package keeper
 
 import (
-	stakingexported "github.com/okex/okchain/x/staking/exported"
+	stakingexported "github.com/okex/okexchain/x/staking/exported"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

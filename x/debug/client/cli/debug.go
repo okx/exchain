@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/debug/types"
+	"github.com/okex/okexchain/x/debug/types"
 	"github.com/spf13/cobra"
 )
 
@@ -64,11 +64,11 @@ func CmdSetLogLevel(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-loglevel",
 		Args:  cobra.ExactArgs(1),
-		Short: "Set the okchaind log level",
+		Short: "Set the okexchaind log level",
 		Long: strings.TrimSpace(`
-$ okchaincli debug set-loglevel "main:info,state:info"
+$ okexchaincli debug set-loglevel "main:info,state:info"
 
-$ okchaincli debug set-loglevel "upgrade:error"
+$ okexchaincli debug set-loglevel "upgrade:error"
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -81,7 +81,7 @@ $ okchaincli debug set-loglevel "upgrade:error"
 				return err
 			}
 
-			fmt.Println("Succeed to set the okchaind log level.")
+			fmt.Println("Succeed to set the okexchaind log level.")
 			return nil
 		},
 	}

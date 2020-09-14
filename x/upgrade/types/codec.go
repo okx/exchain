@@ -15,5 +15,5 @@ func init() {
 
 // RegisterCodec registers concrete types on code
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(AppUpgradeProposal{}, "okchain/upgrade/AppUpgradeProposal", nil)
+	cdc.RegisterConcrete(AppUpgradeProposal{}, "okexchain/upgrade/AppUpgradeProposal", nil)
 }

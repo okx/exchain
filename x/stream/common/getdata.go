@@ -2,8 +2,8 @@ package common
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/backend/types"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/backend/types"
 )
 
 func GetNewOrders(ctx sdk.Context, orderKeeper types.OrderKeeper) []*backend.Order {

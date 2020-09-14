@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/okex/okchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/log"
 )

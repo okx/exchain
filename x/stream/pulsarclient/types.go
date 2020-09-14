@@ -2,10 +2,10 @@ package pulsarclient
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/stream/common"
-	"github.com/okex/okchain/x/stream/types"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/types"
 )
 
 type PulsarData struct {

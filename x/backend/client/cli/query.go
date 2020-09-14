@@ -10,7 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okchain/x/backend/types"
+	"github.com/okex/okexchain/x/backend/types"
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"

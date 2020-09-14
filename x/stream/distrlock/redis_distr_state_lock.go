@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/garyburd/redigo/redis"
-	"github.com/okex/okchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

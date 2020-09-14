@@ -17,7 +17,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,11 +40,11 @@ func TestAppProtocolEngine(t *testing.T) {
 	require.NotEqual(t, nil, engine.GetProtocolKeeper())
 
 	//check app upgrade config
-	appUpgradeConfig := proto.NewAppUpgradeConfig(0, proto.NewProtocolDefinition(0, "OKChain", 1024, sdk.NewDec(0)))
+	appUpgradeConfig := proto.NewAppUpgradeConfig(0, proto.NewProtocolDefinition(0, "OKExChain", 1024, sdk.NewDec(0)))
 	protocolKeeper.SetUpgradeConfig(ctx, appUpgradeConfig)
 	auc, ok := engine.GetUpgradeConfigByStore(ctx.KVStore(mainKey))
 	require.Equal(t, true, ok)
-	require.Equal(t, "OKChain", auc.ProtocolDef.Software)
+	require.Equal(t, "OKExChain", auc.ProtocolDef.Software)
 
 	// add protocol randomly
 	num := rand.Intn(3) + 1

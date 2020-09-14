@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/okchain/x/stream/websocket"
+	"github.com/okex/okexchain/x/stream/websocket"
 
 	"github.com/pkg/errors"
 
@@ -14,13 +14,13 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/stream/analyservice"
-	"github.com/okex/okchain/x/stream/common"
-	"github.com/okex/okchain/x/stream/pulsarclient"
-	"github.com/okex/okchain/x/stream/pushservice"
-	pushservicetypes "github.com/okex/okchain/x/stream/pushservice/types"
-	"github.com/okex/okchain/x/stream/types"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/stream/analyservice"
+	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/pulsarclient"
+	"github.com/okex/okexchain/x/stream/pushservice"
+	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
+	"github.com/okex/okexchain/x/stream/types"
 )
 
 type Kind byte

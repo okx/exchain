@@ -3,16 +3,16 @@ package stream
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/dex"
+	"github.com/okex/okexchain/x/dex"
 
-	"github.com/okex/okchain/x/stream/types"
+	"github.com/okex/okexchain/x/stream/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

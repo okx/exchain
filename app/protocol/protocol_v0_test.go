@@ -5,17 +5,17 @@ import (
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/order"
-	"github.com/okex/okchain/x/token"
-	"github.com/okex/okchain/x/upgrade"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/token"
+	"github.com/okex/okexchain/x/upgrade"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	dbm "github.com/tendermint/tm-db"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/proto"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"
 	tm "github.com/tendermint/tendermint/types"

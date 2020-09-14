@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	orderkeeper "github.com/okex/okchain/x/order/keeper"
-	"github.com/okex/okchain/x/order/types"
-	token "github.com/okex/okchain/x/token/types"
+	orderkeeper "github.com/okex/okexchain/x/order/keeper"
+	"github.com/okex/okexchain/x/order/types"
+	token "github.com/okex/okexchain/x/token/types"
 )
 
 func fillBuyOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,

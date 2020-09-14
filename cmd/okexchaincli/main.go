@@ -14,9 +14,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/okex/okchain/app"
-	debugcli "github.com/okex/okchain/x/debug/client/cli"
-	tokencli "github.com/okex/okchain/x/token/client/cli"
+	"github.com/okex/okexchain/app"
+	debugcli "github.com/okex/okexchain/x/debug/client/cli"
+	tokencli "github.com/okex/okexchain/x/token/client/cli"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,8 +43,8 @@ func main() {
 	// the below functions and eliminate global vars, like we do with the cdc
 
 	rootCmd := &cobra.Command{
-		Use:   "okchaincli",
-		Short: "Command line interface for interacting with okchaind",
+		Use:   "okexchaincli",
+		Short: "Command line interface for interacting with okexchaind",
 	}
 
 	// add --chain-id to persistent flags and mark it required
@@ -71,8 +71,8 @@ func main() {
 		client.NewCompletionCmd(rootCmd, true),
 	)
 
-	// add flags and prefix all env exposed with OKCHAIN
-	executor := cli.PrepareMainCmd(rootCmd, "OKCHAIN", app.DefaultCLIHome)
+	// add flags and prefix all env exposed with OKEXCHAIN
+	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
 
 	if err := executor.Execute(); err != nil {
 		fmt.Printf("Failed executing CLI command: %s, exiting...\n", err)

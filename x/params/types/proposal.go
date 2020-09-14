@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/params/types"
 
-	govtypes "github.com/okex/okchain/x/gov/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
@@ -17,7 +17,7 @@ var _ govtypes.Content = ParameterChangeProposal{}
 
 func init() {
 	govtypes.RegisterProposalType(sdkparams.ProposalTypeChange)
-	govtypes.RegisterProposalTypeCodec(ParameterChangeProposal{}, "okchain/params/ParameterChangeProposal")
+	govtypes.RegisterProposalTypeCodec(ParameterChangeProposal{}, "okexchain/params/ParameterChangeProposal")
 }
 
 // ParameterChangeProposal is the struct of param change proposal

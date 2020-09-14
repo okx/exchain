@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/token/types"
 )
 
 func TestKeeper_GetFeeDetailList(t *testing.T) {

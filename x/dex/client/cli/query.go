@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/dex/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -135,7 +135,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query all the modifiable parameters of gov proposal",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ okchaincli query dex params
+$ okexchaincli query dex params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -162,7 +162,7 @@ func GetCmdQueryProductsUnderDelisting(queryRoute string, cdc *codec.Codec) *cob
 		Long: strings.TrimSpace(`
 		Query all the products' names involved in dex delisting:
 
-$ okchaincli query dex products-delisting`),
+$ okexchaincli query dex products-delisting`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryProductsDelisting), nil)

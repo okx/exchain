@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -25,7 +25,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	//distr "github.com/okex/okchain/x/distribution"
+	//distr "github.com/okex/okexchain/x/distribution"
 )
 
 // dummy addresses used for testing

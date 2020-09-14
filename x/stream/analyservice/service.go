@@ -3,9 +3,9 @@ package analyservice
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/backend/orm"
+	"github.com/okex/okexchain/x/backend/orm"
 
-	"github.com/okex/okchain/x/backend"
+	"github.com/okex/okexchain/x/backend"
 )
 
 func NewMysqlORM(url string) *backend.ORM {

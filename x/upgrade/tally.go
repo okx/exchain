@@ -2,7 +2,7 @@ package upgrade
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/exported"
+	"github.com/okex/okexchain/x/staking/exported"
 )
 
 // endblock at specific block height

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/dex/types"
 )
 
 // RegisterInvariants registers all dex invariants

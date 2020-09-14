@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/upgrade/types"
+	"github.com/okex/okexchain/x/upgrade/types"
 )
 
 // EndBlocker does signal maintenance in the end of block

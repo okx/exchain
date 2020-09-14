@@ -9,7 +9,7 @@ import (
 	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 func TestKeeper_IterateProposals(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okchain/x/stream/websocket"
+	"github.com/okex/okexchain/x/stream/websocket"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/stream/analyservice"
-	"github.com/okex/okchain/x/stream/pulsarclient"
-	pushservicetypes "github.com/okex/okchain/x/stream/pushservice/types"
-	"github.com/okex/okchain/x/stream/types"
+	"github.com/okex/okexchain/x/stream/analyservice"
+	"github.com/okex/okexchain/x/stream/pulsarclient"
+	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
+	"github.com/okex/okexchain/x/stream/types"
 )
 
 func EndBlocker(ctx sdk.Context, k Keeper) {

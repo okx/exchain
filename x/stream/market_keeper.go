@@ -10,9 +10,9 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/stream/pulsarclient"
-	"github.com/okex/okchain/x/stream/pushservice/conn"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/stream/pulsarclient"
+	"github.com/okex/okexchain/x/stream/pushservice/conn"
 	"github.com/pkg/errors"
 )
 

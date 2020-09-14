@@ -1,6 +1,6 @@
 package types
 
-import "github.com/okex/okchain/x/backend"
+import "github.com/okex/okexchain/x/backend"
 
 func find(orders []backend.Order, o backend.Order) (i int, found bool) {
 	for i, ord := range orders {

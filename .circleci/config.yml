@@ -64,9 +64,8 @@ jobs:
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
-            excluded_packages_expr="(okchain/x/.*/client)|(x/simulation)"
-            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade")
-
+            excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
+            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/upgrade" "./x/ammswap")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
@@ -86,7 +85,7 @@ jobs:
             echo "--> Filter out DONTCOVER:"
             excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
             for filename in ${excludelist}; do
-              filename=$(echo $filename | sed 's/^./github.com\/okex\/okchain/g')
+              filename=$(echo $filename | sed 's/^./github.com\/okex\/okexchain/g')
               echo "Excluding ${filename} from coverage report..."
               sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
             done
@@ -123,7 +122,7 @@ jobs:
 #          command: |
 #            excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
 #            for filename in ${excludelist}; do
-#              filename=$(echo $filename | sed 's/^./github.com\/okex\/okchain/g')
+#              filename=$(echo $filename | sed 's/^./github.com\/okex\/okexchain/g')
 #              echo "Excluding ${filename} from coverage report..."
 #              sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
 #            done

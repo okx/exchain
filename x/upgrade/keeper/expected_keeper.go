@@ -2,11 +2,11 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/staking/exported"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/staking/exported"
 
-	//"github.com/okex/okchain/x/staking/types"
-	"github.com/okex/okchain/x/staking/types"
+	//"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // BankKeeper shows the expected action of bank keeper in this module
