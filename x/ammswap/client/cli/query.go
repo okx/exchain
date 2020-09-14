@@ -171,7 +171,7 @@ $ okexchaincli query swap all-pool-info
 //GetCmdRedeemableAssets query redeemable assets by specifying the number of lpt
 func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "redeemable-assets [the name of base token] [the number ofliquidity pool token]",
+		Use:   "redeemable-assets [the name of base token] [the number of liquidity pool token]",
 		Short: "Query redeemable assets by specifying the number of lpt",
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`Query redeemable assets by specifying the number of lpt.
