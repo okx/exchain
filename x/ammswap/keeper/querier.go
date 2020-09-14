@@ -33,9 +33,9 @@ func querySwapTokenPair(
 	ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper,
 ) (res []byte, err sdk.Error) {
 	tokenPairName := path[0] + "_" + common.NativeToken
-	tokenPair, error := keeper.GetSwapTokenPair(ctx, tokenPairName)
-	if error != nil {
-		return nil, sdk.ErrUnknownRequest(error.Error())
+	tokenPair, errSwapTokenPair := keeper.GetSwapTokenPair(ctx, tokenPairName)
+	if errSwapTokenPair != nil {
+		return nil, sdk.ErrUnknownRequest(errSwapTokenPair.Error())
 	}
 	bz := keeper.cdc.MustMarshalJSON(tokenPair)
 	return bz, nil

@@ -253,7 +253,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
+		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
@@ -332,17 +332,17 @@ func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity
 	return msg
 }
 
-func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToNativeToken {
+func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToToken {
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
 	d := rand.Intn(100) + 1
 	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
 	deadLine := time.Now().Unix()
 	judge := rand.Intn(2)
-	var msg types.MsgTokenToNativeToken
+	var msg types.MsgTokenToToken
 	if judge == 0 {
-		msg = types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
 	} else {
-		msg = types.NewMsgTokenToNativeToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
 	}
 
 	return msg
