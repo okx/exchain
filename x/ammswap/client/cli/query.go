@@ -2,15 +2,15 @@ package cli
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/version"
-	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -37,8 +37,16 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 //GetCmdSwapTokenPair query exchange with token name
 func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "exchange [token]",
-		Short: "exchange with token name",
+		Use:   "pool-info [token]",
+		Short: "Query pool info by token name",
+		Long: 	strings.TrimSpace(
+			fmt.Sprintf(`Query pool info by token name.
+
+Example:
+$ okexchaincli query swap pool-info eth-355
+
+`),
+		),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -56,16 +64,15 @@ func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// GetCmdQueryProposal implements the query proposal command.
 func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "params",
-		Short: "Query the parameters of the governance process",
+		Short: "Query the parameters of the AMM swap system",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the all the parameters for the governance process.
+			fmt.Sprintf(`Query the parameters of the AMM swap system.
 
 Example:
-$ %s query gov params
+$ %s query swap params
 `,
 				version.ClientName,
 			),
