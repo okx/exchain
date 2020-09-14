@@ -8,8 +8,8 @@ import (
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okchain/x/common/version"
-	tokenTypes "github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/common/version"
+	tokenTypes "github.com/okex/okexchain/x/token/types"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/okex/okchain/x/common"
-	govtypes "github.com/okex/okchain/x/gov/types"
-	"github.com/okex/okchain/x/params/types"
+	"github.com/okex/okexchain/x/common"
+	govtypes "github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/okexchain/x/params/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"

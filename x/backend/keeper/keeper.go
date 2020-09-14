@@ -12,11 +12,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/backend/cache"
-	"github.com/okex/okchain/x/backend/config"
-	"github.com/okex/okchain/x/backend/orm"
-	"github.com/okex/okchain/x/backend/types"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/backend/cache"
+	"github.com/okex/okexchain/x/backend/config"
+	"github.com/okex/okexchain/x/backend/orm"
+	"github.com/okex/okexchain/x/backend/types"
+	"github.com/okex/okexchain/x/token"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

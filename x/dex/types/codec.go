@@ -4,13 +4,13 @@ import "github.com/cosmos/cosmos-sdk/codec"
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgList{}, "okchain/dex/MsgList", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okchain/dex/MsgDeposit", nil)
-	cdc.RegisterConcrete(MsgWithdraw{}, "okchain/dex/MsgWithdraw", nil)
-	cdc.RegisterConcrete(MsgTransferOwnership{}, "okchain/dex/MsgTransferTradingPairOwnership", nil)
-	cdc.RegisterConcrete(DelistProposal{}, "okchain/dex/DelistProposal", nil)
-	cdc.RegisterConcrete(MsgCreateOperator{}, "okchain/dex/CreateOperator", nil)
-	cdc.RegisterConcrete(MsgUpdateOperator{}, "okchain/dex/UpdateOperator", nil)
+	cdc.RegisterConcrete(MsgList{}, "okexchain/dex/MsgList", nil)
+	cdc.RegisterConcrete(MsgDeposit{}, "okexchain/dex/MsgDeposit", nil)
+	cdc.RegisterConcrete(MsgWithdraw{}, "okexchain/dex/MsgWithdraw", nil)
+	cdc.RegisterConcrete(MsgTransferOwnership{}, "okexchain/dex/MsgTransferTradingPairOwnership", nil)
+	cdc.RegisterConcrete(DelistProposal{}, "okexchain/dex/DelistProposal", nil)
+	cdc.RegisterConcrete(MsgCreateOperator{}, "okexchain/dex/CreateOperator", nil)
+	cdc.RegisterConcrete(MsgUpdateOperator{}, "okexchain/dex/UpdateOperator", nil)
 }
 
 // ModuleCdc represents generic sealed codec to be used throughout this module

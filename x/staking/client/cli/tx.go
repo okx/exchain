@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -19,7 +19,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -109,7 +109,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			//	if !ok {
 			//		return fmt.Errorf(types.ErrMinSelfDelegationInvalid(types.DefaultCodespace).Error())
 			//	}
-			//	/* required by okchain */
+			//	/* required by okexchain */
 			//	msb = msb.StandardizeAsc()
 			//
 			//	newMinSelfDelegation = &msb

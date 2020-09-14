@@ -9,8 +9,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 
-	"github.com/okex/okchain/x/gov/keeper"
-	"github.com/okex/okchain/x/gov/types"
+	"github.com/okex/okexchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 // GenesisState - all staking state that must be provided at genesis

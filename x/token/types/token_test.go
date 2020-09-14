@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -56,7 +56,7 @@ func TestCurrency(t *testing.T) {
 }
 
 func TestToken(t *testing.T) {
-	addr, err := sdk.AccAddressFromBech32("okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3")
+	addr, err := sdk.AccAddressFromBech32("okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f")
 	require.Nil(t, err)
 
 	testCase := []struct {
@@ -82,7 +82,7 @@ func TestToken(t *testing.T) {
 			Type:                0,
 			Owner:               addr,
 			Mintable:            true,
-		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","type":0,"owner":"okchain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","mintable":true}`},
+		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","type":0,"owner":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","mintable":true}`},
 	}
 	for _, tokenCase := range testCase {
 		b, err := json.Marshal(tokenCase.token)

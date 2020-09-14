@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/gov/types"
-	"github.com/okex/okchain/x/staking/exported"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/okexchain/x/staking/exported"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/params"
 )
 
 // Keeper defines governance keeper

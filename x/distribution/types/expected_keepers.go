@@ -3,7 +3,7 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	stakingexported "github.com/okex/okchain/x/staking/exported"
+	stakingexported "github.com/okex/okexchain/x/staking/exported"
 )
 
 // StakingKeeper expected staking keeper (noalias)

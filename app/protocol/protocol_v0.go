@@ -19,26 +19,26 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okchain/app/utils"
-	"github.com/okex/okchain/x/ammswap"
-	"github.com/okex/okchain/x/backend"
-	"github.com/okex/okchain/x/common/proto"
-	"github.com/okex/okchain/x/common/version"
-	"github.com/okex/okchain/x/debug"
-	"github.com/okex/okchain/x/dex"
-	dexClient "github.com/okex/okchain/x/dex/client"
-	distr "github.com/okex/okchain/x/distribution"
-	"github.com/okex/okchain/x/genutil"
-	"github.com/okex/okchain/x/gov"
-	"github.com/okex/okchain/x/gov/keeper"
-	"github.com/okex/okchain/x/order"
-	"github.com/okex/okchain/x/params"
-	paramsclient "github.com/okex/okchain/x/params/client"
-	"github.com/okex/okchain/x/staking"
-	"github.com/okex/okchain/x/stream"
-	"github.com/okex/okchain/x/token"
-	"github.com/okex/okchain/x/upgrade"
-	upgradeClient "github.com/okex/okchain/x/upgrade/client"
+	"github.com/okex/okexchain/app/utils"
+	"github.com/okex/okexchain/x/ammswap"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/common/proto"
+	"github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/debug"
+	"github.com/okex/okexchain/x/dex"
+	dexClient "github.com/okex/okexchain/x/dex/client"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/okexchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/params"
+	paramsclient "github.com/okex/okexchain/x/params/client"
+	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/okexchain/x/stream"
+	"github.com/okex/okexchain/x/token"
+	"github.com/okex/okexchain/x/upgrade"
+	upgradeClient "github.com/okex/okexchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -47,10 +47,10 @@ var (
 	// check the implements of ProtocolV0
 	_ Protocol = (*ProtocolV0)(nil)
 
-	// DefaultCLIHome is the directory for okchaincli
-	DefaultCLIHome = os.ExpandEnv("$HOME/.okchaincli")
-	// DefaultNodeHome is the directory for okchaind
-	DefaultNodeHome = os.ExpandEnv("$HOME/.okchaind")
+	// DefaultCLIHome is the directory for okexchaincli
+	DefaultCLIHome = os.ExpandEnv("$HOME/.okexchaincli")
+	// DefaultNodeHome is the directory for okexchaind
+	DefaultNodeHome = os.ExpandEnv("$HOME/.okexchaind")
 
 	// ModuleBasics is in charge of setting up basic, non-dependant module elements,
 	// such as codec registration and genesis verification
@@ -71,7 +71,7 @@ var (
 		slashing.AppModuleBasic{},
 		supply.AppModuleBasic{},
 
-		// okchain extended
+		// okexchain extended
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
@@ -98,7 +98,7 @@ var (
 	}
 )
 
-// ProtocolV0 is the struct of the original protocol of okchain
+// ProtocolV0 is the struct of the original protocol of okexchain
 type ProtocolV0 struct {
 	parent         Parent
 	version        uint64
@@ -184,12 +184,12 @@ func (p *ProtocolV0) GetCodec() *codec.Codec {
 	return p.cdc
 }
 
-// CheckStopped gives a quick check whether okchain needs stopped
+// CheckStopped gives a quick check whether okexchain needs stopped
 func (p *ProtocolV0) CheckStopped() {
 	if p.stopped {
-		p.logger.Info("OKChain is going to exit")
+		p.logger.Info("OKExChain is going to exit")
 		server.Stop()
-		p.logger.Info("OKChain was stopped")
+		p.logger.Info("OKExChain was stopped")
 		select {}
 	}
 }
@@ -251,7 +251,7 @@ func (p *ProtocolV0) produceKeepers() {
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
-		p.logger.Error(fmt.Sprintf("the config of OKChain was parsed error : %s", err.Error()))
+		p.logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
 		panic(err)
 	}
 
@@ -466,9 +466,9 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	return p.mm.EndBlock(ctx, req)
 }
 
-// Stop makes okchain exit gracefully
+// Stop makes okexchain exit gracefully
 func (p *ProtocolV0) Stop() {
-	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoID, "OKChain stops notification."))
+	p.logger.Info(fmt.Sprintf("[%s]%s", utils.GoID, "OKExChain stops notification."))
 	p.stopped = true
 }
 

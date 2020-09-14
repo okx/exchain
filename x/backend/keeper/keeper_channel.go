@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okchain/x/backend/config"
-	"github.com/okex/okchain/x/backend/orm"
-	"github.com/okex/okchain/x/backend/types"
+	"github.com/okex/okexchain/x/backend/config"
+	"github.com/okex/okexchain/x/backend/orm"
+	"github.com/okex/okexchain/x/backend/types"
 
 	"github.com/tendermint/tendermint/libs/log"
 )

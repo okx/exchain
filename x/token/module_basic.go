@@ -9,9 +9,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/okchain/x/token/client/cli"
-	"github.com/okex/okchain/x/token/client/rest"
-	tokenTypes "github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/token/client/cli"
+	"github.com/okex/okexchain/x/token/client/rest"
+	tokenTypes "github.com/okex/okexchain/x/token/types"
 )
 
 var (

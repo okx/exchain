@@ -3,10 +3,10 @@ package keeper
 import (
 	"strings"
 
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/staking"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/debug/types"
+	"github.com/okex/okexchain/x/debug/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 )

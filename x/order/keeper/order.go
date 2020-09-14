@@ -6,8 +6,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/okex/okchain/x/order/types"
-	token "github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/order/types"
+	token "github.com/okex/okexchain/x/token/types"
 )
 
 // TryPlaceOrder tries to charge fee & lock coins for a new order

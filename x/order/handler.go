@@ -13,9 +13,9 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/willf/bitset"
 
-	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/order/keeper"
-	"github.com/okex/okchain/x/order/types"
+	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/okexchain/x/order/keeper"
+	"github.com/okex/okexchain/x/order/types"
 )
 
 func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {

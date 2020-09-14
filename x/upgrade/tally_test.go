@@ -3,13 +3,13 @@ package upgrade
 import (
 	"testing"
 
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking"
-	//"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/staking"
+	//"github.com/okex/okexchain/x/staking"
 )
 
 func TestTallyPassed(t *testing.T) {

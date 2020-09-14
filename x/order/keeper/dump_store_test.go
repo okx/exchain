@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/order/types"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/order/types"
 	"github.com/stretchr/testify/require"
 
 	"testing"

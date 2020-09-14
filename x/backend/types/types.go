@@ -3,7 +3,7 @@ package types
 
 import (
 	"fmt"
-	orderTypes "github.com/okex/okchain/x/order/types"
+	orderTypes "github.com/okex/okexchain/x/order/types"
 	"time"
 )
 

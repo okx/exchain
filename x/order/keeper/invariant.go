@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/order/types"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/okexchain/x/token"
 )
 
 // RegisterInvariants registers all order invariants

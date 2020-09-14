@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/token/types"
+	"github.com/okex/okexchain/x/token/types"
 	"github.com/spf13/cobra"
 )
 
@@ -85,7 +85,7 @@ func getCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query the parameters of the token process",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ okchaincli query token params
+$ okexchaincli query token params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

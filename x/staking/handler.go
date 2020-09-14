@@ -6,8 +6,8 @@ import (
 	"github.com/tendermint/tendermint/libs/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okchain/x/staking/keeper"
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/keeper"
+	"github.com/okex/okexchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )

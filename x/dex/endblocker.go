@@ -3,8 +3,8 @@ package dex
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/common/perf"
-	"github.com/okex/okchain/x/dex/types"
+	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/okexchain/x/dex/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

@@ -11,9 +11,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/genaccounts"
 	genaccscli "github.com/cosmos/cosmos-sdk/x/genaccounts/client/cli"
-	"github.com/okex/okchain/app"
-	genutilcli "github.com/okex/okchain/x/genutil/client/cli"
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/app"
+	genutilcli "github.com/okex/okexchain/x/genutil/client/cli"
+	"github.com/okex/okexchain/x/staking"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -39,8 +39,8 @@ func main() {
 	ctx := server.NewDefaultContext()
 	cobra.EnableCommandSorting = false
 	rootCmd := &cobra.Command{
-		Use:               "okchaind",
-		Short:             "OKChain Daemon (server)",
+		Use:               "okexchaind",
+		Short:             "OKExChain Daemon (server)",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 
@@ -57,7 +57,7 @@ func main() {
 	rootCmd.PersistentFlags().String(client.FlagKeyPass, client.DefaultKeyPass, "Pass word of sender")
 
 	// prepare and add flags
-	executor := cli.PrepareBaseCmd(rootCmd, "OKCHAIN", app.DefaultNodeHome)
+	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
 
@@ -68,7 +68,7 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
-	return app.NewOKChainApp(
+	return app.NewOKExChainApp(
 		logger, db, traceStore, true, invCheckPeriod,
 		baseapp.SetPruning(store.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
@@ -81,13 +81,13 @@ func exportAppStateAndTMValidators(
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
 
 	if height != -1 {
-		gApp := app.NewOKChainApp(logger, db, traceStore, false, uint(1))
+		gApp := app.NewOKExChainApp(logger, db, traceStore, false, uint(1))
 		err := gApp.LoadHeight(height)
 		if err != nil {
 			return nil, nil, err
 		}
 		return gApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 	}
-	gApp := app.NewOKChainApp(logger, db, traceStore, true, uint(1))
+	gApp := app.NewOKExChainApp(logger, db, traceStore, true, uint(1))
 	return gApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }

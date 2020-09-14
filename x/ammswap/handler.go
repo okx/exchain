@@ -3,9 +3,9 @@ package ammswap
 import (
 	"fmt"
 
-	"github.com/okex/okchain/x/ammswap/types"
-	"github.com/okex/okchain/x/common"
-	"github.com/okex/okchain/x/common/perf"
+	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/common/perf"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

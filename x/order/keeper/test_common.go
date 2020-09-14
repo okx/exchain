@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/common"
+	"github.com/okex/okexchain/x/common"
 
-	"github.com/okex/okchain/x/common/monitor"
+	"github.com/okex/okexchain/x/common/monitor"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -16,16 +16,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okchain/x/params"
+	"github.com/okex/okexchain/x/params"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/okex/okchain/x/dex"
-	"github.com/okex/okchain/x/order/types"
-	"github.com/okex/okchain/x/token"
+	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/okexchain/x/token"
 )
 
 var mockOrder = types.MockOrder

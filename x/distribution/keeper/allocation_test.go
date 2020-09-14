@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okchain/x/distribution/types"
-	"github.com/okex/okchain/x/staking"
+	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/okexchain/x/staking"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

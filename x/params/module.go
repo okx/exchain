@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/okex/okchain/x/params/client/cli"
-	"github.com/okex/okchain/x/params/types"
+	"github.com/okex/okexchain/x/params/client/cli"
+	"github.com/okex/okexchain/x/params/types"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"

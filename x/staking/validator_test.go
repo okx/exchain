@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okchain/x/staking/types"
+	"github.com/okex/okexchain/x/staking/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
