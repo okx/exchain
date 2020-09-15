@@ -41,13 +41,13 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 //GetCmdSwapTokenPair query exchange with token name
 func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "pool-info [token]",
+		Use:   "pool [token]",
 		Short: "Query pool info by token name",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query pool info by token name.
 
 Example:
-$ okexchaincli query swap pool-info eth-355
+$ okexchaincli query swap pool eth-355
 
 `),
 		),
@@ -58,8 +58,7 @@ $ okexchaincli query swap pool-info eth-355
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
 			if err != nil {
-				fmt.Printf("token pool - %s doesn't exist. error:%s \n", tokenName, err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
@@ -68,17 +67,17 @@ $ okexchaincli query swap pool-info eth-355
 	}
 }
 
-// GetCmdQueryBuyAmount queries buy amount of base/quote token through the given amount of quote/base token
+// GetCmdQueryBuyAmount queries amount of base/quote token by the given amount of quote/base token
 func GetCmdQueryBuyAmount(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "buy-amount [sell-token-and-amount] [buy-token]",
-		Short: "Query buy amount of base/quote token through the given amount of quote/base token",
+		Use:   "amount [quote-token-amount] [base-token]",
+		Short: "Query how many base token returned by the given amount of quote token",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(
-				`Query amount of swapable base/quote token through the given amount of quote/base token.
+				`Query how many base token returned by the given amount of quote token.
 
 Example:
-$ %s query swap buy-amount 100eth-245 xxb`, version.ClientName,
+$ %s query swap amount 100eth-245 xxb`, version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(2),
@@ -143,12 +142,12 @@ $ %s query swap params
 //GetCmdAllSwapTokenPairs lists all info of pools
 func GetCmdAllSwapTokenPairs(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "all-pool-info [token]",
-		Short: "List all info of pools",
+		Use:   "pools",
+		Short: "Query infomation of all pools",
 		Long: 	strings.TrimSpace(
-			fmt.Sprintf(`List all info of pools.
+			fmt.Sprintf(`Query infomation of all pools.
 Example:
-$ okexchaincli query swap all-pool-info
+$ okexchaincli query swap pools
 `),
 		),
 		Args:  cobra.NoArgs,
@@ -157,8 +156,7 @@ $ okexchaincli query swap all-pool-info
 
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QuerySwapTokenPairs), nil)
 			if err != nil {
-				fmt.Printf("query all SwapTokenPairs failed. error:%s \n", err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
@@ -171,10 +169,10 @@ $ okexchaincli query swap all-pool-info
 //GetCmdRedeemableAssets query redeemable assets by specifying the number of lpt
 func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "redeemable-assets [the name of base token] [the number of liquidity pool token]",
-		Short: "Query redeemable assets by specifying the number of lpt",
+		Use:   "redeemable-assets [base-token] [pool-token-amount]",
+		Short: "Query redeemable assets by specifying pool token amount",
 		Long: 	strings.TrimSpace(
-			fmt.Sprintf(`Query redeemable assets by specifying the number of lpt.
+			fmt.Sprintf(`Query redeemable assets by specifying pool token amount.
 Example:
 $ okexchaincli query swap redeemable-assets eth-355 1
 `),
@@ -186,8 +184,7 @@ $ okexchaincli query swap redeemable-assets eth-355 1
 			liquidity := args[1]
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, liquidity), nil)
 			if err != nil {
-				fmt.Printf("query redeemable assets failed. error:%s \n", err.Error())
-				return nil
+				return err
 			}
 
 			fmt.Println(string(res))
