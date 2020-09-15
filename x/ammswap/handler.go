@@ -136,7 +136,12 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			}
 		}
 		liquidity = mulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
-
+		if liquidity.IsZero() {
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log:  fmt.Sprintf("failed to add liquidity"),
+			}
+		}
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -295,6 +300,12 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	}
 	params := k.GetParams(ctx)
 	tokenBuy := calculateTokenToBuy(swapTokenPair, msg, params)
+	if tokenBuy.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -350,11 +361,23 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
 	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne, params)
-
+	if tokenNative.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
-	tokenBuy := calculateTokenToBuy(swapTokenPairOne, msgTwo, params)
-
+	tokenBuy := calculateTokenToBuy(swapTokenPairTwo, msgTwo, params)
+	// sanity check. user may set MinBoughtTokenAmount to zero on front end.
+	// if set zero,this will not return err
+	if tokenBuy.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -366,7 +389,6 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	if !res.IsOK() {
 		return res
 	}
-	//TODO if fail,revert last swap
 	res = swapTokenNativeToken(ctx, k, swapTokenPairTwo, tokenBuy, msgTwo)
 	if !res.IsOK() {
 		return res
@@ -428,8 +450,8 @@ func swapTokenNativeToken(
 }
 
 func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
-	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	inputAmountWithFee := inputAmount.MulTruncate(sdk.OneDec().Sub(feeRate).MulTruncate(sdk.NewDec(1000)))
+	denominator := inputReserve.MulTruncate(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return mulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
 
@@ -451,6 +473,6 @@ var (
 
 // mulAndQuo returns a * b / c
 func mulAndQuo(a, b, c sdk.Dec) sdk.Dec {
-	a = a.Mul(auxiliaryDec)
-	return a.Mul(b).Quo(c).Quo(auxiliaryDec)
+	a = a.MulTruncate(auxiliaryDec)
+	return a.MulTruncate(b).QuoTruncate(c).QuoTruncate(auxiliaryDec)
 }
