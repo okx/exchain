@@ -2,6 +2,7 @@ package ammswap
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/ammswap/keeper"
 	"math/rand"
 	"testing"
 	"time"
@@ -116,6 +117,23 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 		result = handler(ctx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	var err error
+	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("1")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(90000)
+	queryCheck["xxb"] = sdk.NewDec(90000)
+	queryCheck["yyb"] = sdk.NewDec(100000)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
+	}
 }
 
 func TestHandleMsgRemoveLiquidity(t *testing.T) {
@@ -173,6 +191,22 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 		addLiquidityMsg := types.NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
+	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("0.99")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(90100)
+	queryCheck["xxb"] = sdk.NewDec(90100)
+	queryCheck["yyb"] = sdk.NewDec(100000)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
 	}
 }
 
@@ -252,11 +286,32 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgTokenToNativeToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
+		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 
+	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	var err error
+	queryCheck["ammswap-xxb"] ,err = sdk.NewDecFromStr("2")
+	require.Nil(t,err)
+	queryCheck["ammswap-yyb"] ,err = sdk.NewDecFromStr("1")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(69998)
+	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380121")
+	require.Nil(t,err)
+	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782155")
+	require.Nil(t,err)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
 	}
 }
 
@@ -265,7 +320,7 @@ func TestGetInputPrice(t *testing.T) {
 	inputAmount := sdk.NewDecWithPrec(0, 8)
 	inputReserve := sdk.NewDec(100)
 	outputReserve := sdk.NewDec(100)
-	res := getInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
+	res := keeper.GetInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
 	require.Equal(t, inputAmount, res)
 }
 
@@ -296,7 +351,7 @@ func TestRandomData(t *testing.T) {
 		case 1:
 			msg = buildRandomMsgRemoveLiquidity(addr)
 		case 2:
-			msg = buildRandomMsgTokenToNativeToken(addr)
+			msg = buildRandomMsgTokenToToken(addr)
 		}
 		res := handler(ctx, msg)
 		if !res.Code.IsOK() {
@@ -331,17 +386,17 @@ func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity
 	return msg
 }
 
-func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToNativeToken {
+func buildRandomMsgTokenToToken(addr sdk.AccAddress) types.MsgTokenToToken {
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
 	d := rand.Intn(100) + 1
 	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
 	deadLine := time.Now().Unix()
 	judge := rand.Intn(2)
-	var msg types.MsgTokenToNativeToken
+	var msg types.MsgTokenToToken
 	if judge == 0 {
-		msg = types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
 	} else {
-		msg = types.NewMsgTokenToNativeToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
 	}
 
 	return msg

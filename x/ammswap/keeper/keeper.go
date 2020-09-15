@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -44,6 +46,9 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	var item types.SwapTokenPair
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
+	if rawItem == nil {
+		return types.SwapTokenPair{}, errors.New(fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName))
+	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
 		return types.SwapTokenPair{}, err
@@ -69,6 +74,17 @@ func (k Keeper) DeleteSwapTokenPair(ctx sdk.Context, tokenPairName string) {
 func (k Keeper) GetSwapTokenPairsIterator(ctx sdk.Context) sdk.Iterator {
 	store := ctx.KVStore(k.storeKey)
 	return sdk.KVStorePrefixIterator(store, types.TokenPairPrefixKey)
+}
+
+func (k Keeper) GetSwapTokenPairs(ctx sdk.Context) []types.SwapTokenPair {
+	var result []types.SwapTokenPair
+	iterator := k.GetSwapTokenPairsIterator(ctx)
+	for ; iterator.Valid(); iterator.Next() {
+		tokenPair := types.SwapTokenPair{}
+		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &tokenPair)
+		result = append(result, tokenPair)
+	}
+	return result
 }
 
 // NewPoolToken new token
@@ -133,4 +149,45 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 // SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
+}
+
+
+func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
+	swapTokenPairName := baseAmountName + "_" + common.NativeToken
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
+	if err != nil {
+		return baseAmount, quoteAmount, err
+	}
+	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
+	if poolTokenAmount.LT(liquidity) {
+		return baseAmount, quoteAmount, errors.New("insufficient pool token")
+	}
+
+	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
+	quoteDec := common.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
+	baseAmount = sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
+	quoteAmount = sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
+	return baseAmount, quoteAmount, nil
+}
+
+//CalculateTokenToBuy calculates the amount to buy
+func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoin, buyTokenDenom string, params types.Params) sdk.DecCoin {
+	var inputReserve, outputReserve sdk.Dec
+	if sellToken.Denom == sdk.DefaultBondDenom {
+		inputReserve = swapTokenPair.QuotePooledCoin.Amount
+		outputReserve = swapTokenPair.BasePooledCoin.Amount
+	} else {
+		inputReserve = swapTokenPair.BasePooledCoin.Amount
+		outputReserve = swapTokenPair.QuotePooledCoin.Amount
+	}
+	tokenBuyAmt := GetInputPrice(sellToken.Amount, inputReserve, outputReserve, params.FeeRate)
+	tokenBuy := sdk.NewDecCoinFromDec(buyTokenDenom, tokenBuyAmt)
+
+	return tokenBuy
+}
+
+func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
+	inputAmountWithFee := inputAmount.MulTruncate(sdk.OneDec().Sub(feeRate).MulTruncate(sdk.NewDec(1000)))
+	denominator := inputReserve.MulTruncate(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	return common.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
