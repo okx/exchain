@@ -88,8 +88,8 @@ $ %s query swap amount 100eth-245 xxb`, version.ClientName,
 				return err
 			}
 			params := types.QueryBuyAmountParams{
-				SellToken:    sellToken,
-				BuyTokenName: args[1],
+				SoldToken:    sellToken,
+				TokenToBuy: args[1],
 			}
 			bz, err := cdc.MarshalJSON(params)
 			if err != nil {

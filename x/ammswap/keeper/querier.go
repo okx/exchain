@@ -53,35 +53,35 @@ func queryBuyAmount(
 
 	params := keeper.GetParams(ctx)
 	var buyAmount sdk.Dec
-	if (queryParams.SellToken.Denom == sdk.DefaultBondDenom) {
-		tokenPairName := queryParams.BuyTokenName + "_" + queryParams.SellToken.Denom
+	if (queryParams.SoldToken.Denom == sdk.DefaultBondDenom) {
+		tokenPairName := queryParams.TokenToBuy + "_" + queryParams.SoldToken.Denom
 		tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
-		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SellToken, queryParams.BuyTokenName, params).Amount
-	} else if (queryParams.BuyTokenName == sdk.DefaultBondDenom) {
-		tokenPairName := queryParams.SellToken.Denom + "_" + queryParams.BuyTokenName
+		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
+	} else if (queryParams.TokenToBuy == sdk.DefaultBondDenom) {
+		tokenPairName := queryParams.SoldToken.Denom + "_" + queryParams.TokenToBuy
 		tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
-		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SellToken, queryParams.BuyTokenName, params).Amount
+		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
-		tokenPairName1 := queryParams.SellToken.Denom + "_" + sdk.DefaultBondDenom
+		tokenPairName1 := queryParams.SoldToken.Denom + "_" + sdk.DefaultBondDenom
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
 
-		tokenPairName2 := queryParams.BuyTokenName + "_" + sdk.DefaultBondDenom
+		tokenPairName2 := queryParams.TokenToBuy + "_" + sdk.DefaultBondDenom
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
 
-		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SellToken, sdk.DefaultBondDenom, params)
-		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.BuyTokenName, params).Amount
+		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
+		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
 	}
 
 	bz := keeper.cdc.MustMarshalJSON(buyAmount)
