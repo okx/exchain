@@ -117,6 +117,23 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 		result = handler(ctx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	var err error
+	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("1")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(90000)
+	queryCheck["xxb"] = sdk.NewDec(90000)
+	queryCheck["yyb"] = sdk.NewDec(100000)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
+	}
 }
 
 func TestHandleMsgRemoveLiquidity(t *testing.T) {
@@ -174,6 +191,22 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 		addLiquidityMsg := types.NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
+	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("0.99")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(90100)
+	queryCheck["xxb"] = sdk.NewDec(90100)
+	queryCheck["yyb"] = sdk.NewDec(100000)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
 	}
 }
 
@@ -258,6 +291,27 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 
+	}
+
+	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
+	require.False(t,acc.GetCoins().Empty())
+	queryCheck := make(map[string]sdk.Dec)
+	var err error
+	queryCheck["ammswap-xxb"] ,err = sdk.NewDecFromStr("2")
+	require.Nil(t,err)
+	queryCheck["ammswap-yyb"] ,err = sdk.NewDecFromStr("1")
+	require.Nil(t,err)
+	queryCheck["okt"] = sdk.NewDec(69998)
+	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380122")
+	require.Nil(t,err)
+	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782156")
+	require.Nil(t,err)
+	queryCheck["zzb"] = sdk.NewDec(100000)
+
+	for _,c := range acc.GetCoins() {
+		value,ok := queryCheck[c.Denom]
+		require.True(t,ok)
+		require.Equal(t,value,c.Amount)
 	}
 }
 
