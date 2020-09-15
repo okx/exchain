@@ -3,7 +3,6 @@ package keeper
 import (
 	"errors"
 	"fmt"
-	"github.com/okex/okexchain/app/utils"
 	"github.com/okex/okexchain/x/common"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -164,8 +163,8 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liqui
 		return baseAmount, quoteAmount, errors.New("insufficient pool token")
 	}
 
-	baseDec := utils.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
-	quoteDec := utils.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
+	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
+	quoteDec := common.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
 	baseAmount = sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount = sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 	return baseAmount, quoteAmount, nil
@@ -188,7 +187,7 @@ func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoi
 }
 
 func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
-	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
-	return utils.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
+	inputAmountWithFee := inputAmount.MulTruncate(sdk.OneDec().Sub(feeRate).MulTruncate(sdk.NewDec(1000)))
+	denominator := inputReserve.MulTruncate(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	return common.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }

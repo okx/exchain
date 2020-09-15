@@ -2,9 +2,8 @@ package ammswap
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/app/utils"
-	"github.com/okex/okexchain/x/ammswap/keeper"
 
+	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/perf"
@@ -128,7 +127,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		baseTokens.Amount = msg.MaxBaseAmount.Amount
 		liquidity = sdk.NewDec(1)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
-		baseTokens.Amount = utils.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
+		baseTokens.Amount = common.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
 		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 		if totalSupply.IsZero() {
 			return sdk.Result{
@@ -136,8 +135,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 				Log:  fmt.Sprintf("unexpected totalSupply in pool token %s", poolToken.String()),
 			}
 		}
-		liquidity = utils.MulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
-
+		liquidity = common.MulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
+		if liquidity.IsZero() {
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log:  fmt.Sprintf("failed to add liquidity"),
+			}
+		}
 	} else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -219,8 +223,8 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 		}
 	}
 
-	baseDec := utils.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
-	quoteDec := utils.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
+	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
+	quoteDec := common.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, liquidity, poolTokenAmount)
 
 	baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
@@ -297,6 +301,12 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	}
 	params := k.GetParams(ctx)
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
+	if tokenBuy.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -352,11 +362,23 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
 	tokenNative := keeper.CalculateTokenToBuy(swapTokenPairOne, msgOne.SoldTokenAmount, msgOne.MinBoughtTokenAmount.Denom, params)
-
+	if tokenNative.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPairTwo, msgTwo.SoldTokenAmount, msgTwo.MinBoughtTokenAmount.Denom, params)
-
+	// sanity check. user may set MinBoughtTokenAmount to zero on front end.
+	// if set zero,this will not return err
+	if tokenBuy.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+		}
+	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -368,7 +390,6 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 	if !res.IsOK() {
 		return res
 	}
-	//TODO if fail,revert last swap
 	res = swapTokenNativeToken(ctx, k, swapTokenPairTwo, tokenBuy, msgTwo)
 	if !res.IsOK() {
 		return res

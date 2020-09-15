@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"runtime"
@@ -106,4 +107,12 @@ func SkipSysTestChecker(t *testing.T) {
 	if !enable {
 		t.SkipNow()
 	}
+}
+
+// mulAndQuo returns a * b / c
+func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
+	// 10^8
+	auxiliaryDec := sdk.NewDecFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(sdk.Precision), nil))
+	a = a.MulTruncate(auxiliaryDec)
+	return a.MulTruncate(b).QuoTruncate(c).QuoTruncate(auxiliaryDec)
 }

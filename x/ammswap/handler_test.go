@@ -302,9 +302,9 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	queryCheck["ammswap-yyb"] ,err = sdk.NewDecFromStr("1")
 	require.Nil(t,err)
 	queryCheck["okt"] = sdk.NewDec(69998)
-	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380122")
+	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380121")
 	require.Nil(t,err)
-	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782156")
+	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782155")
 	require.Nil(t,err)
 	queryCheck["zzb"] = sdk.NewDec(100000)
 
@@ -317,7 +317,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 func TestGetInputPrice(t *testing.T) {
 	defaultFeeRate := sdk.NewDecWithPrec(3, 3)
-	inputAmount := sdk.NewDecWithPrec(1, 8)
+	inputAmount := sdk.NewDecWithPrec(0, 8)
 	inputReserve := sdk.NewDec(100)
 	outputReserve := sdk.NewDec(100)
 	res := keeper.GetInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
