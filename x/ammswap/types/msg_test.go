@@ -187,7 +187,7 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 	}
 }
 
-func TestMsgTokenToNativeToken(t *testing.T) {
+func TestMsgTokenToToken(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
 	require.Nil(t, err)
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(1))
@@ -211,7 +211,7 @@ func TestMsgTokenToNativeToken(t *testing.T) {
 	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
 }
 
-func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
+func TestMsgTokenToTokenInvalid(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
 	require.Nil(t, err)
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(1))
@@ -221,7 +221,7 @@ func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
 	invalidMinBoughtTokenAmount.Denom = "1aaa"
 	invalidSoldTokenAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(2))
 	invalidSoldTokenAmount.Denom = "1sdf"
-	//notNativeSoldTokenAmount := sdk.NewDecCoinFromDec("abc", sdk.NewDec(2))
+	notNativeSoldTokenAmount := sdk.NewDecCoinFromDec("abc", sdk.NewDec(2))
 
 	tests := []struct {
 		testCase             string
@@ -235,6 +235,7 @@ func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
 		{"success", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeOK},
 		{"empty sender", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, nil, sdk.CodeInvalidAddress},
 		{"empty recipient", minBoughtTokenAmount, soldTokenAmount, deadLine, nil, addr, sdk.CodeInvalidAddress},
+		{"success(both token to sell and token to buy do not contain native token)", minBoughtTokenAmount, notNativeSoldTokenAmount, deadLine, addr, addr, sdk.CodeOK},
 		{"invalid SoldTokenAmount", soldTokenAmount, invalidSoldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid MinBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 	}
