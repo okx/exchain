@@ -300,7 +300,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	}
 	params := k.GetParams(ctx)
 	tokenBuy := calculateTokenToBuy(swapTokenPair, msg, params)
-	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
+	if tokenBuy.IsZero() || tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
@@ -355,12 +355,18 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToNative
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount
 	tokenNative := calculateTokenToBuy(swapTokenPairOne, msgOne, params)
-
+	if tokenNative.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: expected minimum token to buy is zero"),
+		}
+	}
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
 	tokenBuy := calculateTokenToBuy(swapTokenPairTwo, msgTwo, params)
-
-	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
+	// sanity check. user may set MinBoughtTokenAmount to zero on front end.
+	// if set zero,this will not return err
+	if tokenBuy.IsZero() || tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
