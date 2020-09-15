@@ -432,8 +432,8 @@ func swapTokenNativeToken(
 }
 
 func getInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sdk.Dec {
-	inputAmountWithFee := inputAmount.Mul(sdk.OneDec().Sub(feeRate).Mul(sdk.NewDec(1000)))
-	denominator := inputReserve.Mul(sdk.NewDec(1000)).Add(inputAmountWithFee)
+	inputAmountWithFee := inputAmount.MulTruncate(sdk.OneDec().Sub(feeRate).MulTruncate(sdk.NewDec(1000)))
+	denominator := inputReserve.MulTruncate(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return mulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
 
@@ -455,6 +455,6 @@ var (
 
 // mulAndQuo returns a * b / c
 func mulAndQuo(a, b, c sdk.Dec) sdk.Dec {
-	a = a.Mul(auxiliaryDec)
-	return a.Mul(b).Quo(c).QuoTruncate(auxiliaryDec)
+	a = a.MulTruncate(auxiliaryDec)
+	return a.MulTruncate(b).QuoTruncate(c).QuoTruncate(auxiliaryDec)
 }
