@@ -351,7 +351,7 @@ func TestRandomData(t *testing.T) {
 		case 1:
 			msg = buildRandomMsgRemoveLiquidity(addr)
 		case 2:
-			msg = buildRandomMsgTokenToNativeToken(addr)
+			msg = buildRandomMsgTokenToToken(addr)
 		}
 		res := handler(ctx, msg)
 		if !res.Code.IsOK() {
@@ -386,7 +386,7 @@ func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity
 	return msg
 }
 
-func buildRandomMsgTokenToNativeToken(addr sdk.AccAddress) types.MsgTokenToToken {
+func buildRandomMsgTokenToToken(addr sdk.AccAddress) types.MsgTokenToToken {
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
 	d := rand.Intn(100) + 1
 	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
