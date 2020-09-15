@@ -70,8 +70,8 @@ $ okexchaincli query swap pool eth-355
 // GetCmdQueryBuyAmount queries amount of base/quote token by the given amount of quote/base token
 func GetCmdQueryBuyAmount(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "amount [quote-token-amount] [base-token]",
-		Short: "Query how many base token returned by the given amount of quote token",
+		Use:   "amount [token-to-sell] [token-name-to-buy]",
+		Short: "Query how many token returned by the given amount of token to sell",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(
 				`Query how many base token returned by the given amount of quote token.
