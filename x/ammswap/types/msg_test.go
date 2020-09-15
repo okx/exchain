@@ -47,7 +47,8 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 	for _, testCase := range tests {
 		msg := NewMsgCreateExchange(testCase.symbol, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil && testCase.exceptResultCode == sdk.CodeOK {
+		if err == nil {
+			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -111,7 +112,8 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 		fmt.Println(testCase.testCase)
 		msg := NewMsgAddLiquidity(testCase.minLiquidity, testCase.maxBaseAmount, testCase.quoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil && testCase.exceptResultCode == sdk.CodeOK {
+		if err == nil {
+			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -177,7 +179,8 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 	for _, testCase := range tests {
 		msg := NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil && testCase.exceptResultCode == sdk.CodeOK {
+		if err == nil {
+			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -218,7 +221,7 @@ func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
 	invalidMinBoughtTokenAmount.Denom = "1aaa"
 	invalidSoldTokenAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(2))
 	invalidSoldTokenAmount.Denom = "1sdf"
-	notNativeSoldTokenAmount := sdk.NewDecCoinFromDec("abc", sdk.NewDec(2))
+	//notNativeSoldTokenAmount := sdk.NewDecCoinFromDec("abc", sdk.NewDec(2))
 
 	tests := []struct {
 		testCase             string
@@ -232,14 +235,14 @@ func TestMsgTokenToNativeTokenInvalid(t *testing.T) {
 		{"success", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeOK},
 		{"empty sender", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, nil, sdk.CodeInvalidAddress},
 		{"empty recipient", minBoughtTokenAmount, soldTokenAmount, deadLine, nil, addr, sdk.CodeInvalidAddress},
-		{"both token to sell and token to buy do not contain native token", minBoughtTokenAmount, notNativeSoldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid SoldTokenAmount", soldTokenAmount, invalidSoldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 		{"invalid MinBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
 	}
 	for _, testCase := range tests {
 		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil && testCase.exceptResultCode == sdk.CodeOK {
+		if err == nil  {
+			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
