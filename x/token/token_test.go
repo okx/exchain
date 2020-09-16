@@ -1162,6 +1162,11 @@ func TestHandleTransferOwnership(t *testing.T) {
 		// case 6. confirm ownership successfully
 		{
 			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
 			expectedCode: sdk.CodeOK,
 		},
