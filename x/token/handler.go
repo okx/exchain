@@ -380,12 +380,14 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 		return sdk.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of token (%s) to confirm",
 			msg.Address.String())).Result()
 	}
+	if ctx.BlockTime().After(confirmOwnership.Expire) {
+		// delete ownership confirming information
+		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Symbol)
+		return sdk.ErrInternal(fmt.Sprintf("transfer-ownership is expired, expire time (%s)", confirmOwnership.Expire.String())).Result()
+	}
 	if !confirmOwnership.Address.Equals(msg.Address) {
 		return sdk.ErrUnauthorized(fmt.Sprintf("%s is expected as the new owner",
 			confirmOwnership.Address.String())).Result()
-	}
-	if ctx.BlockTime().After(confirmOwnership.Expire) {
-		return sdk.ErrInternal(fmt.Sprintf("transfer-ownership is expired, expire time (%s)", confirmOwnership.Expire.String())).Result()
 	}
 
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
