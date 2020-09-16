@@ -381,7 +381,7 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 			msg.Address.String())).Result()
 	}
 	if !confirmOwnership.Address.Equals(msg.Address) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("the to address of transfer-ownership is %s",
+		return sdk.ErrUnauthorized(fmt.Sprintf("%s is expected as the new owner",
 			confirmOwnership.Address.String())).Result()
 	}
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
