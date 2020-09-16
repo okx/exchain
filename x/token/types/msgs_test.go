@@ -273,9 +273,8 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 		transferOwnershipMsg MsgTransferOwnership
 		err                  sdk.Error
 	}{
-		{NewMsgTransferOwnership(fromAddr, toAddr, common.NativeToken), sdk.ErrUnauthorized("failed to check transferownership msg because invalid multi signature")},
-		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), sdk.ErrInvalidAddress("failed to check transferownership msg because miss sender address")},
 		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken), sdk.ErrInvalidAddress("failed to check transferownership msg because miss recipient address")},
+		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), sdk.ErrInvalidAddress("failed to check transferownership msg because miss sender address")},
 		{NewMsgTransferOwnership(fromAddr, toAddr, ""), sdk.ErrUnknownRequest("failed to check transferownership msg because symbol cannot be empty")},
 		{NewMsgTransferOwnership(fromAddr, toAddr, "1okb-ads"), sdk.ErrUnknownRequest("failed to check transferownership msg because invalid token symbol: 1okb-ads")},
 	}
@@ -285,20 +284,6 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 	}
 
 	transferOwnershipMsg := testCase[0].transferOwnershipMsg
-	ret := transferOwnershipMsg.checkMultiSign()
-	if !ret {
-		//pubKey not set,test ValidateBasic
-		bret := transferOwnershipMsg.ValidateBasic()
-		require.NotNil(t, bret)
-		//error pubKey
-		transferOwnershipMsg.ToSignature.PubKey = fromPubKey
-		if !transferOwnershipMsg.checkMultiSign() {
-			//unequal with toPubKey address , try again
-			transferOwnershipMsg.ToSignature.PubKey = toPubKey
-			require.NotNil(t, transferOwnershipMsg.checkMultiSign())
-			require.NotNil(t, transferOwnershipMsg.GetSignBytes())
-		}
-	}
 	transferOwnershipMsg.Route()
 	transferOwnershipMsg.Type()
 	signAddr := transferOwnershipMsg.GetSigners()

@@ -3,7 +3,6 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
@@ -257,8 +256,6 @@ type MsgTransferOwnership struct {
 	FromAddress sdk.AccAddress `json:"from_address"`
 	ToAddress   sdk.AccAddress `json:"to_address"`
 	Symbol      string         `json:"symbol"`
-	//FromSignature auth.StdSignature `json:"from_signature"`
-	ToSignature auth.StdSignature `json:"to_signature"`
 }
 
 func NewMsgTransferOwnership(from, to sdk.AccAddress, symbol string) MsgTransferOwnership {
@@ -266,8 +263,6 @@ func NewMsgTransferOwnership(from, to sdk.AccAddress, symbol string) MsgTransfer
 		FromAddress: from,
 		ToAddress:   to,
 		Symbol:      symbol,
-		//FromSignature: auth.StdSignature{},
-		ToSignature: auth.StdSignature{},
 	}
 }
 
@@ -289,10 +284,6 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if sdk.ValidateDenom(msg.Symbol) != nil {
 		return sdk.ErrUnknownRequest("failed to check transferownership msg because invalid token symbol: " + msg.Symbol)
 	}
-
-	if !msg.checkMultiSign() {
-		return sdk.ErrUnauthorized("failed to check transferownership msg because invalid multi signature")
-	}
 	return nil
 }
 
@@ -303,23 +294,6 @@ func (msg MsgTransferOwnership) GetSignBytes() []byte {
 
 func (msg MsgTransferOwnership) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
-}
-
-func (msg MsgTransferOwnership) checkMultiSign() bool {
-	// check pubkey
-	if msg.ToSignature.PubKey == nil {
-		return false
-	}
-
-	if !sdk.AccAddress(msg.ToSignature.PubKey.Address()).Equals(msg.ToAddress) {
-		return false
-	}
-
-	// check multisign
-	toSignature := msg.ToSignature
-	msg.ToSignature = auth.StdSignature{}
-	toValid := toSignature.VerifyBytes(msg.GetSignBytes(), toSignature.Signature)
-	return toValid
 }
 
 type MsgTokenModify struct {
@@ -381,4 +355,45 @@ func (msg MsgTokenModify) GetSignBytes() []byte {
 
 func (msg MsgTokenModify) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Owner}
+}
+
+// MsgConfirmOwnership - high level transaction of the coin module
+type MsgConfirmOwnership struct {
+	Symbol  string         `json:"symbol"`
+	Address sdk.AccAddress `json:"to_address"`
+}
+
+func NewMsgConfirmOwnership(from sdk.AccAddress, symbol string) MsgConfirmOwnership {
+	return MsgConfirmOwnership{
+		Symbol:  symbol,
+		Address: from,
+	}
+}
+
+func (msg MsgConfirmOwnership) Route() string { return RouterKey }
+
+func (msg MsgConfirmOwnership) Type() string { return "confirm" }
+
+func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
+	if msg.Address.Empty() {
+		return sdk.ErrInvalidAddress("failed to check confirmownership msg because miss sender address")
+	}
+
+	if len(msg.Symbol) == 0 {
+		return sdk.ErrUnknownRequest("failed to check confirmownership msg because symbol cannot be empty")
+	}
+
+	if sdk.ValidateDenom(msg.Symbol) != nil {
+		return sdk.ErrUnknownRequest("failed to check confirmownership msg because invalid token symbol: " + msg.Symbol)
+	}
+	return nil
+}
+
+func (msg MsgConfirmOwnership) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg MsgConfirmOwnership) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Address}
 }

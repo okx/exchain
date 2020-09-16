@@ -51,9 +51,14 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 			}
 
 		case types.MsgTransferOwnership:
-			name = "handleMsgTokenChown"
+			name = "handleMsgTransferOwnership"
 			handlerFun = func() sdk.Result {
-				return handleMsgTokenChown(ctx, keeper, msg, logger)
+				return handleMsgTransferOwnership(ctx, keeper, msg, logger)
+			}
+		case types.MsgConfirmOwnership:
+			name = "MsgConfirmOwnership"
+			handlerFun = func() sdk.Result {
+				return handleMsgConfirmOwnership(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgTokenModify:
@@ -311,7 +316,7 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOwnership, logger log.Logger) sdk.Result {
+func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOwnership, logger log.Logger) sdk.Result {
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
 
 	if !tokenInfo.Owner.Equals(msg.FromAddress) {
@@ -319,11 +324,19 @@ func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOw
 			msg.FromAddress.String(), msg.Symbol)).Result()
 	}
 
-	// first remove it from the raw owner
-	keeper.DeleteUserToken(ctx, tokenInfo.Owner, tokenInfo.Symbol)
+	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
+	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
+		return sdk.ErrInternal(fmt.Sprintf("Repeated transfer-ownershi of token(%s) is not allowed", msg.Symbol)).Result()
+	}
 
-	tokenInfo.Owner = msg.ToAddress
-	keeper.NewToken(ctx, tokenInfo)
+	// set confirm ownership info
+	expireTime := ctx.BlockTime().Add(keeper.GetParams(ctx).ConfirmPeriod)
+	confirmOwnership = &types.ConfirmOwnership{
+		Symbol:  msg.Symbol,
+		Address: msg.ToAddress,
+		Expire:  expireTime,
+	}
+	keeper.SetConfirmOwnership(ctx, confirmOwnership)
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeChown.ToCoins()
@@ -333,14 +346,52 @@ func handleMsgTokenChown(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOw
 			feeDecCoins.String())).Result()
 	}
 
-	var name = "handleMsgTokenChown"
+	var name = "handleMsgTransferOwnership"
 	if logger != nil {
 		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
-			"                           msg<From:%s,To:%s,Symbol:%s,ToSign:%s>\n"+
+			"                           msg<From:%s,To:%s,Symbol:%s>\n"+
 			"                           result<Owner have enough okts to transfer the %s>\n",
 			ctx.BlockHeight(), name,
-			msg.FromAddress, msg.ToAddress, msg.Symbol, msg.ToSignature,
+			msg.FromAddress, msg.ToAddress, msg.Symbol,
 			msg.Symbol))
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeChown.String()),
+		),
+	)
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConfirmOwnership, logger log.Logger) sdk.Result {
+	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
+	if !exist {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of token (%s) to confirm",
+			msg.Address.String())).Result()
+	}
+	if !confirmOwnership.Address.Equals(msg.Address) {
+		return sdk.ErrUnauthorized(fmt.Sprintf("the to address of transfer-ownership is %s",
+			confirmOwnership.Address.String())).Result()
+	}
+	if ctx.BlockTime().After(confirmOwnership.Expire) {
+		return sdk.ErrInternal(fmt.Sprintf("transfer-ownership is expired, expire time (%s)", confirmOwnership.Expire.String())).Result()
+	}
+
+	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
+	// first remove it from the raw owner
+	keeper.DeleteUserToken(ctx, tokenInfo.Owner, tokenInfo.Symbol)
+	tokenInfo.Owner = msg.Address
+	keeper.NewToken(ctx, tokenInfo)
+
+	var name = "handleMsgConfirmOwnership"
+	if logger != nil {
+		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
+			"                           msg<From:%s,Symbol:%s>\n"+
+			"                           result<Owner have enough okts to transfer the %s>\n",
+			ctx.BlockHeight(), name, msg.Address, msg.Symbol, msg.Symbol))
 	}
 
 	ctx.EventManager().EmitEvent(
