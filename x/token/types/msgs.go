@@ -360,13 +360,13 @@ func (msg MsgTokenModify) GetSigners() []sdk.AccAddress {
 // MsgConfirmOwnership - high level transaction of the coin module
 type MsgConfirmOwnership struct {
 	Symbol  string         `json:"symbol"`
-	Address sdk.AccAddress `json:"to_address"`
+	Address sdk.AccAddress `json:"new_owner"`
 }
 
-func NewMsgConfirmOwnership(from sdk.AccAddress, symbol string) MsgConfirmOwnership {
+func NewMsgConfirmOwnership(newOwner sdk.AccAddress, symbol string) MsgConfirmOwnership {
 	return MsgConfirmOwnership{
 		Symbol:  symbol,
-		Address: from,
+		Address: newOwner,
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// DefaultConfirmPeriod defines default confirm  period
-const DefaultConfirmPeriod = 24 * time.Hour
+// DefaultOwnershipConfirmWindow defines default confirm  period
+const DefaultOwnershipConfirmWindow = 24 * time.Hour
 
 type ConfirmOwnership struct {
 	Symbol  string         `json:"symbol"`

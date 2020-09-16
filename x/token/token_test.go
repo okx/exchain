@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/okex/okexchain/app/utils"
+
 	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -107,7 +109,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
 	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
-	intQuantity := int64(100)
+	intQuantity := int64(100000)
 	valTokens := sdk.NewDec(intQuantity)
 	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, valTokens),
@@ -1099,5 +1101,91 @@ func TestBlockedAddrSend(t *testing.T) {
 			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
 		})
 	}
+
+}
+
+func TestHandleTransferOwnership(t *testing.T) {
+	app, keeper, testAccounts := getMockDexApp(t, 2)
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
+	ctxPassedOwnershipConfirmWindow := app.BaseApp.NewContext(false, abci.Header{}).WithBlockTime(ctx.BlockTime().Add(types.DefaultOwnershipConfirmWindow * 2))
+	handler := NewTokenHandler(keeper, version.ProtocolVersionV0)
+
+	param := types.DefaultParams()
+	app.tokenKeeper.SetParams(ctx, param)
+
+	// issue token
+	symbol := "xxb"
+	msgNewIssue := types.NewMsgTokenIssue("xxb desc", symbol, symbol, symbol,
+		"1000000", testAccounts[0], true)
+	result := handler(ctx, msgNewIssue)
+	require.True(t, result.IsOK())
+
+	tokenName := getTokenSymbol(ctx, keeper, symbol)
+
+	// test case
+	tests := []struct {
+		ctx          sdk.Context
+		msg          sdk.Msg
+		expectedCode sdk.CodeType
+	}{
+		// case 1. sender is not the owner of token
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedCode: sdk.CodeUnauthorized,
+		},
+		// case 2. transfer ownership to testAccounts[1] successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		// case 3. confirm ownership not exists
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
+			expectedCode: sdk.CodeUnknownRequest,
+		},
+		// case 4. sender is not the owner of ConfirmOwnership
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
+			expectedCode: sdk.CodeUnauthorized,
+		},
+		// case 5. confirm ownership expired
+		{
+			ctx:          ctxPassedOwnershipConfirmWindow,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedCode: sdk.CodeInternal,
+		},
+		// case 6. confirm ownership successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+
+		// case 7. transfer ownership to testAccounts[0] successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
+		{
+			ctx:          ctxPassedOwnershipConfirmWindow,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], utils.BlackHoleAddress(), tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+	}
+
+	for _, testCase := range tests {
+		result := handler(testCase.ctx, testCase.msg)
+		require.Equal(t, testCase.expectedCode, result.Code)
+	}
+
+	token := keeper.GetTokenInfo(ctx, tokenName)
+	require.True(t, token.Owner.Equals(utils.BlackHoleAddress()))
 
 }

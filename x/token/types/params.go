@@ -19,12 +19,12 @@ const (
 )
 
 var (
-	KeyFeeIssue      = []byte("FeeIssue")
-	KeyFeeMint       = []byte("FeeMint")
-	KeyFeeBurn       = []byte("FeeBurn")
-	KeyFeeModify     = []byte("FeeModify")
-	KeyFeeChown      = []byte("FeeChown")
-	KeyConfirmPeriod = []byte("ConfirmPeriod")
+	KeyFeeIssue               = []byte("FeeIssue")
+	KeyFeeMint                = []byte("FeeMint")
+	KeyFeeBurn                = []byte("FeeBurn")
+	KeyFeeModify              = []byte("FeeModify")
+	KeyFeeChown               = []byte("FeeChown")
+	KeyOwnershipConfirmWindow = []byte("ConfirmPeriod")
 )
 
 var _ params.ParamSet = &Params{}
@@ -54,7 +54,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyFeeBurn, &p.FeeBurn},
 		{KeyFeeModify, &p.FeeModify},
 		{KeyFeeChown, &p.FeeChown},
-		{KeyConfirmPeriod, &p.ConfirmPeriod},
+		{KeyOwnershipConfirmWindow, &p.ConfirmPeriod},
 	}
 }
 
@@ -66,7 +66,7 @@ func DefaultParams() Params {
 		FeeBurn:       sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
 		FeeModify:     sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeModify)),
 		FeeChown:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeChown)),
-		ConfirmPeriod: DefaultConfirmPeriod,
+		ConfirmPeriod: DefaultOwnershipConfirmWindow,
 	}
 }
 

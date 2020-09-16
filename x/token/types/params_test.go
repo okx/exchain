@@ -29,7 +29,7 @@ ConfirmPeriod: 24h0m0s
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},
 		{Key: KeyFeeModify, Value: &param.FeeModify},
 		{Key: KeyFeeChown, Value: &param.FeeChown},
-		{Key: KeyConfirmPeriod, Value: &param.ConfirmPeriod},
+		{Key: KeyOwnershipConfirmWindow, Value: &param.ConfirmPeriod},
 	}
 
 	require.EqualValues(t, psp, param.ParamSetPairs())

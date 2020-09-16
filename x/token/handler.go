@@ -3,6 +3,8 @@ package token
 import (
 	"fmt"
 
+	"github.com/okex/okexchain/app/utils"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/common/version"
@@ -326,18 +328,24 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return sdk.ErrInternal(fmt.Sprintf("Repeated transfer-ownershi of token(%s) is not allowed", msg.Symbol)).Result()
+		return sdk.ErrInternal(fmt.Sprintf("repeated transfer-ownershi of token(%s) is not allowed", msg.Symbol)).Result()
 	}
 
-	// set confirm ownership info
-	expireTime := ctx.BlockTime().Add(keeper.GetParams(ctx).ConfirmPeriod)
-	confirmOwnership = &types.ConfirmOwnership{
-		Symbol:  msg.Symbol,
-		Address: msg.ToAddress,
-		Expire:  expireTime,
+	if msg.ToAddress.Equals(utils.BlackHoleAddress()) { // transfer ownership to black hole
+		// first remove it from the raw owner
+		keeper.DeleteUserToken(ctx, tokenInfo.Owner, tokenInfo.Symbol)
+		tokenInfo.Owner = msg.ToAddress
+		keeper.NewToken(ctx, tokenInfo)
+	} else {
+		// set confirm ownership info
+		expireTime := ctx.BlockTime().Add(keeper.GetParams(ctx).ConfirmPeriod)
+		confirmOwnership = &types.ConfirmOwnership{
+			Symbol:  msg.Symbol,
+			Address: msg.ToAddress,
+			Expire:  expireTime,
+		}
+		keeper.SetConfirmOwnership(ctx, confirmOwnership)
 	}
-	keeper.SetConfirmOwnership(ctx, confirmOwnership)
-
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeChown.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.feeCollectorName, feeDecCoins)
@@ -386,13 +394,14 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 	tokenInfo.Owner = msg.Address
 	keeper.NewToken(ctx, tokenInfo)
 
+	// delete ownership confirming information
+	keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Symbol)
+
 	var name = "handleMsgConfirmOwnership"
-	if logger != nil {
-		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
-			"                           msg<From:%s,Symbol:%s>\n"+
-			"                           result<Owner have enough okts to transfer the %s>\n",
-			ctx.BlockHeight(), name, msg.Address, msg.Symbol, msg.Symbol))
-	}
+	logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
+		"                           msg<From:%s,Symbol:%s>\n"+
+		"                           result<Owner have enough okts to transfer the %s>\n",
+		ctx.BlockHeight(), name, msg.Address, msg.Symbol, msg.Symbol))
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
