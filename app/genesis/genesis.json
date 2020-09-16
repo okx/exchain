@@ -261,7 +261,6 @@
           "amount": "10.00000000",
           "denom": "okt"
         },
-        "confirm_period": "86400000000000",
         "issue_fee": {
           "amount": "2500.00000000",
           "denom": "okt"
@@ -274,6 +273,7 @@
           "amount": "0.00000000",
           "denom": "okt"
         },
+        "ownership_confirm_window": "86400000000000",
         "transfer_ownership_fee": {
           "amount": "10.00000000",
           "denom": "okt"

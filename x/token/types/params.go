@@ -24,19 +24,19 @@ var (
 	KeyFeeBurn                = []byte("FeeBurn")
 	KeyFeeModify              = []byte("FeeModify")
 	KeyFeeChown               = []byte("FeeChown")
-	KeyOwnershipConfirmWindow = []byte("ConfirmPeriod")
+	KeyOwnershipConfirmWindow = []byte("OwnershipConfirmWindow")
 )
 
 var _ params.ParamSet = &Params{}
 
 // mint parameters
 type Params struct {
-	FeeIssue      sdk.DecCoin   `json:"issue_fee"`
-	FeeMint       sdk.DecCoin   `json:"mint_fee"`
-	FeeBurn       sdk.DecCoin   `json:"burn_fee"`
-	FeeModify     sdk.DecCoin   `json:"modify_fee"`
-	FeeChown      sdk.DecCoin   `json:"transfer_ownership_fee"`
-	ConfirmPeriod time.Duration `json:"confirm_period"`
+	FeeIssue               sdk.DecCoin   `json:"issue_fee"`
+	FeeMint                sdk.DecCoin   `json:"mint_fee"`
+	FeeBurn                sdk.DecCoin   `json:"burn_fee"`
+	FeeModify              sdk.DecCoin   `json:"modify_fee"`
+	FeeChown               sdk.DecCoin   `json:"transfer_ownership_fee"`
+	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 
 // ParamKeyTable for auth module
@@ -54,19 +54,19 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyFeeBurn, &p.FeeBurn},
 		{KeyFeeModify, &p.FeeModify},
 		{KeyFeeChown, &p.FeeChown},
-		{KeyOwnershipConfirmWindow, &p.ConfirmPeriod},
+		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow},
 	}
 }
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{
-		FeeIssue:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeIssue)),
-		FeeMint:       sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMint)),
-		FeeBurn:       sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
-		FeeModify:     sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeModify)),
-		FeeChown:      sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeChown)),
-		ConfirmPeriod: DefaultOwnershipConfirmWindow,
+		FeeIssue:               sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeIssue)),
+		FeeMint:                sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMint)),
+		FeeBurn:                sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
+		FeeModify:              sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeModify)),
+		FeeChown:               sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeChown)),
+		OwnershipConfirmWindow: DefaultOwnershipConfirmWindow,
 	}
 }
 
@@ -79,6 +79,6 @@ func (p Params) String() string {
 	sb.WriteString(fmt.Sprintf("FeeBurn: %s\n", p.FeeBurn))
 	sb.WriteString(fmt.Sprintf("FeeModify: %s\n", p.FeeModify))
 	sb.WriteString(fmt.Sprintf("FeeChown: %s\n", p.FeeChown))
-	sb.WriteString(fmt.Sprintf("ConfirmPeriod: %s\n", p.ConfirmPeriod))
+	sb.WriteString(fmt.Sprintf("OwnershipConfirmWindow: %s\n", p.OwnershipConfirmWindow))
 	return sb.String()
 }

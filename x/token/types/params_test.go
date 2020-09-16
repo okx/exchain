@@ -17,7 +17,7 @@ FeeMint: 10.00000000` + common.NativeToken + `
 FeeBurn: 10.00000000` + common.NativeToken + `
 FeeModify: 0.00000000` + common.NativeToken + `
 FeeChown: 10.00000000` + common.NativeToken + `
-ConfirmPeriod: 24h0m0s
+OwnershipConfirmWindow: 24h0m0s
 `
 
 	paramStr := param.String()
@@ -29,7 +29,7 @@ ConfirmPeriod: 24h0m0s
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},
 		{Key: KeyFeeModify, Value: &param.FeeModify},
 		{Key: KeyFeeChown, Value: &param.FeeChown},
-		{Key: KeyOwnershipConfirmWindow, Value: &param.ConfirmPeriod},
+		{Key: KeyOwnershipConfirmWindow, Value: &param.OwnershipConfirmWindow},
 	}
 
 	require.EqualValues(t, psp, param.ParamSetPairs())

@@ -338,7 +338,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 		keeper.NewToken(ctx, tokenInfo)
 	} else {
 		// set confirm ownership info
-		expireTime := ctx.BlockTime().Add(keeper.GetParams(ctx).ConfirmPeriod)
+		expireTime := ctx.BlockTime().Add(keeper.GetParams(ctx).OwnershipConfirmWindow)
 		confirmOwnership = &types.ConfirmOwnership{
 			Symbol:  msg.Symbol,
 			Address: msg.ToAddress,

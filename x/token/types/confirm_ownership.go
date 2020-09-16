@@ -6,7 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// DefaultOwnershipConfirmWindow defines default confirm  period
+// DefaultOwnershipConfirmWindow defines default confirm window
 const DefaultOwnershipConfirmWindow = 24 * time.Hour
 
 type ConfirmOwnership struct {
