@@ -3,7 +3,7 @@ package token
 import (
 	"fmt"
 
-	"github.com/okex/okexchain/app/utils"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common/perf"
@@ -58,7 +58,7 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 				return handleMsgTransferOwnership(ctx, keeper, msg, logger)
 			}
 		case types.MsgConfirmOwnership:
-			name = "MsgConfirmOwnership"
+			name = "handleMsgConfirmOwnership"
 			handlerFun = func() sdk.Result {
 				return handleMsgConfirmOwnership(ctx, keeper, msg, logger)
 			}
@@ -328,10 +328,10 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return sdk.ErrInternal(fmt.Sprintf("repeated transfer-ownershi of token(%s) is not allowed", msg.Symbol)).Result()
+		return sdk.ErrInternal(fmt.Sprintf("repeated transfer-ownership of token(%s) is not allowed", msg.Symbol)).Result()
 	}
 
-	if msg.ToAddress.Equals(utils.BlackHoleAddress()) { // transfer ownership to black hole
+	if msg.ToAddress.Equals(common.BlackHoleAddress()) { // transfer ownership to black hole
 		// first remove it from the raw owner
 		keeper.DeleteUserToken(ctx, tokenInfo.Owner, tokenInfo.Symbol)
 		tokenInfo.Owner = msg.ToAddress

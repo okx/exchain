@@ -116,3 +116,9 @@ func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
 	a = a.MulTruncate(auxiliaryDec)
 	return a.MulTruncate(b).QuoTruncate(c).QuoTruncate(auxiliaryDec)
 }
+
+// BlackHoleAddress returns the black hole address
+func BlackHoleAddress() sdk.AccAddress {
+	addr, _ := sdk.AccAddressFromHex(blackHoleHex)
+	return addr
+}

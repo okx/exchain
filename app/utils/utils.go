@@ -5,11 +5,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
-
-const blackHoleHex = "0000000000000000000000000000000000000000"
 
 // GoroutineID is the type of goroutine ID
 type GoroutineID int
@@ -53,10 +49,4 @@ func (base GoroutineID) String() string {
 	}
 	return strconv.FormatUint(n, int(base))
 
-}
-
-// BlackHoleAddress returns the black hole address
-func BlackHoleAddress() sdk.AccAddress {
-	addr, _ := sdk.AccAddressFromHex(blackHoleHex)
-	return addr
 }

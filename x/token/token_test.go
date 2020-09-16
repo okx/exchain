@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/okexchain/app/utils"
-
 	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -1180,7 +1178,7 @@ func TestHandleTransferOwnership(t *testing.T) {
 		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
-			msg:          types.NewMsgTransferOwnership(testAccounts[1], utils.BlackHoleAddress(), tokenName),
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
 			expectedCode: sdk.CodeOK,
 		},
 	}
@@ -1191,6 +1189,6 @@ func TestHandleTransferOwnership(t *testing.T) {
 	}
 
 	token := keeper.GetTokenInfo(ctx, tokenName)
-	require.True(t, token.Owner.Equals(utils.BlackHoleAddress()))
+	require.True(t, token.Owner.Equals(common.BlackHoleAddress()))
 
 }
