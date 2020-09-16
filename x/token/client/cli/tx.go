@@ -7,7 +7,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -66,7 +65,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		getCmdTokenMint(cdc),
 		getCmdTokenMultiSend(cdc),
 		getCmdTransferOwnership(cdc),
-		getMultiSignsCmd(cdc),
+		getCmdConfirmOwnership(cdc),
 		getCmdTokenEdit(cdc),
 	)...)
 
@@ -284,7 +283,6 @@ func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer-ownership",
 		Short: "change the owner of the token",
-		//Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -315,69 +313,11 @@ func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 			}
 
 			msg := types.NewMsgTransferOwnership(from, toBytes, symbol)
-
-			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 	cmd.Flags().StringP("symbol", "s", "", "symbol of the token to be transferred")
 	cmd.Flags().String("to", "", "the user to be transferred")
-	return cmd
-}
-
-// nolint
-func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "multisigns",
-		Short: "append signature to the chown unsignedtx file",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-
-			stdTx, err := utils.ReadStdTxFromFile(cdc, args[0])
-			if err != nil {
-				return err
-			}
-
-			if len(stdTx.Msgs) == 0 {
-				return err
-			}
-
-			msg, ok := stdTx.Msgs[0].(types.MsgTransferOwnership)
-			if !ok {
-				// todo
-				return errSign
-			}
-
-			flags := cmd.Flags()
-			_, err = flags.GetString(From)
-			if err != nil {
-				return errFromNotValid
-			}
-
-			//
-			passphrase, err := keys.GetPassphrase(cliCtx.GetFromName())
-			if err != nil {
-				return err
-			}
-			ToSignature, _, err := txBldr.Keybase().Sign(cliCtx.GetFromName(), passphrase, msg.GetSignBytes())
-			if err != nil {
-				return errSign
-			}
-			info, err := txBldr.Keybase().Get(cliCtx.GetFromName())
-			if err != nil {
-				return err
-			}
-			stdSig := auth.StdSignature{
-				PubKey:    info.GetPubKey(),
-				Signature: ToSignature,
-			}
-			msg.ToSignature = stdSig
-
-			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
-
-		},
-	}
 	return cmd
 }
 
@@ -475,5 +415,38 @@ func getCmdTokenEdit(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().StringP(WholeName, "w", "", "whole name of the token")
 	cmd.Flags().String(TokenDesc, "", "description of the token")
 
+	return cmd
+}
+
+// getCmdConfirmOwnership is the CLI command for sending a ConfirmOwnership transaction
+func getCmdConfirmOwnership(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "confirm-ownership",
+		Short: "confirm the transfer-ownership of the token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			if err := authTypes.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
+				return err
+			}
+			flags := cmd.Flags()
+
+			symbol, err := flags.GetString(Symbol)
+			if err != nil {
+				return errSymbolNotValid
+			}
+			_, err = flags.GetString(From)
+			if err != nil {
+				return errFromNotValid
+			}
+
+			from := cliCtx.GetFromAddress()
+
+			msg := types.NewMsgConfirmOwnership(from, symbol)
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+	cmd.Flags().StringP("symbol", "s", "", "symbol of the token to be transferred")
 	return cmd
 }

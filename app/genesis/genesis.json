@@ -115,7 +115,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "7f75cd135d02418d17d1092fe3a4ffc1c5d1aebb@127.0.0.1:26656",
+            "memo": "cd8415810b97c447751f5d959b89c99e7b792937@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -131,7 +131,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqfcprr6x7d44wu4nt0suey3fz6pzp274486s5lua9vx7l3w3xhw2splls6m",
+                  "pubkey": "okexchainvalconspub1zcjduepqwwmh848ta3zk87lc4xcrdqwtfzry9ucq7m4dhd0nn0f5vyjnn3nsqlf09g",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -142,7 +142,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "40IhUZ1h5oYh7671R7tRYVyLFwwWU+RIj6J8Qe4lf0MzxtaQ0oFDeShDJk3fKG0nx7q2zV8/hpnXPgoA2OAESQ=="
+                "signature": "RX8asOV8HkQZmWBq6OMRh4g4o14nc15NOf8QmmlbzHoroH6d1GU5OlvBslL58DhZiAc5QkWIcubbeXaNaFv1VQ=="
               }
             ]
           }
@@ -273,6 +273,7 @@
           "amount": "0.00000000",
           "denom": "okt"
         },
+        "ownership_confirm_window": "86400000000000",
         "transfer_ownership_fee": {
           "amount": "10.00000000",
           "denom": "okt"

@@ -37,11 +37,12 @@ const (
 )
 
 var (
-	TokenKey           = []byte{0x00} // the address prefix of the token's symbol
-	TokenNumberKey     = []byte{0x01} // key for token number address
-	LockKey            = []byte{0x02} // the address prefix of the locked coins
-	LockedFeeKey       = []byte{0x04} // the address prefix of the locked order fee coins
-	PrefixUserTokenKey = []byte{0x03} // the address prefix of the user-token relationship
+	TokenKey                  = []byte{0x00} // the address prefix of the token's symbol
+	TokenNumberKey            = []byte{0x01} // key for token number address
+	LockKey                   = []byte{0x02} // the address prefix of the locked coins
+	PrefixUserTokenKey        = []byte{0x03} // the address prefix of the user-token relationship
+	LockedFeeKey              = []byte{0x04} // the address prefix of the locked order fee coins
+	PrefixConfirmOwnershipKey = []byte{0x05} // the prefix of the confirm ownership key
 )
 
 func GetUserTokenPrefix(owner sdk.AccAddress) []byte {
@@ -65,7 +66,6 @@ func GetLockFeeAddress(addr sdk.AccAddress) []byte {
 	return append(LockedFeeKey, addr.Bytes()...)
 }
 
-//// Key for getting a specific proposal from the store
-//func keyDexListAsset(asset string) []byte {
-//	return []byte(fmt.Sprintf("asset:%s", asset))
-//}
+func GetConfirmOwnershipKey(symbol string) []byte {
+	return append(PrefixConfirmOwnershipKey, []byte(symbol)...)
+}

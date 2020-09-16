@@ -17,7 +17,9 @@ FeeMint: 10.00000000` + common.NativeToken + `
 FeeBurn: 10.00000000` + common.NativeToken + `
 FeeModify: 0.00000000` + common.NativeToken + `
 FeeChown: 10.00000000` + common.NativeToken + `
+OwnershipConfirmWindow: 24h0m0s
 `
+
 	paramStr := param.String()
 	require.EqualValues(t, expectedString, paramStr)
 
@@ -27,6 +29,7 @@ FeeChown: 10.00000000` + common.NativeToken + `
 		{Key: KeyFeeBurn, Value: &param.FeeBurn},
 		{Key: KeyFeeModify, Value: &param.FeeModify},
 		{Key: KeyFeeChown, Value: &param.FeeChown},
+		{Key: KeyOwnershipConfirmWindow, Value: &param.OwnershipConfirmWindow},
 	}
 
 	require.EqualValues(t, psp, param.ParamSetPairs())

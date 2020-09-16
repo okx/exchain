@@ -12,6 +12,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgMultiSend{}, "okexchain/token/MsgMultiTransfer", nil)
 	cdc.RegisterConcrete(MsgSend{}, "okexchain/token/MsgTransfer", nil)
 	cdc.RegisterConcrete(MsgTransferOwnership{}, "okexchain/token/MsgTransferOwnership", nil)
+	cdc.RegisterConcrete(MsgConfirmOwnership{}, "okexchain/token/MsgConfirmOwnership", nil)
 	cdc.RegisterConcrete(MsgTokenModify{}, "okexchain/token/MsgModify", nil)
 
 	// for test
