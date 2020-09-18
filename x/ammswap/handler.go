@@ -36,7 +36,7 @@ func NewHandler(k Keeper) sdk.Handler {
 		case types.MsgTokenToToken:
 			name = "handleMsgTokenToToken"
 			handlerFun = func() sdk.Result {
-				return handleMsgTokenToTokenExchange(ctx, k, msg)
+				return handleMsgTokenToToken(ctx, k, msg)
 			}
 		default:
 			errMsg := fmt.Sprintf("Invalid msg type: %v", msg.Type())
@@ -48,12 +48,12 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	_, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
 	if err != nil {
-		return handleMsgTokenToToken(ctx, k, msg)
+		return swapTokenByRouter(ctx, k, msg)
 	} else {
-		return handleMsgTokenToTokenDirectly(ctx, k, msg)
+		return swapToken(ctx, k, msg)
 	}
 }
 
@@ -286,7 +286,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToTokenDirectly(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -334,7 +334,7 @@ func handleMsgTokenToTokenDirectly(ctx sdk.Context, k Keeper, msg types.MsgToken
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if msg.Deadline < ctx.BlockTime().Unix() {
