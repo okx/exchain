@@ -7,7 +7,7 @@ import (
 // const
 const (
 	NativeToken = sdk.DefaultBondDenom
-	TestToken   = "aab"
+	TestToken   = "xxb"
 
 	blackHoleHex = "0000000000000000000000000000000000000000"
 )

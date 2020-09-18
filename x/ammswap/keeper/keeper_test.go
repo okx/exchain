@@ -20,7 +20,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	// init a pool token
-	symbol := types.GetPoolTokenName(common.TestToken, common.NativeToken)
+	symbol := types.GetPoolTokenName(types.TestBasePooledToken, types.TestQuotePooledToken)
 	keeper.NewPoolToken(ctx, symbol)
 	poolToken, err := keeper.GetPoolTokenInfo(ctx, symbol)
 	require.Nil(t, err)

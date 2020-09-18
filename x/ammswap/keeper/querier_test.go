@@ -20,20 +20,20 @@ func TestNewQuerier(t *testing.T) {
 
 	// querier with wrong path
 	querier := NewQuerier(keeper)
-	path0 := []string{"any", common.TestToken}
+	path0 := []string{"any", types.TestBasePooledToken}
 	tokenpair, err := querier(ctx, path0, abci.RequestQuery{})
 	require.NotNil(t, err)
 	require.Nil(t, tokenpair)
 
 	// querier with wrong token
-	path := []string{types.QuerySwapTokenPair, common.TestToken, common.NativeToken}
+	path := []string{types.QuerySwapTokenPair, types.TestBasePooledToken, types.TestQuotePooledToken}
 	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
 	require.NotNil(t, err)
 	require.Nil(t, tokenpair)
 
 	// add new tokenpair and querier
-	tokenPair := types.GetSwapTokenPairName(common.TestToken, common.NativeToken)
-	swapTokenPair := initTokenPair(common.TestToken)
+	tokenPair := types.GetSwapTokenPairName(types.TestBasePooledToken, types.TestQuotePooledToken)
+	swapTokenPair := initTokenPair(types.TestBasePooledToken)
 	keeper.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
 	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
@@ -42,7 +42,7 @@ func TestNewQuerier(t *testing.T) {
 	// check the value
 	result := &types.SwapTokenPair{}
 	keeper.cdc.MustUnmarshalJSON(tokenpair, result)
-	require.EqualValues(t, result.BasePooledCoin.Denom, common.TestToken)
+	require.EqualValues(t, result.BasePooledCoin.Denom, types.TestBasePooledToken)
 
 	// delete tokenpair and querier
 	keeper.DeleteSwapTokenPair(ctx, tokenPair)
@@ -52,9 +52,9 @@ func TestNewQuerier(t *testing.T) {
 }
 
 func initTokenPair(token string) types.SwapTokenPair {
-	poolName := types.GetPoolTokenName(token, common.NativeToken)
+	poolName := types.GetPoolTokenName(token, types.TestQuotePooledToken)
 	baseToken := sdk.NewDecCoinFromDec(token, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.ZeroDec())
 
 	swapTokenPair := types.SwapTokenPair{
 		BasePooledCoin:  baseToken,
