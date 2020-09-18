@@ -67,7 +67,7 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
 		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
 	}else if baseAmountName == quoteAmountName {
-		errors.New("BaseTokenName should not equal to QuoteTokenName")
+		return errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
 	return nil
 }

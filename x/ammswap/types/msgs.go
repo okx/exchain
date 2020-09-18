@@ -3,7 +3,6 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tokentypes "github.com/okex/okexchain/x/token/types"
-	"strings"
 )
 
 // PoolSwap message types and routes
@@ -164,14 +163,8 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if msg.BaseAmountName == msg.QuoteAmountName {
-		return sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
-	}
 	if sdk.ValidateDenom(msg.BaseAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.BaseAmountName) || sdk.ValidateDenom(msg.QuoteAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.QuoteAmountName) {
 		return sdk.ErrUnknownRequest("invalid Token")
-	}
-	if strings.Compare(msg.BaseAmountName, msg.QuoteAmountName) > 0 {
-		return sdk.ErrUnknownRequest("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
 	}
 	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
 	if err != nil {
