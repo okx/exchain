@@ -61,7 +61,7 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`add liquidity.
 
 Example:
-$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100btc-366 --min-liquidity 0.001
 
 `),
 		),
@@ -115,7 +115,7 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`remove liquidity.
 
 Example:
-$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1okt
+$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1btc-366
 
 `),
 		),
@@ -166,7 +166,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`create token pair.
 
 Example:
-$ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt 
+$ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --fees 0.01okt 
 
 `),
 		),
@@ -198,7 +198,7 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`swap token.
 
 Example:
-$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
+$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60btc-366
 
 `),
 		),
