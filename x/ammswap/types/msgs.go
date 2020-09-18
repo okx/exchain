@@ -53,7 +53,7 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 	if err != nil {
-		return err
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 
 	return nil
@@ -67,6 +67,11 @@ func (msg MsgAddLiquidity) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// GetSwapTokenPair defines token pair
+func (msg MsgAddLiquidity) GetSwapTokenPair() string {
+	return GetSwapTokenPairName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 }
 
 // MsgRemoveLiquidity burns pool tokens to withdraw okt and Tokens at current ratio.
@@ -111,7 +116,7 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
-		return err
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
@@ -124,6 +129,11 @@ func (msg MsgRemoveLiquidity) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// GetSwapTokenPair defines token pair
+func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
+	return GetSwapTokenPairName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 }
 
 // MsgCreateExchange creates a new exchange with token
@@ -164,7 +174,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	}
 	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
 	if err != nil {
-		return err
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
@@ -177,6 +187,11 @@ func (msg MsgCreateExchange) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// GetSwapTokenPair defines token pair
+func (msg MsgCreateExchange) GetSwapTokenPair() string {
+	return GetSwapTokenPairName(msg.BaseAmountName, msg.QuoteAmountName)
 }
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom
@@ -241,4 +256,9 @@ func (msg MsgTokenToToken) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgTokenToToken) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// GetSwapTokenPair defines token pair
+func (msg MsgTokenToToken) GetSwapTokenPair() string {
+	return GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, msg.SoldTokenAmount.Denom)
 }

@@ -25,7 +25,8 @@ const (
 	flagLiquidity        = "liquidity"
 	flagMinBaseAmount    = "min-base-amount"
 	flagMinQuoteAmount   = "min-quote-amount"
-	flagToken            = "token"
+	flagBaseAmountName   = "base-token"
+	flagQuoteAmountName  = "quote-token"
 	flagSellAmount       = "sell-amount"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
@@ -158,7 +159,8 @@ $ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-35
 
 func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	// flags
-	var token string
+	var baseAmountName string
+	var quoteAmountName string
 	cmd := &cobra.Command{
 		Use:   "create-pair",
 		Short: "create token pair",
@@ -174,14 +176,16 @@ $ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			msg := types.NewMsgCreateExchange(token, cliCtx.FromAddress)
+			msg := types.NewMsgCreateExchange(baseAmountName, quoteAmountName, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVarP(&token, flagToken, "t", "", "Create an AMM swap pair by token name")
-	cmd.MarkFlagRequired(flagToken)
+	cmd.Flags().StringVarP(&baseAmountName, flagBaseAmountName, "b", "", "To create an AMM swap pair, you need specify the base amount name")
+	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteAmountName, "q", "", "To create an AMM swap pair, you need specify the quote amount name")
+	cmd.MarkFlagRequired(flagBaseAmountName)
+	cmd.MarkFlagRequired(flagQuoteAmountName)
 	return cmd
 }
 

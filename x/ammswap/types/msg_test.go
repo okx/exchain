@@ -17,7 +17,7 @@ func TestMsgCreateExchange(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
 	require.Nil(t, err)
 	testToken := InitPoolToken(TestBasePooledToken)
-	msg := NewMsgCreateExchange(testToken.Symbol, addr)
+	msg := NewMsgCreateExchange(testToken.Symbol, TestQuotePooledToken, addr)
 	require.Nil(t, msg.ValidateBasic())
 	require.Equal(t, RouterKey, msg.Route())
 	require.Equal(t, "create_exchange", msg.Type())
@@ -45,7 +45,7 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		{"invalid token", sdk.DefaultBondDenom, addr, sdk.CodeUnknownRequest},
 	}
 	for _, testCase := range tests {
-		msg := NewMsgCreateExchange(testCase.symbol, testCase.addr)
+		msg := NewMsgCreateExchange(testCase.symbol, TestQuotePooledToken, testCase.addr)
 		err := msg.ValidateBasic()
 		if err == nil {
 			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)

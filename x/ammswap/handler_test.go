@@ -25,7 +25,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
-	msg := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 
 	// test case1: token is not exist
 	result := handler(ctx, msg)
@@ -79,7 +79,7 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
-	msg := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 
 	result := handler(ctx, msg)
@@ -146,7 +146,7 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
-	msg := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 
 	result := handler(ctx, msg)
@@ -223,8 +223,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
-	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
-	msgCreateExchange2 := types.NewMsgCreateExchange(secondTestToken.Symbol, addrKeysSlice[0].Address)
+	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
+	msgCreateExchange2 := types.NewMsgCreateExchange(secondTestToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 	mapp.tokenKeeper.NewToken(ctx, secondTestToken)
 
@@ -336,7 +336,7 @@ func TestRandomData(t *testing.T) {
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
-	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, addrKeysSlice[0].Address)
+	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	result := handler(ctx, msgCreateExchange)
 	require.Equal(t, "", result.Log)
 	addr := addrKeysSlice[0].Address

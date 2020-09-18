@@ -41,7 +41,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 //GetCmdSwapTokenPair query exchange with token name
 func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "pool [token]",
+		Use:   "pool [base-token] [quote-token]",
 		Short: "Query pool info by token name",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query pool info by token name.
@@ -51,12 +51,13 @@ $ okexchaincli query swap pool eth-355
 
 `),
 		),
-		Args: cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			tokenName := args[0]
+			baseToken := args[0]
+			quoteToken := args[1]
 
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenName), nil)
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, baseToken, quoteToken), nil)
 			if err != nil {
 				return err
 			}
@@ -158,8 +159,12 @@ $ okexchaincli query swap pools
 			if err != nil {
 				return err
 			}
+			if res == nil || len(res) == 0 || string(res) == "null" {
+				fmt.Println("empty SwapTokenPairs")
+			}else {
+				fmt.Println(string(res))
+			}
 
-			fmt.Println(string(res))
 			return nil
 		},
 	}
@@ -169,7 +174,7 @@ $ okexchaincli query swap pools
 //GetCmdRedeemableAssets query redeemable assets by specifying the number of lpt
 func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "redeemable-assets [base-token] [pool-token-amount]",
+		Use:   "redeemable-assets [base-token] [quote-token] [pool-token-amount]",
 		Short: "Query redeemable assets by specifying pool token amount",
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`Query redeemable assets by specifying pool token amount.
@@ -177,12 +182,13 @@ Example:
 $ okexchaincli query swap redeemable-assets eth-355 1
 `),
 		),
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			baseTokenName := args[0]
-			liquidity := args[1]
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, liquidity), nil)
+			quoteTokenName := args[1]
+			liquidity := args[2]
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, quoteTokenName, liquidity), nil)
 			if err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	token "github.com/okex/okexchain/x/token/types"
@@ -11,7 +12,7 @@ import (
 )
 
 // PoolTokenPrefix defines pool token prefix name
-const PoolTokenPrefix = "ammswap-"
+const PoolTokenPrefix = "ammswap_"
 
 // SwapTokenPair defines token pair exchange
 type SwapTokenPair struct {
@@ -70,11 +71,11 @@ func GetSwapTokenPairName(token1, token2 string) string {
 	return token2 + "_" + token1
 }
 
-func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) sdk.Error {
+func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
-		return sdk.ErrUnknownRequest("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
+		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
 	}else if baseAmountName == quoteAmountName {
-		sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
+		errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
 	return nil
 }
