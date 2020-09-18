@@ -25,10 +25,11 @@ const (
 	flagLiquidity        = "liquidity"
 	flagMinBaseAmount    = "min-base-amount"
 	flagMinQuoteAmount   = "min-quote-amount"
-	flagBaseAmount       = "base-token"
 	flagSellAmount       = "sell-amount"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
+	flagBaseToken        = "base-token"
+	flagQuoteToken       = "quote-token"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -181,10 +182,10 @@ $ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --
 		},
 	}
 
-	cmd.Flags().StringVar(&baseAmountName, flagBaseAmount,  "", "the base token name is required to create an AMM swap pair")
-	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteAmount, "q", "", "the quote token name is required to create an AMM swap pair")
-	cmd.MarkFlagRequired(flagBaseAmount)
-	cmd.MarkFlagRequired(flagQuoteAmount)
+	cmd.Flags().StringVar(&baseAmountName, flagBaseToken,  "", "the base token name is required to create an AMM swap pair")
+	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteToken, "q", "", "the quote token name is required to create an AMM swap pair")
+	cmd.MarkFlagRequired(flagBaseToken)
+	cmd.MarkFlagRequired(flagQuoteToken)
 	return cmd
 }
 
