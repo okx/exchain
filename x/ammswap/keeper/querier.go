@@ -31,7 +31,13 @@ func NewQuerier(k Keeper) sdk.Querier {
 func querySwapTokenPair(
 	ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper,
 ) (res []byte, err sdk.Error) {
-	tokenPairName := types.GetSwapTokenPairName(path[0], path[1])
+	baseAmountName := path[0]
+	quoteAmountName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
+	tokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	tokenPair, errSwapTokenPair := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if errSwapTokenPair != nil {
 		return nil, sdk.ErrUnknownRequest(errSwapTokenPair.Error())
@@ -49,7 +55,14 @@ func queryBuyAmount(
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-
+	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
+	errToken = types.ValidateSwapAmountName(queryParams.SoldToken.Denom)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
 	params := keeper.GetParams(ctx)
 	var buyAmount sdk.Dec
 	swapTokenPair := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, queryParams.TokenToBuy)
@@ -94,6 +107,10 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	err sdk.Error) {
 	baseAmountName := path[0]
 	quoteAmountName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
 	liquidity, decErr := sdk.NewDecFromStr(path[2])
 	if decErr != nil {
 		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")

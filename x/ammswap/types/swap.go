@@ -69,6 +69,20 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	}else if baseAmountName == quoteAmountName {
 		return errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
+	if err := ValidateSwapAmountName(baseAmountName); err != nil {
+		return err
+	}
+
+	if err := ValidateSwapAmountName(quoteAmountName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ValidateSwapAmountName(amountName string) error {
+	if sdk.ValidateDenom(amountName) != nil || token.NotAllowedOriginSymbol(amountName) {
+		return sdk.ErrUnknownRequest(fmt.Sprintf("invalid amount name: %s", amountName))
+	}
 	return nil
 }
 

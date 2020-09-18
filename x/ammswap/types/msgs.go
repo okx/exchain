@@ -2,7 +2,6 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	tokentypes "github.com/okex/okexchain/x/token/types"
 )
 
 // PoolSwap message types and routes
@@ -163,9 +162,6 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if sdk.ValidateDenom(msg.BaseAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.BaseAmountName) || sdk.ValidateDenom(msg.QuoteAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.QuoteAmountName) {
-		return sdk.ErrUnknownRequest("invalid Token")
-	}
 	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
@@ -236,8 +232,18 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if !msg.MinBoughtTokenAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
-	if msg.MinBoughtTokenAmount.Denom == msg.SoldTokenAmount.Denom {
-		return sdk.ErrUnknownRequest("SoldTokenAmountName should not equal to BoughtTokenAmountName")
+
+	var baseAmountName, quoteAmountName string
+	if msg.SoldTokenAmount.Denom < msg.MinBoughtTokenAmount.Denom {
+		baseAmountName = msg.SoldTokenAmount.Denom
+		quoteAmountName = msg.MinBoughtTokenAmount.Denom
+	}else {
+		baseAmountName = msg.MinBoughtTokenAmount.Denom
+		quoteAmountName = msg.SoldTokenAmount.Denom
+	}
+	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if err != nil {
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
