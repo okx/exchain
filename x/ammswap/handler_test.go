@@ -22,6 +22,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
 	testToken := initToken(types.TestBasePooledToken)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
@@ -33,6 +34,8 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 
+	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
+
 	// test case2: success
 	result = handler(ctx, msg)
 	require.Equal(t, "", result.Log)
@@ -40,10 +43,10 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	// check account balance
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	expectCoins := sdk.DecCoins{
-		sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(types.TestBasePooledToken2, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.MustNewDecFromStr("100")),
+		sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
@@ -76,11 +79,13 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
 	testToken := initToken(types.TestBasePooledToken)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
+	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
@@ -123,12 +128,13 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
 	var err error
-	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("1")
+	testPoolToken := types.GetPoolTokenName(types.TestBasePooledToken, common.NativeToken)
+	queryCheck[testPoolToken], err = sdk.NewDecFromStr("1")
 	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(90000)
-	queryCheck["xxb"] = sdk.NewDec(90000)
-	queryCheck["yyb"] = sdk.NewDec(100000)
-	queryCheck["zzb"] = sdk.NewDec(100000)
+	queryCheck[types.TestBasePooledToken] = sdk.NewDec(90000)
+	queryCheck[types.TestBasePooledToken2] = sdk.NewDec(100000)
+	queryCheck[types.TestBasePooledToken3] = sdk.NewDec(100000)
 
 	for _, c := range acc.GetCoins() {
 		value, ok := queryCheck[c.Denom]
@@ -143,11 +149,13 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
 	testToken := initToken(types.TestBasePooledToken)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
+	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
@@ -197,12 +205,13 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
 	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
-	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("0.99")
+	testPoolToken := types.GetPoolTokenName(types.TestBasePooledToken, common.NativeToken)
+	queryCheck[testPoolToken], err = sdk.NewDecFromStr("0.99")
 	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(90100)
-	queryCheck["xxb"] = sdk.NewDec(90100)
-	queryCheck["yyb"] = sdk.NewDec(100000)
-	queryCheck["zzb"] = sdk.NewDec(100000)
+	queryCheck[types.TestBasePooledToken] = sdk.NewDec(90100)
+	queryCheck[types.TestBasePooledToken2] = sdk.NewDec(100000)
+	queryCheck[types.TestBasePooledToken3] = sdk.NewDec(100000)
 
 	for _, c := range acc.GetCoins() {
 		value, ok := queryCheck[c.Denom]
@@ -219,6 +228,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	testToken := initToken(types.TestBasePooledToken)
 	secondTestTokenName := types.TestBasePooledToken2
 	secondTestToken := initToken(secondTestTokenName)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
@@ -227,6 +237,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	msgCreateExchange2 := types.NewMsgCreateExchange(secondTestToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 	mapp.tokenKeeper.NewToken(ctx, secondTestToken)
+	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
+
 
 	result := handler(ctx, msgCreateExchange)
 	require.Equal(t, "", result.Log)
@@ -298,16 +310,18 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
 	var err error
-	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("2")
+	testPoolToken1 := types.GetPoolTokenName(types.TestBasePooledToken, common.NativeToken)
+	queryCheck[testPoolToken1], err = sdk.NewDecFromStr("2")
 	require.Nil(t, err)
-	queryCheck["ammswap-yyb"], err = sdk.NewDecFromStr("1")
+	testPoolToken2 := types.GetPoolTokenName(types.TestBasePooledToken2, common.NativeToken)
+	queryCheck[testPoolToken2], err = sdk.NewDecFromStr("1")
 	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(69998)
-	queryCheck["xxb"], err = sdk.NewDecFromStr("79999.99380121")
+	queryCheck[types.TestBasePooledToken], err = sdk.NewDecFromStr("79999.99380121")
 	require.Nil(t, err)
-	queryCheck["yyb"], err = sdk.NewDecFromStr("90001.98782155")
+	queryCheck[types.TestBasePooledToken2], err = sdk.NewDecFromStr("90001.98782155")
 	require.Nil(t, err)
-	queryCheck["zzb"] = sdk.NewDec(100000)
+	queryCheck[types.TestBasePooledToken3] = sdk.NewDec(100000)
 
 	for _, c := range acc.GetCoins() {
 		value, ok := queryCheck[c.Denom]
@@ -332,10 +346,12 @@ func TestRandomData(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 	testToken := initToken(types.TestBasePooledToken)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
+	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	result := handler(ctx, msgCreateExchange)
 	require.Equal(t, "", result.Log)

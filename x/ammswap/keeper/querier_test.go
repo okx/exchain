@@ -26,13 +26,13 @@ func TestNewQuerier(t *testing.T) {
 	require.Nil(t, tokenpair)
 
 	// querier with wrong token
-	path := []string{types.QuerySwapTokenPair, common.TestToken}
+	path := []string{types.QuerySwapTokenPair, common.TestToken, common.NativeToken}
 	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
 	require.NotNil(t, err)
 	require.Nil(t, tokenpair)
 
 	// add new tokenpair and querier
-	tokenPair := common.TestToken + "_" + common.NativeToken
+	tokenPair := types.GetSwapTokenPairName(common.TestToken, common.NativeToken)
 	swapTokenPair := initTokenPair(common.TestToken)
 	keeper.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
 	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
@@ -52,7 +52,7 @@ func TestNewQuerier(t *testing.T) {
 }
 
 func initTokenPair(token string) types.SwapTokenPair {
-	poolName := types.PoolTokenPrefix + token
+	poolName := types.GetPoolTokenName(token, common.NativeToken)
 	baseToken := sdk.NewDecCoinFromDec(token, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
 

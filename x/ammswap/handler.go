@@ -85,7 +85,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := types.PoolTokenPrefix + msg.BaseAmountName + "_" + msg.QuoteAmountName
+	poolName := types.GetPoolTokenName(msg.BaseAmountName, msg.QuoteAmountName)
 	baseToken := sdk.NewDecCoinFromDec(msg.BaseAmountName, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteAmountName, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)

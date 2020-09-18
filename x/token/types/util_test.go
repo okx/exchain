@@ -160,13 +160,19 @@ func TestValidateDenom(t *testing.T) {
 	name := "abc"
 	require.Nil(t, sdk.ValidateDenom(name))
 
-	name = notAllowedPrefix + "-abc"
+	name = "abc-123"
 	require.Nil(t, sdk.ValidateDenom(name))
 
-	name = notAllowedPrefix + "-abc-1af"
-	require.Nil(t, sdk.ValidateDenom(name))
+	name = "abc-ts3"
+	require.NotNil(t, sdk.ValidateDenom(name))
 
-	name = notAllowedPrefix + "-abcde-aaa"
+	name = notAllowedPrefix + "abc"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abc-1af"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abcde-aaa_abtc-e12"
 	require.Nil(t, sdk.ValidateDenom(name))
 
 	name = notAllowedPrefix + "f-abcde-aaa"
@@ -179,5 +185,17 @@ func TestValidateDenom(t *testing.T) {
 	require.NotNil(t, sdk.ValidateDenom(name))
 
 	name = "pool-abc"
+	require.Nil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abc"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abc" + "-bcd"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abc" + "_bcd-1234"
+	require.NotNil(t, sdk.ValidateDenom(name))
+
+	name = notAllowedPrefix + "abc-123" + "_bcd"
 	require.Nil(t, sdk.ValidateDenom(name))
 }

@@ -25,8 +25,7 @@ const (
 	flagLiquidity        = "liquidity"
 	flagMinBaseAmount    = "min-base-amount"
 	flagMinQuoteAmount   = "min-quote-amount"
-	flagBaseAmountName   = "base-token"
-	flagQuoteAmountName  = "quote-token"
+	flagBaseAmount       = "base-token"
 	flagSellAmount       = "sell-amount"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
@@ -182,10 +181,10 @@ $ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --
 		},
 	}
 
-	cmd.Flags().StringVarP(&baseAmountName, flagBaseAmountName, "b", "", "To create an AMM swap pair, you need specify the base amount name")
-	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteAmountName, "q", "", "To create an AMM swap pair, you need specify the quote amount name")
-	cmd.MarkFlagRequired(flagBaseAmountName)
-	cmd.MarkFlagRequired(flagQuoteAmountName)
+	cmd.Flags().StringVar(&baseAmountName, flagBaseAmount,  "", "the base token name is required to create an AMM swap pair")
+	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteAmount, "q", "", "the quote token name is required to create an AMM swap pair")
+	cmd.MarkFlagRequired(flagBaseAmount)
+	cmd.MarkFlagRequired(flagQuoteAmount)
 	return cmd
 }
 

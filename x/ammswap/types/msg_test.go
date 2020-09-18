@@ -39,16 +39,17 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		addr             sdk.AccAddress
 		exceptResultCode sdk.CodeType
 	}{
-		{"success", "xxx", addr, sdk.CodeOK},
-		{"nil addr", "xxx", nil, sdk.CodeInvalidAddress},
+		{"success", "aaa", addr, sdk.CodeOK},
+		{"nil addr", "aaa", nil, sdk.CodeInvalidAddress},
 		{"invalid token", "1ab", addr, sdk.CodeUnknownRequest},
 		{"invalid token", sdk.DefaultBondDenom, addr, sdk.CodeUnknownRequest},
 	}
-	for _, testCase := range tests {
+	for i, testCase := range tests {
 		msg := NewMsgCreateExchange(testCase.symbol, TestQuotePooledToken, testCase.addr)
 		err := msg.ValidateBasic()
+		fmt.Println(i, err)
 		if err == nil {
-			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
+			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -105,15 +106,16 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 		{"tokens must be positive", minLiquidity, maxBaseAmount, notPositiveQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid MaxBaseAmount", minLiquidity, invalidMaxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid QuoteAmount", minLiquidity, maxBaseAmount, invalidQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"quote token only supports native token", minLiquidity, maxBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"success(quote token supports any type of tokens)", minLiquidity, maxBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"empty sender", minLiquidity, maxBaseAmount, quoteAmount, deadLine, nil, sdk.CodeInvalidAddress},
 	}
-	for _, testCase := range tests {
+	for i, testCase := range tests {
 		fmt.Println(testCase.testCase)
 		msg := NewMsgAddLiquidity(testCase.minLiquidity, testCase.maxBaseAmount, testCase.quoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
+		fmt.Println(i, err)
 		if err == nil {
-			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
+			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -174,13 +176,13 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		{"coins must be positive", notPositiveLiquidity, minBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid MinBaseAmount", liquidity, invalidMinBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"invalid MinQuoteAmount", liquidity, minBaseAmount, invalidMinQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"quote token only supports native token", liquidity, minBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"success(quote token supports any type of tokens)", liquidity, minBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeOK},
 	}
 	for _, testCase := range tests {
 		msg := NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
 		if err == nil {
-			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
+			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())
@@ -243,7 +245,7 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		err := msg.ValidateBasic()
 		if err == nil  {
-			require.Equal(t, sdk.CodeOK, testCase.exceptResultCode)
+			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
 			continue
 		}
 		require.Equal(t, testCase.exceptResultCode, err.Code())

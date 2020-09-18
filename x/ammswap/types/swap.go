@@ -71,3 +71,7 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	}
 	return nil
 }
+
+func GetPoolTokenName(token1, token2 string) string {
+	return PoolTokenPrefix + GetSwapTokenPairName(token1, token2)
+}

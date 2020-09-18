@@ -17,6 +17,6 @@ func GetTestSwapTokenPair() SwapTokenPair {
 	return SwapTokenPair{
 		QuotePooledCoin: sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0)),
 		BasePooledCoin:  sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(0)),
-		PoolTokenName:   PoolTokenPrefix + TestBasePooledToken + "_" + TestQuotePooledToken,
+		PoolTokenName:   GetPoolTokenName(TestBasePooledToken, TestQuotePooledToken),
 	}
 }
