@@ -3,6 +3,7 @@ package ammswap
 import (
 	"fmt"
 	"github.com/okex/okexchain/x/ammswap/keeper"
+	"github.com/okex/okexchain/x/common"
 	"math/rand"
 	"testing"
 	"time"
@@ -124,7 +125,7 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	var err error
 	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("1")
 	require.Nil(t,err)
-	queryCheck["okt"] = sdk.NewDec(90000)
+	queryCheck[common.NativeToken] = sdk.NewDec(90000)
 	queryCheck["xxb"] = sdk.NewDec(90000)
 	queryCheck["yyb"] = sdk.NewDec(100000)
 	queryCheck["zzb"] = sdk.NewDec(100000)
@@ -198,7 +199,7 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	queryCheck := make(map[string]sdk.Dec)
 	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("0.99")
 	require.Nil(t,err)
-	queryCheck["okt"] = sdk.NewDec(90100)
+	queryCheck[common.NativeToken] = sdk.NewDec(90100)
 	queryCheck["xxb"] = sdk.NewDec(90100)
 	queryCheck["yyb"] = sdk.NewDec(100000)
 	queryCheck["zzb"] = sdk.NewDec(100000)
@@ -301,7 +302,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	require.Nil(t,err)
 	queryCheck["ammswap-yyb"] ,err = sdk.NewDecFromStr("1")
 	require.Nil(t,err)
-	queryCheck["okt"] = sdk.NewDec(69998)
+	queryCheck[common.NativeToken] = sdk.NewDec(69998)
 	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380121")
 	require.Nil(t,err)
 	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782155")
