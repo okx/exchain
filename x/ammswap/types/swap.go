@@ -80,8 +80,11 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 }
 
 func ValidateSwapAmountName(amountName string) error {
-	if sdk.ValidateDenom(amountName) != nil || token.NotAllowedOriginSymbol(amountName) {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("invalid amount name: %s", amountName))
+	if sdk.ValidateDenom(amountName) != nil {
+		return errors.New(fmt.Sprintf("invalid token name: %s", amountName))
+	}
+	if token.NotAllowedOriginSymbol(amountName) {
+		return errors.New(fmt.Sprintf("liquidity-pool-token(with prefix \"%s\") is not allowed to be a base or quote token", PoolTokenPrefix))
 	}
 	return nil
 }
