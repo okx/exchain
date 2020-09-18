@@ -2,15 +2,15 @@ package ammswap
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/ammswap/keeper"
-        "github.com/okex/okexchain/x/common"
 	"math/rand"
 	"testing"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/common"
 	token "github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -119,21 +119,21 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 	}
 
-	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
-	require.False(t,acc.GetCoins().Empty())
+	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
+	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
 	var err error
-	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("1")
-	require.Nil(t,err)
+	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("1")
+	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(90000)
 	queryCheck["xxb"] = sdk.NewDec(90000)
 	queryCheck["yyb"] = sdk.NewDec(100000)
 	queryCheck["zzb"] = sdk.NewDec(100000)
 
-	for _,c := range acc.GetCoins() {
-		value,ok := queryCheck[c.Denom]
-		require.True(t,ok)
-		require.Equal(t,value,c.Amount)
+	for _, c := range acc.GetCoins() {
+		value, ok := queryCheck[c.Denom]
+		require.True(t, ok)
+		require.Equal(t, value, c.Amount)
 	}
 }
 
@@ -194,20 +194,20 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 		require.Equal(t, testCase.exceptResultCode, result.Code)
 	}
 
-	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
-	require.False(t,acc.GetCoins().Empty())
+	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
+	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
-	queryCheck["ammswap-xxb"],err = sdk.NewDecFromStr("0.99")
-	require.Nil(t,err)
+	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("0.99")
+	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(90100)
 	queryCheck["xxb"] = sdk.NewDec(90100)
 	queryCheck["yyb"] = sdk.NewDec(100000)
 	queryCheck["zzb"] = sdk.NewDec(100000)
 
-	for _,c := range acc.GetCoins() {
-		value,ok := queryCheck[c.Denom]
-		require.True(t,ok)
-		require.Equal(t,value,c.Amount)
+	for _, c := range acc.GetCoins() {
+		value, ok := queryCheck[c.Denom]
+		require.True(t, ok)
+		require.Equal(t, value, c.Amount)
 	}
 }
 
@@ -294,25 +294,25 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 
 	}
 
-	acc := mapp.AccountKeeper.GetAccount(ctx,addr)
-	require.False(t,acc.GetCoins().Empty())
+	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
+	require.False(t, acc.GetCoins().Empty())
 	queryCheck := make(map[string]sdk.Dec)
 	var err error
-	queryCheck["ammswap-xxb"] ,err = sdk.NewDecFromStr("2")
-	require.Nil(t,err)
-	queryCheck["ammswap-yyb"] ,err = sdk.NewDecFromStr("1")
-	require.Nil(t,err)
+	queryCheck["ammswap-xxb"], err = sdk.NewDecFromStr("2")
+	require.Nil(t, err)
+	queryCheck["ammswap-yyb"], err = sdk.NewDecFromStr("1")
+	require.Nil(t, err)
 	queryCheck[common.NativeToken] = sdk.NewDec(69998)
-	queryCheck["xxb"],err = sdk.NewDecFromStr("79999.99380121")
-	require.Nil(t,err)
-	queryCheck["yyb"],err = sdk.NewDecFromStr("90001.98782155")
-	require.Nil(t,err)
+	queryCheck["xxb"], err = sdk.NewDecFromStr("79999.99380121")
+	require.Nil(t, err)
+	queryCheck["yyb"], err = sdk.NewDecFromStr("90001.98782155")
+	require.Nil(t, err)
 	queryCheck["zzb"] = sdk.NewDec(100000)
 
-	for _,c := range acc.GetCoins() {
-		value,ok := queryCheck[c.Denom]
-		require.True(t,ok)
-		require.Equal(t,value,c.Amount)
+	for _, c := range acc.GetCoins() {
+		value, ok := queryCheck[c.Denom]
+		require.True(t, ok)
+		require.Equal(t, value, c.Amount)
 	}
 }
 
