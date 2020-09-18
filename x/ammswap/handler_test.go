@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/common"
 	token "github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
