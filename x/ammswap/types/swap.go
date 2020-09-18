@@ -7,7 +7,6 @@ import (
 	token "github.com/okex/okexchain/x/token/types"
 
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -55,13 +54,6 @@ func InitPoolToken(poolTokenName string) token.Token {
 		Type:                GenerateTokenType,
 		Mintable:            true,
 	}
-}
-
-// ValidatePoolTokenName validates the format of specified pool token name
-func ValidatePoolTokenName(tokenName string) bool {
-	var poolTokenFormat = fmt.Sprintf(`^(%s)[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?$`, PoolTokenPrefix)
-	var poolTokenRegExp = regexp.MustCompile(poolTokenFormat)
-	return poolTokenRegExp.MatchString(tokenName)
 }
 
 func GetSwapTokenPairName(token1, token2 string) string {

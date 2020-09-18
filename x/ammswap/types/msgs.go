@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 	"strings"
 )
 
@@ -166,7 +167,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.BaseAmountName == msg.QuoteAmountName {
 		return sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
 	}
-	if sdk.ValidateDenom(msg.BaseAmountName) != nil || ValidatePoolTokenName(msg.BaseAmountName) || sdk.ValidateDenom(msg.QuoteAmountName) != nil || ValidatePoolTokenName(msg.QuoteAmountName) {
+	if sdk.ValidateDenom(msg.BaseAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.BaseAmountName) || sdk.ValidateDenom(msg.QuoteAmountName) != nil || tokentypes.NotAllowedOriginSymbol(msg.QuoteAmountName) {
 		return sdk.ErrUnknownRequest("invalid Token")
 	}
 	if strings.Compare(msg.BaseAmountName, msg.QuoteAmountName) > 0 {
