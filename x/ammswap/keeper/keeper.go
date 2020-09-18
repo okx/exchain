@@ -152,8 +152,11 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 }
 
 
-func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
-	swapTokenPairName := baseAmountName + "_" + common.NativeToken
+func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
+	if baseAmountName >= quoteAmountName {
+		dd
+	}
+	swapTokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
 	if err != nil {
 		return baseAmount, quoteAmount, err
@@ -173,7 +176,7 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName string, liqui
 //CalculateTokenToBuy calculates the amount to buy
 func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoin, buyTokenDenom string, params types.Params) sdk.DecCoin {
 	var inputReserve, outputReserve sdk.Dec
-	if sellToken.Denom == sdk.DefaultBondDenom {
+	if buyTokenDenom < sellToken.Denom {
 		inputReserve = swapTokenPair.QuotePooledCoin.Amount
 		outputReserve = swapTokenPair.BasePooledCoin.Amount
 	} else {

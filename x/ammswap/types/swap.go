@@ -62,3 +62,19 @@ func ValidatePoolTokenName(tokenName string) bool {
 	var poolTokenRegExp = regexp.MustCompile(poolTokenFormat)
 	return poolTokenRegExp.MatchString(tokenName)
 }
+
+func GetSwapTokenPairName(token1, token2 string) string {
+	if token1 < token2 {
+		return token1 + "_" + token2
+	}
+	return token2 + "_" + token1
+}
+
+func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) sdk.Error {
+	if baseAmountName > quoteAmountName {
+		return sdk.ErrUnknownRequest("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
+	}else if baseAmountName == quoteAmountName {
+		sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
+	}
+	return nil
+}
