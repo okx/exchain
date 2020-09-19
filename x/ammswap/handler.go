@@ -2,7 +2,6 @@ package ammswap
 
 import (
 	"fmt"
-
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
@@ -343,6 +342,12 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
+	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom || msg.MinBoughtTokenAmount.Denom == sdk.DefaultBondDenom {
+		return sdk.Result{
+			Code: sdk.CodeUnknownRequest,
+			Log:  fmt.Sprintf("exchange token failed, no pool can exchange %s to %s", msg.MinBoughtTokenAmount.Denom, msg.SoldTokenAmount.Denom),
+		}
+	}
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
 		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
 		return sdk.Result{
@@ -354,7 +359,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  err.Error(),
 		}
 	}
@@ -362,7 +367,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  err.Error(),
 		}
 	}
