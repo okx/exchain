@@ -5,12 +5,10 @@ go 1.12
 require (
 	github.com/Comcast/pulsar-client-go v0.1.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c // indirect
-	github.com/coreos/etcd v3.3.10+incompatible
 	github.com/cosmos/cosmos-sdk v0.37.8
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3 // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
-	github.com/etcd-io/etcd v3.3.24+incompatible
 	github.com/garyburd/redigo v1.6.2
 	github.com/go-kit/kit v0.9.0
 	github.com/go-redis/redis v6.15.9+incompatible
