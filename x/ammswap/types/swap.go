@@ -63,17 +63,17 @@ func GetSwapTokenPairName(token1, token2 string) string {
 	return token2 + "_" + token1
 }
 
-func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
-	if baseAmountName > quoteAmountName {
+func ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName string) error {
+	if baseTokenName > quoteTokenName {
 		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
-	}else if baseAmountName == quoteAmountName {
+	}else if baseTokenName == quoteTokenName {
 		return errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
-	if err := ValidateSwapAmountName(baseAmountName); err != nil {
+	if err := ValidateSwapAmountName(baseTokenName); err != nil {
 		return err
 	}
 
-	if err := ValidateSwapAmountName(quoteAmountName); err != nil {
+	if err := ValidateSwapAmountName(quoteTokenName); err != nil {
 		return err
 	}
 	return nil

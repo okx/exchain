@@ -137,16 +137,16 @@ func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
 
 // MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
-	BaseAmountName  string         `json:"base_amount_name"` // Token
-	QuoteAmountName string         `json:"quote_amount_name"`
+	BaseTokenName  string         `json:"base_token_name"` // Token
+	QuoteTokenName string         `json:"quote_token_name"`
 	Sender          sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
-func NewMsgCreateExchange(baseAmountName string, quoteAmountName string, sender sdk.AccAddress) MsgCreateExchange {
+func NewMsgCreateExchange(baseTokenName string, quoteTokenName string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		BaseAmountName:  baseAmountName,
-		QuoteAmountName: quoteAmountName,
+		BaseTokenName:  baseTokenName,
+		QuoteTokenName: quoteTokenName,
 		Sender:         sender,
 	}
 }
@@ -162,7 +162,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
+	err := ValidateBaseAndQuoteAmount(msg.BaseTokenName, msg.QuoteTokenName)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -181,7 +181,7 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 
 // GetSwapTokenPair defines token pair
 func (msg MsgCreateExchange) GetSwapTokenPairName() string {
-	return GetSwapTokenPairName(msg.BaseAmountName, msg.QuoteAmountName)
+	return GetSwapTokenPairName(msg.BaseTokenName, msg.QuoteTokenName)
 }
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom
@@ -233,15 +233,15 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
 
-	var baseAmountName, quoteAmountName string
+	var baseTokenName, quoteTokenName string
 	if msg.SoldTokenAmount.Denom < msg.MinBoughtTokenAmount.Denom {
-		baseAmountName = msg.SoldTokenAmount.Denom
-		quoteAmountName = msg.MinBoughtTokenAmount.Denom
+		baseTokenName = msg.SoldTokenAmount.Denom
+		quoteTokenName = msg.MinBoughtTokenAmount.Denom
 	}else {
-		baseAmountName = msg.MinBoughtTokenAmount.Denom
-		quoteAmountName = msg.SoldTokenAmount.Denom
+		baseTokenName = msg.MinBoughtTokenAmount.Denom
+		quoteTokenName = msg.SoldTokenAmount.Denom
 	}
-	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	err := ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}

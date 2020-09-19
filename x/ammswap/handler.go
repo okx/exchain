@@ -58,7 +58,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExist(ctx, msg.BaseAmountName)
+	err := k.IsTokenExist(ctx, msg.BaseTokenName)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -66,7 +66,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	err = k.IsTokenExist(ctx, msg.QuoteAmountName)
+	err = k.IsTokenExist(ctx, msg.QuoteTokenName)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -84,9 +84,9 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := types.GetPoolTokenName(msg.BaseAmountName, msg.QuoteAmountName)
-	baseToken := sdk.NewDecCoinFromDec(msg.BaseAmountName, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteAmountName, sdk.ZeroDec())
+	poolName := types.GetPoolTokenName(msg.BaseTokenName, msg.QuoteTokenName)
+	baseToken := sdk.NewDecCoinFromDec(msg.BaseTokenName, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteTokenName, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{

@@ -31,13 +31,13 @@ func NewQuerier(k Keeper) sdk.Querier {
 func querySwapTokenPair(
 	ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper,
 ) (res []byte, err sdk.Error) {
-	baseAmountName := path[0]
-	quoteAmountName := path[1]
-	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	baseTokenName := path[0]
+	quoteTokenName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
-	tokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
+	tokenPairName := types.GetSwapTokenPairName(baseTokenName, quoteTokenName)
 	tokenPair, errSwapTokenPair := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if errSwapTokenPair != nil {
 		return nil, sdk.ErrUnknownRequest(errSwapTokenPair.Error())
@@ -105,9 +105,9 @@ func querySwapTokenPairs(ctx sdk.Context, path []string, req abci.RequestQuery, 
 // nolint
 func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
 	err sdk.Error) {
-	baseAmountName := path[0]
-	quoteAmountName := path[1]
-	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	baseTokenName := path[0]
+	quoteTokenName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
@@ -116,7 +116,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")
 	}
 	var tokenList sdk.DecCoins
-	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseAmountName, quoteAmountName, liquidity)
+	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseTokenName, quoteTokenName, liquidity)
 	if redeemErr != nil {
 		return nil, sdk.ErrUnknownRequest(redeemErr.Error())
 	}
