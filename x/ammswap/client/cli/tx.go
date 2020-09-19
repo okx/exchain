@@ -25,10 +25,11 @@ const (
 	flagLiquidity        = "liquidity"
 	flagMinBaseAmount    = "min-base-amount"
 	flagMinQuoteAmount   = "min-quote-amount"
-	flagToken            = "token"
 	flagSellAmount       = "sell-amount"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
+	flagBaseToken        = "base-token"
+	flagQuoteToken       = "quote-token"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -61,7 +62,7 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`add liquidity.
 
 Example:
-$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100btc-366 --min-liquidity 0.001
 
 `),
 		),
@@ -115,7 +116,7 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`remove liquidity.
 
 Example:
-$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1okt
+$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1btc-366
 
 `),
 		),
@@ -158,7 +159,8 @@ $ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-35
 
 func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	// flags
-	var token string
+	var baseAmountName string
+	var quoteAmountName string
 	cmd := &cobra.Command{
 		Use:   "create-pair",
 		Short: "create token pair",
@@ -166,7 +168,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`create token pair.
 
 Example:
-$ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt 
+$ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --fees 0.01okt 
 
 `),
 		),
@@ -174,14 +176,16 @@ $ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			msg := types.NewMsgCreateExchange(token, cliCtx.FromAddress)
+			msg := types.NewMsgCreateExchange(baseAmountName, quoteAmountName, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVarP(&token, flagToken, "t", "", "Create an AMM swap pair by token name")
-	cmd.MarkFlagRequired(flagToken)
+	cmd.Flags().StringVar(&baseAmountName, flagBaseToken,  "", "the base token name is required to create an AMM swap pair")
+	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteToken, "q", "", "the quote token name is required to create an AMM swap pair")
+	cmd.MarkFlagRequired(flagBaseToken)
+	cmd.MarkFlagRequired(flagQuoteToken)
 	return cmd
 }
 
@@ -198,7 +202,7 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`swap token.
 
 Example:
-$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
+$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60btc-366
 
 `),
 		),

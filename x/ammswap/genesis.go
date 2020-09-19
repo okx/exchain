@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 	"github.com/okex/okexchain/x/ammswap/types"
 )
 
@@ -27,7 +28,7 @@ func ValidateGenesis(data GenesisState) error {
 		if !record.BasePooledCoin.IsValid() {
 			return fmt.Errorf("invalid SwapTokenPairRecord: BasePooledCoin: %s", record.BasePooledCoin)
 		}
-		if !types.ValidatePoolTokenName(record.PoolTokenName) {
+		if !tokentypes.NotAllowedOriginSymbol(record.PoolTokenName) {
 			return fmt.Errorf("invalid SwapTokenPairRecord: PoolToken: %s. Error: invalid PoolToken", record.PoolTokenName)
 		}
 	}

@@ -68,11 +68,12 @@ func (acc DecAccount) String() string {
 	)
 }
 
+func NotAllowedOriginSymbol(name string) bool {
+	return notAllowedOriginSymbol.MatchString(name)
+}
+
 func ValidOriginalSymbol(name string) bool {
-	if notAllowedOriginSymbol.MatchString(name) {
-		return false
-	}
-	return regOriginalSymbol.MatchString(name)
+	return !NotAllowedOriginSymbol(name) && regOriginalSymbol.MatchString(name)
 }
 
 // Convert a formatted json string into a TransferUnit array

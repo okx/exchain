@@ -6,7 +6,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/common"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -20,7 +19,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	// init a pool token
-	symbol := types.PoolTokenPrefix + common.TestToken
+	symbol := types.GetPoolTokenName(types.TestBasePooledToken, types.TestQuotePooledToken)
 	keeper.NewPoolToken(ctx, symbol)
 	poolToken, err := keeper.GetPoolTokenInfo(ctx, symbol)
 	require.Nil(t, err)

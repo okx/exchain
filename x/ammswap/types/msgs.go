@@ -2,7 +2,6 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
 )
 
 // PoolSwap message types and routes
@@ -51,9 +50,11 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if !msg.QuoteAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid QuoteAmount")
 	}
-	if msg.QuoteAmount.Denom != common.NativeToken {
-		return sdk.ErrUnknownRequest("quote token only supports " + common.NativeToken)
+	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
+	if err != nil {
+		return sdk.ErrUnknownRequest(err.Error())
 	}
+
 	return nil
 }
 
@@ -68,8 +69,8 @@ func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgAddLiquidity) GetSwapTokenPair() string {
-	return msg.MaxBaseAmount.Denom + "_" + msg.QuoteAmount.Denom
+func (msg MsgAddLiquidity) GetSwapTokenPairName() string {
+	return GetSwapTokenPairName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 }
 
 // MsgRemoveLiquidity burns pool tokens to withdraw okt and Tokens at current ratio.
@@ -112,8 +113,9 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if !msg.MinQuoteAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinQuoteAmount")
 	}
-	if msg.MinQuoteAmount.Denom != common.NativeToken {
-		return sdk.ErrUnknownRequest("quote token only supports " + common.NativeToken)
+	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
+	if err != nil {
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
@@ -129,21 +131,23 @@ func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
-	return msg.MinBaseAmount.Denom + "_" + msg.MinQuoteAmount.Denom
+func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
+	return GetSwapTokenPairName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 }
 
 // MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
-	Token  string         `json:"token"`  // Token
-	Sender sdk.AccAddress `json:"sender"` // Sender
+	BaseAmountName  string         `json:"base_amount_name"` // Token
+	QuoteAmountName string         `json:"quote_amount_name"`
+	Sender          sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
-func NewMsgCreateExchange(token string, sender sdk.AccAddress) MsgCreateExchange {
+func NewMsgCreateExchange(baseAmountName string, quoteAmountName string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		Token:  token,
-		Sender: sender,
+		BaseAmountName:  baseAmountName,
+		QuoteAmountName: quoteAmountName,
+		Sender:         sender,
 	}
 }
 
@@ -158,8 +162,9 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if sdk.ValidateDenom(msg.Token) != nil || ValidatePoolTokenName(msg.Token) || msg.Token == sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest("invalid Token")
+	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
+	if err != nil {
+		return sdk.ErrUnknownRequest(err.Error())
 	}
 	return nil
 }
@@ -172,6 +177,11 @@ func (msg MsgCreateExchange) GetSignBytes() []byte {
 // GetSigners defines whose signature is required
 func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
+}
+
+// GetSwapTokenPair defines token pair
+func (msg MsgCreateExchange) GetSwapTokenPairName() string {
+	return GetSwapTokenPairName(msg.BaseAmountName, msg.QuoteAmountName)
 }
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom
@@ -222,6 +232,19 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if !msg.MinBoughtTokenAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
+
+	var baseAmountName, quoteAmountName string
+	if msg.SoldTokenAmount.Denom < msg.MinBoughtTokenAmount.Denom {
+		baseAmountName = msg.SoldTokenAmount.Denom
+		quoteAmountName = msg.MinBoughtTokenAmount.Denom
+	}else {
+		baseAmountName = msg.MinBoughtTokenAmount.Denom
+		quoteAmountName = msg.SoldTokenAmount.Denom
+	}
+	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if err != nil {
+		return sdk.ErrUnknownRequest(err.Error())
+	}
 	return nil
 }
 
@@ -236,9 +259,6 @@ func (msg MsgTokenToToken) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgTokenToToken) GetSwapTokenPair() string {
-	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
-		return msg.MinBoughtTokenAmount.Denom + "_" + msg.SoldTokenAmount.Denom
-	}
-	return msg.SoldTokenAmount.Denom + "_" + msg.MinBoughtTokenAmount.Denom
+func (msg MsgTokenToToken) GetSwapTokenPairName() string {
+	return GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, msg.SoldTokenAmount.Denom)
 }

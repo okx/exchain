@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,7 +31,13 @@ func NewQuerier(k Keeper) sdk.Querier {
 func querySwapTokenPair(
 	ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper,
 ) (res []byte, err sdk.Error) {
-	tokenPairName := path[0] + "_" + common.NativeToken
+	baseAmountName := path[0]
+	quoteAmountName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
+	tokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	tokenPair, errSwapTokenPair := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if errSwapTokenPair != nil {
 		return nil, sdk.ErrUnknownRequest(errSwapTokenPair.Error())
@@ -50,31 +55,28 @@ func queryBuyAmount(
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-
+	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
+	errToken = types.ValidateSwapAmountName(queryParams.SoldToken.Denom)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
 	params := keeper.GetParams(ctx)
 	var buyAmount sdk.Dec
-	if (queryParams.SoldToken.Denom == sdk.DefaultBondDenom) {
-		tokenPairName := queryParams.TokenToBuy + "_" + queryParams.SoldToken.Denom
-		tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
-		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
-		}
+	swapTokenPair := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, queryParams.TokenToBuy)
+	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
+	if errTokenPair == nil {
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
-	} else if (queryParams.TokenToBuy == sdk.DefaultBondDenom) {
-		tokenPairName := queryParams.SoldToken.Denom + "_" + queryParams.TokenToBuy
-		tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
-		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
-		}
-		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
-	} else {
-		tokenPairName1 := queryParams.SoldToken.Denom + "_" + sdk.DefaultBondDenom
+	}else {
+		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
 
-		tokenPairName2 := queryParams.TokenToBuy + "_" + sdk.DefaultBondDenom
+		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
@@ -103,13 +105,18 @@ func querySwapTokenPairs(ctx sdk.Context, path []string, req abci.RequestQuery, 
 // nolint
 func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
 	err sdk.Error) {
-	baseTokenName := path[0]
-	liquidity, decErr := sdk.NewDecFromStr(path[1])
+	baseAmountName := path[0]
+	quoteAmountName := path[1]
+	errToken := types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
+	if errToken != nil {
+		return nil, sdk.ErrUnknownRequest(errToken.Error())
+	}
+	liquidity, decErr := sdk.NewDecFromStr(path[2])
 	if decErr != nil {
 		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")
 	}
 	var tokenList sdk.DecCoins
-	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseTokenName, liquidity)
+	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseAmountName, quoteAmountName, liquidity)
 	if redeemErr != nil {
 		return nil, sdk.ErrUnknownRequest(redeemErr.Error())
 	}

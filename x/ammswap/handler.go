@@ -36,7 +36,7 @@ func NewHandler(k Keeper) sdk.Handler {
 		case types.MsgTokenToToken:
 			name = "handleMsgTokenToToken"
 			handlerFun = func() sdk.Result {
-				return handleMsgTokenToTokenExchange(ctx, k, msg)
+				return handleMsgTokenToToken(ctx, k, msg)
 			}
 		default:
 			errMsg := fmt.Sprintf("Invalid msg type: %v", msg.Type())
@@ -48,16 +48,18 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgTokenToTokenExchange(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
-	if msg.SoldTokenAmount.Denom != sdk.DefaultBondDenom && msg.MinBoughtTokenAmount.Denom != sdk.DefaultBondDenom {
-		return handleMsgTokenToToken(ctx, k, msg)
+func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+	_, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
+	if err != nil {
+		return swapTokenByRouter(ctx, k, msg)
+	} else {
+		return swapToken(ctx, k, msg)
 	}
-	return handleMsgTokenToNativeToken(ctx, k, msg)
 }
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExist(ctx, msg.Token)
+	err := k.IsTokenExist(ctx, msg.BaseAmountName)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -65,7 +67,15 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	tokenPair := msg.Token + "_" + common.NativeToken
+	err = k.IsTokenExist(ctx, msg.QuoteAmountName)
+	if err != nil {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  err.Error(),
+		}
+	}
+
+	tokenPair := msg.GetSwapTokenPairName()
 
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPair)
 	if err == nil {
@@ -75,9 +85,9 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := types.PoolTokenPrefix + msg.Token
-	baseToken := sdk.NewDecCoinFromDec(msg.Token, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec())
+	poolName := types.GetPoolTokenName(msg.BaseAmountName, msg.QuoteAmountName)
+	baseToken := sdk.NewDecCoinFromDec(msg.BaseAmountName, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteAmountName, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{
@@ -107,7 +117,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -179,7 +189,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
 	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(baseTokens)
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, liquidity)
@@ -206,7 +216,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -258,7 +268,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(quoteAmount)
 	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Sub(baseAmount)
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, liquidity)
@@ -276,7 +286,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
@@ -292,7 +302,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -324,7 +334,7 @@ func handleMsgTokenToNativeToken(ctx sdk.Context, k Keeper, msg types.MsgTokenTo
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if msg.Deadline < ctx.BlockTime().Unix() {
@@ -340,7 +350,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 			Log:  err.Error(),
 		}
 	}
-	tokenPairOne := msg.SoldTokenAmount.Denom + "_" + sdk.DefaultBondDenom
+	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
 	if err != nil {
 		return sdk.Result{
@@ -348,7 +358,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 			Log:  err.Error(),
 		}
 	}
-	tokenPairTwo := msg.MinBoughtTokenAmount.Denom + "_" + sdk.DefaultBondDenom
+	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
 		return sdk.Result{
@@ -423,14 +433,14 @@ func swapTokenNativeToken(
 	}
 
 	// update swapTokenPair
-	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom {
+	if msg.MinBoughtTokenAmount.Denom < msg.SoldTokenAmount.Denom {
 		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.SoldTokenAmount)
 		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Sub(tokenBuy)
 	} else {
 		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(tokenBuy)
 		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(msg.SoldTokenAmount)
 	}
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 	return sdk.Result{}
 }
 
