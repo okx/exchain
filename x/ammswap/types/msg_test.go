@@ -30,7 +30,7 @@ func TestMsgCreateExchange(t *testing.T) {
 	require.EqualValues(t, addr, resAddr)
 
 	expectTokenPair := TestBasePooledToken + "_" + TestQuotePooledToken
-	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
+	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 }
 
 func TestMsgCreateExchangeInvalid(t *testing.T) {
@@ -81,7 +81,7 @@ func TestMsgAddLiquidity(t *testing.T) {
 	require.EqualValues(t, addr, resAddr)
 
 	expectTokenPair := TestBasePooledToken + "_" + TestQuotePooledToken
-	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
+	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 }
 
 func TestMsgAddLiquidityInvalid(t *testing.T) {
@@ -151,7 +151,7 @@ func TestMsgRemoveLiquidity(t *testing.T) {
 	require.EqualValues(t, addr, resAddr)
 
 	expectTokenPair := TestBasePooledToken + "_" + TestQuotePooledToken
-	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
+	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 }
 
 func TestMsgRemoveLiquidityInvalid(t *testing.T) {
@@ -219,9 +219,9 @@ func TestMsgTokenToToken(t *testing.T) {
 	resAddr := msg.GetSigners()[0]
 	require.EqualValues(t, addr, resAddr)
 	expectTokenPair := TestBasePooledToken + "_" + TestQuotePooledToken
-	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
+	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 	msg = NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
-	require.Equal(t, expectTokenPair, msg.GetSwapTokenPair())
+	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 }
 
 func TestMsgTokenToTokenInvalid(t *testing.T) {

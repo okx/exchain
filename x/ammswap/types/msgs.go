@@ -69,7 +69,7 @@ func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgAddLiquidity) GetSwapTokenPair() string {
+func (msg MsgAddLiquidity) GetSwapTokenPairName() string {
 	return GetSwapTokenPairName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 }
 
@@ -131,7 +131,7 @@ func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgRemoveLiquidity) GetSwapTokenPair() string {
+func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
 	return GetSwapTokenPairName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 }
 
@@ -180,7 +180,7 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgCreateExchange) GetSwapTokenPair() string {
+func (msg MsgCreateExchange) GetSwapTokenPairName() string {
 	return GetSwapTokenPairName(msg.BaseAmountName, msg.QuoteAmountName)
 }
 
@@ -259,6 +259,6 @@ func (msg MsgTokenToToken) GetSigners() []sdk.AccAddress {
 }
 
 // GetSwapTokenPair defines token pair
-func (msg MsgTokenToToken) GetSwapTokenPair() string {
+func (msg MsgTokenToToken) GetSwapTokenPairName() string {
 	return GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, msg.SoldTokenAmount.Denom)
 }

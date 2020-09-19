@@ -49,7 +49,7 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
-	_, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	_, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return swapTokenByRouter(ctx, k, msg)
 	} else {
@@ -75,7 +75,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	tokenPair := msg.GetSwapTokenPair()
+	tokenPair := msg.GetSwapTokenPairName()
 
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPair)
 	if err == nil {
@@ -117,7 +117,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -189,7 +189,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
 	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(baseTokens)
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, liquidity)
@@ -216,7 +216,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -268,7 +268,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(quoteAmount)
 	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Sub(baseAmount)
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, liquidity)
@@ -302,7 +302,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 			Log:  "Failed: block time exceeded deadline",
 		}
 	}
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPair())
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -440,7 +440,7 @@ func swapTokenNativeToken(
 		swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(tokenBuy)
 		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(msg.SoldTokenAmount)
 	}
-	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPair(), swapTokenPair)
+	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 	return sdk.Result{}
 }
 
