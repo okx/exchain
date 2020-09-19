@@ -87,7 +87,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	poolName := types.GetPoolTokenName(msg.BaseTokenName, msg.QuoteTokenName)
 	baseToken := sdk.NewDecCoinFromDec(msg.BaseTokenName, sdk.ZeroDec())
 	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteTokenName, sdk.ZeroDec())
-	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
+	_, err = k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -95,7 +95,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 	k.NewPoolToken(ctx, poolName)
-	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
+	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolName))
 	swapTokenPair.BasePooledCoin = baseToken
 	swapTokenPair.QuotePooledCoin = quoteToken
 	swapTokenPair.PoolTokenName = poolName
@@ -118,9 +118,20 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+		createExchangeMsg := types.NewMsgCreateExchange(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom, msg.Sender)
+		createExchangeResult := handleMsgCreateExchange(ctx, k, createExchangeMsg)
+		if !createExchangeResult.IsOK() {
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log: fmt.Sprintf("create exchange failed: %s", createExchangeResult.Log),
+			}
+		}
+		swapTokenPair, err = k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
+		if err != nil {
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log: "unexpected logic: failed to create token pair but returned success",
+			}
 		}
 	}
 	baseTokens := sdk.NewDecCoinFromDec(msg.MaxBaseAmount.Denom, sdk.ZeroDec())
@@ -200,8 +211,8 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		}
 	}
 
-	event.AppendAttributes(sdk.NewAttribute("liquidity", liquidity.String()))
-	event.AppendAttributes(sdk.NewAttribute("baseAmount", baseTokens.String()))
+	event = event.AppendAttributes(sdk.NewAttribute("liquidity", liquidity.String()))
+	event = event.AppendAttributes(sdk.NewAttribute("baseAmount", baseTokens.String()))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
