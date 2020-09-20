@@ -46,10 +46,11 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		{"nil addr", "aaa", nil, sdk.CodeInvalidAddress},
 		{"invalid token", "1ab", addr, sdk.CodeUnknownRequest},
 		{"invalid token", TestQuotePooledToken, addr, sdk.CodeUnknownRequest},
-		{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", "xxb", addr, sdk.CodeUnknownRequest},
+		{"The lexicographic order of NameTokenA do not need to be less than NameTokenB", "xxb", addr, sdk.CodeOK},
 
 	}
 	for i, testCase := range tests {
+		fmt.Println(testCase.testCase)
 		msg := NewMsgCreateExchange(testCase.symbol, TestQuotePooledToken, testCase.addr)
 		err := msg.ValidateBasic()
 		fmt.Println(i, err)
@@ -109,12 +110,12 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 	}{
 		{"success", minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeOK},
 		{"tokens must be positive", minLiquidity, maxBaseAmount, notPositiveQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"invalid MaxBaseAmount", minLiquidity, invalidMaxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"invalid QuoteAmount", minLiquidity, maxBaseAmount, invalidQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"invalid MaxAmountTokenA", minLiquidity, invalidMaxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"invalid AmountTokenB", minLiquidity, maxBaseAmount, invalidQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"success(quote token supports any type of tokens)", minLiquidity, maxBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"empty sender", minLiquidity, maxBaseAmount, quoteAmount, deadLine, nil, sdk.CodeInvalidAddress},
 		{"invalid token", minLiquidity, maxBaseAmount, maxBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", minLiquidity, quoteAmount, maxBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"The lexicographic order of NameTokenA do not need to be less than NameTokenB", minLiquidity, quoteAmount, maxBaseAmount, deadLine, addr, sdk.CodeOK},
 	}
 	for i, testCase := range tests {
 		fmt.Println(testCase.testCase)
@@ -181,11 +182,11 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		{"success", liquidity, minBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"empty sender", liquidity, minBaseAmount, minQuoteAmount, deadLine, nil, sdk.CodeInvalidAddress},
 		{"coins must be positive", notPositiveLiquidity, minBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"invalid MinBaseAmount", liquidity, invalidMinBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"invalid MinQuoteAmount", liquidity, minBaseAmount, invalidMinQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"invalid MinAmountTokenA", liquidity, invalidMinBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"invalid MinAmountTokenB", liquidity, minBaseAmount, invalidMinQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
 		{"success(quote token supports any type of tokens)", liquidity, minBaseAmount, notNativeQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"invalid token", liquidity, minBaseAmount, minBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
-		{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", liquidity, minQuoteAmount, minBaseAmount, deadLine, addr, sdk.CodeUnknownRequest},
+		{"The lexicographic order of NameTokenA do not need to be less than NameTokenB", liquidity, minQuoteAmount, minBaseAmount, deadLine, addr, sdk.CodeOK},
 
 
 	}

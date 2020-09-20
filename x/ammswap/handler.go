@@ -94,7 +94,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExist(ctx, msg.BaseTokenName)
+	err := k.IsTokenExist(ctx, msg.NameTokenA)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -102,7 +102,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	err = k.IsTokenExist(ctx, msg.QuoteTokenName)
+	err = k.IsTokenExist(ctx, msg.NameTokenB)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -120,9 +120,10 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := types.GetPoolTokenName(msg.BaseTokenName, msg.QuoteTokenName)
-	baseToken := sdk.NewDecCoinFromDec(msg.BaseTokenName, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteTokenName, sdk.ZeroDec())
+	poolName := types.GetPoolTokenName(msg.NameTokenA, msg.NameTokenB)
+	nameBaseToken, nameQuoteToken := types.GetBaseQuoteToken(msg.NameTokenA, msg.NameTokenB)
+	baseToken := sdk.NewDecCoinFromDec(nameBaseToken, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(nameQuoteToken, sdk.ZeroDec())
 	_, err = k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{
@@ -154,7 +155,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
-		createExchangeMsg := types.NewMsgCreateExchange(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom, msg.Sender)
+		createExchangeMsg := types.NewMsgCreateExchange(msg.MaxAmountTokenA.Denom, msg.AmountTokenB.Denom, msg.Sender)
 		createExchangeResult := handleMsgCreateExchange(ctx, k, createExchangeMsg)
 		if !createExchangeResult.IsOK() {
 			return sdk.Result{
@@ -170,8 +171,23 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			}
 		}
 	}
-	baseTokens := sdk.NewDecCoinFromDec(msg.MaxBaseAmount.Denom, sdk.ZeroDec())
-	var liquidity sdk.Dec
+
+	availableAmountTokenA := sdk.NewDecCoinFromDec(msg.MaxAmountTokenA.Denom, sdk.ZeroDec())
+	amountTokenB := msg.AmountTokenB
+	var poolAmountTokenA, poolAmountTokenB *sdk.DecCoin
+	if availableAmountTokenA.Denom == swapTokenPair.BasePooledCoin.Denom {
+		poolAmountTokenA = &swapTokenPair.BasePooledCoin
+		poolAmountTokenB = &swapTokenPair.QuotePooledCoin
+	}else if availableAmountTokenA.Denom == swapTokenPair.QuotePooledCoin.Denom {
+		poolAmountTokenA = &swapTokenPair.QuotePooledCoin
+		poolAmountTokenB = &swapTokenPair.BasePooledCoin
+	}else {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log: "unexpected logic: invalid swap token pair",
+		}
+	}
+	var availableLiquidity sdk.Dec
 	poolToken, err := k.GetPoolTokenInfo(ctx, swapTokenPair.PoolTokenName)
 	if err != nil {
 		return sdk.Result{
@@ -179,11 +195,11 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			Log:  fmt.Sprintf("failed to get pool token %s : %s", swapTokenPair.PoolTokenName, err.Error()),
 		}
 	}
-	if swapTokenPair.QuotePooledCoin.Amount.IsZero() && swapTokenPair.BasePooledCoin.Amount.IsZero() {
-		baseTokens.Amount = msg.MaxBaseAmount.Amount
-		liquidity = sdk.NewDec(1)
-	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
-		baseTokens.Amount = common.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
+	if poolAmountTokenA.IsZero() && poolAmountTokenB.IsZero() {
+		availableAmountTokenA.Amount = msg.MaxAmountTokenA.Amount
+		availableLiquidity = sdk.NewDec(1)
+	} else if poolAmountTokenA.IsPositive() && poolAmountTokenB.IsPositive() {
+		availableAmountTokenA.Amount = common.MulAndQuo(amountTokenB.Amount, poolAmountTokenA.Amount, poolAmountTokenB.Amount)
 		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 		if totalSupply.IsZero() {
 			return sdk.Result{
@@ -191,8 +207,8 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 				Log:  fmt.Sprintf("unexpected totalSupply in pool token %s", poolToken.String()),
 			}
 		}
-		liquidity = common.MulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
-		if liquidity.IsZero() {
+		availableLiquidity = common.MulAndQuo(amountTokenB.Amount, totalSupply, poolAmountTokenB.Amount)
+		if availableLiquidity.IsZero() {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
 				Log:  fmt.Sprintf("failed to add liquidity"),
@@ -204,13 +220,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			Log:  fmt.Sprintf("invalid token pair %s", swapTokenPair.String()),
 		}
 	}
-	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
+	if availableAmountTokenA.Amount.GT(msg.MaxAmountTokenA.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "The required base token amount are greater than MaxBaseAmount",
+			Log:  "The required base token amount are greater than MaxAmountTokenA",
 		}
 	}
-	if liquidity.LT(msg.MinLiquidity) {
+	if availableLiquidity.LT(msg.MinLiquidity) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  "The available liquidity is less than MinLiquidity",
@@ -219,8 +235,8 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 
 	// transfer coins
 	coins := sdk.DecCoins{
-		msg.QuoteAmount,
-		baseTokens,
+		amountTokenB,
+		availableAmountTokenA,
 	}
 
 	coins = coinSort(coins)
@@ -233,12 +249,12 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		}
 	}
 	// update swapTokenPair
-	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
-	swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(baseTokens)
+	*poolAmountTokenA = poolAmountTokenA.Add(availableAmountTokenA)
+	*poolAmountTokenB = poolAmountTokenB.Add(amountTokenB)
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
 
 	// update poolToken
-	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, liquidity)
+	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, availableLiquidity)
 	err = k.MintPoolCoinsToUser(ctx, sdk.DecCoins{poolCoins}, msg.Sender)
 	if err != nil {
 		return sdk.Result{
@@ -247,8 +263,8 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 		}
 	}
 
-	event = event.AppendAttributes(sdk.NewAttribute("liquidity", liquidity.String()))
-	event = event.AppendAttributes(sdk.NewAttribute("baseAmount", baseTokens.String()))
+	event = event.AppendAttributes(sdk.NewAttribute("liquidity", availableLiquidity.String()))
+	event = event.AppendAttributes(sdk.NewAttribute("availableAmountTokenA", availableAmountTokenA.String()))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
@@ -285,13 +301,26 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 
-	if baseAmount.IsLT(msg.MinBaseAmount) {
+	var minBaseAmount, minQuoteAmount sdk.DecCoin
+	if msg.MinAmountTokenA.Denom == baseAmount.Denom {
+		minBaseAmount = msg.MinAmountTokenA
+		minQuoteAmount = msg.MinAmountTokenB
+	}else if msg.MinAmountTokenB.Denom == baseAmount.Denom {
+		minBaseAmount = msg.MinAmountTokenB
+		minQuoteAmount = msg.MinAmountTokenA
+	}else {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: The available base Amount(%s) are less than min base Amount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
+			Log: "unexpected logic: invalid swap token pair",
 		}
 	}
-	if quoteAmount.IsLT(msg.MinQuoteAmount) {
+	if baseAmount.IsLT(minBaseAmount) {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("Failed: The available base Amount(%s) are less than min base Amount(%s)", baseAmount.String(), msg.MinAmountTokenA.String()),
+		}
+	}
+	if quoteAmount.IsLT(minQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  "Failed: available quote amount are less than least quote amount",

@@ -56,24 +56,28 @@ func InitPoolToken(poolTokenName string) token.Token {
 	}
 }
 
-func GetSwapTokenPairName(token1, token2 string) string {
-	if token1 < token2 {
-		return token1 + "_" + token2
-	}
-	return token2 + "_" + token1
+func GetSwapTokenPairName(nameTokenA, nameTokenB string) string {
+	nameBaseToken, nameQuoteToken := GetBaseQuoteToken(nameTokenA, nameTokenB)
+	return nameBaseToken + "_" + nameQuoteToken
 }
 
-func ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName string) error {
-	if baseTokenName > quoteTokenName {
-		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName, it may be ok to reverse BaseTokenName and QuoteTokenName")
-	}else if baseTokenName == quoteTokenName {
-		return errors.New("BaseTokenName should not equal to QuoteTokenName")
+// GetBaseQuoteToken returns (nameBaseToken, nameQuoteToken)
+func GetBaseQuoteToken(nameTokenA, nameTokenB string) (string, string) {
+	if nameTokenA < nameTokenB {
+		return nameTokenA, nameTokenB
 	}
-	if err := ValidateSwapTokenName(baseTokenName); err != nil {
+	return nameTokenB, nameTokenA
+}
+
+func ValidateBaseAndQuoteTokenName(nameTokenA, nameTokenB string) error {
+	if nameTokenA == nameTokenB {
+		return errors.New("NameTokenA should not equal to NameTokenB")
+	}
+	if err := ValidateSwapTokenName(nameTokenA); err != nil {
 		return err
 	}
 
-	if err := ValidateSwapTokenName(quoteTokenName); err != nil {
+	if err := ValidateSwapTokenName(nameTokenB); err != nil {
 		return err
 	}
 	return nil

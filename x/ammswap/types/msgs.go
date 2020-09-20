@@ -12,21 +12,21 @@ const (
 
 // MsgAddLiquidity Deposit quote_amount and base_amount at current ratio to mint pool tokens.
 type MsgAddLiquidity struct {
-	MinLiquidity  sdk.Dec        `json:"min_liquidity"`   // Minimum number of sender will mint if total pool token supply is greater than 0.
-	MaxBaseAmount sdk.DecCoin    `json:"max_base_amount"` // Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
-	QuoteAmount   sdk.DecCoin    `json:"quote_amount"`    // Quote token amount
-	Deadline      int64          `json:"deadline"`        // Time after which this transaction can no longer be executed.
-	Sender        sdk.AccAddress `json:"sender"`          // Sender
+	MinLiquidity    sdk.Dec        `json:"min_liquidity"`      // Minimum number of sender will mint if total pool token supply is greater than 0.
+	MaxAmountTokenA sdk.DecCoin    `json:"max_amount_token_a"` // Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
+	AmountTokenB    sdk.DecCoin    `json:"amount_token_b"`     // Quote token amount
+	Deadline        int64          `json:"deadline"`           // Time after which this transaction can no longer be executed.
+	Sender          sdk.AccAddress `json:"sender"`             // Sender
 }
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseAmount, quoteAmount sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgAddLiquidity {
+func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxAmountTokenA, amountTokenB sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgAddLiquidity {
 	return MsgAddLiquidity{
-		MinLiquidity:  minLiquidity,
-		MaxBaseAmount: maxBaseAmount,
-		QuoteAmount:   quoteAmount,
-		Deadline:      deadline,
-		Sender:        sender,
+		MinLiquidity:    minLiquidity,
+		MaxAmountTokenA: maxAmountTokenA,
+		AmountTokenB:    amountTokenB,
+		Deadline:        deadline,
+		Sender:          sender,
 	}
 }
 
@@ -41,16 +41,16 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
+	if !(msg.MaxAmountTokenA.IsPositive() && msg.AmountTokenB.IsPositive()) {
 		return sdk.ErrUnknownRequest("token amount must be positive")
 	}
-	if !msg.MaxBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MaxBaseAmount")
+	if !msg.MaxAmountTokenA.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MaxAmountTokenA")
 	}
-	if !msg.QuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid QuoteAmount")
+	if !msg.AmountTokenB.IsValid() {
+		return sdk.ErrUnknownRequest("invalid AmountTokenB")
 	}
-	err := ValidateBaseAndQuoteTokenName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
+	err := ValidateBaseAndQuoteTokenName(msg.MaxAmountTokenA.Denom, msg.AmountTokenB.Denom)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -70,26 +70,26 @@ func (msg MsgAddLiquidity) GetSigners() []sdk.AccAddress {
 
 // GetSwapTokenPair defines token pair
 func (msg MsgAddLiquidity) GetSwapTokenPairName() string {
-	return GetSwapTokenPairName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
+	return GetSwapTokenPairName(msg.MaxAmountTokenA.Denom, msg.AmountTokenB.Denom)
 }
 
 // MsgRemoveLiquidity burns pool tokens to withdraw okt and Tokens at current ratio.
 type MsgRemoveLiquidity struct {
-	Liquidity      sdk.Dec        `json:"liquidity"`        // Amount of pool token burned.
-	MinBaseAmount  sdk.DecCoin    `json:"min_base_amount"`  // Minimum base amount.
-	MinQuoteAmount sdk.DecCoin    `json:"min_quote_amount"` // Minimum quote amount.
-	Deadline       int64          `json:"deadline"`         // Time after which this transaction can no longer be executed.
-	Sender         sdk.AccAddress `json:"sender"`           // Sender
+	Liquidity       sdk.Dec        `json:"liquidity"`        // Amount of pool token burned.
+	MinAmountTokenA sdk.DecCoin    `json:"min_amount_token_a"`  // Minimum base amount.
+	MinAmountTokenB sdk.DecCoin    `json:"min_amount_token_b"` // Minimum quote amount.
+	Deadline        int64          `json:"deadline"`         // Time after which this transaction can no longer be executed.
+	Sender          sdk.AccAddress `json:"sender"`           // Sender
 }
 
 // NewMsgRemoveLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgRemoveLiquidity(liquidity sdk.Dec, minBaseAmount, minQuoteAmount sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgRemoveLiquidity {
+func NewMsgRemoveLiquidity(liquidity sdk.Dec, minAmountTokenA, minAmountTokenB sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgRemoveLiquidity {
 	return MsgRemoveLiquidity{
-		Liquidity:      liquidity,
-		MinBaseAmount:  minBaseAmount,
-		MinQuoteAmount: minQuoteAmount,
-		Deadline:       deadline,
-		Sender:         sender,
+		Liquidity:       liquidity,
+		MinAmountTokenA: minAmountTokenA,
+		MinAmountTokenB: minAmountTokenB,
+		Deadline:        deadline,
+		Sender:          sender,
 	}
 }
 
@@ -107,13 +107,13 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if !(msg.Liquidity.IsPositive()) {
 		return sdk.ErrUnknownRequest("token amount must be positive")
 	}
-	if !msg.MinBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MinBaseAmount")
+	if !msg.MinAmountTokenA.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MinAmountTokenA")
 	}
-	if !msg.MinQuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MinQuoteAmount")
+	if !msg.MinAmountTokenB.IsValid() {
+		return sdk.ErrUnknownRequest("invalid MinAmountTokenB")
 	}
-	err := ValidateBaseAndQuoteTokenName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
+	err := ValidateBaseAndQuoteTokenName(msg.MinAmountTokenA.Denom, msg.MinAmountTokenB.Denom)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -132,22 +132,22 @@ func (msg MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 
 // GetSwapTokenPair defines token pair
 func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
-	return GetSwapTokenPairName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
+	return GetSwapTokenPairName(msg.MinAmountTokenA.Denom, msg.MinAmountTokenB.Denom)
 }
 
 // MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
-	BaseTokenName  string         `json:"base_token_name"` // Token
-	QuoteTokenName string         `json:"quote_token_name"`
-	Sender         sdk.AccAddress `json:"sender"` // Sender
+	NameTokenA string         `json:"name_token_a"` // Token
+	NameTokenB string         `json:"name_token_b"`
+	Sender     sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
-func NewMsgCreateExchange(baseTokenName string, quoteTokenName string, sender sdk.AccAddress) MsgCreateExchange {
+func NewMsgCreateExchange(nameTokenA string, nameTokenB string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		BaseTokenName:  baseTokenName,
-		QuoteTokenName: quoteTokenName,
-		Sender:         sender,
+		NameTokenA: nameTokenA,
+		NameTokenB: nameTokenB,
+		Sender:     sender,
 	}
 }
 
@@ -162,7 +162,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	err := ValidateBaseAndQuoteTokenName(msg.BaseTokenName, msg.QuoteTokenName)
+	err := ValidateBaseAndQuoteTokenName(msg.NameTokenA, msg.NameTokenB)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -181,7 +181,7 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 
 // GetSwapTokenPair defines token pair
 func (msg MsgCreateExchange) GetSwapTokenPairName() string {
-	return GetSwapTokenPairName(msg.BaseTokenName, msg.QuoteTokenName)
+	return GetSwapTokenPairName(msg.NameTokenA, msg.NameTokenB)
 }
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom
@@ -235,7 +235,7 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
 	if msg.SoldTokenAmount.Denom == msg.MinBoughtTokenAmount.Denom {
-		return sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
+		return sdk.ErrUnknownRequest("NameTokenA should not equal to NameTokenB")
 	}
 	tokenList := msg.TokenRoute
 	tokenList = append(tokenList, msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)

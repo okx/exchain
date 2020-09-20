@@ -54,10 +54,10 @@ $ okexchaincli query swap pool eth-355
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			baseToken := args[0]
-			quoteToken := args[1]
+			tokenA := args[0]
+			tokenB := args[1]
 
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, baseToken, quoteToken), nil)
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, tokenA, tokenB), nil)
 			if err != nil {
 				return err
 			}

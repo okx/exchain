@@ -91,9 +91,9 @@ func querySwapTokenPairs(ctx sdk.Context, path []string, req abci.RequestQuery, 
 // nolint
 func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte,
 	err sdk.Error) {
-	baseTokenName := path[0]
-	quoteTokenName := path[1]
-	errToken := types.ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName)
+	nameTokenA := path[0]
+	nameTokenB := path[1]
+	errToken := types.ValidateBaseAndQuoteTokenName(nameTokenA, nameTokenB)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
@@ -102,7 +102,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")
 	}
 	var tokenList sdk.DecCoins
-	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseTokenName, quoteTokenName, liquidity)
+	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, nameTokenA, nameTokenB, liquidity)
 	if redeemErr != nil {
 		return nil, sdk.ErrUnknownRequest(redeemErr.Error())
 	}
