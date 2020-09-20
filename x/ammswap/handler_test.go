@@ -126,9 +126,14 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
+		newCtx, writeFunc := ctx.CacheContext()
+		fmt.Println(testCase.testCase)
 		addLiquidityMsg := types.NewMsgAddLiquidity(testCase.minLiquidity, testCase.maxBaseAmount, testCase.quoteAmount, testCase.deadLine, testCase.addr)
-		result = handler(ctx, addLiquidityMsg)
+		result = handler(newCtx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
+		if result.IsOK() {
+			writeFunc()
+		}
 	}
 
 	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
@@ -220,10 +225,14 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
+		newCtx, writeFunc := ctx.CacheContext()
 		fmt.Println(testCase.testCase)
 		addLiquidityMsg := types.NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
-		result = handler(ctx, addLiquidityMsg)
+		result = handler(newCtx, addLiquidityMsg)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
+		if result.IsOK() {
+			writeFunc()
+		}
 	}
 
 	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
@@ -299,35 +308,128 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	unkownSoldTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.NewDec(1))
 	insufficientSoldTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(10000000))
 	invalidMinBoughtTokenAmount2 := sdk.NewDecCoinFromDec(secondTestTokenName, sdk.NewDec(100000))
+
+	var noRoute []string
+	var nativeRoute = []string{types.TestQuotePooledToken}
 	tests := []struct {
 		testCase             string
 		minBoughtTokenAmount sdk.DecCoin
 		soldTokenAmount      sdk.DecCoin
+		tokenRoute           []string
 		deadLine             int64
 		recipient            sdk.AccAddress
 		addr                 sdk.AccAddress
 		exceptResultCode     sdk.CodeType
 	}{
-		{"(tokenToNativeToken) success", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, 0},
-		{"(tokenToToken) success", minBoughtTokenAmount2, soldTokenAmount2, deadLine, addr, addr, 0},
-		{"(tokenToNativeToken) blockTime exceeded deadline", minBoughtTokenAmount, soldTokenAmount, 0, addr, addr, sdk.CodeInternal},
-		{"(tokenToToken) blockTime exceeded deadline", minBoughtTokenAmount2, soldTokenAmount2, 0, addr, addr, sdk.CodeInternal},
-		{"(tokenToNativeToken) insufficient SoldTokenAmount", minBoughtTokenAmount, insufficientSoldTokenAmount, deadLine, addr, addr, sdk.CodeInsufficientCoins},
-		{"(tokenToToken) insufficient SoldTokenAmount", minBoughtTokenAmount2, insufficientSoldTokenAmount2, deadLine, addr, addr, sdk.CodeInsufficientCoins},
-		{"(tokenToNativeToken) unknown swapTokenPair", unkownBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeUnknownRequest},
-		{"(tokenToToken) unknown swapTokenPair", unkownBountTokenAmount2, soldTokenAmount2, deadLine, addr, addr, sdk.CodeUnknownRequest},
-		{"(tokenToToken) unknown swapTokenPair2", minBoughtTokenAmount2, unkownSoldTokenAmount2, deadLine, addr, addr, sdk.CodeUnknownRequest},
-		{"(tokenToNativeToken) The available BoughtTokenAmount are less than minBoughtTokenAmount", invalidMinBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeInternal},
-		{"(tokenToToken) The available BoughtTokenAmount are less than minBoughtTokenAmount", invalidMinBoughtTokenAmount2, soldTokenAmount2, deadLine, addr, addr, sdk.CodeInternal},
+		{
+			testCase:             "(tokenToNativeToken) success",
+			minBoughtTokenAmount: minBoughtTokenAmount,
+			soldTokenAmount:      soldTokenAmount,
+			tokenRoute:           noRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeOK},
+		{
+			testCase:             "(tokenToToken) success",
+			minBoughtTokenAmount: minBoughtTokenAmount2,
+			soldTokenAmount:      soldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeOK},
+		{
+			testCase:             "(tokenToNativeToken) blockTime exceeded deadline",
+			minBoughtTokenAmount: minBoughtTokenAmount,
+			soldTokenAmount:      soldTokenAmount,
+			tokenRoute:           noRoute,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInternal},
+		{
+			testCase:             "(tokenToToken) blockTime exceeded deadline",
+			minBoughtTokenAmount: minBoughtTokenAmount2,
+			soldTokenAmount:      soldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInternal},
+		{
+			testCase:             "(tokenToNativeToken) insufficient SoldTokenAmount",
+			minBoughtTokenAmount: minBoughtTokenAmount,
+			soldTokenAmount:      insufficientSoldTokenAmount,
+			tokenRoute:           noRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInsufficientCoins},
+		{
+			testCase:             "(tokenToToken) insufficient SoldTokenAmount",
+			minBoughtTokenAmount: minBoughtTokenAmount2,
+			soldTokenAmount:      insufficientSoldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInsufficientCoins},
+		{
+			testCase:             "(tokenToNativeToken) unknown swapTokenPair",
+			minBoughtTokenAmount: unkownBoughtTokenAmount,
+			soldTokenAmount:      soldTokenAmount,
+			tokenRoute:           noRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeUnknownRequest},
+		{
+			testCase:             "(tokenToToken) unknown swapTokenPair",
+			minBoughtTokenAmount: unkownBountTokenAmount2,
+			soldTokenAmount:      soldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeUnknownRequest},
+		{
+			testCase:             "(tokenToToken) unknown swapTokenPair2",
+			minBoughtTokenAmount: minBoughtTokenAmount2,
+			soldTokenAmount:      unkownSoldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeUnknownRequest},
+		{
+			testCase:             "(tokenToNativeToken) The available BoughtTokenAmount are less than minBoughtTokenAmount",
+			minBoughtTokenAmount: invalidMinBoughtTokenAmount,
+			soldTokenAmount:      soldTokenAmount,
+			tokenRoute:           noRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInternal},
+		{
+			testCase:             "(tokenToToken) The available BoughtTokenAmount are less than minBoughtTokenAmount",
+			minBoughtTokenAmount: invalidMinBoughtTokenAmount2,
+			soldTokenAmount:      soldTokenAmount2,
+			tokenRoute:           nativeRoute,
+			deadLine:             deadLine,
+			recipient:            addr,
+			addr:                 addr,
+			exceptResultCode:     sdk.CodeInternal},
 	}
 
 	for _, testCase := range tests {
+		newCtx, writeFunc := ctx.CacheContext()
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
-		result = handler(ctx, addLiquidityMsg)
+		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.tokenRoute, testCase.deadLine, testCase.recipient, testCase.addr)
+		result = handler(newCtx, addLiquidityMsg)
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
-
+		if result.IsOK() {
+			writeFunc()
+		}
 	}
 
 	acc := mapp.AccountKeeper.GetAccount(ctx, addr)
@@ -407,7 +509,7 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
+		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, nil, testCase.deadLine, testCase.recipient, testCase.addr)
 		result = handler(ctx, addLiquidityMsg)
 		fmt.Println(result.Log)
 		require.Equal(t, testCase.exceptResultCode, result.Code)
@@ -518,9 +620,9 @@ func buildRandomMsgTokenToToken(addr sdk.AccAddress) types.MsgTokenToToken {
 	judge := rand.Intn(2)
 	var msg types.MsgTokenToToken
 	if judge == 0 {
-		msg = types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, nil, deadLine, addr, addr)
 	} else {
-		msg = types.NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+		msg = types.NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, nil, deadLine, addr, addr)
 	}
 
 	return msg

@@ -33,7 +33,7 @@ func querySwapTokenPair(
 ) (res []byte, err sdk.Error) {
 	baseTokenName := path[0]
 	quoteTokenName := path[1]
-	errToken := types.ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
+	errToken := types.ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
@@ -55,11 +55,11 @@ func queryBuyAmount(
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
-	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
+	errToken := types.ValidateSwapTokenName(queryParams.TokenToBuy)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
-	errToken = types.ValidateSwapAmountName(queryParams.SoldToken.Denom)
+	errToken = types.ValidateSwapTokenName(queryParams.SoldToken.Denom)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}
@@ -67,24 +67,10 @@ func queryBuyAmount(
 	var buyAmount sdk.Dec
 	swapTokenPair := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, queryParams.TokenToBuy)
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
-	if errTokenPair == nil {
-		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
-	}else {
-		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
-		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
-		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
-		}
-
-		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
-		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
-		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
-		}
-
-		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
-		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
+	if errTokenPair != nil {
+		return nil, sdk.ErrUnknownRequest(errTokenPair.Error())
 	}
+	buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 
 	bz := keeper.cdc.MustMarshalJSON(buyAmount)
 
@@ -107,7 +93,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	err sdk.Error) {
 	baseTokenName := path[0]
 	quoteTokenName := path[1]
-	errToken := types.ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
+	errToken := types.ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName)
 	if errToken != nil {
 		return nil, sdk.ErrUnknownRequest(errToken.Error())
 	}

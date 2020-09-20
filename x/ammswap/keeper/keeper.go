@@ -153,7 +153,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 
 
 func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseTokenName, quoteTokenName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
-	err = types.ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
+	err = types.ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName)
 	if err != nil {
 		return
 	}

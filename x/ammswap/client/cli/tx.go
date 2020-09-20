@@ -26,6 +26,7 @@ const (
 	flagMinBaseAmount    = "min-base-amount"
 	flagMinQuoteAmount   = "min-quote-amount"
 	flagSellAmount       = "sell-amount"
+	flagTokenRoute       = "token-route"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
 	flagBaseToken        = "base-token"
@@ -195,6 +196,7 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 	var minBoughtTokenAmount string
 	var deadline string
 	var recipient string
+	var tokenRoute []string
 	cmd := &cobra.Command{
 		Use:   "token",
 		Short: "swap token",
@@ -234,7 +236,7 @@ $ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60btc-366
 			}
 
 			msg := types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount,
-				deadline, recip, cliCtx.FromAddress)
+				tokenRoute, deadline, recip, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
@@ -248,6 +250,8 @@ $ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60btc-366
 		"The address to receive the amount bought")
 	cmd.Flags().StringVarP(&deadline, flagDeadlineDuration, "", "100s",
 		"Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.Flags().StringSliceVarP(&tokenRoute, flagTokenRoute, "", nil,
+		"Intermediate route from sold token to bought token, split with \\',\\',for example \"aab,ccb,ddb\"")
 	cmd.MarkFlagRequired(flagSellAmount)
 	cmd.MarkFlagRequired(flagMinBuyAmount)
 

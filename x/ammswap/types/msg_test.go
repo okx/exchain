@@ -206,7 +206,8 @@ func TestMsgTokenToToken(t *testing.T) {
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(1))
 	deadLine := time.Now().Unix()
 	soldTokenAmount := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(2))
-	msg := NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, deadLine, addr, addr)
+	route := []string{TestBasePooledToken2}
+	msg := NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, route, deadLine, addr, addr)
 
 	require.Nil(t, msg.ValidateBasic())
 	require.Equal(t, RouterKey, msg.Route())
@@ -220,7 +221,7 @@ func TestMsgTokenToToken(t *testing.T) {
 	require.EqualValues(t, addr, resAddr)
 	expectTokenPair := TestBasePooledToken + "_" + TestQuotePooledToken
 	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
-	msg = NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr)
+	msg = NewMsgTokenToToken(minBoughtTokenAmount, soldTokenAmount, route, deadLine, addr, addr)
 	require.Equal(t, expectTokenPair, msg.GetSwapTokenPairName())
 }
 
@@ -237,6 +238,7 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 	invalidSoldTokenAmount2 := sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0))
 	invalidSoldTokenAmount2.Denom = "aaa"
 	notNativeSoldTokenAmount := sdk.NewDecCoinFromDec("abc", sdk.NewDec(2))
+	route := []string{TestBasePooledToken2}
 
 	tests := []struct {
 		testCase             string
@@ -259,7 +261,8 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 
 	}
 	for _, testCase := range tests {
-		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
+		fmt.Println(testCase.testCase)
+		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, route, testCase.deadLine, testCase.recipient, testCase.addr)
 		err := msg.ValidateBasic()
 		if err == nil  {
 			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)

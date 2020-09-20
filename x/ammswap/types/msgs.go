@@ -50,7 +50,7 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if !msg.QuoteAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid QuoteAmount")
 	}
-	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
+	err := ValidateBaseAndQuoteTokenName(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -113,7 +113,7 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if !msg.MinQuoteAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinQuoteAmount")
 	}
-	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
+	err := ValidateBaseAndQuoteTokenName(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -139,7 +139,7 @@ func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
 type MsgCreateExchange struct {
 	BaseTokenName  string         `json:"base_token_name"` // Token
 	QuoteTokenName string         `json:"quote_token_name"`
-	Sender          sdk.AccAddress `json:"sender"` // Sender
+	Sender         sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
@@ -162,7 +162,7 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	err := ValidateBaseAndQuoteAmount(msg.BaseTokenName, msg.QuoteTokenName)
+	err := ValidateBaseAndQuoteTokenName(msg.BaseTokenName, msg.QuoteTokenName)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())
 	}
@@ -188,18 +188,20 @@ func (msg MsgCreateExchange) GetSwapTokenPairName() string {
 type MsgTokenToToken struct {
 	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       // Amount of Tokens sold.
 	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` // Minimum token purchased.
-	Deadline             int64          `json:"deadline"`                // Time after which this transaction can no longer be executed.
-	Recipient            sdk.AccAddress `json:"recipient"`               // Recipient address,transfer Tokens to recipient.default recipient is sender.
-	Sender               sdk.AccAddress `json:"sender"`                  // Sender
+	TokenRoute           []string       `json:"token_route"`
+	Deadline             int64          `json:"deadline"`  // Time after which this transaction can no longer be executed.
+	Recipient            sdk.AccAddress `json:"recipient"` // Recipient address,transfer Tokens to recipient.default recipient is sender.
+	Sender               sdk.AccAddress `json:"sender"`    // Sender
 }
 
 // NewMsgTokenToToken is a constructor function for MsgTokenOKTSwap
 func NewMsgTokenToToken(
-	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
+	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, route []string, deadline int64, recipient, sender sdk.AccAddress,
 ) MsgTokenToToken {
 	return MsgTokenToToken{
 		SoldTokenAmount:      soldTokenAmount,
 		MinBoughtTokenAmount: minBoughtTokenAmount,
+		TokenRoute:           route,
 		Deadline:             deadline,
 		Recipient:            recipient,
 		Sender:               sender,
@@ -232,18 +234,16 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if !msg.MinBoughtTokenAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
 	}
-
-	var baseTokenName, quoteTokenName string
-	if msg.SoldTokenAmount.Denom < msg.MinBoughtTokenAmount.Denom {
-		baseTokenName = msg.SoldTokenAmount.Denom
-		quoteTokenName = msg.MinBoughtTokenAmount.Denom
-	}else {
-		baseTokenName = msg.MinBoughtTokenAmount.Denom
-		quoteTokenName = msg.SoldTokenAmount.Denom
+	if msg.SoldTokenAmount.Denom == msg.MinBoughtTokenAmount.Denom {
+		return sdk.ErrUnknownRequest("BaseTokenName should not equal to QuoteTokenName")
 	}
-	err := ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName)
-	if err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+	tokenList := msg.TokenRoute
+	tokenList = append(tokenList, msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)
+	for _, tokenName := range tokenList {
+		err := ValidateSwapTokenName(tokenName)
+		if err != nil {
+			return sdk.ErrUnknownRequest(err.Error())
+		}
 	}
 	return nil
 }

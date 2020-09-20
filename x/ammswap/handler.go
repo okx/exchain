@@ -48,12 +48,48 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
-	_, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
-	if err != nil {
-		return swapTokenByRouter(ctx, k, msg)
-	} else {
-		return swapToken(ctx, k, msg)
+	if msg.Deadline < ctx.BlockTime().Unix() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  "Failed: block time exceeded deadline",
+		}
 	}
+	var routeList []string
+	routeList = append(routeList, msg.SoldTokenAmount.Denom)
+	routeList = append(routeList, msg.TokenRoute...)
+	routeList = append(routeList, msg.MinBoughtTokenAmount.Denom)
+	routeLength := len(routeList)
+
+	for i := 1; i < routeLength; i++ {
+		tokenPair := types.GetSwapTokenPairName(routeList[i], routeList[i-1])
+		_, err := k.GetSwapTokenPair(ctx, tokenPair)
+		if err != nil {
+			return sdk.Result{
+				Code: sdk.CodeUnknownRequest,
+				Log:  err.Error(),
+			}
+		}
+	}
+
+	soldTokenAmount := msg.SoldTokenAmount
+	var minBoughtTokenAmount sdk.DecCoin
+	var recipient sdk.AccAddress
+	for i := 1; i < routeLength; i++ {
+		if i < routeLength - 1 {
+			minBoughtTokenAmount = sdk.NewDecCoinFromDec(routeList[i], sdk.ZeroDec())
+			recipient = msg.Sender
+		}else {
+			minBoughtTokenAmount = msg.MinBoughtTokenAmount
+			recipient = msg.Recipient
+		}
+		mediumMsg := types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount, nil, msg.Deadline, recipient, msg.Sender)
+		var result sdk.Result
+		result, soldTokenAmount = swapToken(ctx, k, mediumMsg)
+		if !result.IsOK() {
+			return result
+		}
+	}
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
@@ -296,28 +332,22 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
+func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (sdk.Result, sdk.DecCoin) {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-
+	zeroDecCoin := sdk.NewDecCoinFromDec(msg.MinBoughtTokenAmount.Denom, sdk.ZeroDec())
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
 		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
 			Log:  err.Error(),
-		}
-	}
-	if msg.Deadline < ctx.BlockTime().Unix() {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed: block time exceeded deadline",
-		}
+		}, zeroDecCoin
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  err.Error(),
-		}
+		}, zeroDecCoin
 	}
 	params := k.GetParams(ctx)
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
@@ -325,109 +355,26 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
-		}
+		}, zeroDecCoin
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
-		}
+		}, zeroDecCoin
 	}
 
-	res := swapTokenNativeToken(ctx, k, swapTokenPair, tokenBuy, msg)
+	res := swapBoughtTokenSoldToken(ctx, k, swapTokenPair, tokenBuy, msg)
 	if !res.IsOK() {
-		return res
+		return res, zeroDecCoin
 	}
 	event.AppendAttributes(sdk.NewAttribute("bought_token_amount", tokenBuy.String()))
 	event.AppendAttributes(sdk.NewAttribute("recipient", msg.Recipient.String()))
 	ctx.EventManager().EmitEvent(event)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return sdk.Result{Events: ctx.EventManager().Events()}, tokenBuy
 }
 
-func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result {
-	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-
-	if msg.Deadline < ctx.BlockTime().Unix() {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed: block time exceeded deadline",
-		}
-	}
-	if msg.SoldTokenAmount.Denom == sdk.DefaultBondDenom || msg.MinBoughtTokenAmount.Denom == sdk.DefaultBondDenom {
-		return sdk.Result{
-			Code: sdk.CodeUnknownRequest,
-			Log:  fmt.Sprintf("exchange token failed, no pool can exchange %s to %s", msg.MinBoughtTokenAmount.Denom, msg.SoldTokenAmount.Denom),
-		}
-	}
-	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
-		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
-		return sdk.Result{
-			Code: sdk.CodeInsufficientCoins,
-			Log:  err.Error(),
-		}
-	}
-	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
-	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
-	if err != nil {
-		return sdk.Result{
-			Code: sdk.CodeUnknownRequest,
-			Log:  err.Error(),
-		}
-	}
-	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
-	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
-	if err != nil {
-		return sdk.Result{
-			Code: sdk.CodeUnknownRequest,
-			Log:  err.Error(),
-		}
-	}
-
-	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
-	params := k.GetParams(ctx)
-	msgOne := msg
-	msgOne.MinBoughtTokenAmount = nativeAmount
-	tokenNative := keeper.CalculateTokenToBuy(swapTokenPairOne, msgOne.SoldTokenAmount, msgOne.MinBoughtTokenAmount.Denom, params)
-	if tokenNative.IsZero() {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
-		}
-	}
-	msgTwo := msg
-	msgTwo.SoldTokenAmount = tokenNative
-	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPairTwo, msgTwo.SoldTokenAmount, msgTwo.MinBoughtTokenAmount.Denom, params)
-	// sanity check. user may set MinBoughtTokenAmount to zero on front end.
-	// if set zero,this will not return err
-	if tokenBuy.IsZero() {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
-		}
-	}
-	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: expected minimum token to buy is %s but got %s", msg.MinBoughtTokenAmount, tokenBuy),
-		}
-	}
-
-	res := swapTokenNativeToken(ctx, k, swapTokenPairOne, tokenNative, msgOne)
-	if !res.IsOK() {
-		return res
-	}
-	res = swapTokenNativeToken(ctx, k, swapTokenPairTwo, tokenBuy, msgTwo)
-	if !res.IsOK() {
-		return res
-	}
-
-	event.AppendAttributes(sdk.NewAttribute("bought_token_amount", tokenBuy.String()))
-	event.AppendAttributes(sdk.NewAttribute("recipient", msg.Recipient.String()))
-	ctx.EventManager().EmitEvent(event)
-	return sdk.Result{Events: ctx.EventManager().Events()}
-}
-
-func swapTokenNativeToken(
+func swapBoughtTokenSoldToken(
 	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.DecCoin,
 	msg types.MsgTokenToToken,
 ) sdk.Result {

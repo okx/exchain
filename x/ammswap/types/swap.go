@@ -63,23 +63,23 @@ func GetSwapTokenPairName(token1, token2 string) string {
 	return token2 + "_" + token1
 }
 
-func ValidateBaseAndQuoteAmount(baseTokenName, quoteTokenName string) error {
+func ValidateBaseAndQuoteTokenName(baseTokenName, quoteTokenName string) error {
 	if baseTokenName > quoteTokenName {
 		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName, it may be ok to reverse BaseTokenName and QuoteTokenName")
 	}else if baseTokenName == quoteTokenName {
 		return errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
-	if err := ValidateSwapAmountName(baseTokenName); err != nil {
+	if err := ValidateSwapTokenName(baseTokenName); err != nil {
 		return err
 	}
 
-	if err := ValidateSwapAmountName(quoteTokenName); err != nil {
+	if err := ValidateSwapTokenName(quoteTokenName); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ValidateSwapAmountName(amountName string) error {
+func ValidateSwapTokenName(amountName string) error {
 	if sdk.ValidateDenom(amountName) != nil {
 		return errors.New(fmt.Sprintf("invalid token name: %s", amountName))
 	}
