@@ -162,7 +162,17 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
+	if err := ValidateSwapAmountName(msg.Token0Name); err != nil {
+		return sdk.ErrInvalidCoins(err.Error())
+	}
 
+	if err := ValidateSwapAmountName(msg.Token1Name); err != nil {
+		return sdk.ErrInvalidCoins(err.Error())
+	}
+
+	if msg.Token0Name == msg.Token1Name {
+		return sdk.ErrInvalidCoins("Token0Name should not equal to Token1Name")
+	}
 	return nil
 }
 
