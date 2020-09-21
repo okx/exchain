@@ -129,17 +129,6 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-//__________________________________________________________
-
-var (
-	//defaultTokens                  = sdk.TokensFromConsensusPower(100)
-	//defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom
-	//defaultCommissionRate          = "0.1"
-	//defaultCommissionMaxRate       = "0.2"
-	//defaultCommissionMaxChangeRate = "0.01"
-	defaultMinSelfDelegation = "0.001" + common.NativeToken
-)
-
 // CreateValidatorMsgHelpers returns the flagset, particular flags, and a description of defaults
 // this is anticipated to be used with the gen-tx
 func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, pubkeyFlag, amountFlag,
@@ -221,9 +210,9 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	)
 
 	// get the initial validator min self delegation
-	minSelfDelegation, err := sdk.ParseDecCoin(defaultMinSelfDelegation)
-	if err != nil {
-		return txBldr, nil, err
+	minSelfDelegation := sdk.DecCoin{
+		Amount: types.DefaultMinSelfDelegation,
+		Denom:  common.NativeToken,
 	}
 
 	msg := types.NewMsgCreateValidator(
