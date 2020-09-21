@@ -64,16 +64,14 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+			Code: sdk.CodeInternal, Log:  err.Error(),
 		}
 	}
 
 	err = k.IsTokenExist(ctx, msg.Token1Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+			Code: sdk.CodeInternal, Log:  err.Error(),
 		}
 	}
 
@@ -82,8 +80,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed: the swap pair already exists",
+			Code: sdk.CodeInternal, Log:  "Failed: the swap pair already exists",
 		}
 	}
 
@@ -92,8 +89,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
 	if err == nil {
 		return sdk.Result {
-			Code: sdk.CodeInternal,
-			Log:  "Failed: pool token already exists",
+			Code: sdk.CodeInternal, Log:  "Failed: the pool token already exists",
 		}
 	}
 
