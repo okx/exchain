@@ -59,6 +59,8 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
+
+	// 0. check if 2 tokens exist
 	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
 		return sdk.Result{
@@ -75,9 +77,9 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
+	// 1. check if token pair exist
 	tokenPairName := msg.GetSwapTokenPairName()
-
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPairName)
+	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -85,25 +87,24 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	poolName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
-	baseTokenName, quoteTokenName := types.GetBaseQuoteTokenName(msg.Token0Name, msg.Token1Name)
-	baseToken := sdk.NewDecCoinFromDec(baseTokenName, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(quoteTokenName, sdk.ZeroDec())
-	_, err = k.GetPoolTokenInfo(ctx, poolName)
+	// 2. check if pool token exist
+	poolTokenName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
+	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
 	if err == nil {
-		return sdk.Result{
+		return sdk.Result {
 			Code: sdk.CodeInternal,
 			Log:  "Failed: pool token already exists",
 		}
 	}
-	k.NewPoolToken(ctx, poolName)
-	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolName))
-	swapTokenPair.BasePooledCoin = baseToken
-	swapTokenPair.QuotePooledCoin = quoteToken
-	swapTokenPair.PoolTokenName = poolName
 
+	// 3. create the pool token
+	k.NewPoolToken(ctx, poolTokenName)
+
+	// 4. create the token pair
+	swapTokenPair := types.NewSwapPair(msg.Token0Name, msg.Token1Name)
 	k.SetSwapTokenPair(ctx, tokenPairName, swapTokenPair)
 
+	event = event.AppendAttributes(sdk.NewAttribute("pool-token-name", poolTokenName))
 	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPairName))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}

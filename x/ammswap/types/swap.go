@@ -20,6 +20,17 @@ type SwapTokenPair struct {
 	PoolTokenName   string      `json:"pool_token_name"`   // The name of pool token
 }
 
+func NewSwapPair(token0, token1 string) SwapTokenPair {
+	base, quote := GetBaseQuoteTokenName(token0, token1)
+
+	swapTokenPair := SwapTokenPair{
+		sdk.NewDecCoinFromDec(quote, sdk.ZeroDec()),
+		sdk.NewDecCoinFromDec(base, sdk.ZeroDec()),
+		GetPoolTokenName(token0, token1),
+	}
+	return swapTokenPair
+}
+
 // NewSwapTokenPair is a constructor function for SwapTokenPair
 func NewSwapTokenPair(quotePooledCoin sdk.DecCoin, basePooledCoin sdk.DecCoin, poolTokenName string) *SwapTokenPair {
 	swapTokenPair := &SwapTokenPair{
