@@ -129,6 +129,16 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+//__________________________________________________________
+
+var (
+//defaultTokens                  = sdk.TokensFromConsensusPower(100)
+//defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom
+//defaultCommissionRate          = "0.1"
+//defaultCommissionMaxRate       = "0.2"
+//defaultCommissionMaxChangeRate = "0.01"
+)
+
 // CreateValidatorMsgHelpers returns the flagset, particular flags, and a description of defaults
 // this is anticipated to be used with the gen-tx
 func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, pubkeyFlag, amountFlag,
