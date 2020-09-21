@@ -59,7 +59,7 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExist(ctx, msg.BaseAmountName)
+	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -67,7 +67,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	err = k.IsTokenExist(ctx, msg.QuoteAmountName)
+	err = k.IsTokenExist(ctx, msg.Token1Name)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -75,19 +75,19 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 
-	tokenPair := msg.GetSwapTokenPairName()
+	tokenPairName := msg.GetSwapTokenPairName()
 
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPair)
+	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "Failed: exchange already exists",
+			Log:  "Failed: the swap pair already exists",
 		}
 	}
 
-	poolName := types.GetPoolTokenName(msg.BaseAmountName, msg.QuoteAmountName)
-	baseToken := sdk.NewDecCoinFromDec(msg.BaseAmountName, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteAmountName, sdk.ZeroDec())
+	poolName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
+	baseToken := sdk.NewDecCoinFromDec(msg.Token0Name, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(msg.Token1Name, sdk.ZeroDec())
 	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{
@@ -101,9 +101,9 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	swapTokenPair.QuotePooledCoin = quoteToken
 	swapTokenPair.PoolTokenName = poolName
 
-	k.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
+	k.SetSwapTokenPair(ctx, tokenPairName, swapTokenPair)
 
-	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPair))
+	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPairName))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }

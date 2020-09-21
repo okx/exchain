@@ -28,8 +28,8 @@ const (
 	flagSellAmount       = "sell-amount"
 	flagMinBuyAmount     = "min-buy-amount"
 	flagRecipient        = "recipient"
-	flagBaseToken        = "base-token"
-	flagQuoteToken       = "quote-token"
+	flagToken0           = "token0"
+	flagToken1           = "token1"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -159,8 +159,8 @@ $ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-35
 
 func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	// flags
-	var baseAmountName string
-	var quoteAmountName string
+	var token0 string
+	var token1 string
 	cmd := &cobra.Command{
 		Use:   "create-pair",
 		Short: "create token pair",
@@ -168,7 +168,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`create token pair.
 
 Example:
-$ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --fees 0.01okt 
+$ okexchaincli tx swap create-pair --token0 eth-355 --token1 btc-366 --fees 0.01okt 
 
 `),
 		),
@@ -176,16 +176,16 @@ $ okexchaincli tx swap create-pair --base-token eth-355 --quote-token btc-366 --
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			msg := types.NewMsgCreateExchange(baseAmountName, quoteAmountName, cliCtx.FromAddress)
+			msg := types.NewMsgCreateExchange(token0, token1, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVar(&baseAmountName, flagBaseToken,  "", "the base token name is required to create an AMM swap pair")
-	cmd.Flags().StringVarP(&quoteAmountName, flagQuoteToken, "q", "", "the quote token name is required to create an AMM swap pair")
-	cmd.MarkFlagRequired(flagBaseToken)
-	cmd.MarkFlagRequired(flagQuoteToken)
+	cmd.Flags().StringVar(&token0, flagToken0, "", "the base token name is required to create an AMM swap pair")
+	cmd.Flags().StringVar(&token1, flagToken1, "", "the quote token name is required to create an AMM swap pair")
+	cmd.MarkFlagRequired(flagToken0)
+	cmd.MarkFlagRequired(flagToken1)
 	return cmd
 }
 
