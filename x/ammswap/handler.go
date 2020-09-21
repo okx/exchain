@@ -86,9 +86,10 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	}
 
 	poolName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
-	baseToken := sdk.NewDecCoinFromDec(msg.Token0Name, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(msg.Token1Name, sdk.ZeroDec())
-	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
+	baseTokenName, quoteTokenName := types.GetBaseQuoteTokenName(msg.Token0Name, msg.Token1Name)
+	baseToken := sdk.NewDecCoinFromDec(baseTokenName, sdk.ZeroDec())
+	quoteToken := sdk.NewDecCoinFromDec(quoteTokenName, sdk.ZeroDec())
+	_, err = k.GetPoolTokenInfo(ctx, poolName)
 	if err == nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -96,7 +97,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 		}
 	}
 	k.NewPoolToken(ctx, poolName)
-	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
+	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolName))
 	swapTokenPair.BasePooledCoin = baseToken
 	swapTokenPair.QuotePooledCoin = quoteToken
 	swapTokenPair.PoolTokenName = poolName

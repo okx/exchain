@@ -56,11 +56,16 @@ func InitPoolToken(poolTokenName string) token.Token {
 	}
 }
 
-func GetSwapTokenPairName(token1, token2 string) string {
-	if token1 < token2 {
-		return token1 + "_" + token2
+func GetSwapTokenPairName(token0, token1 string) string {
+	baseTokenName, quoteTokenName := GetBaseQuoteTokenName(token0, token1)
+	return baseTokenName + "_" + quoteTokenName
+}
+
+func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
+	if token0 < token1 {
+		return token0, token1
 	}
-	return token2 + "_" + token1
+	return token1, token0
 }
 
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
