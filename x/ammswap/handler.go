@@ -62,7 +62,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  err.Error(),
 		}
 	}
@@ -70,7 +70,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	err = k.IsTokenExist(ctx, msg.Token1Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  err.Error(),
 		}
 	}
@@ -80,7 +80,7 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
+			Code: sdk.CodeUnknownRequest,
 			Log:  "Failed: the swap pair already exists",
 		}
 	}
