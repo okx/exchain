@@ -137,16 +137,16 @@ func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
 
 // MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
-	BaseAmountName  string         `json:"base_amount_name"` // Token
-	QuoteAmountName string         `json:"quote_amount_name"`
+	Token0Name string          `json:"token0_name"`
+	Token1Name string          `json:"token1_name"`
 	Sender          sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
-func NewMsgCreateExchange(baseAmountName string, quoteAmountName string, sender sdk.AccAddress) MsgCreateExchange {
+func NewMsgCreateExchange(token0Name string, token1Name string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		BaseAmountName:  baseAmountName,
-		QuoteAmountName: quoteAmountName,
+		Token0Name:  token0Name,
+		Token1Name:  token1Name,
 		Sender:         sender,
 	}
 }
@@ -162,9 +162,16 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
-	err := ValidateBaseAndQuoteAmount(msg.BaseAmountName, msg.QuoteAmountName)
-	if err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+	if err := ValidateSwapAmountName(msg.Token0Name); err != nil {
+		return sdk.ErrInvalidCoins(err.Error())
+	}
+
+	if err := ValidateSwapAmountName(msg.Token1Name); err != nil {
+		return sdk.ErrInvalidCoins(err.Error())
+	}
+
+	if msg.Token0Name == msg.Token1Name {
+		return sdk.ErrInvalidCoins("Token0Name should not equal to Token1Name")
 	}
 	return nil
 }
@@ -181,7 +188,7 @@ func (msg MsgCreateExchange) GetSigners() []sdk.AccAddress {
 
 // GetSwapTokenPair defines token pair
 func (msg MsgCreateExchange) GetSwapTokenPairName() string {
-	return GetSwapTokenPairName(msg.BaseAmountName, msg.QuoteAmountName)
+	return GetSwapTokenPairName(msg.Token0Name, msg.Token1Name)
 }
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom

@@ -20,6 +20,17 @@ type SwapTokenPair struct {
 	PoolTokenName   string      `json:"pool_token_name"`   // The name of pool token
 }
 
+func NewSwapPair(token0, token1 string) SwapTokenPair {
+	base, quote := GetBaseQuoteTokenName(token0, token1)
+
+	swapTokenPair := SwapTokenPair{
+		sdk.NewDecCoinFromDec(quote, sdk.ZeroDec()),
+		sdk.NewDecCoinFromDec(base, sdk.ZeroDec()),
+		GetPoolTokenName(token0, token1),
+	}
+	return swapTokenPair
+}
+
 // NewSwapTokenPair is a constructor function for SwapTokenPair
 func NewSwapTokenPair(quotePooledCoin sdk.DecCoin, basePooledCoin sdk.DecCoin, poolTokenName string) *SwapTokenPair {
 	swapTokenPair := &SwapTokenPair{
@@ -56,11 +67,16 @@ func InitPoolToken(poolTokenName string) token.Token {
 	}
 }
 
-func GetSwapTokenPairName(token1, token2 string) string {
-	if token1 < token2 {
-		return token1 + "_" + token2
+func GetSwapTokenPairName(token0, token1 string) string {
+	baseTokenName, quoteTokenName := GetBaseQuoteTokenName(token0, token1)
+	return baseTokenName + "_" + quoteTokenName
+}
+
+func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
+	if token0 < token1 {
+		return token0, token1
 	}
-	return token2 + "_" + token1
+	return token1, token0
 }
 
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {

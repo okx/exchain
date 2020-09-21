@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"testing"
 	"time"
 
@@ -38,19 +39,22 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 	require.Nil(t, err)
 	tests := []struct {
 		testCase         string
-		symbol           string
+		symbol0           string
+		symbol1           string
 		addr             sdk.AccAddress
 		exceptResultCode sdk.CodeType
 	}{
-		{"success", "aaa", addr, sdk.CodeOK},
-		{"nil addr", "aaa", nil, sdk.CodeInvalidAddress},
-		{"invalid token", "1ab", addr, sdk.CodeUnknownRequest},
-		{"invalid token", TestQuotePooledToken, addr, sdk.CodeUnknownRequest},
-		{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", "xxb", addr, sdk.CodeUnknownRequest},
+		{"success", "aaa", common.NativeToken, addr, sdk.CodeOK},
+		{"success", "aaa", "bbb", addr, sdk.CodeOK},
+		{"success", "bbb", "aaa", addr, sdk.CodeOK},
+		{"nil addr", "aaa", common.NativeToken, nil, sdk.CodeInvalidAddress},
+		{"invalid token", "1ab",common.NativeToken, addr, sdk.CodeInvalidCoins},
+		{"invalid token", common.NativeToken, common.NativeToken, addr, sdk.CodeInvalidCoins},
+		//{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", "xxb", addr, sdk.CodeUnknownRequest},
 
 	}
 	for i, testCase := range tests {
-		msg := NewMsgCreateExchange(testCase.symbol, TestQuotePooledToken, testCase.addr)
+		msg := NewMsgCreateExchange(testCase.symbol0, testCase.symbol1, testCase.addr)
 		err := msg.ValidateBasic()
 		fmt.Println(i, err)
 		if err == nil {

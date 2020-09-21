@@ -49,14 +49,39 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 
-	expectSwapTokenPair := types.GetTestSwapTokenPair()
+	expectedSwapTokenPair := types.GetTestSwapTokenPair()
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
 	require.Nil(t, err)
-	require.EqualValues(t, expectSwapTokenPair, swapTokenPair)
+	require.EqualValues(t, expectedSwapTokenPair, swapTokenPair)
 
 	// test case3: swapTokenPair already exists
 	result = handler(ctx, msg)
 	require.NotNil(t, result.Log)
+
+	// test case4: The lexicographic order of BaseTokenName must be less than QuoteTokenName
+	testToken2 := initToken(types.TestBasePooledToken2)
+	mapp.tokenKeeper.NewToken(ctx, testToken2)
+	msg = types.NewMsgCreateExchange(testToken2.Symbol, testToken.Symbol, addrKeysSlice[0].Address)
+	result = handler(ctx, msg)
+	require.True(t, result.IsOK())
+	expectedSwapTokenPairName := types.GetSwapTokenPairName(testToken.Symbol, testToken2.Symbol)
+	swapTokenPair, err = keeper.GetSwapTokenPair(ctx, expectedSwapTokenPairName)
+	require.Nil(t, err)
+	expectedBaseTokenName, expectedQuoteTokenName := types.GetBaseQuoteTokenName(testToken.Symbol, testToken2.Symbol)
+	require.Equal(t, expectedBaseTokenName, swapTokenPair.BasePooledCoin.Denom)
+	require.Equal(t, expectedQuoteTokenName, swapTokenPair.QuotePooledCoin.Denom)
+
+	testToken3 := initToken(types.TestBasePooledToken3)
+	mapp.tokenKeeper.NewToken(ctx, testToken3)
+	msg = types.NewMsgCreateExchange(testToken2.Symbol, testToken3.Symbol, addrKeysSlice[0].Address)
+	result = handler(ctx, msg)
+	require.True(t, result.IsOK())
+	expectedSwapTokenPairName = types.GetSwapTokenPairName(testToken2.Symbol, testToken3.Symbol)
+	swapTokenPair, err = keeper.GetSwapTokenPair(ctx, expectedSwapTokenPairName)
+	require.Nil(t, err)
+	expectedBaseTokenName, expectedQuoteTokenName = types.GetBaseQuoteTokenName(testToken2.Symbol, testToken3.Symbol)
+	require.Equal(t, expectedBaseTokenName, swapTokenPair.BasePooledCoin.Denom)
+	require.Equal(t, expectedQuoteTokenName, swapTokenPair.QuotePooledCoin.Denom)
 }
 
 func initToken(name string) token.Token {

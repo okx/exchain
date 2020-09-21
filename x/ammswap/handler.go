@@ -59,51 +59,49 @@ func handleMsgTokenToToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken)
 
 func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExchange) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-	err := k.IsTokenExist(ctx, msg.BaseAmountName)
+
+	// 0. check if 2 tokens exist
+	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+			Code: sdk.CodeInternal, Log:  err.Error(),
 		}
 	}
 
-	err = k.IsTokenExist(ctx, msg.QuoteAmountName)
+	err = k.IsTokenExist(ctx, msg.Token1Name)
 	if err != nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+			Code: sdk.CodeInternal, Log:  err.Error(),
 		}
 	}
 
-	tokenPair := msg.GetSwapTokenPairName()
-
-	swapTokenPair, err := k.GetSwapTokenPair(ctx, tokenPair)
+	// 1. check if the token pair exists
+	tokenPairName := msg.GetSwapTokenPairName()
+	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed: exchange already exists",
+			Code: sdk.CodeInternal, Log:  "Failed: the swap pair already exists",
 		}
 	}
 
-	poolName := types.GetPoolTokenName(msg.BaseAmountName, msg.QuoteAmountName)
-	baseToken := sdk.NewDecCoinFromDec(msg.BaseAmountName, sdk.ZeroDec())
-	quoteToken := sdk.NewDecCoinFromDec(msg.QuoteAmountName, sdk.ZeroDec())
-	poolToken, err := k.GetPoolTokenInfo(ctx, poolName)
+	// 2. check if the pool token exists
+	poolTokenName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
+	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
 	if err == nil {
-		return sdk.Result{
-			Code: sdk.CodeInternal,
-			Log:  "Failed: pool token already exists",
+		return sdk.Result {
+			Code: sdk.CodeInternal, Log:  "Failed: the pool token already exists",
 		}
 	}
-	k.NewPoolToken(ctx, poolName)
-	event = event.AppendAttributes(sdk.NewAttribute("pool-token", poolToken.OriginalSymbol))
-	swapTokenPair.BasePooledCoin = baseToken
-	swapTokenPair.QuotePooledCoin = quoteToken
-	swapTokenPair.PoolTokenName = poolName
 
-	k.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
+	// 3. create the pool token
+	k.NewPoolToken(ctx, poolTokenName)
 
-	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPair))
+	// 4. create the token pair
+	swapTokenPair := types.NewSwapPair(msg.Token0Name, msg.Token1Name)
+	k.SetSwapTokenPair(ctx, tokenPairName, swapTokenPair)
+
+	event = event.AppendAttributes(sdk.NewAttribute("pool-token-name", poolTokenName))
+	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPairName))
 	ctx.EventManager().EmitEvent(event)
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
