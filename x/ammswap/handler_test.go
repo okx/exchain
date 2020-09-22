@@ -20,68 +20,63 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	testToken := initToken(types.TestBasePooledToken)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
-
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
-	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 
-	// test case1: token is not exist
-	result := handler(ctx, msg)
-	require.NotNil(t, result.Log)
+	testToken := initToken(types.TestBasePooledToken)
+	testToken2 := initToken(types.TestBasePooledToken2)
+	testQuoteToken := initToken(types.TestQuotePooledToken)
 
 	mapp.tokenKeeper.NewToken(ctx, testToken)
-
+	mapp.tokenKeeper.NewToken(ctx, testToken2)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 
-	// test case2: success
-	result = handler(ctx, msg)
-	require.Equal(t, "", result.Log)
-
-	// check account balance
-	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins := sdk.DecCoins{
-		sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.MustNewDecFromStr("100")),
-		sdk.NewDecCoinFromDec(types.TestBasePooledToken2, sdk.MustNewDecFromStr("100")),
-		sdk.NewDecCoinFromDec(types.TestBasePooledToken3, sdk.MustNewDecFromStr("100")),
-		sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.MustNewDecFromStr("100")),
+	tests := []struct {
+		testCase               string
+		token0                 string
+		token1                 string
+		addr                   sdk.AccAddress
+		expectedCode           sdk.CodeType
+	}{
+		{
+			testCase:               "token is not exist",
+			token0:                 testToken.Symbol,
+			token1:                 types.TestBasePooledToken3,
+			addr:                   addrKeysSlice[0].Address,
+			expectedCode:           sdk.CodeInternal},
+		{
+			testCase:               "success",
+			token0:                 testToken.Symbol,
+			token1:                 testQuoteToken.Symbol,
+			addr:                   addrKeysSlice[0].Address,
+			expectedCode:           sdk.CodeOK,},
+		{
+			testCase:               "success(The lexicographic order of BaseTokenName must be less than QuoteTokenName)",
+			token0:                 testToken2.Symbol,
+			token1:                 testToken.Symbol,
+			addr:                   addrKeysSlice[0].Address,
+			expectedCode:           sdk.CodeOK},
+		{
+			testCase:               "swapTokenPair already exists",
+			token0:                 testToken.Symbol,
+			token1:                 testQuoteToken.Symbol,
+			addr:                   addrKeysSlice[0].Address,
+			expectedCode:           sdk.CodeInternal},
 	}
-	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
-
-	expectedSwapTokenPair := types.GetTestSwapTokenPair()
-	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
-	require.Nil(t, err)
-	require.EqualValues(t, expectedSwapTokenPair, swapTokenPair)
-
-	// test case3: swapTokenPair already exists
-	result = handler(ctx, msg)
-	require.NotNil(t, result.Log)
-
-	// test case4: The lexicographic order of BaseTokenName must be less than QuoteTokenName
-	testToken2 := initToken(types.TestBasePooledToken2)
-	mapp.tokenKeeper.NewToken(ctx, testToken2)
-	msg = types.NewMsgCreateExchange(testToken2.Symbol, testToken.Symbol, addrKeysSlice[0].Address)
-	result = handler(ctx, msg)
-	require.True(t, result.IsOK())
-	expectedSwapTokenPairName := types.GetSwapTokenPairName(testToken.Symbol, testToken2.Symbol)
-	swapTokenPair, err = keeper.GetSwapTokenPair(ctx, expectedSwapTokenPairName)
-	require.Nil(t, err)
-	expectedBaseTokenName, expectedQuoteTokenName := types.GetBaseQuoteTokenName(testToken.Symbol, testToken2.Symbol)
-	require.Equal(t, expectedBaseTokenName, swapTokenPair.BasePooledCoin.Denom)
-	require.Equal(t, expectedQuoteTokenName, swapTokenPair.QuotePooledCoin.Denom)
-
-	testToken3 := initToken(types.TestBasePooledToken3)
-	mapp.tokenKeeper.NewToken(ctx, testToken3)
-	msg = types.NewMsgCreateExchange(testToken2.Symbol, testToken3.Symbol, addrKeysSlice[0].Address)
-	result = handler(ctx, msg)
-	require.True(t, result.IsOK())
-	expectedSwapTokenPairName = types.GetSwapTokenPairName(testToken2.Symbol, testToken3.Symbol)
-	swapTokenPair, err = keeper.GetSwapTokenPair(ctx, expectedSwapTokenPairName)
-	require.Nil(t, err)
-	expectedBaseTokenName, expectedQuoteTokenName = types.GetBaseQuoteTokenName(testToken2.Symbol, testToken3.Symbol)
-	require.Equal(t, expectedBaseTokenName, swapTokenPair.BasePooledCoin.Denom)
-	require.Equal(t, expectedQuoteTokenName, swapTokenPair.QuotePooledCoin.Denom)
+	for _, testCase := range tests {
+		fmt.Println(testCase.testCase)
+		addLiquidityMsg := types.NewMsgCreateExchange(testCase.token0, testCase.token1, testCase.addr)
+		result := handler(ctx, addLiquidityMsg)
+		require.Equal(t, testCase.expectedCode, result.Code)
+		if result.IsOK() {
+			expectedSwapTokenPairName := types.GetSwapTokenPairName(testCase.token0, testCase.token1)
+			swapTokenPair, err := keeper.GetSwapTokenPair(ctx, expectedSwapTokenPairName)
+			expectedBaseTokenName, expectedQuoteTokenName := types.GetBaseQuoteTokenName(testCase.token0, testCase.token1)
+			require.Nil(t, err)
+			require.Equal(t, expectedBaseTokenName, swapTokenPair.BasePooledCoin.Denom)
+			require.Equal(t, expectedQuoteTokenName, swapTokenPair.QuotePooledCoin.Denom)
+		}
+	}
 }
 
 func initToken(name string) token.Token {
