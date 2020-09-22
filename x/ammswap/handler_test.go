@@ -43,7 +43,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:                 testToken.Symbol,
 			token1:                 types.TestBasePooledToken3,
 			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeUnknownRequest},
+			expectedCode:           sdk.CodeInternal},
 		{
 			testCase:               "success",
 			token0:                 testToken.Symbol,
@@ -61,7 +61,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:                 testToken.Symbol,
 			token1:                 testQuoteToken.Symbol,
 			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeUnknownRequest},
+			expectedCode:           sdk.CodeInternal},
 	}
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
