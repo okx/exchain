@@ -3,6 +3,7 @@ package farm
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/farm/types"
 	"testing"
 )
 
@@ -10,19 +11,6 @@ const (
 	lockedToken = "eth"
 	yieldToken  = "xxb"
 )
-
-type FarmPool struct {
-	PoolName          string
-	LockedTokenSymbol string
-	// sum of all lockedAmount
-	TotalLockedToken       sdk.DecCoin
-	YieldingCoins          sdk.DecCoins
-	YieldedCoins           sdk.DecCoins
-	LastBlockHeightToYield int64
-	YieldAmountPerBlock    sdk.Dec
-	// sum of all lockedAmount * lockedBlockHeight
-	TotalLockedInfo sdk.Dec
-}
 
 type LockRecord struct {
 	lockAmount       sdk.DecCoin
@@ -33,6 +21,8 @@ type account struct {
 	user    string
 	balance sdk.DecCoins
 }
+
+type FarmPool types.FarmPool
 
 func (p *FarmPool) lock(user *account, amount sdk.DecCoin, height int64) {
 	var record *LockRecord
@@ -51,7 +41,7 @@ func (p *FarmPool) lock(user *account, amount sdk.DecCoin, height int64) {
 
 	user.balance = user.balance.Sub(sdk.DecCoins{amount})
 
-	p.TotalLockedToken = p.TotalLockedToken.Add(amount)
+	p.TotalLockedCoin = p.TotalLockedCoin.Add(amount)
 	p.TotalLockedInfo = p.TotalLockedInfo.Add(amount.Amount.MulTruncate(sdk.NewDec(height)))
 }
 
@@ -71,7 +61,7 @@ func (p *FarmPool) claim(user *account, height int64) {
 	record := lockRecords[user.user]
 
 	numerator := record.lockAmount.Amount.MulTruncate(sdk.NewDec(height - record.startBlockHeight))
-	denominator := p.TotalLockedToken.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedInfo)
+	denominator := p.TotalLockedCoin.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedInfo)
 	yieldCoinsForUser := p.YieldedCoins.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
 	// claim yield coins
@@ -94,7 +84,7 @@ func (p *FarmPool) unlock(user *account, height int64) {
 
 	user.balance = user.balance.Add(sdk.DecCoins{record.lockAmount})
 
-	p.TotalLockedToken = p.TotalLockedToken.Sub(record.lockAmount)
+	p.TotalLockedCoin = p.TotalLockedCoin.Sub(record.lockAmount)
 	p.TotalLockedInfo = p.TotalLockedInfo.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 
 	delete(lockRecords, user.user)
@@ -106,7 +96,7 @@ func TestClaim(t *testing.T) {
 	pool := FarmPool{
 		PoolName:               "pool-xxb-eth",
 		LockedTokenSymbol:      lockedToken,
-		TotalLockedToken:       sdk.NewDecCoinFromDec(lockedToken, sdk.ZeroDec()),
+		TotalLockedCoin:        sdk.NewDecCoinFromDec(lockedToken, sdk.ZeroDec()),
 		YieldingCoins:          sdk.DecCoins{sdk.NewDecCoinFromDec(yieldToken, sdk.NewDec(100000))},
 		YieldAmountPerBlock:    sdk.NewDec(10),
 		LastBlockHeightToYield: 0,

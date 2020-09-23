@@ -9,12 +9,12 @@ type YieldOKTWhiteList []string
 type FarmPool struct {
 	PoolName          string `json:"pool_name"`
 	LockedTokenSymbol string `json:"locked_token_symbol"`
-	// S1
-	TotalLockedToken       sdk.DecCoin  `json:"total_locked_token"`
-	YieldingTokens         sdk.DecCoins `json:"releasing_tokens_holder"`
-	YieldedTokens          sdk.DecCoins `json:"yielded_tokens_holder"`
+	// sum of all lockedAmount
+	TotalLockedCoin       sdk.DecCoin  `json:"total_locked_coin"`
+	YieldingCoins         sdk.DecCoins `json:"yielding_coins"`
+	YieldedCoins          sdk.DecCoins `json:"yielded_coins"`
 	LastBlockHeightToYield int64        `json:"last_block_height_to_yield"`
 	YieldAmountPerBlock    sdk.Dec      `json:"yield_amount_per_block"`
-	// S2
+	// sum of all lockedAmount * lockedBlockHeight
 	TotalLockedInfo sdk.Dec `json:"total_locked_info"`
 }
