@@ -25,6 +25,16 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgCreatePool(ctx, k, msg, logger)
 			}
+		case types.MsgLock:
+			name = "handleMsgLockFarm"
+			handlerFun = func() sdk.Result {
+				return handleMsgLock(ctx, k, msg, logger)
+			}
+		case types.MsgUnlock:
+			name = "handleMsgUnlockFarm"
+			handlerFun = func() sdk.Result {
+				return handleMsgUnlock(ctx, k, msg, logger)
+			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -37,5 +47,29 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 }
 
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
+	return sdk.Result{}
+}
+
+func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
+	//if msg.Amount.Denom != k.BondDenom(ctx) {
+	//	return ErrBadDenom(k.Codespace()).Result()
+	//}
+	//
+	//err := k.Delegate(ctx, msg.DelegatorAddress, msg.Amount)
+	//if err != nil {
+	//	return err.Result()
+	//}
+	//
+	//ctx.EventManager().EmitEvents(sdk.Events{
+	//	sdk.NewEvent(
+	//		types.EventTypeDelegate,
+	//		sdk.NewAttribute(types.AttributeKeyValidator, msg.DelegatorAddress.String()),
+	//		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+	//	),
+	//})
+	return sdk.Result{Events: ctx.EventManager().Events()}
+}
+
+func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
 	return sdk.Result{}
 }

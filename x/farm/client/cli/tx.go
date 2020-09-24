@@ -2,6 +2,11 @@ package cli
 
 import (
 	"fmt"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -51,3 +56,47 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // 		},
 // 	}
 // }
+
+func GetCmdLockFarm(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "lock [pool-name] [amount]",
+		Short: "lock a number of coins for liquidity mining",
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			amount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
+
+			poolName := args[0]
+			msg := types.NewMsgLock(poolName, cliCtx.GetFromAddress(), amount)
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	return cmd
+}
+
+func GetCmdUnlockFarm(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unlock [pool-name] [amount]",
+		Short: "unlock a number of coins for mining reward",
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			amount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
+
+			poolName := args[0]
+			msg := types.NewMsgUnlock(poolName, cliCtx.GetFromAddress(), amount)
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	return cmd
+}
