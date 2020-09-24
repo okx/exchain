@@ -51,10 +51,17 @@ func (p *FarmPool) claim(user *account, height int64) {
 	}
 
 	if height > p.LastBlockHeightToYield {
-		yieldAmt := p.YieldAmountPerBlock.MulTruncate(sdk.NewDec(height - p.LastBlockHeightToYield))
-		yieldCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(yieldToken, yieldAmt)}
-		p.YieldingCoins = p.YieldingCoins.Sub(yieldCoins)
-		p.YieldedCoins = p.YieldedCoins.Add(yieldCoins)
+		var yieldedCoins sdk.DecCoins
+		for _, yieldingCoin := range p.YieldingCoins {
+			if height > yieldingCoin.StartBlockHeightToYield {
+				yieldAmt := yieldingCoin.YieldAmountPerBlock.MulTruncate(sdk.NewDec(height - p.LastBlockHeightToYield))
+				yieldedCoin := sdk.NewDecCoinFromDec(yieldToken, yieldAmt)
+				yieldingCoin.Coin = yieldingCoin.Coin.Sub(yieldedCoin)
+				yieldedCoins = yieldedCoins.Add(sdk.DecCoins{yieldedCoin})
+			}
+		}
+
+		p.YieldedCoins = p.YieldedCoins.Add(yieldedCoins)
 		p.LastBlockHeightToYield = height
 	}
 
@@ -97,11 +104,17 @@ func TestClaim(t *testing.T) {
 		PoolName:               "pool-xxb-eth",
 		LockedTokenSymbol:      lockedToken,
 		TotalLockedCoin:        sdk.NewDecCoinFromDec(lockedToken, sdk.ZeroDec()),
-		YieldingCoins:          sdk.DecCoins{sdk.NewDecCoinFromDec(yieldToken, sdk.NewDec(100000))},
-		YieldAmountPerBlock:    sdk.NewDec(10),
 		LastBlockHeightToYield: 0,
 		TotalLockedInfo:        sdk.ZeroDec(),
 	}
+
+	yieldingCoin := types.YieldingCoin{
+		Coin:                    sdk.NewDecCoinFromDec(yieldToken, sdk.NewDec(100000)),
+		StartBlockHeightToYield: 0,
+		YieldAmountPerBlock:     sdk.NewDec(10),
+	}
+
+	pool.YieldingCoins = append(pool.YieldingCoins, yieldingCoin)
 
 	userA := account{
 		"A",
