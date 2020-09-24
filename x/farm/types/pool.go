@@ -4,12 +4,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// PoolsYieldNativeToken is the whitelist of pools which can yield native token
-type PoolsYieldNativeToken []string
-
 // LockInfo is locked info of an address
 type LockInfo struct {
 	Addr             sdk.AccAddress `json:"addr"`
+	PoolName         string         `json:"pool_name"`
 	Amount           sdk.DecCoin    `json:"amount"`
 	StartBlockHeight int64          `json:"start_block_height"`
 }

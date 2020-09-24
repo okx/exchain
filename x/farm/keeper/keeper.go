@@ -32,3 +32,11 @@ func NewKeeper(
 	}
 	return keeper
 }
+
+func (k Keeper) StoreKey() sdk.StoreKey {
+	return k.storeKey
+}
+
+func (k Keeper) SupplyKeeper() supply.Keeper {
+	return k.supplyKeeper
+}
