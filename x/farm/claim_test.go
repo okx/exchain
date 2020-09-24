@@ -42,7 +42,7 @@ func (p *FarmPool) lock(user *account, amount sdk.DecCoin, height int64) {
 	user.balance = user.balance.Sub(sdk.DecCoins{amount})
 
 	p.TotalLockedCoin = p.TotalLockedCoin.Add(amount)
-	p.TotalLockedInfo = p.TotalLockedInfo.Add(amount.Amount.MulTruncate(sdk.NewDec(height)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Add(amount.Amount.MulTruncate(sdk.NewDec(height)))
 }
 
 func (p *FarmPool) claim(user *account, height int64) {
@@ -50,11 +50,11 @@ func (p *FarmPool) claim(user *account, height int64) {
 		return
 	}
 
-	if height > p.LastBlockHeightToYield {
+	if height > p.LastYieldedBlockHeight {
 		var yieldedCoins sdk.DecCoins
 		for _, yieldingCoin := range p.YieldingCoins {
 			if height > yieldingCoin.StartBlockHeightToYield {
-				yieldAmt := yieldingCoin.YieldAmountPerBlock.MulTruncate(sdk.NewDec(height - p.LastBlockHeightToYield))
+				yieldAmt := yieldingCoin.YieldAmountPerBlock.MulTruncate(sdk.NewDec(height - p.LastYieldedBlockHeight))
 				yieldedCoin := sdk.NewDecCoinFromDec(yieldToken, yieldAmt)
 				yieldingCoin.Coin = yieldingCoin.Coin.Sub(yieldedCoin)
 				yieldedCoins = yieldedCoins.Add(sdk.DecCoins{yieldedCoin})
@@ -62,24 +62,24 @@ func (p *FarmPool) claim(user *account, height int64) {
 		}
 
 		p.YieldedCoins = p.YieldedCoins.Add(yieldedCoins)
-		p.LastBlockHeightToYield = height
+		p.LastYieldedBlockHeight = height
 	}
 
 	record := lockRecords[user.user]
 
 	numerator := record.lockAmount.Amount.MulTruncate(sdk.NewDec(height - record.startBlockHeight))
-	denominator := p.TotalLockedCoin.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedInfo)
+	denominator := p.TotalLockedCoin.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedWeight)
 	yieldCoinsForUser := p.YieldedCoins.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
 	// claim yield coins
 	p.YieldedCoins = p.YieldedCoins.Sub(yieldCoinsForUser)
 	user.balance = user.balance.Add(yieldCoinsForUser)
-	p.TotalLockedInfo = p.TotalLockedInfo.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 
 	// update block height
 	record.startBlockHeight = height
 
-	p.TotalLockedInfo = p.TotalLockedInfo.Add(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Add(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 }
 
 func (p *FarmPool) unlock(user *account, height int64) {
@@ -92,7 +92,7 @@ func (p *FarmPool) unlock(user *account, height int64) {
 	user.balance = user.balance.Add(sdk.DecCoins{record.lockAmount})
 
 	p.TotalLockedCoin = p.TotalLockedCoin.Sub(record.lockAmount)
-	p.TotalLockedInfo = p.TotalLockedInfo.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 
 	delete(lockRecords, user.user)
 }
@@ -104,8 +104,8 @@ func TestClaim(t *testing.T) {
 		PoolName:               "pool-xxb-eth",
 		LockedTokenSymbol:      lockedToken,
 		TotalLockedCoin:        sdk.NewDecCoinFromDec(lockedToken, sdk.ZeroDec()),
-		LastBlockHeightToYield: 0,
-		TotalLockedInfo:        sdk.ZeroDec(),
+		LastYieldedBlockHeight: 0,
+		TotalLockedWeight:      sdk.ZeroDec(),
 	}
 
 	yieldingCoin := types.YieldingCoin{

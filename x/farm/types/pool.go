@@ -28,7 +28,7 @@ type FarmPool struct {
 	TotalLockedCoin        sdk.DecCoin    `json:"total_locked_coin"`
 	YieldingCoins          []YieldingCoin `json:"yielding_coins"`
 	YieldedCoins           sdk.DecCoins   `json:"yielded_coins"`
-	LastBlockHeightToYield int64          `json:"last_block_height_to_yield"`
+	LastYieldedBlockHeight int64          `json:"last_yielded_block_height"`
 	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
-	TotalLockedInfo sdk.Dec `json:"total_locked_info"`
+	TotalLockedWeight sdk.Dec `json:"total_locked_weight"`
 }
