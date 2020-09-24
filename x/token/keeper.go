@@ -385,6 +385,13 @@ func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 
 // addTokenSuffix add token suffix
 func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
+	if originalSymbol == "usdk" {
+		name = originalSymbol
+		if !keeper.TokenExist(ctx, name) {
+			return name, true
+		}
+	}
+
 	hash := fmt.Sprintf("%x", tmhash.Sum(ctx.TxBytes()))
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {
