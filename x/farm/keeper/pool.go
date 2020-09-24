@@ -22,15 +22,19 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetLockInfoKey(lockInfo.Addr), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))
+	store.Set(types.GetLockInfoKey(lockInfo.Addr, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))
 }
 
-func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress) (info types.LockInfo, found bool) {
+func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) (info types.LockInfo, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.GetLockInfoKey(addr))
+	bz := store.Get(types.GetLockInfoKey(addr, poolName))
 	if bz == nil {
 		return info, false
 	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &info)
 	return info, true
+}
+
+func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec {
+	return sdk.ZeroDec()
 }
