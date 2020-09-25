@@ -30,6 +30,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryPools(queryRoute, cdc),
 			GetCmdQueryEarnings(queryRoute, cdc),
 			GetCmdQueryParams(queryRoute, cdc),
+			GetCmdQueryWhitelist(queryRoute, cdc),
 		)...,
 	)
 
@@ -128,6 +129,29 @@ $ %s query farm params
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			// TODO:
 			return cliCtx.PrintOutput(newToPrint("params"))
+		},
+	}
+}
+
+// GetCmdQueryWhitelist gets the whitelist query command.
+func GetCmdQueryWhitelist(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "whitelist",
+		Short: "query the whitelist of pools to farm okt",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the current whitelist of pools which are approved to farm okt.
+
+Example:
+$ %s query farm whitelist
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			// TODO:
+			return cliCtx.PrintOutput(newToPrint("whitelist"))
 		},
 	}
 }
