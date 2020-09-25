@@ -29,6 +29,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryPool(queryRoute, cdc),
 			GetCmdQueryPools(queryRoute, cdc),
 			GetCmdQueryEarnings(queryRoute, cdc),
+			GetCmdQueryParams(queryRoute, cdc),
 		)...,
 	)
 
@@ -104,6 +105,29 @@ $ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujn
 			}
 			// TODO:
 			return cliCtx.PrintOutput(newToPrint(args[0] + " : " + accAddr.String()))
+		},
+	}
+}
+
+// GetCmdQueryParams gets the pools query command.
+func GetCmdQueryParams(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "params",
+		Short: "query the current farm parameters information",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query values set as farm parameters.
+
+Example:
+$ %s query farm params
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			// TODO:
+			return cliCtx.PrintOutput(newToPrint("params"))
 		},
 	}
 }
