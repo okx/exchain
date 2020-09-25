@@ -2,6 +2,7 @@ package farm
 
 import (
 	"fmt"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -25,15 +26,25 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgCreatePool(ctx, k, msg, logger)
 			}
+		case types.MsgProvide:
+			name = "handleMsgProvide"
+			handlerFun = func() sdk.Result {
+				return handleMsgProvide(ctx, k, msg, logger)
+			}
 		case types.MsgLock:
-			name = "handleMsgLockFarm"
+			name = "handleMsgLock"
 			handlerFun = func() sdk.Result {
 				return handleMsgLock(ctx, k, msg, logger)
 			}
 		case types.MsgUnlock:
-			name = "handleMsgUnlockFarm"
+			name = "handleMsgUnlock"
 			handlerFun = func() sdk.Result {
 				return handleMsgUnlock(ctx, k, msg, logger)
+			}
+		case types.MsgClaim:
+			name = "handleMsgClaim"
+			handlerFun = func() sdk.Result {
+				return handleMsgClaim(ctx, k, msg, logger)
 			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
@@ -48,6 +59,43 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
 	return sdk.Result{}
+}
+
+func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, logger log.Logger) sdk.Result {
+	// 0. Check if the start_height_to_yield is more than current height
+	if msg.StartHeightToYield <= ctx.BlockHeight() {
+		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
+	}
+	// 0. Check if this address is the owner of the token
+	tokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.Amount.Denom)
+	if !tokenInfo.Owner.Equals(msg.Address) {
+		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.Amount.Denom).Result()
+	}
+	// 0. Get the pool info
+	pool, found := k.GetFarmPool(ctx, msg.PoolName)
+	if !found {
+		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	// 1. append yielding_coin into pool
+	yieldingCoin := types.YieldingCoin{
+		Coin:                    msg.Amount,
+		StartBlockHeightToYield: msg.StartHeightToYield,
+		YieldAmountPerBlock:     msg.YieldPerBlock,
+	}
+	pool.YieldingCoins = append(pool.YieldingCoins, yieldingCoin)
+
+	// Emit events
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeProvide,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+			sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
+			sdk.NewAttribute(types.AttributeKeyYiledPerBlock, msg.YieldPerBlock.String()),
+		),
+	}}
 }
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
@@ -69,8 +117,10 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	k.SetLockInfo(ctx, lockInfo)
 
-	// Subtract the token from its own account into farm account
-	// TODO k.supplyKeeper.SendCoins(xxx)
+	// Send the token from its own account to farm account
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+		return err.Result()
+	}
 
 	// Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
@@ -78,17 +128,18 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return types.ErrNoFarmPoolFound("", msg.PoolName).Result()
 	}
 	pool.TotalLockedCoin = pool.TotalLockedCoin.Add(msg.Amount)
-	pool.TotalLockedWeight= pool.TotalLockedWeight.Add(sdk.NewDec(ctx.BlockHeight()).MulTruncate(msg.Amount.Amount))
+	pool.TotalLockedWeight = pool.TotalLockedWeight.Add(sdk.NewDec(ctx.BlockHeight()).MulTruncate(msg.Amount.Amount))
 	k.SetFarmPool(ctx, pool)
 
-	ctx.EventManager().EmitEvents(sdk.Events{
+	// Emit events
+	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeLock,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 		),
-	})
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	}}
 }
 
 func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
@@ -98,7 +149,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	// Then update the lock_info
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
-		return types.ErrNoLockInfoFound("", msg.Address.String()).Result()
+		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
 	} else {
 		// excute claim
 		err := claim(ctx, k, msg.PoolName, msg.Address)
@@ -110,67 +161,99 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	k.SetLockInfo(ctx, lockInfo)
 
-	// Add the token from farm account into its own account
-	// TODO k.supplyKeeper.SendCoins(xxx)
+	// Send the token from farm account to its own account
+	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
+		return err.Result()
+	}
 
 	// Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
-		return types.ErrNoFarmPoolFound("", msg.PoolName).Result()
+		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 	pool.TotalLockedCoin = pool.TotalLockedCoin.Sub(msg.Amount)
-	pool.TotalLockedWeight= pool.TotalLockedWeight.Sub(sdk.NewDec(ctx.BlockHeight()).MulTruncate(msg.Amount.Amount))
+	pool.TotalLockedWeight = pool.TotalLockedWeight.Sub(sdk.NewDec(ctx.BlockHeight()).MulTruncate(msg.Amount.Amount))
 	k.SetFarmPool(ctx, pool)
 
-	return sdk.Result{}
+	// Emit events
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeUnlock,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+		),
+	}}
+}
+
+func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
+	err := claim(ctx, k, msg.PoolName, msg.Address)
+	if err != nil {
+		return err.Result()
+	}
+
+	// Emit events
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeClaim,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		),
+	}}
 }
 
 func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAddress) sdk.Error {
-	// get the lock info
-	lockInfo, lockFound := k.GetLockInfo(ctx, address, poolName)
-	if !lockFound {
-		return types.ErrNoLockInfoFound("", address.String())
+	// 0. get the lock info
+	lockInfo, found := k.GetLockInfo(ctx, address, poolName)
+	if !found {
+		return types.ErrNoLockInfoFound(DefaultCodespace, address.String())
 	}
 
-	// get the pool info
+	// 0. get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, poolName)
 	if !poolFound {
-		return types.ErrNoFarmPoolFound("", poolName)
+		return types.ErrNoFarmPoolFound(DefaultCodespace, poolName)
 	}
 
 	height := ctx.BlockHeight()
-	var intervalHeight sdk.Dec
-	if height > pool.LastYieldedBlockHeight {
-		intervalHeight = sdk.NewDec(height - pool.LastYieldedBlockHeight)
-		// yileding_coin -> yileded_coin
-		var yieldedCoins sdk.DecCoins
-		for _, yieldingCoin := range pool.YieldingCoins {
-			if height > yieldingCoin.StartBlockHeightToYield {
-				// calculate how many coin have been yileding
-				yieldAmt := intervalHeight.MulTruncate(yieldingCoin.YieldAmountPerBlock)
-				yieldedCoin := sdk.NewDecCoinFromDec(yieldingCoin.Coin.Denom, yieldAmt)
-				yieldedCoins = yieldedCoins.Add(sdk.DecCoins{yieldedCoin})
-
-				// subtract the yielded_coin from yileding_coin
-				yieldingCoin.Coin = yieldingCoin.Coin.Sub(yieldedCoin)
-			}
-		}
-
-		pool.YieldedCoins = pool.YieldedCoins.Add(yieldedCoins)
-		pool.LastYieldedBlockHeight = height
+	if height < pool.LastYieldedBlockHeight {
+		// TODO return
 	}
-	// TODO what if height < pool.LastYieldedBlockHeight
+
 	// TODO there are too many operations about MulTruncate, check the amount carefully!!!
 	// TODO rename parameters?
+	// 1. Transfer yileding_coin -> yileded_coin
+	var yieldedCoins sdk.DecCoins
+	for i := 0; i < len(pool.YieldingCoins); i++ {
+		if height > pool.YieldingCoins[i].StartBlockHeightToYield {
+			// calculate the exact interval
+			var blockInterval sdk.Dec
+			if pool.YieldingCoins[i].StartBlockHeightToYield > pool.LastYieldedBlockHeight {
+				blockInterval = sdk.NewDec(height - pool.LastYieldedBlockHeight)
+			} else {
+				blockInterval = sdk.NewDec(height - pool.YieldingCoins[i].StartBlockHeightToYield)
+			}
 
-	/* Calculate its own weight during these blocks
-	    (curHeight - Height1) * Amount1
+			// calculate how many coin have been yileded till the current block
+			yieldedAmount := blockInterval.MulTruncate(pool.YieldingCoins[i].YieldAmountPerBlock)
+			yieldedCoin := sdk.NewDecCoinFromDec(pool.YieldingCoins[i].Coin.Denom, yieldedAmount)
+			yieldedCoins = yieldedCoins.Add(yieldedCoin.ToCoins())
+
+			// subtract the yielded_coin from yileding_coin
+			pool.YieldingCoins[i].Coin = pool.YieldingCoins[i].Coin.Sub(yieldedCoin)
+		}
+	}
+	pool.YieldedCoins = pool.YieldedCoins.Add(yieldedCoins)
+	pool.LastYieldedBlockHeight = height
+
+	/* 2.1 Calculate its own weight during these blocks
+	   (curHeight - Height1) * Amount1
 	*/
 	currentWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	oldWeight := sdk.NewDec(height).MulTruncate(lockInfo.Amount.Amount)
 	numerator := currentWeight.Sub(oldWeight)
 
-	/* Calculate all weight during these blocks
+	/* 2.2 Calculate all weight during these blocks
 	    (curHeight - Height1) * Amount1 + (curHeight - Height2) * Amount2 + (curHeight - Height3) * Amount3
 												||
 	                                            \/
@@ -181,17 +264,17 @@ func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAdd
 	*/
 	denominator := sdk.NewDec(height).MulTruncate(pool.TotalLockedCoin.Amount).Sub(pool.TotalLockedWeight)
 
-	// Calculate how many yielded token it could get
+	// 2.3 Calculate how many yielded token it could get
 	selfYieldedCoins := pool.YieldedCoins.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
-	// Transfer tokens
-	// TODO transfer selfYieldedCoins into its own account
-	// k.supplyKeeper.XXXX()
+	// 2.4 Transfer yielded tokens
+	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, address, selfYieldedCoins); err != nil {
+		return err
+	}
 
-	// Update pool data
+	// 3 Update pool data
 	pool.YieldedCoins = pool.YieldedCoins.Sub(selfYieldedCoins)
 	pool.TotalLockedWeight = pool.TotalLockedWeight.Add(numerator)
-
 	// set pool into store
 	k.SetFarmPool(ctx, pool)
 

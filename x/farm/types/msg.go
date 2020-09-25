@@ -1,6 +1,8 @@
 package types
 
 import (
+	"strconv"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -30,60 +32,65 @@ func (m MsgCreatePool) GetSigners() []sdk.AccAddress {
 }
 
 type MsgProvide struct {
+	PoolName           string         `json:"pool_name" yaml:"pool_name"`
+	Address            sdk.AccAddress `json:"address" yaml:"address"`
+	Amount             sdk.DecCoin    `json:"amount" yaml:"amount"`
+	YieldPerBlock      sdk.Dec        `json:"yield_per_block" yaml:"yield_per_block"`
+	StartHeightToYield int64          `json:"start_height_to_yield" yaml:"start_height_to_yield"`
+}
 
+func NewMsgProvide(poolName string, address sdk.AccAddress, amount sdk.DecCoin,
+	yiledPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
+	return MsgProvide{
+		PoolName:           poolName,
+		Address:            address,
+		Amount:             amount,
+		YieldPerBlock:      yiledPerBlock,
+		StartHeightToYield: startHeightToYield,
+	}
 }
 
 var _ sdk.Msg = MsgProvide{}
 
 func (m MsgProvide) Route() string {
-	panic("implement me")
+	return RouterKey
 }
 
 func (m MsgProvide) Type() string {
-	panic("implement me")
+	return "provide"
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
-	panic("implement me")
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
+	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
+		return ErrInvalidAmount(DefaultCodespace, m.Amount.String())
+	}
+	if m.YieldPerBlock.LTE(sdk.ZeroDec()) {
+		return ErrInvalidInput(DefaultCodespace, m.YieldPerBlock.String())
+	}
+	if m.YieldPerBlock.GT(m.Amount.Amount) {
+		return ErrInsufficientAmount(DefaultCodespace, m.Amount.String())
+	}
+	if m.StartHeightToYield <= 0 {
+		return ErrInvalidInput(DefaultCodespace, strconv.FormatInt(m.StartHeightToYield, 10))
+	}
+	return nil
 }
 
 func (m MsgProvide) GetSignBytes() []byte {
-	panic("implement me")
+	bz := ModuleCdc.MustMarshalJSON(m)
+	return sdk.MustSortJSON(bz)
 }
 
 func (m MsgProvide) GetSigners() []sdk.AccAddress {
-	panic("implement me")
-}
-
-type MsgClaim struct {
-
-}
-
-var _ sdk.Msg = MsgClaim{}
-
-func (m MsgClaim) Route() string {
-	panic("implement me")
-}
-
-func (m MsgClaim) Type() string {
-	panic("implement me")
-}
-
-func (m MsgClaim) ValidateBasic() sdk.Error {
-	panic("implement me")
-}
-
-func (m MsgClaim) GetSignBytes() []byte {
-	panic("implement me")
-}
-
-func (m MsgClaim) GetSigners() []sdk.AccAddress {
-	panic("implement me")
+	return []sdk.AccAddress{m.Address}
 }
 
 type MsgLock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
-	Address  sdk.AccAddress `json:"address" yaml:address"`
+	Address  sdk.AccAddress `json:"address" yaml:"address"`
 	Amount   sdk.DecCoin    `json:"amount" yaml:"amount"`
 }
 
@@ -106,8 +113,11 @@ func (m MsgLock) Type() string {
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return nil
+		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -146,8 +156,11 @@ func (m MsgUnlock) Type() string {
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return nil
+		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -158,5 +171,43 @@ func (m MsgUnlock) GetSignBytes() []byte {
 }
 
 func (m MsgUnlock) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{m.Address}
+}
+
+type MsgClaim struct {
+	PoolName string         `json:"pool_name" yaml:"pool_name"`
+	Address  sdk.AccAddress `json:"address" yaml:"address"`
+}
+
+func NewMsgClaim(poolName string, Address sdk.AccAddress) MsgClaim {
+	return MsgClaim{
+		PoolName: poolName,
+		Address:  Address,
+	}
+}
+
+var _ sdk.Msg = MsgClaim{}
+
+func (m MsgClaim) Route() string {
+	return RouterKey
+}
+
+func (m MsgClaim) Type() string {
+	return "claim"
+}
+
+func (m MsgClaim) ValidateBasic() sdk.Error {
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
+	return nil
+}
+
+func (m MsgClaim) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(m)
+	return sdk.MustSortJSON(bz)
+}
+
+func (m MsgClaim) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{m.Address}
 }

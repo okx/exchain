@@ -2,9 +2,10 @@ package farm
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
-	"testing"
 )
 
 const (

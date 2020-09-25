@@ -108,3 +108,14 @@ func ValidateSwapAmountName(amountName string) error {
 func GetPoolTokenName(token1, token2 string) string {
 	return PoolTokenPrefix + GetSwapTokenPairName(token1, token2)
 }
+
+func IsPoolToken(symbol string) bool {
+	return token.NotAllowedOriginSymbol(symbol)
+}
+
+func SplitPoolToken(symbol string) (token0, token1 string) {
+	splits := strings.Split(symbol, "_")[1:]
+	token0 = splits[0]
+	token1 = splits[1]
+	return
+}
