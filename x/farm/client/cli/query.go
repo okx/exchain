@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/spf13/cobra"
 	"strings"
@@ -27,6 +28,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		client.GetCommands(
 			GetCmdQueryPool(queryRoute, cdc),
 			GetCmdQueryPools(queryRoute, cdc),
+			GetCmdQueryEarnings(queryRoute, cdc),
 		)...,
 	)
 
@@ -75,6 +77,33 @@ $ %s query farm pools
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			// TODO:
 			return cliCtx.PrintOutput(newToPrint("all pools"))
+		},
+	}
+}
+
+// GetCmdQueryEarnings gets the earnings query command.
+func GetCmdQueryEarnings(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "earnings [pool-name] [address]",
+		Short: "query the current earnings",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the amount of locked coins and yield available.
+
+Example:
+$ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			accAddr, err := sdk.AccAddressFromBech32(args[1])
+			if err != nil {
+				return err
+			}
+			// TODO:
+			return cliCtx.PrintOutput(newToPrint(args[0] + " : " + accAddr.String()))
 		},
 	}
 }
