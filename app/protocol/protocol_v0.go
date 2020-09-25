@@ -26,6 +26,7 @@ import (
 	"github.com/okex/okexchain/x/common/version"
 	"github.com/okex/okexchain/x/debug"
 	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/farm"
 	dexClient "github.com/okex/okexchain/x/dex/client"
 	distr "github.com/okex/okexchain/x/distribution"
 	"github.com/okex/okexchain/x/genutil"
@@ -80,6 +81,7 @@ var (
 		stream.AppModuleBasic{},
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
+		farm.AppModuleBasic{},
 	)
 
 	// module account permissions for bankKeeper and supplyKeeper
@@ -130,6 +132,7 @@ type ProtocolV0 struct {
 	streamKeeper   stream.Keeper
 	upgradeKeeper  upgrade.Keeper
 	debugKeeper    debug.Keeper
+	farmKeeper     farm.Keeper
 
 	stopped     bool
 	anteHandler sdk.AnteHandler // ante handler for fee and auth
@@ -271,7 +274,8 @@ func (p *ProtocolV0) produceKeepers() {
 	orderSubspace := p.paramsKeeper.Subspace(order.DefaultParamspace)
 	upgradeSubspace := p.paramsKeeper.Subspace(upgrade.DefaultParamspace)
 	dexSubspace := p.paramsKeeper.Subspace(dex.DefaultParamspace)
-	swapSubSpace := p.paramsKeeper.Subspace(ammswap.DefaultParamspace)
+	swapSubspace := p.paramsKeeper.Subspace(ammswap.DefaultParamspace)
+	farmSubspace := p.paramsKeeper.Subspace(farm.DefaultParamspace)
 
 	// 2.add keepers
 	p.accountKeeper = auth.NewAccountKeeper(p.cdc, p.keys[auth.StoreKey], authSubspace, auth.ProtoBaseAccount)
@@ -310,14 +314,13 @@ func (p *ProtocolV0) produceKeepers() {
 		p.keys[order.OrderStoreKey], p.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
-	p.swapKeeper = ammswap.NewKeeper(p.supplyKeeper, p.tokenKeeper, p.cdc, p.keys[ammswap.StoreKey], swapSubSpace)
+	p.swapKeeper = ammswap.NewKeeper(p.supplyKeeper, p.tokenKeeper, p.cdc, p.keys[ammswap.StoreKey], swapSubspace)
 
 	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.accountKeeper,
 		p.cdc, p.logger, appConfig, streamMetrics)
 
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
-
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
@@ -344,6 +347,7 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, auth.FeeCollectorName, p.Stop)
+	p.farmKeeper = farm.NewKeeper(p.supplyKeeper, p.tokenKeeper, farmSubspace, p.keys[farm.StoreKey], p.cdc)
 }
 
 // moduleAccountAddrs returns all the module account addresses
@@ -381,8 +385,8 @@ func (p *ProtocolV0) setManager() {
 		backend.NewAppModule(p.backendKeeper),
 		stream.NewAppModule(p.streamKeeper),
 		upgrade.NewAppModule(p.upgradeKeeper),
-
 		debug.NewAppModule(p.debugKeeper),
+		farm.NewAppModule(p.farmKeeper),
 	)
 
 	// ORDER SETTING
@@ -395,6 +399,7 @@ func (p *ProtocolV0) setManager() {
 		distr.ModuleName,
 		slashing.ModuleName,
 		staking.ModuleName,
+		farm.ModuleName,
 	)
 
 	p.mm.SetOrderEndBlockers(
@@ -426,6 +431,7 @@ func (p *ProtocolV0) setManager() {
 		crisis.ModuleName,
 		genutil.ModuleName,
 		params.ModuleName,
+		farm.ModuleName,
 	)
 }
 
