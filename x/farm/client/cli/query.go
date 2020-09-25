@@ -54,8 +54,21 @@ $ %s query farm pool pool-airtoken1-eth
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			// TODO:
-			return cliCtx.PrintOutput(types.NewTestStruct(args[0]))
+
+			bytes, err := cdc.MarshalJSON(types.NewQueryPoolParams(args[0]))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryPool)
+			resp, _, err := cliCtx.QueryWithData(route, bytes)
+			if err != nil {
+				return err
+			}
+
+			var pool types.FarmPool
+			cdc.MustUnmarshalJSON(resp, &pool)
+			return cliCtx.PrintOutput(pool)
 		},
 	}
 }
