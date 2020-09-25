@@ -68,3 +68,14 @@ func (fp FarmPool) String() string {
 		fp.PoolName, fp.LockedTokenSymbol, fp.TotalLockedCoin, fp.YieldingCoins, fp.YieldedCoins,
 		fp.LastYieldedBlockHeight, fp.TotalLockedWeight)
 }
+
+// FarmPools is a collection of FarmPool
+type FarmPools []FarmPool
+
+// String returns a human readable string representation of FarmPools
+func (fps FarmPools) String() (out string) {
+	for _, fp := range fps {
+		out += fp.String() + "\n"
+	}
+	return strings.TrimSpace(out)
+}

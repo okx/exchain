@@ -74,6 +74,7 @@ $ %s query farm pool pool-airtoken1-eth
 }
 
 // GetCmdQueryPools gets the pools query command.
+// TODO: make it work
 func GetCmdQueryPools(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "pools",
@@ -90,15 +91,21 @@ $ %s query farm pools
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryPools)
-			bz, _, err := cliCtx.QueryWithData(route, nil)
+
+			resKVs, _, err := cliCtx.QuerySubspace(types.FarmPoolPrefix, storeName)
 			if err != nil {
 				return err
 			}
 
-			// TODO: types.TestStruct -> types.Pools
-			var pools types.TestStruct
-			cdc.MustUnmarshalJSON(bz, &pools)
+			var pools types.FarmPools
+			for _, kv := range resKVs {
+				var pool types.FarmPool
+				if err := cdc.UnmarshalBinaryLengthPrefixed(kv.Value, &pool); err != nil {
+					return err
+				}
+				pools = append(pools, pool)
+			}
+
 			return cliCtx.PrintOutput(pools)
 		},
 	}

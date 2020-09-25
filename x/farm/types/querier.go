@@ -20,3 +20,14 @@ func NewQueryPoolParams(poolName string) QueryPoolParams {
 		PoolName: poolName,
 	}
 }
+
+// QueryPoolsParams defines the params for the following queries:
+// - 'custom/farm/pools'
+type QueryPoolsParams struct {
+	Page, Limit int
+}
+
+// NewQueryPoolsParams creates a new instance of QueryPoolsParams
+func NewQueryPoolsParams(page, limit int) QueryPoolsParams {
+	return QueryPoolsParams{page, limit}
+}

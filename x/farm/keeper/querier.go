@@ -16,7 +16,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryPool:
 			return queryPool(ctx, req, k)
 		case types.QueryPools:
-			return queryPools(ctx, k)
+			return queryPools(ctx, req, k)
 		case types.QueryEarnings:
 			return queryEarnings(ctx, req, k)
 		case types.QueryParams:
@@ -66,8 +66,13 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Er
 	return res, nil
 }
 
-func queryPools(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
-	// TODO: get pools from ctx with keeper
+// TODO: for rest with page limit
+func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+	var params types.QueryPoolsParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, defaultQueryErrParseParams(err)
+	}
+
 	pools := types.NewTestStruct("test pools")
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, pools)
 	if err != nil {
