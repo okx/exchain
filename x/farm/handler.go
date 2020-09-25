@@ -71,19 +71,20 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	if !tokenInfo.Owner.Equals(msg.Address) {
 		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.Amount.Denom).Result()
 	}
-	// 0. Get the pool info
+	// 1. Get the pool info
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 1. append yielding_coin into pool
+	// 2. Append yielding_coin into pool
 	yieldingCoin := types.YieldingCoin{
 		Coin:                    msg.Amount,
 		StartBlockHeightToYield: msg.StartHeightToYield,
 		YieldAmountPerBlock:     msg.YieldPerBlock,
 	}
 	pool.YieldingCoins = append(pool.YieldingCoins, yieldingCoin)
+	k.SetFarmPool(ctx, pool)
 
 	// Emit events
 	return sdk.Result{Events: sdk.Events{
@@ -99,30 +100,28 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 }
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
-	// Get the specific lock info.
-	// If it doesn't exist, only initialize the LockInfo structure.
-	// Otherwise, calculate the previous liquidity mining reward at first
-	// Then update the lock_info
+	// 1. Get the specific lock info.
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
-	if !found {
+	if !found { // If it doesn't exist, only initialize the LockInfo structure.
 		lockInfo.Addr = msg.Address
-	} else {
+	} else { // Otherwise, calculate the previous liquidity mining reward at first
 		// excute claim
 		err := claim(ctx, k, msg.PoolName, msg.Address)
 		if err != nil {
 			return err.Result()
 		}
 	}
+	// 2. Update the lock_info
 	lockInfo.Amount = lockInfo.Amount.Add(msg.Amount)
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	k.SetLockInfo(ctx, lockInfo)
 
-	// Send the token from its own account to farm account
+	// 3. Send the token from its own account to farm account
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
 
-	// Get the pool info, then update the total coin & weight
+	// 4. Get the pool info, then update the total coin & weight
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound("", msg.PoolName).Result()
@@ -143,30 +142,28 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 }
 
 func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
-	// Get the specific lock_info.
-	// If it doesn't exist, just return.
-	// Otherwise, calculate the previous liquidity mining reward at first
-	// Then update the lock_info
+	// 1. Get the specific lock_info.
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
-	if !found {
+	if !found {// If it doesn't exist, just return.
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
-	} else {
+	} else { 	// Otherwise, calculate the previous liquidity mining reward at first
 		// excute claim
 		err := claim(ctx, k, msg.PoolName, msg.Address)
 		if err != nil {
 			return err.Result()
 		}
 	}
+	// Update the lock_info
 	lockInfo.Amount = lockInfo.Amount.Sub(msg.Amount)
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	k.SetLockInfo(ctx, lockInfo)
 
-	// Send the token from farm account to its own account
+	// 2. Send the token from farm account to its own account
 	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
 
-	// Get the pool info
+	// 3. Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -187,10 +184,19 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 }
 
 func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
+	// 1. Claim at first
 	err := claim(ctx, k, msg.PoolName, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
+
+	// 2. Update the lock info
+	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
+	if !found {
+		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
+	}
+	lockInfo.StartBlockHeight = ctx.BlockHeight()
+	k.SetLockInfo(ctx, lockInfo)
 
 	// Emit events
 	return sdk.Result{Events: sdk.Events{
@@ -217,7 +223,7 @@ func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAdd
 
 	height := ctx.BlockHeight()
 	if height < pool.LastYieldedBlockHeight {
-		// TODO return
+		return nil
 	}
 
 	// TODO there are too many operations about MulTruncate, check the amount carefully!!!
