@@ -2,12 +2,17 @@ package types
 
 // farm module event types
 const (
-	// TODO: Create your event types
-	EventTypeLock          = "lock"
-	EventTypeUnlock            = "unlock"
+	EventTypeCreatePool = "create-pool"
+	EventTypeProvide    = "provide"
+	EventTypeLock       = "lock"
+	EventTypeUnlock     = "unlock"
+	EventTypeClaim      = "claim"
 
 	// TODO: Create keys fo your events, the values will be derivided from the msg
-	AttributeKeyPool         = "pool"
+	AttributeKeyAddress            = "address"
+	AttributeKeyPool               = "pool"
+	AttributeKeyStartHeightToYield = "start_height_to_yield"
+	AttributeKeyYiledPerBlock      = "yield_per_block"
 
 	// TODO: Some events may not have values for that reason you want to emit that something happened.
 	// AttributeValueDoubleSign = "double_sign"

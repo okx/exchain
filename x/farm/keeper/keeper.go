@@ -39,3 +39,7 @@ func (k Keeper) StoreKey() sdk.StoreKey {
 func (k Keeper) SupplyKeeper() supply.Keeper {
 	return k.supplyKeeper
 }
+
+func (k Keeper) TokenKeeper() token.Keeper {
+	return k.tokenKeeper
+}
