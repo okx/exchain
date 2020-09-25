@@ -122,7 +122,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return err.Result()
 	}
 
-	// Get the pool info
+	// Get the pool info, then update the total coin & weight
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound("", msg.PoolName).Result()
@@ -223,24 +223,25 @@ func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAdd
 	// TODO there are too many operations about MulTruncate, check the amount carefully!!!
 	// TODO rename parameters?
 	// 1. Transfer yileding_coin -> yileded_coin
-	var yieldedCoins sdk.DecCoins
+	yieldedCoins := sdk.DecCoins{}
 	for i := 0; i < len(pool.YieldingCoins); i++ {
-		if height > pool.YieldingCoins[i].StartBlockHeightToYield {
+		if height >= pool.YieldingCoins[i].StartBlockHeightToYield {
 			// calculate the exact interval
 			var blockInterval sdk.Dec
 			if pool.YieldingCoins[i].StartBlockHeightToYield > pool.LastYieldedBlockHeight {
-				blockInterval = sdk.NewDec(height - pool.LastYieldedBlockHeight)
-			} else {
 				blockInterval = sdk.NewDec(height - pool.YieldingCoins[i].StartBlockHeightToYield)
+			} else {
+				blockInterval = sdk.NewDec(height - pool.LastYieldedBlockHeight)
 			}
 
 			// calculate how many coin have been yileded till the current block
 			yieldedAmount := blockInterval.MulTruncate(pool.YieldingCoins[i].YieldAmountPerBlock)
-			yieldedCoin := sdk.NewDecCoinFromDec(pool.YieldingCoins[i].Coin.Denom, yieldedAmount)
-			yieldedCoins = yieldedCoins.Add(yieldedCoin.ToCoins())
+			yieldedCoins = yieldedCoins.Add(sdk.NewDecCoinsFromDec(pool.YieldingCoins[i].Coin.Denom, yieldedAmount))
 
-			// subtract the yielded_coin from yileding_coin
-			pool.YieldingCoins[i].Coin = pool.YieldingCoins[i].Coin.Sub(yieldedCoin)
+			// subtract yileding_coin amount
+			pool.YieldingCoins[i].Coin.Amount = pool.YieldingCoins[i].Coin.Amount.Sub(yieldedAmount)
+
+			// TODO what if pool.YieldingCoins[i].Coin become zero, or less than YieldAmountPerBlock
 		}
 	}
 	pool.YieldedCoins = pool.YieldedCoins.Add(yieldedCoins)
@@ -249,6 +250,7 @@ func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAdd
 	/* 2.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
+	// TODO: is there any possibility that lockInfo.StartBlockHeight is more than ctx.BlockHeight()?
 	currentWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	oldWeight := sdk.NewDec(height).MulTruncate(lockInfo.Amount.Amount)
 	numerator := currentWeight.Sub(oldWeight)
