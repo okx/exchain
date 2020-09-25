@@ -106,6 +106,7 @@
       "validator_accumulated_commissions": [],
       "withdraw_addr_enabled": true
     },
+    "farm": {},
     "genutil": {
       "gentxs": [
         {
@@ -115,7 +116,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "ab6f676c5d6b4e7c8233ff4ba63d1b5d0d203b56@127.0.0.1:26656",
+            "memo": "351c96cf9679102a88a3352bc8ae970a585fc64b@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -131,7 +132,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepq83e8r6lrt44sxvg66vhh8l4yhpsr825m97yc7qxu06zhpxezuhhsmalm87",
+                  "pubkey": "okexchainvalconspub1zcjduepqz3pkgrjspkq278n4jc06awgw2x7w0f8ltsq02xjk3z7p2xe2ungqxu5k05",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -142,7 +143,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "42XTaFLh5Z2Aor2kpY5H32ReUUT6Wa5IZhkGSLMas/gvaPY4Pg5XsFPwUuFJpcj36L+E9BQOjxXhM0VF1rKV7A=="
+                "signature": "ezjzBOOLlBVSY9N+gKr2YfugXzVJdtJaq2vjY2PRgoY1MiofxzCqx0Uoh6fpbCm+1NkwdSnKdMnUpON4D09wvg=="
               }
             ]
           }

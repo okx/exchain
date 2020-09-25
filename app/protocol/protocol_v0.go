@@ -399,7 +399,8 @@ func (p *ProtocolV0) setManager() {
 		distr.ModuleName,
 		slashing.ModuleName,
 		staking.ModuleName,
-		farm.ModuleName,
+		//TODO: release later
+		//farm.ModuleName,
 	)
 
 	p.mm.SetOrderEndBlockers(
