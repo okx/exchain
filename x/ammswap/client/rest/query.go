@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -10,6 +11,7 @@ import (
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
 	"net/http"
+	"strings"
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
@@ -31,7 +33,7 @@ func querySwapTokenPairHandler(cliContext context.CLIContext) func(http.Response
 			return
 		}
 
-		rest.PostProcessResponse(w, cliContext, res)
+		formatAndReturnResult(w, cliContext, res)
 	}
 
 }
@@ -45,7 +47,7 @@ func querySwapTokenPairsHandler(cliContext context.CLIContext) func(http.Respons
 			return
 		}
 
-		rest.PostProcessResponse(w, cliContext, res)
+		formatAndReturnResult(w, cliContext, res)
 	}
 
 }
@@ -59,7 +61,7 @@ func queryParamsHandler(cliContext context.CLIContext) func(http.ResponseWriter,
 			return
 		}
 
-		rest.PostProcessResponse(w, cliContext, res)
+		formatAndReturnResult(w, cliContext, res)
 	}
 
 }
@@ -83,13 +85,13 @@ func queryBuyAmountHandler(cliContext context.CLIContext) func(http.ResponseWrit
 			common.HandleErrorMsg(w, cliContext, err.Error())
 			return
 		}
-		tp, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryBuyAmount), bz)
+		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryBuyAmount), bz)
 		if err != nil {
 			common.HandleErrorMsg(w, cliContext, err.Error())
 			return
 		}
 
-		rest.PostProcessResponse(w, cliContext, tp)
+		formatAndReturnResult(w, cliContext, res)
 	}
 
 }
@@ -104,8 +106,20 @@ func queryRedeemableAssetsHandler(cliContext context.CLIContext) func(http.Respo
 			common.HandleErrorMsg(w, cliContext, err.Error())
 			return
 		}
-
-		rest.PostProcessResponse(w, cliContext, res)
+		formatAndReturnResult(w, cliContext, res)
 	}
 
+}
+
+func formatAndReturnResult(w http.ResponseWriter, cliContext context.CLIContext, data []byte) {
+	replaceStr := "replaceHere"
+	result := common.GetBaseResponse(replaceStr)
+	resultJson, err := json.Marshal(result)
+	if err != nil {
+		common.HandleErrorMsg(w, cliContext, err.Error())
+		return
+	}
+	resultJson = []byte(strings.Replace(string(resultJson), "\"" + replaceStr + "\"", string(data), 1))
+
+	rest.PostProcessResponse(w, cliContext, resultJson)
 }
