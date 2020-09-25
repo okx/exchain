@@ -26,6 +26,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	farmQueryCmd.AddCommand(
 		client.GetCommands(
 			GetCmdQueryPool(queryRoute, cdc),
+			GetCmdQueryPools(queryRoute, cdc),
 		)...,
 	)
 
@@ -50,18 +51,41 @@ $ %s query farm pool pool-airtoken1-eth
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			// TODO:
-			return cliCtx.PrintOutput(newToPrint("pool"))
+			return cliCtx.PrintOutput(newToPrint(args[0]))
+		},
+	}
+}
+
+// GetCmdQueryPools gets the pools query command.
+func GetCmdQueryPools(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "pools",
+		Short: "query for all pools",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query details about all pools.
+
+Example:
+$ %s query farm pools
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			// TODO:
+			return cliCtx.PrintOutput(newToPrint("all pools"))
 		},
 	}
 }
 
 // TODO: remove it later
 type toPrint struct {
-	string
+	Reminder string
 }
 
 func (tp toPrint) String() string {
-	return tp.string
+	return tp.Reminder
 }
 
 func newToPrint(s string) toPrint {
