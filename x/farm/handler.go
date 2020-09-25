@@ -71,19 +71,20 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	if !tokenInfo.Owner.Equals(msg.Address) {
 		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.Amount.Denom).Result()
 	}
-	// 0. Get the pool info
+	// 1. Get the pool info
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 1. append yielding_coin into pool
+	// 2. Append yielding_coin into pool
 	yieldingCoin := types.YieldingCoin{
 		Coin:                    msg.Amount,
 		StartBlockHeightToYield: msg.StartHeightToYield,
 		YieldAmountPerBlock:     msg.YieldPerBlock,
 	}
 	pool.YieldingCoins = append(pool.YieldingCoins, yieldingCoin)
+	k.SetFarmPool(ctx, pool)
 
 	// Emit events
 	return sdk.Result{Events: sdk.Events{
