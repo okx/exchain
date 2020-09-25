@@ -2,23 +2,24 @@ package types
 
 import (
 	"fmt"
+
+	"github.com/okex/okexchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/params"
-	"time"
 )
 
 // Default parameter namespace
 const (
-	DefaultParamspace = ModuleName
-	// TODO: Define your default parameters
+	DefaultParamspace    = ModuleName
+	defaultQuoteToken    = "usdk"
+	defaultCreatePoolFee = "10"
 )
 
 // Parameter store keys
 var (
-	KeyMaxDepositPeriod = []byte("MaxDepositPeriod")
-	KeyMinDeposit       = []byte("MinDeposit")
-	KeyVotingPeriod     = []byte("VotingPeriod")
-	KeyQuoteToken       = []byte("QuoteToken")
+	KeyQuoteToken    = []byte("QuoteToken")
+	KeyCreatePoolFee = []byte("CreatePoolFee")
 )
 
 // ParamKeyTable for farm module
@@ -28,39 +29,33 @@ func ParamKeyTable() params.KeyTable {
 
 // Params - used for initializing default parameter for farm at genesis
 type Params struct {
-	MaxDepositPeriod time.Duration `json:"max_deposit_period"`
-	MinDeposit       sdk.DecCoins  `json:"min_deposit"`
-	VotingPeriod     time.Duration `json:"voting_period"`
-
-	QuoteToken string `json:"quote_token"`
+	QuoteToken    string      `json:"quote_token"`
+	CreatePoolFee sdk.DecCoin `json:"create_pool_fee"`
 }
 
 // NewParams creates a new Params object
-func NewParams( /* TODO: Pass in the paramters*/) Params {
+func NewParams(quoteToken string, createPoolFee sdk.DecCoin) Params {
 	return Params{
-		// TODO: Create your Params Type
+		QuoteToken:    quoteToken,
+		CreatePoolFee: createPoolFee,
 	}
 }
 
 // String implements the stringer interface for Params
 func (p Params) String() string {
-	return fmt.Sprintf(`
-	// TODO: Return all the params as a string
-	`)
+	return fmt.Sprintf("Params:\nCreatePoolFee:%s\nQuoteToken:%s\n", p.CreatePoolFee, p.QuoteToken)
 }
 
 // ParamSetPairs - Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyMaxDepositPeriod, Value: &p.MaxDepositPeriod},
-		{Key: KeyMinDeposit, Value: &p.MinDeposit},
-		{Key: KeyVotingPeriod, Value: &p.VotingPeriod},
-
 		{Key: KeyQuoteToken, Value: &p.QuoteToken},
+		{Key: KeyCreatePoolFee, Value: &p.CreatePoolFee},
 	}
 }
 
 // DefaultParams defines the parameters for this module
 func DefaultParams() Params {
-	return NewParams( /* TODO: Pass in your default Params */)
+	createPoolFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultCreatePoolFee))
+	return NewParams(defaultQuoteToken, createPoolFee)
 }
