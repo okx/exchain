@@ -1,6 +1,9 @@
 package types
 
 const (
-	QueryParams = "params"
+	QueryPool      = "pool"
+	QueryPools     = "pools"
+	QueryEarnings  = "earnings"
+	QueryParams    = "params"
+	QueryWhitelist = "whitelist"
 )
-

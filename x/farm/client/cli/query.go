@@ -55,7 +55,7 @@ $ %s query farm pool pool-airtoken1-eth
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			// TODO:
-			return cliCtx.PrintOutput(newToPrint(args[0]))
+			return cliCtx.PrintOutput(types.NewTestStruct(args[0]))
 		},
 	}
 }
@@ -77,8 +77,16 @@ $ %s query farm pools
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			// TODO:
-			return cliCtx.PrintOutput(newToPrint("all pools"))
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryPools)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			// TODO: types.TestStruct -> types.Pools
+			var pools types.TestStruct
+			cdc.MustUnmarshalJSON(bz, &pools)
+			return cliCtx.PrintOutput(pools)
 		},
 	}
 }
@@ -105,7 +113,7 @@ $ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujn
 				return err
 			}
 			// TODO:
-			return cliCtx.PrintOutput(newToPrint(args[0] + " : " + accAddr.String()))
+			return cliCtx.PrintOutput(types.NewTestStruct(args[0] + " : " + accAddr.String()))
 		},
 	}
 }
@@ -127,8 +135,16 @@ $ %s query farm params
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			// TODO:
-			return cliCtx.PrintOutput(newToPrint("params"))
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryParams)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			// TODO: types.TestStruct -> types.Params
+			var params types.TestStruct
+			cdc.MustUnmarshalJSON(bz, &params)
+			return cliCtx.PrintOutput(params)
 		},
 	}
 }
@@ -150,21 +166,16 @@ $ %s query farm whitelist
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			// TODO:
-			return cliCtx.PrintOutput(newToPrint("whitelist"))
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryWhitelist)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			// TODO: types.TestStruct -> types.Whitelist
+			var whitelist types.TestStruct
+			cdc.MustUnmarshalJSON(bz, &whitelist)
+			return cliCtx.PrintOutput(whitelist)
 		},
 	}
-}
-
-// TODO: remove it later
-type toPrint struct {
-	Reminder string
-}
-
-func (tp toPrint) String() string {
-	return tp.Reminder
-}
-
-func newToPrint(s string) toPrint {
-	return toPrint{s}
 }
