@@ -192,6 +192,13 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 		return err.Result()
 	}
 
+	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
+	if !found {
+		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
+	}
+	lockInfo.StartBlockHeight = ctx.BlockHeight()
+	k.SetLockInfo(ctx, lockInfo)
+
 	// Emit events
 	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
@@ -217,7 +224,7 @@ func claim(ctx sdk.Context, k keeper.Keeper, poolName string, address sdk.AccAdd
 
 	height := ctx.BlockHeight()
 	if height < pool.LastYieldedBlockHeight {
-		// TODO return
+		return nil
 	}
 
 	// TODO there are too many operations about MulTruncate, check the amount carefully!!!
