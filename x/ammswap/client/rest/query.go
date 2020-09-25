@@ -15,11 +15,12 @@ import (
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/ammswap/swap_token_pair", querySwapTokenPairHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/ammswap/swap_token_pairs", querySwapTokenPairsHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/ammswap/params", queryParamsHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/ammswap/buy_amount", queryBuyAmountHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/ammswap/redeemable_assets", queryRedeemableAssetsHandler(cliCtx)).Methods("GET")
+	r = r.PathPrefix("/" + types.ModuleName).Subrouter()
+	r.HandleFunc("/swap_token_pair", querySwapTokenPairHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/swap_token_pairs", querySwapTokenPairsHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/params", queryParamsHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/buy_amount", queryBuyAmountHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/redeemable_assets", queryRedeemableAssetsHandler(cliCtx)).Methods("GET")
 }
 
 func querySwapTokenPairHandler(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
