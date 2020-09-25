@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	swap "github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
@@ -16,6 +17,7 @@ type Keeper struct {
 	paramspace   types.ParamSubspace
 	supplyKeeper supply.Keeper
 	tokenKeeper  token.Keeper
+	swapKeeper   swap.Keeper
 }
 
 // NewKeeper creates a farm keeper
