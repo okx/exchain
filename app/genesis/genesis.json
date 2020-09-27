@@ -108,8 +108,12 @@
     },
     "farm": {
       "params": {
+        "create_pool_deposit": {
+          "amount": "0.00000000",
+          "denom": "okt"
+        },
         "create_pool_fee": {
-          "amount": "10.00000000",
+          "amount": "0.00000000",
           "denom": "okt"
         },
         "quote_token": "usdk"

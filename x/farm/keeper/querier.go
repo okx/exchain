@@ -82,8 +82,7 @@ func queryParams(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 }
 
 func queryWhitelist(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
-	// TODO: get whitelist from ctx with keeper
-	whitelist := types.NewTestStruct("test whitelist")
+	whitelist := k.GetWhitelist(ctx)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
