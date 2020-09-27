@@ -155,7 +155,7 @@ $ %s query farm params
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryParams)
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryParameters)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err

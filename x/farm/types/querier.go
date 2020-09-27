@@ -1,12 +1,12 @@
 package types
 
 const (
-	QueryPool      = "pool"
-	QueryPools     = "pools"
-	QueryEarnings  = "earnings"
-	QueryParams    = "params"
-	QueryWhitelist = "whitelist"
-	QueryAccount   = "account"
+	QueryPool       = "pool"
+	QueryPools      = "pools"
+	QueryEarnings   = "earnings"
+	QueryParameters = "parameters"
+	QueryWhitelist  = "whitelist"
+	QueryAccount    = "account"
 )
 
 // QueryPoolParams defines the params for the following queries:

@@ -99,21 +99,21 @@ func (m MsgDestroyPool) GetSigners() []sdk.AccAddress {
 }
 
 type MsgProvide struct {
-	PoolName           string         `json:"pool_name" yaml:"pool_name"`
-	Address            sdk.AccAddress `json:"address" yaml:"address"`
-	Amount             sdk.DecCoin    `json:"amount" yaml:"amount"`
-	YieldPerBlock      sdk.Dec        `json:"yield_per_block" yaml:"yield_per_block"`
-	StartHeightToYield int64          `json:"start_height_to_yield" yaml:"start_height_to_yield"`
+	PoolName              string         `json:"pool_name" yaml:"pool_name"`
+	Address               sdk.AccAddress `json:"address" yaml:"address"`
+	Amount                sdk.DecCoin    `json:"amount" yaml:"amount"`
+	AmountYieldedPerBlock sdk.Dec        `json:"amount_yielded_per_block" yaml:"amount_yielded_per_block"`
+	StartHeightToYield    int64          `json:"start_height_to_yield" yaml:"start_height_to_yield"`
 }
 
 func NewMsgProvide(poolName string, address sdk.AccAddress, amount sdk.DecCoin,
-	yieldPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
+	amountYieldedPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
 	return MsgProvide{
-		PoolName:           poolName,
-		Address:            address,
-		Amount:             amount,
-		YieldPerBlock:      yieldPerBlock,
-		StartHeightToYield: startHeightToYield,
+		PoolName:              poolName,
+		Address:               address,
+		Amount:                amount,
+		AmountYieldedPerBlock: amountYieldedPerBlock,
+		StartHeightToYield:    startHeightToYield,
 	}
 }
 
@@ -132,13 +132,10 @@ func (m MsgProvide) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.String())
 	}
-	if m.YieldPerBlock.LTE(sdk.ZeroDec()) {
-		return ErrInvalidInput(DefaultCodespace, m.YieldPerBlock.String())
-	}
-	if m.YieldPerBlock.GT(m.Amount.Amount) {
-		return ErrInsufficientAmount(DefaultCodespace, m.Amount.String())
+	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
+		return ErrInvalidInput(DefaultCodespace, m.AmountYieldedPerBlock.String())
 	}
 	if m.StartHeightToYield <= 0 {
 		return ErrInvalidInput(DefaultCodespace, strconv.FormatInt(m.StartHeightToYield, 10))
@@ -184,7 +181,7 @@ func (m MsgLock) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -227,7 +224,7 @@ func (m MsgUnlock) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }

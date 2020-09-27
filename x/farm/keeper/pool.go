@@ -45,6 +45,11 @@ func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName strin
 	return info, true
 }
 
+func (k Keeper) DeleteLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.GetLockInfoKey(addr, poolName))
+}
+
 func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec {
 	if pool.TotalValueLocked.Amount.LTE(sdk.ZeroDec()) {
 		return sdk.ZeroDec()

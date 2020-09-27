@@ -19,7 +19,7 @@ const (
 
 // ErrNoFarmPoolFound returns an error when a farm pool doesn't exist
 func ErrNoFarmPoolFound(codespace sdk.CodespaceType, poolName string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidFarmPool, "failed. farm pool %s does not exist", poolName)
+	return sdk.NewError(codespace, CodeInvalidFarmPool, "failed. Farm pool %s does not exist", poolName)
 }
 
 // ErrPoolAlreadyExist returns an error when a pool exist
@@ -37,6 +37,13 @@ func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s doesn't have any lock infos", addr)
 }
 
+// ErrInvalidDenom returns an error when the remaining amount in yieldedTokenInfo is not zero
+func ErrRemainingAmountNotZero(codespace sdk.CodespaceType, amount string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput,
+		"failed. The remaining amount is %s, so it's not enable to provide token repeatedly util amount become zero",
+		amount)
+}
+
 // ErrInvalidTokenOwner returns an error when an input address is not the owner of token
 func ErrInvalidTokenOwner(codespace sdk.CodespaceType, addr string, token string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. %s isn't the owner of token %s", addr, token)
@@ -47,29 +54,34 @@ func ErrInvalidPoolOwner(codespace sdk.CodespaceType, address string, poolName s
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. %s isn't the owner of pool %s", address, poolName)
 }
 
-// ErrInvalidAmount returns an error when an input amount is invalid
-func ErrInvalidAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. the input amount %s is invalid", amount)
+// ErrInvalidDenom returns an error when it provides an unmatched token name
+func ErrInvalidDenom(codespace sdk.CodespaceType, symbolLocked string, token string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The coin name should be %s, not %s", symbolLocked, token)
 }
 
-// ErrInsufficientAmount returns an error when the total amount is not enough to yield in one block
-func ErrInsufficientAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. the provided amount %s is not enough", amount)
+// ErrInvalidInputAmount returns an error when an input amount is invaild
+func ErrInvalidInputAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input amount %s is invaild", amount)
+}
+
+// ErrinsufficientAmount returns an error when there is no enough tokens
+func ErrinsufficientAmount(codespace sdk.CodespaceType, amount string, inputAmount string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The actual amount %s is less than %s", amount, inputAmount)
 }
 
 // ErrInvalidStartHeight returns an error when the start_height_to_yield parameter is invalid
 func ErrInvalidStartHeight(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. the start height to yield is less than current height")
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The start height to yield is less than current height")
 }
 
 // ErrInvalidInput returns an error when an input parameter is invalid
 func ErrInvalidInput(codespace sdk.CodespaceType, input string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. the input parameter %s is invalid", input)
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input parameter %s is invaild", input)
 }
 
 // ErrNilAddress returns an error when an empty address appears
 func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidAddress, "failed. address is nil")
+	return sdk.NewError(codespace, CodeInvalidAddress, "failed. Address is nil")
 }
 
 // ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed

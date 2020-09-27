@@ -38,7 +38,7 @@ func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedToke
 
 func (fp FarmPool) Finished() bool {
 	for _, yieldedTokenInfo := range fp.YieldedTokenInfos {
-		if yieldedTokenInfo.TotalAmount.IsPositive() {
+		if yieldedTokenInfo.RemainingAmount.IsPositive() {
 			return false
 		}
 	}

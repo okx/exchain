@@ -1,4 +1,5 @@
 package rest
+
 // The packages below are commented out at first to prevent an error if this file isn't initially saved.
 import (
 	// "bytes"
