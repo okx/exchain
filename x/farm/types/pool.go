@@ -32,20 +32,10 @@ type FarmPool struct {
 	// sum of LockInfo.Amount
 	TotalValueLocked       sdk.DecCoin        `json:"total_value_locked"`
 	AmountYielded          sdk.DecCoins       `json:"amount_yielded"`
-	LastUpdatedBlockHeight int64              `json:"last_updated_block_height"`
+	LastClaimedBlockHeight int64              `json:"last_claimed_block_height"`
 	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
-	TotalLockedInfo sdk.Dec `json:"total_locked_info"`
+	TotalLockedWeight sdk.Dec `json:"total_locked_Weight"`
 }
-
-type RunTimePoolInfo struct {
-	// sum of LockInfo.Amount
-	TotalValueLocked       sdk.DecCoin        `json:"total_value_locked"`
-	AmountYielded          sdk.DecCoins       `json:"amount_yielded"`
-	LastUpdatedBlockHeight int64              `json:"last_updated_block_height"`
-	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
-	TotalWeight sdk.Dec `json:"total_locked_info"`
-}
-
 
 // String returns a human readable string representation of a YieldingCoin
 func (yc YieldingCoin) String() string {
