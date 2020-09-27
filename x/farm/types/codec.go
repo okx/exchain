@@ -8,8 +8,11 @@ import (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgCreatePool{}, "okexchain/farm/MsgCreatePool", nil)
 	cdc.RegisterConcrete(MsgDestroyPool{}, "okexchain/farm/MsgDestroyPool", nil)
+	cdc.RegisterConcrete(MsgSetWhite{}, "okexchain/farm/MsgSetWhite", nil)
 	cdc.RegisterConcrete(MsgLock{}, "okexchain/farm/MsgLock", nil)
 	cdc.RegisterConcrete(MsgUnlock{}, "okexchain/farm/MsgUnlock", nil)
+	cdc.RegisterConcrete(MsgClaim{}, "okexchain/farm/MsgClaim", nil)
+	cdc.RegisterConcrete(MsgProvide{}, "okexchain/farm/MsgProvide", nil)
 }
 
 // ModuleCdc defines the module codec

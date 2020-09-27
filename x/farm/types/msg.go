@@ -7,20 +7,20 @@ import (
 )
 
 type MsgCreatePool struct {
-	Owner      sdk.AccAddress `json:"owner" yaml:"owner"`
-	PoolName   string         `json:"pool_name" yaml:"pool_name"`
-	LockToken  string         `json:"lock_token", yaml:"lock_token"`
-	YieldToken string         `json:"yield_token", yaml:"yield_token"`
+	Owner        sdk.AccAddress `json:"owner" yaml:"owner"`
+	PoolName     string         `json:"pool_name" yaml:"pool_name"`
+	SymbolLocked string         `json:"locked_symbol", yaml:"locked_symbol"`
+	YieldSymbol  string         `json:"yield_symbol", yaml:"yield_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
 func NewMsgCreatePool(address sdk.AccAddress, poolName, lockToken, yieldToken string) MsgCreatePool {
 	return MsgCreatePool{
-		Owner:      address,
-		PoolName:   poolName,
-		LockToken:  lockToken,
-		YieldToken: yieldToken,
+		Owner:        address,
+		PoolName:     poolName,
+		SymbolLocked: lockToken,
+		YieldSymbol:  yieldToken,
 	}
 }
 
@@ -39,11 +39,11 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 	if m.PoolName == "" {
 		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
-	if m.LockToken == "" {
-		return ErrInvalidInput(DefaultCodespace, m.LockToken)
+	if m.SymbolLocked == "" {
+		return ErrInvalidInput(DefaultCodespace, m.SymbolLocked)
 	}
-	if m.YieldToken == "" {
-		return ErrInvalidInput(DefaultCodespace, m.YieldToken)
+	if m.YieldSymbol == "" {
+		return ErrInvalidInput(DefaultCodespace, m.YieldSymbol)
 	}
 	return nil
 }
@@ -152,6 +152,7 @@ func (m MsgProvide) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{m.Address}
 }
 
+
 type MsgLock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
 	Address  sdk.AccAddress `json:"address" yaml:"address"`
@@ -194,6 +195,7 @@ func (m MsgLock) GetSignBytes() []byte {
 func (m MsgLock) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{m.Address}
 }
+
 
 type MsgUnlock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`

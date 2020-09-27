@@ -14,7 +14,7 @@ const (
 	DefaultParamspace        = ModuleName
 	defaultQuoteSymbol       = "usdk"
 	defaultCreatePoolFee     = "0"
-	defaultCreatePoolDeposit = "0"
+	defaultCreatePoolDeposit = "10"
 )
 
 // Parameter store keys

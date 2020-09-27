@@ -52,6 +52,11 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgClaim(ctx, k, msg, logger)
 			}
+		case types.MsgSetWhite:
+			name = "handleMsgSetWhite"
+			handlerFun = func() sdk.Result {
+				return handleMsgSetWhite(ctx, k, msg, logger)
+			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -63,18 +68,19 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
+
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	if ok := k.TokenKeeper().TokenExist(ctx, msg.LockToken); !ok {
-		return types.ErrTokenNotExist(DefaultCodespace, msg.LockToken).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.SymbolLocked); !ok {
+		return types.ErrTokenNotExist(DefaultCodespace, msg.SymbolLocked).Result()
 	}
 
-	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldToken)
+	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldSymbol)
 	if !yieldTokenInfo.Owner.Equals(msg.Owner) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldToken).Result()
+		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldSymbol).Result()
 	}
 
 	// fee
@@ -92,11 +98,11 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.LockToken, sdk.ZeroInt()), 0, sdk.ZeroDec())
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.SymbolLocked, sdk.ZeroInt()), 0, sdk.ZeroDec())
 	pool := types.FarmPool{
 		Owner:             msg.Owner,
 		Name:              msg.PoolName,
-		SymbolLocked:      msg.LockToken,
+		SymbolLocked:      msg.SymbolLocked,
 		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
 		DepositAmount:     depositAmount,
 	}
@@ -110,8 +116,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 			types.EventTypeCreatePool,
 			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockToken),
-			sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldToken),
+			sdk.NewAttribute(types.AttributeKeyLockToken, msg.SymbolLocked),
+			sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldSymbol),
 			sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
 			sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
 		),
@@ -144,7 +150,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 
 	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
-			types.EventTypeCreatePool,
+			types.EventTypeDestroyPool,
 			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 			sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
@@ -386,7 +392,7 @@ func claim(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, address sdk.Ac
 	*/
 	denominator := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
 
-	// 1.3 Calculate how many yielded token it could get
+	// 1.3 Calculate how many yielded tokens to return
 	selfAmountYielded := pool.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
 	// 2. Transfer yielded tokens to personal account
@@ -417,4 +423,20 @@ func claim(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, address sdk.Ac
 	}
 
 	return nil
+}
+
+
+func handleMsgSetWhite(ctx sdk.Context, k keeper.Keeper, msg types.MsgSetWhite, logger log.Logger) sdk.Result {
+	if _, found := k.GetFarmPool(ctx, msg.PoolName); !found {
+		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	k.SetWhitelist(ctx, msg.PoolName)
+
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeCreatePool,
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		),
+	}}
 }
