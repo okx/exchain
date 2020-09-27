@@ -2,13 +2,14 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"strings"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // LockInfo is locked info of an address
 type LockInfo struct {
-	Addr             sdk.AccAddress `json:"addr"`
+	Address          sdk.AccAddress `json:"address"`
 	PoolName         string         `json:"pool_name"`
 	Amount           sdk.DecCoin    `json:"amount"`
 	StartBlockHeight int64          `json:"start_block_height"`

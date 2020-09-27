@@ -103,7 +103,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	// 1. Get the specific lock info.
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found { // If it doesn't exist, only initialize the LockInfo structure.
-		lockInfo.Addr = msg.Address
+		lockInfo.Address = msg.Address
 	} else { // Otherwise, calculate the previous liquidity mining reward at first
 		// excute claim
 		err := claim(ctx, k, msg.PoolName, msg.Address)
@@ -144,9 +144,9 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
 	// 1. Get the specific lock_info.
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
-	if !found {// If it doesn't exist, just return.
+	if !found { // If it doesn't exist, just return.
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
-	} else { 	// Otherwise, calculate the previous liquidity mining reward at first
+	} else { // Otherwise, calculate the previous liquidity mining reward at first
 		// excute claim
 		err := claim(ctx, k, msg.PoolName, msg.Address)
 		if err != nil {
