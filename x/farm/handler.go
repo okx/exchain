@@ -132,7 +132,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 
 	// withdraw
 	withdrawAmount := pool.DepositAmount
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, ModuleName, withdrawAmount.ToCoins()); err != nil {
+	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins()); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
 			withdrawAmount.String())).Result()
 	}
