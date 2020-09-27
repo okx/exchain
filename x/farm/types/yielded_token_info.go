@@ -15,7 +15,9 @@ type YieldedTokenInfo struct {
 }
 
 // NewYieldedTokenInfo creates a new instance of YieldedTokenInfo
-func NewYieldedTokenInfo(totalAmount sdk.DecCoin, startBlockHeightToYield int64, amountYieldedPerBlock sdk.Dec) YieldedTokenInfo {
+func NewYieldedTokenInfo(
+	totalAmount sdk.DecCoin, startBlockHeightToYield int64, amountYieldedPerBlock sdk.Dec,
+) YieldedTokenInfo {
 	return YieldedTokenInfo{
 		TotalAmount:             totalAmount,
 		StartBlockHeightToYield: startBlockHeightToYield,
