@@ -80,13 +80,13 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldingCoin := types.YieldingCoin{
-		Coin: sdk.DecCoin{Amount: sdk.ZeroDec(), Denom: msg.YieldToken},
+	yieldedTokenInfo := types.YieldedTokenInfo{
+		TotalAmount: sdk.DecCoin{Amount: sdk.ZeroDec(), Denom: msg.YieldToken},
 	}
 	pool := types.FarmPool{
-		PoolName:          msg.PoolName,
-		LockedTokenSymbol: msg.LockToken,
-		YieldingCoins:     []types.YieldingCoin{yieldingCoin},
+		Name:              msg.PoolName,
+		SymbolLocked:      msg.LockToken,
+		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
 	}
 	k.SetFarmPool(ctx, pool)
 

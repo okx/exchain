@@ -26,9 +26,9 @@ import (
 	"github.com/okex/okexchain/x/common/version"
 	"github.com/okex/okexchain/x/debug"
 	"github.com/okex/okexchain/x/dex"
-	"github.com/okex/okexchain/x/farm"
 	dexClient "github.com/okex/okexchain/x/dex/client"
 	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/farm"
 	"github.com/okex/okexchain/x/genutil"
 	"github.com/okex/okexchain/x/gov"
 	"github.com/okex/okexchain/x/gov/keeper"
@@ -347,7 +347,7 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, auth.FeeCollectorName, p.Stop)
-	p.farmKeeper = farm.NewKeeper(p.supplyKeeper, p.tokenKeeper, farmSubspace, p.keys[farm.StoreKey], p.cdc)
+	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, p.tokenKeeper, farmSubspace, p.keys[farm.StoreKey], p.cdc)
 }
 
 // moduleAccountAddrs returns all the module account addresses
