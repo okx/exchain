@@ -56,13 +56,17 @@ func ErrInvalidPoolOwner(codespace sdk.CodespaceType, address string, poolName s
 
 // ErrInvalidDenom returns an error when it provides an unmatched token name
 func ErrInvalidDenom(codespace sdk.CodespaceType, symbolLocked string, token string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput,
-		"failed. The locked coin name in the farm is %s, not %s", symbolLocked, token)
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The coin name should be %s, not %s", symbolLocked, token)
 }
 
-// ErrInvalidAmount returns an error when an input amount is invaild
-func ErrInvalidAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
+// ErrInvalidInputAmount returns an error when an input amount is invaild
+func ErrInvalidInputAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input amount %s is invaild", amount)
+}
+
+// ErrinsufficientAmount returns an error when there is no enough tokens
+func ErrinsufficientAmount(codespace sdk.CodespaceType, amount string, inputAmount string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The actual amount %s is less than %s", amount, inputAmount)
 }
 
 // ErrInvalidStartHeight returns an error when the start_height_to_yield parameter is invalid

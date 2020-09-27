@@ -132,7 +132,7 @@ func (m MsgProvide) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.String())
 	}
 	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
 		return ErrInvalidInput(DefaultCodespace, m.AmountYieldedPerBlock.String())
@@ -181,7 +181,7 @@ func (m MsgLock) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -224,7 +224,7 @@ func (m MsgUnlock) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
 	}
 	return nil
 }
