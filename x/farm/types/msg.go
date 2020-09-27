@@ -7,28 +7,95 @@ import (
 )
 
 type MsgCreatePool struct {
+	Address    sdk.AccAddress `json:"address" yaml:"address"`
+	PoolName   string         `json:"pool_name" yaml:"pool_name"`
+	LockToken  string         `json:"lock_token", yaml:"lock_token"`
+	YieldToken string         `json:"yield_token", yaml:"yield_token"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
+func NewMsgCreatePool(address sdk.AccAddress, poolName, lockToken, yieldToken string) MsgCreatePool {
+	return MsgCreatePool{
+		Address:    address,
+		PoolName:   poolName,
+		LockToken:  lockToken,
+		YieldToken: yieldToken,
+	}
+}
+
 func (m MsgCreatePool) Route() string {
-	panic("implement me")
+	return RouterKey
 }
 
 func (m MsgCreatePool) Type() string {
-	panic("implement me")
+	return "create_pool"
 }
 
 func (m MsgCreatePool) ValidateBasic() sdk.Error {
-	panic("implement me")
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
+	if m.PoolName == "" {
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+	}
+	if m.LockToken == "" {
+		return ErrInvalidInput(DefaultCodespace, m.LockToken)
+	}
+	if m.YieldToken == "" {
+		return ErrInvalidInput(DefaultCodespace, m.YieldToken)
+	}
+	return nil
 }
 
 func (m MsgCreatePool) GetSignBytes() []byte {
-	panic("implement me")
+	bz := ModuleCdc.MustMarshalJSON(m)
+	return sdk.MustSortJSON(bz)
 }
 
 func (m MsgCreatePool) GetSigners() []sdk.AccAddress {
-	panic("implement me")
+	return []sdk.AccAddress{m.Address}
+}
+
+type MsgDestroyPool struct {
+	Address  sdk.AccAddress `json:"address" yaml:"address"`
+	PoolName string         `json:"pool_name" yaml:"pool_name"`
+}
+
+var _ sdk.Msg = MsgDestroyPool{}
+
+func NewMsgDestroyPool(address sdk.AccAddress, poolName string) MsgDestroyPool {
+	return MsgDestroyPool{
+		Address:  address,
+		PoolName: poolName,
+	}
+}
+
+func (m MsgDestroyPool) Route() string {
+	return RouterKey
+}
+
+func (m MsgDestroyPool) Type() string {
+	return "destroy_pool"
+}
+
+func (m MsgDestroyPool) ValidateBasic() sdk.Error {
+	if m.Address.Empty() {
+		return ErrNilAddress(DefaultCodespace)
+	}
+	if m.PoolName == "" {
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+	}
+	return nil
+}
+
+func (m MsgDestroyPool) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(m)
+	return sdk.MustSortJSON(bz)
+}
+
+func (m MsgDestroyPool) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{m.Address}
 }
 
 type MsgProvide struct {
@@ -40,12 +107,12 @@ type MsgProvide struct {
 }
 
 func NewMsgProvide(poolName string, address sdk.AccAddress, amount sdk.DecCoin,
-	yiledPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
+	yieldPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
 	return MsgProvide{
 		PoolName:           poolName,
 		Address:            address,
 		Amount:             amount,
-		YieldPerBlock:      yiledPerBlock,
+		YieldPerBlock:      yieldPerBlock,
 		StartHeightToYield: startHeightToYield,
 	}
 }
