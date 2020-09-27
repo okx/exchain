@@ -15,7 +15,9 @@ type YieldedTokenInfo struct {
 }
 
 // NewYieldedTokenInfo creates a new instance of YieldedTokenInfo
-func NewYieldedTokenInfo(remainingAmount sdk.DecCoin, startBlockHeightToYield int64, amountYieldedPerBlock sdk.Dec) YieldedTokenInfo {
+func NewYieldedTokenInfo(
+	remainingAmount sdk.DecCoin, startBlockHeightToYield int64, amountYieldedPerBlock sdk.Dec,
+) YieldedTokenInfo {
 	return YieldedTokenInfo{
 		RemainingAmount:         remainingAmount,
 		StartBlockHeightToYield: startBlockHeightToYield,
@@ -26,9 +28,9 @@ func NewYieldedTokenInfo(remainingAmount sdk.DecCoin, startBlockHeightToYield in
 // String returns a human readable string representation of a YieldedTokenInfo
 func (yti YieldedTokenInfo) String() string {
 	return fmt.Sprintf(`YieldedTokenInfo：
-  Coin:								%s
+  RemainingAmount:					%s
   Start Block Height To Yield:		%d
-  AmountYieldedPerBlock:				%s`,
+  AmountYieldedPerBlock:			%s`,
 		yti.RemainingAmount, yti.StartBlockHeightToYield, yti.AmountYieldedPerBlock)
 }
 

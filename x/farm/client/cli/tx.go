@@ -41,9 +41,9 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 func GetCmdCreatePool(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-pool [pool-name] [lock-token] [yield-token]",
-		Short: "create a farm pool with the name of pool, token to be locked in the pool and token to be yielded",
+		Short: "create a farm pool",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Create a farm pool with the name of pool, token to be locked in the pool and token to be yielded.
+			fmt.Sprintf(`Create a farm pool.
 
 Example:
 $ %s tx farm create-pool pool-airtoken1-eth eth xxb --from mykey
@@ -70,7 +70,7 @@ func GetCmdDestroyPool(cdc *codec.Codec) *cobra.Command {
 		Use:   "destroy-pool [pool-name]",
 		Short: "destroy a farm pool",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Destroy a specific farm pool.
+			fmt.Sprintf(`Destroy a farm pool.
 
 Example:
 $ %s tx farm destroy-pool pool-airtoken1-eth --from mykey
@@ -91,9 +91,9 @@ $ %s tx farm destroy-pool pool-airtoken1-eth --from mykey
 func GetCmdProvide(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "provide [pool-name] [amount] [yield-per-block] [start-height-to-yield]",
-		Short: "provide yield-token into a pool, and start mining the coin after the specific height",
+		Short: "provide a number of yield tokens into a pool",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Provide yield-token into a pool, and start mining the coin after the specific height.
+			fmt.Sprintf(`Provide a number of yield tokens into a pool.
 
 Example:
 $ %s tx farm provide pool-airtoken1-eth 1000xxb 5 10000 --from mykey
@@ -130,9 +130,9 @@ $ %s tx farm provide pool-airtoken1-eth 1000xxb 5 10000 --from mykey
 func GetCmdLock(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lock [pool-name] [amount]",
-		Short: "lock a number of tokens for liquidity mining",
+		Short: "lock a number of tokens for yield farming",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Lock a number of tokens for liquidity mining.
+			fmt.Sprintf(`Lock a number of tokens for yield farming.
 
 Example:
 $ %s tx farm lock pool-airtoken1-eth 5eth --from mykey
@@ -159,9 +159,9 @@ $ %s tx farm lock pool-airtoken1-eth 5eth --from mykey
 func GetCmdUnlock(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unlock [pool-name] [amount]",
-		Short: "unlock a number of coins for mining reward",
+		Short: "unlock a number of tokens",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Unlock a number of coins for mining reward.
+			fmt.Sprintf(`Unlock a number of tokens.
 
 Example:
 $ %s tx farm unlock pool-airtoken1-eth 1eth --from mykey
@@ -188,9 +188,9 @@ $ %s tx farm unlock pool-airtoken1-eth 1eth --from mykey
 func GetCmdClaim(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "claim [pool-name]",
-		Short: "claim all the mining rewards till this moment",
+		Short: "claim yield farming rewards",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Claim all the mining rewards till this moment.
+			fmt.Sprintf(`Claim yield farming rewards.
 
 Example:
 $ %s tx farm claim --from mykey

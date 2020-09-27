@@ -51,31 +51,31 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 		token0, token1 := swaptypes.SplitPoolToken(pool.SymbolLocked)
 		if token0 == quoteToken || token1 == quoteToken {
 			// calculate how much assets the TotalValueLocked can redeem
-			token0Coin, token1Coin, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
+			token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
 				pool.TotalValueLocked.Amount)
 			if err != nil {
 				panic("should not happen")
 			}
-			var baseCoin, quoteCoin sdk.DecCoin
-			if token0Coin.Denom == quoteToken {
-				baseCoin = token1Coin
-				quoteCoin = token0Coin
+			var baseTokenAmount, quoteTokenAmount sdk.DecCoin
+			if token0Amount.Denom == quoteToken {
+				baseTokenAmount = token1Amount
+				quoteTokenAmount = token0Amount
 			} else {
-				baseCoin = token0Coin
-				quoteCoin = token1Coin
+				baseTokenAmount = token0Amount
+				quoteTokenAmount = token1Amount
 			}
-			quoteTokenAmt := k.GetSwappedQuoteTokenAmt(ctx, baseCoin, quoteToken, swapParams)
-			poolValue = quoteTokenAmt.Add(quoteCoin.Amount)
+			swappedQuoteTokenAmt := k.GetSwappedQuoteTokenAmt(ctx, baseTokenAmount, quoteToken, swapParams)
+			poolValue = swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
 		} else {
 			// calculate how much assets the TotalValueLocked can redeem
-			token0Coin, token1Coin, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
+			token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
 				pool.TotalValueLocked.Amount)
 			if err != nil {
 				panic("should not happen")
 			}
 			// calculate how much quote token the base token can swap
-			quote0TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token0Coin, quoteToken, swapParams)
-			quote1TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token1Coin, quoteToken, swapParams)
+			quote0TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token0Amount, quoteToken, swapParams)
+			quote1TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token1Amount, quoteToken, swapParams)
 			poolValue = quote0TokenAmt.Add(quote1TokenAmt)
 		}
 	} else {
