@@ -33,16 +33,16 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Er
 	////////////////////////////////////////////////////////////
 	// TODO: demo for test. remove it later
 	tPool := types.FarmPool{
-		PoolName:          "pool-airtoken1-eth",
-		LockedTokenSymbol: "locked_token_symbol",
-		TotalLockedCoin:   sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
-		YieldingCoins: types.YieldingCoins{{
+		Name:             "pool-airtoken1-eth",
+		SymbolLocked:     "locked_token_symbol",
+		TotalValueLocked: sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
+		YieldedTokenInfos: types.YieldedTokenInfos{{
 			sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
 			1024,
 			sdk.OneDec(),
 		}},
-		YieldedCoins:           sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
-		LastYieldedBlockHeight: 2048,
+		AmountYielded:          sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
+		LastClaimedBlockHeight: 2048,
 		TotalLockedWeight:      sdk.OneDec(),
 	}
 	k.SetFarmPool(ctx, tPool)

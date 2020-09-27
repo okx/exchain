@@ -9,7 +9,7 @@ import (
 
 func (k Keeper) SetFarmPool(ctx sdk.Context, pool types.FarmPool) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetFarmPoolKey(pool.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(pool))
+	store.Set(types.GetFarmPoolKey(pool.Name), k.cdc.MustMarshalBinaryLengthPrefixed(pool))
 }
 
 func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPool, found bool) {
@@ -24,7 +24,7 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetLockInfoKey(lockInfo.Address, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))
+	store.Set(types.GetLockInfoKey(lockInfo.Owner, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))
 }
 
 func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) (info types.LockInfo, found bool) {
@@ -38,7 +38,7 @@ func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName strin
 }
 
 func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec {
-	if pool.TotalLockedCoin.Amount.LTE(sdk.ZeroDec()) {
+	if pool.TotalValueLocked.Amount.LTE(sdk.ZeroDec()) {
 		return sdk.ZeroDec()
 	}
 
@@ -47,12 +47,12 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 	quoteToken := params.QuoteToken
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
-	if swaptypes.IsPoolToken(pool.LockedTokenSymbol) {
-		token0, token1 := swaptypes.SplitPoolToken(pool.LockedTokenSymbol)
+	if swaptypes.IsPoolToken(pool.SymbolLocked) {
+		token0, token1 := swaptypes.SplitPoolToken(pool.SymbolLocked)
 		if token0 == quoteToken || token1 == quoteToken {
-			// calculate how much assets the TotalLockedCoin can redeem
+			// calculate how much assets the TotalValueLocked can redeem
 			token0Coin, token1Coin, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
-				pool.TotalLockedCoin.Amount)
+				pool.TotalValueLocked.Amount)
 			if err != nil {
 				panic("should not happen")
 			}
@@ -67,9 +67,9 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 			quoteTokenAmt := k.GetSwappedQuoteTokenAmt(ctx, baseCoin, quoteToken, swapParams)
 			poolValue = quoteTokenAmt.Add(quoteCoin.Amount)
 		} else {
-			// calculate how much assets the TotalLockedCoin can redeem
+			// calculate how much assets the TotalValueLocked can redeem
 			token0Coin, token1Coin, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
-				pool.TotalLockedCoin.Amount)
+				pool.TotalValueLocked.Amount)
 			if err != nil {
 				panic("should not happen")
 			}
@@ -79,7 +79,7 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 			poolValue = quote0TokenAmt.Add(quote1TokenAmt)
 		}
 	} else {
-		poolValue = k.GetSwappedQuoteTokenAmt(ctx, pool.TotalLockedCoin, quoteToken, swapParams)
+		poolValue = k.GetSwappedQuoteTokenAmt(ctx, pool.TotalValueLocked, quoteToken, swapParams)
 	}
 	return poolValue
 }

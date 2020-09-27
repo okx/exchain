@@ -16,10 +16,10 @@ type YieldedTokenInfo struct {
 
 // String returns a human readable string representation of a YieldedTokenInfo
 func (yti YieldedTokenInfo) String() string {
-	return fmt.Sprintf(`YieldingCoin：
+	return fmt.Sprintf(`YieldedTokenInfo：
   Coin:								%s
   Start Block Height To Yield:		%d
-  YieldAmountPerBlock:				%s`,
+  AmountYieldedPerBlock:				%s`,
 		yti.TotalAmount, yti.StartBlockHeightToYield, yti.AmountYieldedPerBlock)
 }
 
