@@ -39,7 +39,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 func GetCmdCreatePool(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-pool [pool-name] [lock-token] [yield-token]",
-		Short: "create a farm pool with the name of pool, token to be locked in the pool and token to be yielded",
+		Short: "create a farm pool",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -74,7 +74,7 @@ func GetCmdDestroyPool(cdc *codec.Codec) *cobra.Command {
 func GetCmdProvide(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "provide [pool-name] [amount] [yield-per-block] [start-height-to-yield]",
-		Short: "provide yiled-token into a pool, and start mining the token after the specified height",
+		Short: "provide a number of yield tokens into a pool",
 		Args:  cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -106,7 +106,7 @@ func GetCmdProvide(cdc *codec.Codec) *cobra.Command {
 func GetCmdLock(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "lock [pool-name] [amount]",
-		Short: "lock a number of coins for liquidity mining",
+		Short: "lock a number of tokens for yield farming",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -128,7 +128,7 @@ func GetCmdLock(cdc *codec.Codec) *cobra.Command {
 func GetCmdUnlock(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "unlock [pool-name] [amount]",
-		Short: "unlock a number of coins for mining reward",
+		Short: "unlock a number of tokens",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
@@ -150,7 +150,7 @@ func GetCmdUnlock(cdc *codec.Codec) *cobra.Command {
 func GetCmdClaim(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "claim [pool-name]",
-		Short: "claim all the mining rewards till this moment",
+		Short: "claim yield farming rewards",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
