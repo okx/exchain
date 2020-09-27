@@ -57,7 +57,7 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 
 	poolValue := sdk.ZeroDec()
 	params := k.GetParams(ctx)
-	quoteToken := params.QuoteToken
+	quoteToken := params.QuoteSymbol
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
 	if swaptypes.IsPoolToken(pool.SymbolLocked) {
