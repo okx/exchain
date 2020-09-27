@@ -36,7 +36,7 @@ func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s doesn't have any lock infos", addr)
 }
 
-// ErrInvalidProvidedDenom returns an error when the remaining amount in yieldedTokenInfo is not zero
+// ErrInvalidDenom returns an error when the remaining amount in yieldedTokenInfo is not zero
 func ErrRemainingAmountNotZero(codespace sdk.CodespaceType, amount string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput,
 		"failed. The remaining amount is %s, so it's not enable to provide token repeatedly util amount become zero",
@@ -49,8 +49,8 @@ func ErrInvalidTokenOwner(codespace sdk.CodespaceType, addr string, token string
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. %s isn't the owner of token %s", addr, token)
 }
 
-// ErrInvalidProvidedDenom returns an error when it provides an unmatched token name
-func ErrInvalidProvidedDenom(codespace sdk.CodespaceType, symbolLocked string, token string) sdk.Error {
+// ErrInvalidDenom returns an error when it provides an unmatched token name
+func ErrInvalidDenom(codespace sdk.CodespaceType, symbolLocked string, token string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput,
 		"failed. The locked coin name in the farm is %s, not %s", symbolLocked, token)
 }
