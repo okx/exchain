@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	lockedToken = "eth"
+	symbolLocked = "eth"
 	yieldToken  = "xxb"
 )
 
@@ -42,7 +42,7 @@ func (p *FarmPool) lock(user *account, amount sdk.DecCoin, height int64) {
 	user.balance = user.balance.Sub(sdk.DecCoins{amount})
 
 	p.TotalValueLocked = p.TotalValueLocked.Add(amount)
-	p.TotalLockedInfo = p.TotalLockedInfo.Add(amount.Amount.MulTruncate(sdk.NewDec(height)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Add(amount.Amount.MulTruncate(sdk.NewDec(height)))
 }
 
 func (p *FarmPool) claim(user *account, height int64) {
@@ -50,11 +50,11 @@ func (p *FarmPool) claim(user *account, height int64) {
 		return
 	}
 
-	if height > p.LastUpdatedBlockHeight {
+	if height > p.LastClaimedBlockHeight {
 		var yieldedCoins sdk.DecCoins
 		for _, YieldedToken := range p.YieldedTokenInfos {
 			if height > YieldedToken.StartBlockHeightToYield {
-				yieldAmt := YieldedToken.AmountYieldedPerBlock.MulTruncate(sdk.NewDec(height - p.LastUpdatedBlockHeight))
+				yieldAmt := YieldedToken.AmountYieldedPerBlock.MulTruncate(sdk.NewDec(height - p.LastClaimedBlockHeight))
 				amountYielded := sdk.NewDecCoinFromDec(yieldToken, yieldAmt)
 				YieldedToken.TotalAmount = YieldedToken.TotalAmount.Sub(amountYielded)
 				yieldedCoins = yieldedCoins.Add(sdk.DecCoins{amountYielded})
@@ -62,24 +62,24 @@ func (p *FarmPool) claim(user *account, height int64) {
 		}
 
 		p.AmountYielded = p.AmountYielded.Add(yieldedCoins)
-		p.LastUpdatedBlockHeight = height
+		p.LastClaimedBlockHeight = height
 	}
 
 	record := lockRecords[user.user]
 
 	numerator := record.lockAmount.Amount.MulTruncate(sdk.NewDec(height - record.startBlockHeight))
-	denominator := p.TotalValueLocked.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedInfo)
+	denominator := p.TotalValueLocked.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedWeight)
 	yieldCoinsForUser := p.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
 	// claim yield coins
 	p.AmountYielded = p.AmountYielded.Sub(yieldCoinsForUser)
 	user.balance = user.balance.Add(yieldCoinsForUser)
-	p.TotalLockedInfo = p.TotalLockedInfo.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 
 	// update block height
 	record.startBlockHeight = height
 
-	p.TotalLockedInfo = p.TotalLockedInfo.Add(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Add(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 }
 
 func (p *FarmPool) unlock(user *account, height int64) {
@@ -92,7 +92,7 @@ func (p *FarmPool) unlock(user *account, height int64) {
 	user.balance = user.balance.Add(sdk.DecCoins{record.lockAmount})
 
 	p.TotalValueLocked = p.TotalValueLocked.Sub(record.lockAmount)
-	p.TotalLockedInfo = p.TotalLockedInfo.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
+	p.TotalLockedWeight = p.TotalLockedWeight.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))
 
 	delete(lockRecords, user.user)
 }
@@ -101,11 +101,11 @@ var lockRecords = make(map[string]*LockRecord)
 
 func TestClaim(t *testing.T) {
 	pool := FarmPool{
-		Name:               "pool-xxb-eth",
-		SymbolLocked:        lockedToken,
-		TotalValueLocked:        sdk.NewDecCoinFromDec(lockedToken, sdk.ZeroDec()),
-		LastUpdatedBlockHeight: 0,
-		TotalLockedInfo:        sdk.ZeroDec(),
+		Name:                   "pool-xxb-eth",
+		SymbolLocked:            symbolLocked,
+		TotalValueLocked:        sdk.NewDecCoinFromDec(symbolLocked, sdk.ZeroDec()),
+		LastClaimedBlockHeight:  0,
+		TotalLockedWeight:       sdk.ZeroDec(),
 	}
 
 	YieldedToken := types.YieldedTokenInfo{
@@ -118,20 +118,20 @@ func TestClaim(t *testing.T) {
 
 	userA := account{
 		"A",
-		sdk.DecCoins{sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(10000))},
+		sdk.DecCoins{sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(10000))},
 	}
 
 	userB := account{
 		"B",
-		sdk.DecCoins{sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(10000))},
+		sdk.DecCoins{sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(10000))},
 	}
 
-	pool.lock(&userA, sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(100)), 10)
-	pool.lock(&userB, sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(150)), 20)
+	pool.lock(&userA, sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(100)), 10)
+	pool.lock(&userB, sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(150)), 20)
 
-	pool.lock(&userA, sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(100)), 30)
+	pool.lock(&userA, sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(100)), 30)
 	fmt.Printf("A balance: %s\n", userA.balance)
-	pool.lock(&userB, sdk.NewDecCoinFromDec(lockedToken, sdk.NewDec(200)), 50)
+	pool.lock(&userB, sdk.NewDecCoinFromDec(symbolLocked, sdk.NewDec(200)), 50)
 	fmt.Printf("B balance: %s\n", userB.balance)
 
 	for user, record := range lockRecords {
