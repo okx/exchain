@@ -12,6 +12,7 @@ const (
 	CodeInvalidInput     CodeType = 103
 	CodePoolAlreadyExist CodeType = 104
 	CodeTokenNotExist    CodeType = 105
+	CodePoolNotFinished  CodeType = 106
 	CodeInvalidAddress            = sdk.CodeInvalidAddress
 	CodeUnknownRequest            = sdk.CodeUnknownRequest
 )
@@ -23,7 +24,7 @@ func ErrNoFarmPoolFound(codespace sdk.CodespaceType, poolName string) sdk.Error 
 
 // ErrPoolAlreadyExist returns an error when a pool exist
 func ErrPoolAlreadyExist(codespace sdk.CodespaceType, poolName string) sdk.Error {
-	return sdk.NewError(codespace, CodeTokenNotExist, "failed. farm pool %s already exists", poolName)
+	return sdk.NewError(codespace, CodePoolAlreadyExist, "failed. farm pool %s already exists", poolName)
 }
 
 // ErrTokenNotExist returns an error when a token not exists
@@ -43,10 +44,14 @@ func ErrRemainingAmountNotZero(codespace sdk.CodespaceType, amount string) sdk.E
 		amount)
 }
 
-
 // ErrInvalidTokenOwner returns an error when an input address is not the owner of token
 func ErrInvalidTokenOwner(codespace sdk.CodespaceType, addr string, token string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. %s isn't the owner of token %s", addr, token)
+}
+
+// ErrInvalidPoolOwner returns an error when an input address is not the owner of pool
+func ErrInvalidPoolOwner(codespace sdk.CodespaceType, address string, poolName string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. %s isn't the owner of pool %s", address, poolName)
 }
 
 // ErrInvalidDenom returns an error when it provides an unmatched token name
@@ -60,12 +65,12 @@ func ErrInvalidAmount(codespace sdk.CodespaceType, amount string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input amount %s is invaild", amount)
 }
 
-// ErrInvalidStartHeight returns an error when the start_height_to_yield parameter is invaild
+// ErrInvalidStartHeight returns an error when the start_height_to_yield parameter is invalid
 func ErrInvalidStartHeight(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. The start height to yield is less than current height")
 }
 
-// ErrInvalidInput returns an error when an input parameter is invaild
+// ErrInvalidInput returns an error when an input parameter is invalid
 func ErrInvalidInput(codespace sdk.CodespaceType, input string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input parameter %s is invaild", input)
 }
@@ -73,4 +78,9 @@ func ErrInvalidInput(codespace sdk.CodespaceType, input string) sdk.Error {
 // ErrNilAddress returns an error when an empty address appears
 func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidAddress, "failed. Address is nil")
+}
+
+// ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed
+func ErrPoolNotFinished(codespace sdk.CodespaceType, poolName string) sdk.Error {
+	return sdk.NewError(codespace, CodePoolNotFinished, "failed. the pool %s is not finished and can not be destroyed", poolName)
 }

@@ -9,7 +9,7 @@ import (
 
 const (
 	symbolLocked = "eth"
-	yieldToken  = "xxb"
+	yieldToken   = "xxb"
 )
 
 type LockRecord struct {
@@ -102,10 +102,10 @@ var lockRecords = make(map[string]*LockRecord)
 func TestClaim(t *testing.T) {
 	pool := FarmPool{
 		Name:                   "pool-xxb-eth",
-		SymbolLocked:            symbolLocked,
-		TotalValueLocked:        sdk.NewDecCoinFromDec(symbolLocked, sdk.ZeroDec()),
-		LastClaimedBlockHeight:  0,
-		TotalLockedWeight:       sdk.ZeroDec(),
+		SymbolLocked:           symbolLocked,
+		TotalValueLocked:       sdk.NewDecCoinFromDec(symbolLocked, sdk.ZeroDec()),
+		LastClaimedBlockHeight: 0,
+		TotalLockedWeight:      sdk.ZeroDec(),
 	}
 
 	YieldedToken := types.YieldedTokenInfo{

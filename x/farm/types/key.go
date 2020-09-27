@@ -34,3 +34,8 @@ func GetLockInfoKey(addr sdk.AccAddress, poolName string) []byte {
 func SplitPoolsYieldNativeTokenKey(keyWithPrefix []byte) (poolName string) {
 	return string(keyWithPrefix[1:])
 }
+
+// GetWhitelistMemberKey builds the key for a available pool name
+func GetWhitelistMemberKey(poolName string) []byte {
+	return append(PoolsYieldNativeTokenPrefix, []byte(poolName)...)
+}

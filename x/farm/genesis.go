@@ -43,6 +43,9 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper /* TODO: Define what keepers t
 		sdk.OneDec(),
 	)
 	k.SetFarmPool(ctx, tPool2)
+	// set whitelist member
+	k.SetWhitelist(ctx, "pool-airtoken1-eth")
+	k.SetWhitelist(ctx, "pool-airtoken2-eth")
 	////////////////////////////////////////////////////////////
 }
 

@@ -50,7 +50,7 @@ $ %s tx farm create-pool pool-airtoken1-eth eth xxb --from mykey
 $ %s tx farm create-pool pool-airtoken1-eth_usdk ammswap_eth_usdk xxb --from mykey
 `, version.ClientName, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(3),
+		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -76,7 +76,7 @@ Example:
 $ %s tx farm destroy-pool pool-airtoken1-eth --from mykey
 `, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -99,7 +99,7 @@ Example:
 $ %s tx farm provide pool-airtoken1-eth 1000xxb 5 10000 --from mykey
 `, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(4),
+		Args: cobra.ExactArgs(4),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -114,13 +114,13 @@ $ %s tx farm provide pool-airtoken1-eth 1000xxb 5 10000 --from mykey
 				return err
 			}
 
-			startHeightToYiled, err := strconv.ParseInt(args[3], 10, 64)
+			startHeightToYield, err := strconv.ParseInt(args[3], 10, 64)
 			if err != nil {
 				return err
 			}
 
 			poolName := args[0]
-			msg := types.NewMsgProvide(poolName, cliCtx.GetFromAddress(), amount, yieldPerBlock, startHeightToYiled)
+			msg := types.NewMsgProvide(poolName, cliCtx.GetFromAddress(), amount, yieldPerBlock, startHeightToYield)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -138,7 +138,7 @@ Example:
 $ %s tx farm lock pool-airtoken1-eth 5eth --from mykey
 `, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(2),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -167,7 +167,7 @@ Example:
 $ %s tx farm unlock pool-airtoken1-eth 1eth --from mykey
 `, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(2),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -196,7 +196,7 @@ Example:
 $ %s tx farm claim --from mykey
 `, version.ClientName),
 		),
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

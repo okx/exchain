@@ -7,7 +7,7 @@ import (
 )
 
 type MsgCreatePool struct {
-	Address    sdk.AccAddress `json:"address" yaml:"address"`
+	Owner      sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName   string         `json:"pool_name" yaml:"pool_name"`
 	LockToken  string         `json:"lock_token", yaml:"lock_token"`
 	YieldToken string         `json:"yield_token", yaml:"yield_token"`
@@ -17,7 +17,7 @@ var _ sdk.Msg = MsgCreatePool{}
 
 func NewMsgCreatePool(address sdk.AccAddress, poolName, lockToken, yieldToken string) MsgCreatePool {
 	return MsgCreatePool{
-		Address:    address,
+		Owner:      address,
 		PoolName:   poolName,
 		LockToken:  lockToken,
 		YieldToken: yieldToken,
@@ -33,7 +33,7 @@ func (m MsgCreatePool) Type() string {
 }
 
 func (m MsgCreatePool) ValidateBasic() sdk.Error {
-	if m.Address.Empty() {
+	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" {
@@ -54,11 +54,11 @@ func (m MsgCreatePool) GetSignBytes() []byte {
 }
 
 func (m MsgCreatePool) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{m.Address}
+	return []sdk.AccAddress{m.Owner}
 }
 
 type MsgDestroyPool struct {
-	Address  sdk.AccAddress `json:"address" yaml:"address"`
+	Owner    sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
 }
 
@@ -66,7 +66,7 @@ var _ sdk.Msg = MsgDestroyPool{}
 
 func NewMsgDestroyPool(address sdk.AccAddress, poolName string) MsgDestroyPool {
 	return MsgDestroyPool{
-		Address:  address,
+		Owner:    address,
 		PoolName: poolName,
 	}
 }
@@ -80,7 +80,7 @@ func (m MsgDestroyPool) Type() string {
 }
 
 func (m MsgDestroyPool) ValidateBasic() sdk.Error {
-	if m.Address.Empty() {
+	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" {
@@ -95,7 +95,7 @@ func (m MsgDestroyPool) GetSignBytes() []byte {
 }
 
 func (m MsgDestroyPool) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{m.Address}
+	return []sdk.AccAddress{m.Owner}
 }
 
 type MsgProvide struct {

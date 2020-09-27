@@ -22,6 +22,11 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 	return pool, true
 }
 
+func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.GetFarmPoolKey(poolName))
+}
+
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockInfoKey(lockInfo.Owner, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))

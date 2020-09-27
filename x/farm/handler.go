@@ -27,6 +27,11 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgCreatePool(ctx, k, msg, logger)
 			}
+		case types.MsgDestroyPool:
+			name = "handleMsgDestroyPool"
+			handlerFun = func() sdk.Result {
+				return handleMsgDestroyPool(ctx, k, msg, logger)
+			}
 		case types.MsgProvide:
 			name = "handleMsgProvide"
 			handlerFun = func() sdk.Result {
@@ -68,34 +73,78 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldToken)
-	if !yieldTokenInfo.Owner.Equals(msg.Address) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.YieldToken).Result()
+	if !yieldTokenInfo.Owner.Equals(msg.Owner) {
+		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldToken).Result()
 	}
 
-	// deduction fee
-	feeCoins := k.GetParams(ctx).CreatePoolFee.ToCoins()
-	err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, k.GetFeeCollector(), feeCoins)
-	if err != nil {
+	// fee
+	feeAmount := k.GetParams(ctx).CreatePoolFee
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins()); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+			feeAmount.String())).Result()
+	}
+
+	// deposit
+	depositAmount := k.GetParams(ctx).CreatePoolDeposit
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, ModuleName, depositAmount.ToCoins()); err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+			depositAmount.String())).Result()
 	}
 
 	// create pool
-	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.LockToken, sdk.ZeroInt()),0, sdk.ZeroDec())
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.LockToken, sdk.ZeroInt()), 0, sdk.ZeroDec())
 	pool := types.FarmPool{
+		Owner:             msg.Owner,
 		Name:              msg.PoolName,
 		SymbolLocked:      msg.LockToken,
 		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
+		DepositAmount:     depositAmount,
 	}
 	k.SetFarmPool(ctx, pool)
 
 	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeCreatePool,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 			sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockToken),
 			sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldToken),
+			sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
+			sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
+		),
+	}}
+}
+
+func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool, logger log.Logger) sdk.Result {
+	pool, found := k.GetFarmPool(ctx, msg.PoolName)
+	if !found {
+		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	if !pool.Owner.Equals(msg.Owner) {
+		return types.ErrInvalidPoolOwner(DefaultCodespace, msg.Owner.String(), msg.PoolName).Result()
+	}
+
+	if !pool.Finished() {
+		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	// withdraw
+	withdrawAmount := pool.DepositAmount
+	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins()); err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+			withdrawAmount.String())).Result()
+	}
+
+	// delete pool
+	k.DeleteFarmPool(ctx, msg.PoolName)
+
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeCreatePool,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+			sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
 		),
 	}}
 }
@@ -113,7 +162,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}
 
 	// 0.3 Check if the provided coin denom is the same as the locked coin name
-	if len(pool.YieldedTokenInfos) != 1 {  // TODO: use the panic temporarily
+	if len(pool.YieldedTokenInfos) != 1 { // TODO: use the panic temporarily
 		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
 			len(pool.YieldedTokenInfos)))
 	}
@@ -145,7 +194,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 			sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
-			sdk.NewAttribute(types.AttributeKeyYiledPerBlock, msg.AmountYieldedPerBlock.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountYieldPerBlock, msg.AmountYieldedPerBlock.String()),
 		),
 	}}
 }
@@ -286,7 +335,7 @@ func liquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
 				pool.AmountYielded = pool.AmountYielded.Add(sdk.NewCoins(remainingAmount))
 
 				// initialize yieldedTokenInfo
-				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remainingAmount.Denom, sdk.ZeroInt()),0, sdk.ZeroDec())
+				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remainingAmount.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
 
 				// TODO: remove the YieldedTokenInfo when its amount become zero
 				// Currently, we support only one token of yield farming at the same time,

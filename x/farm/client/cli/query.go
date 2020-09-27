@@ -191,8 +191,7 @@ $ %s query farm whitelist
 				return err
 			}
 
-			// TODO: types.TestStruct -> types.Whitelist
-			var whitelist types.TestStruct
+			var whitelist types.Whitelist
 			cdc.MustUnmarshalJSON(bz, &whitelist)
 			return cliCtx.PrintOutput(whitelist)
 		},
