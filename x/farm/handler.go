@@ -103,6 +103,9 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 	k.SetFarmPool(ctx, pool)
 
+	// TODO: delete it later
+	k.SetWhitelist(ctx, pool.Name)
+
 	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeCreatePool,

@@ -24,6 +24,9 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 
 func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
 	store := ctx.KVStore(k.storeKey)
+	// delete pool from whitelist
+	store.Delete(types.GetWhitelistMemberKey(poolName))
+	// delete pool key
 	store.Delete(types.GetFarmPoolKey(poolName))
 }
 
