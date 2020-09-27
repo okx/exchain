@@ -161,8 +161,7 @@ $ %s query farm params
 				return err
 			}
 
-			// TODO: types.TestStruct -> types.Params
-			var params types.TestStruct
+			var params types.Params
 			cdc.MustUnmarshalJSON(bz, &params)
 			return cliCtx.PrintOutput(params)
 		},

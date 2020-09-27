@@ -106,7 +106,15 @@
       "validator_accumulated_commissions": [],
       "withdraw_addr_enabled": true
     },
-    "farm": {},
+    "farm": {
+      "params": {
+        "create_pool_fee": {
+          "amount": "10.00000000",
+          "denom": "okt"
+        },
+        "quote_token": "usdk"
+      }
+    },
     "genutil": {
       "gentxs": [
         {

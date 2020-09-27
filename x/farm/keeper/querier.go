@@ -72,8 +72,7 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 }
 
 func queryParams(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
-	// TODO: get params from ctx with keeper
-	params := types.NewTestStruct("test params")
+	params := k.GetParams(ctx)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
