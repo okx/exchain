@@ -10,6 +10,24 @@ import (
 // and the keeper's address to pubkey map
 func InitGenesis(ctx sdk.Context, k keeper.Keeper /* TODO: Define what keepers the module needs */, data types.GenesisState) {
 	// TODO: Define logic for when you would like to initialize a new genesis
+	////////////////////////////////////////////////////////////
+	// TODO: demo for test. remove it later
+	tPool := types.NewFarmPool(
+		"pool-airtoken1-eth",
+		"locked_token_symbol",
+		types.YieldedTokenInfos{
+			types.NewYieldedTokenInfo(
+				sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
+				1024,
+				sdk.OneDec(),
+			)},
+		sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
+		sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
+		2048,
+		sdk.OneDec(),
+	)
+	k.SetFarmPool(ctx, tPool)
+	////////////////////////////////////////////////////////////
 }
 
 // ExportGenesis writes the current store values

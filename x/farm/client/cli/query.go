@@ -31,6 +31,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryEarnings(queryRoute, cdc),
 			GetCmdQueryParams(queryRoute, cdc),
 			GetCmdQueryWhitelist(queryRoute, cdc),
+			GetCmdQueryAccount(queryRoute, cdc),
 		)...,
 	)
 
@@ -74,7 +75,6 @@ $ %s query farm pool pool-airtoken1-eth
 }
 
 // GetCmdQueryPools gets the pools query command.
-// TODO: make it work
 func GetCmdQueryPools(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "pools",
@@ -196,6 +196,36 @@ $ %s query farm whitelist
 			var whitelist types.TestStruct
 			cdc.MustUnmarshalJSON(bz, &whitelist)
 			return cliCtx.PrintOutput(whitelist)
+		},
+	}
+}
+
+// GetCmdQueryAccount gets the account query command.
+func GetCmdQueryAccount(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "account [address]",
+		Short: "query the info of pools that an account has locked coins in",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the info of all pools that an account has locked coins in.
+
+Example:
+$ %s query farm account okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryAccount)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var pools types.FarmPools
+			cdc.MustUnmarshalJSON(bz, &pools)
+			return cliCtx.PrintOutput(pools)
 		},
 	}
 }

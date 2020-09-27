@@ -6,6 +6,7 @@ const (
 	QueryEarnings  = "earnings"
 	QueryParams    = "params"
 	QueryWhitelist = "whitelist"
+	QueryAccount   = "account"
 )
 
 // QueryPoolParams defines the params for the following queries:
