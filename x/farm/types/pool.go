@@ -9,19 +9,43 @@ import (
 
 // LockInfo is locked info of an address
 type LockInfo struct {
-	Address          sdk.AccAddress `json:"address"`
+	Owner            sdk.AccAddress `json:"owner"`
 	PoolName         string         `json:"pool_name"`
 	Amount           sdk.DecCoin    `json:"amount"`
 	StartBlockHeight int64          `json:"start_block_height"`
 }
 
-// YieldingCoin is the token excluding native token which can be yielded
+// YieldedToken is the token excluding native token which can be yielded
 // by locking other tokens including LPT and token issued
-type YieldingCoin struct {
-	Coin                    sdk.DecCoin `json:"coin"`
+type YieldedTokenInfo struct {
+	TotalAmount             sdk.DecCoin `json:"total_amount"`
 	StartBlockHeightToYield int64       `json:"start_block_height_to_yield"`
-	YieldAmountPerBlock     sdk.Dec     `json:"yield_amount_per_block"`
+	AmountYieldedPerBlock   sdk.Dec     `json:"amount_yielded_per_block"`
 }
+
+// FarmPool is the pool where an address can lock specified token to yield other tokens
+type FarmPool struct {
+	Name              string `json:"name"`
+	SymbolLocked      string `json:"symbol_locked"`
+	YieldedTokenInfos      []YieldedTokenInfo `json:"yieldied_token_infos"`
+
+	// sum of LockInfo.Amount
+	TotalValueLocked       sdk.DecCoin        `json:"total_value_locked"`
+	AmountYielded          sdk.DecCoins       `json:"amount_yielded"`
+	LastUpdatedBlockHeight int64              `json:"last_updated_block_height"`
+	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
+	TotalLockedInfo sdk.Dec `json:"total_locked_info"`
+}
+
+type RunTimePoolInfo struct {
+	// sum of LockInfo.Amount
+	TotalValueLocked       sdk.DecCoin        `json:"total_value_locked"`
+	AmountYielded          sdk.DecCoins       `json:"amount_yielded"`
+	LastUpdatedBlockHeight int64              `json:"last_updated_block_height"`
+	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
+	TotalWeight sdk.Dec `json:"total_locked_info"`
+}
+
 
 // String returns a human readable string representation of a YieldingCoin
 func (yc YieldingCoin) String() string {
@@ -43,18 +67,7 @@ func (ycs YieldingCoins) String() (out string) {
 	return strings.TrimSpace(out)
 }
 
-// FarmPool is the pool where an address can lock specified token to yield other tokens
-type FarmPool struct {
-	PoolName          string `json:"pool_name"`
-	LockedTokenSymbol string `json:"locked_token_symbol"`
-	// sum of LockInfo.Amount
-	TotalLockedCoin        sdk.DecCoin   `json:"total_locked_coin"`
-	YieldingCoins          YieldingCoins `json:"yielding_coins"`
-	YieldedCoins           sdk.DecCoins  `json:"yielded_coins"`
-	LastYieldedBlockHeight int64         `json:"last_yielded_block_height"`
-	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
-	TotalLockedWeight sdk.Dec `json:"total_locked_weight"`
-}
+
 
 // String returns a human readable string representation of FarmPool
 func (fp FarmPool) String() string {
