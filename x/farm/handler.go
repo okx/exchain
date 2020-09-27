@@ -22,7 +22,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		var name string
 		switch msg := msg.(type) {
 		case types.MsgCreatePool:
-			name = "handleMsgList"
+			name = "handleMsgCreatePool"
 			handlerFun = func() sdk.Result {
 				return handleMsgCreatePool(ctx, k, msg, logger)
 			}
@@ -58,7 +58,47 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 }
 
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
-	return sdk.Result{}
+	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
+		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.LockToken); !ok {
+		return types.ErrTokenNotExist(DefaultCodespace, msg.LockToken).Result()
+	}
+
+	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldToken)
+	if !yieldTokenInfo.Owner.Equals(msg.Address) {
+		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.YieldToken).Result()
+	}
+
+	// deduction fee
+	feeCoins := k.GetParams(ctx).CreatePoolFee.ToCoins()
+	err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, k.GetFeeCollector(), feeCoins)
+	if err != nil {
+		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+			feeCoins.String())).Result()
+	}
+
+	// create pool
+	yieldedTokenInfo := types.YieldedTokenInfo{
+		TotalAmount: sdk.DecCoin{Amount: sdk.ZeroDec(), Denom: msg.YieldToken},
+	}
+	pool := types.FarmPool{
+		Name:              msg.PoolName,
+		SymbolLocked:      msg.LockToken,
+		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
+	}
+	k.SetFarmPool(ctx, pool)
+
+	return sdk.Result{Events: sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeCreatePool,
+			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+			sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockToken),
+			sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldToken),
+		),
+	}}
 }
 
 func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, logger log.Logger) sdk.Result {

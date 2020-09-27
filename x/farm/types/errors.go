@@ -7,16 +7,28 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = ModuleName
 
-	CodeInvalidFarmPool CodeType = 101
-	CodeInvalidLockInfo CodeType = 102
-	CodeInvalidInput    CodeType = 103
-	CodeInvalidAddress           = sdk.CodeInvalidAddress
-	CodeUnknownRequest           = sdk.CodeUnknownRequest
+	CodeInvalidFarmPool  CodeType = 101
+	CodeInvalidLockInfo  CodeType = 102
+	CodeInvalidInput     CodeType = 103
+	CodePoolAlreadyExist CodeType = 104
+	CodeTokenNotExist    CodeType = 105
+	CodeInvalidAddress            = sdk.CodeInvalidAddress
+	CodeUnknownRequest            = sdk.CodeUnknownRequest
 )
 
 // ErrNoFarmPoolFound returns an error when a farm pool doesn't exist
 func ErrNoFarmPoolFound(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidFarmPool, "failed. farm pool %s does not exist", poolName)
+}
+
+// ErrPoolAlreadyExist returns an error when a pool exist
+func ErrPoolAlreadyExist(codespace sdk.CodespaceType, poolName string) sdk.Error {
+	return sdk.NewError(codespace, CodeTokenNotExist, "failed. farm pool %s already exists", poolName)
+}
+
+// ErrTokenNotExist returns an error when a token not exists
+func ErrTokenNotExist(codespace sdk.CodespaceType, tokenName string) sdk.Error {
+	return sdk.NewError(codespace, CodeTokenNotExist, "failed. lock token %s not exists", tokenName)
 }
 
 // ErrNoLockInfoFound returns an error when an address doesn't have any lock infos
@@ -51,5 +63,5 @@ func ErrInvalidInput(codespace sdk.CodespaceType, input string) sdk.Error {
 
 // ErrNilAddress returns an error when an empty address appears
 func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. address is nil")
+	return sdk.NewError(codespace, CodeInvalidAddress, "failed. address is nil")
 }

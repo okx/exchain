@@ -12,23 +12,25 @@ import (
 
 // Keeper of the farm store
 type Keeper struct {
-	storeKey     sdk.StoreKey
-	cdc          *codec.Codec
-	paramspace   types.ParamSubspace
-	supplyKeeper supply.Keeper
-	tokenKeeper  token.Keeper
-	swapKeeper   swap.Keeper
+	storeKey         sdk.StoreKey
+	cdc              *codec.Codec
+	feeCollectorName string // name of the FeeCollector ModuleAccount
+	paramSubspace    types.ParamSubspace
+	supplyKeeper     supply.Keeper
+	tokenKeeper      token.Keeper
+	swapKeeper       swap.Keeper
 }
 
 // NewKeeper creates a farm keeper
-func NewKeeper(supplyKeeper supply.Keeper, tokenKeeper token.Keeper, paramspace types.ParamSubspace, key sdk.StoreKey,
+func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper, tokenKeeper token.Keeper, paramSubspace types.ParamSubspace, key sdk.StoreKey,
 	cdc *codec.Codec) Keeper {
 	return Keeper{
-		storeKey:     key,
-		cdc:          cdc,
-		paramspace:   paramspace.WithKeyTable(types.ParamKeyTable()),
-		supplyKeeper: supplyKeeper,
-		tokenKeeper:  tokenKeeper,
+		storeKey:         key,
+		cdc:              cdc,
+		feeCollectorName: feeCollectorName,
+		paramSubspace:    paramSubspace.WithKeyTable(types.ParamKeyTable()),
+		supplyKeeper:     supplyKeeper,
+		tokenKeeper:      tokenKeeper,
 	}
 }
 
@@ -42,4 +44,9 @@ func (k Keeper) SupplyKeeper() supply.Keeper {
 
 func (k Keeper) TokenKeeper() token.Keeper {
 	return k.tokenKeeper
+}
+
+// GetFeeCollector returns feeCollectorName
+func (k Keeper) GetFeeCollector() string {
+	return k.feeCollectorName
 }
