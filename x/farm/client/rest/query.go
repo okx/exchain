@@ -25,7 +25,7 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		if !ok {
 			return
 		}
-
+		fmt.Println(1)
 		route := fmt.Sprintf("custom/%s/parameters", types.QuerierRoute)
 
 		res, height, err := cliCtx.QueryWithData(route, nil)
@@ -33,6 +33,7 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		fmt.Println(2)
 
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
