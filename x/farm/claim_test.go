@@ -56,7 +56,7 @@ func (p *FarmPool) claim(user *account, height int64) {
 			if height > YieldedToken.StartBlockHeightToYield {
 				yieldAmt := YieldedToken.AmountYieldedPerBlock.MulTruncate(sdk.NewDec(height - p.LastClaimedBlockHeight))
 				amountYielded := sdk.NewDecCoinFromDec(yieldToken, yieldAmt)
-				YieldedToken.TotalAmount = YieldedToken.TotalAmount.Sub(amountYielded)
+				YieldedToken.RemainingAmount = YieldedToken.RemainingAmount.Sub(amountYielded)
 				yieldedCoins = yieldedCoins.Add(sdk.DecCoins{amountYielded})
 			}
 		}
@@ -109,7 +109,7 @@ func TestClaim(t *testing.T) {
 	}
 
 	YieldedToken := types.YieldedTokenInfo{
-		TotalAmount:             sdk.NewDecCoinFromDec(yieldToken, sdk.NewDec(100000)),
+		RemainingAmount:         sdk.NewDecCoinFromDec(yieldToken, sdk.NewDec(100000)),
 		StartBlockHeightToYield: 0,
 		AmountYieldedPerBlock:   sdk.NewDec(10),
 	}

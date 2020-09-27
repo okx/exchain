@@ -3,6 +3,7 @@ package farm
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -80,9 +81,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldedTokenInfo := types.YieldedTokenInfo{
-		TotalAmount: sdk.DecCoin{Amount: sdk.ZeroDec(), Denom: msg.YieldToken},
-	}
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.LockToken, sdk.ZeroInt()),0, sdk.ZeroDec())
 	pool := types.FarmPool{
 		Name:              msg.PoolName,
 		SymbolLocked:      msg.LockToken,
@@ -106,11 +105,6 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
 	}
-	// 0. Check if this address is the owner of the token
-	tokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.Amount.Denom)
-	if !tokenInfo.Owner.Equals(msg.Address) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Address.String(), msg.Amount.Denom).Result()
-	}
 
 	// 2.1 Get the pool info
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
@@ -118,13 +112,25 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 2. Append yielding_coin into pool
-	YieldedTokenInfo := types.YieldedTokenInfo{
-		TotalAmount:             msg.Amount,
-		StartBlockHeightToYield: msg.StartHeightToYield,
-		AmountYieldedPerBlock:   msg.YieldPerBlock,
+	// 2.2 Check if the provided coin denom is the same as the locked coin name
+	if len(pool.YieldedTokenInfos) != 1 {
+		// TODO: use the panic temporarily
+		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
+			len(pool.YieldedTokenInfos)))
 	}
-	pool.YieldedTokenInfos = append(pool.YieldedTokenInfos, YieldedTokenInfo)
+	if strings.Compare(pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom) != 0 {
+		return types.ErrInvalidProvidedDenom(
+			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
+	}
+
+	// 2.3 Check if remaining amount is zero already
+	if !pool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
+		return types.ErrRemainingAmountNotZero(
+			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Amount.String()).Result()
+	}
+
+	// 2.4 refresh the yielding_coin if remaining amount is zero
+	pool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
 	k.SetFarmPool(ctx, pool)
 
 	// 3. Transfer coin to farm module account
@@ -140,7 +146,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 			sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
-			sdk.NewAttribute(types.AttributeKeyYiledPerBlock, msg.YieldPerBlock.String()),
+			sdk.NewAttribute(types.AttributeKeyYiledPerBlock, msg.AmountYieldedPerBlock.String()),
 		),
 	}}
 }
@@ -151,7 +157,6 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	if !found { // If it doesn't exist, only initialize the LockInfo structure.
 		lockInfo.Owner = msg.Address
 	} else { // Otherwise, calculate the previous liquidity mining reward at first
-		// excute claim
 		err := claim(ctx, k, lockInfo, msg.PoolName, msg.Address)
 		if err != nil {
 			return err.Result()
@@ -193,7 +198,6 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	if !found { // If it doesn't exist, just return.
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
 	} else { // Otherwise, calculate the previous liquidity mining reward at first
-		// excute claim
 		err := claim(ctx, k, lockInfo, msg.PoolName, msg.Address)
 		if err != nil {
 			return err.Result()
@@ -209,7 +213,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return err.Result()
 	}
 
-	// 3. Get the pool info
+	// 3. Get the pool info, then update
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -264,31 +268,40 @@ func claim(ctx sdk.Context, k keeper.Keeper, lockInfo types.LockInfo, poolName s
 	}
 
 	height := ctx.BlockHeight()
-	if height < pool.LastClaimedBlockHeight {
+	if height <= pool.LastClaimedBlockHeight { // TODO: is there any neccessary to make a height comparison?
 		return nil
 	}
 
-	// TODO there are too many operations about MulTruncate, check the amount carefully!!!
-	// TODO rename parameters?
-	// 1. Transfer yileding_coin -> yileded_coin
+	// TODO: there are too many operations about MulTruncate, check the amount carefully, and write checking codes in invariants.go !!!
+	// 1. Transfer yielding_coin -> yielded_coin
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
-		if height >= pool.YieldedTokenInfos[i].StartBlockHeightToYield {
+		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
+		if height > startBlockHeightToYield {
 			// calculate the exact interval
 			var blockInterval sdk.Dec
-			if pool.YieldedTokenInfos[i].StartBlockHeightToYield > pool.LastClaimedBlockHeight {
-				blockInterval = sdk.NewDec(height - pool.YieldedTokenInfos[i].StartBlockHeightToYield)
+			if startBlockHeightToYield > pool.LastClaimedBlockHeight {
+				blockInterval = sdk.NewDec(height - startBlockHeightToYield)
 			} else {
 				blockInterval = sdk.NewDec(height - pool.LastClaimedBlockHeight)
 			}
 
-			// calculate how many coin have been yileded till the current block
-			yieldedAmount := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
-			pool.AmountYielded = pool.AmountYielded.Add(sdk.NewDecCoinsFromDec(pool.YieldedTokenInfos[i].TotalAmount.Denom, yieldedAmount))
+			// calculate how many coin have been yielded till the current block
+			amountYielded := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
+			remainingAmount := pool.YieldedTokenInfos[i].RemainingAmount
+			if amountYielded.LT(remainingAmount.Amount) {
+				// add yielded amount
+				pool.AmountYielded = pool.AmountYielded.Add(sdk.NewDecCoinsFromDec(remainingAmount.Denom, amountYielded))
+				// subtract yielded_coin amount
+				pool.YieldedTokenInfos[i].RemainingAmount.Amount = remainingAmount.Amount.Sub(amountYielded)
+			} else {
+				// add yielded amount
+				pool.AmountYielded = pool.AmountYielded.Add(sdk.NewCoins(remainingAmount))
 
-			// subtract yileding_coin amount
-			pool.YieldedTokenInfos[i].TotalAmount.Amount = pool.YieldedTokenInfos[i].TotalAmount.Amount.Sub(yieldedAmount)
+				// initialize yieldedTokenInfo
+				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remainingAmount.Denom, sdk.ZeroInt()),0, sdk.ZeroDec())
 
-			// TODO what if pool.YieldedTokenInfos[i].Coin become zero, or less than AmountYieldedPerBlock
+				// TODO: remove the YieldedTokenInfo when its amount become zero
+			}
 		}
 	}
 
@@ -319,12 +332,23 @@ func claim(ctx sdk.Context, k keeper.Keeper, lockInfo types.LockInfo, poolName s
 		return err
 	}
 
-	// 3 Update pool data
+	// 3. Update pool data
 	pool.AmountYielded = pool.AmountYielded.Sub(selfAmountYielded)
 	pool.TotalLockedWeight = pool.TotalLockedWeight.Add(numerator)
 	pool.LastClaimedBlockHeight = height
-	// set pool into store
+	// Set the updated pool into store
 	k.SetFarmPool(ctx, pool)
 
 	return nil
+}
+
+func checkRemainingAmount(height, startBlockHeightToYield, lastClaimedBlockHeight int64, amountYieldedPerBlock sdk.Dec) sdk.Dec {
+	// calculate the exact interval
+	var blockInterval sdk.Dec
+	if startBlockHeightToYield > lastClaimedBlockHeight {
+		blockInterval = sdk.NewDec(height - startBlockHeightToYield)
+	} else {
+		blockInterval = sdk.NewDec(height - lastClaimedBlockHeight)
+	}
+	return blockInterval.MulTruncate(amountYieldedPerBlock)
 }
