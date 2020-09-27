@@ -9,10 +9,11 @@ import (
 
 // FarmPool is the pool where an address can lock specified token to yield other tokens
 type FarmPool struct {
+	Owner             sdk.AccAddress    `json:"owner"`
 	Name              string            `json:"name"`
 	SymbolLocked      string            `json:"symbol_locked"`
-	YieldedTokenInfos YieldedTokenInfos `json:"yieldied_token_infos"`
-
+	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
+	DepositAmount     sdk.DecCoin       `json:"deposit_amount"`
 	// sum of LockInfo.Amount
 	TotalValueLocked       sdk.DecCoin  `json:"total_value_locked"`
 	AmountYielded          sdk.DecCoins `json:"amount_yielded"`
@@ -33,6 +34,15 @@ func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedToke
 		LastClaimedBlockHeight: lastClaimedBlockHeight,
 		TotalLockedWeight:      totalLockedWeight,
 	}
+}
+
+func (fp FarmPool) Finished() bool {
+	for _, yieldedTokenInfo := range fp.YieldedTokenInfos {
+		if yieldedTokenInfo.TotalAmount.IsPositive() {
+			return false
+		}
+	}
+	return fp.TotalValueLocked.IsZero() && fp.AmountYielded.IsZero()
 }
 
 // String returns a human readable string representation of FarmPool

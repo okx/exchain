@@ -11,9 +11,11 @@ const (
 	AttributeKeyAddress            = "address"
 	AttributeKeyPool               = "pool"
 	AttributeKeyStartHeightToYield = "start_height_to_yield"
-	AttributeKeyYiledPerBlock      = "yield_per_block"
+	AttributeKeyYieldPerBlock      = "yield_per_block"
 	AttributeKeyLockToken          = "lock_token"
 	AttributeKeyYieldToken         = "yield_token"
+	AttributeKeyDeposit            = "deposit"
+	AttributeKeyWithdraw           = "withdraw"
 
 	AttributeValueCategory = ModuleName
 )
