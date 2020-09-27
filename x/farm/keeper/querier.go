@@ -32,19 +32,20 @@ func NewQuerier(k Keeper) sdk.Querier {
 func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
 	////////////////////////////////////////////////////////////
 	// TODO: demo for test. remove it later
-	tPool := types.FarmPool{
-		Name:             "pool-airtoken1-eth",
-		SymbolLocked:     "locked_token_symbol",
-		TotalValueLocked: sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
-		YieldedTokenInfos: types.YieldedTokenInfos{{
-			sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
-			1024,
-			sdk.OneDec(),
-		}},
-		AmountYielded:          sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
-		LastClaimedBlockHeight: 2048,
-		TotalLockedWeight:      sdk.OneDec(),
-	}
+	tPool := types.NewFarmPool(
+		"pool-airtoken1-eth",
+		"locked_token_symbol",
+		types.YieldedTokenInfos{
+			types.NewYieldedTokenInfo(
+				sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
+				1024,
+				sdk.OneDec(),
+			)},
+		sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
+		sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
+		2048,
+		sdk.OneDec(),
+	)
 	k.SetFarmPool(ctx, tPool)
 	////////////////////////////////////////////////////////////
 	var params types.QueryPoolParams

@@ -14,6 +14,15 @@ type YieldedTokenInfo struct {
 	AmountYieldedPerBlock   sdk.Dec     `json:"amount_yielded_per_block"`
 }
 
+// NewYieldedTokenInfo creates a new instance of YieldedTokenInfo
+func NewYieldedTokenInfo(totalAmount sdk.DecCoin, startBlockHeightToYield int64, amountYieldedPerBlock sdk.Dec) YieldedTokenInfo {
+	return YieldedTokenInfo{
+		TotalAmount:             totalAmount,
+		StartBlockHeightToYield: startBlockHeightToYield,
+		AmountYieldedPerBlock:   amountYieldedPerBlock,
+	}
+}
+
 // String returns a human readable string representation of a YieldedTokenInfo
 func (yti YieldedTokenInfo) String() string {
 	return fmt.Sprintf(`YieldedTokenInfo：
