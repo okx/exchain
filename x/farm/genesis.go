@@ -46,6 +46,12 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper /* TODO: Define what keepers t
 	// set whitelist member
 	k.SetWhitelist(ctx, "pool-airtoken1-eth")
 	k.SetWhitelist(ctx, "pool-airtoken2-eth")
+	// for query account
+	addr, _ := sdk.AccAddressFromBech32("okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0")
+	store := ctx.KVStore(k.StoreKey())
+	store.Set(types.GetLockInfoKey(addr, "pool-airtoken1-eth"), []byte(""))
+	store.Set(types.GetLockInfoKey(addr, "pool-airtoken2-eth"), []byte(""))
+	store.Set(types.GetLockInfoKey(addr, "pool-airtoken3-eth"), []byte(""))
 	////////////////////////////////////////////////////////////
 }
 

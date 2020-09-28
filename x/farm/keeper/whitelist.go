@@ -6,7 +6,7 @@ import (
 )
 
 // GetWhitelist gets the whole whitelist currently
-func (k Keeper) GetWhitelist(ctx sdk.Context) (whitelist []string) {
+func (k Keeper) GetWhitelist(ctx sdk.Context) (whitelist types.PoolNameList) {
 	store := ctx.KVStore(k.StoreKey())
 	iterator := sdk.KVStorePrefixIterator(store, types.PoolsYieldNativeTokenPrefix)
 	defer iterator.Close()

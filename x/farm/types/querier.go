@@ -52,3 +52,16 @@ func NewQueryEarningsParams(poolName string, accAddr sdk.AccAddress) QueryEarnin
 		AccAddress: accAddr,
 	}
 }
+
+// QueryAccountParams defines the params for the following queries:
+// - 'custom/farm/account'
+type QueryAccountParams struct {
+	AccAddress sdk.AccAddress
+}
+
+// NewQueryAccountParams creates a new instance of QueryAccountParams
+func NewQueryAccountParams(accAddr sdk.AccAddress) QueryAccountParams {
+	return QueryAccountParams{
+		AccAddress: accAddr,
+	}
+}
