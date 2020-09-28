@@ -20,13 +20,13 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		queryPoolsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get a single pool info by the pool name
+	// get a single pool info by the farm pool's name
 	r.HandleFunc(
 		"/farm/pool/{poolName}",
 		queryPoolHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get the current earnings of an account in a pool
+	// get the current earnings of an account in a farm pool
 	r.HandleFunc(
 		"/farm/earnings/{poolName}/{accAddr}",
 		queryEarningsHandlerFn(cliCtx),
@@ -44,7 +44,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get the names of all pool that the account has locked coins in
+	// get the names of all farm pools that the account has locked coins in
 	r.HandleFunc(
 		"/farm/account/{accAddr}",
 		queryAccountHandlerFn(cliCtx),
