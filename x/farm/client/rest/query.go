@@ -43,6 +43,42 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		"/farm/parameters",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
+
+	// get the names of all pool that the account has locked coins in
+	r.HandleFunc(
+		"/farm/account/{accAddr}",
+		queryAccountHandlerFn(cliCtx),
+	).Methods("GET")
+}
+
+func queryAccountHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		accAddr, err := sdk.AccAddressFromBech32(mux.Vars(r)["accAddr"])
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+		}
+
+		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryAccountParams(accAddr))
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAccount)
+		res, height, err := cliCtx.QueryWithData(route, jsonBytes)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
 }
 
 func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
