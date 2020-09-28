@@ -54,16 +54,16 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
 	// 1. calculation
 	currentHeight := sdk.NewDec(ctx.BlockHeight())
-	selfAmountYielded, selfChangedWeight := calculateSelfAmountYielded(currentHeight, pool, lockInfo)
+	claimedAmount, selfChangedWeight := calculateYieldAmount(currentHeight, pool, lockInfo)
 	// 2. Transfer yielded tokens to personal account
-	if !selfAmountYielded.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, selfAmountYielded); err != nil {
+	if !claimedAmount.IsZero() {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
 			return err
 		}
 	}
 
 	// 3. Update the pool data
-	pool.AmountYielded = pool.AmountYielded.Sub(selfAmountYielded)
+	pool.AmountYielded = pool.AmountYielded.Sub(claimedAmount)
 	if !changedAmount.IsZero() {
 		pool.TotalValueLocked.Amount = pool.TotalValueLocked.Amount.Add(changedAmount)
 		selfChangedWeight = selfChangedWeight.Add(currentHeight.MulTruncate(changedAmount))
@@ -76,15 +76,14 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	return nil
 }
 
-// calculateSelfAmountYielded calculates the yielded amount which belongs to an account on a giving block height
-func calculateSelfAmountYielded(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) (
-	selfAmountYielded sdk.DecCoins, selfChangedWeight sdk.Dec) {
+// calculateYieldAmount calculates the yielded amount which belongs to an account on a giving block height
+func calculateYieldAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) ( sdk.DecCoins, sdk.Dec) {
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
 	oldWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	currentWeight := currentHeight.MulTruncate(lockInfo.Amount.Amount)
-	selfChangedWeight = currentWeight.Sub(oldWeight)
+	selfChangedWeight := currentWeight.Sub(oldWeight)
 
 	/* 1.2 Calculate all weight during these blocks
 	    (curHeight - Height1) * Amount1 + (curHeight - Height2) * Amount2 + (curHeight - Height3) * Amount3
@@ -98,6 +97,6 @@ func calculateSelfAmountYielded(currentHeight sdk.Dec, pool types.FarmPool, lock
 	totalChangedWeight := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
 
 	// 1.3 Calculate how many yielded tokens to return
-	selfAmountYielded = pool.AmountYielded.MulDecTruncate(selfChangedWeight).QuoDecTruncate(totalChangedWeight)
-	return
+	claimedAmount := pool.AmountYielded.MulDecTruncate(selfChangedWeight).QuoDecTruncate(totalChangedWeight)
+	return claimedAmount, selfChangedWeight
 }
