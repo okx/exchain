@@ -16,4 +16,5 @@ const (
 	DumpStore         = "dump"
 	SetLogLevel       = "set-loglevel"
 	SanityCheckShares = "sanity-check-shares"
+	InvariantCheck    = "invariant-check"
 )

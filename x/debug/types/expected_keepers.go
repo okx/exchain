@@ -13,3 +13,8 @@ type StakingKeeper interface {
 	GetAllValidators(ctx sdk.Context) (validators staking.Validators)
 	GetValidatorAllShares(ctx sdk.Context, valAddr sdk.ValAddress) staking.SharesResponses
 }
+
+type CrisisKeeper interface {
+	AssertInvariants(ctx sdk.Context)
+	Invariants() []sdk.Invariant
+}
