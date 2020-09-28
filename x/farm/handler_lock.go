@@ -21,7 +21,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
-	// 0.2 Get the pool info
+	// 0.2 Get the lock info
 	if lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
 		// 1. If lock info doesn't exist, only initialize the LockInfo structure
 		lockInfo = types.NewLockInfo(msg.Address, msg.PoolName, msg.Amount, ctx.BlockHeight())
