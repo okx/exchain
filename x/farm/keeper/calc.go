@@ -83,16 +83,16 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	// 1. calculation
 	height := ctx.BlockHeight()
 	currentHeight := sdk.NewDec(height)
-	selfAmountYielded, numerator := k.calcYieldAmount(height, pool, lockInfo)
-	// 2. Transfer yielded tokens to personal account
-	if !selfAmountYielded.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, selfAmountYielded); err != nil {
+	claimedAmount, numerator := k.calcYieldAmount(height, pool, lockInfo)
+	// 2. Transfer claimedAmount tokens to personal account
+	if !claimedAmount.IsZero() {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
 			return err
 		}
 	}
 
 	// 3. Update the pool data
-	pool.AmountYielded = pool.AmountYielded.Sub(selfAmountYielded)
+	pool.AmountYielded = pool.AmountYielded.Sub(claimedAmount)
 	if !changedAmount.IsZero() {
 		pool.TotalValueLocked.Amount = pool.TotalValueLocked.Amount.Add(changedAmount)
 		numerator = numerator.Add(currentHeight.MulTruncate(changedAmount))
