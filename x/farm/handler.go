@@ -137,7 +137,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 	// 2. Claim
-	err := claim(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec())
+	err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec())
 	if err != nil {
 		return err.Result()
 	}

@@ -71,7 +71,7 @@ func (p *FarmPool) claim(user *account, height int64) {
 	denominator := p.TotalValueLocked.Amount.MulTruncate(sdk.NewDec(height)).Sub(p.TotalLockedWeight)
 	yieldCoinsForUser := p.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
-	// claim yield coins
+	// claimRewards yield coins
 	p.AmountYielded = p.AmountYielded.Sub(yieldCoinsForUser)
 	user.balance = user.balance.Add(yieldCoinsForUser)
 	p.TotalLockedWeight = p.TotalLockedWeight.Sub(record.lockAmount.Amount.MulTruncate(sdk.NewDec(record.startBlockHeight)))

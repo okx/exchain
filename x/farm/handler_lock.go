@@ -31,7 +31,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 		// 2. Claim
-		err := claim(ctx, k, updatedPool, lockInfo, msg.Address, msg.Amount.Amount)
+		err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, msg.Amount.Amount)
 		if err != nil {
 			return err.Result()
 		}
@@ -82,7 +82,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 	// 2. Claim
-	err := claim(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec().Sub(msg.Amount.Amount))
+	err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec().Sub(msg.Amount.Amount))
 	if err != nil {
 		return err.Result()
 	}

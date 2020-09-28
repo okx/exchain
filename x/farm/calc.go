@@ -52,7 +52,7 @@ func liquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
 	return pool
 }
 
-func claim(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInfo types.LockInfo,
+func claimRewards(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInfo types.LockInfo,
 	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
 	height := ctx.BlockHeight()
 	currentHeight := sdk.NewDec(height)
@@ -79,8 +79,10 @@ func claim(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInfo types
 	selfAmountYielded := pool.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
 	// 2. Transfer yielded tokens to personal account
-	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, address, selfAmountYielded); err != nil {
-		return err
+	if !selfAmountYielded.IsZero() {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, address, selfAmountYielded); err != nil {
+			return err
+		}
 	}
 
 	// 3. Update the pool data
