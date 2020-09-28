@@ -60,10 +60,9 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
 			return err
 		}
+		// 3. Update the pool data
+		pool.AmountYielded = pool.AmountYielded.Sub(claimedAmount)
 	}
-
-	// 3. Update the pool data
-	pool.AmountYielded = pool.AmountYielded.Sub(claimedAmount)
 	if !changedAmount.IsZero() {
 		pool.TotalValueLocked.Amount = pool.TotalValueLocked.Amount.Add(changedAmount)
 		selfChangedWeight = selfChangedWeight.Add(currentHeight.MulTruncate(changedAmount))
