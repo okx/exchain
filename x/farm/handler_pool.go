@@ -9,8 +9,6 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-
-
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
@@ -99,4 +97,3 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		),
 	}}
 }
-
