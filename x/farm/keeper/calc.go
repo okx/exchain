@@ -50,16 +50,41 @@ func (k Keeper) LiquidateYieldTokenInfo(height int64, pool types.FarmPool) types
 	return pool
 }
 
-// calcYieldedAmount calculates the yielded amount which belongs to an account on a giving block height
-func (k Keeper) calcYieldedAmount(blockHeight int64, pool types.FarmPool, lockInfo types.LockInfo) (
-	selfAmountYielded sdk.DecCoins, numerator sdk.Dec) {
-	currentHeight := sdk.NewDec(blockHeight)
+func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo types.LockInfo,
+	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
+	// 1. calculation
+	currentHeight := sdk.NewDec(ctx.BlockHeight())
+	selfAmountYielded, selfChangedWeight := calculateSelfAmountYielded(currentHeight, pool, lockInfo)
+	// 2. Transfer yielded tokens to personal account
+	if !selfAmountYielded.IsZero() {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, selfAmountYielded); err != nil {
+			return err
+		}
+	}
+
+	// 3. Update the pool data
+	pool.AmountYielded = pool.AmountYielded.Sub(selfAmountYielded)
+	if !changedAmount.IsZero() {
+		pool.TotalValueLocked.Amount = pool.TotalValueLocked.Amount.Add(changedAmount)
+		selfChangedWeight = selfChangedWeight.Add(currentHeight.MulTruncate(changedAmount))
+	}
+	pool.TotalLockedWeight = pool.TotalLockedWeight.Add(selfChangedWeight)
+	pool.LastClaimedBlockHeight = ctx.BlockHeight()
+	// Set the updated pool into store
+	k.SetFarmPool(ctx, pool)
+
+	return nil
+}
+
+// calculateSelfAmountYielded calculates the yielded amount which belongs to an account on a giving block height
+func calculateSelfAmountYielded(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) (
+	selfAmountYielded sdk.DecCoins, selfChangedWeight sdk.Dec) {
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
 	oldWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	currentWeight := currentHeight.MulTruncate(lockInfo.Amount.Amount)
-	numerator = currentWeight.Sub(oldWeight)
+	selfChangedWeight = currentWeight.Sub(oldWeight)
 
 	/* 1.2 Calculate all weight during these blocks
 	    (curHeight - Height1) * Amount1 + (curHeight - Height2) * Amount2 + (curHeight - Height3) * Amount3
@@ -70,37 +95,9 @@ func (k Keeper) calcYieldedAmount(blockHeight int64, pool types.FarmPool, lockIn
 	                                            \/
 	ctx.BlockHeight()  *  pool.TotalValueLocked.Amount  -  ( pool.TotalLockedWeight )
 	*/
-	denominator := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
+	totalChangedWeight := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
 
 	// 1.3 Calculate how many yielded tokens to return
-	selfAmountYielded = pool.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
-
+	selfAmountYielded = pool.AmountYielded.MulDecTruncate(selfChangedWeight).QuoDecTruncate(totalChangedWeight)
 	return
-}
-
-func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo types.LockInfo,
-	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
-	// 1. calculation
-	height := ctx.BlockHeight()
-	currentHeight := sdk.NewDec(height)
-	claimedAmount, numerator := k.calcYieldedAmount(height, pool, lockInfo)
-	// 2. Transfer claimedAmount tokens to personal account
-	if !claimedAmount.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
-			return err
-		}
-	}
-
-	// 3. Update the pool data
-	pool.AmountYielded = pool.AmountYielded.Sub(claimedAmount)
-	if !changedAmount.IsZero() {
-		pool.TotalValueLocked.Amount = pool.TotalValueLocked.Amount.Add(changedAmount)
-		numerator = numerator.Add(currentHeight.MulTruncate(changedAmount))
-	}
-	pool.TotalLockedWeight = pool.TotalLockedWeight.Add(numerator)
-	pool.LastClaimedBlockHeight = height
-	// Set the updated pool into store
-	k.SetFarmPool(ctx, pool)
-
-	return nil
 }

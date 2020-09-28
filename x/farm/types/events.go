@@ -2,12 +2,12 @@ package types
 
 // farm module event types
 const (
-	EventTypeCreatePool = "create-pool"
+	EventTypeCreatePool  = "create-pool"
 	EventTypeDestroyPool = "destroy-pool"
-	EventTypeProvide    = "provide"
-	EventTypeLock       = "lock"
-	EventTypeUnlock     = "unlock"
-	EventTypeClaim      = "claim"
+	EventTypeProvide     = "provide"
+	EventTypeLock        = "lock"
+	EventTypeUnlock      = "unlock"
+	EventTypeClaim       = "claim"
 
 	AttributeKeyAddress             = "address"
 	AttributeKeyPool                = "pool"

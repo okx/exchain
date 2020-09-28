@@ -21,7 +21,7 @@ func (k Keeper) GetEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAdd
 	// calculate the yield amount of an account
 	height := ctx.BlockHeight()
 	updatedPool := k.LiquidateYieldTokenInfo(height, pool)
-	selfAmountYielded, _ := k.calcYieldedAmount(height, updatedPool, lockInfo)
+	selfAmountYielded, _ := calculateSelfAmountYielded(sdk.NewDec(height), updatedPool, lockInfo)
 
 	// build return value
 	earnings.TargetBlockHeight = height
