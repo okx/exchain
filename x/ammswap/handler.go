@@ -310,7 +310,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 	if tokenBuy.IsZero() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: unable to buy the expected token %s，the pool is too small or the tokens sold are too few", tokenBuy.Denom),
+			Log:  fmt.Sprintf("amount(%s) is too small to swap", tokenBuy.String()),
 		}
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
@@ -382,7 +382,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 	if tokenBuy.IsZero() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+			Log:  fmt.Sprintf("Failed: amount(%s) is too small to swap", tokenBuy.String()),
 		}
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
