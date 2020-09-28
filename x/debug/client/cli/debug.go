@@ -25,6 +25,7 @@ func GetDebugCmd(cdc *codec.Codec) *cobra.Command {
 		CmdSetLogLevel(queryRoute, cdc),
 		CmdDumpStore(queryRoute, cdc),
 		CmdSanityCheck(queryRoute, cdc),
+		CmdInvariantCheck(queryRoute, cdc),
 	)...)
 
 	return queryCmd
@@ -96,6 +97,24 @@ func CmdSanityCheck(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			res, _, err := cliCtx.QueryWithData(
 				fmt.Sprintf("custom/%s/%s", queryRoute, types.SanityCheckShares), nil)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+}
+
+// CmdInvariantCheck does invariants check
+func CmdInvariantCheck(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "invariant-check",
+		Short: "check the invariant of all module",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			res, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s", queryRoute, types.InvariantCheck), nil)
 			if err != nil {
 				return err
 			}
