@@ -12,14 +12,14 @@ import (
 // Default parameter namespace
 const (
 	DefaultParamspace        = ModuleName
-	defaultQuoteToken        = "usdk"
+	defaultQuoteSymbol       = "usdk"
 	defaultCreatePoolFee     = "0"
-	defaultCreatePoolDeposit = "0"
+	defaultCreatePoolDeposit = "10"
 )
 
 // Parameter store keys
 var (
-	KeyQuoteToken        = []byte("QuoteToken")
+	KeyQuoteSymbol       = []byte("QuoteSymbol")
 	KeyCreatePoolFee     = []byte("CreatePoolFee")
 	KeyCreatePoolDeposit = []byte("CreatePoolDeposit")
 )
@@ -31,7 +31,7 @@ func ParamKeyTable() params.KeyTable {
 
 // Params - used for initializing default parameter for farm at genesis
 type Params struct {
-	QuoteToken        string      `json:"quote_token"`
+	QuoteSymbol       string      `json:"quote_symbol"`
 	CreatePoolFee     sdk.DecCoin `json:"create_pool_fee"`
 	CreatePoolDeposit sdk.DecCoin `json:"create_pool_deposit"`
 }
@@ -39,21 +39,25 @@ type Params struct {
 // NewParams creates a new Params object
 func NewParams(quoteToken string, createPoolFee sdk.DecCoin, createPoolDeposit sdk.DecCoin) Params {
 	return Params{
-		QuoteToken:        quoteToken,
+		QuoteSymbol:       quoteToken,
 		CreatePoolFee:     createPoolFee,
-		CreatePoolDeposit: createPoolFee,
+		CreatePoolDeposit: createPoolDeposit,
 	}
 }
 
 // String implements the stringer interface for Params
 func (p Params) String() string {
-	return fmt.Sprintf("Params:\nQuoteToken:%s\nCreatePoolFee:%s\nCreatePoolDeposit:%s\n", p.QuoteToken, p.CreatePoolFee, p.CreatePoolDeposit)
+	return fmt.Sprintf(`Params:
+  Quote Symbol:				%s
+  Create Pool Fee:			%s
+  Create Pool Deposit:		%s`,
+		p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit)
 }
 
 // ParamSetPairs - Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyQuoteToken, Value: &p.QuoteToken},
+		{Key: KeyQuoteSymbol, Value: &p.QuoteSymbol},
 		{Key: KeyCreatePoolFee, Value: &p.CreatePoolFee},
 		{Key: KeyCreatePoolDeposit, Value: &p.CreatePoolDeposit},
 	}
@@ -63,5 +67,5 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 func DefaultParams() Params {
 	createPoolFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultCreatePoolFee))
 	createPoolDeposit := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultCreatePoolDeposit))
-	return NewParams(defaultQuoteToken, createPoolFee, createPoolDeposit)
+	return NewParams(defaultQuoteSymbol, createPoolFee, createPoolDeposit)
 }

@@ -19,7 +19,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryPools(ctx, req, k)
 		case types.QueryEarnings:
 			return queryEarnings(ctx, req, k)
-		case types.QueryParams:
+		case types.QueryParameters:
 			return queryParams(ctx, k)
 		case types.QueryWhitelist:
 			return queryWhitelist(ctx, k)

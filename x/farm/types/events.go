@@ -3,6 +3,7 @@ package types
 // farm module event types
 const (
 	EventTypeCreatePool = "create-pool"
+	EventTypeDestroyPool = "destroy-pool"
 	EventTypeProvide    = "provide"
 	EventTypeLock       = "lock"
 	EventTypeUnlock     = "unlock"

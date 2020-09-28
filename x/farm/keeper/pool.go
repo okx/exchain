@@ -24,6 +24,9 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 
 func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
 	store := ctx.KVStore(k.storeKey)
+	// delete pool from whitelist
+	store.Delete(types.GetWhitelistMemberKey(poolName))
+	// delete pool key
 	store.Delete(types.GetFarmPoolKey(poolName))
 }
 
@@ -54,7 +57,7 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 
 	poolValue := sdk.ZeroDec()
 	params := k.GetParams(ctx)
-	quoteToken := params.QuoteToken
+	quoteToken := params.QuoteSymbol
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
 	if swaptypes.IsPoolToken(pool.SymbolLocked) {

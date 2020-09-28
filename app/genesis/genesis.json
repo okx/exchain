@@ -108,11 +108,15 @@
     },
     "farm": {
       "params": {
-        "create_pool_fee": {
-          "amount": "10.00000000",
+        "create_pool_deposit": {
+          "amount": "0.00000000",
           "denom": "okt"
         },
-        "quote_token": "usdk"
+        "create_pool_fee": {
+          "amount": "0.00000000",
+          "denom": "okt"
+        },
+        "quote_symbol": "usdk"
       }
     },
     "genutil": {
@@ -124,7 +128,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "351c96cf9679102a88a3352bc8ae970a585fc64b@127.0.0.1:26656",
+            "memo": "93fc6f1e7d5672deae9af0e441c05910cac3553c@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -140,7 +144,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqz3pkgrjspkq278n4jc06awgw2x7w0f8ltsq02xjk3z7p2xe2ungqxu5k05",
+                  "pubkey": "okexchainvalconspub1zcjduepqa28j2px2cyz2lze5v4ufs4wuvw0s92pttlh9g5yf5l8ssefqzdeqwzvwx4",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -151,7 +155,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "ezjzBOOLlBVSY9N+gKr2YfugXzVJdtJaq2vjY2PRgoY1MiofxzCqx0Uoh6fpbCm+1NkwdSnKdMnUpON4D09wvg=="
+                "signature": "pA0cdKCWy97S/g31fYoGRjZh4S3ROMkwCk9+vFGhXvo+n/8td8iH6KFcoV6f0sOSFfucrfE5iSk3i7Z4uHu2pA=="
               }
             ]
           }
