@@ -9,8 +9,8 @@ import (
 type MsgCreatePool struct {
 	Owner        sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName     string         `json:"pool_name" yaml:"pool_name"`
-	SymbolLocked string         `json:"locked_symbol", yaml:"locked_symbol"`
-	YieldSymbol  string         `json:"yield_symbol", yaml:"yield_symbol"`
+	SymbolLocked string         `json:"locked_symbol" yaml:"locked_symbol"`
+	YieldSymbol  string         `json:"yield_symbol"  yaml:"yield_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
