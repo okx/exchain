@@ -13,15 +13,55 @@ import (
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	// TODO: Define your GET REST endpoints
+	// get the current state of the all farm pools
 	r.HandleFunc(
 		"/farm/pools",
 		queryPoolsHandlerFn(cliCtx),
 	).Methods("GET")
+
+	// get a single pool info by the pool name
+	r.HandleFunc(
+		"/farm/pool/{poolName}",
+		poolHandlerFn(cliCtx),
+	).Methods("GET")
+
+	// get the current farm parameter values
 	r.HandleFunc(
 		"/farm/parameters",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
+}
+
+// HTTP request handler to query the pool information from a given pool name
+func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return queryPool(cliCtx, "custom/farm/pool")
+}
+
+func queryPool(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		poolName := mux.Vars(r)["poolName"]
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryPoolParams(poolName)
+
+		jsonBytes, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(endpoint, jsonBytes)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
 }
 
 func queryPoolsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
