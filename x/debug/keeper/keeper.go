@@ -17,10 +17,11 @@ type Keeper struct {
 	orderKeeper       types.OrderKeeper
 	StopFunc          func()
 	stakingKeeper     types.StakingKeeper
+	crisisKeeper      types.CrisisKeeper
 }
 
 func NewDebugKeeper(cdc *codec.Codec, storeKey sdk.StoreKey,
-	orderKeeper types.OrderKeeper, stakingKeeper types.StakingKeeper,
+	orderKeeper types.OrderKeeper, stakingKeeper types.StakingKeeper, crisisKeeper types.CrisisKeeper,
 	feePoolModuleName string, stop func()) Keeper {
 	return Keeper{
 		storeKey:          storeKey,
@@ -29,6 +30,7 @@ func NewDebugKeeper(cdc *codec.Codec, storeKey sdk.StoreKey,
 		orderKeeper:       orderKeeper,
 		StopFunc:          stop,
 		stakingKeeper:     stakingKeeper,
+		crisisKeeper:      crisisKeeper,
 	}
 }
 
