@@ -412,14 +412,12 @@ func claim(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, address sdk.Ac
 	k.SetFarmPool(ctx, pool)
 
 	// 4. Update the lock_info data
-	if !changedAmount.IsZero() {
-		lockInfo.Amount.Amount = lockInfo.Amount.Amount.Add(changedAmount)
-		if lockInfo.Amount.IsZero() { // If amount become zero, delete the lock_info
-			k.DeleteLockInfo(ctx, address, pool.Name)
-		} else { // Otherwise, update the lock_info
-			lockInfo.StartBlockHeight = height
-			k.SetLockInfo(ctx, lockInfo)
-		}
+	lockInfo.Amount.Amount = lockInfo.Amount.Amount.Add(changedAmount)
+	if lockInfo.Amount.IsZero() { // If amount become zero, delete the lock_info
+		k.DeleteLockInfo(ctx, address, pool.Name)
+	} else {
+		lockInfo.StartBlockHeight = height
+		k.SetLockInfo(ctx, lockInfo)
 	}
 
 	return nil
