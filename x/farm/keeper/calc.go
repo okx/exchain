@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/farm"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
@@ -88,7 +87,7 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	selfAmountYielded, numerator := k.calcYieldAmount(height, pool, lockInfo)
 	// 2. Transfer yielded tokens to personal account
 	if !selfAmountYielded.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, farm.ModuleName, address, selfAmountYielded); err != nil {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, selfAmountYielded); err != nil {
 			return err
 		}
 	}
