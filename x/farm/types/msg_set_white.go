@@ -4,10 +4,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-
 type MsgSetWhite struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
-	Address sdk.AccAddress         `json:"address" yaml:"address"`
+	Address  sdk.AccAddress `json:"address" yaml:"address"`
 }
 
 func NewMsgSetWhite(poolName string, address sdk.AccAddress) MsgSetWhite {
@@ -24,11 +23,11 @@ func (m MsgSetWhite) Route() string {
 }
 
 func (m MsgSetWhite) Type() string {
-	return "setwhite"
+	return "set_white"
 }
 
 func (m MsgSetWhite) ValidateBasic() sdk.Error {
-	if len(m.PoolName) > 0  {
+	if m.PoolName == "" {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	return nil
