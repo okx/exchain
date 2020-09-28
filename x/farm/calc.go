@@ -59,7 +59,6 @@ func claimRewards(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInf
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
-	// TODO: is there any possibility that lockInfo.StartBlockHeight is more than ctx.BlockHeight()?
 	oldWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	currentWeight := currentHeight.MulTruncate(lockInfo.Amount.Amount)
 	numerator := currentWeight.Sub(oldWeight)
