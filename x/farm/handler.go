@@ -91,7 +91,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+	updatedPool := k.LiquidateYieldedTokenInfo(ctx.BlockHeight(), pool)
 	updatedPool.LastClaimedBlockHeight = ctx.BlockHeight()
 	// Check if remaining amount is zero already
 	if updatedPool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
@@ -132,7 +132,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	}
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+	updatedPool := k.LiquidateYieldedTokenInfo(ctx.BlockHeight(), pool)
 
 	// 2. Claim
 	err := k.ClaimRewards(ctx, updatedPool, lockInfo, msg.Address, sdk.ZeroDec())

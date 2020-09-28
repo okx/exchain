@@ -5,9 +5,9 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-// LiquidateYieldTokenInfo is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
+// LiquidateYieldedTokenInfo is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
 // Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-func (k Keeper) LiquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
+func (k Keeper) LiquidateYieldedTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
 	if height <= pool.LastClaimedBlockHeight { // TODO: is there any neccessary to make a height comparison?
 		return pool
 	}
