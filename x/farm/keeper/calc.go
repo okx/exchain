@@ -57,7 +57,6 @@ func (k Keeper) calcYieldAmount(blockHeight int64, pool types.FarmPool, lockInfo
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
-	// TODO: is there any possibility that lockInfo.StartBlockHeight is more than ctx.BlockHeight()?
 	oldWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	currentWeight := currentHeight.MulTruncate(lockInfo.Amount.Amount)
 	numerator = currentWeight.Sub(oldWeight)
