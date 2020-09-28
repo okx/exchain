@@ -30,5 +30,8 @@ type QueryPoolsParams struct {
 
 // NewQueryPoolsParams creates a new instance of QueryPoolsParams
 func NewQueryPoolsParams(page, limit int) QueryPoolsParams {
-	return QueryPoolsParams{page, limit}
+	return QueryPoolsParams{
+		Page:  page,
+		Limit: limit,
+	}
 }
