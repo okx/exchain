@@ -68,7 +68,6 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
-
 func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, logger log.Logger) sdk.Result {
 	// 0.1 Check if the start_height_to_yield is more than current height
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
@@ -92,7 +91,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+	updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 	updatedPool.LastClaimedBlockHeight = ctx.BlockHeight()
 	// Check if remaining amount is zero already
 	if updatedPool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
@@ -119,7 +118,6 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}}
 }
 
-
 func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
 	// 0.1 Get lock_info
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
@@ -134,10 +132,10 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	}
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+	updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 	// 2. Claim
-	err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec())
+	err := k.ClaimRewards(ctx, updatedPool, lockInfo, msg.Address, sdk.ZeroDec())
 	if err != nil {
 		return err.Result()
 	}
