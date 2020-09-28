@@ -42,7 +42,7 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
 	if msg.MinLiquidity.IsNegative() {
-		return sdk.ErrUnknownRequest("minimum of liquidity can not be negative")
+		return sdk.ErrUnknownRequest("invalid minimum of liquidity")
 	}
 	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
 		return sdk.ErrUnknownRequest("token amount must be positive")
