@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common"
 	"net/http"
 
@@ -22,7 +23,13 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	// get a single pool info by the pool name
 	r.HandleFunc(
 		"/farm/pool/{poolName}",
-		poolHandlerFn(cliCtx),
+		queryPoolHandlerFn(cliCtx),
+	).Methods("GET")
+
+	// get the current earnings of an account in a pool
+	r.HandleFunc(
+		"/farm/earnings/{poolName}/{accAddr}",
+		queryEarningsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// get the white list info
@@ -38,12 +45,38 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	).Methods("GET")
 }
 
-// HTTP request handler to query the pool information from a given pool name
-func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
-	return queryPool(cliCtx, "custom/farm/pool")
+func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		varsMap := mux.Vars(r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		accAddr, err := sdk.AccAddressFromBech32(varsMap["accAddr"])
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+		}
+
+		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryEarningsParams(varsMap["poolName"], accAddr))
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryEarnings)
+		res, height, err := cliCtx.QueryWithData(route, jsonBytes)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
 }
 
-func queryPool(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
+func queryPoolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		poolName := mux.Vars(r)["poolName"]
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
@@ -59,7 +92,8 @@ func queryPool(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
 			return
 		}
 
-		res, height, err := cliCtx.QueryWithData(endpoint, jsonBytes)
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryPool)
+		res, height, err := cliCtx.QueryWithData(route, jsonBytes)
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
@@ -110,7 +144,6 @@ func queryWhitelistHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryWhitelist)
-
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -130,7 +163,6 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
-
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())

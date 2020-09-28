@@ -197,10 +197,11 @@
         ],
         "next_block_to_update": "0"
       },
-      "original_minted_per_block": "0.05000000",
+      "original_minted_per_block": "1.00000000",
       "params": {
         "blocks_per_year": "10519200",
         "deflation_rate": "0.50000000",
+        "farm_proportion": "0.50000000",
         "inflation_epoch": "3",
         "mint_denom": "okt"
       }

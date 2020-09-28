@@ -50,11 +50,11 @@ func (k Keeper) LiquidateYieldTokenInfo(height int64, pool types.FarmPool) types
 	return pool
 }
 
-func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo types.LockInfo,
-	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
+func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo types.LockInfo, address sdk.AccAddress,
+	changedAmount sdk.Dec) sdk.Error {
 	// 1. calculation
 	currentHeight := sdk.NewDec(ctx.BlockHeight())
-	claimedAmount, selfChangedWeight := calculateYieldAmount(currentHeight, pool, lockInfo)
+	claimedAmount, selfChangedWeight := calculateYieldedAmount(currentHeight, pool, lockInfo)
 	// 2. Transfer yielded tokens to personal account
 	if !claimedAmount.IsZero() {
 		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
@@ -75,8 +75,8 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	return nil
 }
 
-// calculateYieldAmount calculates the yielded amount which belongs to an account on a giving block height
-func calculateYieldAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) (sdk.DecCoins, sdk.Dec) {
+// calculateYieldedAmount calculates the yielded amount which belongs to an account on a given block height
+func calculateYieldedAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) (sdk.DecCoins, sdk.Dec) {
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
