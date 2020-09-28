@@ -1,15 +1,14 @@
-package farm
+package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/farm/keeper"
+	"github.com/okex/okexchain/x/farm"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-
-// liquidateYieldTokenInfo is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
+// LiquidateYieldTokenInfo is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
 // Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-func liquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
+func (k Keeper) LiquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
 	if height <= pool.LastClaimedBlockHeight { // TODO: is there any neccessary to make a height comparison?
 		return pool
 	}
@@ -52,16 +51,16 @@ func liquidateYieldTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
 	return pool
 }
 
-func claimRewards(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInfo types.LockInfo,
-	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
-	height := ctx.BlockHeight()
-	currentHeight := sdk.NewDec(height)
+// calcYieldAmount calculates the yielded amount which belongs to an account on a giving block height
+func (k Keeper) calcYieldAmount(blockHeight int64, pool types.FarmPool, lockInfo types.LockInfo) (
+	selfAmountYielded sdk.DecCoins, numerator sdk.Dec) {
+	currentHeight := sdk.NewDec(blockHeight)
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
 	oldWeight := sdk.NewDec(lockInfo.StartBlockHeight).MulTruncate(lockInfo.Amount.Amount)
 	currentWeight := currentHeight.MulTruncate(lockInfo.Amount.Amount)
-	numerator := currentWeight.Sub(oldWeight)
+	numerator = currentWeight.Sub(oldWeight)
 
 	/* 1.2 Calculate all weight during these blocks
 	    (curHeight - Height1) * Amount1 + (curHeight - Height2) * Amount2 + (curHeight - Height3) * Amount3
@@ -75,11 +74,20 @@ func claimRewards(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInf
 	denominator := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
 
 	// 1.3 Calculate how many yielded tokens to return
-	selfAmountYielded := pool.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
+	selfAmountYielded = pool.AmountYielded.MulDecTruncate(numerator).QuoDecTruncate(denominator)
 
+	return
+}
+
+func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo types.LockInfo,
+	address sdk.AccAddress, changedAmount sdk.Dec) sdk.Error {
+	// 1. calculation
+	height := ctx.BlockHeight()
+	currentHeight := sdk.NewDec(height)
+	selfAmountYielded, numerator := k.calcYieldAmount(height, pool, lockInfo)
 	// 2. Transfer yielded tokens to personal account
 	if !selfAmountYielded.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, address, selfAmountYielded); err != nil {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, farm.ModuleName, address, selfAmountYielded); err != nil {
 			return err
 		}
 	}
@@ -97,5 +105,3 @@ func claimRewards(ctx sdk.Context, k keeper.Keeper, pool types.FarmPool, lockInf
 
 	return nil
 }
-
-

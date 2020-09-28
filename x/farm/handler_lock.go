@@ -10,7 +10,6 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
 	// 0.1 Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
@@ -28,10 +27,10 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		k.SetLockInfo(ctx, lockInfo)
 	} else {
 		// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-		updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+		updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 		// 2. Claim
-		err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, msg.Amount.Amount)
+		err := k.ClaimRewards(ctx, updatedPool, lockInfo, msg.Address, msg.Amount.Amount)
 		if err != nil {
 			return err.Result()
 		}
@@ -60,7 +59,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 
 func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
 	// 0.1 Check if there are enough tokens to unlock
-	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName);
+	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
 	} else {
@@ -79,10 +78,10 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	}
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool := liquidateYieldTokenInfo(ctx.BlockHeight(), pool)
+	updatedPool := k.LiquidateYieldTokenInfo(ctx.BlockHeight(), pool)
 
 	// 2. Claim
-	err := claimRewards(ctx, k, updatedPool, lockInfo, msg.Address, sdk.ZeroDec().Sub(msg.Amount.Amount))
+	err := k.ClaimRewards(ctx, updatedPool, lockInfo, msg.Address, sdk.ZeroDec().Sub(msg.Amount.Amount))
 	if err != nil {
 		return err.Result()
 	}
