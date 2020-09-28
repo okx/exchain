@@ -2,11 +2,16 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
+)
+
+const (
+	defaultPoolsDisplayedNum = 20
 )
 
 // NewQuerier creates a new querier for farm clients.
@@ -51,14 +56,22 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Er
 	return res, nil
 }
 
-// TODO: for rest with page limit
+// support query by page && limit
 func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
 	var params types.QueryPoolsParams
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	pools := types.NewTestStruct("test pools")
+	pools := k.GetFarmPools(ctx)
+	if !(params.Page == 1 && params.Limit == 0) {
+		start, end := client.Paginate(len(pools), params.Page, params.Limit, defaultPoolsDisplayedNum)
+		if start < 0 || end < 0 {
+			start, end = 0, 0
+		}
+		pools = pools[start:end]
+	}
+
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, pools)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)

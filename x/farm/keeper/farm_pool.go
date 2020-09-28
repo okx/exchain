@@ -30,6 +30,21 @@ func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
 	store.Delete(types.GetFarmPoolKey(poolName))
 }
 
+// GetFarmPools gets all pools that exists currently in the store
+func (k Keeper) GetFarmPools(ctx sdk.Context) (pools types.FarmPools) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.FarmPoolPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var pool types.FarmPool
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &pool)
+		pools = append(pools, pool)
+	}
+
+	return
+}
+
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockInfoKey(lockInfo.Owner, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))

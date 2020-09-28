@@ -128,6 +128,9 @@ func (m MsgProvide) Type() string {
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
+	if len(m.PoolName) == 0  {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
@@ -178,6 +181,9 @@ func (m MsgLock) Type() string {
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
+	if len(m.PoolName) == 0  {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
@@ -222,6 +228,9 @@ func (m MsgUnlock) Type() string {
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
+	if len(m.PoolName) == 0  {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
@@ -263,6 +272,9 @@ func (m MsgClaim) Type() string {
 }
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
+	if len(m.PoolName) == 0  {
+		return ErrNilAddress(DefaultCodespace)
+	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}

@@ -47,7 +47,11 @@ func NewParams(quoteToken string, createPoolFee sdk.DecCoin, createPoolDeposit s
 
 // String implements the stringer interface for Params
 func (p Params) String() string {
-	return fmt.Sprintf("Params:\nQuoteSymbol:%s\nCreatePoolFee:%s\nCreatePoolDeposit:%s\n", p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit)
+	return fmt.Sprintf(`Params:
+  Quote Symbol:				%s
+  Create Pool Fee:			%s
+  Create Pool Deposit:		%s`,
+		p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit)
 }
 
 // ParamSetPairs - Implements params.ParamSet
