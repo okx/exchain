@@ -132,8 +132,21 @@ $ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujn
 			if err != nil {
 				return err
 			}
-			// TODO:
-			return cliCtx.PrintOutput(types.NewTestStruct(args[0] + " : " + accAddr.String()))
+
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryEarningsParams(args[0], accAddr))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryEarnings)
+			bz, _, err := cliCtx.QueryWithData(route, jsonBytes)
+			if err != nil {
+				return err
+			}
+
+			var earnings types.Earnings
+			cdc.MustUnmarshalJSON(bz, &earnings)
+			return cliCtx.PrintOutput(earnings)
 		},
 	}
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // GetEarnings gets the earnings info by a given user address and a specific pool name
-func (k Keeper) GetEarnings(ctx sdk.Context, accAddr sdk.AccAddress, poolName string) (types.Earnings, sdk.Error) {
+func (k Keeper) GetEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAddress) (types.Earnings, sdk.Error) {
 	var earnings types.Earnings
 	lockInfo, found := k.GetLockInfo(ctx, accAddr, poolName)
 	if !found {
@@ -21,7 +21,7 @@ func (k Keeper) GetEarnings(ctx sdk.Context, accAddr sdk.AccAddress, poolName st
 	// calculate the yield amount of an account
 	height := ctx.BlockHeight()
 	updatedPool := k.LiquidateYieldTokenInfo(height, pool)
-	selfAmountYielded, _ := k.calcYieldAmount(height, updatedPool, lockInfo)
+	selfAmountYielded, _ := k.calcYieldedAmount(height, updatedPool, lockInfo)
 
 	// build return value
 	earnings.TargetBlockHeight = height

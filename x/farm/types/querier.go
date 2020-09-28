@@ -1,5 +1,7 @@
 package types
 
+import sdk "github.com/cosmos/cosmos-sdk/types"
+
 const (
 	QueryPool       = "pool"
 	QueryPools      = "pools"
@@ -33,5 +35,20 @@ func NewQueryPoolsParams(page, limit int) QueryPoolsParams {
 	return QueryPoolsParams{
 		Page:  page,
 		Limit: limit,
+	}
+}
+
+// QueryEarningsParams defines the params for the following queries:
+// - 'custom/farm/earnings'
+type QueryEarningsParams struct {
+	PoolName   string
+	AccAddress sdk.AccAddress
+}
+
+// NewQueryEarningsParams creates a new instance of QueryEarningsParams
+func NewQueryEarningsParams(poolName string, accAddr sdk.AccAddress) QueryEarningsParams {
+	return QueryEarningsParams{
+		PoolName:   poolName,
+		AccAddress: accAddr,
 	}
 }

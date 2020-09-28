@@ -81,7 +81,22 @@ func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 }
 
 func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
-	return nil, nil
+	var params types.QueryEarningsParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, defaultQueryErrParseParams(err)
+	}
+
+	earnings, sdkErr := k.GetEarnings(ctx, params.PoolName, params.AccAddress)
+	if sdkErr != nil {
+		return nil, sdkErr
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, earnings)
+	if err != nil {
+		return nil, defaultQueryErrJSONMarshal(err)
+	}
+
+	return res, nil
 }
 
 func queryParams(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
