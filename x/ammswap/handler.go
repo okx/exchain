@@ -2,7 +2,6 @@ package ammswap
 
 import (
 	"fmt"
-
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
@@ -108,7 +107,6 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 
 func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
-
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -240,13 +238,13 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if baseAmount.IsLT(msg.MinBaseAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: The available base Amount(%s) are less than min base Amount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
+			Log:  fmt.Sprintf("Failed: available base amount(%s) are less than min base amount(%s)", baseAmount.String(), msg.MinBaseAmount.String()),
 		}
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "Failed: available quote amount are less than least quote amount",
+			Log:  fmt.Sprintf("Failed: available quote amount(%s) are less than least quote amount(%s)", quoteAmount.String(), msg.MinQuoteAmount.String()),
 		}
 	}
 
@@ -274,7 +272,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  "failed to burn pool token",
+			Log:  fmt.Sprintf("Failed to burn pool token: %s", err.Error()),
 		}
 	}
 
@@ -312,7 +310,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 	if tokenBuy.IsZero() {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  fmt.Sprintf("Failed: selled token amount is too little to buy any token"),
+			Log:  fmt.Sprintf("Failed: unable to buy the expected token %s，the pool is too small or the tokens sold are too few", tokenBuy.Denom),
 		}
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
@@ -345,7 +343,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
-			Log:  err.Error(),
+			Log:  fmt.Sprintf("Failed to swap token by router %s: %s", sdk.DefaultBondDenom, err.Error()),
 		}
 	}
 	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
@@ -353,7 +351,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
-			Log:  err.Error(),
+			Log:  fmt.Sprintf("Failed to swap token by router %s: %s", sdk.DefaultBondDenom, err.Error()),
 		}
 	}
 	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
