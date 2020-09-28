@@ -97,6 +97,7 @@ var (
 		backend.ModuleName:        nil,
 		dex.ModuleName:            nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
+		farm.ModuleName:           nil,
 	}
 )
 
@@ -287,7 +288,7 @@ func (p *ProtocolV0) produceKeepers() {
 
 	p.paramsKeeper.SetStakingKeeper(stakingKeeper)
 	p.mintKeeper = mint.NewKeeper(
-		p.cdc, p.keys[mint.StoreKey], mintSubspace, &stakingKeeper, p.supplyKeeper, auth.FeeCollectorName,
+		p.cdc, p.keys[mint.StoreKey], mintSubspace, &stakingKeeper, p.supplyKeeper, auth.FeeCollectorName, farm.ModuleName,
 	)
 
 	p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],

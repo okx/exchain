@@ -46,7 +46,9 @@ func calculateAllocateInfo(ctx sdk.Context, k keeper.Keeper) (map[string]sdk.Dec
 		poolName := types.SplitPoolsYieldNativeTokenKey(iterator.Key())
 		pool, found := k.GetFarmPool(ctx, poolName)
 		if !found {
-			panic("should not happen")
+			// TODO: temporarily use continue
+			// panic("should not happen")
+			continue
 		}
 		pools[poolName] = pool
 		poolValue := k.GetLockedPoolValue(ctx, pool)
