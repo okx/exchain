@@ -49,7 +49,7 @@ func NewParams(quoteToken string, createPoolFee sdk.DecCoin, createPoolDeposit s
 func (p Params) String() string {
 	return fmt.Sprintf(`Params:
   Quote Symbol:				%s
-  Create PoolFee:			%s
+  Create Pool Fee:			%s
   Create Pool Deposit:		%s`,
 		p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit)
 }
