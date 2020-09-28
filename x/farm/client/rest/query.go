@@ -25,6 +25,12 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		poolHandlerFn(cliCtx),
 	).Methods("GET")
 
+	// get the white list info
+	r.HandleFunc(
+		"/farm/whitelist",
+		queryWhitelistHandlerFn(cliCtx),
+	).Methods("GET")
+
 	// get the current farm parameter values
 	r.HandleFunc(
 		"/farm/parameters",
@@ -96,21 +102,40 @@ func queryPoolsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+func queryWhitelistHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
-		fmt.Println(1)
-		route := fmt.Sprintf("custom/%s/parameters", types.QuerierRoute)
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryWhitelist)
 
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		fmt.Println(2)
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
+
+		res, height, err := cliCtx.QueryWithData(route, nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
