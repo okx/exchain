@@ -128,7 +128,7 @@ func (m MsgProvide) Type() string {
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
-	if len(m.PoolName) == 0  {
+	if m.PoolName == "" {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -155,7 +155,6 @@ func (m MsgProvide) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{m.Address}
 }
 
-
 type MsgLock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
 	Address  sdk.AccAddress `json:"address" yaml:"address"`
@@ -181,7 +180,7 @@ func (m MsgLock) Type() string {
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
-	if len(m.PoolName) == 0  {
+	if m.PoolName == "" {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -201,7 +200,6 @@ func (m MsgLock) GetSignBytes() []byte {
 func (m MsgLock) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{m.Address}
 }
-
 
 type MsgUnlock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
@@ -228,7 +226,7 @@ func (m MsgUnlock) Type() string {
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
-	if len(m.PoolName) == 0  {
+	if m.PoolName == "" {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -272,7 +270,7 @@ func (m MsgClaim) Type() string {
 }
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
-	if len(m.PoolName) == 0  {
+	if m.PoolName == "" {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
