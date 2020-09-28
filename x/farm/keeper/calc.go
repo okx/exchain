@@ -76,7 +76,7 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 }
 
 // calculateYieldAmount calculates the yielded amount which belongs to an account on a giving block height
-func calculateYieldAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) ( sdk.DecCoins, sdk.Dec) {
+func calculateYieldAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo types.LockInfo) (sdk.DecCoins, sdk.Dec) {
 	/* 1.1 Calculate its own weight during these blocks
 	   (curHeight - Height1) * Amount1
 	*/
