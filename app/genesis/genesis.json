@@ -128,7 +128,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "351c96cf9679102a88a3352bc8ae970a585fc64b@127.0.0.1:26656",
+            "memo": "88b783a561acc719963b95d8de45afcee7a4a349@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -144,7 +144,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqz3pkgrjspkq278n4jc06awgw2x7w0f8ltsq02xjk3z7p2xe2ungqxu5k05",
+                  "pubkey": "okexchainvalconspub1zcjduepq65c8swaqnamnqqz8p27w3kg4lxjy2wlnqd04ewrsn5naf38nut0scg8wsu",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -155,7 +155,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "ezjzBOOLlBVSY9N+gKr2YfugXzVJdtJaq2vjY2PRgoY1MiofxzCqx0Uoh6fpbCm+1NkwdSnKdMnUpON4D09wvg=="
+                "signature": "tldBWjJx6nXvIzJNeZNtJ2jPvF1n3D/zdsxJgNqb2lUi+pbwD/o03P0GDPdokSWySL2jq0YXHZki8IM3TI7zPQ=="
               }
             ]
           }

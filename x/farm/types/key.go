@@ -12,6 +12,9 @@ const (
 	// RouterKey to be used for routing msgs
 	RouterKey = ModuleName
 
+	// YieldFarmingName as module account to be used for saving all yield farming tokens
+	YieldFarmingName = "yield_farming"
+
 	// QuerierRoute to be used for querier msgs
 	QuerierRoute = ModuleName
 )

@@ -10,6 +10,7 @@ const (
 	DefaultParamspace = types.DefaultParamspace
 	DefaultCodespace  = types.DefaultCodespace
 	ModuleName        = types.ModuleName
+	YieldFarmingName  = types.YieldFarmingName
 )
 
 var (

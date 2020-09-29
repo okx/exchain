@@ -57,7 +57,7 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	claimedAmount, selfChangedWeight := calculateYieldedAmount(currentHeight, pool, lockInfo)
 	// 2. Transfer yielded tokens to personal account
 	if !claimedAmount.IsZero() {
-		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, address, claimedAmount); err != nil {
+		if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.YieldFarmingName, address, claimedAmount); err != nil {
 			return err
 		}
 		// 3. Update the pool data

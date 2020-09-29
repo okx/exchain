@@ -7,52 +7,8 @@ import (
 )
 
 // InitGenesis initialize default parameters and the keeper's address to pubkey map
-func InitGenesis(ctx sdk.Context, k keeper.Keeper /* TODO: Define what keepers the module needs */, data types.GenesisState) {
-	// TODO: Define logic for when you would like to initialize a new genesis
+func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 	k.SetParams(ctx, data.Params)
-	////////////////////////////////////////////////////////////
-	// TODO: demo for test. remove it later
-	tPool1 := types.NewFarmPool(
-		"pool-airtoken1-eth",
-		"locked_token_symbol",
-		types.YieldedTokenInfos{
-			types.NewYieldedTokenInfo(
-				sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
-				1024,
-				sdk.OneDec(),
-			)},
-		sdk.NewDecCoinFromDec("btc", sdk.OneDec()),
-		sdk.Coins{sdk.NewDecCoinFromDec("btc", sdk.OneDec())},
-		2048,
-		sdk.OneDec(),
-	)
-	k.SetFarmPool(ctx, tPool1)
-
-	tPool2 := types.NewFarmPool(
-		"pool-airtoken2-eth",
-		"locked_token_symbol",
-		types.YieldedTokenInfos{
-			types.NewYieldedTokenInfo(
-				sdk.NewDecCoinFromDec("etc", sdk.OneDec()),
-				2048,
-				sdk.OneDec(),
-			)},
-		sdk.NewDecCoinFromDec("etc", sdk.OneDec()),
-		sdk.Coins{sdk.NewDecCoinFromDec("etc", sdk.OneDec())},
-		4096,
-		sdk.OneDec(),
-	)
-	k.SetFarmPool(ctx, tPool2)
-	// set whitelist member
-	k.SetWhitelist(ctx, "pool-airtoken1-eth")
-	k.SetWhitelist(ctx, "pool-airtoken2-eth")
-	// for query account
-	addr, _ := sdk.AccAddressFromBech32("okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0")
-	store := ctx.KVStore(k.StoreKey())
-	store.Set(types.GetLockInfoKey(addr, "pool-airtoken1-eth"), []byte(""))
-	store.Set(types.GetLockInfoKey(addr, "pool-airtoken2-eth"), []byte(""))
-	store.Set(types.GetLockInfoKey(addr, "pool-airtoken3-eth"), []byte(""))
-	////////////////////////////////////////////////////////////
 }
 
 // ExportGenesis writes the current store values to a genesis file, which can be imported again with InitGenesis
