@@ -51,17 +51,16 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 	k.SetFarmPool(ctx, pool)
 
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeCreatePool,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(types.AttributeKeyLockToken, msg.SymbolLocked),
-			sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldSymbol),
-			sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
-			sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeCreatePool,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(types.AttributeKeyLockToken, msg.SymbolLocked),
+		sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldSymbol),
+		sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
+		sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool, logger log.Logger) sdk.Result {
@@ -91,12 +90,11 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	// delete pool
 	k.DeleteFarmPool(ctx, msg.PoolName)
 
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeDestroyPool,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDestroyPool,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
