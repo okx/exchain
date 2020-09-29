@@ -2,6 +2,7 @@ package farm
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -45,11 +46,10 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		SymbolLocked:      msg.SymbolLocked,
 		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
 		DepositAmount:     depositAmount,
+		TotalValueLocked:  sdk.DecCoin{Denom: msg.SymbolLocked, Amount: sdk.ZeroDec()},
+		TotalLockedWeight: sdk.ZeroDec(),
 	}
 	k.SetFarmPool(ctx, pool)
-
-	// TODO: delete it later
-	k.SetWhitelist(ctx, pool.Name)
 
 	return sdk.Result{Events: sdk.Events{
 		sdk.NewEvent(
@@ -80,9 +80,12 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 
 	// withdraw
 	withdrawAmount := pool.DepositAmount
-	if err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins()); err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			withdrawAmount.String())).Result()
+	if withdrawAmount.IsPositive() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
+		if err != nil {
+			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+				withdrawAmount.String())).Result()
+		}
 	}
 
 	// delete pool
