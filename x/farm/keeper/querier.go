@@ -137,7 +137,8 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk
 }
 
 func queryPoolNum(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, types.NewPoolNum(k.getPoolNum(ctx)))
+	poolNum := k.getPoolNum(ctx)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, poolNum)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}
