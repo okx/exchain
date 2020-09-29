@@ -44,16 +44,16 @@ func (k Keeper) getFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddre
 }
 
 // getPoolNum gets the number of pools that already exist
-func (k Keeper) getPoolNum(ctx sdk.Context) (poolNum uint) {
+func (k Keeper) getPoolNum(ctx sdk.Context) types.PoolNum {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.FarmPoolPrefix)
 	defer iterator.Close()
-
+	var num uint
 	for ; iterator.Valid(); iterator.Next() {
-		poolNum++
+		num++
 	}
 
-	return
+	return types.NewPoolNum(num)
 }
 
 // getFarmPools gets all pools that exist currently in the store

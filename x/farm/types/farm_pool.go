@@ -75,7 +75,7 @@ type PoolNum struct {
 	Number uint `json:"number"`
 }
 
-// NewPoolNum creates a new instance of FarmPool
+// NewPoolNum creates a new instance of PoolNum
 func NewPoolNum(num uint) PoolNum {
 	return PoolNum{
 		Number: num,
@@ -84,6 +84,6 @@ func NewPoolNum(num uint) PoolNum {
 
 // String returns a human readable string representation of PoolNum
 func (pn PoolNum) String() string {
-	return fmt.Sprintf(`Pool Num:
+	return fmt.Sprintf(`Number Of Pools:
   Number: 		%d`, pn.Number)
 }
