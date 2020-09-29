@@ -17,11 +17,19 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	}
 
 	// 1. gets all pools in PoolsYieldNativeToken
-	lockedPoolValue, pools, totalPoolsValue := calculateAllocateInfo(ctx, k)
+	lockedPoolValueMap, pools, totalPoolsValue := calculateAllocateInfo(ctx, k)
+
+	if totalPoolsValue.LTE(sdk.ZeroDec()) {
+		return
+	}
 
 	// 2. allocate native token to pools according to the value
 	for poolName, pool := range pools {
-		yieldAmt := lockedPoolValue[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
+		if lockedPoolValueMap[poolName].LTE(sdk.ZeroDec()) {
+			continue
+		}
+
+		yieldAmt := lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		yieldNativeToken := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldAmt)}
 		pool.AmountYielded = pool.AmountYielded.Add(yieldNativeToken)
 		k.SetFarmPool(ctx, pool)

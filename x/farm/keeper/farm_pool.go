@@ -131,7 +131,7 @@ func (k Keeper) GetSwappedQuoteTokenAmt(
 	// calculate how much quote token the base token can swap
 	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(coin.Denom, quoteToken))
 	if err != nil {
-		panic("should not happen")
+		return sdk.ZeroDec()
 	}
 	swappedCoin := swapkeeper.CalculateTokenToBuy(tokenPair, coin, quoteToken, params)
 	return swappedCoin.Amount
