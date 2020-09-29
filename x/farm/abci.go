@@ -23,7 +23,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	for poolName, pool := range pools {
 		yieldAmt := lockedPoolValue[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		yieldNativeToken := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldAmt)}
-		pool.AmountYielded.Add(yieldNativeToken)
+		pool.AmountYielded = pool.AmountYielded.Add(yieldNativeToken)
 		k.SetFarmPool(ctx, pool)
 	}
 }
