@@ -22,8 +22,10 @@ type Keeper struct {
 }
 
 // NewKeeper creates a farm keeper
-func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper, tokenKeeper token.Keeper, paramSubspace types.ParamSubspace, key sdk.StoreKey,
-	cdc *codec.Codec) Keeper {
+func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper,
+	tokenKeeper token.Keeper,
+	swapKeeper swap.Keeper,
+	paramSubspace types.ParamSubspace, key sdk.StoreKey, cdc *codec.Codec) Keeper {
 	return Keeper{
 		storeKey:         key,
 		cdc:              cdc,
@@ -31,6 +33,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper, tokenKeeper 
 		paramSubspace:    paramSubspace.WithKeyTable(types.ParamKeyTable()),
 		supplyKeeper:     supplyKeeper,
 		tokenKeeper:      tokenKeeper,
+		swapKeeper:		  swapKeeper,
 	}
 }
 

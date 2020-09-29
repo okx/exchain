@@ -240,10 +240,8 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/nacos-group/nacos-sdk-go v1.0.0 h1:CufUF7DZca2ZzIrJtMMCDih1sA58BWCglArLMCZArUc=
 github.com/nacos-group/nacos-sdk-go v1.0.0/go.mod h1:hlAPn3UdzlxIlSILAyOXKxjFSvDJ9oLzTJ9hLAK1KzA=
-github.com/okex/cosmos-sdk v0.37.9-okexchain4 h1:q1YCAUIvHYNd+aVcPOkMOcvRcQUwGkFhKaIgmaVQ5TY=
-github.com/okex/cosmos-sdk v0.37.9-okexchain4/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
-github.com/okex/cosmos-sdk v0.37.10-0.20200928035600-8d0daf2659e5 h1:GEXtUEQpjj2ic1sUj07L556NoWj6M8OYuOMmXI1rIDE=
-github.com/okex/cosmos-sdk v0.37.10-0.20200928035600-8d0daf2659e5/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
+github.com/okex/cosmos-sdk v0.0.0-20200929010635-a65529a5945f h1:s+Yzb7bdzOSHZTXQ18voFLxiIlbj2xL+GHGeFvRgM8M=
+github.com/okex/cosmos-sdk v0.0.0-20200929010635-a65529a5945f/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
 github.com/okex/iavl v0.12.4-okexchain h1:fHH/ax1CABQSNiISXIMba3V76qvNZ4HIILaewsMaMbc=
 github.com/okex/iavl v0.12.4-okexchain/go.mod h1:8LHakzt8/0G3/I8FUU0ReNx98S/EP6eyPJkAUvEXT/o=
 github.com/okex/tendermint v0.32.10-okexchain h1:fYrmdPNH5e1QGr0lzI4yuBZ6QLv52t4enfoBVAoe5rg=

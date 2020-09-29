@@ -288,7 +288,12 @@ func (p *ProtocolV0) produceKeepers() {
 
 	p.paramsKeeper.SetStakingKeeper(stakingKeeper)
 	p.mintKeeper = mint.NewKeeper(
-		p.cdc, p.keys[mint.StoreKey], mintSubspace, &stakingKeeper, p.supplyKeeper, auth.FeeCollectorName, farm.ModuleName,
+		p.cdc,
+		p.keys[mint.StoreKey],
+		mintSubspace, &stakingKeeper,
+		p.supplyKeeper,
+		auth.FeeCollectorName,
+		farm.ModuleName,
 	)
 
 	p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],
@@ -348,7 +353,9 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, auth.FeeCollectorName, p.Stop)
-	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, p.tokenKeeper, farmSubspace, p.keys[farm.StoreKey], p.cdc)
+	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper,
+		p.tokenKeeper, p.swapKeeper,
+		farmSubspace, p.keys[farm.StoreKey], p.cdc)
 }
 
 // moduleAccountAddrs returns all the module account addresses
@@ -400,8 +407,7 @@ func (p *ProtocolV0) setManager() {
 		distr.ModuleName,
 		slashing.ModuleName,
 		staking.ModuleName,
-		//TODO: release later
-		//farm.ModuleName,
+		farm.ModuleName,
 	)
 
 	p.mm.SetOrderEndBlockers(
