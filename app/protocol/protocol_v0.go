@@ -98,6 +98,7 @@ var (
 		dex.ModuleName:            nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
+		farm.YieldFarmingName:     nil,
 	}
 )
 

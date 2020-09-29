@@ -99,7 +99,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 		updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
 
 		// 3. Transfer coin to farm module account
-		if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+		if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingName, msg.Amount.ToCoins()); err != nil {
 			return err.Result()
 		}
 	}

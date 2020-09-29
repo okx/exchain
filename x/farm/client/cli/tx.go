@@ -33,6 +33,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		GetCmdLock(cdc),
 		GetCmdUnlock(cdc),
 		GetCmdClaim(cdc),
+		GetCmdSetWhite(cdc),
 	)...)
 	return farmTxCmd
 }
@@ -202,6 +203,30 @@ $ %s tx farm claim --from mykey
 
 			poolName := args[0]
 			msg := types.NewMsgClaim(poolName, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	return cmd
+}
+
+func GetCmdSetWhite(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set-white [pool-name]",
+		Short: "add specified pool into white list to farm native token",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Add pool into white list.
+
+Example:
+$ %s tx farm set-white [pool-name] --from mykey
+`, version.ClientName),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			poolName := args[0]
+			msg := types.NewMsgSetWhite(poolName, cliCtx.GetFromAddress())
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

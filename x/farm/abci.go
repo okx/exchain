@@ -24,15 +24,33 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	}
 
 	// 2. allocate native token to pools according to the value
-	for poolName, pool := range pools {
+	remainingNativeTokenAmt := yieldedNativeTokenAmt
+	for i, pool := range pools {
+		poolName := pool.Name
 		if lockedPoolValueMap[poolName].LTE(sdk.ZeroDec()) {
 			continue
 		}
 
-		yieldAmt := lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
-		yieldNativeToken := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldAmt)}
-		pool.AmountYielded = pool.AmountYielded.Add(yieldNativeToken)
+		var allocatedAmt sdk.Dec
+		if i == len(pools) - 1 {
+			allocatedAmt = remainingNativeTokenAmt
+		} else {
+			allocatedAmt = lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
+		}
+		pool.AmountYielded = pool.AmountYielded.Add(
+			sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, allocatedAmt)},
+		)
+		remainingNativeTokenAmt = remainingNativeTokenAmt.Sub(allocatedAmt)
 		k.SetFarmPool(ctx, pool)
+	}
+
+	// 3.liquidate native token minted at current block for yield farming
+	err := k.SupplyKeeper().SendCoinsFromModuleToModule(
+		ctx, ModuleName, YieldFarmingName,
+		sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)},
+	)
+	if err != nil {
+		panic("should not happen")
 	}
 }
 
@@ -42,9 +60,9 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) {
 }
 
 // calculateAllocateInfo gets all pools in PoolsYieldNativeToken
-func calculateAllocateInfo(ctx sdk.Context, k keeper.Keeper) (map[string]sdk.Dec, map[string]types.FarmPool, sdk.Dec) {
+func calculateAllocateInfo(ctx sdk.Context, k keeper.Keeper) (map[string]sdk.Dec, []types.FarmPool, sdk.Dec) {
 	lockedPoolValue := make(map[string]sdk.Dec)
-	pools := make(map[string]types.FarmPool)
+	var pools types.FarmPools
 	totalPoolsValue := sdk.ZeroDec()
 
 	store := ctx.KVStore(k.StoreKey())
@@ -54,11 +72,9 @@ func calculateAllocateInfo(ctx sdk.Context, k keeper.Keeper) (map[string]sdk.Dec
 		poolName := types.SplitPoolsYieldNativeTokenKey(iterator.Key())
 		pool, found := k.GetFarmPool(ctx, poolName)
 		if !found {
-			// TODO: temporarily use continue
-			// panic("should not happen")
-			continue
+			panic("should not happen")
 		}
-		pools[poolName] = pool
+		pools = append(pools, pool)
 		poolValue := k.GetLockedPoolValue(ctx, pool)
 		lockedPoolValue[poolName] = poolValue
 		totalPoolsValue = totalPoolsValue.Add(poolValue)
