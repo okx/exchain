@@ -51,15 +51,13 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return err.Result()
 	}
 
-	// Emit events
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeLock,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeLock,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
@@ -105,13 +103,11 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return err.Result()
 	}
 
-	// Emit events
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeUnlock,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeUnlock,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }

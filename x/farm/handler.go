@@ -105,17 +105,15 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}
 	k.SetFarmPool(ctx, updatedPool)
 
-	// Emit events
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeProvide,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
-			sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
-			sdk.NewAttribute(types.AttributeKeyAmountYieldPerBlock, msg.AmountYieldedPerBlock.String()),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeProvide,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
+		sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
+		sdk.NewAttribute(types.AttributeKeyAmountYieldPerBlock, msg.AmountYieldedPerBlock.String()),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
@@ -144,14 +142,12 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	k.SetLockInfo(ctx, lockInfo)
 
-	// Emit events
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeClaim,
-			sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-		),
-	}}
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeClaim,
+		sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
+		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
+	))
+	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
 func handleMsgSetWhite(ctx sdk.Context, k keeper.Keeper, msg types.MsgSetWhite, logger log.Logger) sdk.Result {
