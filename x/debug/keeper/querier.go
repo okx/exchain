@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/okex/okexchain/x/staking"
@@ -21,6 +22,8 @@ func NewDebugger(keeper Keeper) sdk.Querier {
 			return setLogLevel(path[1:])
 		case types.SanityCheckShares:
 			return sanityCheckShares(ctx, keeper)
+		case types.InvariantCheck:
+			return invariantCheck(ctx, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown common query endpoint")
 		}
@@ -59,4 +62,16 @@ func sanityCheckShares(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 		return nil, sdk.ErrInternal(msg)
 	}
 	return []byte("sanity check passed"), nil
+}
+
+func invariantCheck(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	defer func() {
+		if e := recover(); e != nil {
+			res, err = []byte(fmt.Sprintf("failed to check ivariant:\n\t%v", e)), nil
+		}
+	}()
+
+	keeper.crisisKeeper.AssertInvariants(ctx)
+
+	return []byte("invariant check passed"), nil
 }
