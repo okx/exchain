@@ -100,6 +100,9 @@ func calculateYieldedAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo
 	*/
 	totalChangedWeight := currentHeight.MulTruncate(pool.TotalValueLocked.Amount).Sub(pool.TotalLockedWeight)
 
+	if selfChangedWeight.IsZero() || totalChangedWeight.IsZero() {
+		return sdk.NewCoins(), selfChangedWeight
+	}
 	// 1.3 Calculate how many yielded tokens to return
 	claimedAmount := pool.AmountYielded.MulDecTruncate(selfChangedWeight).QuoDecTruncate(totalChangedWeight)
 	return claimedAmount, selfChangedWeight
