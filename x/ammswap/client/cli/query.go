@@ -179,7 +179,7 @@ func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command 
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`Query redeemable assets by specifying pool token amount.
 Example:
-$ okexchaincli query swap redeemable-assets eth-355 1
+$ okexchaincli query swap redeemable-assets eth xxb 1
 `),
 		),
 		Args:  cobra.ExactArgs(3),

@@ -11,9 +11,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/spf13/cobra"
 )
 
 // flags
