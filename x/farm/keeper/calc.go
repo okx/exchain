@@ -72,6 +72,11 @@ func (k Keeper) ClaimRewards(ctx sdk.Context, pool types.FarmPool, lockInfo type
 	// Set the updated pool into store
 	k.SetFarmPool(ctx, pool)
 
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeClaim,
+		sdk.NewAttribute(types.AttributeKeyClaimed, claimedAmount.String()),
+	))
+
 	return nil
 }
 

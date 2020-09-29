@@ -353,10 +353,12 @@ func (p *ProtocolV0) produceKeepers() {
 	p.upgradeKeeper = upgrade.NewKeeper(
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
-	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, auth.FeeCollectorName, p.Stop)
+
+  p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper, auth.FeeCollectorName, p.Stop)
 	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper,
 		p.tokenKeeper, p.swapKeeper,
 		farmSubspace, p.keys[farm.StoreKey], p.cdc)
+
 }
 
 // moduleAccountAddrs returns all the module account addresses

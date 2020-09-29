@@ -41,8 +41,11 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
+	if msg.MinLiquidity.IsNegative() {
+		return sdk.ErrUnknownRequest("invalid minimum of liquidity")
+	}
 	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
-		return sdk.ErrUnknownRequest("token amount must be positive")
+		return sdk.ErrUnknownRequest("invalid base amount or quote amount")
 	}
 	if !msg.MaxBaseAmount.IsValid() {
 		return sdk.ErrUnknownRequest("invalid MaxBaseAmount")
@@ -105,13 +108,13 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidAddress(msg.Sender.String())
 	}
 	if !(msg.Liquidity.IsPositive()) {
-		return sdk.ErrUnknownRequest("token amount must be positive")
+		return sdk.ErrUnknownRequest("invalid liquidity")
 	}
 	if !msg.MinBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MinBaseAmount")
+		return sdk.ErrUnknownRequest("invalid minimum of base amount")
 	}
 	if !msg.MinQuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MinQuoteAmount")
+		return sdk.ErrUnknownRequest("invalid minimum of quote amount")
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
@@ -230,14 +233,14 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	}
 
 	if !(msg.SoldTokenAmount.IsPositive()) {
-		return sdk.ErrUnknownRequest("token amount must be positive")
+		return sdk.ErrUnknownRequest("invalid sold token amount")
 	}
 	if !msg.SoldTokenAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid SoldTokenAmount")
+		return sdk.ErrUnknownRequest("invalid sold token amount")
 	}
 
 	if !msg.MinBoughtTokenAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MinBoughtTokenAmount")
+		return sdk.ErrUnknownRequest("invalid minimum of bought token amount")
 	}
 
 	var baseAmountName, quoteAmountName string

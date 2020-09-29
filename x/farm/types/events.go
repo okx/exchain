@@ -17,6 +17,7 @@ const (
 	AttributeKeyYieldToken          = "yield_token"
 	AttributeKeyDeposit             = "deposit"
 	AttributeKeyWithdraw            = "withdraw"
+	AttributeKeyClaimed             = "claimed"
 
 	AttributeValueCategory = ModuleName
 )
