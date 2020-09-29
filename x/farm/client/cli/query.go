@@ -204,7 +204,7 @@ $ %s query farm whitelist
 				return err
 			}
 
-			var whitelist types.Whitelist
+			var whitelist types.PoolNameList
 			cdc.MustUnmarshalJSON(bz, &whitelist)
 			return cliCtx.PrintOutput(whitelist)
 		},
@@ -217,7 +217,7 @@ func GetCmdQueryAccount(storeName string, cdc *codec.Codec) *cobra.Command {
 		Use:   "account [address]",
 		Short: "query the info of pools that an account has locked coins in",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the info of all pools that an account has locked coins in.
+			fmt.Sprintf(`Query the names of all pools that an account has locked coins in.
 
 Example:
 $ %s query farm account okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
@@ -226,17 +226,27 @@ $ %s query farm account okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 			),
 		),
 		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryAccount)
-			bz, _, err := cliCtx.QueryWithData(route, nil)
+			accAddr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
-			var pools types.FarmPools
-			cdc.MustUnmarshalJSON(bz, &pools)
-			return cliCtx.PrintOutput(pools)
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryAccountParams(accAddr))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryAccount)
+			bz, _, err := cliCtx.QueryWithData(route, jsonBytes)
+			if err != nil {
+				return err
+			}
+
+			var poolNameList types.PoolNameList
+			cdc.MustUnmarshalJSON(bz, &poolNameList)
+			return cliCtx.PrintOutput(poolNameList)
 		},
 	}
 }

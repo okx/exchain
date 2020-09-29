@@ -8,7 +8,7 @@ import (
 // LiquidateYieldedTokenInfo is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
 // Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
 func (k Keeper) LiquidateYieldedTokenInfo(height int64, pool types.FarmPool) types.FarmPool {
-	if height <= pool.LastClaimedBlockHeight { // TODO: is there any neccessary to make a height comparison?
+	if height <= pool.LastClaimedBlockHeight {
 		return pool
 	}
 

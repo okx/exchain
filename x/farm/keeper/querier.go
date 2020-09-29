@@ -120,7 +120,18 @@ func queryWhitelist(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 }
 
 func queryAccount(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
-	return nil, nil
+	var params types.QueryAccountParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, defaultQueryErrParseParams(err)
+	}
+
+	poolNames := k.GetFarmPoolNamesForAccount(ctx, params.AccAddress)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, poolNames)
+	if err != nil {
+		return nil, defaultQueryErrJSONMarshal(err)
+	}
+
+	return res, nil
 }
 
 func defaultQueryErrJSONMarshal(err error) sdk.Error {
