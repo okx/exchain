@@ -22,19 +22,18 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	farmTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      fmt.Sprintf("%s transactions subcommands", types.ModuleName),
-		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
 
-	farmTxCmd.AddCommand(
+	farmTxCmd.AddCommand(client.PostCommands(
 		GetCmdCreatePool(cdc),
 		GetCmdDestroyPool(cdc),
 		GetCmdProvide(cdc),
 		GetCmdLock(cdc),
 		GetCmdUnlock(cdc),
 		GetCmdClaim(cdc),
-	)
+	)...)
 	return farmTxCmd
 }
 
