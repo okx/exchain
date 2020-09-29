@@ -32,6 +32,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryParams(queryRoute, cdc),
 			GetCmdQueryWhitelist(queryRoute, cdc),
 			GetCmdQueryAccount(queryRoute, cdc),
+			GetCmdQueryPoolNum(queryRoute, cdc),
 		)...,
 	)
 
@@ -250,3 +251,35 @@ $ %s query farm account okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 		},
 	}
 }
+
+// GetCmdQueryPoolNum gets the pool number query command.
+func GetCmdQueryPoolNum(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "pool-num",
+		Short: "query the number of pools",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the number of pools that already exist.
+
+Example:
+$ %s query farm pool-num
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryPoolNum)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var poolNum types.PoolNum
+			cdc.MustUnmarshalJSON(bz, &poolNum)
+			return cliCtx.PrintOutput(poolNum)
+		},
+	}
+}
+

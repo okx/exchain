@@ -30,6 +30,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryWhitelist(ctx, k)
 		case types.QueryAccount:
 			return queryAccount(ctx, req, k)
+		case types.QueryPoolNum:
+			return queryPoolNum(ctx, k)
 		default:
 			return nil, sdk.ErrUnknownRequest("failed. unknown farm query endpoint")
 		}
@@ -63,7 +65,7 @@ func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	pools := k.GetFarmPools(ctx)
+	pools := k.getFarmPools(ctx)
 	if !(params.Page == 1 && params.Limit == 0) {
 		start, end := client.Paginate(len(pools), params.Page, params.Limit, defaultPoolsDisplayedNum)
 		if start < 0 || end < 0 {
@@ -86,7 +88,7 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	earnings, sdkErr := k.GetEarnings(ctx, params.PoolName, params.AccAddress)
+	earnings, sdkErr := k.getEarnings(ctx, params.PoolName, params.AccAddress)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
@@ -125,8 +127,17 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	poolNames := k.GetFarmPoolNamesForAccount(ctx, params.AccAddress)
+	poolNames := k.getFarmPoolNamesForAccount(ctx, params.AccAddress)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, poolNames)
+	if err != nil {
+		return nil, defaultQueryErrJSONMarshal(err)
+	}
+
+	return res, nil
+}
+
+func queryPoolNum(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, types.NewPoolNum(k.getPoolNum(ctx)))
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}

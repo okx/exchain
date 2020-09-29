@@ -5,8 +5,8 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-// GetEarnings gets the earnings info by a given user address and a specific pool name
-func (k Keeper) GetEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAddress) (types.Earnings, sdk.Error) {
+// getEarnings gets the earnings info by a given user address and a specific pool name
+func (k Keeper) getEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAddress) (types.Earnings, sdk.Error) {
 	var earnings types.Earnings
 	lockInfo, found := k.GetLockInfo(ctx, accAddr, poolName)
 	if !found {

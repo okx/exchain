@@ -9,6 +9,7 @@ const (
 	QueryParameters = "parameters"
 	QueryWhitelist  = "whitelist"
 	QueryAccount    = "account"
+	QueryPoolNum    = "pool-num"
 )
 
 // QueryPoolParams defines the params for the following queries:

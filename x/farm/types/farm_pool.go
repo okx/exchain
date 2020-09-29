@@ -69,3 +69,21 @@ func (fps FarmPools) String() (out string) {
 	}
 	return strings.TrimSpace(out)
 }
+
+// PoolNum is a wrapped structure of uint to display by cli query
+type PoolNum struct {
+	Number uint `json:"number"`
+}
+
+// NewPoolNum creates a new instance of FarmPool
+func NewPoolNum(num uint) PoolNum {
+	return PoolNum{
+		Number: num,
+	}
+}
+
+// String returns a human readable string representation of PoolNum
+func (pn PoolNum) String() string {
+	return fmt.Sprintf(`Pool Num:
+  Number: 		%d`, pn.Number)
+}
