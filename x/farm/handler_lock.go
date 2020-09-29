@@ -25,6 +25,11 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		// 1. If lock info doesn't exist, only initialize the LockInfo structure
 		lockInfo = types.NewLockInfo(msg.Address, msg.PoolName, msg.Amount, ctx.BlockHeight())
 		k.SetLockInfo(ctx, lockInfo)
+
+		// 2. Update the pool info
+		pool.TotalValueLocked = pool.TotalValueLocked.Add(msg.Amount)
+		pool.TotalLockedWeight = pool.TotalLockedWeight.Add(sdk.NewDec(ctx.BlockHeight()).MulTruncate(msg.Amount.Amount))
+		k.SetFarmPool(ctx, pool)
 	} else {
 		// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
 		updatedPool := k.LiquidateYieldedTokenInfo(ctx.BlockHeight(), pool)
