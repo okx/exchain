@@ -39,7 +39,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.SymbolLocked, sdk.ZeroInt()), 0, sdk.ZeroDec())
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldSymbol, sdk.ZeroInt()), 0, sdk.ZeroDec())
 	pool := types.FarmPool{
 		Owner:             msg.Owner,
 		Name:              msg.PoolName,
