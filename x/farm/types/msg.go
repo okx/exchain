@@ -207,10 +207,10 @@ type MsgUnlock struct {
 	Amount   sdk.DecCoin    `json:"amount" yaml:"amount"`
 }
 
-func NewMsgUnlock(poolName string, Address sdk.AccAddress, amount sdk.DecCoin) MsgUnlock {
+func NewMsgUnlock(poolName string, address sdk.AccAddress, amount sdk.DecCoin) MsgUnlock {
 	return MsgUnlock{
 		PoolName: poolName,
-		Address:  Address,
+		Address:  address,
 		Amount:   amount,
 	}
 }
