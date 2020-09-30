@@ -54,6 +54,11 @@ func NewMockFarmKeeper(k Keeper, keyStoreKey sdk.StoreKey, sKeeper supply.Keeper
 func TestBeginBlocker(t *testing.T) {
 	ctx, mk := getKeeper(t)
 	k := mk.Keeper
+
+	// TODO issue token
+	// TODO create swap
+	// TODO test farm
+
 	for i := int64(1); i < 10; i++ {
 		ctx = ctx.WithBlockHeight(i)
 		BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: i}}, k)
