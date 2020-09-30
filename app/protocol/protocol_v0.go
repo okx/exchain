@@ -98,7 +98,8 @@ var (
 		dex.ModuleName:            nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
-		farm.YieldFarmingName:     nil,
+		farm.YieldFarmingAccount:  nil,
+		farm.MintFarmingAccount:   nil,
 	}
 )
 
@@ -294,7 +295,7 @@ func (p *ProtocolV0) produceKeepers() {
 		mintSubspace, &stakingKeeper,
 		p.supplyKeeper,
 		auth.FeeCollectorName,
-		farm.ModuleName,
+		farm.MintFarmingAccount,
 	)
 
 	p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],
@@ -354,7 +355,7 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 
-  p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper, auth.FeeCollectorName, p.Stop)
+	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper, auth.FeeCollectorName, p.Stop)
 	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper,
 		p.tokenKeeper, p.swapKeeper,
 		farmSubspace, p.keys[farm.StoreKey], p.cdc)

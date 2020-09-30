@@ -6,11 +6,12 @@ import (
 )
 
 const (
-	StoreKey          = types.StoreKey
-	DefaultParamspace = types.DefaultParamspace
-	DefaultCodespace  = types.DefaultCodespace
-	ModuleName        = types.ModuleName
-	YieldFarmingName  = types.YieldFarmingName
+	StoreKey            = types.StoreKey
+	DefaultParamspace   = types.DefaultParamspace
+	DefaultCodespace    = types.DefaultCodespace
+	ModuleName          = types.ModuleName
+	MintFarmingAccount  = types.MintFarmingAccount
+	YieldFarmingAccount = types.YieldFarmingAccount
 )
 
 var (

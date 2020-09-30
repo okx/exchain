@@ -10,7 +10,7 @@ import (
 // BeginBlocker allocates the native token to the pools in PoolsYieldNativeToken
 // according to the value of locked token in pool
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
-	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName)
+	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
 	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
 	if yieldedNativeTokenAmt.LTE(sdk.ZeroDec()) {
 		return
@@ -32,7 +32,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		}
 
 		var allocatedAmt sdk.Dec
-		if i == len(pools) - 1 {
+		if i == len(pools)-1 {
 			allocatedAmt = remainingNativeTokenAmt
 		} else {
 			allocatedAmt = lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
@@ -46,7 +46,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 	// 3.liquidate native token minted at current block for yield farming
 	err := k.SupplyKeeper().SendCoinsFromModuleToModule(
-		ctx, ModuleName, YieldFarmingName,
+		ctx, MintFarmingAccount, YieldFarmingAccount,
 		sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)},
 	)
 	if err != nil {
