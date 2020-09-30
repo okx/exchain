@@ -252,10 +252,10 @@ type MsgClaim struct {
 	Address  sdk.AccAddress `json:"address" yaml:"address"`
 }
 
-func NewMsgClaim(poolName string, Address sdk.AccAddress) MsgClaim {
+func NewMsgClaim(poolName string, address sdk.AccAddress) MsgClaim {
 	return MsgClaim{
 		PoolName: poolName,
-		Address:  Address,
+		Address:  address,
 	}
 }
 
