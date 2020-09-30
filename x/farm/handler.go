@@ -3,7 +3,6 @@ package farm
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -85,7 +84,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
 			len(pool.YieldedTokenInfos)))
 	}
-	if strings.Compare(pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom) != 0 {
+	if pool.YieldedTokenInfos[0].RemainingAmount.Denom != msg.Amount.Denom {
 		return types.ErrInvalidDenom(
 			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}

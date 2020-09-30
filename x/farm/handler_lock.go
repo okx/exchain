@@ -1,8 +1,6 @@
 package farm
 
 import (
-	"strings"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -16,7 +14,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if strings.Compare(pool.SymbolLocked, msg.Amount.Denom) != 0 {
+	if pool.SymbolLocked != msg.Amount.Denom {
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
@@ -76,7 +74,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if strings.Compare(pool.SymbolLocked, msg.Amount.Denom) != 0 {
+	if pool.SymbolLocked != msg.Amount.Denom {
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
