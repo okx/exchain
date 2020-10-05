@@ -23,11 +23,11 @@ fi
 ##
 ## Run binary with all parameters
 ##
-export OKCHAINDHOME="/okexchaind/node${ID}/okexchaind"
+export okexchaindHOME="/okexchaind/node${ID}/okexchaind"
 
-if [ -d "$(dirname "${OKCHAINDHOME}"/"${LOG}")" ]; then
-  "${BINARY}" --home "${OKCHAINDHOME}" "$@" | tee "${OKCHAINDHOME}/${LOG}"
+if [ -d "$(dirname "${okexchaindHOME}"/"${LOG}")" ]; then
+  "${BINARY}" --home "${okexchaindHOME}" "$@" | tee "${okexchaindHOME}/${LOG}"
 else
-  "${BINARY}" --home "${OKCHAINDHOME}" "$@"
+  "${BINARY}" --home "${okexchaindHOME}" "$@"
 fi
 

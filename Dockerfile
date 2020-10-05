@@ -22,8 +22,8 @@ FROM alpine:edge
 WORKDIR /root
 
 # Copy over binaries from the build-env
-COPY --from=build-env /go/bin/okchaind /usr/bin/okchaind
-COPY --from=build-env /go/bin/okchaincli /usr/bin/okchaincli
+COPY --from=build-env /go/bin/okexchaind /usr/bin/okexchaind
+COPY --from=build-env /go/bin/okexchaincli /usr/bin/okexchaincli
 
 # Run okexchaind by default, omit entrypoint to ease using container with okexchaincli
-CMD ["okchaind"]
+CMD ["okexchaind"]
