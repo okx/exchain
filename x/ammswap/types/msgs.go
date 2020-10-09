@@ -243,14 +243,7 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 		return sdk.ErrUnknownRequest("invalid minimum of bought token amount")
 	}
 
-	var baseAmountName, quoteAmountName string
-	if msg.SoldTokenAmount.Denom < msg.MinBoughtTokenAmount.Denom {
-		baseAmountName = msg.SoldTokenAmount.Denom
-		quoteAmountName = msg.MinBoughtTokenAmount.Denom
-	}else {
-		baseAmountName = msg.MinBoughtTokenAmount.Denom
-		quoteAmountName = msg.SoldTokenAmount.Denom
-	}
+	baseAmountName, quoteAmountName := GetBaseQuoteTokenName(msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)
 	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
 		return sdk.ErrUnknownRequest(err.Error())

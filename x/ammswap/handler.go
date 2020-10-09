@@ -135,6 +135,9 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	} else if swapTokenPair.BasePooledCoin.IsPositive() && swapTokenPair.QuotePooledCoin.IsPositive() {
 		baseTokens.Amount = common.MulAndQuo(msg.QuoteAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
 		totalSupply := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
+		if baseTokens.IsZero() {
+			baseTokens.Amount = sdk.NewDecWithPrec(1, sdk.Precision)
+		}
 		if totalSupply.IsZero() {
 			return sdk.Result{
 				Code: sdk.CodeInternal,
@@ -305,6 +308,12 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 			Log:  err.Error(),
 		}
 	}
+	if swapTokenPair.BasePooledCoin.IsZero() || swapTokenPair.QuotePooledCoin.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("failed to swap token: empty pool: %s", swapTokenPair.String()),
+		}
+	}
 	params := k.GetParams(ctx)
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
 	if tokenBuy.IsZero() {
@@ -354,12 +363,24 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 			Log:  fmt.Sprintf("Failed to swap token by router %s: %s", sdk.DefaultBondDenom, err.Error()),
 		}
 	}
+	if swapTokenPairOne.BasePooledCoin.IsZero() || swapTokenPairOne.QuotePooledCoin.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("failed to swap token: empty pool: %s", swapTokenPairOne.String()),
+		}
+	}
 	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
 			Log:  err.Error(),
+		}
+	}
+	if swapTokenPairTwo.BasePooledCoin.IsZero() || swapTokenPairTwo.QuotePooledCoin.IsZero() {
+		return sdk.Result{
+			Code: sdk.CodeInternal,
+			Log:  fmt.Sprintf("failed to swap token: empty pool: %s", swapTokenPairTwo.String()),
 		}
 	}
 

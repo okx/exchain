@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -68,6 +69,9 @@ func queryBuyAmount(
 	swapTokenPair := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, queryParams.TokenToBuy)
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
 	if errTokenPair == nil {
+		if tokenPair.BasePooledCoin.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
+			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair.String()))
+		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	}else {
 		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
@@ -75,13 +79,17 @@ func queryBuyAmount(
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
-
+		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
+			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair1.String()))
+		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
 			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 		}
-
+		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
+			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair2.String()))
+		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
 	}
