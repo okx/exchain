@@ -47,9 +47,15 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
 		DepositAmount:     depositAmount,
 		TotalValueLocked:  sdk.DecCoin{Denom: msg.SymbolLocked, Amount: sdk.ZeroDec()},
-		TotalLockedWeight: sdk.ZeroDec(),
 	}
+	// set pool
 	k.SetFarmPool(ctx, pool)
+
+	// initial pool period
+	poolHistoricalRewards := types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1)
+	k.SetPoolHistoricalRewards(ctx, msg.PoolName, 0, poolHistoricalRewards)
+	poolCurrentPeriod := types.NewPoolCurrentPeriod(ctx.BlockHeight(), 1, sdk.DecCoin{})
+	k.SetPoolCurrentPeriod(ctx, msg.PoolName, poolCurrentPeriod)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeCreatePool,
