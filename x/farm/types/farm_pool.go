@@ -15,24 +15,19 @@ type FarmPool struct {
 	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
 	DepositAmount     sdk.DecCoin       `json:"deposit_amount"`
 	// sum of LockInfo.Amount
-	TotalValueLocked       sdk.DecCoin  `json:"total_value_locked"`
-	AmountYielded          sdk.DecCoins `json:"amount_yielded"`
-	LastClaimedBlockHeight int64        `json:"last_claimed_block_height"`
-	// sum of (LockInfo.Amount * LockInfo.StartBlockHeight)
-	TotalLockedWeight sdk.Dec `json:"total_locked_Weight"`
+	TotalValueLocked         sdk.DecCoin  `json:"total_value_locked"`
+	AmountYieldedNativeToken sdk.DecCoins `json:"amount_yielded_native_token"`
 }
 
 // NewFarmPool creates a new instance of FarmPool
 func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedTokenInfos, totalValueLocked sdk.DecCoin,
-	amountYielded sdk.DecCoins, lastClaimedBlockHeight int64, totalLockedWeight sdk.Dec) FarmPool {
+	amountYielded sdk.DecCoins) FarmPool {
 	return FarmPool{
-		Name:                   name,
-		SymbolLocked:           symbolLocked,
-		YieldedTokenInfos:      yieldedTokenInfos,
-		TotalValueLocked:       totalValueLocked,
-		AmountYielded:          amountYielded,
-		LastClaimedBlockHeight: lastClaimedBlockHeight,
-		TotalLockedWeight:      totalLockedWeight,
+		Name:                     name,
+		SymbolLocked:             symbolLocked,
+		YieldedTokenInfos:        yieldedTokenInfos,
+		TotalValueLocked:         totalValueLocked,
+		AmountYieldedNativeToken: amountYielded,
 	}
 }
 
@@ -42,21 +37,18 @@ func (fp FarmPool) Finished() bool {
 			return false
 		}
 	}
-	return fp.TotalValueLocked.IsZero() && fp.AmountYielded.IsZero()
+	return fp.TotalValueLocked.IsZero() && fp.AmountYieldedNativeToken.IsZero()
 }
 
 // String returns a human readable string representation of FarmPool
 func (fp FarmPool) String() string {
 	return fmt.Sprintf(`FarmPool:	
-  Pool Name:  					%s	
-  Symbol Locked:      			%s
-  Yielded Token Infos:			%s
-  Total Value Locked:			%s
-  Amount Yielded:				%s
-  Last Claimed Block Height:	%d
-  Total Locked Weight:			%s`,
-		fp.Name, fp.SymbolLocked, fp.YieldedTokenInfos, fp.TotalValueLocked, fp.AmountYielded,
-		fp.LastClaimedBlockHeight, fp.TotalLockedWeight)
+  Pool Name:  					    %s	
+  Symbol Locked:      			    %s
+  Yielded Token Infos:			    %s
+  Total Value Locked:			    %s
+  Amount Yielded Native Token:		%s`,
+		fp.Name, fp.SymbolLocked, fp.YieldedTokenInfos, fp.TotalValueLocked, fp.AmountYieldedNativeToken)
 }
 
 // FarmPools is a collection of FarmPool

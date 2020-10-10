@@ -112,3 +112,39 @@ func calculateYieldedAmount(currentHeight sdk.Dec, pool types.FarmPool, lockInfo
 	claimedAmount := pool.AmountYielded.MulDecTruncate(selfChangedWeight).QuoDecTruncate(totalChangedWeight)
 	return claimedAmount, selfChangedWeight
 }
+
+func calculateRewards(height int64, pool types.FarmPool, period types.PoolCurrentPeriod) types.FarmPool {
+	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
+		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
+		if height > startBlockHeightToYield {
+			// calculate the exact interval
+			var blockInterval sdk.Dec
+			if startBlockHeightToYield > period.StartBlockHeight {
+				blockInterval = sdk.NewDec(height - startBlockHeightToYield)
+			} else {
+				blockInterval = sdk.NewDec(height - period.StartBlockHeight)
+			}
+
+			// calculate how many coin have been yielded till the current block
+			amountYielded := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
+			remainingAmount := pool.YieldedTokenInfos[i].RemainingAmount
+			if amountYielded.LT(remainingAmount.Amount) {
+				// add yielded amount
+				pool.AmountYieldedNativeToken = pool.AmountYieldedNativeToken.Add(sdk.NewDecCoinsFromDec(remainingAmount.Denom, amountYielded))
+				// subtract yielded_coin amount
+				pool.YieldedTokenInfos[i].RemainingAmount.Amount = remainingAmount.Amount.Sub(amountYielded)
+			} else {
+				// add yielded amount
+				pool.AmountYieldedNativeToken = pool.AmountYieldedNativeToken.Add(sdk.NewCoins(remainingAmount))
+
+				// initialize yieldedTokenInfo
+				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remainingAmount.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
+
+				// TODO: remove the YieldedTokenInfo when its amount become zero
+				// Currently, we support only one token of yield farming at the same time,
+				// so, it is unnecessary to remove the element in slice
+			}
+		}
+	}
+
+}

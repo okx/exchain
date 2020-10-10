@@ -1,6 +1,10 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	"strconv"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 const (
 	// ModuleName is the name of the module
@@ -30,6 +34,8 @@ var (
 	pool2AddressPrefix          = []byte{0x02}
 	Address2PoolPrefix          = []byte{0x03}
 	PoolsYieldNativeTokenPrefix = []byte{0x04}
+	PoolHistoricalRewardsPrefix = []byte{0x05}
+	PoolCurrentPeriodPrefix     = []byte{0x06}
 )
 
 const (
@@ -56,4 +62,13 @@ func GetWhitelistMemberKey(poolName string) []byte {
 // SplitPoolNameFromLockInfoKey splits the pool name out from a LockInfoKey
 func SplitPoolNameFromLockInfoKey(lockInfoKey []byte) string {
 	return string(lockInfoKey[poolNameFromLockInfoKeyIndex:])
+}
+
+func GetPoolHistoricalRewardsKey(poolName string, period int64) []byte {
+	p := strconv.FormatInt(period, 10)
+	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), []byte(p)...)...)
+}
+
+func GetPoolCurrentPeriodKey(poolName string) []byte {
+	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
 }
