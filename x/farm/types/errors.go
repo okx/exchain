@@ -7,19 +7,25 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = ModuleName
 
-	CodeInvalidFarmPool  CodeType = 101
-	CodeInvalidLockInfo  CodeType = 102
-	CodeInvalidInput     CodeType = 103
-	CodePoolAlreadyExist CodeType = 104
-	CodeTokenNotExist    CodeType = 105
-	CodePoolNotFinished  CodeType = 106
-	CodeInvalidAddress            = sdk.CodeInvalidAddress
-	CodeUnknownRequest            = sdk.CodeUnknownRequest
+	CodeInvalidFarmPool          CodeType = 101
+	CodeInvalidPoolCurrentPeriod CodeType = 102
+	CodeInvalidLockInfo          CodeType = 103
+	CodeInvalidInput             CodeType = 104
+	CodePoolAlreadyExist         CodeType = 105
+	CodeTokenNotExist            CodeType = 106
+	CodePoolNotFinished          CodeType = 107
+	CodeInvalidAddress                    = sdk.CodeInvalidAddress
+	CodeUnknownRequest                    = sdk.CodeUnknownRequest
 )
 
 // ErrNoFarmPoolFound returns an error when a farm pool doesn't exist
 func ErrNoFarmPoolFound(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidFarmPool, "failed. Farm pool %s does not exist", poolName)
+}
+
+// ErrNoPoolCurrentPeriodFound returns an error when a current period pool doesn't exist
+func ErrNoPoolCurrentPeriodFound(codespace sdk.CodespaceType, poolName string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidPoolCurrentPeriod, "failed. Pool current period %s does not exist", poolName)
 }
 
 // ErrPoolAlreadyExist returns an error when a pool exist

@@ -69,6 +69,11 @@ func GetPoolHistoricalRewardsKey(poolName string, period int64) []byte {
 	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), []byte(p)...)...)
 }
 
+// GetValidatorHistoricalRewardsPrefix gets the prefix key for a pool's historical rewards
+func GetValidatorHistoricalRewardsPrefix(poolName string) []byte {
+	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
+}
+
 func GetPoolCurrentPeriodKey(poolName string) []byte {
 	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
 }

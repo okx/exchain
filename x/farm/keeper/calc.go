@@ -41,7 +41,7 @@ func (k Keeper) LiquidateYieldedTokenInfo(height int64, pool types.FarmPool) typ
 				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remainingAmount.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
 
 				// TODO: remove the YieldedTokenInfo when its amount become zero
-				// Currently, we support only one token of yield farming at the same time,
+				// Currently, we support only one token of	 yield farming at the same time,
 				// so, it is unnecessary to remove the element in slice
 			}
 		}
@@ -146,5 +146,56 @@ func calculateRewards(height int64, pool types.FarmPool, period types.PoolCurren
 			}
 		}
 	}
+	return types.FarmPool{}
+}
 
+func (k Keeper) withdrawRewards(ctx sdk.Context, poolName string) (sdk.DecCoins, sdk.Error) {
+	// check existence of delegator starting info
+	if !k.HasPoolCurrentPeriod(ctx, poolName) {
+		return nil, types.ErrNoPoolCurrentPeriodFound(types.DefaultCodespace, poolName)
+	}
+
+	// end current period and calculate rewards
+	endingPeriod := k.incrementValidatorPeriod(ctx, val)
+	rewardsRaw := k.calculateDelegationRewards(ctx, val, del, endingPeriod)
+	outstanding := k.GetValidatorOutstandingRewards(ctx, del.GetValidatorAddr())
+
+	// defensive edge case may happen on the very final digits
+	// of the decCoins due to operation order of the distribution mechanism.
+	rewards := rewardsRaw.Intersect(outstanding)
+	if !rewards.IsEqual(rewardsRaw) {
+		logger := k.Logger(ctx)
+		logger.Info(fmt.Sprintf("missing rewards rounding error, delegator %v"+
+			"withdrawing rewards from validator %v, should have received %v, got %v",
+			val.GetOperator(), del.GetDelegatorAddr(), rewardsRaw, rewards))
+	}
+
+	// truncate coins, return remainder to community pool
+	coins, remainder := rewards.TruncateDecimal()
+
+	// add coins to user account
+	if !coins.IsZero() {
+		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, del.GetDelegatorAddr())
+		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// update the outstanding rewards and the community pool only if the
+	// transaction was successful
+	k.SetValidatorOutstandingRewards(ctx, del.GetValidatorAddr(), outstanding.Sub(rewards))
+	feePool := k.GetFeePool(ctx)
+	feePool.CommunityPool = feePool.CommunityPool.Add(remainder)
+	k.SetFeePool(ctx, feePool)
+
+	// decrement reference count of starting period
+	startingInfo := k.GetDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
+	startingPeriod := startingInfo.PreviousPeriod
+	k.decrementReferenceCount(ctx, del.GetValidatorAddr(), startingPeriod)
+
+	// remove delegator starting info
+	k.DeleteDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
+
+	return coins, nil
 }
