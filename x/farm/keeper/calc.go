@@ -154,10 +154,11 @@ func (k Keeper) withdrawRewards(ctx sdk.Context, poolName string) (sdk.DecCoins,
 	if !k.HasPoolCurrentPeriod(ctx, poolName) {
 		return nil, types.ErrNoPoolCurrentPeriodFound(types.DefaultCodespace, poolName)
 	}
+	pool, _ := k.GetFarmPool(ctx, poolName)
 
 	// end current period and calculate rewards
-	endingPeriod := k.incrementValidatorPeriod(ctx, val)
-	rewardsRaw := k.calculateDelegationRewards(ctx, val, del, endingPeriod)
+	endingPeriod := k.incrementValidatorPeriod(ctx, pool)
+	rewardsRaw := k.calculateRewards(ctx, poolName, endingPeriod)
 	outstanding := k.GetValidatorOutstandingRewards(ctx, del.GetValidatorAddr())
 
 	// defensive edge case may happen on the very final digits
@@ -192,10 +193,82 @@ func (k Keeper) withdrawRewards(ctx sdk.Context, poolName string) (sdk.DecCoins,
 	// decrement reference count of starting period
 	startingInfo := k.GetDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
 	startingPeriod := startingInfo.PreviousPeriod
-	k.decrementReferenceCount(ctx, del.GetValidatorAddr(), startingPeriod)
+	k.decrementReferenceCount(ctx, poolName, startingPeriod)
 
 	// remove delegator starting info
 	k.DeleteDelegatorStartingInfo(ctx, del.GetValidatorAddr(), del.GetDelegatorAddr())
 
 	return coins, nil
+}
+
+// increment pool period, returning the period just ended
+func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
+	// fetch current rewards
+	rewards := k.GetPoolCurrentPeriod(ctx, pool.Name)
+
+	// calculate current ratio
+	var current sdk.DecCoins
+	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
+	current = rewards.LastAmountYieldedNativeToken.Amount.QuoTruncate(pool.)
+
+	// fetch historical rewards for last period
+	historical := k.GetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period-1).CumulativeRewardRatio
+
+	// decrement reference count
+	k.decrementReferenceCount(ctx, val.GetOperator(), rewards.Period-1)
+
+	// set new historical rewards with reference count of 1
+	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period, types.NewValidatorHistoricalRewards(historical.Add(current), 1))
+
+	// set current rewards, incrementing period by 1
+	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, rewards.Period+1))
+
+	return rewards.Period
+}
+
+func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, endingPeriod uint64)  sdk.DecCoins {
+	// fetch current period
+	currentPeriod, found := k.GetPoolCurrentPeriod(ctx, poolName)
+	if !found {
+		return nil
+	}
+	startingPeriod := currentPeriod.Period
+	lastAmountYielded := currentPeriod.LastAmountYieldedNativeToken
+	// calculate rewards for final period
+	return k.calculateDelegationRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lastAmountYielded)
+}
+
+// calculate the rewards accrued by a pool between two periods
+func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
+	amount sdk.DecCoin) (rewards sdk.DecCoins) {
+
+	// sanity check
+	if startingPeriod > endingPeriod {
+		panic("startingPeriod cannot be greater than endingPeriod")
+	}
+
+	// return amount * (ending - starting)
+	starting := k.GetPoolHistoricalRewards(ctx, poolName, startingPeriod)
+	ending := k.GetPoolHistoricalRewards(ctx, poolName, endingPeriod)
+	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
+	if difference.IsAnyNegative() {
+		panic("negative rewards should not be possible")
+	}
+	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
+	rewards = difference.MulDecTruncate(amount.Amount)
+	return
+}
+
+// decrement the reference count for a historical rewards value, and delete if zero references remain
+func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period uint64) {
+	historical := k.GetPoolHistoricalRewards(ctx, poolName, period)
+	if historical.ReferenceCount == 0 {
+		panic("cannot set negative reference count")
+	}
+	historical.ReferenceCount--
+	if historical.ReferenceCount == 0 {
+		k.DeletePoolHistoricalReward(ctx, poolName, period)
+	} else {
+		k.SetPoolHistoricalRewards(ctx, poolName, period, historical)
+	}
 }

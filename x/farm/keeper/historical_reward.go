@@ -5,31 +5,27 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func (k Keeper) GetPoolHistoricalRewards(ctx sdk.Context, poolName string, period int64) (
-	rewards types.PoolHistoricalRewards, found bool) {
+func (k Keeper) GetPoolHistoricalRewards(ctx sdk.Context, poolName string, period uint64) (rewards types.PoolHistoricalRewards) {
 	store := ctx.KVStore(k.StoreKey())
 	bz := store.Get(types.GetPoolHistoricalRewardsKey(poolName, period))
-	if bz == nil {
-		return rewards, false
-	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &rewards)
-	return rewards, true
+	return rewards
 }
 
-func (k Keeper) SetPoolHistoricalRewards(ctx sdk.Context, poolName string, period int64, rewards types.PoolHistoricalRewards) {
+func (k Keeper) SetPoolHistoricalRewards(ctx sdk.Context, poolName string, period uint64, rewards types.PoolHistoricalRewards) {
 	store := ctx.KVStore(k.StoreKey())
 	store.Set(types.GetPoolHistoricalRewardsKey(poolName, period), k.cdc.MustMarshalBinaryLengthPrefixed(rewards))
 	return
 }
 
-// DeleteValidatorHistoricalReward deletes a historical reward
-func (k Keeper) DeleteValidatorHistoricalReward(ctx sdk.Context, poolName string, period int64) {
+// DeletePoolHistoricalReward deletes a historical reward
+func (k Keeper) DeletePoolHistoricalReward(ctx sdk.Context, poolName string, period uint64) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetPoolHistoricalRewardsKey(poolName, period))
 }
 
-// DeleteValidatorHistoricalReward deletes historical rewards for a pool
-func (k Keeper) DeleteValidatorHistoricalRewards(ctx sdk.Context, poolName string) {
+// DeletePoolHistoricalRewards deletes historical rewards for a pool
+func (k Keeper) DeletePoolHistoricalRewards(ctx sdk.Context, poolName string) {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.GetValidatorHistoricalRewardsPrefix(poolName))
 	defer iter.Close()
@@ -38,14 +34,11 @@ func (k Keeper) DeleteValidatorHistoricalRewards(ctx sdk.Context, poolName strin
 	}
 }
 
-func (k Keeper) GetPoolCurrentPeriod(ctx sdk.Context, poolName string) (period types.PoolCurrentPeriod, found bool) {
+func (k Keeper) GetPoolCurrentPeriod(ctx sdk.Context, poolName string) (period types.PoolCurrentPeriod) {
 	store := ctx.KVStore(k.StoreKey())
 	bz := store.Get(types.GetPoolCurrentPeriodKey(poolName))
-	if bz == nil {
-		return period, false
-	}
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &period)
-	return period, true
+	return period
 }
 
 func (k Keeper) SetPoolCurrentPeriod(ctx sdk.Context, poolName string, period types.PoolCurrentPeriod) {

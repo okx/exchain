@@ -64,8 +64,8 @@ func SplitPoolNameFromLockInfoKey(lockInfoKey []byte) string {
 	return string(lockInfoKey[poolNameFromLockInfoKeyIndex:])
 }
 
-func GetPoolHistoricalRewardsKey(poolName string, period int64) []byte {
-	p := strconv.FormatInt(period, 10)
+func GetPoolHistoricalRewardsKey(poolName string, period uint64) []byte {
+	p := strconv.FormatUint(period, 10)
 	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), []byte(p)...)...)
 }
 
