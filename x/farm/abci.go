@@ -37,9 +37,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		} else {
 			allocatedAmt = lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		}
-		pool.AmountYielded = pool.AmountYielded.Add(
-			sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, allocatedAmt)},
-		)
+		pool.AmountYielded = pool.AmountYielded.Add(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt))
 		remainingNativeTokenAmt = remainingNativeTokenAmt.Sub(allocatedAmt)
 		k.SetFarmPool(ctx, pool)
 	}

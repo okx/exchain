@@ -18,16 +18,16 @@ func NewPoolHistoricalRewards(cumulativeRewardRatio sdk.DecCoins, referenceCount
 
 // PoolCurrentPeriod records the current period
 type PoolCurrentPeriod struct {
-	StartBlockHeight             int64
-	Period                       uint64
-	LastAmountYieldedNativeToken sdk.DecCoin
+	StartBlockHeight       int64
+	Period                 uint64
+	AccumulatedNativeToken sdk.DecCoin
 }
 
 // NewPoolCurrentPeriod creates a new instance of PoolCurrentPeriod
 func NewPoolCurrentPeriod(startBlockHeight int64, period uint64, token sdk.DecCoin) PoolCurrentPeriod {
 	return PoolCurrentPeriod{
-		StartBlockHeight:             startBlockHeight,
-		Period:                       period,
-		LastAmountYieldedNativeToken: token,
+		StartBlockHeight:       startBlockHeight,
+		Period:                 period,
+		AccumulatedNativeToken: token,
 	}
 }

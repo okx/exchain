@@ -23,11 +23,6 @@ func ErrNoFarmPoolFound(codespace sdk.CodespaceType, poolName string) sdk.Error 
 	return sdk.NewError(codespace, CodeInvalidFarmPool, "failed. Farm pool %s does not exist", poolName)
 }
 
-// ErrNoPoolCurrentPeriodFound returns an error when a current period pool doesn't exist
-func ErrNoPoolCurrentPeriodFound(codespace sdk.CodespaceType, poolName string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidPoolCurrentPeriod, "failed. Pool current period %s does not exist", poolName)
-}
-
 // ErrPoolAlreadyExist returns an error when a pool exist
 func ErrPoolAlreadyExist(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodePoolAlreadyExist, "failed. farm pool %s already exists", poolName)

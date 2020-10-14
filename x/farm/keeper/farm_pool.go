@@ -86,6 +86,12 @@ func (k Keeper) GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName strin
 	return info, true
 }
 
+// HasLockInfo check existence of the address associated with a pool
+func (k Keeper) HasLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(types.GetLockInfoKey(addr, poolName))
+}
+
 func (k Keeper) DeleteLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetLockInfoKey(addr, poolName))
