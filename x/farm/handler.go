@@ -110,7 +110,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	// update current rewards
 	currentPeriod.StartBlockHeight = ctx.BlockHeight()
 	currentPeriod.Period = 0 // TODO ???
-	currentPeriod.AccumulatedRewards = currentPeriod.AccumulatedRewards.Add(yieldedTokens)
+	currentPeriod.Rewards = currentPeriod.Rewards.Add(yieldedTokens)
 	k.SetPoolCurrentRewards(ctx, msg.PoolName, currentPeriod)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(

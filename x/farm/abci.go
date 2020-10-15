@@ -38,7 +38,9 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 			allocatedAmt = lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		}
 		// TODO
-		pool.AmountYielded = pool.AmountYielded.Add(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt))
+		current := k.GetPoolCurrentRewards(ctx, pool.Name)
+		current.Rewards = current.Rewards.Add(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt))
+		k.SetPoolCurrentRewards(ctx, pool.Name, current)
 		remainingNativeTokenAmt = remainingNativeTokenAmt.Sub(allocatedAmt)
 		k.SetFarmPool(ctx, pool)
 	}

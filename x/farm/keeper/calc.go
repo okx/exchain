@@ -70,12 +70,12 @@ func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64
 	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), curReward.StartBlockHeight, pool)
 
 	// 1.2 calculate how many native token has been yielded between start_block_height and current_height
-	curReward.AccumulatedRewards = curReward.AccumulatedRewards.Add(yieldedTokens)
+	curReward.Rewards = curReward.Rewards.Add(yieldedTokens)
 
 	currentRatio := sdk.DecCoins{}
-	if !curReward.AccumulatedRewards.IsZero() { // warning: can't calculate ratio for zero-token
+	if !curReward.Rewards.IsZero() { // warning: can't calculate ratio for zero-token
 		// 2. calculate current reward ratio
-		currentRatio = curReward.AccumulatedRewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
+		currentRatio = curReward.Rewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
 	}
 
 	// 3.1 get the previous pool_historical_rewards
@@ -120,36 +120,44 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period
 	}
 }
 
-func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, endingPeriod uint64)  sdk.DecCoins {
-	// fetch current period
+func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64)  sdk.DecCoins {
+	// fetch lock info
+ 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
+ 	if !found {
+ 		panic("should not happen")
+	}
+	if lockInfo.StartBlockHeight <= ctx.BlockHeight() {
+		// started this height, no rewards yet
+		return nil
+	}
+
 	currentPeriod := k.GetPoolCurrentRewards(ctx, poolName)
 	startingPeriod := currentPeriod.Period
-	lastAmountYielded := currentPeriod.AccumulatedRewards
 	// calculate rewards for final period
-	return k.calculateDelegationRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lastAmountYielded)
+	return k.calculateDelegationRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lockInfo.Amount)
 }
 
 // calculate the rewards accrued by a pool between two periods
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
-	amount sdk.DecCoins) (rewards sdk.DecCoins) {
+	amount sdk.DecCoin) (rewards sdk.DecCoins) {
 
 	// sanity check
 	if startingPeriod > endingPeriod {
 		panic("startingPeriod cannot be greater than endingPeriod")
 	}
 
+	if amount.Amount.LT(sdk.ZeroDec()) {
+		panic("amount should not be negative")
+	}
+
 	// return amount * (ending - starting)
 	starting := k.GetPoolHistoricalRewards(ctx, poolName, startingPeriod)
 	ending := k.GetPoolHistoricalRewards(ctx, poolName, endingPeriod)
-	differences := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
-	if differences.IsAnyNegative() {
+	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
+	if difference.IsAnyNegative() {
 		panic("negative rewards should not be possible")
 	}
-	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
-	for _, difference := range differences {
-		difference.Amount = difference.Amount.MulTruncate(amount.AmountOf(difference.Denom))
-		rewards = append(rewards, difference)
-	}
+	rewards = difference.MulDecTruncate(amount.Amount)
 	return
 }
 
