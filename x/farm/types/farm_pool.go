@@ -31,6 +31,7 @@ func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedToke
 	}
 }
 
+// TODO return the updated pool
 // CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
 // Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
 func (fp FarmPool) CalculateAmountYieldedBetween(currentHeight int64, startBlockHeight int64) (tokensYielded sdk.DecCoins) {
