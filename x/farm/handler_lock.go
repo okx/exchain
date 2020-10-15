@@ -28,12 +28,17 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		lockInfo = types.NewLockInfo(msg.Address, msg.PoolName, msg.Amount, ctx.BlockHeight(), currentPeriod.Period)
 		k.SetLockInfo(ctx, lockInfo)
 
+		// TODO update period?
+
 		// 2. Update the pool info
 		pool.TotalValueLocked = pool.TotalValueLocked.Add(msg.Amount)
 		k.SetFarmPool(ctx, pool)
 	} else {
 		// 1. TODO
-		_, _ = keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+		_, err := k.WithdrawRewards(ctx, pool, msg.Address)
+		if err != nil {
+			return err.Result()
+		}
 
 		// 2. Reinitialize the lock info
 		k.InitializeLockInfo(ctx, msg.Address,  msg.PoolName, msg.Amount.Amount)
