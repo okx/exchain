@@ -89,29 +89,21 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}
 
-	// 0.4 Get the current period
 	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
-	// TODO update currentPeriod or not
-
-	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
-	// Check if remaining amount is zero already
-	if updatedPool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
-		// 2. refresh the yielding_coin if remaining amount is zero
-		updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
-
-		// 3. Transfer coin to farm module account
-		if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
-			return err.Result()
-		}
+	// 1. try to yield token and check if remaining amount is already zero
+	updatedPool, _ := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	remainingAmount := updatedPool.YieldedTokenInfos[0].RemainingAmount
+	if !remainingAmount.IsZero() {
+		return types.ErrRemainingAmountNotZero(DefaultCodespace, remainingAmount.String()).Result()
 	}
-	k.SetFarmPool(ctx, updatedPool)
 
-	// update current rewards
-	currentPeriod.StartBlockHeight = ctx.BlockHeight()
-	currentPeriod.Period = 0 // TODO ???
-	currentPeriod.Rewards = currentPeriod.Rewards.Add(yieldedTokens)
-	k.SetPoolCurrentRewards(ctx, msg.PoolName, currentPeriod)
+	// 2. terminate pool current period
+	k.IncrementPoolPeriod(ctx, pool)
+
+	// 3. Transfer coin to farm module account
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
+		return err.Result()
+	}
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeProvide,

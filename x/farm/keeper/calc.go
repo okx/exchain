@@ -5,8 +5,8 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-// CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
-// Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
+// CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielded from
+// startBlockHeight to endBlockHeight. And return the amount.
 func CalculateAmountYieldedBetween(
 	endBlockHeight int64, startBlockHeight int64, pool types.FarmPool,
 ) (types.FarmPool, sdk.DecCoins) {
@@ -45,8 +45,8 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 	}
 
 	// 1. end current period and calculate rewards
-	//endingPeriod := k.incrementPoolPeriod(ctx, pool)
-	_ = k.incrementPoolPeriod(ctx, pool)
+	//endingPeriod := k.IncrementPoolPeriod(ctx, pool)
+	_ = k.IncrementPoolPeriod(ctx, pool)
 
 	// TODO get the rewards, then send rewards from module to account
 	// TODO not sure where the rewards should be calculated?
@@ -56,7 +56,7 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 }
 
 // increment pool period, returning the period just ended
-func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
+func (k Keeper) IncrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
 	// fetch current rewards status
 	curReward := k.GetPoolCurrentRewards(ctx, pool.Name)
 
