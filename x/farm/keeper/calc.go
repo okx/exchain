@@ -11,6 +11,10 @@ func CalculateAmountYieldedBetween(currentHeight int64, startBlockHeight int64, 
 	yieldedTokens := sdk.DecCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
+		if startBlockHeightToYield == 0 {
+			continue
+		}
+
 		if currentHeight > startBlockHeightToYield {
 			// calculate the exact interval
 			var blockInterval sdk.Dec
