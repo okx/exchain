@@ -30,6 +30,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryWhitelist(ctx, k)
 		case types.QueryAccount:
 			return queryAccount(ctx, req, k)
+		case types.QueryAccountsLockedTo:
+			return queryAccountsLockedTo(ctx, req, k)
 		case types.QueryPoolNum:
 			return queryPoolNum(ctx, k)
 		default:
@@ -129,6 +131,21 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk
 
 	poolNames := k.getFarmPoolNamesForAccount(ctx, params.AccAddress)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, poolNames)
+	if err != nil {
+		return nil, defaultQueryErrJSONMarshal(err)
+	}
+
+	return res, nil
+}
+
+func queryAccountsLockedTo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+	var params types.QueryPoolParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, defaultQueryErrParseParams(err)
+	}
+
+	accAddrList := k.getAccountsLockedTo(ctx, params.PoolName)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, accAddrList)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}

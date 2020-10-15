@@ -43,6 +43,22 @@ func (k Keeper) getFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddre
 	return
 }
 
+// getAccountsLockedTo gets all addresses of accounts that have locked coins in a pool
+func (k Keeper) getAccountsLockedTo(ctx sdk.Context, poolName string) (accAddrList types.AccAddrList) {
+	//TODO:
+	tmp := []string{
+		"okexchain13hxtcclwfhks2vzrm3hlx0kp4cuxggg26p9kqf",
+		"okexchain1gnq40xzh75fl8yzlk32hwx3xeew7nycndhj843",
+		"okexchain1nh4mtjpstnvtxf24vjzgnf5slqksja9fsdt7fl",
+	}
+
+	for _, s := range tmp {
+		accAddr, _ := sdk.AccAddressFromBech32(s)
+		accAddrList = append(accAddrList, accAddr)
+	}
+	return
+}
+
 // getPoolNum gets the number of pools that already exist
 func (k Keeper) getPoolNum(ctx sdk.Context) types.PoolNum {
 	store := ctx.KVStore(k.storeKey)

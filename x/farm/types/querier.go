@@ -3,13 +3,14 @@ package types
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
 const (
-	QueryPool       = "pool"
-	QueryPools      = "pools"
-	QueryEarnings   = "earnings"
-	QueryParameters = "parameters"
-	QueryWhitelist  = "whitelist"
-	QueryAccount    = "account"
-	QueryPoolNum    = "pool-num"
+	QueryPool             = "pool"
+	QueryPools            = "pools"
+	QueryEarnings         = "earnings"
+	QueryParameters       = "parameters"
+	QueryWhitelist        = "whitelist"
+	QueryAccount          = "account"
+	QueryAccountsLockedTo = "accounts-locked-to"
+	QueryPoolNum          = "pool-num"
 )
 
 // QueryPoolParams defines the params for the following queries:

@@ -28,11 +28,12 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		client.GetCommands(
 			GetCmdQueryPool(queryRoute, cdc),
 			GetCmdQueryPools(queryRoute, cdc),
-			GetCmdQueryEarnings(queryRoute, cdc),
-			GetCmdQueryParams(queryRoute, cdc),
-			GetCmdQueryWhitelist(queryRoute, cdc),
-			GetCmdQueryAccount(queryRoute, cdc),
 			GetCmdQueryPoolNum(queryRoute, cdc),
+			GetCmdQueryEarnings(queryRoute, cdc),
+			GetCmdQueryAccount(queryRoute, cdc),
+			GetCmdQueryAccountsLockedTo(queryRoute, cdc),
+			GetCmdQueryWhitelist(queryRoute, cdc),
+			GetCmdQueryParams(queryRoute, cdc),
 		)...,
 	)
 
@@ -216,7 +217,7 @@ $ %s query farm whitelist
 func GetCmdQueryAccount(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "account [address]",
-		Short: "query the info of pools that an account has locked coins in",
+		Short: "query the name of pools that an account has locked coins in",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query the names of all pools that an account has locked coins in.
 
@@ -283,3 +284,38 @@ $ %s query farm pool-num
 	}
 }
 
+// GetCmdQueryAccountsLockedTo gets all addresses of accounts that locked coins in a specific pool
+func GetCmdQueryAccountsLockedTo(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "accounts-locked-to",
+		Short: "query the addresses of accounts locked in a pool",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query all the addresses of accounts that have locked coins in a specific pool.
+
+Example:
+$ %s query farm accounts-locked-to pool-airtoken1-eth
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryPoolParams(args[0]))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryAccountsLockedTo)
+			bz, _, err := cliCtx.QueryWithData(route, jsonBytes)
+			if err != nil {
+				return err
+			}
+
+			var accAddrList types.AccAddrList
+			cdc.MustUnmarshalJSON(bz, &accAddrList)
+			return cliCtx.PrintOutput(accAddrList)
+		},
+	}
+}
