@@ -1,7 +1,7 @@
 package types
 
 import (
-	"strconv"
+	"encoding/binary"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -65,8 +65,9 @@ func SplitPoolNameFromLockInfoKey(lockInfoKey []byte) string {
 }
 
 func GetPoolHistoricalRewardsKey(poolName string, period uint64) []byte {
-	p := strconv.FormatUint(period, 10)
-	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), []byte(p)...)...)
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, period)
+	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), b...)...)
 }
 
 // GetValidatorHistoricalRewardsPrefix gets the prefix key for a pool's historical rewards
