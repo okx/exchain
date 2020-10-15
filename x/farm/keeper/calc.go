@@ -66,29 +66,30 @@ func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64
 	curReward := k.GetPoolCurrentRewards(ctx, pool.Name)
 
 	// 1.1 calculate how many provided token has been yielded between start_block_height and current_height
-	// TODO choose a perfect position to update pool, remember!
 	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), curReward.StartBlockHeight, pool)
 
 	// 1.2 calculate how many native token has been yielded between start_block_height and current_height
 	curReward.Rewards = curReward.Rewards.Add(yieldedTokens)
 
-	currentRatio := sdk.DecCoins{}
-	if !curReward.Rewards.IsZero() { // warning: can't calculate ratio for zero-token
-		// 2. calculate current reward ratio
+	// 2. calculate current reward ratio
+	var currentRatio sdk.DecCoins
+	if pool.TotalValueLocked.IsZero() {
+		currentRatio = sdk.DecCoins{}
+	} else {
 		currentRatio = curReward.Rewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
 	}
 
 	// 3.1 get the previous pool_historical_rewards
-	oldHistoricalRewards := k.GetPoolHistoricalRewards(ctx, pool.Name, curReward.Period-1)
+	historical := k.GetPoolHistoricalRewards(ctx, pool.Name, curReward.Period-1).CumulativeRewardRatio
 	// 3.2 decrement reference count
 	k.decrementReferenceCount(ctx, pool.Name, curReward.Period-1)
 	// 3.3 create new pool_historical_rewards with reference count of 1, then set it into store
-	newHistoricalRewards := types.NewPoolHistoricalRewards(oldHistoricalRewards.CumulativeRewardRatio.Add(currentRatio),1)
+	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio),1)
 	k.SetPoolHistoricalRewards(ctx, pool.Name, curReward.Period, newHistoricalRewards)
 
 	// 4. set new current newYieldedRewards into store, incrementing period by 1
-	newRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), curReward.Period+1, sdk.DecCoins{})
-	k.SetPoolCurrentRewards(ctx, pool.Name, newRewards)
+	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), curReward.Period+1, sdk.DecCoins{})
+	k.SetPoolCurrentRewards(ctx, pool.Name, newCurRewards)
 
 	// 5. set updated pool
 	k.SetFarmPool(ctx, updatedPool)
