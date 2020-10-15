@@ -7,41 +7,32 @@ import (
 
 // CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
 // Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-func CalculateAmountYieldedBetween(currentHeight int64, startBlockHeight int64, pool types.FarmPool) (types.FarmPool, sdk.DecCoins) {
+func CalculateAmountYieldedBetween(
+	endBlockHeight int64, startBlockHeight int64, pool types.FarmPool,
+) (types.FarmPool, sdk.DecCoins) {
 	yieldedTokens := sdk.DecCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
-		if startBlockHeightToYield == 0 {
+
+		// if condition startBlockHeightToYield <= startBlockHeight < endBlockHeight is not satisfied then continue
+		if startBlockHeightToYield == 0 || startBlockHeight < startBlockHeightToYield ||
+			startBlockHeight >= endBlockHeight {
 			continue
 		}
 
-		if currentHeight > startBlockHeightToYield {
-			// calculate the exact interval
-			var blockInterval sdk.Dec
-			if startBlockHeightToYield > startBlockHeight {
-				blockInterval = sdk.NewDec(currentHeight - startBlockHeightToYield)
-			} else {
-				blockInterval = sdk.NewDec(currentHeight - startBlockHeight)
-			}
-
-			// calculate how many coin have been yielded till the current block
-			amount := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
-			remaining := pool.YieldedTokenInfos[i].RemainingAmount
-			if amount.LT(remaining.Amount) {
-				// subtract yielded_coin amount
-				pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
-
-				yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
-			} else {
-				// TODO: remove the YieldedTokenInfo when its amount become zero
-				// Currently, we support only one token of yield farming at the same time,
-				// so, it is unnecessary to remove the element in slice
-
-				// initialize yieldedTokenInfo
-				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
-
-				yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
-			}
+		// calculate the exact interval
+		blockInterval := sdk.NewDec(endBlockHeight - startBlockHeight)
+		// calculate how many coin have been yielded till the current block
+		amount := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
+		remaining := pool.YieldedTokenInfos[i].RemainingAmount
+		if amount.LT(remaining.Amount) {
+			// subtract yielded_coin amount
+			pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
+			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
+		} else {
+			// initialize yieldedTokenInfo
+			pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
+			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
 		}
 	}
 	return pool, yieldedTokens
@@ -88,7 +79,7 @@ func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64
 	// 3.2 decrement reference count
 	k.decrementReferenceCount(ctx, pool.Name, curReward.Period-1)
 	// 3.3 create new pool_historical_rewards with reference count of 1, then set it into store
-	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio),1)
+	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio), 1)
 	k.SetPoolHistoricalRewards(ctx, pool.Name, curReward.Period, newHistoricalRewards)
 
 	// 4. set new current newYieldedRewards into store, incrementing period by 1
@@ -125,11 +116,11 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period
 	}
 }
 
-func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64)  sdk.DecCoins {
+func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64) sdk.DecCoins {
 	// fetch lock info
- 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
- 	if !found {
- 		panic("should not happen")
+	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
+	if !found {
+		panic("should not happen")
 	}
 	if lockInfo.StartBlockHeight <= ctx.BlockHeight() {
 		// started this height, no rewards yet
