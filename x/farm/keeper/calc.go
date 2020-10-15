@@ -45,13 +45,25 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 
 	// 1. end current period and calculate rewards
 	//endingPeriod := k.incrementPoolPeriod(ctx, pool)
-	_ = k.incrementPoolPeriod(ctx, pool)
+	endingPeriod := k.incrementPoolPeriod(ctx, pool)
+	rewards := k.calculateRewards(ctx, pool.Name, addr, endingPeriod)
 
-	// TODO get the rewards, then send rewards from module to account
-	// TODO not sure where the rewards should be calculated?
-	// TODO not sure if check the amount precision?
+	// add coins to user account
+	if !rewards.IsZero() {
+		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.YieldFarmingAccount, addr, rewards)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return nil, nil
+	// decrement reference count of lock info
+	lockInfo, _ := k.GetLockInfo(ctx, addr, pool.Name)
+	k.decrementReferenceCount(ctx, pool.Name, lockInfo.ReferencePeriod)
+
+	// remove delegator starting info
+	k.DeleteLockInfo(ctx, addr, pool.Name)
+
+	return rewards, nil
 }
 
 // increment pool period, returning the period just ended
