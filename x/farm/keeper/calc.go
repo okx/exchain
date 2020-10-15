@@ -14,9 +14,8 @@ func CalculateAmountYieldedBetween(
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 
-		// if condition startBlockHeightToYield <= startBlockHeight < endBlockHeight is not satisfied then continue
-		if startBlockHeightToYield == 0 || startBlockHeight < startBlockHeightToYield ||
-			startBlockHeight >= endBlockHeight {
+		// if condition startBlockHeightToYield <= startBlockHeight < endBlockHeight is not satisfied, then continue
+		if startBlockHeightToYield == 0 || startBlockHeight < startBlockHeightToYield || startBlockHeight >= endBlockHeight {
 			continue
 		}
 
@@ -45,51 +44,63 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 	}
 
 	// 1. end current period and calculate rewards
-	//endingPeriod := k.IncrementPoolPeriod(ctx, pool)
-	_ = k.IncrementPoolPeriod(ctx, pool)
+	//endingPeriod := k.incrementPoolPeriod(ctx, pool)
+	endingPeriod := k.IncrementPoolPeriod(ctx, pool)
+	rewards := k.calculateRewards(ctx, pool.Name, addr, endingPeriod)
 
-	// TODO get the rewards, then send rewards from module to account
-	// TODO not sure where the rewards should be calculated?
-	// TODO not sure if check the amount precision?
+	// add coins to user account
+	if !rewards.IsZero() {
+		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.YieldFarmingAccount, addr, rewards)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return nil, nil
+	// decrement reference count of lock info
+	lockInfo, _ := k.GetLockInfo(ctx, addr, pool.Name)
+	k.decrementReferenceCount(ctx, pool.Name, lockInfo.ReferencePeriod)
+
+	// remove delegator starting info
+	k.DeleteLockInfo(ctx, addr, pool.Name)
+
+	return rewards, nil
 }
 
 // increment pool period, returning the period just ended
 func (k Keeper) IncrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
 	// fetch current rewards status
-	curReward := k.GetPoolCurrentRewards(ctx, pool.Name)
+	rewards := k.GetPoolCurrentRewards(ctx, pool.Name)
 
 	// 1.1 calculate how many provided token has been yielded between start_block_height and current_height
-	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), curReward.StartBlockHeight, pool)
+	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), rewards.StartBlockHeight, pool)
 
 	// 1.2 calculate how many native token has been yielded between start_block_height and current_height
-	curReward.Rewards = curReward.Rewards.Add(yieldedTokens)
+	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
 
 	// 2. calculate current reward ratio
 	var currentRatio sdk.DecCoins
 	if pool.TotalValueLocked.IsZero() {
 		currentRatio = sdk.DecCoins{}
 	} else {
-		currentRatio = curReward.Rewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
+		currentRatio = rewards.Rewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
 	}
 
 	// 3.1 get the previous pool_historical_rewards
-	historical := k.GetPoolHistoricalRewards(ctx, pool.Name, curReward.Period-1).CumulativeRewardRatio
+	historical := k.GetPoolHistoricalRewards(ctx, pool.Name, rewards.Period-1).CumulativeRewardRatio
 	// 3.2 decrement reference count
-	k.decrementReferenceCount(ctx, pool.Name, curReward.Period-1)
+	k.decrementReferenceCount(ctx, pool.Name, rewards.Period-1)
 	// 3.3 create new pool_historical_rewards with reference count of 1, then set it into store
 	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio), 1)
-	k.SetPoolHistoricalRewards(ctx, pool.Name, curReward.Period, newHistoricalRewards)
+	k.SetPoolHistoricalRewards(ctx, pool.Name, rewards.Period, newHistoricalRewards)
 
 	// 4. set new current newYieldedRewards into store, incrementing period by 1
-	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), curReward.Period+1, sdk.DecCoins{})
+	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), rewards.Period+1, sdk.DecCoins{})
 	k.SetPoolCurrentRewards(ctx, pool.Name, newCurRewards)
 
 	// 5. set updated pool
 	k.SetFarmPool(ctx, updatedPool)
 
-	return curReward.Period
+	return rewards.Period
 }
 
 // increment the reference count for a historical rewards value
