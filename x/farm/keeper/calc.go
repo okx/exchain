@@ -5,6 +5,44 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
+// CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
+// Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
+func CalculateAmountYieldedBetween(currentHeight int64, startBlockHeight int64, pool types.FarmPool) (types.FarmPool, sdk.DecCoins) {
+	yieldedTokens := sdk.DecCoins{}
+	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
+		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
+		if currentHeight > startBlockHeightToYield {
+			// calculate the exact interval
+			var blockInterval sdk.Dec
+			if startBlockHeightToYield > startBlockHeight {
+				blockInterval = sdk.NewDec(currentHeight - startBlockHeightToYield)
+			} else {
+				blockInterval = sdk.NewDec(currentHeight - startBlockHeight)
+			}
+
+			// calculate how many coin have been yielded till the current block
+			amount := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
+			remaining := pool.YieldedTokenInfos[i].RemainingAmount
+			if amount.LT(remaining.Amount) {
+				// subtract yielded_coin amount
+				pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
+
+				yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
+			} else {
+				// TODO: remove the YieldedTokenInfo when its amount become zero
+				// Currently, we support only one token of yield farming at the same time,
+				// so, it is unnecessary to remove the element in slice
+
+				// initialize yieldedTokenInfo
+				pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
+
+				yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
+			}
+		}
+	}
+	return pool, yieldedTokens
+}
+
 func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.AccAddress) (sdk.DecCoins, sdk.Error) {
 	// 0. check existence of delegator starting info
 	if !k.HasLockInfo(ctx, addr, pool.Name) {
@@ -25,37 +63,37 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 // increment pool period, returning the period just ended
 func (k Keeper) incrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
 	// fetch current rewards status
-	currentRewards := k.GetPoolCurrentPeriod(ctx, pool.Name)
+	curReward := k.GetPoolCurrentRewards(ctx, pool.Name)
 
 	// 1.1 calculate how many provided token has been yielded between start_block_height and current_height
 	// TODO choose a perfect position to update pool, remember!
-	newYieldedRewards := pool.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentRewards.StartBlockHeight)
+	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), curReward.StartBlockHeight, pool)
 
 	// 1.2 calculate how many native token has been yielded between start_block_height and current_height
-	amountDifference := pool.AmountYielded.AmountOf(sdk.DefaultBondDenom).Sub(currentRewards.AccumulatedNativeToken.Amount)
-	if amountDifference.IsPositive() {
-		newYieldedRewards = newYieldedRewards.Add(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, amountDifference))
-	}
+	curReward.AccumulatedRewards = curReward.AccumulatedRewards.Add(yieldedTokens)
 
 	currentRatio := sdk.DecCoins{}
-	if !newYieldedRewards.IsZero() { // warning: can't calculate ratio for zero-token
+	if !curReward.AccumulatedRewards.IsZero() { // warning: can't calculate ratio for zero-token
 		// 2. calculate current reward ratio
-		currentRatio = newYieldedRewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
+		currentRatio = curReward.AccumulatedRewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
 	}
 
 	// 3.1 get the previous pool_historical_rewards
-	oldHistoricalRewards := k.GetPoolHistoricalRewards(ctx, pool.Name, currentRewards.Period-1)
+	oldHistoricalRewards := k.GetPoolHistoricalRewards(ctx, pool.Name, curReward.Period-1)
 	// 3.2 decrement reference count
-	k.decrementReferenceCount(ctx, pool.Name, currentRewards.Period-1)
+	k.decrementReferenceCount(ctx, pool.Name, curReward.Period-1)
 	// 3.3 create new pool_historical_rewards with reference count of 1, then set it into store
 	newHistoricalRewards := types.NewPoolHistoricalRewards(oldHistoricalRewards.CumulativeRewardRatio.Add(currentRatio),1)
-	k.SetPoolHistoricalRewards(ctx, pool.Name, currentRewards.Period, newHistoricalRewards)
+	k.SetPoolHistoricalRewards(ctx, pool.Name, curReward.Period, newHistoricalRewards)
 
 	// 4. set new current newYieldedRewards into store, incrementing period by 1
-	newRewards := types.NewPoolCurrentPeriod(ctx.BlockHeight(), currentRewards.Period+1, sdk.DecCoin{})
-	k.SetPoolCurrentPeriod(ctx, pool.Name, newRewards)
+	newRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), curReward.Period+1, sdk.DecCoins{})
+	k.SetPoolCurrentRewards(ctx, pool.Name, newRewards)
 
-	return currentRewards.Period
+	// 5. set updated pool
+	k.SetFarmPool(ctx, updatedPool)
+
+	return curReward.Period
 }
 
 // increment the reference count for a historical rewards value
@@ -84,16 +122,16 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period
 
 func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, endingPeriod uint64)  sdk.DecCoins {
 	// fetch current period
-	currentPeriod := k.GetPoolCurrentPeriod(ctx, poolName)
+	currentPeriod := k.GetPoolCurrentRewards(ctx, poolName)
 	startingPeriod := currentPeriod.Period
-	lastAmountYielded := currentPeriod.AccumulatedNativeToken
+	lastAmountYielded := currentPeriod.AccumulatedRewards
 	// calculate rewards for final period
 	return k.calculateDelegationRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lastAmountYielded)
 }
 
 // calculate the rewards accrued by a pool between two periods
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
-	amount sdk.DecCoin) (rewards sdk.DecCoins) {
+	amount sdk.DecCoins) (rewards sdk.DecCoins) {
 
 	// sanity check
 	if startingPeriod > endingPeriod {
@@ -103,19 +141,22 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName stri
 	// return amount * (ending - starting)
 	starting := k.GetPoolHistoricalRewards(ctx, poolName, startingPeriod)
 	ending := k.GetPoolHistoricalRewards(ctx, poolName, endingPeriod)
-	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
-	if difference.IsAnyNegative() {
+	differences := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
+	if differences.IsAnyNegative() {
 		panic("negative rewards should not be possible")
 	}
 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
-	rewards = difference.MulDecTruncate(amount.Amount)
+	for _, difference := range differences {
+		difference.Amount = difference.Amount.MulTruncate(amount.AmountOf(difference.Denom))
+		rewards = append(rewards, difference)
+	}
 	return
 }
 
 // initialize starting info for a new lock info
 func (k Keeper) InitializeLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string, changedAmount sdk.Dec) {
 	// period has already been incremented - we want to store the period ended by this delegation action
-	previousPeriod := k.GetPoolCurrentPeriod(ctx, poolName).Period - 1
+	previousPeriod := k.GetPoolCurrentRewards(ctx, poolName).Period - 1
 
 	// increment reference count for the period we're going to track
 	k.incrementReferenceCount(ctx, poolName, previousPeriod)

@@ -90,22 +90,28 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	}
 
 	// 0.4 Get the current period
-	currentPeriod := k.GetPoolCurrentPeriod(ctx, msg.PoolName)
+	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
 	// TODO update currentPeriod or not
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
- 	pool.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight)
+	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
 	// Check if remaining amount is zero already
-	if pool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
+	if updatedPool.YieldedTokenInfos[0].RemainingAmount.IsZero() {
 		// 2. refresh the yielding_coin if remaining amount is zero
-		pool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
+		updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
 
 		// 3. Transfer coin to farm module account
 		if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
 			return err.Result()
 		}
 	}
-	k.SetFarmPool(ctx, pool)
+	k.SetFarmPool(ctx, updatedPool)
+
+	// update current rewards
+	currentPeriod.StartBlockHeight = ctx.BlockHeight()
+	currentPeriod.Period = 0 // TODO ???
+	currentPeriod.AccumulatedRewards = currentPeriod.AccumulatedRewards.Add(yieldedTokens)
+	k.SetPoolCurrentRewards(ctx, msg.PoolName, currentPeriod)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeProvide,

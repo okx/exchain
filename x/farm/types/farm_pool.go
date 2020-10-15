@@ -12,67 +12,20 @@ type FarmPool struct {
 	Owner             sdk.AccAddress    `json:"owner"`
 	Name              string            `json:"name"`
 	SymbolLocked      string            `json:"symbol_locked"`
-	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
 	DepositAmount     sdk.DecCoin       `json:"deposit_amount"`
 	// sum of LockInfo.Amount
-	TotalValueLocked sdk.DecCoin  `json:"total_value_locked"`
-	AmountYielded    sdk.DecCoins `json:"amount_yielded"`
+	TotalValueLocked  sdk.DecCoin  `json:"total_value_locked"`
+	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
 }
 
 // NewFarmPool creates a new instance of FarmPool
-func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedTokenInfos, totalValueLocked sdk.DecCoin,
-	amountYielded sdk.DecCoins) FarmPool {
+func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedTokenInfos, totalValueLocked sdk.DecCoin) FarmPool {
 	return FarmPool{
 		Name:              name,
 		SymbolLocked:      symbolLocked,
 		YieldedTokenInfos: yieldedTokenInfos,
 		TotalValueLocked:  totalValueLocked,
-		AmountYielded:     amountYielded,
 	}
-}
-
-// TODO return the updated pool
-// CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielding from LastClaimedBlockHeight to CurrentHeight
-// Then transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
-func (fp FarmPool) CalculateAmountYieldedBetween(currentHeight int64, startBlockHeight int64) (tokensYielded sdk.DecCoins) {
-	for i := 0; i < len(fp.YieldedTokenInfos); i++ {
-		startBlockHeightToYield := fp.YieldedTokenInfos[i].StartBlockHeightToYield
-		if currentHeight > startBlockHeightToYield {
-			// calculate the exact interval
-			var blockInterval sdk.Dec
-			if startBlockHeightToYield > startBlockHeight {
-				blockInterval = sdk.NewDec(currentHeight - startBlockHeightToYield)
-			} else {
-				blockInterval = sdk.NewDec(currentHeight - startBlockHeight)
-			}
-
-			var tokenYielded sdk.DecCoins
-			// calculate how many coin have been yielded till the current block
-			amount := blockInterval.MulTruncate(fp.YieldedTokenInfos[i].AmountYieldedPerBlock)
-			remaining := fp.YieldedTokenInfos[i].RemainingAmount
-			if amount.LT(remaining.Amount) {
-				// add yielded amount
-				tokenYielded = sdk.NewDecCoinsFromDec(remaining.Denom, amount)
-				fp.AmountYielded = fp.AmountYielded.Add(tokenYielded)
-
-				// subtract yielded_coin amount
-				fp.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
-			} else {
-				// add yielded amount
-				tokenYielded = sdk.NewCoins(remaining)
-				fp.AmountYielded = fp.AmountYielded.Add(tokenYielded)
-
-				// initialize yieldedTokenInfo
-				fp.YieldedTokenInfos[i] = NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
-
-				// TODO: remove the YieldedTokenInfo when its amount become zero
-				// Currently, we support only one token of yield farming at the same time,
-				// so, it is unnecessary to remove the element in slice
-			}
-			tokensYielded = tokensYielded.Add(tokenYielded)
-		}
-	}
-	return
 }
 
 func (fp FarmPool) Finished() bool {
@@ -81,7 +34,8 @@ func (fp FarmPool) Finished() bool {
 			return false
 		}
 	}
-	return fp.TotalValueLocked.IsZero() && fp.AmountYielded.IsZero()
+	// TODO check amount yielded is zero?
+	return fp.TotalValueLocked.IsZero()
 }
 
 // String returns a human readable string representation of FarmPool
@@ -90,9 +44,8 @@ func (fp FarmPool) String() string {
   Pool Name:  					    %s	
   Symbol Locked:      			    %s
   Yielded Token Infos:			    %s
-  Total Value Locked:			    %s
-  Amount Yielded Native Token:		%s`,
-		fp.Name, fp.SymbolLocked, fp.YieldedTokenInfos, fp.TotalValueLocked, fp.AmountYielded)
+  Total Value Locked:			    %s`,
+		fp.Name, fp.SymbolLocked, fp.YieldedTokenInfos, fp.TotalValueLocked)
 }
 
 // FarmPools is a collection of FarmPool

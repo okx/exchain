@@ -34,21 +34,21 @@ func (k Keeper) DeletePoolHistoricalRewards(ctx sdk.Context, poolName string) {
 	}
 }
 
-func (k Keeper) GetPoolCurrentPeriod(ctx sdk.Context, poolName string) (period types.PoolCurrentPeriod) {
+func (k Keeper) GetPoolCurrentRewards(ctx sdk.Context, poolName string) (period types.PoolCurrentRewards) {
 	store := ctx.KVStore(k.StoreKey())
-	bz := store.Get(types.GetPoolCurrentPeriodKey(poolName))
+	bz := store.Get(types.GetPoolCurrentRewardsKey(poolName))
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &period)
 	return period
 }
 
-func (k Keeper) SetPoolCurrentPeriod(ctx sdk.Context, poolName string, period types.PoolCurrentPeriod) {
+func (k Keeper) SetPoolCurrentRewards(ctx sdk.Context, poolName string, period types.PoolCurrentRewards) {
 	store := ctx.KVStore(k.StoreKey())
-	store.Set(types.GetPoolCurrentPeriodKey(poolName), k.cdc.MustMarshalBinaryLengthPrefixed(period))
+	store.Set(types.GetPoolCurrentRewardsKey(poolName), k.cdc.MustMarshalBinaryLengthPrefixed(period))
 	return
 }
 
-// HasPoolCurrentPeriod check existence of the pool_current_period associated with a pool_name
-func (k Keeper) HasPoolCurrentPeriod(ctx sdk.Context, poolName string) bool {
+// HasPoolCurrentRewards check existence of the pool_current_period associated with a pool_name
+func (k Keeper) HasPoolCurrentRewards(ctx sdk.Context, poolName string) bool {
 	store := ctx.KVStore(k.storeKey)
-	return store.Has(types.GetPoolCurrentPeriodKey(poolName))
+	return store.Has(types.GetPoolCurrentRewardsKey(poolName))
 }

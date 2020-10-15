@@ -8,7 +8,7 @@ const (
 	DefaultCodespace sdk.CodespaceType = ModuleName
 
 	CodeInvalidFarmPool          CodeType = 101
-	CodeInvalidPoolCurrentPeriod CodeType = 102
+	CodeInvalidPoolCurrentRewards CodeType = 102
 	CodeInvalidLockInfo          CodeType = 103
 	CodeInvalidInput             CodeType = 104
 	CodePoolAlreadyExist         CodeType = 105

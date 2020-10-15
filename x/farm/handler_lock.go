@@ -19,7 +19,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	}
 
 	// 0.2 Get the current period
-	currentPeriod := k.GetPoolCurrentPeriod(ctx, msg.PoolName)
+	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
 
 	// 0.3 Get the lock info
 	if lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
@@ -32,8 +32,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		pool.TotalValueLocked = pool.TotalValueLocked.Add(msg.Amount)
 		k.SetFarmPool(ctx, pool)
 	} else {
-		// 1. Claim
-		pool.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight)
+		// 1. TODO
+		_, _ = keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
 
 		// 2. Reinitialize the lock info
 		k.InitializeLockInfo(ctx, msg.Address,  msg.PoolName, msg.Amount.Amount)
