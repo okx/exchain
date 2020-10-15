@@ -91,6 +91,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 
 	// 0.4 Get the current period
 	currentPeriod := k.GetPoolCurrentPeriod(ctx, msg.PoolName)
+	// TODO update currentPeriod or not
 
 	// 1. Transfer YieldedTokenInfos[i].RemainingAmount -> AmountYielded
  	pool.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight)
