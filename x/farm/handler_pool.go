@@ -96,6 +96,10 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	// delete pool
 	k.DeleteFarmPool(ctx, msg.PoolName)
 
+	k.DeletePoolHistoricalRewards(ctx, msg.PoolName)
+
+	k.DeletePoolCurrentRewards(ctx, msg.PoolName)
+
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDestroyPool,
 		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),

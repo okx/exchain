@@ -34,7 +34,6 @@ func (fp FarmPool) Finished() bool {
 			return false
 		}
 	}
-	// TODO check amount yielded is zero?
 	return fp.TotalValueLocked.IsZero()
 }
 
