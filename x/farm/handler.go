@@ -130,7 +130,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	}
 
 	// 3. Reinitialize the lock_info data
-	k.InitializeLockInfo(ctx, msg.Address, pool.Name, sdk.ZeroDec())
+	k.UpdateLockInfo(ctx, msg.Address, pool.Name, sdk.ZeroDec())
 
 	// 4. TODO update pool
 

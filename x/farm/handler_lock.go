@@ -18,31 +18,23 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
-	// 0.2 Get the current period
-	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
-
-	// 0.3 Get the lock info
-	if lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
-		// 1. If lock info doesn't exist, only initialize the LockInfo structure
-		// TODO how to init the new lock info, use currentPeriod.Period or currentPeriod.Period+1
-		lockInfo = types.NewLockInfo(msg.Address, msg.PoolName, msg.Amount, ctx.BlockHeight(), currentPeriod.Period)
+	// 0.2 Get the lock info
+	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
+		k.IncrementPoolPeriod(ctx, pool)
+		lockInfo := types.NewLockInfo(
+			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.SymbolLocked, sdk.ZeroDec()),
+			ctx.BlockHeight(), 0,
+		)
 		k.SetLockInfo(ctx, lockInfo)
-
-		// TODO update period?
-
-		// 2. Update the pool info
-		pool.TotalValueLocked = pool.TotalValueLocked.Add(msg.Amount)
-		k.SetFarmPool(ctx, pool)
 	} else {
-		// 1. TODO
 		_, err := k.WithdrawRewards(ctx, pool, msg.Address)
 		if err != nil {
 			return err.Result()
 		}
-
-		// 2. Reinitialize the lock info
-		k.InitializeLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 	}
+
+	// 2. Reinitialize the lock info
+	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
 	// 3. Send the locked-tokens from its own account to farm module account
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
@@ -85,7 +77,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	}
 
 	// 3. Reinitialize the lock info
-	k.InitializeLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount.Neg())
+	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount.Neg())
 
 	// 4. Send the locked-tokens from farm module account to its own account
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {

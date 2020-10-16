@@ -163,8 +163,8 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName stri
 	return
 }
 
-// initialize starting info for a new lock info
-func (k Keeper) InitializeLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string, changedAmount sdk.Dec) {
+// initialize lock info for a new lock info
+func (k Keeper) UpdateLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string, changedAmount sdk.Dec) {
 	// period has already been incremented - we want to store the period ended by this delegation action
 	previousPeriod := k.GetPoolCurrentRewards(ctx, poolName).Period - 1
 
