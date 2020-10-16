@@ -134,7 +134,6 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	if err != nil {
 		return err.Result()
 	}
-	k.SetFarmPool(ctx, updatedPool)
 
 	// 3. Update the lock_info data
 	k.UpdateLockInfo(ctx, msg.Address, pool.Name, sdk.ZeroDec())
