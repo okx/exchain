@@ -19,10 +19,9 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	}
 
 
-	// 1.1 calcualte the yielded tokens at first
-	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
-	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
-	yieldedTokens = yieldedTokens.Add(currentPeriod.Rewards)
+	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
+
 	// 1.2 Get lock info
 	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
 		// If it exists, withdraw money
@@ -83,10 +82,8 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
-	// 1.3 calcualte the yielded tokens at first
-	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
-	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
-	yieldedTokens = yieldedTokens.Add(currentPeriod.Rewards)
+	// 1.3 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 2. Claim
 	_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)

@@ -7,10 +7,12 @@ import (
 
 // CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielded from
 // startBlockHeight to endBlockHeight. And return the amount.
-func CalculateAmountYieldedBetween(
-	endBlockHeight int64, startBlockHeight int64, pool types.FarmPool,
-) (types.FarmPool, sdk.DecCoins) {
-	yieldedTokens := sdk.DecCoins{}
+func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPool) (types.FarmPool, sdk.DecCoins) {
+	currentPeriod := k.GetPoolCurrentRewards(ctx, pool.Name)
+	startBlockHeight, endBlockHeight := currentPeriod.StartBlockHeight, ctx.BlockHeight()
+
+	// Ⅰ. add native tokens in yieldedTokens
+	yieldedTokens := sdk.NewDecCoins(currentPeriod.Rewards)
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 
@@ -27,10 +29,12 @@ func CalculateAmountYieldedBetween(
 		if amount.LT(remaining.Amount) {
 			// subtract yielded_coin amount
 			pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
+			// Ⅱ. add yielded tokens in yieldedTokens
 			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
 		} else {
 			// initialize yieldedTokenInfo
 			pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
+			// Ⅱ. add yielded tokens in yieldedTokens
 			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
 		}
 	}

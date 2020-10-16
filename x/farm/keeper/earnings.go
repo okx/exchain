@@ -18,8 +18,9 @@ func (k Keeper) getEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAdd
 		return earnings, types.ErrNoFarmPoolFound(types.DefaultCodespace, poolName)
 	}
 
-	currentPeriod := k.GetPoolCurrentRewards(ctx, poolName)
-	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	// TODO ???
+	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, updatedPool.TotalValueLocked, yieldedTokens)
 	rewards := k.calculateRewards(ctx, poolName, accAddr, endingPeriod)
 	// calculate the yield amount of an account
