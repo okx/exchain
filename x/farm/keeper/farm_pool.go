@@ -44,18 +44,16 @@ func (k Keeper) getFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddre
 }
 
 // getAccountsLockedTo gets all addresses of accounts that have locked coins in a pool
-func (k Keeper) getAccountsLockedTo(ctx sdk.Context, poolName string) (accAddrList types.AccAddrList) {
-	//TODO:
-	tmp := []string{
-		"okexchain13hxtcclwfhks2vzrm3hlx0kp4cuxggg26p9kqf",
-		"okexchain1gnq40xzh75fl8yzlk32hwx3xeew7nycndhj843",
-		"okexchain1nh4mtjpstnvtxf24vjzgnf5slqksja9fsdt7fl",
+func (k Keeper) getAccountsLockedTo(ctx sdk.Context, poolName string) (lockerAddrList types.AccAddrList) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, append(types.Pool2AddressPrefix, []byte(poolName)...))
+	defer iterator.Close()
+
+	splitIndex := 1 + len(poolName)
+	for ; iterator.Valid(); iterator.Next() {
+		lockerAddrList = append(lockerAddrList, iterator.Key()[splitIndex:])
 	}
 
-	for _, s := range tmp {
-		accAddr, _ := sdk.AccAddressFromBech32(s)
-		accAddrList = append(accAddrList, accAddr)
-	}
 	return
 }
 
@@ -89,9 +87,8 @@ func (k Keeper) getFarmPools(ctx sdk.Context) (pools types.FarmPools) {
 
 func (k Keeper) SetAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetAddressInFarmPoolKey(poolName, addr),  []byte(""))
+	store.Set(types.GetAddressInFarmPoolKey(poolName, addr), []byte(""))
 }
-
 
 // HasAddressInFarmPool check existence of the pool associated with a address
 func (k Keeper) HasAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) bool {
@@ -102,20 +99,6 @@ func (k Keeper) HasAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.
 func (k Keeper) DeleteAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetAddressInFarmPoolKey(poolName, addr))
-}
-
-// getFarmPools gets all addresses that locked tokens in a pool
-func (k Keeper) getAddressesInFarmPool(ctx sdk.Context, poolName string) (addrs []sdk.AccAddress) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.Pool2AddressPrefix)
-	defer iterator.Close()
-
-	for ; iterator.Valid(); iterator.Next() {
-		// TODO
-
-	}
-
-	return
 }
 
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
