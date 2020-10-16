@@ -47,6 +47,12 @@ func (k Keeper) SetPoolCurrentRewards(ctx sdk.Context, poolName string, period t
 	return
 }
 
+// delete current rewards for a pool
+func (k Keeper) DeletePoolCurrentRewards(ctx sdk.Context, poolName string) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.GetPoolCurrentRewardsKey(poolName))
+}
+
 // HasPoolCurrentRewards check existence of the pool_current_period associated with a pool_name
 func (k Keeper) HasPoolCurrentRewards(ctx sdk.Context, poolName string) bool {
 	store := ctx.KVStore(k.storeKey)
