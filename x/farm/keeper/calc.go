@@ -73,8 +73,6 @@ func (k Keeper) IncrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64
 
 	// 1.1 calculate how many provided token has been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), rewards.StartBlockHeight, pool)
-
-	// 1.2 calculate how many native token has been yielded between start_block_height and current_height
 	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
 
 	// 2. calculate current reward ratio
