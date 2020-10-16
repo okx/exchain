@@ -39,7 +39,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 			ctx.BlockHeight(), 0,
 		)
 		k.SetLockInfo(ctx, lockInfo)
-		k.SetAddressInFarmPool(ctx, msg.PoolName, msg.Address)
+		k.SetAddressInFarmPool(ctx, msg.PoolName, msg.Address, sdk.DecCoin{})
 	}
 
 	// 2. Update lock info

@@ -87,9 +87,19 @@ func (k Keeper) getFarmPools(ctx sdk.Context) (pools types.FarmPools) {
 	return
 }
 
-func (k Keeper) SetAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) {
+func (k Keeper) SetAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress, amount sdk.DecCoin) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetAddressInFarmPoolKey(poolName, addr), nil)
+	store.Set(types.GetAddressInFarmPoolKey(poolName, addr),  k.cdc.MustMarshalBinaryLengthPrefixed(amount))
+}
+
+func (k Keeper) GetAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) (amount sdk.DecCoin) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.GetAddressInFarmPoolKey(poolName, addr))
+	if bz == nil {
+		return amount
+	}
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &amount)
+	return amount
 }
 
 // HasAddressInFarmPool check existence of the pool associated with a address
