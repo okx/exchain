@@ -41,7 +41,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		}
 
 		// 2. Reinitialize the lock info
-		k.InitializeLockInfo(ctx, msg.Address,  msg.PoolName, msg.Amount.Amount)
+		k.InitializeLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 	}
 
 	// 3. Send the locked-tokens from its own account to farm module account
@@ -63,10 +63,10 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
-	} else {
-		if lockInfo.Amount.IsLT(msg.Amount) {
-			return types.ErrinsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
-		}
+	}
+
+	if lockInfo.Amount.IsLT(msg.Amount) {
+		return types.ErrinsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
 	}
 
 	// 1.2 Get the pool info
@@ -85,7 +85,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	}
 
 	// 3. Reinitialize the lock info
-	k.InitializeLockInfo(ctx, msg.Address, msg.PoolName, sdk.ZeroDec().Sub(msg.Amount.Amount))
+	k.InitializeLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount.Neg())
 
 	// 4. Send the locked-tokens from farm module account to its own account
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {

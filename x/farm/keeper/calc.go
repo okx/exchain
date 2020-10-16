@@ -60,9 +60,6 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 	lockInfo, _ := k.GetLockInfo(ctx, addr, pool.Name)
 	k.decrementReferenceCount(ctx, pool.Name, lockInfo.ReferencePeriod)
 
-	// remove delegator starting info
-	k.DeleteLockInfo(ctx, addr, pool.Name)
-
 	return rewards, nil
 }
 
@@ -184,7 +181,7 @@ func (k Keeper) InitializeLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolNam
 	lockInfo.StartBlockHeight = ctx.BlockHeight()
 	lockInfo.ReferencePeriod = previousPeriod
 	lockInfo.Amount.Amount = lockInfo.Amount.Amount.Add(changedAmount)
-	if lockInfo.Amount.IsZero() { // TODO should the lockinfo be deleted when its amount is zero?
+	if lockInfo.Amount.IsZero() {
 		k.DeleteLockInfo(ctx, lockInfo.Owner, lockInfo.PoolName)
 	} else {
 		k.SetLockInfo(ctx, lockInfo)
