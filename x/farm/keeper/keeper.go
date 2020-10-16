@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swap "github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/farm/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Keeper of the farm store
@@ -33,7 +34,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper,
 		paramSubspace:    paramSubspace.WithKeyTable(types.ParamKeyTable()),
 		supplyKeeper:     supplyKeeper,
 		tokenKeeper:      tokenKeeper,
-		swapKeeper:		  swapKeeper,
+		swapKeeper:       swapKeeper,
 	}
 }
 
@@ -52,4 +53,9 @@ func (k Keeper) TokenKeeper() token.Keeper {
 // GetFeeCollector returns feeCollectorName
 func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
+}
+
+// Logger returns a module-specific logger.
+func (keeper Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", types.ModuleName)
 }

@@ -19,15 +19,17 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	}
 
 	// 0.2 Get the lock info
+	var updatedPool types.FarmPool
+	var err sdk.Error
 	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
-		k.IncrementPoolPeriod(ctx, pool)
+		updatedPool, _ = k.IncrementPoolPeriod(ctx, pool)
 		lockInfo := types.NewLockInfo(
 			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.SymbolLocked, sdk.ZeroDec()),
 			ctx.BlockHeight(), 0,
 		)
 		k.SetLockInfo(ctx, lockInfo)
 	} else {
-		_, err := k.WithdrawRewards(ctx, pool, msg.Address)
+		updatedPool, _, err = k.WithdrawRewards(ctx, pool, msg.Address)
 		if err != nil {
 			return err.Result()
 		}
@@ -37,9 +39,12 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
 	// 3. Send the locked-tokens from its own account to farm module account
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+	if err = k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
+
+	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Add(msg.Amount)
+	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeLock,
@@ -71,7 +76,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	}
 
 	// 2. Claim
-	_, err := k.WithdrawRewards(ctx, pool, msg.Address)
+	updatedPool, _, err := k.WithdrawRewards(ctx, pool, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
@@ -83,6 +88,9 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
+
+	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
+	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeUnlock,
