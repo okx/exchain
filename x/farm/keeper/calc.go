@@ -9,15 +9,21 @@ import (
 // startBlockHeight to endBlockHeight. And return the amount.
 func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPool) (types.FarmPool, sdk.DecCoins) {
 	currentPeriod := k.GetPoolCurrentRewards(ctx, pool.Name)
-	startBlockHeight, endBlockHeight := currentPeriod.StartBlockHeight, ctx.BlockHeight()
+	endBlockHeight := ctx.BlockHeight()
 
 	// add native tokens in yieldedTokens
 	yieldedTokens := sdk.DecCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
+		var startBlockHeight int64
+		if currentPeriod.StartBlockHeight <= startBlockHeightToYield {
+			startBlockHeight = startBlockHeightToYield
+		} else {
+			startBlockHeight = currentPeriod.StartBlockHeight
+		}
 
 		// if condition startBlockHeightToYield <= startBlockHeight < endBlockHeight is not satisfied, then continue
-		if startBlockHeightToYield == 0 || startBlockHeight < startBlockHeightToYield || startBlockHeight >= endBlockHeight {
+		if startBlockHeightToYield == 0 || startBlockHeight >= endBlockHeight {
 			continue
 		}
 
@@ -40,7 +46,6 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 	}
 	return pool, yieldedTokens
 }
-
 
 func (k Keeper) WithdrawRewards(ctx sdk.Context, poolName string, totalValue sdk.DecCoin, yieldedTokens sdk.DecCoins, addr sdk.AccAddress) (sdk.DecCoins, sdk.Error) {
 	// 0. check existence of delegator starting info
@@ -126,13 +131,12 @@ func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccA
 	if !found {
 		panic("should not happen")
 	}
-	if lockInfo.StartBlockHeight <= ctx.BlockHeight() {
+	if lockInfo.StartBlockHeight == ctx.BlockHeight() {
 		// started this height, no rewards yet
 		return nil
 	}
 
-	currentPeriod := k.GetPoolCurrentRewards(ctx, poolName)
-	startingPeriod := currentPeriod.Period
+	startingPeriod := lockInfo.ReferencePeriod
 	// calculate rewards for final period
 	return k.calculateLockRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lockInfo.Amount)
 }
