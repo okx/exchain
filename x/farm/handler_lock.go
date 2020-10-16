@@ -9,7 +9,7 @@ import (
 )
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
-	// 0.1 Get the pool info
+	// 0. Get farm pool
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -18,31 +18,38 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
-	// 0.2 Get the lock info
-	var updatedPool types.FarmPool
-	var err sdk.Error
-	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); !found {
-		updatedPool, _ = k.IncrementPoolPeriod(ctx, pool)
+
+	// 1.1 calcualte the yielded tokens at first
+	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
+	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	// 1.2 Get lock info
+	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
+		// If it exists, withdraw money
+		_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
+		if err != nil {
+			return err.Result()
+		}
+	} else {
+		// Increment period
+		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
+
+		// Create new lock info
 		lockInfo := types.NewLockInfo(
 			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.SymbolLocked, sdk.ZeroDec()),
 			ctx.BlockHeight(), 0,
 		)
 		k.SetLockInfo(ctx, lockInfo)
-	} else {
-		updatedPool, _, err = k.WithdrawRewards(ctx, pool, msg.Address)
-		if err != nil {
-			return err.Result()
-		}
 	}
 
-	// 2. Reinitialize the lock info
+	// 2. Update lock info
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
 	// 3. Send the locked-tokens from its own account to farm module account
-	if err = k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
 
+	// 4. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Add(msg.Amount)
 	k.SetFarmPool(ctx, updatedPool)
 
@@ -75,13 +82,17 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
+	// 1.3 calcualte the yielded tokens at first
+	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
+	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+
 	// 2. Claim
-	updatedPool, _, err := k.WithdrawRewards(ctx, pool, msg.Address)
+	_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
 
-	// 3. Reinitialize the lock info
+	// 3. Update the lock info
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount.Neg())
 
 	// 4. Send the locked-tokens from farm module account to its own account
@@ -89,6 +100,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return err.Result()
 	}
 
+	// 5. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
 	k.SetFarmPool(ctx, updatedPool)
 

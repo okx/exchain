@@ -35,7 +35,7 @@ var (
 	Address2PoolPrefix          = []byte{0x03}
 	PoolsYieldNativeTokenPrefix = []byte{0x04}
 	PoolHistoricalRewardsPrefix = []byte{0x05}
-	PoolCurrentRewardsPrefix     = []byte{0x06}
+	PoolCurrentRewardsPrefix    = []byte{0x06}
 )
 
 const (

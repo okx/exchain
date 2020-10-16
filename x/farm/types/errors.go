@@ -7,15 +7,15 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = ModuleName
 
-	CodeInvalidFarmPool          CodeType = 101
+	CodeInvalidFarmPool           CodeType = 101
 	CodeInvalidPoolCurrentRewards CodeType = 102
-	CodeInvalidLockInfo          CodeType = 103
-	CodeInvalidInput             CodeType = 104
-	CodePoolAlreadyExist         CodeType = 105
-	CodeTokenNotExist            CodeType = 106
-	CodePoolNotFinished          CodeType = 107
-	CodeInvalidAddress                    = sdk.CodeInvalidAddress
-	CodeUnknownRequest                    = sdk.CodeUnknownRequest
+	CodeInvalidLockInfo           CodeType = 103
+	CodeInvalidInput              CodeType = 104
+	CodePoolAlreadyExist          CodeType = 105
+	CodeTokenNotExist             CodeType = 106
+	CodePoolNotFinished           CodeType = 107
+	CodeInvalidAddress                     = sdk.CodeInvalidAddress
+	CodeUnknownRequest                     = sdk.CodeUnknownRequest
 )
 
 // ErrNoFarmPoolFound returns an error when a farm pool doesn't exist
