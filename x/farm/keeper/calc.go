@@ -179,6 +179,7 @@ func (k Keeper) UpdateLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName st
 	lockInfo.Amount.Amount = lockInfo.Amount.Amount.Add(changedAmount)
 	if lockInfo.Amount.IsZero() {
 		k.DeleteLockInfo(ctx, lockInfo.Owner, lockInfo.PoolName)
+		k.DeleteAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
 	} else {
 		k.SetLockInfo(ctx, lockInfo)
 	}

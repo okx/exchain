@@ -87,6 +87,36 @@ func (k Keeper) getFarmPools(ctx sdk.Context) (pools types.FarmPools) {
 	return
 }
 
+func (k Keeper) SetAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.GetAddressInFarmPoolKey(poolName, addr), nil)
+}
+
+// HasAddressInFarmPool check existence of the pool associated with a address
+func (k Keeper) HasAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(types.GetAddressInFarmPoolKey(poolName, addr))
+}
+
+func (k Keeper) DeleteAddressInFarmPool(ctx sdk.Context, poolName string, addr sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.GetAddressInFarmPoolKey(poolName, addr))
+}
+
+// getFarmPools gets all addresses that locked tokens in a pool
+func (k Keeper) getAddressesInFarmPool(ctx sdk.Context, poolName string) (addrs []sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.Pool2AddressPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// TODO
+
+	}
+
+	return
+}
+
 func (k Keeper) SetLockInfo(ctx sdk.Context, lockInfo types.LockInfo) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetLockInfoKey(lockInfo.Owner, lockInfo.PoolName), k.cdc.MustMarshalBinaryLengthPrefixed(lockInfo))

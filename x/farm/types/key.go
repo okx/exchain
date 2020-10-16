@@ -31,7 +31,7 @@ const (
 
 var (
 	FarmPoolPrefix              = []byte{0x01}
-	pool2AddressPrefix          = []byte{0x02}
+	Pool2AddressPrefix          = []byte{0x02}
 	Address2PoolPrefix          = []byte{0x03}
 	PoolsYieldNativeTokenPrefix = []byte{0x04}
 	PoolHistoricalRewardsPrefix = []byte{0x05}
@@ -44,6 +44,10 @@ const (
 
 func GetFarmPoolKey(poolName string) []byte {
 	return append(FarmPoolPrefix, []byte(poolName)...)
+}
+
+func GetAddressInFarmPoolKey(poolName string, addr sdk.AccAddress) []byte {
+	return append(Pool2AddressPrefix, append([]byte(poolName), addr.Bytes()...)...)
 }
 
 func GetLockInfoKey(addr sdk.AccAddress, poolName string) []byte {
