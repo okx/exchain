@@ -11,8 +11,8 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 	currentPeriod := k.GetPoolCurrentRewards(ctx, pool.Name)
 	startBlockHeight, endBlockHeight := currentPeriod.StartBlockHeight, ctx.BlockHeight()
 
-	// Ⅰ. add native tokens in yieldedTokens
-	yieldedTokens := sdk.NewDecCoins(currentPeriod.Rewards)
+	// add native tokens in yieldedTokens
+	yieldedTokens := sdk.DecCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 
@@ -34,7 +34,7 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 		} else {
 			// initialize yieldedTokenInfo
 			pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec())
-			// Ⅱ. add yielded tokens in yieldedTokens
+			// add yielded tokens in yieldedTokens
 			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
 		}
 	}

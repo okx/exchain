@@ -18,7 +18,6 @@ func (k Keeper) getEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAdd
 		return earnings, types.ErrNoFarmPoolFound(types.DefaultCodespace, poolName)
 	}
 
-	// TODO ???
 	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
