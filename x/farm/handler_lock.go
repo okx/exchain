@@ -30,7 +30,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 			return err.Result()
 		}
 	} else {
-		// Increment period
+		// If it doesn't exist, only increase period
 		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
 
 		// Create new lock info
