@@ -33,7 +33,7 @@ func NewKeeper(feeCollectorName string, supplyKeeper supply.Keeper,
 		paramSubspace:    paramSubspace.WithKeyTable(types.ParamKeyTable()),
 		supplyKeeper:     supplyKeeper,
 		tokenKeeper:      tokenKeeper,
-		swapKeeper:		  swapKeeper,
+		swapKeeper:       swapKeeper,
 	}
 }
 

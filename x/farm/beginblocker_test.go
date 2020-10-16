@@ -139,8 +139,8 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 
 	// 1.4 init supply keeper
 	maccPerms := map[string][]string{
-		auth.FeeCollectorName:   nil,
-		types.ModuleName: {supply.Burner, supply.Minter},
+		auth.FeeCollectorName: nil,
+		types.ModuleName:      {supply.Burner, supply.Minter},
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
