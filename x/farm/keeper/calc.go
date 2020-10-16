@@ -37,18 +37,18 @@ func CalculateAmountYieldedBetween(
 	return pool, yieldedTokens
 }
 
-func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.AccAddress) (sdk.DecCoins, sdk.Error) {
+func (k Keeper) WithdrawRewards(ctx sdk.Context, poolName string, totalValue sdk.DecCoin, yieldedTokens sdk.DecCoins, addr sdk.AccAddress) (sdk.DecCoins, sdk.Error) {
 	// 0. check existence of delegator starting info
-	if !k.HasLockInfo(ctx, addr, pool.Name) {
+	if !k.HasLockInfo(ctx, addr, poolName) {
 		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, addr.String())
 	}
 
 	// 1. end current period and calculate rewards
 	//endingPeriod := k.incrementPoolPeriod(ctx, pool)
-	endingPeriod := k.IncrementPoolPeriod(ctx, pool)
-	rewards := k.calculateRewards(ctx, pool.Name, addr, endingPeriod)
+	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, totalValue, yieldedTokens)
+	rewards := k.calculateRewards(ctx, poolName, addr, endingPeriod)
 
-	// add coins to user account
+	// add rewards to user account
 	if !rewards.IsZero() {
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.YieldFarmingAccount, addr, rewards)
 		if err != nil {
@@ -57,48 +57,42 @@ func (k Keeper) WithdrawRewards(ctx sdk.Context, pool types.FarmPool, addr sdk.A
 	}
 
 	// decrement reference count of lock info
-	lockInfo, _ := k.GetLockInfo(ctx, addr, pool.Name)
-	k.decrementReferenceCount(ctx, pool.Name, lockInfo.ReferencePeriod)
+	lockInfo, _ := k.GetLockInfo(ctx, addr, poolName)
+	k.decrementReferenceCount(ctx, poolName, lockInfo.ReferencePeriod)
 
 	return rewards, nil
 }
 
-// increment pool period, returning the period just ended
-func (k Keeper) IncrementPoolPeriod(ctx sdk.Context, pool types.FarmPool) uint64 {
-	// fetch current rewards status
-	rewards := k.GetPoolCurrentRewards(ctx, pool.Name)
-
-	// 1.1 calculate how many provided token has been yielded between start_block_height and current_height
-	updatedPool, yieldedTokens := CalculateAmountYieldedBetween(ctx.BlockHeight(), rewards.StartBlockHeight, pool)
-	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
+// IncrementPoolPeriod increment pool period, returning the period just ended
+func (k Keeper) IncrementPoolPeriod(ctx sdk.Context, poolName string, totalValue sdk.DecCoin, yieldedTokens sdk.DecCoins) uint64 {
+	// 1. fetch current rewards status
+	rewards := k.GetPoolCurrentRewards(ctx, poolName)
 
 	// 2. calculate current reward ratio
+	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
 	var currentRatio sdk.DecCoins
-	if pool.TotalValueLocked.IsZero() {
+	if totalValue.IsZero() {
 		currentRatio = sdk.DecCoins{}
 	} else {
-		currentRatio = rewards.Rewards.QuoDecTruncate(pool.TotalValueLocked.Amount)
+		currentRatio = rewards.Rewards.QuoDecTruncate(totalValue.Amount)
 	}
 
 	// 3.1 get the previous pool_historical_rewards
-	historical := k.GetPoolHistoricalRewards(ctx, pool.Name, rewards.Period-1).CumulativeRewardRatio
+	historical := k.GetPoolHistoricalRewards(ctx, poolName, rewards.Period-1).CumulativeRewardRatio
 	// 3.2 decrement reference count
-	k.decrementReferenceCount(ctx, pool.Name, rewards.Period-1)
+	k.decrementReferenceCount(ctx, poolName, rewards.Period-1)
 	// 3.3 create new pool_historical_rewards with reference count of 1, then set it into store
 	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio), 1)
-	k.SetPoolHistoricalRewards(ctx, pool.Name, rewards.Period, newHistoricalRewards)
+	k.SetPoolHistoricalRewards(ctx, poolName, rewards.Period, newHistoricalRewards)
 
 	// 4. set new current newYieldedRewards into store, incrementing period by 1
 	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), rewards.Period+1, sdk.DecCoins{})
-	k.SetPoolCurrentRewards(ctx, pool.Name, newCurRewards)
-
-	// 5. set updated pool
-	k.SetFarmPool(ctx, updatedPool)
+	k.SetPoolCurrentRewards(ctx, poolName, newCurRewards)
 
 	return rewards.Period
 }
 
-// increment the reference count for a historical rewards value
+// incrementReferenceCount increment the reference count for a historical rewards value
 func (k Keeper) incrementReferenceCount(ctx sdk.Context, poolName string, period uint64) {
 	historical := k.GetPoolHistoricalRewards(ctx, poolName, period)
 	if historical.ReferenceCount > 2 {
@@ -108,7 +102,7 @@ func (k Keeper) incrementReferenceCount(ctx sdk.Context, poolName string, period
 	k.SetPoolHistoricalRewards(ctx, poolName, period, historical)
 }
 
-// decrement the reference count for a historical rewards value, and delete if zero references remain
+// decrementReferenceCount decrement the reference count for a historical rewards value, and delete if zero references remain
 func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period uint64) {
 	historical := k.GetPoolHistoricalRewards(ctx, poolName, period)
 	if historical.ReferenceCount == 0 {
@@ -139,7 +133,7 @@ func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccA
 	return k.calculateDelegationRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, lockInfo.Amount)
 }
 
-// calculate the rewards accrued by a pool between two periods
+// calculateDelegationRewardsBetween calculate the rewards accrued by a pool between two periods
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
 	amount sdk.DecCoin) (rewards sdk.DecCoins) {
 
@@ -163,7 +157,7 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, poolName stri
 	return
 }
 
-// initialize lock info for a new lock info
+// UpdateLockInfo updates lock info for a new lock info
 func (k Keeper) UpdateLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string, changedAmount sdk.Dec) {
 	// period has already been incremented - we want to store the period ended by this delegation action
 	previousPeriod := k.GetPoolCurrentRewards(ctx, poolName).Period - 1

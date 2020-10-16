@@ -73,7 +73,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
 	}
 
-	// 0.2 Get the pool info
+	// 0.2 Get farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -89,21 +89,29 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}
 
+	// 1.1 Calculate how many provided token has been yielded between start_block_height and current_height
 	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
-	// 1. try to yield token and check if remaining amount is already zero
-	updatedPool, _ := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+
+	// 1.2 Check if remaining amount is already zero
 	remainingAmount := updatedPool.YieldedTokenInfos[0].RemainingAmount
 	if !remainingAmount.IsZero() {
 		return types.ErrRemainingAmountNotZero(DefaultCodespace, remainingAmount.String()).Result()
 	}
 
-	// 2. terminate pool current period
-	k.IncrementPoolPeriod(ctx, pool)
+	// 2. Terminate pool current period
+	k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
 
 	// 3. Transfer coin to farm module account
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
+
+	// 4. Update farm pool
+	updatedPool.YieldedTokenInfos[0].StartBlockHeightToYield = msg.StartHeightToYield
+	updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock = msg.AmountYieldedPerBlock
+	updatedPool.YieldedTokenInfos[0].RemainingAmount = remainingAmount.Add(msg.Amount)
+	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeProvide,
@@ -123,16 +131,21 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
+	// 1.1 calcualte the yielded tokens at first
+	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
+	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+
 	// 2. Withdraw rewards
-	_, err := k.WithdrawRewards(ctx, pool, msg.Address)
+	_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
 
-	// 3. Reinitialize the lock_info data
+	// 3. Update the lock_info data
 	k.UpdateLockInfo(ctx, msg.Address, pool.Name, sdk.ZeroDec())
 
-	// 4. TODO update pool
+	// 4. Update farm pool
+	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeClaim,
