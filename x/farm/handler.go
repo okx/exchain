@@ -92,6 +92,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	// 1.1 Calculate how many provided token has been yielded between start_block_height and current_height
 	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
 	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	yieldedTokens = yieldedTokens.Add(currentPeriod.Rewards)
 
 	// 1.2 Check if remaining amount is already zero
 	remainingAmount := updatedPool.YieldedTokenInfos[0].RemainingAmount
@@ -130,9 +131,9 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	// 1.1 calcualte the yielded tokens at first
 	currentPeriod := k.GetPoolCurrentRewards(ctx, msg.PoolName)
 	updatedPool, yieldedTokens := keeper.CalculateAmountYieldedBetween(ctx.BlockHeight(), currentPeriod.StartBlockHeight, pool)
+	yieldedTokens = yieldedTokens.Add(currentPeriod.Rewards)
 
 	// 2. Withdraw rewards
-
 	_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
