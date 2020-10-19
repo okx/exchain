@@ -20,6 +20,7 @@ type Keeper struct {
 	supplyKeeper     supply.Keeper
 	tokenKeeper      token.Keeper
 	swapKeeper       swap.Keeper
+	govKeeper        GovKeeper
 }
 
 // NewKeeper creates a farm keeper
@@ -55,7 +56,12 @@ func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
 }
 
-// Logger returns a module-specific logger.
+// Logger returns a module-specific logger
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ModuleName)
+}
+
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk GovKeeper) {
+	k.govKeeper = gk
 }

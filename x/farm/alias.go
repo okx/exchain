@@ -12,6 +12,7 @@ const (
 	ModuleName          = types.ModuleName
 	MintFarmingAccount  = types.MintFarmingAccount
 	YieldFarmingAccount = types.YieldFarmingAccount
+	RouterKey           = types.RouterKey
 )
 
 var (
