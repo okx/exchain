@@ -35,7 +35,7 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 		if amount.LT(remaining.Amount) {
 			// subtract yielded_coin amount
 			pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
-			// Ⅱ. add yielded tokens in yieldedTokens
+			// add yielded tokens in yieldedTokens
 			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
 		} else {
 			// initialize yieldedTokenInfo
@@ -60,7 +60,7 @@ func (k Keeper) WithdrawRewards(
 	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, totalValue, yieldedTokens)
 	rewards := k.calculateRewards(ctx, poolName, addr, endingPeriod)
 
-	// add rewards to user account
+	// 2. transfer rewards to user account
 	if !rewards.IsZero() {
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.YieldFarmingAccount, addr, rewards)
 		if err != nil {
@@ -68,7 +68,7 @@ func (k Keeper) WithdrawRewards(
 		}
 	}
 
-	// decrement reference count of lock info
+	// 3. decrement reference count of lock info
 	lockInfo, _ := k.GetLockInfo(ctx, addr, poolName)
 	k.decrementReferenceCount(ctx, poolName, lockInfo.ReferencePeriod)
 
