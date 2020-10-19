@@ -68,18 +68,18 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 }
 
 func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, logger log.Logger) sdk.Result {
-	// 0.1 Check if the start_height_to_yield is more than current height
+	// 0. Check if the start_height_to_yield is more than current height
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
 	}
 
-	// 0.2 Get farm pool
+	// 1.1 Get farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 0.3 Check if the provided coin denom is the same as the locked coin name
+	// 1.2 Check if the provided coin denom is the same as the locked coin name
 	if len(pool.YieldedTokenInfos) != 1 { // TODO: use the panic temporarily
 		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
 			len(pool.YieldedTokenInfos)))
@@ -89,22 +89,24 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}
 
-	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
-	// 1.2 Check if remaining amount is already zero
+	// 2.2 Check if remaining amount is already zero
 	remainingAmount := updatedPool.YieldedTokenInfos[0].RemainingAmount
 	if !remainingAmount.IsZero() {
 		return types.ErrRemainingAmountNotZero(DefaultCodespace, remainingAmount.String()).Result()
 	}
 
-	// 2. Terminate pool current period
+	// 3. Terminate pool current period
 	k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
 
-	// 3. Transfer coin to farm module account
+	// 4. Transfer coin to farm module account
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
+
+	// 5. init a new yielded_token_info struct, then set it into store
 	updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
 	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
 	k.SetFarmPool(ctx, updatedPool)
@@ -121,26 +123,26 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 }
 
 func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
-	// 1 Get the pool info
+	// 1. Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
 
-	// 2. Withdraw rewards
+	// 3. Withdraw rewards
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
 
-	// 3. Update the lock_info data
+	// 4. Update the lock_info data
 	k.UpdateLockInfo(ctx, msg.Address, pool.Name, sdk.ZeroDec())
 
-	// 4. Update farm pool
+	// 5. Update farm pool
 	if updatedPool.RemainingRewards.IsAllLT(rewards) {
 		panic("should not happen")
 	}
