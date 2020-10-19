@@ -46,12 +46,16 @@ func (fp FarmPool) Finished() bool {
 
 // String returns a human readable string representation of FarmPool
 func (fp FarmPool) String() string {
-	return fmt.Sprintf(`FarmPool:	
+	return fmt.Sprintf(`FarmPool:
+  Owner:                            %s
   Pool Name:  					    %s	
   Symbol Locked:      			    %s
+  Deposit Amount:                   %s
   Yielded Token Infos:			    %s
-  Total Value Locked:			    %s`,
-		fp.Name, fp.SymbolLocked, fp.YieldedTokenInfos, fp.TotalValueLocked)
+  Total Value Locked:			    %s
+  Remaining Rewards:                %s`,
+		fp.Owner.String(), fp.Name, fp.SymbolLocked, fp.DepositAmount, fp.YieldedTokenInfos, fp.TotalValueLocked,
+		fp.RemainingRewards)
 }
 
 // FarmPools is a collection of FarmPool

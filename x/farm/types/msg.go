@@ -6,21 +6,25 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	MaxPoolNameLength = 40
+)
+
 type MsgCreatePool struct {
-	Owner        sdk.AccAddress `json:"owner" yaml:"owner"`
-	PoolName     string         `json:"pool_name" yaml:"pool_name"`
-	SymbolLocked string         `json:"locked_symbol" yaml:"locked_symbol"`
-	YieldSymbol  string         `json:"yield_symbol"  yaml:"yield_symbol"`
+	Owner         sdk.AccAddress `json:"owner" yaml:"owner"`
+	PoolName      string         `json:"pool_name" yaml:"pool_name"`
+	LockedSymbol  string         `json:"locked_symbol" yaml:"locked_symbol"`
+	YieldedSymbol string         `json:"yield_symbol"  yaml:"yield_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
 func NewMsgCreatePool(address sdk.AccAddress, poolName, lockToken, yieldToken string) MsgCreatePool {
 	return MsgCreatePool{
-		Owner:        address,
-		PoolName:     poolName,
-		SymbolLocked: lockToken,
-		YieldSymbol:  yieldToken,
+		Owner:         address,
+		PoolName:      poolName,
+		LockedSymbol:  lockToken,
+		YieldedSymbol: yieldToken,
 	}
 }
 
@@ -36,14 +40,14 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
-	if m.SymbolLocked == "" {
-		return ErrInvalidInput(DefaultCodespace, m.SymbolLocked)
+	if m.LockedSymbol == "" {
+		return ErrInvalidInput(DefaultCodespace, m.LockedSymbol)
 	}
-	if m.YieldSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, m.YieldSymbol)
+	if m.YieldedSymbol == "" {
+		return ErrInvalidInput(DefaultCodespace, m.YieldedSymbol)
 	}
 	return nil
 }
@@ -83,7 +87,7 @@ func (m MsgDestroyPool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	return nil
@@ -128,7 +132,7 @@ func (m MsgProvide) Type() string {
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -180,7 +184,7 @@ func (m MsgLock) Type() string {
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -226,7 +230,7 @@ func (m MsgUnlock) Type() string {
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -270,7 +274,7 @@ func (m MsgClaim) Type() string {
 }
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
-	if m.PoolName == "" {
+	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
