@@ -9,7 +9,7 @@ import (
 )
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
-	// 0. Get farm pool
+	// 1. Get farm pool
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -19,11 +19,11 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	}
 
 
-	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
 
-	// 1.2 Get lock info
+	// 3. Get lock info
 	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
@@ -47,15 +47,15 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		k.SetAddressInFarmPool(ctx, msg.PoolName, msg.Address)
 	}
 
-	// 2. Update lock info
+	// 4. Update lock info
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
-	// 3. Send the locked-tokens from its own account to farm module account
+	// 5. Send the locked-tokens from its own account to farm module account
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
 
-	// 4. Update farm pool
+	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Add(msg.Amount)
 	k.SetFarmPool(ctx, updatedPool)
 
@@ -88,24 +88,24 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
 	}
 
-	// 1.3 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
-	// 2. Claim
+	// 3. Withdraw money
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
 
-	// 3. Update the lock info
+	// 4. Update the lock info
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount.Neg())
 
-	// 4. Send the locked-tokens from farm module account to its own account
+	// 5. Send the locked-tokens from farm module account to its own account
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
 		return err.Result()
 	}
 
-	// 5. Update farm pool
+	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
 	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
 	if updatedPool.RemainingRewards.IsAllLT(rewards) {

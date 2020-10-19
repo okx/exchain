@@ -10,10 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/okexchain/x/gov"
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	farmutils "github.com/okex/okexchain/x/farm/client/utils"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
@@ -209,6 +211,54 @@ $ %s tx farm claim --from mykey
 	return cmd
 }
 
+// GetCmdManageWhiteListProposal implements a command handler for submitting a farm manage white list proposal transaction
+func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "manage-white-list-proposal [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a manage white list proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a manage white list proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal manage-white-list-proposal <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+ "title": "manage white list with a pool name",
+ "description": "add a pool name into the white list",
+ "pool_name": "pool-airtoken1-eth",
+ "is_added": true,
+ "deposit": [
+   {
+     "denom": "%s",
+     "amount": "100"
+   }
+ ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(_ *cobra.Command, args []string) error {
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := farmutils.ParseManageWhiteListProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewManageWhiteListProposal(proposal.Title, proposal.Description, proposal.PoolName, proposal.IsAdded)
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+}
+
+//TODO: remove it later
 func GetCmdSetWhite(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set-white [pool-name]",
