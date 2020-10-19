@@ -100,7 +100,12 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	// delete pool
 	k.DeleteFarmPool(ctx, msg.PoolName)
 
-	k.IterateDeletePoolHistoricalRewards(ctx, msg.PoolName)
+	k.IteratePoolHistoricalRewards(ctx, msg.PoolName,
+		func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
+			store.Delete(key)
+			return false
+		},
+	)
 
 	k.DeletePoolCurrentRewards(ctx, msg.PoolName)
 

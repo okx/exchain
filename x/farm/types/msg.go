@@ -40,7 +40,7 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	if m.LockedSymbol == "" {
@@ -87,7 +87,7 @@ func (m MsgDestroyPool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
 		return ErrNilAddress(DefaultCodespace)
 	}
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	return nil
@@ -132,7 +132,7 @@ func (m MsgProvide) Type() string {
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -184,7 +184,7 @@ func (m MsgLock) Type() string {
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -230,7 +230,7 @@ func (m MsgUnlock) Type() string {
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
@@ -274,7 +274,7 @@ func (m MsgClaim) Type() string {
 }
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
-	if m.PoolName == "" || len(m.PoolName) >= MaxPoolNameLength {
+	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.Address.Empty() {
