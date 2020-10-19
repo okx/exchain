@@ -54,7 +54,8 @@ func (fp FarmPool) String() string {
   Total Value Locked:               %s
   Yielded Token Infos:			    %s
   Remaining Rewards:                %s`,
-		fp.Name, fp.Owner, fp.SymbolLocked, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.RemainingRewards)
+		fp.Name, fp.Owner, fp.SymbolLocked, fp.DepositAmount, fp.TotalValueLocked,
+		fp.YieldedTokenInfos, fp.RemainingRewards)
 }
 
 // FarmPools is a collection of FarmPool
