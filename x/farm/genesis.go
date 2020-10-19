@@ -1,6 +1,7 @@
 package farm
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
@@ -14,7 +15,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 	for _, pool := range data.Pools {
 		moduleAccHoldings = moduleAccHoldings.Add(sdk.DecCoins{pool.TotalValueLocked})
 		moduleAccHoldings = moduleAccHoldings.Add(sdk.DecCoins{pool.DepositAmount})
-		yieldModuleAccHoldings = yieldModuleAccHoldings.Add(pool.RemainingRewards)
+		yieldModuleAccHoldings = yieldModuleAccHoldings.Add(pool.TotalAccumulatedRewards)
 		k.SetFarmPool(ctx, pool)
 	}
 
@@ -31,6 +32,35 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 	}
 
 	k.SetParams(ctx, data.Params)
+
+	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName)
+	if moduleAcc == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
+	}
+	if moduleAcc.GetCoins().IsZero() {
+		if err := moduleAcc.SetCoins(moduleAccHoldings); err != nil {
+			panic(err)
+		}
+		k.SupplyKeeper().SetModuleAccount(ctx, moduleAcc)
+	}
+
+	yieldMoudleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.YieldFarmingAccount)
+	if yieldMoudleAcc == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.YieldFarmingAccount))
+	}
+	if yieldMoudleAcc.GetCoins().IsZero() {
+		if err := moduleAcc.SetCoins(yieldModuleAccHoldings); err != nil {
+			panic(err)
+		}
+		k.SupplyKeeper().SetModuleAccount(ctx, yieldMoudleAcc)
+	}
+
+	mintModuleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.MintFarmingAccount)
+	if mintModuleAcc == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.MintFarmingAccount))
+	}
+
+
 }
 
 // ExportGenesis writes the current store values to a genesis file, which can be imported again with InitGenesis

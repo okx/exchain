@@ -20,7 +20,7 @@ func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		// iterate all pools, then calculate the total deposit amount
 		totalDepositAmount := sdk.DecCoins{}
-		pools := k.getFarmPools(ctx)
+		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
 			totalDepositAmount = totalDepositAmount.Add(pool.DepositAmount.ToCoins())
 		}
@@ -44,7 +44,7 @@ func YieldFarmingAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		// iterate all pools, then calculate the total deposit amount
 		totalRemainingYieldedAmount := sdk.DecCoins{}
-		pools := k.getFarmPools(ctx)
+		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
 			totalRemainingYieldedAmount = totalRemainingYieldedAmount.Add(pool.TotalAccumulatedRewards)
 		}
