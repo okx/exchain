@@ -47,7 +47,9 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 	return pool, yieldedTokens
 }
 
-func (k Keeper) WithdrawRewards(ctx sdk.Context, poolName string, totalValue sdk.DecCoin, yieldedTokens sdk.DecCoins, addr sdk.AccAddress) (sdk.DecCoins, sdk.Error) {
+func (k Keeper) WithdrawRewards(
+	ctx sdk.Context, poolName string, totalValue sdk.DecCoin, yieldedTokens sdk.DecCoins, addr sdk.AccAddress,
+) (sdk.DecCoins, sdk.Error) {
 	// 0. check existence of delegator starting info
 	if !k.HasLockInfo(ctx, addr, poolName) {
 		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, addr.String())
