@@ -11,7 +11,7 @@ import (
 type FarmPool struct {
 	Owner         sdk.AccAddress `json:"owner"`
 	Name          string         `json:"name"`
-	SymbolLocked  string         `json:"symbol_locked"`
+	LockedSymbol  string         `json:"locked_symbol"`
 	DepositAmount sdk.DecCoin    `json:"deposit_amount"`
 	// sum of LockInfo.Amount
 	TotalValueLocked        sdk.DecCoin       `json:"total_value_locked"`
@@ -21,13 +21,13 @@ type FarmPool struct {
 
 // NewFarmPool creates a new instance of FarmPool
 func NewFarmPool(
-	owner sdk.AccAddress, name, symbolLocked string, depositAmt, totalValueLocked sdk.DecCoin,
+	owner sdk.AccAddress, name, lockedSymbol string, depositAmt, totalValueLocked sdk.DecCoin,
 	yieldedTokenInfos YieldedTokenInfos, accumulatedRewards sdk.DecCoins,
 ) FarmPool {
 	return FarmPool{
 		Owner:                   owner,
 		Name:                    name,
-		SymbolLocked:            symbolLocked,
+		LockedSymbol:            lockedSymbol,
 		DepositAmount:           depositAmt,
 		TotalValueLocked:        totalValueLocked,
 		YieldedTokenInfos:       yieldedTokenInfos,
@@ -49,12 +49,12 @@ func (fp FarmPool) String() string {
 	return fmt.Sprintf(`FarmPool:
   Pool Name:  					    %s	
   Owner:							%s
-  Symbol Locked:      			    %s
+  Locked Symbol:      			    %s
   Deposit Amount:                   %s
   Total Value Locked:               %s
   Yielded Token Infos:			    %s
   Total Accumulated Rewards:        %s`,
-		fp.Name, fp.Owner, fp.SymbolLocked, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.TotalAccumulatedRewards)
+		fp.Name, fp.Owner, fp.LockedSymbol, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.TotalAccumulatedRewards)
 }
 
 // FarmPools is a collection of FarmPool

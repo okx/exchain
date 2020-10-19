@@ -330,17 +330,23 @@ func (p *ProtocolV0) produceKeepers() {
 
 	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
+
+	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, p.tokenKeeper, p.swapKeeper, farmSubspace,
+		p.keys[farm.StoreKey], p.cdc)
+
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper)).
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&p.farmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
-		AddRoute(upgrade.RouterKey, &p.upgradeKeeper)
+		AddRoute(upgrade.RouterKey, &p.upgradeKeeper).
+		AddRoute(farm.RouterKey, &p.farmKeeper)
 	p.govKeeper = gov.NewKeeper(
 		p.cdc, p.keys[gov.StoreKey], p.paramsKeeper, govSubspace,
 		p.supplyKeeper, &stakingKeeper, gov.DefaultCodespace, govRouter,
@@ -348,6 +354,7 @@ func (p *ProtocolV0) produceKeepers() {
 	)
 	p.paramsKeeper.SetGovKeeper(p.govKeeper)
 	p.dexKeeper.SetGovKeeper(p.govKeeper)
+	p.farmKeeper.SetGovKeeper(p.govKeeper)
 	// 4.register the staking hooks
 	p.stakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(p.distrKeeper.Hooks(), p.slashingKeeper.Hooks()),
@@ -356,11 +363,8 @@ func (p *ProtocolV0) produceKeepers() {
 		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 
-	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper, auth.FeeCollectorName, p.Stop)
-	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper,
-		p.tokenKeeper, p.swapKeeper,
-		farmSubspace, p.keys[farm.StoreKey], p.cdc)
-
+	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper,
+		auth.FeeCollectorName, p.Stop)
 }
 
 // moduleAccountAddrs returns all the module account addresses

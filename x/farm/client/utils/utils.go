@@ -21,12 +21,9 @@ func ParseManageWhiteListProposalJSON(cdc *codec.Codec, proposalFilePath string)
 	err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {
-		return proposal, err
+		return
 	}
 
-	if err := cdc.UnmarshalJSON(contents, &proposal); err != nil {
-		return proposal, err
-	}
-
-	return proposal, nil
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
 }

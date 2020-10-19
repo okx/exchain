@@ -252,7 +252,6 @@ Where proposal.json contains:
 			from := cliCtx.GetFromAddress()
 			content := types.NewManageWhiteListProposal(proposal.Title, proposal.Description, proposal.PoolName, proposal.IsAdded)
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
-			fmt.Println(msg)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

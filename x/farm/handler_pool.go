@@ -15,13 +15,13 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	if ok := k.TokenKeeper().TokenExist(ctx, msg.SymbolLocked); !ok {
-		return types.ErrTokenNotExist(DefaultCodespace, msg.SymbolLocked).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.LockedSymbol); !ok {
+		return types.ErrTokenNotExist(DefaultCodespace, msg.LockedSymbol).Result()
 	}
 
-	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldSymbol)
+	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldedSymbol)
 	if !yieldTokenInfo.Owner.Equals(msg.Owner) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldSymbol).Result()
+		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldedSymbol).Result()
 	}
 
 	// fee
@@ -39,9 +39,9 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldSymbol, sdk.ZeroInt()),
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldedSymbol, sdk.ZeroInt()),
 		0, sdk.ZeroDec())
-	pool := types.NewFarmPool(msg.Owner, msg.PoolName, msg.SymbolLocked, depositAmount, sdk.NewDecCoin(msg.SymbolLocked, sdk.ZeroInt()),
+		pool := types.NewFarmPool(msg.Owner, msg.PoolName, msg.LockedSymbol, depositAmount, sdk.NewDecCoin(msg.LockedSymbol, sdk.ZeroInt()),
 		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.DecCoins{})
 	// set pool
 	k.SetFarmPool(ctx, pool)
@@ -56,8 +56,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		types.EventTypeCreatePool,
 		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-		sdk.NewAttribute(types.AttributeKeyLockToken, msg.SymbolLocked),
-		sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldSymbol),
+		sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockedSymbol),
+		sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldedSymbol),
 		sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
 	))

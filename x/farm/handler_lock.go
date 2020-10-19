@@ -14,8 +14,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if pool.SymbolLocked != msg.Amount.Denom {
-		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
+	if pool.LockedSymbol != msg.Amount.Denom {
+		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
 	}
 
 
@@ -40,7 +40,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 
 		// Create new lock info
 		lockInfo := types.NewLockInfo(
-			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.SymbolLocked, sdk.ZeroDec()),
+			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.LockedSymbol, sdk.ZeroDec()),
 			ctx.BlockHeight(), 0,
 		)
 		k.SetLockInfo(ctx, lockInfo)
@@ -84,8 +84,8 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if pool.SymbolLocked != msg.Amount.Denom {
-		return types.ErrInvalidDenom(DefaultCodespace, pool.SymbolLocked, msg.Amount.Denom).Result()
+	if pool.LockedSymbol != msg.Amount.Denom {
+		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
 	}
 
 	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height

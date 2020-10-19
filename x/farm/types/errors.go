@@ -77,7 +77,7 @@ func ErrInvalidStartHeight(codespace sdk.CodespaceType) sdk.Error {
 
 // ErrInvalidInput returns an error when an input parameter is invalid
 func ErrInvalidInput(codespace sdk.CodespaceType, input string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input parameter %s is invaild", input)
+	return sdk.NewError(codespace, CodeInvalidInput, "failed. The input parameter %s is invalid", input)
 }
 
 // ErrNilAddress returns an error when an empty address appears
