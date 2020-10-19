@@ -259,7 +259,7 @@ func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdSubmitDelistProposal implememts a command handler for submitting a dex delist proposal transaction
+// GetCmdSubmitDelistProposal implements a command handler for submitting a dex delist proposal transaction
 func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delist-proposal [proposal-file]",

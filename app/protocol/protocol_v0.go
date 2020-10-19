@@ -26,7 +26,8 @@ import (
 	"github.com/okex/okexchain/x/common/version"
 	"github.com/okex/okexchain/x/debug"
 	"github.com/okex/okexchain/x/dex"
-	dexClient "github.com/okex/okexchain/x/dex/client"
+	dexcli "github.com/okex/okexchain/x/dex/client"
+	farmcli "github.com/okex/okexchain/x/farm/client"
 	distr "github.com/okex/okexchain/x/distribution"
 	"github.com/okex/okexchain/x/farm"
 	"github.com/okex/okexchain/x/genutil"
@@ -34,12 +35,12 @@ import (
 	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/params"
-	paramsclient "github.com/okex/okexchain/x/params/client"
+	paramscli "github.com/okex/okexchain/x/params/client"
 	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/stream"
 	"github.com/okex/okexchain/x/token"
 	"github.com/okex/okexchain/x/upgrade"
-	upgradeClient "github.com/okex/okexchain/x/upgrade/client"
+	upgradecli "github.com/okex/okexchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -64,8 +65,8 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
-			upgradeClient.ProposalHandler, paramsclient.ProposalHandler,
-			dexClient.DelistProposalHandler, distr.ProposalHandler,
+			upgradecli.ProposalHandler, paramscli.ProposalHandler, dexcli.DelistProposalHandler, distr.ProposalHandler,
+			farmcli.ManageWhiteListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
