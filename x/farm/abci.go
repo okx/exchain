@@ -30,29 +30,31 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	// 2. allocate native token to pools according to the value
 	remainingNativeTokenAmt := yieldedNativeTokenAmt
 	for i, pool := range pools {
-		poolName := pool.Name
 		var allocatedAmt sdk.Dec
 		if i == len(pools)-1 {
 			allocatedAmt = remainingNativeTokenAmt
 		} else {
-			allocatedAmt = lockedPoolValueMap[poolName].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
+			allocatedAmt = lockedPoolValueMap[pool.Name].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		}
-		logger.Debug(fmt.Sprintf("Pool %s allocate %s yielded native token", poolName, allocatedAmt.String()))
-		current := k.GetPoolCurrentRewards(ctx, pool.Name)
-		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt)
-		current.Rewards = current.Rewards.Add(allocatedCoins)
-		pool.RemainingRewards = pool.RemainingRewards.Add(allocatedCoins)
-		k.SetPoolCurrentRewards(ctx, pool.Name, current)
 		remainingNativeTokenAmt = remainingNativeTokenAmt.Sub(allocatedAmt)
-		logger.Debug(fmt.Sprintf("Pool %s rewards are %s", poolName, current.Rewards))
+		logger.Debug(fmt.Sprintf("Pool %s allocate %s yielded native token", pool.Name, allocatedAmt.String()))
+		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt)
+
+		current := k.GetPoolCurrentRewards(ctx, pool.Name)
+		current.Rewards = current.Rewards.Add(allocatedCoins)
+		k.SetPoolCurrentRewards(ctx, pool.Name, current)
+		logger.Debug(fmt.Sprintf("Pool %s rewards are %s", pool.Name, current.Rewards))
+
+		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add(allocatedCoins)
 		k.SetFarmPool(ctx, pool)
 	}
-	logger.Debug(fmt.Sprintf("RemainingNativeTokenAmt: %s", remainingNativeTokenAmt))
+	if !remainingNativeTokenAmt.IsZero() {
+		panic(fmt.Sprintf("there are some tokens %s not to be allocated", remainingNativeTokenAmt))
+	}
 
 	// 3.liquidate native token minted at current block for yield farming
 	err := k.SupplyKeeper().SendCoinsFromModuleToModule(
-		ctx, MintFarmingAccount, YieldFarmingAccount,
-		sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)},
+		ctx, MintFarmingAccount, YieldFarmingAccount, sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt),
 	)
 	if err != nil {
 		panic("should not happen")

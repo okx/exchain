@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/okex/okexchain/x/farm/types"
 	govKeeper "github.com/okex/okexchain/x/gov/keeper"
 	govTypes "github.com/okex/okexchain/x/gov/types"
 	"time"
@@ -10,8 +11,13 @@ import (
 
 var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 
+// GetMinDeposit returns min deposit
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.DecCoins {
-	panic("implement me")
+	var minDeposit sdk.DecCoins
+	if _, ok := content.(types.ManageWhiteListProposal); ok {
+		minDeposit = k.GetParams(ctx).ManageWhiteListMinDeposit
+	}
+	return minDeposit
 }
 
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) time.Duration {
