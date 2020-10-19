@@ -24,10 +24,10 @@ func (k Keeper) DeletePoolHistoricalReward(ctx sdk.Context, poolName string, per
 	store.Delete(types.GetPoolHistoricalRewardsKey(poolName, period))
 }
 
-// DeletePoolHistoricalRewards deletes historical rewards for a pool
-func (k Keeper) DeletePoolHistoricalRewards(ctx sdk.Context, poolName string) {
+// IterateDeletePoolHistoricalRewards deletes historical rewards for a pool
+func (k Keeper) IterateDeletePoolHistoricalRewards(ctx sdk.Context, poolName string) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.GetValidatorHistoricalRewardsPrefix(poolName))
+	iter := sdk.KVStorePrefixIterator(store, types.GetPoolHistoricalRewardsPrefix(poolName))
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		store.Delete(iter.Key())

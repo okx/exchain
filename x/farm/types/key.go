@@ -36,6 +36,7 @@ var (
 	PoolsYieldNativeTokenPrefix = []byte{0x04}
 	PoolHistoricalRewardsPrefix = []byte{0x05}
 	PoolCurrentRewardsPrefix    = []byte{0x06}
+	PoolRemainingRewardsPrefix  = []byte{0x07}
 )
 
 const (
@@ -68,17 +69,19 @@ func SplitPoolNameFromLockInfoKey(lockInfoKey []byte) string {
 	return string(lockInfoKey[poolNameFromLockInfoKeyIndex:])
 }
 
+// GetPoolHistoricalRewardsKey gets the key for a pool's historical reward
 func GetPoolHistoricalRewardsKey(poolName string, period uint64) []byte {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, period)
 	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), b...)...)
 }
 
-// GetValidatorHistoricalRewardsPrefix gets the prefix key for a pool's historical rewards
-func GetValidatorHistoricalRewardsPrefix(poolName string) []byte {
+// GetPoolHistoricalRewardsPrefix gets the prefix key with pool name for a pool's historical rewards
+func GetPoolHistoricalRewardsPrefix(poolName string) []byte {
 	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
 }
 
+// GetPoolCurrentRewardsKey gets the key for a pool's current period reward
 func GetPoolCurrentRewardsKey(poolName string) []byte {
 	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
 }

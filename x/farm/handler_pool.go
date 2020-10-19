@@ -39,15 +39,11 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	}
 
 	// create pool
-	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldSymbol, sdk.ZeroInt()), 0, sdk.ZeroDec())
-	pool := types.FarmPool{
-		Owner:             msg.Owner,
-		Name:              msg.PoolName,
-		SymbolLocked:      msg.SymbolLocked,
-		YieldedTokenInfos: []types.YieldedTokenInfo{yieldedTokenInfo},
-		DepositAmount:     depositAmount,
-		TotalValueLocked:  sdk.DecCoin{Denom: msg.SymbolLocked, Amount: sdk.ZeroDec()},
-	}
+	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldSymbol, sdk.ZeroInt()),
+		0, sdk.ZeroDec())
+	pool := types.NewFarmPool(msg.Owner, msg.PoolName, msg.SymbolLocked, depositAmount,
+		sdk.DecCoin{Denom: msg.SymbolLocked, Amount: sdk.ZeroDec()},
+		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.DecCoins{})
 	// set pool
 	k.SetFarmPool(ctx, pool)
 
@@ -93,10 +89,18 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		}
 	}
 
+	if !pool.RemainingRewards.IsZero() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, YieldFarmingAccount, msg.Owner, pool.RemainingRewards)
+		if err != nil {
+			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
+				pool.RemainingRewards.String())).Result()
+		}
+	}
+
 	// delete pool
 	k.DeleteFarmPool(ctx, msg.PoolName)
 
-	k.DeletePoolHistoricalRewards(ctx, msg.PoolName)
+	k.IterateDeletePoolHistoricalRewards(ctx, msg.PoolName)
 
 	k.DeletePoolCurrentRewards(ctx, msg.PoolName)
 

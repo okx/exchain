@@ -16,15 +16,22 @@ type FarmPool struct {
 	// sum of LockInfo.Amount
 	TotalValueLocked  sdk.DecCoin       `json:"total_value_locked"`
 	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
+	RemainingRewards  sdk.DecCoins      `json:"remaining_rewards"`
 }
 
 // NewFarmPool creates a new instance of FarmPool
-func NewFarmPool(name string, symbolLocked string, yieldedTokenInfos YieldedTokenInfos, totalValueLocked sdk.DecCoin) FarmPool {
+func NewFarmPool(
+	owner sdk.AccAddress, name, symbolLocked string, depositAmt, totalValueLocked sdk.DecCoin,
+	yieldedTokenInfos YieldedTokenInfos, remainningRewards sdk.DecCoins,
+) FarmPool {
 	return FarmPool{
+		Owner:             owner,
 		Name:              name,
 		SymbolLocked:      symbolLocked,
-		YieldedTokenInfos: yieldedTokenInfos,
+		DepositAmount:     depositAmt,
 		TotalValueLocked:  totalValueLocked,
+		YieldedTokenInfos: yieldedTokenInfos,
+		RemainingRewards:  remainningRewards,
 	}
 }
 

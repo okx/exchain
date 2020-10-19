@@ -21,14 +21,19 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 
 	// 1.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
+	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
 
 	// 1.2 Get lock info
 	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
 		// If it exists, withdraw money
-		_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
+		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
 			return err.Result()
 		}
+		if updatedPool.RemainingRewards.IsAllLT(rewards) {
+			panic("should not happen")
+		}
+		updatedPool.RemainingRewards = updatedPool.RemainingRewards.Sub(rewards)
 	} else {
 		// If it doesn't exist, only increase period
 		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
@@ -87,7 +92,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 2. Claim
-	_, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
+	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
 		return err.Result()
 	}
@@ -102,6 +107,11 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 
 	// 5. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
+	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
+	if updatedPool.RemainingRewards.IsAllLT(rewards) {
+		panic("should not happen")
+	}
+	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Sub(rewards)
 	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
