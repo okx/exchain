@@ -21,7 +21,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 
 	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
+	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 
 	// 3. Get lock info
 	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
@@ -30,10 +30,10 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 		if err != nil {
 			return err.Result()
 		}
-		if updatedPool.RemainingRewards.IsAllLT(rewards) {
+		if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 			panic("should not happen")
 		}
-		updatedPool.RemainingRewards = updatedPool.RemainingRewards.Sub(rewards)
+		updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
 	} else {
 		// If it doesn't exist, only increase period
 		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
@@ -107,11 +107,11 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logg
 
 	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
-	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Add(yieldedTokens)
-	if updatedPool.RemainingRewards.IsAllLT(rewards) {
+	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+	if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 		panic("should not happen")
 	}
-	updatedPool.RemainingRewards = updatedPool.RemainingRewards.Sub(rewards)
+	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
 	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(

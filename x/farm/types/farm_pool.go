@@ -14,24 +14,24 @@ type FarmPool struct {
 	SymbolLocked  string         `json:"symbol_locked"`
 	DepositAmount sdk.DecCoin    `json:"deposit_amount"`
 	// sum of LockInfo.Amount
-	TotalValueLocked  sdk.DecCoin       `json:"total_value_locked"`
-	YieldedTokenInfos YieldedTokenInfos `json:"yielded_token_infos"`
-	RemainingRewards  sdk.DecCoins      `json:"remaining_rewards"`
+	TotalValueLocked        sdk.DecCoin       `json:"total_value_locked"`
+	YieldedTokenInfos       YieldedTokenInfos `json:"yielded_token_infos"`
+	TotalAccumulatedRewards sdk.DecCoins      `json:"total_accumulated_rewards"`
 }
 
 // NewFarmPool creates a new instance of FarmPool
 func NewFarmPool(
 	owner sdk.AccAddress, name, symbolLocked string, depositAmt, totalValueLocked sdk.DecCoin,
-	yieldedTokenInfos YieldedTokenInfos, remainningRewards sdk.DecCoins,
+	yieldedTokenInfos YieldedTokenInfos, accumulatedRewards sdk.DecCoins,
 ) FarmPool {
 	return FarmPool{
-		Owner:             owner,
-		Name:              name,
-		SymbolLocked:      symbolLocked,
-		DepositAmount:     depositAmt,
-		TotalValueLocked:  totalValueLocked,
-		YieldedTokenInfos: yieldedTokenInfos,
-		RemainingRewards:  remainningRewards,
+		Owner:                   owner,
+		Name:                    name,
+		SymbolLocked:            symbolLocked,
+		DepositAmount:           depositAmt,
+		TotalValueLocked:        totalValueLocked,
+		YieldedTokenInfos:       yieldedTokenInfos,
+		TotalAccumulatedRewards: accumulatedRewards,
 	}
 }
 
@@ -53,8 +53,8 @@ func (fp FarmPool) String() string {
   Deposit Amount:                   %s
   Total Value Locked:               %s
   Yielded Token Infos:			    %s
-  Remaining Rewards:                %s`,
-		fp.Name, fp.Owner, fp.SymbolLocked, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.RemainingRewards)
+  Total Accumulated Rewards:        %s`,
+		fp.Name, fp.Owner, fp.SymbolLocked, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.TotalAccumulatedRewards)
 }
 
 // FarmPools is a collection of FarmPool

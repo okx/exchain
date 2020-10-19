@@ -93,7 +93,9 @@ func (AppModule) Name() string {
 }
 
 // RegisterInvariants registers the farm module invariants.
-func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
+func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
+	RegisterInvariants(ir, am.keeper)
+}
 
 // Route returns the message routing key for the farm module.
 func (AppModule) Route() string {
