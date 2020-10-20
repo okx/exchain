@@ -14,7 +14,7 @@ type MsgCreatePool struct {
 	Owner         sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName      string         `json:"pool_name" yaml:"pool_name"`
 	LockedSymbol  string         `json:"locked_symbol" yaml:"locked_symbol"`
-	YieldedSymbol string         `json:"yield_symbol"  yaml:"yield_symbol"`
+	YieldedSymbol string         `json:"yielded_symbol"  yaml:"yielded_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
