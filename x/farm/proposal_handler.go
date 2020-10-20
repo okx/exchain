@@ -1,7 +1,6 @@
 package farm
 
 import (
-	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
 	govTypes "github.com/okex/okexchain/x/gov/types"
@@ -10,16 +9,32 @@ import (
 // NewManageWhiteListProposalHandler handles "gov" type message in "farm"
 func NewManageWhiteListProposalHandler(k *Keeper) govTypes.Handler {
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
-		switch contentType := proposal.Content.(type) {
+		switch content := proposal.Content.(type) {
 		case types.ManageWhiteListProposal:
 			return handleManageWhiteListProposal(ctx, k, proposal)
 		default:
-			return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized param proposal content type: %s", contentType))
+			return types.ErrUnexpectedProposalType(DefaultParamspace, content.ProposalType())
 		}
 	}
 }
 
-// TODO
-func handleManageWhiteListProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Proposal) sdk.Error {
+func handleManageWhiteListProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+	// check
+	manageWhiteListProposal, ok := proposal.Content.(types.ManageWhiteListProposal)
+	if !ok {
+		return types.ErrUnexpectedProposalType(DefaultParamspace, proposal.Content.ProposalType())
+	}
+	if sdkErr := k.CheckMsgManageWhiteListProposal(ctx, manageWhiteListProposal); sdkErr != nil {
+		return sdkErr
+	}
+
+	if manageWhiteListProposal.IsAdded {
+		// add pool name into whitelist
+		k.SetWhitelist(ctx, manageWhiteListProposal.PoolName)
+		return nil
+	}
+
+	// remove pool name from whitelist
+	k.DeleteWhiteList(ctx, manageWhiteListProposal.PoolName)
 	return nil
 }

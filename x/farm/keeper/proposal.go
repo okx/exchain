@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/okex/okexchain/x/farm/types"
@@ -12,38 +13,72 @@ import (
 var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 
 // GetMinDeposit returns min deposit
-func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.DecCoins {
-	var minDeposit sdk.DecCoins
+func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.DecCoins) {
 	if _, ok := content.(types.ManageWhiteListProposal); ok {
 		minDeposit = k.GetParams(ctx).ManageWhiteListMinDeposit
 	}
-	return minDeposit
+
+	return
 }
 
-func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) time.Duration {
-	panic("implement me")
+// GetMaxDepositPeriod returns max deposit period
+func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (maxDepositPeriod time.Duration) {
+	if _, ok := content.(types.ManageWhiteListProposal); ok {
+		maxDepositPeriod = k.GetParams(ctx).ManageWhiteListMaxDepositPeriod
+	}
+
+	return
 }
 
-func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) time.Duration {
-	panic("implement me")
+// GetVotingPeriod returns voting period
+func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (votingPeriod time.Duration) {
+	if _, ok := content.(types.ManageWhiteListProposal); ok {
+		votingPeriod = k.GetParams(ctx).ManageWhiteListVotingPeriod
+	}
+
+	return
 }
 
+// CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
-	panic("implement me")
+	switch content := msg.Content.(type) {
+	case types.ManageWhiteListProposal:
+		return k.CheckMsgManageWhiteListProposal(ctx, content)
+	default:
+		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized dex proposal content type: %T", content))
+	}
 }
 
-func (k Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govTypes.Proposal) {
-	panic("implement me")
+// nolint
+func (k Keeper) AfterSubmitProposalHandler(_ sdk.Context, _ govTypes.Proposal) {}
+func (k Keeper) AfterDepositPeriodPassed(_ sdk.Context, _ govTypes.Proposal)   {}
+func (k Keeper) RejectedHandler(_ sdk.Context, _ govTypes.Content)             {}
+func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote) (string, sdk.Error) {
+	return "", nil
 }
 
-func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote govTypes.Vote) (string, sdk.Error) {
-	panic("implement me")
-}
+// CheckMsgManageWhiteListProposal checks msg manage white list proposal
+func (k Keeper) CheckMsgManageWhiteListProposal(ctx sdk.Context, proposal types.ManageWhiteListProposal) sdk.Error {
+	if proposal.IsAdded {
+		// add pool name into white list
+		// 1. check the existence
+		pool, found := k.GetFarmPool(ctx, proposal.PoolName)
+		if !found {
+			return types.ErrNoFarmPoolFound(types.DefaultCodespace, proposal.PoolName)
+		}
+		// 2. check the swap token pair
+		if sdkErr := k.satisfyWhiteListAdmittance(ctx, pool); sdkErr != nil {
+			return sdkErr
+		}
 
-func (k Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govTypes.Proposal) {
-	panic("implement me")
-}
+		return nil
+	}
 
-func (k Keeper) RejectedHandler(ctx sdk.Context, content govTypes.Content) {
-	panic("implement me")
+	// delete the pool name from the white list
+	// 1. check the existence of the pool name in whitelist
+	if !k.isPoolNameExistedInWhiteList(ctx, proposal.PoolName) {
+		return types.ErrPoolNameNotExistedInWhiteList(types.DefaultCodespace, proposal.PoolName)
+	}
+
+	return nil
 }

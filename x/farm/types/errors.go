@@ -7,15 +7,17 @@ type CodeType = sdk.CodeType
 const (
 	DefaultCodespace sdk.CodespaceType = ModuleName
 
-	CodeInvalidFarmPool           CodeType = 101
-	CodeInvalidPoolCurrentRewards CodeType = 102
-	CodeInvalidLockInfo           CodeType = 103
-	CodeInvalidInput              CodeType = 104
-	CodePoolAlreadyExist          CodeType = 105
-	CodeTokenNotExist             CodeType = 106
-	CodePoolNotFinished           CodeType = 107
-	CodeInvalidAddress                     = sdk.CodeInvalidAddress
-	CodeUnknownRequest                     = sdk.CodeUnknownRequest
+	CodeInvalidFarmPool               CodeType = 101
+	CodeInvalidPoolCurrentRewards     CodeType = 102
+	CodeInvalidLockInfo               CodeType = 103
+	CodeInvalidInput                  CodeType = 104
+	CodePoolAlreadyExist              CodeType = 105
+	CodeTokenNotExist                 CodeType = 106
+	CodePoolNotFinished               CodeType = 107
+	CodePoolNameNotExistedInWhiteList CodeType = 108
+	CodeUnexpectedProposalType        CodeType = 109
+	CodeInvalidAddress                         = sdk.CodeInvalidAddress
+	CodeUnknownRequest                         = sdk.CodeUnknownRequest
 )
 
 // ErrNoFarmPoolFound returns an error when a farm pool doesn't exist
@@ -57,7 +59,8 @@ func ErrInvalidPoolOwner(codespace sdk.CodespaceType, address string, poolName s
 
 // ErrInvalidDenom returns an error when it provides an unmatched token name
 func ErrInvalidDenom(codespace sdk.CodespaceType, symbolLocked string, token string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. The coin name should be %s, not %s", symbolLocked, token)
+	return sdk.NewError(codespace, CodeInvalidInput,
+		"failed. The coin name should be %s, not %s", symbolLocked, token)
 }
 
 // ErrInvalidInputAmount returns an error when an input amount is invaild
@@ -67,7 +70,8 @@ func ErrInvalidInputAmount(codespace sdk.CodespaceType, amount string) sdk.Error
 
 // ErrinsufficientAmount returns an error when there is no enough tokens
 func ErrinsufficientAmount(codespace sdk.CodespaceType, amount string, inputAmount string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidInput, "failed. The actual amount %s is less than %s", amount, inputAmount)
+	return sdk.NewError(codespace, CodeInvalidInput,
+		"failed. The actual amount %s is less than %s", amount, inputAmount)
 }
 
 // ErrInvalidStartHeight returns an error when the start_height_to_yield parameter is invalid
@@ -87,5 +91,18 @@ func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
 
 // ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed
 func ErrPoolNotFinished(codespace sdk.CodespaceType, poolName string) sdk.Error {
-	return sdk.NewError(codespace, CodePoolNotFinished, "failed. the pool %s is not finished and can not be destroyed", poolName)
+	return sdk.NewError(codespace, CodePoolNotFinished,
+		"failed. the pool %s is not finished and can not be destroyed", poolName)
+}
+
+// ErrPoolNameNotExistedInWhiteList returns an error when the pool name is not existed in the white list
+func ErrPoolNameNotExistedInWhiteList(codespace sdk.CodespaceType, poolName string) sdk.Error {
+	return sdk.NewError(codespace, CodePoolNameNotExistedInWhiteList,
+		"failed. the pool name %s is not existed in the white list", poolName)
+}
+
+// ErrUnexpectedProposalType returns an error when the proposal type is not supported in farm module
+func ErrUnexpectedProposalType(codespace sdk.CodespaceType, proposalType string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnexpectedProposalType,
+		"failed. the proposal type %s is not supported in farm module", proposalType)
 }

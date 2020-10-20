@@ -31,18 +31,20 @@ type GenesisState struct {
 	LockInfos             []LockInfo                    `json:"lock_infos" yaml:"lock_infos"`
 	PoolHistoricalRewards []PoolHistoricalRewardsRecord `json:"pool_historical_rewards" yaml:"pool_historical_rewards"`
 	PoolCurrentRewards    []PoolCurrentRewardsRecord    `json:"pool_current_rewards" yaml:"pool_current_rewards"`
+	WhiteList             PoolNameList                  `json:"white_list" yaml:"white_list"`
 	Params                Params                        `json:"params" yaml:"params"`
 }
 
 // NewGenesisState creates a new GenesisState object
-func NewGenesisState(pools FarmPools, lockInfos []LockInfo, historicals []PoolHistoricalRewardsRecord,
-	currents []PoolCurrentRewardsRecord, params Params,
+func NewGenesisState(pools FarmPools, lockInfos []LockInfo, histories []PoolHistoricalRewardsRecord,
+	currents []PoolCurrentRewardsRecord, whiteList PoolNameList, params Params,
 ) GenesisState {
 	return GenesisState{
 		Pools:                 pools,
 		LockInfos:             lockInfos,
-		PoolHistoricalRewards: historicals,
+		PoolHistoricalRewards: histories,
 		PoolCurrentRewards:    currents,
+		WhiteList:             whiteList,
 		Params:                params,
 	}
 }
@@ -50,11 +52,11 @@ func NewGenesisState(pools FarmPools, lockInfos []LockInfo, historicals []PoolHi
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Pools: FarmPools{},
-		LockInfos: []LockInfo{},
+		Pools:                 FarmPools{},
+		LockInfos:             []LockInfo{},
 		PoolHistoricalRewards: []PoolHistoricalRewardsRecord{},
-		PoolCurrentRewards: []PoolCurrentRewardsRecord{},
-		Params: DefaultParams(),
+		PoolCurrentRewards:    []PoolCurrentRewardsRecord{},
+		Params:                DefaultParams(),
 	}
 }
 
@@ -71,7 +73,7 @@ func ValidateGenesis(data GenesisState) error {
 	}
 
 	actualReferenceCount := len(data.LockInfos) + len(data.PoolCurrentRewards)
-	if  actualReferenceCount != int(expectedReferenceCount) {
+	if actualReferenceCount != int(expectedReferenceCount) {
 		return fmt.Errorf("actual reference count(%d) is not equal to expected reference count(%d)",
 			actualReferenceCount, expectedReferenceCount)
 	}
