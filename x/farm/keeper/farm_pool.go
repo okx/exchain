@@ -154,7 +154,7 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 				baseTokenAmount = token0Amount
 				quoteTokenAmount = token1Amount
 			}
-			swappedQuoteTokenAmt := k.GetSwappedQuoteTokenAmt(ctx, baseTokenAmount, quoteToken, swapParams)
+			swappedQuoteTokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, baseTokenAmount, quoteToken, swapParams)
 			poolValue = swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
 		} else {
 			// calculate how much assets the TotalValueLocked can redeem
@@ -164,25 +164,25 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 				panic("should not happen")
 			}
 			// calculate how much quote token the base token can swap
-			quote0TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token0Amount, quoteToken, swapParams)
-			quote1TokenAmt := k.GetSwappedQuoteTokenAmt(ctx, token1Amount, quoteToken, swapParams)
+			quote0TokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, token0Amount, quoteToken, swapParams)
+			quote1TokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, token1Amount, quoteToken, swapParams)
 			poolValue = quote0TokenAmt.Add(quote1TokenAmt)
 		}
 	} else {
-		poolValue = k.GetSwappedQuoteTokenAmt(ctx, pool.TotalValueLocked, quoteToken, swapParams)
+		poolValue = k.CalculateQuoteTokenAmtToBuy(ctx, pool.TotalValueLocked, quoteToken, swapParams)
 	}
 	return poolValue
 }
 
-func (k Keeper) GetSwappedQuoteTokenAmt(
-	ctx sdk.Context, coin sdk.DecCoin, quoteToken string, params swaptypes.Params,
+func (k Keeper) CalculateQuoteTokenAmtToBuy(
+	ctx sdk.Context, coin sdk.DecCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
-	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(coin.Denom, quoteToken))
+	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(coin.Denom, quoteSymbol))
 	if err != nil {
 		return sdk.ZeroDec()
 	}
-	swappedCoin := swapkeeper.CalculateTokenToBuy(tokenPair, coin, quoteToken, params)
+	swappedCoin := swapkeeper.CalculateTokenToBuy(tokenPair, coin, quoteSymbol, params)
 	return swappedCoin.Amount
 }
 

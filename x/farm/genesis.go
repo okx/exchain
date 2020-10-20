@@ -31,8 +31,13 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 		k.SetPoolCurrentRewards(ctx, current.PoolName, current.Rewards)
 	}
 
+	for _, poolName := range data.WhiteList {
+		k.SetWhitelist(ctx, poolName)
+	}
+
 	k.SetParams(ctx, data.Params)
 
+	// init module account
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName)
 	if moduleAcc == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
@@ -98,7 +103,9 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) (data types.GenesisState) {
 		},
 	)
 
+	whiteList := k.GetWhitelist(ctx)
+
 	params := k.GetParams(ctx)
 
-	return types.NewGenesisState(pools, lockInfos, allHistoricalRewards, allCurRewards, params)
+	return types.NewGenesisState(pools, lockInfos, allHistoricalRewards, allCurRewards, whiteList, params)
 }
