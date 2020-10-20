@@ -39,7 +39,7 @@ func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	}
 }
 
-// YieldFarmingAccountInvariant checks if yield_farming_account ModuleAccount is consistent with the sum of yielded amount
+// YieldFarmingAccountInvariant checks if yield_farming_account ModuleAccount is consistent with the total accumulated rewards
 func YieldFarmingAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		// iterate all pools, then calculate the total deposit amount
