@@ -70,8 +70,8 @@ func (k Keeper) getPoolNum(ctx sdk.Context) types.PoolNum {
 	return types.NewPoolNum(num)
 }
 
-// getFarmPools gets all pools that exist currently in the store
-func (k Keeper) getFarmPools(ctx sdk.Context) (pools types.FarmPools) {
+// GetFarmPools gets all pools that exist currently in the store
+func (k Keeper) GetFarmPools(ctx sdk.Context) (pools types.FarmPools) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.FarmPoolPrefix)
 	defer iterator.Close()
@@ -137,8 +137,8 @@ func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 	quoteToken := params.QuoteSymbol
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
-	if swaptypes.IsPoolToken(pool.SymbolLocked) {
-		token0, token1 := swaptypes.SplitPoolToken(pool.SymbolLocked)
+	if swaptypes.IsPoolToken(pool.LockedSymbol) {
+		token0, token1 := swaptypes.SplitPoolToken(pool.LockedSymbol)
 		if token0 == quoteToken || token1 == quoteToken {
 			// calculate how much assets the TotalValueLocked can redeem
 			token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
@@ -184,4 +184,20 @@ func (k Keeper) GetSwappedQuoteTokenAmt(
 	}
 	swappedCoin := swapkeeper.CalculateTokenToBuy(tokenPair, coin, quoteToken, params)
 	return swappedCoin.Amount
+}
+
+// Iterate over all lock infos
+func (k Keeper) IterateAllLockInfos(
+	ctx sdk.Context, handler func(lockInfo types.LockInfo) (stop bool),
+) {
+	store := ctx.KVStore(k.storeKey)
+	iter := sdk.KVStorePrefixIterator(store, types.Address2PoolPrefix)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var lockInfo types.LockInfo
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iter.Value(), &lockInfo)
+		if handler(lockInfo) {
+			break
+		}
+	}
 }

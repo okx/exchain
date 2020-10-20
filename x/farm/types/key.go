@@ -27,6 +27,9 @@ const (
 
 	// QuerierRoute to be used for querier msgs
 	QuerierRoute = ModuleName
+
+	// Byte length of period occupied
+	PeriodByteArrayLength = 8
 )
 
 var (
@@ -70,7 +73,7 @@ func SplitPoolNameFromLockInfoKey(lockInfoKey []byte) string {
 
 // GetPoolHistoricalRewardsKey gets the key for a pool's historical reward
 func GetPoolHistoricalRewardsKey(poolName string, period uint64) []byte {
-	b := make([]byte, 8)
+	b := make([]byte, PeriodByteArrayLength)
 	binary.LittleEndian.PutUint64(b, period)
 	return append(PoolHistoricalRewardsPrefix, append([]byte(poolName), b...)...)
 }
@@ -82,5 +85,5 @@ func GetPoolHistoricalRewardsPrefix(poolName string) []byte {
 
 // GetPoolCurrentRewardsKey gets the key for a pool's current period reward
 func GetPoolCurrentRewardsKey(poolName string) []byte {
-	return append(PoolHistoricalRewardsPrefix, []byte(poolName)...)
+	return append(PoolCurrentRewardsPrefix, []byte(poolName)...)
 }

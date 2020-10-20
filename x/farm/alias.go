@@ -16,7 +16,8 @@ const (
 )
 
 var (
-	NewKeeper = keeper.NewKeeper
+	NewKeeper          = keeper.NewKeeper
+	RegisterInvariants = keeper.RegisterInvariants
 )
 
 type (

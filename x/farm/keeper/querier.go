@@ -67,7 +67,7 @@ func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	pools := k.getFarmPools(ctx)
+	pools := k.GetFarmPools(ctx)
 	if !(params.Page == 1 && params.Limit == 0) {
 		start, end := client.Paginate(len(pools), params.Page, params.Limit, defaultPoolsDisplayedNum)
 		if start < 0 || end < 0 {
