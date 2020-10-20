@@ -32,7 +32,7 @@ func ErrPoolAlreadyExist(codespace sdk.CodespaceType, poolName string) sdk.Error
 
 // ErrTokenNotExist returns an error when a token not exists
 func ErrTokenNotExist(codespace sdk.CodespaceType, tokenName string) sdk.Error {
-	return sdk.NewError(codespace, CodeTokenNotExist, "failed. lock token %s not exists", tokenName)
+	return sdk.NewError(codespace, CodeTokenNotExist, "failed. lock token %s does not exists", tokenName)
 }
 
 // ErrNoLockInfoFound returns an error when an address doesn't have any lock infos
