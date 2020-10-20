@@ -24,7 +24,7 @@ func (k Keeper) SetWhitelist(ctx sdk.Context, poolName string) {
 	ctx.KVStore(k.storeKey).Set(types.GetWhitelistMemberKey(poolName), []byte(""))
 }
 
-// DeleteWhiteList remove the pool name from whitelist
+// DeleteWhiteList removes the pool name from whitelist
 func (k Keeper) DeleteWhiteList(ctx sdk.Context, poolName string) {
 	ctx.KVStore(k.storeKey).Delete(types.GetWhitelistMemberKey(poolName))
 }
