@@ -127,54 +127,71 @@ func (k Keeper) DeleteLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName st
 	store.Delete(types.GetLockInfoKey(addr, poolName))
 }
 
-func (k Keeper) GetLockedPoolValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec {
+// GetPoolLockedValue gets the value of locked tokens in pool priced in quote symbol
+func (k Keeper) GetPoolLockedValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec {
 	if pool.TotalValueLocked.Amount.LTE(sdk.ZeroDec()) {
 		return sdk.ZeroDec()
 	}
 
 	poolValue := sdk.ZeroDec()
 	params := k.GetParams(ctx)
-	quoteToken := params.QuoteSymbol
+	quoteSymbol := params.QuoteSymbol
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
 	if swaptypes.IsPoolToken(pool.LockedSymbol) {
-		token0, token1 := swaptypes.SplitPoolToken(pool.LockedSymbol)
-		if token0 == quoteToken || token1 == quoteToken {
-			// calculate how much assets the TotalValueLocked can redeem
-			token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
-				pool.TotalValueLocked.Amount)
-			if err != nil {
-				panic("should not happen")
-			}
-			var baseTokenAmount, quoteTokenAmount sdk.DecCoin
-			if token0Amount.Denom == quoteToken {
-				baseTokenAmount = token1Amount
-				quoteTokenAmount = token0Amount
-			} else {
-				baseTokenAmount = token0Amount
-				quoteTokenAmount = token1Amount
-			}
-			swappedQuoteTokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, baseTokenAmount, quoteToken, swapParams)
-			poolValue = swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
-		} else {
-			// calculate how much assets the TotalValueLocked can redeem
-			token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0, token1,
-				pool.TotalValueLocked.Amount)
-			if err != nil {
-				panic("should not happen")
-			}
-			// calculate how much quote token the base token can swap
-			quote0TokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, token0Amount, quoteToken, swapParams)
-			quote1TokenAmt := k.CalculateQuoteTokenAmtToBuy(ctx, token1Amount, quoteToken, swapParams)
-			poolValue = quote0TokenAmt.Add(quote1TokenAmt)
-		}
+		poolValue = k.calculateLockedLPTValue(ctx, pool, quoteSymbol, swapParams)
 	} else {
-		poolValue = k.CalculateQuoteTokenAmtToBuy(ctx, pool.TotalValueLocked, quoteToken, swapParams)
+		poolValue = k.calculateQuoteTokenAmtToBuy(ctx, pool.TotalValueLocked, quoteSymbol, swapParams)
 	}
 	return poolValue
 }
 
-func (k Keeper) CalculateQuoteTokenAmtToBuy(
+func (k Keeper) calculateLockedLPTValue(
+	ctx sdk.Context, pool types.FarmPool, quoteSymbol string, swapParams swaptypes.Params,
+) (poolValue sdk.Dec) {
+	token0Symbol, token1Symbol := swaptypes.SplitPoolToken(pool.LockedSymbol)
+
+	// calculate how much assets the TotalValueLocked can redeem
+	token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0Symbol, token1Symbol,
+		pool.TotalValueLocked.Amount)
+	if err != nil {
+		panic("should not happen")
+	}
+	
+	if token0Symbol == quoteSymbol || token1Symbol == quoteSymbol {
+		return k.calculateLPTValueWithQuote(ctx, token0Amount, token1Amount, quoteSymbol, swapParams)
+	}
+	return k.calculateLPTValueWithoutQuote(ctx, token0Amount, token1Amount, quoteSymbol, swapParams)
+}
+
+// calculateLPTValueWithQuote calculates the value of LPT which represents token pair containing quote symbol
+func (k Keeper) calculateLPTValueWithQuote(
+	ctx sdk.Context, token0Amount, token1Amount sdk.DecCoin, quoteSymbol string, swapParams swaptypes.Params,
+) sdk.Dec {
+	var baseTokenAmount, quoteTokenAmount sdk.DecCoin
+	if token0Amount.Denom == quoteSymbol {
+		baseTokenAmount = token1Amount
+		quoteTokenAmount = token0Amount
+	} else {
+		baseTokenAmount = token0Amount
+		quoteTokenAmount = token1Amount
+	}
+	swappedQuoteTokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, baseTokenAmount, quoteSymbol, swapParams)
+	poolValue := swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
+	return poolValue
+}
+
+// calculateLPTValueWithoutQuote calculates the value of LPT which represents token pair not containing quote symbol
+func (k Keeper) calculateLPTValueWithoutQuote(
+	ctx sdk.Context, token0Amount, token1Amount sdk.DecCoin, quoteSymbol string, swapParams swaptypes.Params,
+) sdk.Dec {
+	// calculate how much quote token the base token can swap
+	quote0TokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, token0Amount, quoteSymbol, swapParams)
+	quote1TokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, token1Amount, quoteSymbol, swapParams)
+	return quote0TokenAmt.Add(quote1TokenAmt)
+}
+
+func (k Keeper) calculateQuoteTokenAmtToBuy(
 	ctx sdk.Context, coin sdk.DecCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap

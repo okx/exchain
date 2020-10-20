@@ -81,7 +81,7 @@ func calculateAllocateInfo(ctx sdk.Context, k keeper.Keeper) (map[string]sdk.Dec
 		if !found {
 			panic("should not happen")
 		}
-		poolValue := k.GetLockedPoolValue(ctx, pool)
+		poolValue := k.GetPoolLockedValue(ctx, pool)
 		if poolValue.LTE(sdk.ZeroDec()) {
 			continue
 		}
