@@ -13,6 +13,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgUnlock{}, "okexchain/farm/MsgUnlock", nil)
 	cdc.RegisterConcrete(MsgClaim{}, "okexchain/farm/MsgClaim", nil)
 	cdc.RegisterConcrete(MsgProvide{}, "okexchain/farm/MsgProvide", nil)
+	cdc.RegisterConcrete(ManageWhiteListProposal{}, "okexchain/farm/ManageWhiteListProposal", nil)
 }
 
 // ModuleCdc defines the module codec
