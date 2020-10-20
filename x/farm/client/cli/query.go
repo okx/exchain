@@ -29,6 +29,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			GetCmdQueryPool(queryRoute, cdc),
 			GetCmdQueryPools(queryRoute, cdc),
 			GetCmdQueryPoolNum(queryRoute, cdc),
+			GetCmdQueryLockInfo(queryRoute, cdc),
 			GetCmdQueryEarnings(queryRoute, cdc),
 			GetCmdQueryAccount(queryRoute, cdc),
 			GetCmdQueryAccountsLockedTo(queryRoute, cdc),
@@ -135,7 +136,7 @@ $ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujn
 				return err
 			}
 
-			jsonBytes, err := cdc.MarshalJSON(types.NewQueryEarningsParams(args[0], accAddr))
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryPoolAccountParams(args[0], accAddr))
 			if err != nil {
 				return err
 			}
@@ -287,7 +288,7 @@ $ %s query farm pool-num
 // GetCmdQueryAccountsLockedTo gets all addresses of accounts that locked coins in a specific pool
 func GetCmdQueryAccountsLockedTo(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "accounts-locked-to",
+		Use:   "accounts-locked-to [pool-name]",
 		Short: "query the addresses of accounts locked in a pool",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query all the addresses of accounts that have locked coins in a specific pool.
@@ -316,6 +317,46 @@ $ %s query farm accounts-locked-to pool-airtoken1-eth
 			var accAddrList types.AccAddrList
 			cdc.MustUnmarshalJSON(bz, &accAddrList)
 			return cliCtx.PrintOutput(accAddrList)
+		},
+	}
+}
+
+// GetCmdQueryLockInfo gets the lock info of an account's token locking on a specific pool
+func GetCmdQueryLockInfo(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "lock-info [pool-name] [address]",
+		Short: "query the lock info of an account on a pool",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the lock info of an account's token locking on a specific pool.
+
+Example:
+$ %s query farm lock-info pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			accAddr, err := sdk.AccAddressFromBech32(args[1])
+			if err != nil {
+				return err
+			}
+
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryPoolAccountParams(args[0], accAddr))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryLockInfo)
+			bz, _, err := cliCtx.QueryWithData(route, jsonBytes)
+			if err != nil {
+				return err
+			}
+
+			var lockInfo types.LockInfo
+			cdc.MustUnmarshalJSON(bz, &lockInfo)
+			return cliCtx.PrintOutput(lockInfo)
 		},
 	}
 }

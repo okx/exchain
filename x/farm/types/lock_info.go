@@ -1,6 +1,9 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	"fmt"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 // LockInfo is locked info of an address
 type LockInfo struct {
@@ -20,4 +23,15 @@ func NewLockInfo(owner sdk.AccAddress, poolName string, amount sdk.DecCoin, star
 		StartBlockHeight: startBlockHeight,
 		ReferencePeriod:  referencePeriod,
 	}
+}
+
+// String returns a human readable string representation of LockInfo
+func (li LockInfo) String() string {
+	return fmt.Sprintf(`Lock Info:
+  Owner:						%s	
+  Pool Name:					%s
+  Locked Amount:      			%s
+  Start Block Height:           %d
+  Reference Period:             %d`,
+		li.Owner, li.PoolName, li.Amount, li.StartBlockHeight, li.ReferencePeriod)
 }

@@ -85,7 +85,7 @@ func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 }
 
 func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
-	var params types.QueryEarningsParams
+	var params types.QueryPoolAccountParams
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, defaultQueryErrParseParams(err)
 	}

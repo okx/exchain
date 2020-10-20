@@ -6,6 +6,7 @@ const (
 	QueryPool             = "pool"
 	QueryPools            = "pools"
 	QueryEarnings         = "earnings"
+	QueryLockInfo         = "lock-info"
 	QueryParameters       = "parameters"
 	QueryWhitelist        = "whitelist"
 	QueryAccount          = "account"
@@ -40,16 +41,17 @@ func NewQueryPoolsParams(page, limit int) QueryPoolsParams {
 	}
 }
 
-// QueryEarningsParams defines the params for the following queries:
+// QueryPoolAccountParams defines the params for the following queries:
 // - 'custom/farm/earnings'
-type QueryEarningsParams struct {
+// - 'custom/farm/lock-info'
+type QueryPoolAccountParams struct {
 	PoolName   string
 	AccAddress sdk.AccAddress
 }
 
-// NewQueryEarningsParams creates a new instance of QueryEarningsParams
-func NewQueryEarningsParams(poolName string, accAddr sdk.AccAddress) QueryEarningsParams {
-	return QueryEarningsParams{
+// NewQueryPoolAccountParams creates a new instance of QueryPoolAccountParams
+func NewQueryPoolAccountParams(poolName string, accAddr sdk.AccAddress) QueryPoolAccountParams {
+	return QueryPoolAccountParams{
 		PoolName:   poolName,
 		AccAddress: accAddr,
 	}

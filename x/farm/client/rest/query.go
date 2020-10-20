@@ -94,7 +94,7 @@ func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
 		}
 
-		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryEarningsParams(varsMap["poolName"], accAddr))
+		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryPoolAccountParams(varsMap["poolName"], accAddr))
 		if err != nil {
 			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
 			return
