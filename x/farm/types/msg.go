@@ -19,12 +19,12 @@ type MsgCreatePool struct {
 
 var _ sdk.Msg = MsgCreatePool{}
 
-func NewMsgCreatePool(address sdk.AccAddress, poolName, lockToken, yieldToken string) MsgCreatePool {
+func NewMsgCreatePool(address sdk.AccAddress, poolName, lockSymbol, yieldedSymbol string) MsgCreatePool {
 	return MsgCreatePool{
 		Owner:         address,
 		PoolName:      poolName,
-		LockedSymbol:  lockToken,
-		YieldedSymbol: yieldToken,
+		LockedSymbol:  lockSymbol,
+		YieldedSymbol: yieldedSymbol,
 	}
 }
 
