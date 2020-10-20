@@ -15,6 +15,7 @@ const (
 	CodeTokenNotExist                 CodeType = 106
 	CodePoolNotFinished               CodeType = 107
 	CodePoolNameNotExistedInWhiteList CodeType = 108
+	CodeUnexpectedProposalType        CodeType = 109
 	CodeInvalidAddress                         = sdk.CodeInvalidAddress
 	CodeUnknownRequest                         = sdk.CodeUnknownRequest
 )
@@ -98,4 +99,10 @@ func ErrPoolNotFinished(codespace sdk.CodespaceType, poolName string) sdk.Error 
 func ErrPoolNameNotExistedInWhiteList(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodePoolNameNotExistedInWhiteList,
 		"failed. the pool name %s is not existed in the white list", poolName)
+}
+
+// ErrUnexpectedProposalType returns an error when the proposal type is not supported in farm module
+func ErrUnexpectedProposalType(codespace sdk.CodespaceType, proposalType string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnexpectedProposalType,
+		"failed. the proposal type %s is not supported in farm module", proposalType)
 }

@@ -43,7 +43,7 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (voting
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	switch content := msg.Content.(type) {
 	case types.ManageWhiteListProposal:
-		return k.checkMsgManageWhiteListProposal(ctx, content, msg.Proposer, msg.InitialDeposit)
+		return k.CheckMsgManageWhiteListProposal(ctx, content)
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized dex proposal content type: %T", content))
 	}
@@ -57,9 +57,8 @@ func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote)
 	return "", nil
 }
 
-// check msg manage white list proposal
-func (k Keeper) checkMsgManageWhiteListProposal(ctx sdk.Context, proposal types.ManageWhiteListProposal,
-	proposer sdk.AccAddress, initialDeposit sdk.DecCoins) sdk.Error {
+// CheckMsgManageWhiteListProposal checks msg manage white list proposal
+func (k Keeper) CheckMsgManageWhiteListProposal(ctx sdk.Context, proposal types.ManageWhiteListProposal) sdk.Error {
 	if proposal.IsAdded {
 		// add pool name into white list
 		// 1. check the existence
@@ -76,7 +75,7 @@ func (k Keeper) checkMsgManageWhiteListProposal(ctx sdk.Context, proposal types.
 	}
 
 	// delete the pool name from the white list
-	// check the existence of the pool name in whitelist
+	// 1. check the existence of the pool name in whitelist
 	if !k.isPoolNameExistedInWhiteList(ctx, proposal.PoolName) {
 		return types.ErrPoolNameNotExistedInWhiteList(types.DefaultCodespace, proposal.PoolName)
 	}

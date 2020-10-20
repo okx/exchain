@@ -24,6 +24,11 @@ func (k Keeper) SetWhitelist(ctx sdk.Context, poolName string) {
 	ctx.KVStore(k.storeKey).Set(types.GetWhitelistMemberKey(poolName), []byte(""))
 }
 
+// DeleteWhiteList remove the pool name from whitelist
+func (k Keeper) DeleteWhiteList(ctx sdk.Context, poolName string) {
+	ctx.KVStore(k.storeKey).Delete(types.GetWhitelistMemberKey(poolName))
+}
+
 func (k Keeper) isPoolNameExistedInWhiteList(ctx sdk.Context, poolName string) bool {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.PoolsYieldNativeTokenPrefix)
@@ -40,23 +45,23 @@ func (k Keeper) isPoolNameExistedInWhiteList(ctx sdk.Context, poolName string) b
 
 func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool) sdk.Error {
 	quoteTokenSymbol := k.GetParams(ctx).QuoteSymbol
-	if !swaptypes.IsPoolToken(pool.SymbolLocked) {
+	if !swaptypes.IsPoolToken(pool.LockedSymbol) {
 		// locked token is common token
 		// check the existence of locked token with default quoteTokenSymbol in Params
-		if !k.isSwapTokenPairExisted(ctx, pool.SymbolLocked, quoteTokenSymbol) {
-			return types.ErrTokenNotExist(types.DefaultParamspace, swaptypes.GetSwapTokenPairName(pool.SymbolLocked, quoteTokenSymbol))
+		if !k.isSwapTokenPairExisted(ctx, pool.LockedSymbol, quoteTokenSymbol) {
+			return types.ErrTokenNotExist(types.DefaultParamspace, swaptypes.GetSwapTokenPairName(pool.LockedSymbol, quoteTokenSymbol))
 		}
 
 		return nil
 	}
 
 	// locked token is lpt
-	tokenSymbol0, tokenSymbol1 := swaptypes.SplitPoolToken(pool.SymbolLocked)
+	tokenSymbol0, tokenSymbol1 := swaptypes.SplitPoolToken(pool.LockedSymbol)
 	if tokenSymbol0 == quoteTokenSymbol || tokenSymbol1 == quoteTokenSymbol {
 		// base or quote token contains default quoteTokenSymbol in Params
 		// check the existence of locked token
-		if !k.isSwapTokenPairExisted(ctx, "", "", pool.SymbolLocked) {
-			return types.ErrTokenNotExist(types.DefaultParamspace, pool.SymbolLocked)
+		if !k.isSwapTokenPairExisted(ctx, "", "", pool.LockedSymbol) {
+			return types.ErrTokenNotExist(types.DefaultParamspace, pool.LockedSymbol)
 		}
 
 		return nil
