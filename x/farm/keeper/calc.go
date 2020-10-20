@@ -127,7 +127,7 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period
 	}
 }
 
-func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64) sdk.DecCoins {
+func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64) (rewards sdk.DecCoins) {
 	// fetch lock info
 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
 	if !found {
@@ -135,7 +135,7 @@ func (k Keeper) calculateRewards(ctx sdk.Context, poolName string, addr sdk.AccA
 	}
 	if lockInfo.StartBlockHeight == ctx.BlockHeight() {
 		// started this height, no rewards yet
-		return nil
+		return
 	}
 
 	startingPeriod := lockInfo.ReferencePeriod
