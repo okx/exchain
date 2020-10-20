@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	MaxPoolNameLength = 40
+	// TODO: change it back
+	//MaxPoolNameLength = 40
+	MaxPoolNameLength = 100
 )
 
 type MsgCreatePool struct {
