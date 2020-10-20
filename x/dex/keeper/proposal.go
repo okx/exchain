@@ -84,7 +84,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 // nolint
 func (k Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govTypes.Proposal) {}
 
-// VoteHandler handles  delist proposal when voted
+// VoteHandler handles delist proposal when voted
 func (k Keeper) VoteHandler(ctx sdk.Context, proposal govTypes.Proposal, vote govTypes.Vote) (string, sdk.Error) {
 	if _, ok := proposal.Content.(types.DelistProposal); ok {
 		delistProposal := proposal.Content.(types.DelistProposal)

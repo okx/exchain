@@ -10,11 +10,11 @@ import (
 // NewManageWhiteListProposalHandler handles "gov" type message in "farm"
 func NewManageWhiteListProposalHandler(k *Keeper) govTypes.Handler {
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
-		switch contentType := proposal.Content.(type) {
+		switch content := proposal.Content.(type) {
 		case types.ManageWhiteListProposal:
 			return handleManageWhiteListProposal(ctx, k, proposal)
 		default:
-			return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized param proposal content type: %s", contentType))
+			return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized param proposal content type: %T", content))
 		}
 	}
 }
