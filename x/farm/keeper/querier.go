@@ -24,6 +24,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryPools(ctx, req, k)
 		case types.QueryEarnings:
 			return queryEarnings(ctx, req, k)
+		case types.QueryLockInfo:
+			return queryLockInfo(ctx, req, k)
 		case types.QueryParameters:
 			return queryParams(ctx, k)
 		case types.QueryWhitelist:
@@ -96,6 +98,25 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, earnings)
+	if err != nil {
+		return nil, defaultQueryErrJSONMarshal(err)
+	}
+
+	return res, nil
+}
+
+func queryLockInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+	var params types.QueryPoolAccountParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, defaultQueryErrParseParams(err)
+	}
+
+	lockInfo, found := k.GetLockInfo(ctx, params.AccAddress, params.PoolName)
+	if !found {
+		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, params.AccAddress.String())
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, lockInfo)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}
