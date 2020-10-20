@@ -16,7 +16,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/okexchain/x/common"
 	dexUtils "github.com/okex/okexchain/x/dex/client/utils"
@@ -177,7 +176,7 @@ func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			if err := authTypes.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
+			if err := auth.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
 				return err
 			}
 			flags := cmd.Flags()

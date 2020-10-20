@@ -255,7 +255,6 @@ Where proposal.json contains:
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-
 }
 
 //TODO: remove it later

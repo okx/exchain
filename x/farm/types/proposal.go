@@ -12,6 +12,11 @@ const (
 	proposalTypeManageWhiteList = "ManageWhiteList"
 )
 
+func init() {
+	govtypes.RegisterProposalType(proposalTypeManageWhiteList)
+	govtypes.RegisterProposalTypeCodec(ManageWhiteListProposal{}, "okexchain/farm/ManageWhiteListProposal")
+}
+
 var _ govtypes.Content = (*ManageWhiteListProposal)(nil)
 
 // ManageWhiteListProposal - structure for the proposal to add or delete a pool name from white list

@@ -15,7 +15,6 @@ const (
 func init() {
 	govtypes.RegisterProposalType(proposalTypeDelist)
 	govtypes.RegisterProposalTypeCodec(DelistProposal{}, "okexchain/dex/DelistProposal")
-
 }
 
 // Assert DelistProposal implements govtypes.Content at compile-time
