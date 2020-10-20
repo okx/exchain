@@ -22,7 +22,7 @@ func (k Keeper) getEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAdd
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, updatedPool.TotalValueLocked, yieldedTokens)
-	rewards := k.calculateRewards(ctx, poolName, accAddr, endingPeriod)
+	rewards := k.calculateRewards(ctx, poolName, accAddr, endingPeriod, lockInfo)
 
 	earnings.TargetBlockHeight = ctx.BlockHeight()
 	earnings.AmountLocked = lockInfo.Amount
