@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/farm/keeper"
@@ -16,45 +15,43 @@ import (
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
-		logger := ctx.Logger().With("module", types.ModuleName)
-
 		var handlerFun func() sdk.Result
 		var name string
 		switch msg := msg.(type) {
 		case types.MsgCreatePool:
 			name = "handleMsgCreatePool"
 			handlerFun = func() sdk.Result {
-				return handleMsgCreatePool(ctx, k, msg, logger)
+				return handleMsgCreatePool(ctx, k, msg)
 			}
 		case types.MsgDestroyPool:
 			name = "handleMsgDestroyPool"
 			handlerFun = func() sdk.Result {
-				return handleMsgDestroyPool(ctx, k, msg, logger)
+				return handleMsgDestroyPool(ctx, k, msg)
 			}
 		case types.MsgProvide:
 			name = "handleMsgProvide"
 			handlerFun = func() sdk.Result {
-				return handleMsgProvide(ctx, k, msg, logger)
+				return handleMsgProvide(ctx, k, msg)
 			}
 		case types.MsgLock:
 			name = "handleMsgLock"
 			handlerFun = func() sdk.Result {
-				return handleMsgLock(ctx, k, msg, logger)
+				return handleMsgLock(ctx, k, msg)
 			}
 		case types.MsgUnlock:
 			name = "handleMsgUnlock"
 			handlerFun = func() sdk.Result {
-				return handleMsgUnlock(ctx, k, msg, logger)
+				return handleMsgUnlock(ctx, k, msg)
 			}
 		case types.MsgClaim:
 			name = "handleMsgClaim"
 			handlerFun = func() sdk.Result {
-				return handleMsgClaim(ctx, k, msg, logger)
+				return handleMsgClaim(ctx, k, msg)
 			}
 		case types.MsgSetWhite:
 			name = "handleMsgSetWhite"
 			handlerFun = func() sdk.Result {
-				return handleMsgSetWhite(ctx, k, msg, logger)
+				return handleMsgSetWhite(ctx, k, msg)
 			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
@@ -67,7 +64,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, logger log.Logger) sdk.Result {
+func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sdk.Result {
 	// 0. Check if the start_height_to_yield is more than current height
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
@@ -122,7 +119,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide, lo
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger log.Logger) sdk.Result {
+func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Result {
 	// 1. Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
@@ -157,7 +154,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim, logger
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgSetWhite(ctx sdk.Context, k keeper.Keeper, msg types.MsgSetWhite, logger log.Logger) sdk.Result {
+func handleMsgSetWhite(ctx sdk.Context, k keeper.Keeper, msg types.MsgSetWhite) sdk.Result {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}

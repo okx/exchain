@@ -2,13 +2,11 @@ package farm
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger log.Logger) sdk.Result {
+func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Result {
 	// 1. Get farm pool
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
@@ -17,7 +15,6 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	if pool.LockedSymbol != msg.Amount.Denom {
 		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
 	}
-
 
 	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
@@ -68,7 +65,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock, logger l
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock, logger log.Logger) sdk.Result {
+func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.Result {
 	// 1.1 Check if there are enough tokens to unlock
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
