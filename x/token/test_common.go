@@ -84,3 +84,34 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 
 	return ctx, tk, keyParams, []byte("testToken")
 }
+
+func NewTestToken(t *testing.T, ctx sdk.Context, keeper Keeper, bankKeeper bank.Keeper, tokenName string, addrList []sdk.AccAddress) {
+	require.NotEqual(t, 0 ,len(addrList))
+	tokenObject := InitTestTokenWithOwner(tokenName, addrList[0])
+	keeper.NewToken(ctx, tokenObject)
+
+	initCoins := sdk.NewCoins(sdk.NewCoin(tokenName, sdk.NewInt(100000)))
+	for _, addr := range addrList {
+		_, err := bankKeeper.AddCoins(ctx, addr, initCoins)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func InitTestToken(name string) types.Token {
+	return InitTestTokenWithOwner(name, supply.NewModuleAddress(ModuleName))
+}
+
+func InitTestTokenWithOwner(name string, owner sdk.AccAddress) types.Token {
+	return types.Token{
+		Description:         name,
+		Symbol:              name,
+		OriginalSymbol:      name,
+		WholeName:           name,
+		OriginalTotalSupply: sdk.NewDec(0),
+		Owner:               owner,
+		Type:                1,
+		Mintable:            true,
+	}
+}

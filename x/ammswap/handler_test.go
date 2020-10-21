@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
-	token "github.com/okex/okexchain/x/token/types"
+	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -23,50 +23,50 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 
-	testToken := initToken(types.TestBasePooledToken)
-	testToken2 := initToken(types.TestBasePooledToken2)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
+	testToken2 := token.InitTestToken(types.TestBasePooledToken2)
+	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 	mapp.tokenKeeper.NewToken(ctx, testToken2)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 
 	tests := []struct {
-		testCase               string
-		token0                 string
-		token1                 string
-		addr                   sdk.AccAddress
-		expectedCode           sdk.CodeType
+		testCase     string
+		token0       string
+		token1       string
+		addr         sdk.AccAddress
+		expectedCode sdk.CodeType
 	}{
 		{
-			testCase:               "token is not exist",
-			token0:                 testToken.Symbol,
-			token1:                 types.TestBasePooledToken3,
-			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeInternal},
+			testCase:     "token is not exist",
+			token0:       testToken.Symbol,
+			token1:       types.TestBasePooledToken3,
+			addr:         addrKeysSlice[0].Address,
+			expectedCode: sdk.CodeInternal},
 		{
-			testCase:               "success",
-			token0:                 testToken.Symbol,
-			token1:                 testQuoteToken.Symbol,
-			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeOK,},
+			testCase:     "success",
+			token0:       testToken.Symbol,
+			token1:       testQuoteToken.Symbol,
+			addr:         addrKeysSlice[0].Address,
+			expectedCode: sdk.CodeOK},
 		{
-			testCase:               "success(The lexicographic order of BaseTokenName must be less than QuoteTokenName)",
-			token0:                 testToken2.Symbol,
-			token1:                 testToken.Symbol,
-			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeOK},
+			testCase:     "success(The lexicographic order of BaseTokenName must be less than QuoteTokenName)",
+			token0:       testToken2.Symbol,
+			token1:       testToken.Symbol,
+			addr:         addrKeysSlice[0].Address,
+			expectedCode: sdk.CodeOK},
 		{
-			testCase:               "swapTokenPair already exists",
-			token0:                 testToken.Symbol,
-			token1:                 testQuoteToken.Symbol,
-			addr:                   addrKeysSlice[0].Address,
-			expectedCode:           sdk.CodeInternal},
+			testCase:     "swapTokenPair already exists",
+			token0:       testToken.Symbol,
+			token1:       testQuoteToken.Symbol,
+			addr:         addrKeysSlice[0].Address,
+			expectedCode: sdk.CodeInternal},
 	}
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
-		addLiquidityMsg := types.NewMsgCreateExchange(testCase.token0, testCase.token1, testCase.addr)
-		result := handler(ctx, addLiquidityMsg)
+		createExchangeMsg := types.NewMsgCreateExchange(testCase.token0, testCase.token1, testCase.addr)
+		result := handler(ctx, createExchangeMsg)
 		require.Equal(t, testCase.expectedCode, result.Code)
 		if result.IsOK() {
 			expectedSwapTokenPairName := types.GetSwapTokenPairName(testCase.token0, testCase.token1)
@@ -79,26 +79,13 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	}
 }
 
-func initToken(name string) token.Token {
-	return token.Token{
-		Description:         name,
-		Symbol:              name,
-		OriginalSymbol:      name,
-		WholeName:           name,
-		OriginalTotalSupply: sdk.NewDec(0),
-		Owner:               supply.NewModuleAddress(ModuleName),
-		Type:                1,
-		Mintable:            true,
-	}
-}
-
 func TestHandleMsgAddLiquidity(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
-	testToken := initToken(types.TestBasePooledToken)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
+	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
@@ -109,7 +96,7 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 
-	testQuoteToken2 := initToken(types.TestBasePooledToken2)
+	testQuoteToken2 := token.InitTestToken(types.TestBasePooledToken2)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken2)
 	msgPool2 := types.NewMsgCreateExchange(testToken.Symbol, types.TestBasePooledToken2, addrKeysSlice[0].Address)
 	result2 := handler(ctx, msgPool2)
@@ -178,8 +165,8 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
-	testToken := initToken(types.TestBasePooledToken)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
+	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
@@ -190,7 +177,7 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	result := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 
-	testQuoteToken2 := initToken(types.TestBasePooledToken2)
+	testQuoteToken2 := token.InitTestToken(types.TestBasePooledToken2)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken2)
 	msgPool2 := types.NewMsgCreateExchange(testToken.Symbol, types.TestBasePooledToken2, addrKeysSlice[0].Address)
 	result2 := handler(ctx, msgPool2)
@@ -271,10 +258,10 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
-	testToken := initToken(types.TestBasePooledToken)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
 	secondTestTokenName := types.TestBasePooledToken2
-	secondTestToken := initToken(secondTestTokenName)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
+	secondTestToken := token.InitTestToken(secondTestTokenName)
+	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
@@ -379,8 +366,8 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
-	testToken := initToken(types.TestBasePooledToken)
-	secondTestToken := initToken(types.TestBasePooledToken2)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
+	secondTestToken := token.InitTestToken(types.TestBasePooledToken2)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
@@ -458,12 +445,36 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 }
 
 func TestGetInputPrice(t *testing.T) {
-	defaultFeeRate := sdk.NewDecWithPrec(3, 3)
-	inputAmount := sdk.NewDecWithPrec(0, 8)
-	inputReserve := sdk.NewDec(100)
-	outputReserve := sdk.NewDec(100)
-	res := keeper.GetInputPrice(inputAmount, inputReserve, outputReserve, defaultFeeRate)
-	require.Equal(t, inputAmount, res)
+	tests := []struct {
+		testCase           string
+		inputAmount        sdk.Dec
+		inputReserve       sdk.Dec
+		outputReserve      sdk.Dec
+		feeRate            sdk.Dec
+		exceptOutputAmount sdk.Dec
+	}{
+		{
+			testCase:           "zero input",
+			inputAmount:        sdk.NewDec(0),
+			inputReserve:       sdk.NewDec(100),
+			outputReserve:      sdk.NewDec(100),
+			feeRate:            sdk.NewDecWithPrec(3, 3),
+			exceptOutputAmount: sdk.NewDec(0),
+		},
+		{
+			testCase:           "min input",
+			inputAmount:        sdk.NewDecWithPrec(1, 8),
+			inputReserve:       sdk.NewDec(100),
+			outputReserve:      sdk.NewDec(100),
+			feeRate:            sdk.NewDecWithPrec(3, 3),
+			exceptOutputAmount: sdk.NewDec(0),
+		},
+	}
+	for _, testCase := range tests {
+		fmt.Println(testCase.testCase)
+		res := keeper.GetInputPrice(testCase.inputAmount, testCase.inputReserve, testCase.outputReserve, testCase.feeRate)
+		require.Equal(t, testCase.exceptOutputAmount.String(), res.String())
+	}
 }
 
 func TestRandomData(t *testing.T) {
@@ -472,8 +483,8 @@ func TestRandomData(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
-	testToken := initToken(types.TestBasePooledToken)
-	testQuoteToken := initToken(types.TestQuotePooledToken)
+	testToken := token.InitTestToken(types.TestBasePooledToken)
+	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)

@@ -3,6 +3,7 @@ package farm
 import (
 	"bytes"
 	"fmt"
+	swap "github.com/okex/okexchain/x/ammswap"
 	"strconv"
 	"testing"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	swap "github.com/okex/okexchain/x/ammswap/keeper"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/okex/okexchain/x/params"
@@ -38,16 +38,22 @@ type MockFarmKeeper struct {
 	SupplyKeeper supply.Keeper
 	MountedStore store.MultiStore
 	AccKeeper    auth.AccountKeeper
+	BankKeeper   bank.Keeper
+	TokenKeeper  token.Keeper
+	SwapKeeper   swap.Keeper
 }
 
 func NewMockFarmKeeper(k Keeper, keyStoreKey sdk.StoreKey, sKeeper supply.Keeper,
-	ms store.MultiStore, accKeeper auth.AccountKeeper) MockFarmKeeper {
+	ms store.MultiStore, accKeeper auth.AccountKeeper, bankKeeper bank.Keeper, tokenKeeper token.Keeper, swapKeeper swap.Keeper) MockFarmKeeper {
 	return MockFarmKeeper{
 		k,
 		keyStoreKey,
 		sKeeper,
 		ms,
 		accKeeper,
+		bankKeeper,
+		tokenKeeper,
+		swapKeeper,
 	}
 }
 
@@ -122,6 +128,9 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	// 1.3 init bank keeper
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	farmAcc := supply.NewEmptyModuleAccount(types.ModuleName, supply.Burner, supply.Minter)
+	yieldFarmingAccount := supply.NewEmptyModuleAccount(YieldFarmingAccount, supply.Burner, supply.Minter)
+	mintFarmingAccount := supply.NewEmptyModuleAccount(MintFarmingAccount, supply.Burner, supply.Minter)
+	swapModuleAccount := supply.NewEmptyModuleAccount(swap.ModuleName, supply.Burner, supply.Minter)
 
 	blacklistedAddrs := make(map[string]bool)
 	blacklistedAddrs[feeCollectorAcc.String()] = true
@@ -141,11 +150,17 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Burner, supply.Minter},
+		YieldFarmingAccount:   {supply.Burner, supply.Minter},
+		MintFarmingAccount:    {supply.Burner, supply.Minter},
+		swap.ModuleName:       {supply.Burner, supply.Minter},
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
 	sk.SetModuleAccount(ctx, feeCollectorAcc)
 	sk.SetModuleAccount(ctx, farmAcc)
+	sk.SetModuleAccount(ctx, yieldFarmingAccount)
+	sk.SetModuleAccount(ctx, mintFarmingAccount)
+	sk.SetModuleAccount(ctx, swapModuleAccount)
 
 	// 1.5 init token keeper
 	tk := token.NewKeeper(bk, pk.Subspace(token.DefaultParamspace), auth.FeeCollectorName, sk, keyToken, keyLock, cdc, false)
@@ -157,7 +172,7 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)
 	fk.SetParams(ctx, types.DefaultParams())
 	// 2. init mock keeper
-	mk := NewMockFarmKeeper(fk, keyFarm, sk, ms, ak)
+	mk := NewMockFarmKeeper(fk, keyFarm, sk, ms, ak, bk, tk, swapKeeper)
 
 	//// 3. init mockApp
 	//mApp := mock.NewApp()
