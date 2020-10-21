@@ -24,7 +24,7 @@ func (k Keeper) SetWhitelist(ctx sdk.Context, poolName string) {
 	ctx.KVStore(k.storeKey).Set(types.GetWhitelistMemberKey(poolName), []byte(""))
 }
 
-// DeleteWhiteList remove the pool name from whitelist
+// DeleteWhiteList removes the pool name from whitelist
 func (k Keeper) DeleteWhiteList(ctx sdk.Context, poolName string) {
 	ctx.KVStore(k.storeKey).Delete(types.GetWhitelistMemberKey(poolName))
 }
@@ -60,7 +60,7 @@ func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool)
 	if tokenSymbol0 == quoteTokenSymbol || tokenSymbol1 == quoteTokenSymbol {
 		// base or quote token contains default quoteTokenSymbol in Params
 		// check the existence of locked token
-		if !k.isSwapTokenPairExisted(ctx, "", "", pool.LockedSymbol) {
+		if !k.isSwapTokenPairExisted(ctx, tokenSymbol0, tokenSymbol1) {
 			return types.ErrTokenNotExist(types.DefaultParamspace, pool.LockedSymbol)
 		}
 
@@ -80,17 +80,8 @@ func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool)
 	return nil
 }
 
-func (k Keeper) isSwapTokenPairExisted(ctx sdk.Context, baseTokenSymbol, quoteTokenSymbol string, fullSwapTokenName ...string) bool {
-	var swapTokenPairName string
-	if len(fullSwapTokenName) == 0 {
-		swapTokenPairName = swaptypes.GetSwapTokenPairName(baseTokenSymbol, quoteTokenSymbol)
-	} else if len(fullSwapTokenName) == 1 {
-		swapTokenPairName = fullSwapTokenName[0]
-	} else {
-		// over one swap token name to check
-		return false
-	}
-	_, err := k.swapKeeper.GetSwapTokenPair(ctx, swapTokenPairName)
+func (k Keeper) isSwapTokenPairExisted(ctx sdk.Context, baseTokenSymbol, quoteTokenSymbol string) bool {
+	_, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(baseTokenSymbol, quoteTokenSymbol))
 	if err != nil {
 		return false
 	}
