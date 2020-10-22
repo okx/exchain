@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool, logger log.Logger) sdk.Result {
+func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool) sdk.Result {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
@@ -66,7 +64,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	return sdk.Result{Events: ctx.EventManager().Events()}
 }
 
-func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool, logger log.Logger) sdk.Result {
+func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool) sdk.Result {
+	// 0. check pool and owner
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -76,11 +75,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		return types.ErrInvalidPoolOwner(DefaultCodespace, msg.Owner.String(), msg.PoolName).Result()
 	}
 
-	if !pool.Finished() {
-		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
-	}
-
-	// withdraw
+	// 1. withdraw deposit
 	withdrawAmount := pool.DepositAmount
 	if withdrawAmount.IsPositive() {
 		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
@@ -90,24 +85,34 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		}
 	}
 
-	if !pool.TotalAccumulatedRewards.IsZero() {
-		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, YieldFarmingAccount, msg.Owner, pool.TotalAccumulatedRewards)
+	// 2. calculate how many provided token & native token have been yielded between start_block_height and current_height
+	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
+	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+
+	// 3. check pool status
+	if !updatedPool.Finished() {
+		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	// 4. give remaining rewards to the owner of pool
+	if !updatedPool.TotalAccumulatedRewards.IsZero() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards)
 		if err != nil {
 			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
-				pool.TotalAccumulatedRewards.String())).Result()
+				updatedPool.TotalAccumulatedRewards.String())).Result()
 		}
 	}
 
-	// delete pool
+	// 5. delete pool and white list
 	k.DeleteFarmPool(ctx, msg.PoolName)
 
+	// 6. delete historical period rewards and current period rewards.
 	k.IteratePoolHistoricalRewards(ctx, msg.PoolName,
 		func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
 			store.Delete(key)
 			return false
 		},
 	)
-
 	k.DeletePoolCurrentRewards(ctx, msg.PoolName)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
