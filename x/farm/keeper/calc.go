@@ -155,9 +155,6 @@ func (k Keeper) calculateLockRewardsBetween(ctx sdk.Context, poolName string, st
 	starting := k.GetPoolHistoricalRewards(ctx, poolName, startingPeriod)
 	ending := k.GetPoolHistoricalRewards(ctx, poolName, endingPeriod)
 	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
-	if difference.IsAnyNegative() {
-		panic("negative rewards should not be possible")
-	}
 	rewards = difference.MulDecTruncate(amount.Amount)
 	return
 }

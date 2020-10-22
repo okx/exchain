@@ -1,4 +1,4 @@
-package farm
+package keeper
 
 import (
 	"bytes"
@@ -49,20 +49,6 @@ func NewMockFarmKeeper(k Keeper, keyStoreKey sdk.StoreKey, sKeeper supply.Keeper
 		ms,
 		accKeeper,
 	}
-}
-
-func TestBeginBlocker(t *testing.T) {
-	//ctx, mk := getKeeper(t)
-	//k := mk.Keeper
-	//
-	//// TODO issue token
-	//// TODO create swap
-	//// TODO test farm
-	//
-	//for i := int64(1); i < 10; i++ {
-	//	ctx = ctx.WithBlockHeight(i)
-	//	BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: i}}, k)
-	//}
 }
 
 func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
@@ -121,11 +107,15 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 
 	// 1.3 init bank keeper
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	farmAcc := supply.NewEmptyModuleAccount(types.ModuleName, supply.Burner, supply.Minter)
+	farmAcc := supply.NewEmptyModuleAccount(types.ModuleName)
+	yieldAcc := supply.NewEmptyModuleAccount(types.YieldFarmingAccount)
+	mintAcc := supply.NewEmptyModuleAccount(types.MintFarmingAccount)
 
 	blacklistedAddrs := make(map[string]bool)
 	blacklistedAddrs[feeCollectorAcc.String()] = true
 	blacklistedAddrs[farmAcc.String()] = true
+	blacklistedAddrs[yieldAcc.String()] = true
+	blacklistedAddrs[mintAcc.String()] = true
 
 	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), bank.DefaultCodespace, blacklistedAddrs)
 	// fill all the addresses with some coins
@@ -140,12 +130,16 @@ func getKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	// 1.4 init supply keeper
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
-		types.ModuleName:      {supply.Burner, supply.Minter},
+		types.ModuleName:      nil,
+		types.MintFarmingAccount: nil,
+		types.YieldFarmingAccount: nil,
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
 	sk.SetModuleAccount(ctx, feeCollectorAcc)
 	sk.SetModuleAccount(ctx, farmAcc)
+	sk.SetModuleAccount(ctx, yieldAcc)
+	sk.SetModuleAccount(ctx, mintAcc)
 
 	// 1.5 init token keeper
 	tk := token.NewKeeper(bk, pk.Subspace(token.DefaultParamspace), auth.FeeCollectorName, sk, keyToken, keyLock, cdc, false)
