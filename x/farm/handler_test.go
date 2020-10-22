@@ -5,6 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swap "github.com/okex/okexchain/x/ammswap"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,7 @@ import (
 
 func TestHandleMsgCreatePool(t *testing.T) {
 	// init
-	ctx, mk := getKeeper(t)
+	ctx, mk := keeper.GetKeeper(t)
 	k := mk.Keeper
 
 	var blockHeight int64 = 10
@@ -26,18 +27,18 @@ func TestHandleMsgCreatePool(t *testing.T) {
 	testQuoteTokenName2 := swaptypes.TestBasePooledToken3
 	testYieldTokenName := swaptypes.TestBasePooledToken
 
-	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testBaseTokenName, Addrs)
-	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testQuoteTokenName, Addrs)
-	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testQuoteTokenName2, Addrs)
+	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testBaseTokenName, keeper.Addrs)
+	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testQuoteTokenName, keeper.Addrs)
+	token.NewTestToken(t, ctx, mk.TokenKeeper, mk.BankKeeper, testQuoteTokenName2, keeper.Addrs)
 
 
 	var initPoolTokenAmount int64 = 100
 	testBaseToken := sdk.NewDecCoinFromDec(testBaseTokenName, sdk.NewDec(initPoolTokenAmount))
 	testQuoteToken := sdk.NewDecCoinFromDec(testQuoteTokenName, sdk.NewDec(initPoolTokenAmount))
-	testAddr := Addrs[0]
+	testAddr := keeper.Addrs[0]
 	testSwapTokenPair := swap.NewTestSwapTokenPairWithInitLiquidity(t, ctx, mk.SwapKeeper, testBaseToken, testQuoteToken, testAddr)
 
-	acc := mk.AccKeeper.GetAccount(ctx, Addrs[0])
+	acc := mk.AccKeeper.GetAccount(ctx, keeper.Addrs[0])
 	fmt.Println(acc)
 
 	handler := NewHandler(k)

@@ -8,7 +8,7 @@ import (
 )
 
 func TestCalculateAmountYieldedBetween(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 	type testCase struct {
 		curRewards     types.PoolCurrentRewards
@@ -108,7 +108,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 }
 
 func TestIncrementReferenceCount(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	expectSuccess := func(testFunc func()) {
@@ -143,7 +143,7 @@ func TestIncrementReferenceCount(t *testing.T) {
 }
 
 func TestDecrementReferenceCount(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	type testCase struct {
@@ -187,7 +187,7 @@ func TestDecrementReferenceCount(t *testing.T) {
 }
 
 func TestCalculateLockRewardsBetween(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	type testCase struct {
@@ -283,7 +283,7 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 }
 
 func TestIncrementPoolPeriod(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	type testCase struct {
@@ -357,7 +357,7 @@ func TestIncrementPoolPeriod(t *testing.T) {
 }
 
 func TestUpdateLockInfo(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	type testCase struct {
@@ -437,7 +437,7 @@ func TestUpdateLockInfo(t *testing.T) {
 }
 
 func TestWithdrawRewards(t *testing.T) {
-	ctx, keeper := getKeeper(t)
+	ctx, keeper := GetKeeper(t)
 	poolName := "poolName"
 
 	type testCase struct {
