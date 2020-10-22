@@ -60,22 +60,7 @@ func NewMockFarmKeeper(
 	}
 }
 
-func TestBeginBlocker(t *testing.T) {
-	//ctx, mk := GetKeeper(t)
-	//k := mk.Keeper
-	//
-	//// TODO issue token
-	//// TODO create swap
-	//// TODO test farm
-	//
-	//for i := int64(1); i < 10; i++ {
-	//	ctx = ctx.WithBlockHeight(i)
-	//	BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: i}}, k)
-	//}
-}
-
 func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
-
 	// 0.1 init store key
 	keyFarm := sdk.NewKVStoreKey(types.StoreKey)
 	tkeyFarm := sdk.NewTransientStoreKey(types.TStoreKey)
