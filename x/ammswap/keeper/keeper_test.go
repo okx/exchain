@@ -79,3 +79,13 @@ func TestKeeper_GetRedeemableAssets(t *testing.T) {
 	require.Equal(t, expectedBaseAmount, baseAmount)
 	require.Equal(t, expectedQuoteAmount, quoteAmount)
 }
+
+func TestGetInputPrice(t *testing.T) {
+	inputAmount := sdk.NewDecWithPrec(1, 8)
+	inputReserve := sdk.NewDec(1)
+	outputReserve := sdk.NewDec(1)
+	feeRate := sdk.NewDecWithPrec(3, 3)
+	outputAmount := GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate)
+	expectedAmount := sdk.NewDec(0)
+	require.Equal(t, expectedAmount.String(), outputAmount.String())
+}

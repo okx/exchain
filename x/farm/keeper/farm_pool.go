@@ -157,7 +157,7 @@ func (k Keeper) calculateLockedLPTValue(
 	if err != nil {
 		panic("should not happen")
 	}
-	
+
 	if token0Symbol == quoteSymbol || token1Symbol == quoteSymbol {
 		return k.calculateLPTValueWithQuote(ctx, token0Amount, token1Amount, quoteSymbol, swapParams)
 	}
