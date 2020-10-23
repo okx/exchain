@@ -73,19 +73,28 @@ func createPool(t *testing.T, tCtx testContext) types.MsgCreatePool {
 	createPoolMsg := types.NewMsgCreatePool(owner, poolName, testSwapTokenPair.PoolTokenName, testYieldTokenName)
 	result := tCtx.handler(tCtx.ctx, createPoolMsg)
 	require.True(t, result.IsOK())
+
+	k := tCtx.k
+	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	require.True(t, found)
 	return createPoolMsg
 }
 
 func destroyPool(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	k := tCtx.k
+	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	require.True(t, found)
 	destroyPoolMsg := types.NewMsgDestroyPool(createPoolMsg.Owner, createPoolMsg.PoolName)
 	result := tCtx.handler(tCtx.ctx, destroyPoolMsg)
 	require.True(t, result.IsOK())
+	_, found = k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	require.False(t, found)
 }
 
-func provide(t *testing.T, tCtx testContext, msgCreatePool types.MsgCreatePool) {
-	poolName := msgCreatePool.PoolName
-	address := msgCreatePool.Owner
-	amount := sdk.NewDecCoinFromDec(msgCreatePool.YieldedSymbol, sdk.NewDec(10))
+func provide(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	poolName := createPoolMsg.PoolName
+	address := createPoolMsg.Owner
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.YieldedSymbol, sdk.NewDec(10))
 	amountYieldedPerBlock := sdk.NewDec(1)
 	startBlockHeight := tCtx.ctx.BlockHeight() + 1
 	provideMsg := types.NewMsgProvide(poolName, address, amount, amountYieldedPerBlock, startBlockHeight)
@@ -93,27 +102,33 @@ func provide(t *testing.T, tCtx testContext, msgCreatePool types.MsgCreatePool) 
 	require.True(t, result.IsOK())
 }
 
-func lock(t *testing.T, tCtx testContext, msgCreatePool types.MsgCreatePool) {
-	poolName := msgCreatePool.PoolName
-	address := msgCreatePool.Owner
-	amount := sdk.NewDecCoinFromDec(msgCreatePool.LockedSymbol, sdk.NewDec(1))
+func lock(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	poolName := createPoolMsg.PoolName
+	address := createPoolMsg.Owner
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
 	lockMsg := types.NewMsgLock(poolName, address, amount)
 	result := tCtx.handler(tCtx.ctx, lockMsg)
 	require.True(t, result.IsOK())
 }
 
-func unlock(t *testing.T, tCtx testContext, msgCreatePool types.MsgCreatePool) {
-	poolName := msgCreatePool.PoolName
-	address := msgCreatePool.Owner
-	amount := sdk.NewDecCoinFromDec(msgCreatePool.LockedSymbol, sdk.NewDec(1))
+func unlock(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	poolName := createPoolMsg.PoolName
+	address := createPoolMsg.Owner
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
 	unlockMsg := types.NewMsgUnlock(poolName, address, amount)
 	result := tCtx.handler(tCtx.ctx, unlockMsg)
 	require.True(t, result.IsOK())
 }
 
-func claim(t *testing.T, tCtx testContext, msgCreatePool types.MsgCreatePool) {
-	claimMsg := types.NewMsgClaim(msgCreatePool.PoolName, msgCreatePool.Owner)
+func claim(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	claimMsg := types.NewMsgClaim(createPoolMsg.PoolName, createPoolMsg.Owner)
 	result := tCtx.handler(tCtx.ctx, claimMsg)
+	require.True(t, result.IsOK())
+}
+
+func setWhite(t *testing.T, tCtx testContext, createPoolMsg types.MsgCreatePool) {
+	setWhiteMsg := types.NewMsgSetWhite(createPoolMsg.PoolName, createPoolMsg.Owner)
+	result := tCtx.handler(tCtx.ctx, setWhiteMsg)
 	require.True(t, result.IsOK())
 }
 
@@ -141,10 +156,10 @@ func TestHandlerMsgProvide(t *testing.T) {
 	tCtx := initEnvironment(t)
 
 	// create pool
-	msgCreatePool := createPool(t, tCtx)
+	ceatePoolMsg := createPool(t, tCtx)
 
 	// provide
-	provide(t, tCtx, msgCreatePool)
+	provide(t, tCtx, ceatePoolMsg)
 }
 
 func TestHandlerMsgLock(t *testing.T) {
@@ -152,13 +167,13 @@ func TestHandlerMsgLock(t *testing.T) {
 	tCtx := initEnvironment(t)
 
 	// create pool
-	msgCreatePool := createPool(t, tCtx)
+	ceatePoolMsg := createPool(t, tCtx)
 
 	// provide
-	provide(t, tCtx, msgCreatePool)
+	provide(t, tCtx, ceatePoolMsg)
 
 	// lock
-	lock(t, tCtx, msgCreatePool)
+	lock(t, tCtx, ceatePoolMsg)
 }
 
 func TestHandlerMsgUnlock(t *testing.T) {
@@ -166,16 +181,16 @@ func TestHandlerMsgUnlock(t *testing.T) {
 	tCtx := initEnvironment(t)
 
 	// create pool
-	msgCreatePool := createPool(t, tCtx)
+	ceatePoolMsg := createPool(t, tCtx)
 
 	// provide
-	provide(t, tCtx, msgCreatePool)
+	provide(t, tCtx, ceatePoolMsg)
 
 	// lock
-	lock(t, tCtx, msgCreatePool)
+	lock(t, tCtx, ceatePoolMsg)
 
 	// unlock
-	unlock(t, tCtx, msgCreatePool)
+	unlock(t, tCtx, ceatePoolMsg)
 }
 
 func TestHandlerMsgClaim(t *testing.T) {
@@ -183,15 +198,27 @@ func TestHandlerMsgClaim(t *testing.T) {
 	tCtx := initEnvironment(t)
 
 	// create pool
-	msgCreatePool := createPool(t, tCtx)
+	ceatePoolMsg := createPool(t, tCtx)
 
 	// provide
-	provide(t, tCtx, msgCreatePool)
+	provide(t, tCtx, ceatePoolMsg)
 
 	// lock
-	lock(t, tCtx, msgCreatePool)
+	lock(t, tCtx, ceatePoolMsg)
 
 	// claim
 	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
-	claim(t, tCtx, msgCreatePool)
+	claim(t, tCtx, ceatePoolMsg)
+}
+
+
+func TestHandlerMsgSetWhite(t *testing.T) {
+	// init
+	tCtx := initEnvironment(t)
+
+	// create pool
+	ceatePoolMsg := createPool(t, tCtx)
+
+	// setWhite
+	setWhite(t, tCtx, ceatePoolMsg)
 }
