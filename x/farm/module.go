@@ -87,10 +87,6 @@ func NewAppModule(k keeper.Keeper /*TODO: Add Keepers that your application depe
 	}
 }
 
-// Name returns the farm module's name.
-func (AppModule) Name() string {
-	return types.ModuleName
-}
 
 // RegisterInvariants registers the farm module invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
