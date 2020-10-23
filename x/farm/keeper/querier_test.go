@@ -205,6 +205,7 @@ func TestQueries(t *testing.T) {
 	supply.RegisterCodec(cdc)
 	ctx, mockKeeper := GetKeeper(t)
 	querier := NewQuerier(mockKeeper.Keeper)
+
 	pools, lockInfos := initPoolsAndLockInfos(ctx, mockKeeper)
 
 	retParams := getQueriedParams(t, ctx, cdc, querier)
@@ -232,6 +233,7 @@ func TestQueries(t *testing.T) {
 	retPoolNum := getQueriedPoolNum(t, ctx, cdc, querier)
 	require.Equal(t, len(pools), int(retPoolNum.Number))
 
+	// test query earnings
 	ctx = ctx.WithBlockHeight(120)
 	retEarnings := getQueriedEarnings(t, ctx, cdc, querier, pools[0].Name, Addrs[0])
 	yieldAmount := pools[0].YieldedTokenInfos[0].AmountYieldedPerBlock.
@@ -243,6 +245,7 @@ func TestQueries(t *testing.T) {
 	expectedAmount := newRatio.Sub(referHis.CumulativeRewardRatio).MulDecTruncate(lockInfos[0].Amount.Amount)
 	require.Equal(t, expectedAmount, retEarnings.AmountYielded)
 
+	// test not existed query path
 	bz, err := querier(ctx, []string{"xxxx"}, abci.RequestQuery{})
 	require.NotNil(t, err)
 	require.Nil(t, bz)

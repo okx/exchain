@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	swapkeeper "github.com/okex/okexchain/x/ammswap/keeper"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/farm/types"
 )
@@ -141,7 +140,7 @@ func (k Keeper) GetPoolLockedValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 	if swaptypes.IsPoolToken(pool.LockedSymbol) {
 		poolValue = k.calculateLockedLPTValue(ctx, pool, quoteSymbol, swapParams)
 	} else {
-		poolValue = k.calculateQuoteTokenAmtToBuy(ctx, pool.TotalValueLocked, quoteSymbol, swapParams)
+		poolValue = k.calculateBaseValueInQuote(ctx, pool.TotalValueLocked, quoteSymbol, swapParams)
 	}
 	return poolValue
 }
@@ -155,7 +154,7 @@ func (k Keeper) calculateLockedLPTValue(
 	token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0Symbol, token1Symbol,
 		pool.TotalValueLocked.Amount)
 	if err != nil {
-		panic("should not happen")
+		panic("should not happen: " + err.Error())
 	}
 
 	if token0Symbol == quoteSymbol || token1Symbol == quoteSymbol {
@@ -176,7 +175,7 @@ func (k Keeper) calculateLPTValueWithQuote(
 		baseTokenAmount = token0Amount
 		quoteTokenAmount = token1Amount
 	}
-	swappedQuoteTokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, baseTokenAmount, quoteSymbol, swapParams)
+	swappedQuoteTokenAmt := k.calculateBaseValueInQuote(ctx, baseTokenAmount, quoteSymbol, swapParams)
 	poolValue := swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
 	return poolValue
 }
@@ -186,21 +185,25 @@ func (k Keeper) calculateLPTValueWithoutQuote(
 	ctx sdk.Context, token0Amount, token1Amount sdk.DecCoin, quoteSymbol string, swapParams swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
-	quote0TokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, token0Amount, quoteSymbol, swapParams)
-	quote1TokenAmt := k.calculateQuoteTokenAmtToBuy(ctx, token1Amount, quoteSymbol, swapParams)
+	quote0TokenAmt := k.calculateBaseValueInQuote(ctx, token0Amount, quoteSymbol, swapParams)
+	quote1TokenAmt := k.calculateBaseValueInQuote(ctx, token1Amount, quoteSymbol, swapParams)
 	return quote0TokenAmt.Add(quote1TokenAmt)
 }
 
-func (k Keeper) calculateQuoteTokenAmtToBuy(
-	ctx sdk.Context, coin sdk.DecCoin, quoteSymbol string, params swaptypes.Params,
+// calculate base token value denominated in quote token
+func (k Keeper) calculateBaseValueInQuote(
+	ctx sdk.Context, base sdk.DecCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
-	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(coin.Denom, quoteSymbol))
+	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(base.Denom, quoteSymbol))
 	if err != nil {
 		return sdk.ZeroDec()
 	}
-	swappedCoin := swapkeeper.CalculateTokenToBuy(tokenPair, coin, quoteSymbol, params)
-	return swappedCoin.Amount
+	if tokenPair.QuotePooledCoin.Denom == quoteSymbol {
+		return base.Amount.MulTruncate(tokenPair.QuotePooledCoin.Amount).QuoTruncate(tokenPair.BasePooledCoin.Amount)
+	} else {
+		return base.Amount.MulTruncate(tokenPair.BasePooledCoin.Amount).QuoTruncate(tokenPair.QuotePooledCoin.Amount)
+	}
 }
 
 // Iterate over all lock infos
