@@ -12,7 +12,6 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, "module-account", ModuleAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "yield-farming-account", YieldFarmingAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "mint-farming-account", MintFarmingAccountInvariant(k))
-	ir.RegisterRoute(types.ModuleName, "matched-address", MatchedAddressInvariant(k))
 }
 
 // ModuleAccountInvariant checks if farm ModuleAccount is consistent with the sum of deposit amount
@@ -84,13 +83,5 @@ func MintFarmingAccountInvariant(k Keeper) sdk.Invariant {
 				"\tacutal mint_farming_account coins: %s\n"+
 				"\twhite lists: %s\n",
 				moduleAcc.GetCoins(), whiteLists)), broken
-	}
-}
-
-// MatchedAddressInvariant
-func MatchedAddressInvariant(k Keeper) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
-
-		return "", false
 	}
 }
