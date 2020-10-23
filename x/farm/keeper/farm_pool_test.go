@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/farm/types"
@@ -94,6 +95,12 @@ func TestGetLockInfo(t *testing.T) {
 			isLPT:         false,
 			expectedValue: sdk.NewDec(100),
 		},
+		{
+			lockedSymbol:  token2Sym,
+			lockedValue:   sdk.ZeroDec(),
+			isLPT:         false,
+			expectedValue: sdk.ZeroDec(),
+		},
 	}
 
 	for _, test := range tests {
@@ -137,4 +144,35 @@ func initSwapExchange(
 		}
 	}
 	return token1Symbol, token2Symbol, tokenPairs
+}
+
+func TestIterateAllLockInfos(t *testing.T) {
+	ctx, keeper := GetKeeper(t)
+	lockInfoList := []types.LockInfo{}
+	lockInfoNum := 10
+	for i := 0; i < lockInfoNum; i++ {
+		keeper.Keeper.SetLockInfo(ctx, types.LockInfo{Owner: Addrs[i], PoolName: fmt.Sprintf("pool%d", i)})
+	}
+	handler := func(lockInfo types.LockInfo) (stop bool) {
+		lockInfoList = append(lockInfoList, lockInfo)
+		return false
+	}
+	keeper.IterateAllLockInfos(ctx, handler)
+	require.Equal(t, lockInfoNum, len(lockInfoList))
+}
+
+func TestReadWriteFarmPool(t *testing.T) {
+	ctx, keeper := GetKeeper(t)
+	poolName := "pool"
+	_, found := keeper.Keeper.GetFarmPool(ctx, poolName)
+	require.False(t, found)
+	pool := types.FarmPool{
+		Name: poolName,
+	}
+	keeper.Keeper.SetFarmPool(ctx, pool)
+	_, found = keeper.Keeper.GetFarmPool(ctx, poolName)
+	require.True(t, found)
+	keeper.Keeper.DeleteFarmPool(ctx, poolName)
+	_, found = keeper.Keeper.GetFarmPool(ctx, poolName)
+	require.False(t, found)
 }

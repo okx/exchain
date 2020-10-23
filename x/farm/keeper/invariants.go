@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
 )
@@ -12,7 +11,6 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, "module-account", moduleAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "yield-farming-account", yieldFarmingAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "mint-farming-account", mintFarmingAccountInvariant(k))
-	ir.RegisterRoute(types.ModuleName, "matched-address", matchedAddressInvariant(k))
 }
 
 // moduleAccountInvariant checks if farm ModuleAccount is consistent with the sum of deposit amount
@@ -87,13 +85,5 @@ func mintFarmingAccountInvariant(k Keeper) sdk.Invariant {
 				"\tacutal mint_farming_account coins: %s\n"+
 				"\twhite lists: %s\n",
 				moduleAcc.GetCoins(), whiteLists)), broken
-	}
-}
-
-// matchedAddressInvariant
-func matchedAddressInvariant(k Keeper) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
-
-		return "", false
 	}
 }

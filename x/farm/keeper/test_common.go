@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	swap "github.com/okex/okexchain/x/ammswap"
+	govtypes "github.com/okex/okexchain/x/gov/types"
+	stakingtypes "github.com/okex/okexchain/x/staking/types"
 	"strconv"
 	"testing"
 
@@ -212,4 +214,104 @@ func testAddr(addr string, bech string) sdk.AccAddress {
 	}
 
 	return res
+}
+
+func initPoolsAndLockInfos(
+	t *testing.T, ctx sdk.Context, mockKeeper MockFarmKeeper,
+) (pools types.FarmPools, lockInfos []types.LockInfo) {
+	pool1Name := "pool1"
+	pool2Name := "pool2"
+
+	pool1LockedAmount := sdk.NewDecCoin("xxb", sdk.NewInt(100))
+	pool2LockedAmount := sdk.NewDecCoin("yyb", sdk.NewInt(100))
+
+	lockInfos = []types.LockInfo{
+		types.NewLockInfo(Addrs[0], pool1Name, pool1LockedAmount, 80, 1),
+		types.NewLockInfo(Addrs[1], pool1Name, pool1LockedAmount, 90, 2),
+		types.NewLockInfo(Addrs[0], pool2Name, pool2LockedAmount, 80, 1),
+		types.NewLockInfo(Addrs[1], pool2Name, pool2LockedAmount, 90, 2),
+	}
+
+	for _, lockInfo := range lockInfos {
+		mockKeeper.Keeper.SetLockInfo(ctx, lockInfo)
+		mockKeeper.Keeper.SetAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
+	}
+
+	yieldAmount := sdk.NewDecCoin("wwb", sdk.NewInt(1000))
+	poolYieldedInfos := types.YieldedTokenInfos{
+		types.NewYieldedTokenInfo(yieldAmount, 100, sdk.NewDec(10)),
+	}
+	pools = types.FarmPools{
+		types.NewFarmPool(
+			Addrs[2], pool1Name, pool1LockedAmount.Denom,
+			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(100)},
+			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
+		),
+		types.NewFarmPool(
+			Addrs[3], pool2Name, pool2LockedAmount.Denom,
+			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
+			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
+		),
+	}
+	for _, pool := range pools {
+		mockKeeper.Keeper.SetFarmPool(ctx, pool)
+		mockKeeper.Keeper.SetPoolHistoricalRewards(
+			ctx, pool.Name, 1, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1),
+		)
+		mockKeeper.Keeper.SetPoolHistoricalRewards(
+			ctx, pool.Name, 2, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 2),
+		)
+		mockKeeper.Keeper.SetPoolCurrentRewards(
+			ctx, pool.Name, types.NewPoolCurrentRewards(90, 3, sdk.DecCoins{}),
+		)
+
+		moduleAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
+		err := moduleAcc.SetCoins(moduleAcc.GetCoins().Add(sdk.DecCoins{pool.DepositAmount}))
+		require.Nil(t, err)
+		mockKeeper.supplyKeeper.SetModuleAccount(ctx, moduleAcc)
+
+		yieldAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.YieldFarmingAccount)
+		err = yieldAcc.SetCoins(
+			yieldAcc.GetCoins().Add(sdk.DecCoins{pool.YieldedTokenInfos[0].RemainingAmount}).
+				Add(pool.TotalAccumulatedRewards),
+		)
+		require.Nil(t, err)
+		mockKeeper.supplyKeeper.SetModuleAccount(ctx, yieldAcc)
+	}
+	mockKeeper.Keeper.SetWhitelist(ctx, pools[0].Name)
+	return
+}
+
+var _ govtypes.Content = MockContent{}
+
+type MockContent struct{}
+
+func (m MockContent) GetTitle() string {
+	return ""
+}
+
+func (m MockContent) GetDescription() string {
+	return ""
+}
+
+func (m MockContent) ProposalRoute() string {
+	return ""
+}
+
+func (m MockContent) ProposalType() string {
+	return ""
+}
+
+func (m MockContent) ValidateBasic() sdk.Error {
+	return nil
+}
+
+func (m MockContent) String() string {
+	return ""
+}
+
+func SetSwapTokenPair(ctx sdk.Context, k Keeper, token0Symbol, token1Symbol string) {
+	pairName := swaptypes.GetSwapTokenPairName(token0Symbol, token1Symbol)
+	tokenPair := swaptypes.NewSwapPair(token0Symbol, token1Symbol)
+	k.swapKeeper.SetSwapTokenPair(ctx, pairName, tokenPair)
 }

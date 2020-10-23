@@ -148,57 +148,6 @@ func getQueriedPoolNum(
 	return
 }
 
-func initPoolsAndLockInfos(
-	ctx sdk.Context, mockKeeper MockFarmKeeper,
-) (pools types.FarmPools, lockInfos []types.LockInfo) {
-	pool1Name := "pool1"
-	pool2Name := "pool2"
-
-	pool1LockedAmount := sdk.NewDecCoin("xxb", sdk.NewInt(100))
-	pool2LockedAmount := sdk.NewDecCoin("yyb", sdk.NewInt(100))
-
-	lockInfos = []types.LockInfo{
-		types.NewLockInfo(Addrs[0], pool1Name, pool1LockedAmount, 80, 1),
-		types.NewLockInfo(Addrs[1], pool1Name, pool1LockedAmount, 90, 2),
-		types.NewLockInfo(Addrs[0], pool2Name, pool2LockedAmount, 80, 1),
-		types.NewLockInfo(Addrs[1], pool2Name, pool2LockedAmount, 90, 2),
-	}
-
-	for _, lockInfo := range lockInfos {
-		mockKeeper.Keeper.SetLockInfo(ctx, lockInfo)
-		mockKeeper.Keeper.SetAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
-	}
-
-	yieldAmount := sdk.NewDecCoin("wwb", sdk.NewInt(1000))
-	poolYieldedInfos := types.YieldedTokenInfos{
-		types.NewYieldedTokenInfo(yieldAmount, 100, sdk.NewDec(10)),
-	}
-	pools = types.FarmPools{
-		types.NewFarmPool(
-			Addrs[2], pool1Name, pool1LockedAmount.Denom, sdk.DecCoin{Amount: sdk.ZeroDec()},
-			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
-		),
-		types.NewFarmPool(
-			Addrs[3], pool2Name, pool2LockedAmount.Denom, sdk.DecCoin{Amount: sdk.ZeroDec()},
-			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
-		),
-	}
-	for _, pool := range pools {
-		mockKeeper.Keeper.SetFarmPool(ctx, pool)
-		mockKeeper.Keeper.SetPoolHistoricalRewards(
-			ctx, pool.Name, 1, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1),
-		)
-		mockKeeper.Keeper.SetPoolHistoricalRewards(
-			ctx, pool.Name, 2, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 2),
-		)
-		mockKeeper.Keeper.SetPoolCurrentRewards(
-			ctx, pool.Name, types.NewPoolCurrentRewards(90, 3, sdk.DecCoins{}),
-		)
-	}
-	mockKeeper.Keeper.SetWhitelist(ctx, pools[0].Name)
-	return
-}
-
 func TestQueries(t *testing.T) {
 	cdc := codec.New()
 	types.RegisterCodec(cdc)
@@ -206,7 +155,7 @@ func TestQueries(t *testing.T) {
 	ctx, mockKeeper := GetKeeper(t)
 	querier := NewQuerier(mockKeeper.Keeper)
 
-	pools, lockInfos := initPoolsAndLockInfos(ctx, mockKeeper)
+	pools, lockInfos := initPoolsAndLockInfos(t, ctx, mockKeeper)
 
 	retParams := getQueriedParams(t, ctx, cdc, querier)
 	require.Equal(t, types.DefaultParams(), retParams)
@@ -237,9 +186,11 @@ func TestQueries(t *testing.T) {
 	ctx = ctx.WithBlockHeight(120)
 	retEarnings := getQueriedEarnings(t, ctx, cdc, querier, pools[0].Name, Addrs[0])
 	yieldAmount := pools[0].YieldedTokenInfos[0].AmountYieldedPerBlock.
-		MulInt64(ctx.BlockHeight()-pools[0].YieldedTokenInfos[0].StartBlockHeightToYield)
+		MulInt64(ctx.BlockHeight() - pools[0].YieldedTokenInfos[0].StartBlockHeightToYield)
 	cur := mockKeeper.Keeper.GetPoolCurrentRewards(ctx, pools[0].Name)
-	cur.Rewards = cur.Rewards.Add(sdk.DecCoins{sdk.NewDecCoinFromDec(pools[0].YieldedTokenInfos[0].RemainingAmount.Denom, yieldAmount)})
+	cur.Rewards = cur.Rewards.Add(
+		sdk.DecCoins{sdk.NewDecCoinFromDec(pools[0].YieldedTokenInfos[0].RemainingAmount.Denom, yieldAmount)},
+	)
 	referHis := mockKeeper.Keeper.GetPoolHistoricalRewards(ctx, pools[0].Name, lockInfos[0].ReferencePeriod)
 	newRatio := referHis.CumulativeRewardRatio.Add(cur.Rewards.QuoDecTruncate(pools[0].TotalValueLocked.Amount))
 	expectedAmount := newRatio.Sub(referHis.CumulativeRewardRatio).MulDecTruncate(lockInfos[0].Amount.Amount)
