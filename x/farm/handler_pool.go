@@ -25,7 +25,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	// fee
 	feeAmount := k.GetParams(ctx).CreatePoolFee
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins()); err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
+		return sdk.ErrInsufficientFee(fmt.Sprintf("insufficient fee coins(need %s)",
 			feeAmount.String())).Result()
 	}
 
