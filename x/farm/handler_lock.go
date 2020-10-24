@@ -21,7 +21,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 
 	// 3. Get lock info
-	if _, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName); found {
+	if found := k.HasLockInfo(ctx, msg.Address, msg.PoolName); found {
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {

@@ -375,7 +375,7 @@ func TestUpdateLockInfo(t *testing.T) {
 
 	expectDelete := func(test testCase, testFunc func()) {
 		testFunc()
-		_, found := keeper.GetLockInfo(ctx, test.lockInfo.Owner, poolName)
+		found := keeper.HasLockInfo(ctx, test.lockInfo.Owner, poolName)
 		require.False(t, found)
 		found = keeper.HasAddressInFarmPool(ctx, poolName, test.lockInfo.Owner)
 		require.False(t, found)

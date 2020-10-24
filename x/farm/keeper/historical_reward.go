@@ -6,14 +6,18 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func (k Keeper) GetPoolHistoricalRewards(ctx sdk.Context, poolName string, period uint64) (rewards types.PoolHistoricalRewards) {
+func (k Keeper) GetPoolHistoricalRewards(
+	ctx sdk.Context, poolName string, period uint64,
+) (rewards types.PoolHistoricalRewards) {
 	store := ctx.KVStore(k.StoreKey())
 	bz := store.Get(types.GetPoolHistoricalRewardsKey(poolName, period))
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &rewards)
 	return rewards
 }
 
-func (k Keeper) SetPoolHistoricalRewards(ctx sdk.Context, poolName string, period uint64, rewards types.PoolHistoricalRewards) {
+func (k Keeper) SetPoolHistoricalRewards(
+	ctx sdk.Context, poolName string, period uint64, rewards types.PoolHistoricalRewards,
+) {
 	store := ctx.KVStore(k.StoreKey())
 	store.Set(types.GetPoolHistoricalRewardsKey(poolName, period), k.cdc.MustMarshalBinaryLengthPrefixed(rewards))
 	return
@@ -88,10 +92,10 @@ func GetPoolHistoricalRewardsPoolNamePeriod(key []byte) (poolName string, period
 		panic("unexpected key length")
 	}
 
-	b := key[len(key)-types.PeriodByteArrayLength:]
-	if len(b) != types.PeriodByteArrayLength {
+	if len(key) <= types.PeriodByteArrayLength+len(types.PoolHistoricalRewardsPrefix) {
 		panic("unexpected key length")
 	}
+	b := key[len(key)-types.PeriodByteArrayLength:]
 	period = binary.LittleEndian.Uint64(b)
 	return string(name), period
 }
