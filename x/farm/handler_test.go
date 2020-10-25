@@ -357,7 +357,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			expectedCode: types.CodePoolNotFinished,
 		},
 		{
-			caseName: "success. destroy when ",
+			caseName: "success. destroy after providing",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
