@@ -72,6 +72,10 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
 	}
 
+	if lockInfo.Amount.Denom != msg.Amount.Denom {
+		return types.ErrInvalidDenom(DefaultCodespace, lockInfo.Amount.Denom, msg.Amount.Denom).Result()
+	}
+
 	if lockInfo.Amount.IsLT(msg.Amount) {
 		return types.ErrinsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
 	}

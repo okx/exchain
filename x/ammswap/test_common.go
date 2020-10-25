@@ -24,6 +24,9 @@ func NewTestSwapTokenPairWithInitLiquidity(t *testing.T, ctx sdk.Context, k swap
 	result = handler(ctx, addLiquidityMsg)
 	require.Equal(t, true, result.IsOK())
 
+	result = handler(ctx, addLiquidityMsg)
+	require.Equal(t, true, result.IsOK())
+
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, types.GetSwapTokenPairName(baseToken.Denom, quoteToken.Denom))
 	require.Nil(t, err)
 
