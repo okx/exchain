@@ -203,15 +203,7 @@ func setWhite(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool
 	require.True(t, result.IsOK())
 }
 
-func TestHandleMsgCreatePool(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPool(t, tCtx)
-}
-
-func TestHandlerMsgCreatePoolInvalid(t *testing.T) {
+func TestHandlerMsgCreatePool(t *testing.T) {
 	preExec := func(t *testing.T, tCtx *testContext) interface{} {
 		return nil
 	}
@@ -298,17 +290,6 @@ func TestHandlerMsgCreatePoolInvalid(t *testing.T) {
 }
 
 func TestHandlerMsgDestroyPool(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// destroy pool
-	destroyPool(t, tCtx, createPoolMsg)
-}
-
-func TestHandlerMsgDestroyPoolInvalid(t *testing.T) {
 	preExec := func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -423,17 +404,6 @@ func TestHandlerMsgDestroyPoolInvalid(t *testing.T) {
 }
 
 func TestHandlerMsgProvide(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// provide
-	provide(t, tCtx, createPoolMsg)
-}
-
-func TestHandlerMsgProvideInvalid(t *testing.T) {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -510,20 +480,6 @@ func TestHandlerMsgProvideInvalid(t *testing.T) {
 }
 
 func TestHandlerMsgLock(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// provide
-	provide(t, tCtx, createPoolMsg)
-
-	// lock
-	lock(t, tCtx, createPoolMsg)
-}
-
-func TestHandlerMsgLockInvalid(t *testing.T) {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -619,23 +575,6 @@ func TestHandlerMsgLockInvalid(t *testing.T) {
 }
 
 func TestHandlerMsgUnlock(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// provide
-	provide(t, tCtx, createPoolMsg)
-
-	// lock
-	lock(t, tCtx, createPoolMsg)
-
-	// unlock
-	unlock(t, tCtx, createPoolMsg)
-}
-
-func TestHandlerMsgUnlockInvalid(t *testing.T) {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -752,25 +691,7 @@ func TestHandlerMsgUnlockInvalid(t *testing.T) {
 	testCaseTest(t, tests)
 }
 
-func TestHandlerMsgClaim(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// provide
-	provide(t, tCtx, createPoolMsg)
-
-	// lock
-	lock(t, tCtx, createPoolMsg)
-
-	// claim
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
-	claim(t, tCtx, createPoolMsg)
-}
-
-func TestHandlerMsgClaimInvalid(t *testing.T)  {
+func TestHandlerMsgClaim(t *testing.T)  {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
