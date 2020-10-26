@@ -759,3 +759,11 @@ func TestHandlerMsgSetWhite(t *testing.T) {
 	// setWhite
 	setWhite(t, tCtx, createPoolMsg)
 }
+
+func TestNewHandler(t *testing.T) {
+	// init
+	tCtx := initEnvironment(t)
+	msg := swaptypes.NewMsgCreateExchange(tCtx.swapTokenPairs[0].BasePooledCoin.Denom, tCtx.swapTokenPairs[0].QuotePooledCoin.Denom, tCtx.tokenOwner)
+	result := tCtx.handler(tCtx.ctx, msg)
+	require.Equal(t, sdk.CodeUnknownRequest, result.Code)
+}
