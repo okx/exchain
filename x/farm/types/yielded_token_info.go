@@ -38,7 +38,7 @@ func (yti YieldedTokenInfo) String() string {
 type YieldedTokenInfos []YieldedTokenInfo
 
 // NewYieldedTokenInfo creates a new instance of YieldedTokenInfo
-func NewYieldedTokenInfos(yieldedTokenInfos ...YieldedTokenInfo) []YieldedTokenInfo {
+func NewYieldedTokenInfos(yieldedTokenInfos ...YieldedTokenInfo) YieldedTokenInfos {
 	return yieldedTokenInfos
 }
 
