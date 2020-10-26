@@ -10,6 +10,13 @@ const (
 	// TODO: change it back
 	//MaxPoolNameLength = 40
 	MaxPoolNameLength = 100
+
+	createPoolMsgType  = "create_pool"
+	destroyPoolMsgType = "destroy_pool"
+	provideMsgType     = "provide"
+	lockMsgType        = "lock"
+	unlockMsgType      = "unlock"
+	claimMsgType       = "claim"
 )
 
 type MsgCreatePool struct {
@@ -35,7 +42,7 @@ func (m MsgCreatePool) Route() string {
 }
 
 func (m MsgCreatePool) Type() string {
-	return "create_pool"
+	return createPoolMsgType
 }
 
 func (m MsgCreatePool) ValidateBasic() sdk.Error {
@@ -82,7 +89,7 @@ func (m MsgDestroyPool) Route() string {
 }
 
 func (m MsgDestroyPool) Type() string {
-	return "destroy_pool"
+	return destroyPoolMsgType
 }
 
 func (m MsgDestroyPool) ValidateBasic() sdk.Error {
@@ -130,12 +137,12 @@ func (m MsgProvide) Route() string {
 }
 
 func (m MsgProvide) Type() string {
-	return "provide"
+	return provideMsgType
 }
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
@@ -182,12 +189,12 @@ func (m MsgLock) Route() string {
 }
 
 func (m MsgLock) Type() string {
-	return "lock"
+	return lockMsgType
 }
 
 func (m MsgLock) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
@@ -228,12 +235,12 @@ func (m MsgUnlock) Route() string {
 }
 
 func (m MsgUnlock) Type() string {
-	return "unlock"
+	return unlockMsgType
 }
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)
@@ -272,12 +279,12 @@ func (m MsgClaim) Route() string {
 }
 
 func (m MsgClaim) Type() string {
-	return "claim"
+	return claimMsgType
 }
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrInvalidInput(DefaultCodespace, m.PoolName)
 	}
 	if m.Address.Empty() {
 		return ErrNilAddress(DefaultCodespace)

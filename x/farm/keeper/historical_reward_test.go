@@ -4,21 +4,11 @@ import (
 	"encoding/binary"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	"math/rand"
 	"testing"
 )
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
-}
 
 func TestPoolCurrentReward(t *testing.T) {
 	ctx, k := GetKeeper(t)
@@ -74,7 +64,7 @@ func TestPoolCurrentReward(t *testing.T) {
 
 func TestGetPoolHistoricalRewardsPoolNamePeriod(t *testing.T) {
 	period := uint64(10)
-	poolName := randStringBytes(120)
+	poolName := common.GetFixedLengthRandomString(120)
 	key := types.GetPoolHistoricalRewardsKey(poolName, period)
 	require.Panics(t, func() { GetPoolHistoricalRewardsPoolNamePeriod(key) })
 

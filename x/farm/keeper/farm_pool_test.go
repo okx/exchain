@@ -14,10 +14,6 @@ type tokenPair struct {
 	token1 string
 }
 
-func TestGetPoolLockedValue(t *testing.T) {
-
-}
-
 func TestCalculateLPTValueWithQuote(t *testing.T) {
 	ctx, keeper := GetKeeper(t)
 
