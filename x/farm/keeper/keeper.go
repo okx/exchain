@@ -51,6 +51,10 @@ func (k Keeper) TokenKeeper() token.Keeper {
 	return k.tokenKeeper
 }
 
+func (k Keeper) SwapKeeper() swap.Keeper {
+	return k.swapKeeper
+}
+
 // GetFeeCollector returns feeCollectorName
 func (k Keeper) GetFeeCollector() string {
 	return k.feeCollectorName
