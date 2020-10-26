@@ -2,6 +2,8 @@ package farm
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swap "github.com/okex/okexchain/x/ammswap"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
@@ -10,7 +12,6 @@ import (
 	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"testing"
 )
 
 type testContext struct {
@@ -240,17 +241,6 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			expectedCode: types.CodeTokenNotExist,
 		},
 		{
-			caseName: "failed. the addr isn't the owner of the token",
-			preExec:  preExec,
-			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
-				createPoolMsg := normalGetCreatePoolMsg(tCtx, preData).(types.MsgCreatePool)
-				createPoolMsg.Owner = tCtx.addrList[0]
-				return createPoolMsg
-			},
-			verification: verification,
-			expectedCode: types.CodeInvalidInput,
-		},
-		{
 			caseName: "failed. yield token does not exists",
 			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
@@ -259,7 +249,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 				return createPoolMsg
 			},
 			verification: verification,
-			expectedCode: types.CodeInvalidInput,
+			expectedCode: types.CodeTokenNotExist,
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -311,7 +301,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
 			caseName: "failed. the address isn't the owner of pool",
@@ -382,7 +372,6 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				// provide
 				provide(t, tCtx, createPoolMsg)
 
-
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				pool, found := tCtx.k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
@@ -436,7 +425,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 			},
 			getMsg:       normalGetProvideMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -498,18 +487,18 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. Farm pool does not exist",
+			caseName: "failed. Farm pool does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil)
 				return createPoolMsg
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. The coin name should be %s, not %s",
-			preExec:      preExec,
+			caseName: "failed. The coin name should be %s, not %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				lockMsg := normalGetLockMsg(tCtx, preData).(types.MsgLock)
 				lockMsg.Amount.Denom = tCtx.nonExistTokenName[0]
@@ -519,7 +508,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "success. has lockInfo",
+			caseName: "success. has lockInfo",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -537,7 +526,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -559,8 +548,8 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "failed. insufficient coins",
-			preExec:      preExec,
+			caseName: "failed. insufficient coins",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				lockMsg := normalGetLockMsg(tCtx, preData).(types.MsgLock)
 				lockMsg.Amount.Amount = sdk.NewDec(1000000)
@@ -596,7 +585,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. the addr doesn't have any lock infos",
+			caseName: "failed. the addr doesn't have any lock infos",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -610,8 +599,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidLockInfo,
 		},
 		{
-			caseName:     "failed. The coin name should be %s, not %s",
-			preExec:      preExec,
+			caseName: "failed. The coin name should be %s, not %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				unlockMsg := normalGetUnlockMsg(tCtx, preData).(types.MsgUnlock)
 				unlockMsg.Amount.Denom = tCtx.nonExistTokenName[0]
@@ -621,8 +610,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "failed. The actual amount %s is less than %s",
-			preExec:      preExec,
+			caseName: "failed. The actual amount %s is less than %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				unlockMsg := normalGetUnlockMsg(tCtx, preData).(types.MsgUnlock)
 				unlockMsg.Amount.Amount = unlockMsg.Amount.Amount.Add(sdk.NewDec(1))
@@ -632,7 +621,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "failed. Farm pool %s does not exist",
+			caseName: "failed. Farm pool %s does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				preData := preExec(t, tCtx).(types.MsgCreatePool)
 				tCtx.k.DeleteFarmPool(tCtx.ctx, preData.PoolName)
@@ -640,10 +629,10 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -665,7 +654,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "failed. insufficient coins from module account",
+			caseName: "failed. insufficient coins from module account",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -691,7 +680,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 	testCaseTest(t, tests)
 }
 
-func TestHandlerMsgClaim(t *testing.T)  {
+func TestHandlerMsgClaim(t *testing.T) {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -713,17 +702,17 @@ func TestHandlerMsgClaim(t *testing.T)  {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. Farm pool %s does not exist",
+			caseName: "failed. Farm pool %s does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil)
 				return createPoolMsg
 			},
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)

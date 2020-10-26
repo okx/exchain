@@ -17,9 +17,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		return types.ErrTokenNotExist(DefaultCodespace, msg.LockedSymbol).Result()
 	}
 
-	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldedSymbol)
-	if !yieldTokenInfo.Owner.Equals(msg.Owner) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldedSymbol).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.YieldedSymbol); !ok {
+		return types.ErrTokenNotExist(DefaultParamspace, msg.YieldedSymbol).Result()
 	}
 
 	// fee

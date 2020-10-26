@@ -1,12 +1,13 @@
 package keeper
 
 import (
+	"testing"
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestCheckMsgSubmitProposal(t *testing.T) {
@@ -33,7 +34,7 @@ func TestCheckMsgSubmitProposal(t *testing.T) {
 	require.Error(t, k.CheckMsgSubmitProposal(ctx, govtypes.MsgSubmitProposal{Content: MockContent{}}))
 	err := k.CheckMsgSubmitProposal(ctx, govtypes.MsgSubmitProposal{Content: proposal.Content})
 	require.Error(t, err)
-	require.Equal(t, types.CodeInvalidFarmPool, err.Code())
+	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 }
 
 func TestCheckMsgManageWhiteListProposal(t *testing.T) {
@@ -49,7 +50,7 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 
 	err := k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.Error(t, err)
-	require.Equal(t, types.CodePoolNameNotExistedInWhiteList, err.Code())
+	require.Equal(t, types.CodePoolNotInWhiteList, err.Code())
 
 	k.SetWhitelist(ctx, proposal.PoolName)
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
@@ -58,11 +59,11 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 	proposal.IsAdded = true
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.Error(t, err)
-	require.Equal(t, types.CodeInvalidFarmPool, err.Code())
+	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	lockedSymbol := "xxb"
 	pool := types.FarmPool{
-		Name: proposal.PoolName,
+		Name:         proposal.PoolName,
 		LockedSymbol: lockedSymbol,
 	}
 	k.SetFarmPool(ctx, pool)
@@ -74,7 +75,3 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.NoError(t, err)
 }
-
-
-
-

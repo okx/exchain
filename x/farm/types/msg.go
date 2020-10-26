@@ -1,8 +1,6 @@
 package types
 
 import (
-	"strconv"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -43,13 +41,13 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
 	if m.LockedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, m.LockedSymbol)
+		return ErrInvalidInput(DefaultCodespace, "locked symbol is empty")
 	}
 	if m.YieldedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, m.YieldedSymbol)
+		return ErrInvalidInput(DefaultCodespace, "yielded symbol is empty")
 	}
 	return nil
 }
@@ -90,7 +88,7 @@ func (m MsgDestroyPool) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
 	return nil
 }
@@ -144,10 +142,10 @@ func (m MsgProvide) ValidateBasic() sdk.Error {
 		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.String())
 	}
 	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
-		return ErrInvalidInput(DefaultCodespace, m.AmountYieldedPerBlock.String())
+		return ErrInvalidInput(DefaultCodespace, "amount yielded per block must be > 0")
 	}
 	if m.StartHeightToYield <= 0 {
-		return ErrInvalidInput(DefaultCodespace, strconv.FormatInt(m.StartHeightToYield, 10))
+		return ErrInvalidInput(DefaultCodespace, "start height to yield must be > 0")
 	}
 	return nil
 }

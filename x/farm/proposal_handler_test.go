@@ -29,7 +29,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 	)}
 	err = hdlr(ctx, &proposal2)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeInvalidFarmPool, err.Code())
+	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	pool := types.FarmPool{
 		Name:         poolName,

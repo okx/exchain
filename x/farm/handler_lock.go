@@ -77,7 +77,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 	}
 
 	if lockInfo.Amount.IsLT(msg.Amount) {
-		return types.ErrinsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
+		return types.ErrInsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
 	}
 
 	// 1.2 Get the pool info
