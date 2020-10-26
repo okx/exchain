@@ -686,6 +686,22 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			verification: verification,
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
+		{
+			caseName:     "success. lock and unlock without provide before",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := createPool(t, tCtx)
+
+				// lock
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				return createPoolMsg
+			},
+			getMsg:       normalGetUnlockMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
 	}
 
 	testCaseTest(t, tests)
