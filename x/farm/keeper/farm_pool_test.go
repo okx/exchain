@@ -2,11 +2,12 @@ package keeper
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 type tokenPair struct {
@@ -29,7 +30,7 @@ func TestCalculateLPTValueWithQuote(t *testing.T) {
 	exchange.QuotePooledCoin.Amount = sdk.NewDec(10000)
 	exchange.BasePooledCoin.Amount = sdk.NewDec(10000)
 
-	keeper.swapKeeper.SetSwapTokenPair(ctx, tokenPairName, exchange)
+	keeper.Keeper.SwapKeeper().SetSwapTokenPair(ctx, tokenPairName, exchange)
 
 	token0Amount := sdk.NewDecCoinFromDec(token0Symbol, sdk.NewDec(100))
 	token1Amount := sdk.NewDecCoinFromDec(token1Symbol, sdk.NewDec(100))
