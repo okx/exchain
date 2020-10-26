@@ -118,3 +118,7 @@ func TestBlackHoleAddress(t *testing.T) {
 	fmt.Println(a)
 	require.Equal(t, addr.String(), "okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx")
 }
+
+func TestGetFixedLengthRandomString(t *testing.T) {
+	require.Equal(t, 100, len(GetFixedLengthRandomString(100)))
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
@@ -15,6 +16,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+)
+
+const(
+	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 // Int64ToBytes converts int64 to bytes
@@ -121,4 +126,12 @@ func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
 func BlackHoleAddress() sdk.AccAddress {
 	addr, _ := sdk.AccAddressFromHex(blackHoleHex)
 	return addr
+}
+
+func GetFixedLengthRandomString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }

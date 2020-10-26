@@ -49,8 +49,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	// initial pool period
 	poolHistoricalRewards := types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1)
 	k.SetPoolHistoricalRewards(ctx, msg.PoolName, 0, poolHistoricalRewards)
-	PoolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 1, sdk.DecCoins{})
-	k.SetPoolCurrentRewards(ctx, msg.PoolName, PoolCurrentRewards)
+	poolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 1, sdk.DecCoins{})
+	k.SetPoolCurrentRewards(ctx, msg.PoolName, poolCurrentRewards)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeCreatePool,
