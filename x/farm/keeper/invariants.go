@@ -6,7 +6,7 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-// RegisterInvariants registers all distribution invariants
+// RegisterInvariants registers all farm invariants
 func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, "module-account", moduleAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "yield-farming-account", yieldFarmingAccountInvariant(k))
