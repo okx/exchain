@@ -266,7 +266,9 @@ func initPoolsAndLockInfos(
 		)
 
 		moduleAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
-		err := moduleAcc.SetCoins(moduleAcc.GetCoins().Add(sdk.DecCoins{pool.DepositAmount}))
+		err := moduleAcc.SetCoins(
+			moduleAcc.GetCoins().Add(sdk.DecCoins{pool.DepositAmount}).Add(sdk.DecCoins{pool.TotalValueLocked}),
+		)
 		require.Nil(t, err)
 		mockKeeper.supplyKeeper.SetModuleAccount(ctx, moduleAcc)
 
