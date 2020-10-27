@@ -54,7 +54,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 		panic(fmt.Sprintf("%s module account has not been set", types.YieldFarmingAccount))
 	}
 	if yieldMoudleAcc.GetCoins().IsZero() {
-		if err := moduleAcc.SetCoins(yieldModuleAccHoldings); err != nil {
+		if err := yieldMoudleAcc.SetCoins(yieldModuleAccHoldings); err != nil {
 			panic(err)
 		}
 		k.SupplyKeeper().SetModuleAccount(ctx, yieldMoudleAcc)
@@ -64,8 +64,6 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 	if mintModuleAcc == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.MintFarmingAccount))
 	}
-
-
 }
 
 // ExportGenesis writes the current store values to a genesis file, which can be imported again with InitGenesis
