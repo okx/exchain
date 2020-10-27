@@ -18,7 +18,6 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 
 	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 
 	// 3. Get lock info
 	if found := k.HasLockInfo(ctx, msg.Address, msg.PoolName); found {
@@ -108,7 +107,6 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 
 	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 	if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 		panic("should not happen")
 	}

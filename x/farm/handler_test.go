@@ -376,8 +376,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 
 				pool, found := tCtx.k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 				require.True(t, found)
-				updatedPool, yieldedTokens := tCtx.k.CalculateAmountYieldedBetween(tCtx.ctx, pool)
-				updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+				updatedPool, _ := tCtx.k.CalculateAmountYieldedBetween(tCtx.ctx, pool)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, YieldFarmingAccount, createPoolMsg.Owner, updatedPool.TotalAccumulatedRewards)
 				require.Nil(t, err)

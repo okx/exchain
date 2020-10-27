@@ -105,7 +105,6 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 
 	// 5. init a new yielded_token_info struct, then set it into store
 	updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
@@ -128,7 +127,6 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Re
 
 	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 
 	// 3. Withdraw rewards
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)

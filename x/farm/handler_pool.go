@@ -79,8 +79,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	}
 
 	// 1. calculate how many provided token & native token could be yielded in current period
-	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+	updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 2. check pool status
 	if !updatedPool.Finished() {
