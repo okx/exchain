@@ -23,7 +23,6 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 	// 1. gets all pools in PoolsYieldNativeToken
 	lockedPoolValueMap, pools, totalPoolsValue := calculateAllocateInfo(ctx, k)
-
 	if totalPoolsValue.LTE(sdk.ZeroDec()) {
 		return
 	}
@@ -35,10 +34,13 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		if i == len(pools)-1 {
 			allocatedAmt = remainingNativeTokenAmt
 		} else {
-			allocatedAmt = lockedPoolValueMap[pool.Name].MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
+			allocatedAmt = lockedPoolValueMap[pool.Name].
+				MulTruncate(yieldedNativeTokenAmt).QuoTruncate(totalPoolsValue)
 		}
 		remainingNativeTokenAmt = remainingNativeTokenAmt.Sub(allocatedAmt)
-		logger.Debug(fmt.Sprintf("Pool %s allocate %s yielded native token", pool.Name, allocatedAmt.String()))
+		logger.Debug(
+			fmt.Sprintf("Pool %s allocate %s yielded native token", pool.Name, allocatedAmt.String()),
+		)
 		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt)
 
 		current := k.GetPoolCurrentRewards(ctx, pool.Name)
@@ -55,7 +57,8 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 	// 3.liquidate native token minted at current block for yield farming
 	err := k.SupplyKeeper().SendCoinsFromModuleToModule(
-		ctx, MintFarmingAccount, YieldFarmingAccount, sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt),
+		ctx, MintFarmingAccount, YieldFarmingAccount,
+		sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt),
 	)
 	if err != nil {
 		panic("should not happen")

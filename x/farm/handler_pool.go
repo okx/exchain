@@ -88,7 +88,9 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 
 	// 3. give remaining rewards to the owner of pool
 	if !updatedPool.TotalAccumulatedRewards.IsZero() {
-		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards)
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(
+			ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards,
+		)
 		if err != nil {
 			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
 				updatedPool.TotalAccumulatedRewards.String())).Result()

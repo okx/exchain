@@ -2,10 +2,12 @@ package farm
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
@@ -14,6 +16,14 @@ import (
 // NewHandler creates an sdk.Handler for all the farm type messages
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		// TODO: just for test, should be removed.
+		defer func() {
+			if e := recover(); e != nil {
+				common.PanicTrace(4)
+				os.Exit(1)
+			}
+		}()
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var handlerFun func() sdk.Result
 		var name string
@@ -77,7 +87,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 	}
 
 	// 1.2 Check if the provided coin denom is the same as the locked coin name
-	if len(pool.YieldedTokenInfos) != 1 { // TODO: use the panic temporarily
+	if len(pool.YieldedTokenInfos) != 1 {
 		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
 			len(pool.YieldedTokenInfos)))
 	}
@@ -86,7 +96,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}
 
-	// 2.1 Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2.1 Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 2.2 Check if remaining amount is already zero
@@ -99,12 +109,16 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 	k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
 
 	// 4. Transfer coin to farm module account
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins()); err != nil {
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
+		ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins(),
+	); err != nil {
 		return err.Result()
 	}
 
 	// 5. init a new yielded_token_info struct, then set it into store
-	updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock)
+	updatedPool.YieldedTokenInfos[0] = types.NewYieldedTokenInfo(
+		msg.Amount, msg.StartHeightToYield, msg.AmountYieldedPerBlock,
+	)
 	k.SetFarmPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
@@ -125,7 +139,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Re
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 3. Withdraw rewards

@@ -8,15 +8,15 @@ import (
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Result {
 	// 1. Get farm pool
-	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
-	if !poolFound {
+	pool, found := k.GetFarmPool(ctx, msg.PoolName)
+	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 	if pool.LockedSymbol != msg.Amount.Denom {
 		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
 	}
 
-	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 3. Get lock info
@@ -47,7 +47,9 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
 	// 5. Send the locked-tokens from its own account to farm module account
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
+		ctx, msg.Address, ModuleName, msg.Amount.ToCoins(),
+	); err != nil {
 		return err.Result()
 	}
 
@@ -88,7 +90,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
 	}
 
-	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 3. Withdraw money
