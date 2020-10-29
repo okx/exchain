@@ -49,15 +49,15 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 		k.SupplyKeeper().SetModuleAccount(ctx, moduleAcc)
 	}
 
-	yieldMoudleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.YieldFarmingAccount)
-	if yieldMoudleAcc == nil {
+	yieldModuleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.YieldFarmingAccount)
+	if yieldModuleAcc == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.YieldFarmingAccount))
 	}
-	if yieldMoudleAcc.GetCoins().IsZero() {
-		if err := yieldMoudleAcc.SetCoins(yieldModuleAccHoldings); err != nil {
+	if yieldModuleAcc.GetCoins().IsZero() {
+		if err := yieldModuleAcc.SetCoins(yieldModuleAccHoldings); err != nil {
 			panic(err)
 		}
-		k.SupplyKeeper().SetModuleAccount(ctx, yieldMoudleAcc)
+		k.SupplyKeeper().SetModuleAccount(ctx, yieldModuleAcc)
 	}
 
 	mintModuleAcc := k.SupplyKeeper().GetModuleAccount(ctx, types.MintFarmingAccount)

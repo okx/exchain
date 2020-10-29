@@ -218,7 +218,7 @@ $ %s tx farm claim --from mykey
 // GetCmdManageWhiteListProposal implements a command handler for submitting a farm manage white list proposal transaction
 func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "manage-white-list-proposal [proposal-file]",
+		Use:   "manage-white-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit a manage white list proposal",
 		Long: strings.TrimSpace(
@@ -226,7 +226,7 @@ func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal manage-white-list-proposal <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal manage-white-list <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
