@@ -3,6 +3,7 @@ package farm
 import (
 	"testing"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 	govtypes "github.com/okex/okexchain/x/gov/types"
@@ -32,15 +33,15 @@ func TestProposalHandlerPassed(t *testing.T) {
 	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	pool := types.FarmPool{
-		Name:         poolName,
-		LockedSymbol: "xxb",
+		Name:            poolName,
+		MinLockedAmount: sdk.NewDecCoin("xxb", sdk.ZeroInt()),
 	}
 	k.SetFarmPool(ctx, pool)
 	err = hdlr(ctx, &proposal2)
 	require.NotNil(t, err)
 	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
-	keeper.SetSwapTokenPair(ctx, k.Keeper, pool.LockedSymbol, quoteSymbol)
+	keeper.SetSwapTokenPair(ctx, k.Keeper, pool.MinLockedAmount.Denom, quoteSymbol)
 	err = hdlr(ctx, &proposal2)
 	require.Nil(t, err)
 	require.True(t, inWhiteList(k.GetWhitelist(ctx), pool.Name))
@@ -49,8 +50,8 @@ func TestProposalHandlerPassed(t *testing.T) {
 	poolName = "pool2"
 	baseSymbol := "okb"
 	pool = types.FarmPool{
-		Name:         poolName,
-		LockedSymbol: "ammswap_" + baseSymbol + "_" + quoteSymbol,
+		Name:            poolName,
+		MinLockedAmount: sdk.NewDecCoin("ammswap_" + baseSymbol + "_" + quoteSymbol, sdk.ZeroInt()),
 	}
 	k.SetFarmPool(ctx, pool)
 	proposal3 := govtypes.Proposal{Content: types.NewManageWhiteListProposal(

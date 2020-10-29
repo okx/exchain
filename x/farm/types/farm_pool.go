@@ -9,10 +9,10 @@ import (
 
 // FarmPool is the pool where an address can lock specified token to yield other tokens
 type FarmPool struct {
-	Owner         sdk.AccAddress `json:"owner"`
-	Name          string         `json:"name"`
-	LockedSymbol  string         `json:"locked_symbol"`
-	DepositAmount sdk.DecCoin    `json:"deposit_amount"`
+	Owner           sdk.AccAddress `json:"owner"`
+	Name            string         `json:"name"`
+	MinLockedAmount sdk.DecCoin    `json:"min_locked_amount"`
+	DepositAmount   sdk.DecCoin    `json:"deposit_amount"`
 	// sum of LockInfo.Amount
 	TotalValueLocked        sdk.DecCoin       `json:"total_value_locked"`
 	YieldedTokenInfos       YieldedTokenInfos `json:"yielded_token_infos"`
@@ -21,13 +21,13 @@ type FarmPool struct {
 
 // NewFarmPool creates a new instance of FarmPool
 func NewFarmPool(
-	owner sdk.AccAddress, name, lockedSymbol string, depositAmt, totalValueLocked sdk.DecCoin,
+	owner sdk.AccAddress, name string, lockedSymbol, depositAmt, totalValueLocked sdk.DecCoin,
 	yieldedTokenInfos YieldedTokenInfos, accumulatedRewards sdk.DecCoins,
 ) FarmPool {
 	return FarmPool{
 		Owner:                   owner,
 		Name:                    name,
-		LockedSymbol:            lockedSymbol,
+		MinLockedAmount:         lockedSymbol,
 		DepositAmount:           depositAmt,
 		TotalValueLocked:        totalValueLocked,
 		YieldedTokenInfos:       yieldedTokenInfos,
@@ -54,7 +54,7 @@ func (fp FarmPool) String() string {
   Total Value Locked:               %s
   Yielded Token Infos:			    %s
   Total Accumulated Rewards:        %s`,
-		fp.Name, fp.Owner, fp.LockedSymbol, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.TotalAccumulatedRewards)
+		fp.Name, fp.Owner, fp.MinLockedAmount, fp.DepositAmount, fp.TotalValueLocked, fp.YieldedTokenInfos, fp.TotalAccumulatedRewards)
 }
 
 // FarmPools is a collection of FarmPool

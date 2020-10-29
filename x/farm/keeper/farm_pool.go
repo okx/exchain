@@ -21,6 +21,11 @@ func (k Keeper) GetFarmPool(ctx sdk.Context, poolName string) (pool types.FarmPo
 	return pool, true
 }
 
+func (k Keeper) HasFarmPool(ctx sdk.Context, poolName string) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(types.GetFarmPoolKey(poolName))
+}
+
 func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
 	store := ctx.KVStore(k.storeKey)
 	// delete pool from whitelist
@@ -137,7 +142,7 @@ func (k Keeper) GetPoolLockedValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 	quoteSymbol := params.QuoteSymbol
 	swapParams := k.swapKeeper.GetParams(ctx)
 	// calculate locked lpt value
-	if swaptypes.IsPoolToken(pool.LockedSymbol) {
+	if swaptypes.IsPoolToken(pool.MinLockedAmount.Denom) {
 		poolValue = k.calculateLockedLPTValue(ctx, pool, quoteSymbol, swapParams)
 	} else {
 		poolValue = k.calculateBaseValueInQuote(ctx, pool.TotalValueLocked, quoteSymbol, swapParams)
@@ -148,7 +153,7 @@ func (k Keeper) GetPoolLockedValue(ctx sdk.Context, pool types.FarmPool) sdk.Dec
 func (k Keeper) calculateLockedLPTValue(
 	ctx sdk.Context, pool types.FarmPool, quoteSymbol string, swapParams swaptypes.Params,
 ) (poolValue sdk.Dec) {
-	token0Symbol, token1Symbol := swaptypes.SplitPoolToken(pool.LockedSymbol)
+	token0Symbol, token1Symbol := swaptypes.SplitPoolToken(pool.MinLockedAmount.Denom)
 
 	// calculate how much assets the TotalValueLocked can redeem
 	token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0Symbol, token1Symbol,

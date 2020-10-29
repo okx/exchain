@@ -22,7 +22,7 @@ func TestMsgCreatePool(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		msg := NewMsgCreatePool(test.owner, test.poolName, test.lockedSymbol, test.yieldedSymbol)
+		msg := NewMsgCreatePool(test.owner, test.poolName, sdk.NewDecCoin(test.lockedSymbol, sdk.ZeroInt()), test.yieldedSymbol)
 		require.Equal(t, createPoolMsgType, msg.Type())
 		require.Equal(t, ModuleName, msg.Route())
 		require.Equal(t, []sdk.AccAddress{test.owner}, msg.GetSigners())

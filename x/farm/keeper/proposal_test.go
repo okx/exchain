@@ -63,8 +63,8 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 
 	lockedSymbol := "xxb"
 	pool := types.FarmPool{
-		Name:         proposal.PoolName,
-		LockedSymbol: lockedSymbol,
+		Name:            proposal.PoolName,
+		MinLockedAmount: sdk.NewDecCoin(lockedSymbol, sdk.ZeroInt()),
 	}
 	k.SetFarmPool(ctx, pool)
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)

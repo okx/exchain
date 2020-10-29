@@ -102,7 +102,7 @@ func TestGetLockInfo(t *testing.T) {
 
 	for _, test := range tests {
 		pool := types.FarmPool{
-			LockedSymbol:     test.lockedSymbol,
+			MinLockedAmount:  sdk.NewDecCoin(test.lockedSymbol, sdk.ZeroInt()),
 			TotalValueLocked: sdk.NewDecCoinFromDec(test.lockedSymbol, test.lockedValue),
 		}
 		if test.isLPT {

@@ -28,7 +28,7 @@ func TestInitAndExportGenesis(t *testing.T) {
 		{
 			Owner: poolMsg.Owner,
 			PoolName: poolMsg.PoolName,
-			Amount: sdk.NewDecCoinFromDec(poolMsg.LockedSymbol, sdk.NewDec(1)),
+			Amount: sdk.NewDecCoinFromDec(poolMsg.MinLockedAmount.Denom, sdk.NewDec(1)),
 			StartBlockHeight: 10,
 			ReferencePeriod: 1,
 		},

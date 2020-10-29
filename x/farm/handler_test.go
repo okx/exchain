@@ -103,7 +103,7 @@ var normalGetCreatePoolMsg getMsgFunc = func(tCtx *testContext, preData interfac
 	testYieldTokenName := testSwapTokenPair.BasePooledCoin.Denom
 	owner := tCtx.tokenOwner
 	poolName := "abc"
-	createPoolMsg := types.NewMsgCreatePool(owner, poolName, testSwapTokenPair.PoolTokenName, testYieldTokenName)
+	createPoolMsg := types.NewMsgCreatePool(owner, poolName, sdk.NewDecCoin(testSwapTokenPair.PoolTokenName, sdk.ZeroInt()), testYieldTokenName)
 	return createPoolMsg
 }
 
@@ -130,7 +130,7 @@ var normalGetLockMsg getMsgFunc = func(tCtx *testContext, preData interface{}) s
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockedAmount.Denom, sdk.NewDec(1))
 	lockMsg := types.NewMsgLock(poolName, address, amount)
 	return lockMsg
 }
@@ -139,7 +139,7 @@ var normalGetUnlockMsg getMsgFunc = func(tCtx *testContext, preData interface{})
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockedAmount.Denom, sdk.NewDec(1))
 	unlockMsg := types.NewMsgUnlock(poolName, address, amount)
 	return unlockMsg
 }
@@ -234,7 +234,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, preData).(types.MsgCreatePool)
-				createPoolMsg.LockedSymbol = tCtx.nonExistTokenName[0]
+				createPoolMsg.MinLockedAmount = sdk.NewDecCoin(tCtx.nonExistTokenName[0], sdk.ZeroInt())
 				return createPoolMsg
 			},
 			verification: verification,

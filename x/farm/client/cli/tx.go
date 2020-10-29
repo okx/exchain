@@ -58,9 +58,13 @@ $ %s tx farm create-pool pool-airtoken1-eth_usdk ammswap_eth_usdk xxb --from myk
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			poolName := args[0]
-			lockToken := args[1]
+			minLockedAmount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
 			yieldToken := args[2]
-			msg := types.NewMsgCreatePool(cliCtx.GetFromAddress(), poolName, lockToken, yieldToken)
+
+			msg := types.NewMsgCreatePool(cliCtx.GetFromAddress(), poolName, minLockedAmount, yieldToken)
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

@@ -43,25 +43,25 @@ func (k Keeper) isPoolNameExistedInWhiteList(ctx sdk.Context, poolName string) b
 	return false
 }
 
-func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool) sdk.Error {
+func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, lockedSymbol string) sdk.Error {
 	quoteTokenSymbol := k.GetParams(ctx).QuoteSymbol
-	if !swaptypes.IsPoolToken(pool.LockedSymbol) {
+	if !swaptypes.IsPoolToken(lockedSymbol) {
 		// locked token is common token
 		// check the existence of locked token with default quoteTokenSymbol in Params
-		if !k.isSwapTokenPairExisted(ctx, pool.LockedSymbol, quoteTokenSymbol) {
-			return types.ErrTokenNotExist(types.DefaultParamspace, swaptypes.GetSwapTokenPairName(pool.LockedSymbol, quoteTokenSymbol))
+		if !k.isSwapTokenPairExisted(ctx, lockedSymbol, quoteTokenSymbol) {
+			return types.ErrTokenNotExist(types.DefaultParamspace, swaptypes.GetSwapTokenPairName(lockedSymbol, quoteTokenSymbol))
 		}
 
 		return nil
 	}
 
 	// locked token is lpt
-	tokenSymbol0, tokenSymbol1 := swaptypes.SplitPoolToken(pool.LockedSymbol)
+	tokenSymbol0, tokenSymbol1 := swaptypes.SplitPoolToken(lockedSymbol)
 	if tokenSymbol0 == quoteTokenSymbol || tokenSymbol1 == quoteTokenSymbol {
 		// base or quote token contains default quoteTokenSymbol in Params
 		// check the existence of locked token
 		if !k.isSwapTokenPairExisted(ctx, tokenSymbol0, tokenSymbol1) {
-			return types.ErrTokenNotExist(types.DefaultParamspace, pool.LockedSymbol)
+			return types.ErrTokenNotExist(types.DefaultParamspace, lockedSymbol)
 		}
 
 		return nil
