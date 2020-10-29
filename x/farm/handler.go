@@ -80,13 +80,18 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
 	}
 
-	// 1.1 Get farm pool
+	// 1.1 Check farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	// 1.2 Check if the provided coin denom is the same as the locked coin name
+	// 1.2 Check owner
+	if !pool.Owner.Equals(msg.Address) {
+		return types.ErrInvalidPoolOwner(DefaultParamspace, msg.Address.String(), msg.PoolName).Result()
+	}
+
+	// 1.3 Check if the provided coin denom is the same as the locked coin name
 	if len(pool.YieldedTokenInfos) != 1 {
 		panic(fmt.Sprintf("The YieldedTokenInfos length is %d, which should be 1 in current code version",
 			len(pool.YieldedTokenInfos)))
