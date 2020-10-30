@@ -3,11 +3,12 @@ package keeper
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+	"testing"
+
 	swap "github.com/okex/okexchain/x/ammswap"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
-	"strconv"
-	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -243,12 +244,12 @@ func initPoolsAndLockInfos(
 	}
 	pools = types.FarmPools{
 		types.NewFarmPool(
-			Addrs[2], pool1Name, pool1LockedAmount.Denom,
+			Addrs[2], pool1Name, sdk.NewDecCoinFromDec(pool1LockedAmount.Denom, sdk.ZeroDec()),
 			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(100)},
 			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
 		),
 		types.NewFarmPool(
-			Addrs[3], pool2Name, pool2LockedAmount.Denom,
+			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
 			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
 			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
 		),

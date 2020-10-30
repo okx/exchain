@@ -13,7 +13,7 @@ const (
 	AttributeKeyPool                = "pool"
 	AttributeKeyStartHeightToYield  = "start_height_to_yield"
 	AttributeKeyAmountYieldPerBlock = "amount_yield_per_block"
-	AttributeKeyLockToken           = "lock_token"
+	AttributeKeyMinLockAmount       = "min_lock_amount"
 	AttributeKeyYieldToken          = "yield_token"
 	AttributeKeyDeposit             = "deposit"
 	AttributeKeyWithdraw            = "withdraw"

@@ -1,9 +1,10 @@
 package types
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestFarmPools(t *testing.T) {
@@ -63,7 +64,7 @@ func TestFarmPools(t *testing.T) {
 
 	for _, test := range tests {
 		pool := NewFarmPool(
-			test.owner, test.name, test.lockedSymbol, test.depositAmount, test.totalValueLocked,
+			test.owner, test.name, sdk.NewDecCoinFromDec(test.lockedSymbol, sdk.ZeroDec()), test.depositAmount, test.totalValueLocked,
 			test.yieldedTokenInfos, test.totalAccumulatedRewards,
 		)
 		require.Equal(t, test.isFinished, pool.Finished())

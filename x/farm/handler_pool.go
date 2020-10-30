@@ -13,8 +13,8 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	if ok := k.TokenKeeper().TokenExist(ctx, msg.LockedSymbol); !ok {
-		return types.ErrTokenNotExist(DefaultCodespace, msg.LockedSymbol).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.MinLockAmount.Denom); !ok {
+		return types.ErrTokenNotExist(DefaultCodespace, msg.MinLockAmount.Denom).Result()
 	}
 
 	if ok := k.TokenKeeper().TokenExist(ctx, msg.YieldedSymbol); !ok {
@@ -44,7 +44,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldedSymbol, sdk.ZeroInt()),
 		0, sdk.ZeroDec())
 	pool := types.NewFarmPool(
-		msg.Owner, msg.PoolName, msg.LockedSymbol, depositAmount, sdk.NewDecCoin(msg.LockedSymbol, sdk.ZeroInt()),
+		msg.Owner, msg.PoolName, msg.MinLockAmount, depositAmount, sdk.NewDecCoin(msg.MinLockAmount.Denom, sdk.ZeroInt()),
 		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.DecCoins{},
 	)
 	k.SetFarmPool(ctx, pool)
@@ -59,7 +59,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		types.EventTypeCreatePool,
 		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-		sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockedSymbol),
+		sdk.NewAttribute(types.AttributeKeyMinLockAmount, msg.MinLockAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldedSymbol),
 		sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),

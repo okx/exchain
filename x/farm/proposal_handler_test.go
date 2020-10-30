@@ -3,9 +3,12 @@ package farm
 import (
 	"testing"
 
+	swaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 	govtypes "github.com/okex/okexchain/x/gov/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,15 +35,15 @@ func TestProposalHandlerPassed(t *testing.T) {
 	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	pool := types.FarmPool{
-		Name:         poolName,
-		LockedSymbol: "xxb",
+		Name:          poolName,
+		MinLockAmount: sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()),
 	}
 	k.SetFarmPool(ctx, pool)
 	err = hdlr(ctx, &proposal2)
 	require.NotNil(t, err)
 	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
-	keeper.SetSwapTokenPair(ctx, k.Keeper, pool.LockedSymbol, quoteSymbol)
+	keeper.SetSwapTokenPair(ctx, k.Keeper, pool.MinLockAmount.Denom, quoteSymbol)
 	err = hdlr(ctx, &proposal2)
 	require.Nil(t, err)
 	require.True(t, inWhiteList(k.GetWhitelist(ctx), pool.Name))
@@ -48,9 +51,10 @@ func TestProposalHandlerPassed(t *testing.T) {
 	// test add LPT
 	poolName = "pool2"
 	baseSymbol := "okb"
+	lockSymbol := swaptypes.PoolTokenPrefix + baseSymbol + "_" + quoteSymbol
 	pool = types.FarmPool{
-		Name:         poolName,
-		LockedSymbol: "ammswap_" + baseSymbol + "_" + quoteSymbol,
+		Name:          poolName,
+		MinLockAmount: sdk.NewDecCoinFromDec(lockSymbol, sdk.ZeroDec()),
 	}
 	k.SetFarmPool(ctx, pool)
 	proposal3 := govtypes.Proposal{Content: types.NewManageWhiteListProposal(

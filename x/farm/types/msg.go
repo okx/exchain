@@ -20,17 +20,17 @@ const (
 type MsgCreatePool struct {
 	Owner         sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName      string         `json:"pool_name" yaml:"pool_name"`
-	LockedSymbol  string         `json:"locked_symbol" yaml:"locked_symbol"`
+	MinLockAmount sdk.DecCoin    `json:"min_lock_amount" yaml:"min_lock_amount"`
 	YieldedSymbol string         `json:"yielded_symbol"  yaml:"yielded_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
-func NewMsgCreatePool(address sdk.AccAddress, poolName, lockSymbol, yieldedSymbol string) MsgCreatePool {
+func NewMsgCreatePool(address sdk.AccAddress, poolName string, minLockAmount sdk.DecCoin, yieldedSymbol string) MsgCreatePool {
 	return MsgCreatePool{
 		Owner:         address,
 		PoolName:      poolName,
-		LockedSymbol:  lockSymbol,
+		MinLockAmount: minLockAmount,
 		YieldedSymbol: yieldedSymbol,
 	}
 }
@@ -50,8 +50,8 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
 		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
-	if m.LockedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, "locked symbol is empty")
+	if m.MinLockAmount.Amount.LT(sdk.ZeroDec()) || !m.MinLockAmount.IsValid() {
+		return ErrInvalidInputAmount(DefaultCodespace, m.MinLockAmount.String())
 	}
 	if m.YieldedSymbol == "" {
 		return ErrInvalidInput(DefaultCodespace, "yielded symbol is empty")

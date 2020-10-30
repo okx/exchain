@@ -110,3 +110,9 @@ func ErrPoolNameLength(codespace sdk.CodespaceType, poolName string, got, max in
 	msg := fmt.Sprintf("invalid pool name length for %v, got length %v, max is %v", poolName, got, max)
 	return sdk.NewError(codespace, CodeInvalidInput, msg)
 }
+
+// ErrLockAmountBelowMinimum returns an error when lock amount belows minimum
+func ErrLockAmountBelowMinimum(codespace sdk.CodespaceType, minLockAmount, amount sdk.Dec) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidInput, "lock amount %s must be greater than the pool`s min lock amount %s",
+		amount.String(), minLockAmount.String())
+}

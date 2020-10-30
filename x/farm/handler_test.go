@@ -2,6 +2,7 @@ package farm
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -103,7 +104,8 @@ var normalGetCreatePoolMsg getMsgFunc = func(tCtx *testContext, preData interfac
 	testYieldTokenName := testSwapTokenPair.BasePooledCoin.Denom
 	owner := tCtx.tokenOwner
 	poolName := "abc"
-	createPoolMsg := types.NewMsgCreatePool(owner, poolName, testSwapTokenPair.PoolTokenName, testYieldTokenName)
+	minLockAmount := sdk.NewDecCoinFromDec(testSwapTokenPair.PoolTokenName, sdk.ZeroDec())
+	createPoolMsg := types.NewMsgCreatePool(owner, poolName, minLockAmount, testYieldTokenName)
 	return createPoolMsg
 }
 
@@ -130,7 +132,7 @@ var normalGetLockMsg getMsgFunc = func(tCtx *testContext, preData interface{}) s
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockAmount.Denom, sdk.NewDec(1))
 	lockMsg := types.NewMsgLock(poolName, address, amount)
 	return lockMsg
 }
@@ -139,7 +141,7 @@ var normalGetUnlockMsg getMsgFunc = func(tCtx *testContext, preData interface{})
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockAmount.Denom, sdk.NewDec(1))
 	unlockMsg := types.NewMsgUnlock(poolName, address, amount)
 	return unlockMsg
 }
@@ -234,7 +236,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, preData).(types.MsgCreatePool)
-				createPoolMsg.LockedSymbol = tCtx.nonExistTokenName[0]
+				createPoolMsg.MinLockAmount = sdk.NewDecCoinFromDec(tCtx.nonExistTokenName[0], sdk.ZeroDec())
 				return createPoolMsg
 			},
 			verification: verification,
@@ -507,6 +509,24 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
+			caseName: "failed. lock amount %s must be greater than the pool`s min lock amount %s",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
+				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(math.MaxInt64)
+				result := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.True(t, result.IsOK())
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetLockMsg,
+			verification: verification,
+			expectedCode: types.CodeInvalidInput,
+		},
+		{
 			caseName: "success. has lockInfo",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
@@ -620,6 +640,30 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
+			caseName: "failed. remain lock amount %s is less than pool`s min lock amount %s",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
+				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(2)
+				result := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.True(t, result.IsOK())
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				// lock
+				lockMsg := normalGetLockMsg(tCtx, createPoolMsg).(types.MsgLock)
+				lockMsg.Amount.Amount = sdk.NewDec(2)
+				result = tCtx.handler(tCtx.ctx, lockMsg)
+				require.True(t, result.IsOK())
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetUnlockMsg,
+			verification: verification,
+			expectedCode: types.CodeInvalidInput,
+		},
+		{
 			caseName: "failed. Farm pool %s does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				preData := preExec(t, tCtx).(types.MsgCreatePool)
@@ -675,7 +719,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "success. lock and unlock without provide before",
+			caseName: "success. lock and unlock without provide before",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
