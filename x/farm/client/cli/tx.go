@@ -64,6 +64,7 @@ $ %s tx farm create-pool pool-airtoken1-eth_usdk 10ammswap_eth_usdk xxb --from m
 			}
 			yieldToken := args[2]
 			msg := types.NewMsgCreatePool(cliCtx.GetFromAddress(), poolName, minLockAmount, yieldToken)
+
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
