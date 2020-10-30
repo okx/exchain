@@ -7,7 +7,7 @@ import (
 )
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Result {
-	// 1. Get farm pool
+	// 1.1 Get farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
@@ -16,7 +16,9 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 		return types.ErrInvalidDenom(DefaultCodespace, pool.MinLockAmount.Denom, msg.Amount.Denom).Result()
 	}
 
-	if msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
+	// 1.2. check min lock amount
+	found = k.HasLockInfo(ctx, msg.Address, msg.PoolName)
+	if !found && msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
 		return types.ErrLockAmountBelowMinimum(DefaultCodespace, pool.MinLockAmount.Amount, msg.Amount.Amount).Result()
 
 	}
@@ -24,8 +26,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	// 2. Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
-	// 3. Get lock info
-	if found := k.HasLockInfo(ctx, msg.Address, msg.PoolName); found {
+	// 3. Lock info
+	if found {
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
