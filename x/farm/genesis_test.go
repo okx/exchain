@@ -1,13 +1,13 @@
 package farm
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
-
 
 func TestInitAndExportGenesis(t *testing.T) {
 	defaultGenesisState := types.DefaultGenesisState()
@@ -20,23 +20,23 @@ func TestInitAndExportGenesis(t *testing.T) {
 	defaultGenesisState.PoolHistoricalRewards = []types.PoolHistoricalRewardsRecord{
 		{
 			PoolName: poolMsg.PoolName,
-			Period: 1,
-			Rewards: types.PoolHistoricalRewards{},
+			Period:   1,
+			Rewards:  types.PoolHistoricalRewards{},
 		},
 	}
 	defaultGenesisState.LockInfos = []types.LockInfo{
 		{
-			Owner: poolMsg.Owner,
-			PoolName: poolMsg.PoolName,
-			Amount: sdk.NewDecCoinFromDec(poolMsg.LockedSymbol, sdk.NewDec(1)),
+			Owner:            poolMsg.Owner,
+			PoolName:         poolMsg.PoolName,
+			Amount:           sdk.NewDecCoinFromDec(poolMsg.MinLockAmount.Denom, sdk.NewDec(1)),
 			StartBlockHeight: 10,
-			ReferencePeriod: 1,
+			ReferencePeriod:  1,
 		},
 	}
 	defaultGenesisState.PoolCurrentRewards = []types.PoolCurrentRewardsRecord{
 		{
 			PoolName: poolMsg.PoolName,
-			Rewards: types.PoolCurrentRewards{},
+			Rewards:  types.PoolCurrentRewards{},
 		},
 	}
 	defaultGenesisState.WhiteList = types.PoolNameList{

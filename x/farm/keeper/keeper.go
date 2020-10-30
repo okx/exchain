@@ -1,13 +1,12 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okexchain/x/token"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	swap "github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/okexchain/x/token"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

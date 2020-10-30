@@ -39,6 +39,7 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 			)
 			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
 		}
+		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add(yieldedTokens)
 	}
 	return pool, yieldedTokens
 }

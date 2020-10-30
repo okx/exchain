@@ -7,21 +7,27 @@ import (
 )
 
 func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Result {
-	// 1. Get farm pool
-	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
-	if !poolFound {
+	// 1.1 Get farm pool
+	pool, found := k.GetFarmPool(ctx, msg.PoolName)
+	if !found {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if pool.LockedSymbol != msg.Amount.Denom {
-		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
+	if pool.MinLockAmount.Denom != msg.Amount.Denom {
+		return types.ErrInvalidDenom(DefaultCodespace, pool.MinLockAmount.Denom, msg.Amount.Denom).Result()
 	}
 
-	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
-	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+	// 1.2. check min lock amount
+	found = k.HasLockInfo(ctx, msg.Address, msg.PoolName)
+	if !found && msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
+		return types.ErrLockAmountBelowMinimum(DefaultCodespace, pool.MinLockAmount.Amount, msg.Amount.Amount).Result()
 
-	// 3. Get lock info
-	if found := k.HasLockInfo(ctx, msg.Address, msg.PoolName); found {
+	}
+
+	// 2. Calculate how many provided token & native token could be yielded in current period
+	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
+
+	// 3. Lock info
+	if found {
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
@@ -37,7 +43,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 
 		// Create new lock info
 		lockInfo := types.NewLockInfo(
-			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.LockedSymbol, sdk.ZeroDec()),
+			msg.Address, pool.Name, sdk.NewDecCoinFromDec(pool.MinLockAmount.Denom, sdk.ZeroDec()),
 			ctx.BlockHeight(), 0,
 		)
 		k.SetLockInfo(ctx, lockInfo)
@@ -48,7 +54,9 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	k.UpdateLockInfo(ctx, msg.Address, msg.PoolName, msg.Amount.Amount)
 
 	// 5. Send the locked-tokens from its own account to farm module account
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Address, ModuleName, msg.Amount.ToCoins()); err != nil {
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
+		ctx, msg.Address, ModuleName, msg.Amount.ToCoins(),
+	); err != nil {
 		return err.Result()
 	}
 
@@ -77,7 +85,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 	}
 
 	if lockInfo.Amount.IsLT(msg.Amount) {
-		return types.ErrinsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
+		return types.ErrInsufficientAmount(DefaultCodespace, lockInfo.Amount.String(), msg.Amount.String()).Result()
 	}
 
 	// 1.2 Get the pool info
@@ -85,11 +93,15 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 	if !poolFound {
 		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
 	}
-	if pool.LockedSymbol != msg.Amount.Denom {
-		return types.ErrInvalidDenom(DefaultCodespace, pool.LockedSymbol, msg.Amount.Denom).Result()
+	if pool.MinLockAmount.Denom != msg.Amount.Denom {
+		return types.ErrInvalidDenom(DefaultCodespace, pool.MinLockAmount.Denom, msg.Amount.Denom).Result()
+	}
+	remainAmount := lockInfo.Amount.Amount.Sub(msg.Amount.Amount)
+	if !remainAmount.IsZero() && remainAmount.LT(pool.MinLockAmount.Amount) {
+		return types.ErrLockAmountBelowMinimum(DefaultCodespace, pool.MinLockAmount.Amount, remainAmount).Result()
 	}
 
-	// 2. Calculate how many provided token & native token have been yielded between start_block_height and current_height
+	// 2. Calculate how many provided token & native token could be yielded in current period
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 3. Withdraw money
@@ -108,7 +120,6 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 
 	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Sub(msg.Amount)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
 	if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 		panic("should not happen")
 	}

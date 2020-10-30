@@ -78,8 +78,8 @@ func (k Keeper) GetTokenTotalSupply(ctx sdk.Context, symbol string) sdk.Dec {
 // TokenExist checks whether the token with symbol exist or not
 func (k Keeper) TokenExist(ctx sdk.Context, symbol string) bool {
 	store := ctx.KVStore(k.tokenStoreKey)
-	bz := store.Get(types.GetTokenAddress(symbol))
-	return bz != nil
+
+	return store.Has(types.GetTokenAddress(symbol))
 }
 
 // nolint

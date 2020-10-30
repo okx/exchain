@@ -1,9 +1,13 @@
 package keeper
 
 import (
-	"github.com/okex/okexchain/x/farm/types"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	swaptypes "github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/farm/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSatisfyWhiteListAdmittance(t *testing.T) {
@@ -12,8 +16,8 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 
 	baseSymbol := "xxb"
 	pool1 := types.FarmPool{
-		Name:         "pool1",
-		LockedSymbol: baseSymbol,
+		Name:          "pool1",
+		MinLockAmount: sdk.NewDecCoinFromDec(baseSymbol, sdk.ZeroDec()),
 	}
 	k.SetFarmPool(ctx, pool1)
 	err := k.satisfyWhiteListAdmittance(ctx, pool1)
@@ -21,9 +25,10 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	// test add LPT
+	lockSymbol := swaptypes.PoolTokenPrefix + baseSymbol + "_" + quoteSymbol
 	pool2 := types.FarmPool{
-		Name:         "pool2",
-		LockedSymbol: "ammswap_" + baseSymbol + "_" + quoteSymbol,
+		Name:          "pool2",
+		MinLockAmount: sdk.NewDecCoinFromDec(lockSymbol, sdk.ZeroDec()),
 	}
 	k.SetFarmPool(ctx, pool2)
 	err = k.satisfyWhiteListAdmittance(ctx, pool2)
@@ -31,9 +36,10 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	base1Symbol := "okb"
+	lockSymbol = swaptypes.PoolTokenPrefix + baseSymbol + "_" + base1Symbol
 	pool3 := types.FarmPool{
-		Name:         "pool3",
-		LockedSymbol: "ammswap_" + baseSymbol + "_" + base1Symbol,
+		Name:          "pool3",
+		MinLockAmount: sdk.NewDecCoinFromDec(lockSymbol, sdk.ZeroDec()),
 	}
 	err = k.satisfyWhiteListAdmittance(ctx, pool3)
 	require.NotNil(t, err)

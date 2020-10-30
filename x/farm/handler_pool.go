@@ -13,25 +13,29 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
 
-	if ok := k.TokenKeeper().TokenExist(ctx, msg.LockedSymbol); !ok {
-		return types.ErrTokenNotExist(DefaultCodespace, msg.LockedSymbol).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.MinLockAmount.Denom); !ok {
+		return types.ErrTokenNotExist(DefaultCodespace, msg.MinLockAmount.Denom).Result()
 	}
 
-	yieldTokenInfo := k.TokenKeeper().GetTokenInfo(ctx, msg.YieldedSymbol)
-	if !yieldTokenInfo.Owner.Equals(msg.Owner) {
-		return types.ErrInvalidTokenOwner(DefaultCodespace, msg.Owner.String(), msg.YieldedSymbol).Result()
+	if ok := k.TokenKeeper().TokenExist(ctx, msg.YieldedSymbol); !ok {
+		return types.ErrTokenNotExist(DefaultParamspace, msg.YieldedSymbol).Result()
 	}
 
 	// fee
-	feeAmount := k.GetParams(ctx).CreatePoolFee
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins()); err != nil {
+	params := k.GetParams(ctx)
+	feeAmount := params.CreatePoolFee
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
+		ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins(),
+	); err != nil {
 		return sdk.ErrInsufficientFee(fmt.Sprintf("insufficient fee coins(need %s)",
 			feeAmount.String())).Result()
 	}
 
 	// deposit
-	depositAmount := k.GetParams(ctx).CreatePoolDeposit
-	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, ModuleName, depositAmount.ToCoins()); err != nil {
+	depositAmount := params.CreatePoolDeposit
+	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
+		ctx, msg.Owner, ModuleName, depositAmount.ToCoins(),
+	); err != nil {
 		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
 			depositAmount.String())).Result()
 	}
@@ -40,10 +44,9 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	yieldedTokenInfo := types.NewYieldedTokenInfo(sdk.NewDecCoin(msg.YieldedSymbol, sdk.ZeroInt()),
 		0, sdk.ZeroDec())
 	pool := types.NewFarmPool(
-		msg.Owner, msg.PoolName, msg.LockedSymbol, depositAmount, sdk.NewDecCoin(msg.LockedSymbol, sdk.ZeroInt()),
+		msg.Owner, msg.PoolName, msg.MinLockAmount, depositAmount, sdk.NewDecCoin(msg.MinLockAmount.Denom, sdk.ZeroInt()),
 		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.DecCoins{},
 	)
-	// set pool
 	k.SetFarmPool(ctx, pool)
 
 	// initial pool period
@@ -56,7 +59,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		types.EventTypeCreatePool,
 		sdk.NewAttribute(types.AttributeKeyAddress, msg.Owner.String()),
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-		sdk.NewAttribute(types.AttributeKeyLockToken, msg.LockedSymbol),
+		sdk.NewAttribute(types.AttributeKeyMinLockAmount, msg.MinLockAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyYieldToken, msg.YieldedSymbol),
 		sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
@@ -75,31 +78,32 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		return types.ErrInvalidPoolOwner(DefaultCodespace, msg.Owner.String(), msg.PoolName).Result()
 	}
 
-	// 1. withdraw deposit
+	// 1. calculate how many provided token & native token could be yielded in current period
+	updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
+
+	// 2. check pool status
+	if !updatedPool.Finished() {
+		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
+	}
+
+	// 3. give remaining rewards to the owner of pool
+	if !updatedPool.TotalAccumulatedRewards.IsZero() {
+		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(
+			ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards,
+		)
+		if err != nil {
+			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
+				updatedPool.TotalAccumulatedRewards.String())).Result()
+		}
+	}
+
+	// 4. withdraw deposit
 	withdrawAmount := pool.DepositAmount
 	if withdrawAmount.IsPositive() {
 		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
 		if err != nil {
 			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
 				withdrawAmount.String())).Result()
-		}
-	}
-
-	// 2. calculate how many provided token & native token have been yielded between start_block_height and current_height
-	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
-
-	// 3. check pool status
-	if !updatedPool.Finished() {
-		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
-	}
-
-	// 4. give remaining rewards to the owner of pool
-	if !updatedPool.TotalAccumulatedRewards.IsZero() {
-		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards)
-		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
-				updatedPool.TotalAccumulatedRewards.String())).Result()
 		}
 	}
 

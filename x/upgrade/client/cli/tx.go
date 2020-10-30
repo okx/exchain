@@ -23,7 +23,7 @@ func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade [proposal-file]",
 		Args:  cobra.ExactArgs(1),
-		Short: "submit a app upgrade proposal",
+		Short: "Submit a app upgrade proposal",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a app upgrade proposal along with an initial deposit.
 The proposal details must be supplied via a JSON file.

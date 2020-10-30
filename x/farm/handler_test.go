@@ -2,6 +2,10 @@ package farm
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swap "github.com/okex/okexchain/x/ammswap"
 	swaptypes "github.com/okex/okexchain/x/ammswap/types"
@@ -10,9 +14,8 @@ import (
 	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"math/rand"
-	"testing"
 )
+
 
 type testContext struct {
 	ctx               sdk.Context
@@ -122,7 +125,8 @@ var normalGetCreatePoolMsg getMsgFunc = func(tCtx *testContext, preData interfac
 	testYieldTokenName := testSwapTokenPair.BasePooledCoin.Denom
 	owner := tCtx.tokenOwner
 	poolName := "abc"
-	createPoolMsg := types.NewMsgCreatePool(owner, poolName, testSwapTokenPair.PoolTokenName, testYieldTokenName)
+	minLockAmount := sdk.NewDecCoinFromDec(testSwapTokenPair.PoolTokenName, sdk.ZeroDec())
+	createPoolMsg := types.NewMsgCreatePool(owner, poolName, minLockAmount, testYieldTokenName)
 	return createPoolMsg
 }
 
@@ -149,7 +153,7 @@ var normalGetLockMsg getMsgFunc = func(tCtx *testContext, preData interface{}) s
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockAmount.Denom, sdk.NewDec(1))
 	lockMsg := types.NewMsgLock(poolName, address, amount)
 	return lockMsg
 }
@@ -158,7 +162,7 @@ var normalGetUnlockMsg getMsgFunc = func(tCtx *testContext, preData interface{})
 	createPoolMsg := preData.(types.MsgCreatePool)
 	poolName := createPoolMsg.PoolName
 	address := createPoolMsg.Owner
-	amount := sdk.NewDecCoinFromDec(createPoolMsg.LockedSymbol, sdk.NewDec(1))
+	amount := sdk.NewDecCoinFromDec(createPoolMsg.MinLockAmount.Denom, sdk.NewDec(1))
 	unlockMsg := types.NewMsgUnlock(poolName, address, amount)
 	return unlockMsg
 }
@@ -256,22 +260,11 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, preData).(types.MsgCreatePool)
-				createPoolMsg.LockedSymbol = tCtx.nonExistTokenName[0]
+				createPoolMsg.MinLockAmount = sdk.NewDecCoinFromDec(tCtx.nonExistTokenName[0], sdk.ZeroDec())
 				return createPoolMsg
 			},
 			verification: verification,
 			expectedCode: types.CodeTokenNotExist,
-		},
-		{
-			caseName: "failed. the addr isn't the owner of the token",
-			preExec:  preExec,
-			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
-				createPoolMsg := normalGetCreatePoolMsg(tCtx, preData).(types.MsgCreatePool)
-				createPoolMsg.Owner = tCtx.addrList[0]
-				return createPoolMsg
-			},
-			verification: verification,
-			expectedCode: types.CodeInvalidInput,
 		},
 		{
 			caseName: "failed. yield token does not exists",
@@ -282,7 +275,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 				return createPoolMsg
 			},
 			verification: verification,
-			expectedCode: types.CodeInvalidInput,
+			expectedCode: types.CodeTokenNotExist,
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -334,7 +327,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
 			caseName: "failed. the address isn't the owner of pool",
@@ -405,13 +398,11 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				// provide
 				provide(t, tCtx, createPoolMsg)
 
-
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				pool, found := tCtx.k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 				require.True(t, found)
-				updatedPool, yieldedTokens := tCtx.k.CalculateAmountYieldedBetween(tCtx.ctx, pool)
-				updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Add(yieldedTokens)
+				updatedPool, _ := tCtx.k.CalculateAmountYieldedBetween(tCtx.ctx, pool)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, YieldFarmingAccount, createPoolMsg.Owner, updatedPool.TotalAccumulatedRewards)
 				require.Nil(t, err)
@@ -479,7 +470,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 			},
 			getMsg:       normalGetProvideMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -541,18 +532,18 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. Farm pool does not exist",
+			caseName: "failed. Farm pool does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil)
 				return createPoolMsg
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. The coin name should be %s, not %s",
-			preExec:      preExec,
+			caseName: "failed. The coin name should be %s, not %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				lockMsg := normalGetLockMsg(tCtx, preData).(types.MsgLock)
 				lockMsg.Amount.Denom = tCtx.nonExistTokenName[0]
@@ -562,7 +553,25 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "success. has lockInfo",
+			caseName: "failed. lock amount %s must be greater than the pool`s min lock amount %s",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
+				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(math.MaxInt64)
+				result := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.True(t, result.IsOK())
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetLockMsg,
+			verification: verification,
+			expectedCode: types.CodeInvalidInput,
+		},
+		{
+			caseName: "success. has lockInfo",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -580,7 +589,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -602,8 +611,8 @@ func TestHandlerMsgLock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "failed. insufficient coins",
-			preExec:      preExec,
+			caseName: "failed. insufficient coins",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				lockMsg := normalGetLockMsg(tCtx, preData).(types.MsgLock)
 				lockMsg.Amount.Amount = sdk.NewDec(1000000)
@@ -639,7 +648,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. the addr doesn't have any lock infos",
+			caseName: "failed. the addr doesn't have any lock infos",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -653,8 +662,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidLockInfo,
 		},
 		{
-			caseName:     "failed. The coin name should be %s, not %s",
-			preExec:      preExec,
+			caseName: "failed. The coin name should be %s, not %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				unlockMsg := normalGetUnlockMsg(tCtx, preData).(types.MsgUnlock)
 				unlockMsg.Amount.Denom = tCtx.nonExistTokenName[0]
@@ -664,8 +673,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "failed. The actual amount %s is less than %s",
-			preExec:      preExec,
+			caseName: "failed. The actual amount %s is less than %s",
+			preExec:  preExec,
 			getMsg: func(tCtx *testContext, preData interface{}) sdk.Msg {
 				unlockMsg := normalGetUnlockMsg(tCtx, preData).(types.MsgUnlock)
 				unlockMsg.Amount.Amount = unlockMsg.Amount.Amount.Add(sdk.NewDec(1))
@@ -675,7 +684,31 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: types.CodeInvalidInput,
 		},
 		{
-			caseName:     "failed. Farm pool %s does not exist",
+			caseName: "failed. remain lock amount %s is less than pool`s min lock amount %s",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
+				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(2)
+				result := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.True(t, result.IsOK())
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				// lock
+				lockMsg := normalGetLockMsg(tCtx, createPoolMsg).(types.MsgLock)
+				lockMsg.Amount.Amount = sdk.NewDec(2)
+				result = tCtx.handler(tCtx.ctx, lockMsg)
+				require.True(t, result.IsOK())
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetUnlockMsg,
+			verification: verification,
+			expectedCode: types.CodeInvalidInput,
+		},
+		{
+			caseName: "failed. Farm pool %s does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				preData := preExec(t, tCtx).(types.MsgCreatePool)
 				tCtx.k.DeleteFarmPool(tCtx.ctx, preData.PoolName)
@@ -683,10 +716,10 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -708,7 +741,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "failed. insufficient coins from module account",
+			caseName: "failed. insufficient coins from module account",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -730,7 +763,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			expectedCode: sdk.CodeInsufficientCoins,
 		},
 		{
-			caseName:     "success. lock and unlock without provide before",
+			caseName: "success. lock and unlock without provide before",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -750,7 +783,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 	testCaseTest(t, tests)
 }
 
-func TestHandlerMsgClaim(t *testing.T)  {
+func TestHandlerMsgClaim(t *testing.T) {
 	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
 		// create pool
 		createPoolMsg := createPool(t, tCtx)
@@ -808,10 +841,10 @@ func TestHandlerMsgClaim(t *testing.T)  {
 			},
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
-			expectedCode: types.CodeInvalidFarmPool,
+			expectedCode: types.CodeNoFarmPoolFound,
 		},
 		{
-			caseName:     "failed. withdraw failed",
+			caseName: "failed. withdraw failed",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -855,6 +888,7 @@ func TestNewHandler(t *testing.T) {
 	result := tCtx.handler(tCtx.ctx, msg)
 	require.Equal(t, sdk.CodeUnknownRequest, result.Code)
 }
+
 
 func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	tCtx := initEnvironment(t)

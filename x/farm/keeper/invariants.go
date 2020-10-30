@@ -6,7 +6,7 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-// RegisterInvariants registers all distribution invariants
+// RegisterInvariants registers all farm invariants
 func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, "module-account", moduleAccountInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "yield-farming-account", yieldFarmingAccountInvariant(k))
@@ -23,11 +23,19 @@ func moduleAccountInvariant(k Keeper) sdk.Invariant {
 			totalDepositAmount = totalDepositAmount.Add(pool.DepositAmount.ToCoins())
 		}
 
+		// iterate all lock infos
+		totalLockedAmount := sdk.DecCoins{}
+		k.IterateAllLockInfos(ctx, func(lockInfo types.LockInfo) (stop bool) {
+			totalLockedAmount = totalLockedAmount.Add(sdk.NewDecCoins(lockInfo.Amount.ToCoins()))
+			return false
+		})
+
+
 		// get farm module account
 		moduleAccAmount := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
 
 		// make a comparison
-		broken := !(totalDepositAmount.IsEqual(moduleAccAmount))
+		broken := !(moduleAccAmount.IsEqual(totalDepositAmount.Add(totalLockedAmount)))
 
 		return sdk.FormatInvariant(types.ModuleName, "ModuleAccount coins",
 			fmt.Sprintf("\texpected farm ModuleAccount coins: %s\n"+

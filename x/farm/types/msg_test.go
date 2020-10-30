@@ -1,28 +1,31 @@
 package types
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMsgCreatePool(t *testing.T) {
+	negMinLockAmount := sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec())
+	negMinLockAmount.Amount = sdk.NewDec(-1)
 	tests := []struct {
 		owner         sdk.AccAddress
 		poolName      string
-		lockedSymbol  string
+		minLockAmount sdk.DecCoin
 		yieldedSymbol string
 		errCode       sdk.CodeType
 	}{
-		{sdk.AccAddress{0x1}, "pool", "xxb", "wwb", sdk.CodeOK},
-		{nil, "pool", "xxb", "wwb", CodeInvalidAddress},
-		{sdk.AccAddress{0x1}, "", "xxb", "wwb", CodeInvalidInput},
-		{sdk.AccAddress{0x1}, "pool", "", "wwb", CodeInvalidInput},
-		{sdk.AccAddress{0x1}, "pool", "xxb", "", CodeInvalidInput},
+		{sdk.AccAddress{0x1}, "pool", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "wwb", sdk.CodeOK},
+		{nil, "pool", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "wwb", sdk.CodeInvalidAddress},
+		{sdk.AccAddress{0x1}, "", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "wwb", CodeInvalidInput},
+		{sdk.AccAddress{0x1}, "pool", negMinLockAmount, "wwb", sdk.CodeOK},
+		{sdk.AccAddress{0x1}, "pool", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "", CodeInvalidInput},
 	}
 
 	for _, test := range tests {
-		msg := NewMsgCreatePool(test.owner, test.poolName, test.lockedSymbol, test.yieldedSymbol)
+		msg := NewMsgCreatePool(test.owner, test.poolName, test.minLockAmount, test.yieldedSymbol)
 		require.Equal(t, createPoolMsgType, msg.Type())
 		require.Equal(t, ModuleName, msg.Route())
 		require.Equal(t, []sdk.AccAddress{test.owner}, msg.GetSigners())

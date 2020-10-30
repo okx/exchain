@@ -1,8 +1,6 @@
 package types
 
 import (
-	"strconv"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -22,17 +20,17 @@ const (
 type MsgCreatePool struct {
 	Owner         sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName      string         `json:"pool_name" yaml:"pool_name"`
-	LockedSymbol  string         `json:"locked_symbol" yaml:"locked_symbol"`
+	MinLockAmount sdk.DecCoin    `json:"min_lock_amount" yaml:"min_lock_amount"`
 	YieldedSymbol string         `json:"yielded_symbol"  yaml:"yielded_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
-func NewMsgCreatePool(address sdk.AccAddress, poolName, lockSymbol, yieldedSymbol string) MsgCreatePool {
+func NewMsgCreatePool(address sdk.AccAddress, poolName string, minLockAmount sdk.DecCoin, yieldedSymbol string) MsgCreatePool {
 	return MsgCreatePool{
 		Owner:         address,
 		PoolName:      poolName,
-		LockedSymbol:  lockSymbol,
+		MinLockAmount: minLockAmount,
 		YieldedSymbol: yieldedSymbol,
 	}
 }
@@ -50,13 +48,13 @@ func (m MsgCreatePool) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
-	if m.LockedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, m.LockedSymbol)
+	if m.MinLockAmount.Amount.LT(sdk.ZeroDec()) || !m.MinLockAmount.IsValid() {
+		return ErrInvalidInputAmount(DefaultCodespace, m.MinLockAmount.String())
 	}
 	if m.YieldedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, m.YieldedSymbol)
+		return ErrInvalidInput(DefaultCodespace, "yielded symbol is empty")
 	}
 	return nil
 }
@@ -97,7 +95,7 @@ func (m MsgDestroyPool) ValidateBasic() sdk.Error {
 		return ErrNilAddress(DefaultCodespace)
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
 	return nil
 }
@@ -151,10 +149,10 @@ func (m MsgProvide) ValidateBasic() sdk.Error {
 		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.String())
 	}
 	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
-		return ErrInvalidInput(DefaultCodespace, m.AmountYieldedPerBlock.String())
+		return ErrInvalidInput(DefaultCodespace, "amount yielded per block must be > 0")
 	}
 	if m.StartHeightToYield <= 0 {
-		return ErrInvalidInput(DefaultCodespace, strconv.FormatInt(m.StartHeightToYield, 10))
+		return ErrInvalidInput(DefaultCodespace, "start height to yield must be > 0")
 	}
 	return nil
 }

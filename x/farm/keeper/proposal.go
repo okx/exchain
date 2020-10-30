@@ -2,12 +2,13 @@ package keeper
 
 import (
 	"fmt"
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/okex/okexchain/x/farm/types"
 	govKeeper "github.com/okex/okexchain/x/gov/keeper"
 	govTypes "github.com/okex/okexchain/x/gov/types"
-	"time"
 )
 
 var _ govKeeper.ProposalHandler = (*Keeper)(nil)

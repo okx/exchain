@@ -42,14 +42,14 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 func GetCmdCreatePool(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create-pool [pool-name] [lock-token] [yield-token]",
+		Use:   "create-pool [pool-name] [min-lock-amount] [yield-token]",
 		Short: "create a farm pool",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Create a farm pool.
 
 Example:
-$ %s tx farm create-pool pool-airtoken1-eth eth xxb --from mykey
-$ %s tx farm create-pool pool-airtoken1-eth_usdk ammswap_eth_usdk xxb --from mykey
+$ %s tx farm create-pool pool-airtoken1-eth 10eth xxb --from mykey
+$ %s tx farm create-pool pool-airtoken1-eth_usdk 10ammswap_eth_usdk xxb --from mykey
 `, version.ClientName, version.ClientName),
 		),
 		Args: cobra.ExactArgs(3),
@@ -58,9 +58,13 @@ $ %s tx farm create-pool pool-airtoken1-eth_usdk ammswap_eth_usdk xxb --from myk
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			poolName := args[0]
-			lockToken := args[1]
+			minLockAmount, err := sdk.ParseDecCoin(args[1])
+			if err != nil {
+				return err
+			}
 			yieldToken := args[2]
-			msg := types.NewMsgCreatePool(cliCtx.GetFromAddress(), poolName, lockToken, yieldToken)
+			msg := types.NewMsgCreatePool(cliCtx.GetFromAddress(), poolName, minLockAmount, yieldToken)
+
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
@@ -214,7 +218,7 @@ $ %s tx farm claim --from mykey
 // GetCmdManageWhiteListProposal implements a command handler for submitting a farm manage white list proposal transaction
 func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "manage-white-list-proposal [proposal-file]",
+		Use:   "manage-white-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit a manage white list proposal",
 		Long: strings.TrimSpace(
@@ -222,7 +226,7 @@ func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal manage-white-list-proposal <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal manage-white-list <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
