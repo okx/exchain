@@ -10,6 +10,7 @@ import (
 	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"math/rand"
 	"testing"
 )
 
@@ -28,9 +29,9 @@ type getMsgFunc func(tCtx *testContext, preData interface{}) sdk.Msg
 
 type preExecFunc func(t *testing.T, tCtx *testContext) interface{}
 
-type verificationFunc func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem)
+type verificationFunc func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{})
 
-var verification verificationFunc = func(t *testing.T, context *testContext, result sdk.Result, testCase testCaseItem) {
+var verification verificationFunc = func(t *testing.T, context *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
 	if result.Code != testCase.expectedCode {
 		fmt.Println(result.Log)
 	}
@@ -51,8 +52,27 @@ func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
 		tCtx := initEnvironment(t)
 		preData := testCase.preExec(t, tCtx)
 		msg := testCase.getMsg(tCtx, preData)
+		addrList := msg.GetSigners()
+		addr := addrList[0]
+		preCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
 		result := tCtx.handler(tCtx.ctx, msg)
-		testCase.verification(t, tCtx, result, testCase)
+		afterCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
+		testCase.verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
+	}
+}
+
+func testCaseCombinationTest(t *testing.T, testCaseList []testCaseItem) {
+	tCtx := initEnvironment(t)
+	for _, testCase := range testCaseList {
+		fmt.Println(testCase.caseName)
+		preData := testCase.preExec(t, tCtx)
+		msg := testCase.getMsg(tCtx, preData)
+		addrList := msg.GetSigners()
+		addr := addrList[0]
+		preCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
+		result := tCtx.handler(tCtx.ctx, msg)
+		afterCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
+		testCase.verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
 	}
 }
 
@@ -78,7 +98,7 @@ func initEnvironment(t *testing.T) *testContext {
 	testBaseToken := sdk.NewDecCoinFromDec(testBaseTokenName, sdk.NewDec(initPoolTokenAmount))
 	testQuoteToken := sdk.NewDecCoinFromDec(testQuoteTokenName, sdk.NewDec(initPoolTokenAmount))
 	testAddr := keeper.Addrs[0]
-	testSwapTokenPair := swap.NewTestSwapTokenPairWithInitLiquidity(t, ctx, mk.SwapKeeper, testBaseToken, testQuoteToken, testAddr)
+	testSwapTokenPair := swap.NewTestSwapTokenPairWithInitLiquidity(t, ctx, mk.SwapKeeper, testBaseToken, testQuoteToken, keeper.Addrs)
 
 	//acc := mk.AccKeeper.GetAccount(ctx, Addrs[0])
 	//fmt.Println(acc)
@@ -181,6 +201,9 @@ func provide(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool)
 func lock(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) types.MsgLock {
 	lockMsg := normalGetLockMsg(tCtx, createPoolMsg)
 	result := tCtx.handler(tCtx.ctx, lockMsg)
+	if !result.IsOK() {
+		fmt.Println(result.Log)
+	}
 	require.True(t, result.IsOK())
 	return lockMsg.(types.MsgLock)
 }
@@ -398,6 +421,26 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
 			expectedCode: sdk.CodeInsufficientCoins,
+		},
+		{
+			caseName: "failed. the pool is not finished and can not be destroyed",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := createPool(t, tCtx)
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				// lock
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetDestroyPoolMsg,
+			verification: verification,
+			expectedCode: types.CodePoolNotFinished,
 		},
 	}
 	testCaseTest(t, tests)
@@ -722,10 +765,39 @@ func TestHandlerMsgClaim(t *testing.T)  {
 	}
 	tests := []testCaseItem{
 		{
-			caseName:     "success",
+			caseName:     "success. claim after providing at the same block height",
 			preExec:      preExec,
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. claim after providing at the lower block height",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := createPool(t, tCtx)
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				// lock
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetClaimMsg,
+			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
+				if result.Code != testCase.expectedCode {
+					fmt.Println(result.Log)
+				}
+				require.Equal(t, testCase.expectedCode, result.Code)
+				createPoolMsg := preData.(types.MsgCreatePool)
+				diffCoins := afterCoins.Sub(preCoins)
+				actualDec := diffCoins.AmountOf(createPoolMsg.YieldedSymbol)
+				require.Equal(t, sdk.NewDec(1), actualDec)
+			},
 			expectedCode: sdk.CodeOK,
 		},
 		{
@@ -782,4 +854,178 @@ func TestNewHandler(t *testing.T) {
 	msg := swaptypes.NewMsgCreateExchange(tCtx.swapTokenPairs[0].BasePooledCoin.Denom, tCtx.swapTokenPairs[0].QuotePooledCoin.Denom, tCtx.tokenOwner)
 	result := tCtx.handler(tCtx.ctx, msg)
 	require.Equal(t, sdk.CodeUnknownRequest, result.Code)
+}
+
+func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
+	tCtx := initEnvironment(t)
+
+	// create pool
+	createPoolMsg := createPool(t, tCtx)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	// provide
+	provide(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	// lock
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[2]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[3]
+	lock(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+
+	createPoolMsg.Owner = tCtx.addrList[4]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[5]
+	lock(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+
+	createPoolMsg.Owner = tCtx.addrList[6]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[7]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
+	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	//var period uint64
+	//for period = 0;period < curPeriodRewards.Period;period++ {
+	//	historyPeriodRewards := tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, period)
+	//	fmt.Println("period:", period)
+	//	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(historyPeriodRewards)))
+	//}
+	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
+
+		fmt.Println(lockInfo.String())
+		return false
+	})
+
+}
+
+
+func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
+	tCtx := initEnvironment(t)
+
+	// create pool
+	createPoolMsg := createPool(t, tCtx)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	// provide
+	provide(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	// lock
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[0]
+	lock(t, tCtx, createPoolMsg)
+
+	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
+	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	//var period uint64
+	//for period = 0;period < curPeriodRewards.Period;period++ {
+	//	historyPeriodRewards := tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, period)
+	//	fmt.Println("period:", period)
+	//	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(historyPeriodRewards)))
+	//}
+	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
+
+		fmt.Println(lockInfo.String())
+		return false
+	})
+
+}
+
+func TestHandlerRandom(t *testing.T) {
+	tCtx := initEnvironment(t)
+
+	// create pool
+	createPoolMsg := createPool(t, tCtx)
+	for i := 0; i < 10000; i++ {
+		var msg sdk.Msg
+		judge := rand.Intn(5)
+		switch judge {
+		case 0:
+			msg = normalGetProvideMsg(tCtx, createPoolMsg)
+		case 1:
+			msg = normalGetCreatePoolMsg(tCtx, createPoolMsg)
+		case 2:
+			msg = normalGetLockMsg(tCtx, createPoolMsg)
+		case 3:
+			msg = normalGetUnlockMsg(tCtx, createPoolMsg)
+		case 4:
+			msg = normalGetClaimMsg(tCtx, createPoolMsg)
+		case 5:
+			msg = normalGetDestroyPoolMsg(tCtx, createPoolMsg)
+		}
+		ctx, writeCache := tCtx.ctx.CacheContext()
+		res := tCtx.handler(ctx, msg)
+		if !res.Code.IsOK() {
+			fmt.Println(res.Log)
+		}else {
+			writeCache()
+		}
+		tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + int64(rand.Intn(2)))
+	}
 }
