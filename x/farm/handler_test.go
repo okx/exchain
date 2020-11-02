@@ -244,6 +244,29 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
+			caseName:     "success. create again after destroying",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				createPoolMsg := createPool(t, tCtx)
+
+				provide(t, tCtx, createPoolMsg)
+
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+
+				claim(t, tCtx, createPoolMsg)
+
+				unlock(t, tCtx, createPoolMsg)
+
+				destroyPool(t, tCtx, createPoolMsg)
+
+				return nil
+			},
+			getMsg:       normalGetCreatePoolMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
 			caseName: "failed. farm pool already exists",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				return createPool(t, tCtx)
@@ -382,6 +405,29 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				provide(t, tCtx, createPoolMsg)
 
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+
+				return createPoolMsg
+			},
+			getMsg:       normalGetDestroyPoolMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName: "success. destroy after claiming",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := createPool(t, tCtx)
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+
+				claim(t, tCtx, createPoolMsg)
+
+				unlock(t, tCtx, createPoolMsg)
 
 				return createPoolMsg
 			},

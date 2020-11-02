@@ -22,6 +22,6 @@ func TestParams(t *testing.T) {
 
 	require.Equal(t, defaultState.Params, defaultParams)
 
-	fmt.Print(defaultParams.String())
+	fmt.Println(defaultParams.String())
 	require.Equal(t, strExpected, defaultParams.String())
 }
