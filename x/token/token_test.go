@@ -107,7 +107,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.SetEndBlocker(getEndBlocker(mockDexApp.tokenKeeper))
 	mockDexApp.SetInitChainer(getInitChainer(mockDexApp.App, mockDexApp.bankKeeper, mockDexApp.supplyKeeper, []exported.ModuleAccountI{feeCollectorAcc}))
 
-	intQuantity := int64(100)
+	intQuantity := int64(100000)
 	valTokens := sdk.NewDec(intQuantity)
 	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, valTokens),
@@ -447,19 +447,7 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 
 	//test if zzb is not exist
 	invalidmsg := types.NewMsgTransferOwnership(fromAddr, toAddr, "zzb")
-	bSig, err := toPriKey.Sign(invalidmsg.GetSignBytes())
-	require.NoError(t, err)
-	invalidmsg.ToSignature.PubKey = toPubKey
-	invalidmsg.ToSignature.Signature = bSig
 	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], invalidmsg))
-
-	//test if zzb is not exist
-	tokenNotExist := types.NewMsgTransferOwnership(fromAddr, toAddr, "zzb")
-	bSig, err = toPriKey.Sign(tokenNotExist.GetSignBytes())
-	require.NoError(t, err)
-	tokenNotExist.ToSignature.PubKey = toPubKey
-	tokenNotExist.ToSignature.Signature = bSig
-	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenNotExist))
 
 	//test addTokenSuffix->ValidSymbol
 	addTokenSuffix(ctx, keeper, "notexist")
@@ -468,22 +456,14 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	symbName := "okb-b85" //addTokenSuffix(ctx,keeper,common.NativeToken)
 	//change owner from F to T
 	tokenChownMsg := types.NewMsgTransferOwnership(fromAddr, toAddr, symbName)
-	bSig, err = toPriKey.Sign(tokenChownMsg.GetSignBytes())
-	require.NoError(t, err)
-	tokenChownMsg.ToSignature.PubKey = toPubKey
-	tokenChownMsg.ToSignature.Signature = bSig
 	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenChownMsg))
 
 	ctx = mockApplyBlock(t, app, TokenChown, 4)
 }
 
 func TestUpdateUserTokenRelationship(t *testing.T) {
-	toPriKey := secp256k1.GenPrivKey()
-	toPubKey := toPriKey.PubKey()
-	toAddr := sdk.AccAddress(toPubKey.Address())
-
 	intQuantity := int64(30000)
-	genAccs, testAccounts := CreateGenAccounts(1,
+	genAccs, testAccounts := CreateGenAccounts(2,
 		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
@@ -511,17 +491,22 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 	var TokenChown []auth.StdTx
 
 	//test if zzb is not exist
-	chownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, tokenName)
-	bSig, err := toPriKey.Sign(chownMsg.GetSignBytes())
-	require.NoError(t, err)
-	chownMsg.ToSignature.PubKey = toPubKey
-	chownMsg.ToSignature.Signature = bSig
+	chownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, testAccounts[1].baseAccount.Address, tokenName)
 	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], chownMsg))
 
 	ctx = mockApplyBlock(t, app, TokenChown, 4)
 
 	tokens = keeper.GetUserTokensInfo(ctx, testAccounts[0].baseAccount.Address)
+	require.EqualValues(t, 1, len(tokens))
+
+	confirmMsg := types.NewMsgConfirmOwnership(testAccounts[1].baseAccount.Address, tokenName)
+	ctx = mockApplyBlock(t, app, []auth.StdTx{createTokenMsg(t, app, ctx, testAccounts[1], confirmMsg)}, 5)
+
+	tokens = keeper.GetUserTokensInfo(ctx, testAccounts[0].baseAccount.Address)
 	require.EqualValues(t, 0, len(tokens))
+
+	tokens = keeper.GetUserTokensInfo(ctx, testAccounts[1].baseAccount.Address)
+	require.EqualValues(t, 1, len(tokens))
 }
 
 func TestCreateTokenIssue(t *testing.T) {
@@ -990,10 +975,6 @@ func TestTxFailedFeeTable(t *testing.T) {
 
 	// failed TransferOwnership msg: no such token
 	failedChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, "nob")
-	bSig, err := toPriKey.Sign(failedChownMsg.GetSignBytes())
-	require.NoError(t, err)
-	failedChownMsg.ToSignature.PubKey = toPubKey
-	failedChownMsg.ToSignature.Signature = bSig
 
 	failTestSets := []struct {
 		name    string
@@ -1048,10 +1029,6 @@ func TestTxSuccessFeeTable(t *testing.T) {
 	successfulEditMsg := types.NewMsgTokenModify(symbolAfterIssue, "edit msg", "xxb coin ", true, true, testAccounts[0].baseAccount.Address)
 
 	successfulChownMsg := types.NewMsgTransferOwnership(testAccounts[0].baseAccount.Address, toAddr, symbolAfterIssue)
-	bSig, err := toPriKey.Sign(successfulChownMsg.GetSignBytes())
-	require.NoError(t, err)
-	successfulChownMsg.ToSignature.PubKey = toPubKey
-	successfulChownMsg.ToSignature.Signature = bSig
 
 	successfulTestSets := []struct {
 		description string
@@ -1122,5 +1099,96 @@ func TestBlockedAddrSend(t *testing.T) {
 			require.Equal(t, tt.balance, app.AccountKeeper.GetAccount(ctx, testAccounts[0].addrKeys.Address).GetCoins().AmountOf(common.NativeToken).String())
 		})
 	}
+
+}
+
+func TestHandleTransferOwnership(t *testing.T) {
+	app, keeper, testAccounts := getMockDexApp(t, 2)
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
+	ctxPassedOwnershipConfirmWindow := app.BaseApp.NewContext(false, abci.Header{}).WithBlockTime(ctx.BlockTime().Add(types.DefaultOwnershipConfirmWindow * 2))
+	handler := NewTokenHandler(keeper, version.ProtocolVersionV0)
+
+	param := types.DefaultParams()
+	app.tokenKeeper.SetParams(ctx, param)
+
+	// issue token
+	symbol := "xxb"
+	msgNewIssue := types.NewMsgTokenIssue("xxb desc", symbol, symbol, symbol,
+		"1000000", testAccounts[0], true)
+	result := handler(ctx, msgNewIssue)
+	require.True(t, result.IsOK())
+
+	tokenName := getTokenSymbol(ctx, keeper, symbol)
+
+	// test case
+	tests := []struct {
+		ctx          sdk.Context
+		msg          sdk.Msg
+		expectedCode sdk.CodeType
+	}{
+		// case 1. sender is not the owner of token
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedCode: sdk.CodeUnauthorized,
+		},
+		// case 2. transfer ownership to testAccounts[1] successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		// case 3. confirm ownership not exists
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
+			expectedCode: sdk.CodeUnknownRequest,
+		},
+		// case 4. sender is not the owner of ConfirmOwnership
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
+			expectedCode: sdk.CodeUnauthorized,
+		},
+		// case 5. confirm ownership expired
+		{
+			ctx:          ctxPassedOwnershipConfirmWindow,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedCode: sdk.CodeInternal,
+		},
+		// case 6. confirm ownership successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+
+		// case 7. transfer ownership to testAccounts[0] successfully
+		{
+			ctx:          ctx,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
+		{
+			ctx:          ctxPassedOwnershipConfirmWindow,
+			msg:          types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
+			expectedCode: sdk.CodeOK,
+		},
+	}
+
+	for _, testCase := range tests {
+		result := handler(testCase.ctx, testCase.msg)
+		require.Equal(t, testCase.expectedCode, result.Code)
+	}
+
+	token := keeper.GetTokenInfo(ctx, tokenName)
+	require.True(t, token.Owner.Equals(common.BlackHoleAddress()))
 
 }

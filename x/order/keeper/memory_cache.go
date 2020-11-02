@@ -12,8 +12,6 @@ type Cache struct {
 	blockMatchResult *types.BlockMatchResult
 	handlerTxMsgResult []bitset.BitSet
 
-	params *types.Params
-
 	// for statistic
 	cancelNum      int64 // canceled orders num in this block
 	expireNum      int64 // expired orders num in this block
@@ -26,7 +24,6 @@ func NewCache() *Cache {
 	return &Cache{
 		updatedOrderIDs:  []string{},
 		blockMatchResult: nil,
-		params:           nil,
 	}
 }
 
@@ -35,7 +32,6 @@ func (c *Cache) reset() {
 	c.updatedOrderIDs = []string{}
 	c.blockMatchResult = &types.BlockMatchResult{}
 	c.handlerTxMsgResult = []bitset.BitSet{}
-	c.params = nil
 
 	c.cancelNum = 0
 	c.expireNum = 0
@@ -101,16 +97,6 @@ func (c *Cache) IncreasePartialFillNum() int64 {
 
 func (c *Cache) getBlockMatchResult() *types.BlockMatchResult {
 	return c.blockMatchResult
-}
-
-// nolint
-func (c *Cache) SetParams(params *types.Params) {
-	c.params = params
-}
-
-// nolint
-func (c *Cache) GetParams() *types.Params {
-	return c.params
 }
 
 func (c *Cache) getUpdatedOrderIDs() []string {

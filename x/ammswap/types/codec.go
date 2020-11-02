@@ -9,7 +9,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgAddLiquidity{}, "okexchain/ammswap/MsgAddLiquidity", nil)
 	cdc.RegisterConcrete(MsgRemoveLiquidity{}, "okexchain/ammswap/MsgRemoveLiquidity", nil)
 	cdc.RegisterConcrete(MsgCreateExchange{}, "okexchain/ammswap/MsgCreateExchange", nil)
-	cdc.RegisterConcrete(MsgTokenToNativeToken{}, "okexchain/ammswap/MsgSwapToken", nil)
+	cdc.RegisterConcrete(MsgTokenToToken{}, "okexchain/ammswap/MsgSwapToken", nil)
 }
 
 // ModuleCdc defines the module codec

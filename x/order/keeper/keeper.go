@@ -452,23 +452,14 @@ func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.DecCoins, from sdk.A
 
 // GetParams gets inflation params from the global param store
 func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
-	// get params from cache
-	cacheParams := k.cache.GetParams()
-	if cacheParams != nil {
-		return cacheParams
-	}
-
-	// if param not stored in cache, get param from KVStore and cache it
 	var param types.Params
 	k.paramSpace.GetParamSet(ctx, &param)
-	k.cache.SetParams(&param)
 	return &param
 }
 
 // SetParams sets inflation params from the global param store
 func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
 	k.paramSpace.SetParamSet(ctx, params)
-	k.cache.SetParams(params)
 }
 
 // nolint
