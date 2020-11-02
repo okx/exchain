@@ -67,7 +67,7 @@ func TestCache(t *testing.T) {
 	order.Sender = testInput.TestAddrs[0]
 	err = keeper.PlaceOrder(ctx, order)
 	require.Nil(t, err)
-	require.EqualValues(t, 1, keeper.GetParams(ctx).OrderExpireBlocks)
+	require.EqualValues(t, 1, keeper.GetCache().params.OrderExpireBlocks)
 	require.EqualValues(t, 1, keeper.GetOperationMetric().OpenNum)
 
 	// current cache

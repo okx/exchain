@@ -30,6 +30,11 @@ func TestCache_GetCancelNum(t *testing.T) {
 	require.EqualValues(t, 0, cache.GetFullFillNum())
 	require.EqualValues(t, 0, cache.GetPartialFillNum())
 
+	feeParams := types.DefaultTestParams()
+	cache.SetParams(&feeParams)
+
+	require.EqualValues(t, types.DefaultOrderExpireBlocks, cache.params.OrderExpireBlocks)
+
 	res := types.BlockMatchResult{
 		BlockHeight: 0,
 		ResultMap:   nil,
@@ -38,4 +43,8 @@ func TestCache_GetCancelNum(t *testing.T) {
 	cache.setBlockMatchResult(&res)
 
 	require.NotEqual(t, 0, cache.getBlockMatchResult().TimeStamp)
+
+	cache.reset()
+	require.Nil(t, cache.GetParams())
+
 }
