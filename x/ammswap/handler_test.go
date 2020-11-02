@@ -7,7 +7,6 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/token"
@@ -20,7 +19,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 
 	testToken := token.InitTestToken(types.TestBasePooledToken)
@@ -87,7 +86,7 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
@@ -168,7 +167,7 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 	msg := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
@@ -264,7 +263,7 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
 	msgCreateExchange2 := types.NewMsgCreateExchange(secondTestToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
@@ -370,7 +369,7 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 	secondTestToken := token.InitTestToken(types.TestBasePooledToken2)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, secondTestToken.Symbol, addrKeysSlice[0].Address)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
@@ -486,7 +485,7 @@ func TestRandomData(t *testing.T) {
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	handler := NewHandler(keeper)
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
