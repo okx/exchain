@@ -11,9 +11,24 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/spf13/cobra"
+)
+
+// flags
+const (
+	flagMinLiquidity     = "min-liquidity"
+	flagMaxBaseAmount    = "max-base-amount"
+	flagQuoteAmount      = "quote-amount"
+	flagDeadlineDuration = "deadline-duration"
+	flagLiquidity        = "liquidity"
+	flagMinBaseAmount    = "min-base-amount"
+	flagMinQuoteAmount   = "min-quote-amount"
+	flagSellAmount       = "sell-amount"
+	flagMinBuyAmount     = "min-buy-amount"
+	flagRecipient        = "recipient"
+	flagToken0           = "token0"
+	flagToken1           = "token1"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -46,7 +61,7 @@ func getCmdAddLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`add liquidity.
 
 Example:
-$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100okt --min-liquidity 0.001
+$ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 100btc-366 --min-liquidity 0.001
 
 `),
 		),
@@ -77,10 +92,13 @@ $ okexchaincli tx swap add-liquidity --max-base-amount 10eth-355 --quote-amount 
 		},
 	}
 
-	cmd.Flags().StringVarP(&minLiquidity, "min-liquidity", "l", "", "Minimum number of sender will mint if total pool token supply is greater than 0")
-	cmd.Flags().StringVarP(&maxBaseAmount, "max-base-amount", "", "", "Maximum number of base amount deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
-	cmd.Flags().StringVarP(&quoteAmount, "quote-amount", "q", "", "The number of quote amount. For example \"100okb\"")
-	cmd.Flags().StringVarP(&deadlineDuration, "deadline-duration", "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.Flags().StringVarP(&minLiquidity, flagMinLiquidity, "l", "", "Minimum number of sender will mint if total pool token supply is greater than 0")
+	cmd.Flags().StringVarP(&maxBaseAmount, flagMaxBaseAmount, "", "", "Maximum number of base amount deposited. Deposits max amount if total pool token supply is 0. For example \"100xxb\"")
+	cmd.Flags().StringVarP(&quoteAmount, flagQuoteAmount, "q", "", "The number of quote amount. For example \"100okb\"")
+	cmd.Flags().StringVarP(&deadlineDuration, flagDeadlineDuration, "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.MarkFlagRequired(flagMinLiquidity)
+	cmd.MarkFlagRequired(flagMaxBaseAmount)
+	cmd.MarkFlagRequired(flagQuoteAmount)
 	return cmd
 }
 
@@ -97,7 +115,7 @@ func getCmdRemoveLiquidity(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`remove liquidity.
 
 Example:
-$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1okt
+$ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-355 --min-quote-amount 1btc-366
 
 `),
 		),
@@ -128,16 +146,20 @@ $ okexchaincli tx swap remove-liquidity --liquidity 1 --min-base-amount 10eth-35
 		},
 	}
 
-	cmd.Flags().StringVarP(&liquidity, "liquidity", "l", "", "Liquidity amount of sender will burn")
-	cmd.Flags().StringVarP(&minBaseAmount, "min-base-amount", "", "", "Minimum number of base amount withdrawn")
-	cmd.Flags().StringVarP(&minQuoteAmount, "min-quote-amount", "q", "", "Minimum number of quote amount withdrawn")
-	cmd.Flags().StringVarP(&deadlineDuration, "deadline-duration", "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.Flags().StringVarP(&liquidity, flagLiquidity, "l", "", "Liquidity amount of sender will burn")
+	cmd.Flags().StringVarP(&minBaseAmount, flagMinBaseAmount, "", "", "Minimum number of base amount withdrawn")
+	cmd.Flags().StringVarP(&minQuoteAmount, flagMinQuoteAmount, "q", "", "Minimum number of quote amount withdrawn")
+	cmd.Flags().StringVarP(&deadlineDuration, flagDeadlineDuration, "d", "30s", "Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.MarkFlagRequired(flagLiquidity)
+	cmd.MarkFlagRequired(flagMinBaseAmount)
+	cmd.MarkFlagRequired(flagMinQuoteAmount)
 	return cmd
 }
 
 func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 	// flags
-	var token string
+	var token0 string
+	var token1 string
 	cmd := &cobra.Command{
 		Use:   "create-pair",
 		Short: "create token pair",
@@ -145,7 +167,7 @@ func getCmdCreateExchange(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`create token pair.
 
 Example:
-$ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt 
+$ okexchaincli tx swap create-pair --token0 eth-355 --token1 btc-366 --fees 0.01okt 
 
 `),
 		),
@@ -153,13 +175,16 @@ $ okexchaincli tx swap create-pair --token eth-355 --fees 0.01okt
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-			msg := types.NewMsgCreateExchange(token, cliCtx.FromAddress)
+			msg := types.NewMsgCreateExchange(token0, token1, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVarP(&token, "token", "t", "", "Create an AMM swap pair by token name")
+	cmd.Flags().StringVar(&token0, flagToken0, "", "the base token name is required to create an AMM swap pair")
+	cmd.Flags().StringVar(&token1, flagToken1, "", "the quote token name is required to create an AMM swap pair")
+	cmd.MarkFlagRequired(flagToken0)
+	cmd.MarkFlagRequired(flagToken1)
 	return cmd
 }
 
@@ -176,7 +201,7 @@ func getCmdTokenSwap(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`swap token.
 
 Example:
-$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
+$ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60btc-366
 
 `),
 		),
@@ -207,20 +232,23 @@ $ okexchaincli tx swap token --sell-amount 1eth-355 --min-buy-amount 60okt
 				}
 			}
 
-			msg := types.NewMsgTokenToNativeToken(soldTokenAmount, minBoughtTokenAmount,
+			msg := types.NewMsgTokenToToken(soldTokenAmount, minBoughtTokenAmount,
 				deadline, recip, cliCtx.FromAddress)
 
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().StringVarP(&soldTokenAmount, "sell-amount", "", "",
+	cmd.Flags().StringVarP(&soldTokenAmount, flagSellAmount, "", "",
 		"Amount expected to sell")
-	cmd.Flags().StringVarP(&minBoughtTokenAmount, "min-buy-amount", "", "",
+	cmd.Flags().StringVarP(&minBoughtTokenAmount, flagMinBuyAmount, "", "",
 		"Minimum amount expected to buy")
-	cmd.Flags().StringVarP(&recipient, "recipient", "", "",
+	cmd.Flags().StringVarP(&recipient, flagRecipient, "", "",
 		"The address to receive the amount bought")
-	cmd.Flags().StringVarP(&deadline, "deadline", "", "100s",
+	cmd.Flags().StringVarP(&deadline, flagDeadlineDuration, "", "100s",
 		"Duration after which this transaction can no longer be executed. such as \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".")
+	cmd.MarkFlagRequired(flagSellAmount)
+	cmd.MarkFlagRequired(flagMinBuyAmount)
+
 	return cmd
 }

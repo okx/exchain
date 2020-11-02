@@ -186,7 +186,6 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	assert.True(t, len(deals) == len(allDeals) && deals != nil)
 	var allDealVolume, allKM1Volume, allKM3Volume float64
 	for _, d := range deals {
-		fmt.Printf("%+v\n", d)
 		allDealVolume += d.Quantity
 	}
 
@@ -204,27 +203,22 @@ func testORMAllInOne(t *testing.T, orm *ORM) {
 	if endTS%60 == 0 {
 		endTS += 1
 	}
-	anchorEndTS, cnt, newKlinesM1, err := orm.CreateKline1min(0, endTS, &ds)
-	fmt.Printf("CreateKline1min ERROR: %+v", err)
-	assert.True(t, err == nil, cnt == 3)
+	anchorEndTS, cnt, newKlinesM1, err := orm.CreateKline1M(0, endTS, &ds)
+	assert.True(t, err == nil)
 	assert.True(t, len(newKlinesM1) == cnt)
 
 	products, _ := orm.getAllUpdatedProducts(0, time.Now().Unix())
 	assert.True(t, len(products) > 0)
-	fmt.Printf("%+v \n", products)
 
-	_, cnt, newKlinesM1, err = orm.CreateKline1min(anchorEndTS, time.Now().Unix()+1, &ds)
-	fmt.Printf("CreateKline1min ERROR: %+v", err)
-	assert.True(t, err == nil, cnt == 1)
+	_, cnt, newKlinesM1, err = orm.CreateKline1M(anchorEndTS, time.Now().Unix()+1, &ds)
+	assert.True(t, err == nil)
 
 	maxTS := orm.getKlineMaxTimestamp(&types.KlineM1{})
 	assert.True(t, maxTS < ts)
 
 	r, e := orm.getLatestKlineM1ByProduct(product, 100)
 	assert.True(t, r != nil && e == nil)
-	fmt.Printf("NOW : %s\n", types.TimeString(ts))
 	for _, v := range *r {
-		//fmt.Printf("%d, %+v\n", v.GetTimestamp(), v.PrettyTimeString())
 		allKM1Volume += v.Volume
 	}
 
@@ -387,7 +381,7 @@ func constructLocalBackendDB(orm *ORM) (err error) {
 	m := types.GetAllKlineMap()
 	crrTs := time.Now().Unix()
 	ds := DealDataSource{orm: orm}
-	if _, _, _, err := orm.CreateKline1min(0, crrTs, &ds); err != nil {
+	if _, _, _, err := orm.CreateKline1M(0, crrTs, &ds); err != nil {
 		return err
 	}
 

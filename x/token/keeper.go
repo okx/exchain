@@ -167,7 +167,7 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 	if k.bankKeeper.BlacklistedAddr(to) {
 		return types.ErrBlockedRecipient(DefaultCodespace, to.String())
 	}
-	
+
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
 }
 
@@ -401,4 +401,30 @@ func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name
 		return "", false
 	}
 	return name, true
+}
+
+// GetConfirmOwnership returns ownership confirming information
+func (k Keeper) GetConfirmOwnership(ctx sdk.Context, symbol string) (confirmOwnership *types.ConfirmOwnership, exist bool) {
+	store := ctx.KVStore(k.tokenStoreKey)
+	bytes := store.Get(types.GetConfirmOwnershipKey(symbol))
+	if bytes == nil {
+		return nil, false
+	}
+
+	k.cdc.MustUnmarshalBinaryBare(bytes, &confirmOwnership)
+	return confirmOwnership, true
+}
+
+// SetConfirmOwnership sets ownership confirming information to db
+func (k Keeper) SetConfirmOwnership(ctx sdk.Context, confirmOwnership *types.ConfirmOwnership) {
+	store := ctx.KVStore(k.tokenStoreKey)
+	key := types.GetConfirmOwnershipKey(confirmOwnership.Symbol)
+	store.Set(key, k.cdc.MustMarshalBinaryBare(confirmOwnership))
+}
+
+// DeleteConfirmOwnership deletes ownership confirming information from db
+func (k Keeper) DeleteConfirmOwnership(ctx sdk.Context, symbol string) {
+	store := ctx.KVStore(k.tokenStoreKey)
+	key := types.GetConfirmOwnershipKey(symbol)
+	store.Delete(key)
 }

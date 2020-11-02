@@ -111,3 +111,10 @@ func TestHasSufCoins(t *testing.T) {
 	err = HasSufficientCoins(addr, availCoins, spendCoins)
 	require.Nil(t, err)
 }
+
+func TestBlackHoleAddress(t *testing.T) {
+	addr := BlackHoleAddress()
+	a := addr.String()
+	fmt.Println(a)
+	require.Equal(t, addr.String(), "okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx")
+}

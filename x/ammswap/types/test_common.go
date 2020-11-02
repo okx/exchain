@@ -6,9 +6,9 @@ import (
 )
 
 // nolint
-const TestBasePooledToken = "xxb"
-const TestBasePooledToken2 = "yyb"
-const TestBasePooledToken3 = "zzb"
+const TestBasePooledToken = "aab"
+const TestBasePooledToken2 = "ccb"
+const TestBasePooledToken3 = "ddb"
 const TestQuotePooledToken = common.NativeToken
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
 
@@ -17,6 +17,6 @@ func GetTestSwapTokenPair() SwapTokenPair {
 	return SwapTokenPair{
 		QuotePooledCoin: sdk.NewDecCoinFromDec(TestQuotePooledToken, sdk.NewDec(0)),
 		BasePooledCoin:  sdk.NewDecCoinFromDec(TestBasePooledToken, sdk.NewDec(0)),
-		PoolTokenName:   PoolTokenPrefix + TestBasePooledToken,
+		PoolTokenName:   GetPoolTokenName(TestBasePooledToken, TestQuotePooledToken),
 	}
 }

@@ -6,6 +6,7 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/cosmos/cosmos-sdk/x/supply/client/rest"
+	ammswaprest "github.com/okex/okexchain/x/ammswap/client/rest"
 	backendrest "github.com/okex/okexchain/x/backend/client/rest"
 	dexrest "github.com/okex/okexchain/x/dex/client/rest"
 	dist "github.com/okex/okexchain/x/distribution"
@@ -36,6 +37,7 @@ func registerRoutesV1(rs *lcd.RestServer) {
 	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.ModuleName)
 	backendrest.RegisterRoutes(rs.CliCtx, v1Router)
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
+	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 }
 

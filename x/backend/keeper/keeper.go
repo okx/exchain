@@ -60,7 +60,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 				// websocket channel
 				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
 				k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-				go generateKline1M(k.stopChan, k.Config, k.Orm, &k.Logger, k)
+				go generateKline1M(k)
 				// init ticker buffer
 				ts := time.Now().Unix()
 
@@ -230,16 +230,11 @@ func (k Keeper) GetDexFees(ctx sdk.Context, dexHandlingAddr, product string, off
 }
 
 func (k Keeper) getAllProducts(ctx sdk.Context) []string {
-	products := []string{}
 	tokenPairs := k.dexKeeper.GetTokenPairs(ctx)
-	for _, tp := range tokenPairs {
-		if tp != nil {
-			products = append(products, fmt.Sprintf("%s_%s", tp.BaseAssetSymbol, tp.QuoteAssetSymbol))
-		}
+	products := make([]string, len(tokenPairs))
+	for i := 0; i < len(tokenPairs); i++ {
+		products[i] = tokenPairs[i].Name()
 	}
-
-	k.Cache.ProductsBuf = products
-
 	return products
 }
 
@@ -276,7 +271,7 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 	return nil, err
 }
 
-func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) (r [][]string, err error) {
+func (k Keeper) getCandlesByMarketKeeper(productID uint64, granularity, size int) (r [][]string, err error) {
 	if !k.Config.EnableBackend {
 		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
 	}
@@ -291,7 +286,7 @@ func (k Keeper) getCandlesByMarketKeeper(product string, granularity, size int) 
 		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
 	}
 
-	klines, err := k.marketKeeper.GetKlineByInstrument(product, granularity, size)
+	klines, err := k.marketKeeper.GetKlineByProductID(productID, granularity, size)
 	if err == nil && klines != nil && len(klines) > 0 {
 		return klines, err
 	}
@@ -420,12 +415,12 @@ func (k Keeper) getAllTickers() []types.Ticker {
 
 func (k Keeper) mergeTicker3SecondEvents() (err error) {
 
-	sysTicker := time.NewTicker(time.Second)
+	sysTicker := time.NewTicker(3 * time.Second)
 
 	merge := func() *types.MergedTickersEvent {
 		tickersMap := map[string]types.IWebsocket{}
 		for len(k.ticker3sChan) > 0 {
-			ticker, ok := <- k.ticker3sChan
+			ticker, ok := <-k.ticker3sChan
 			if !ok {
 				break
 			}
@@ -452,14 +447,12 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 
 	for {
 		select {
-		case t := <-sysTicker.C:
-			if t.Second() % 3 == 0 {
-				mEvt := merge()
-				if mEvt != nil {
-					k.pushWSItem(mEvt)
-				}
+		case <-sysTicker.C:
+			mEvt := merge()
+			if mEvt != nil {
+				k.pushWSItem(mEvt)
 			}
-		case <- k.stopChan:
+		case <-k.stopChan:
 			break
 		}
 	}

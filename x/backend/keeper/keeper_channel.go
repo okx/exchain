@@ -7,19 +7,17 @@ import (
 	"github.com/okex/okexchain/x/backend/config"
 	"github.com/okex/okexchain/x/backend/orm"
 	"github.com/okex/okexchain/x/backend/types"
-
-	"github.com/tendermint/tendermint/libs/log"
 )
 
-func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper, nextStartTS int64) {
+func pushAllKline1M(klines map[string][]types.KlineM1, keeper Keeper, nextStartTS int64) {
 	keeper.Logger.Debug("pushAllKline1m_1", "klines", klines)
 	if klines != nil && len(klines) > 0 {
-		for _, klineArr := range klines {
-			if klineArr == nil {
+		for _, kline := range klines {
+			if kline == nil {
 				continue
 			}
 
-			for _, k := range klineArr {
+			for _, k := range kline {
 				keeper.Logger.Debug("pushAllKline1m_2", "kline", &k)
 				keeper.pushWSItem(&k)
 			}
@@ -32,54 +30,53 @@ func pushAllKline1m(klines map[string][]types.KlineM1, keeper Keeper, nextStartT
 	}
 }
 
-func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *log.Logger, keeper Keeper) {
-	o.Debug("[backend] generateKline1M go routine started")
+func generateKline1M(keeper Keeper) {
+	keeper.Logger.Debug("[backend] generateKline1M go routine started")
 	defer types.PrintStackIfPanic()
 
 	startTS, endTS := int64(0), time.Now().Unix()-60
 	time.Sleep(3 * time.Second)
-	if o.GetMaxBlockTimestamp() > 0 {
-		endTS = o.GetMaxBlockTimestamp()
+	if keeper.Orm.GetMaxBlockTimestamp() > 0 {
+		endTS = keeper.Orm.GetMaxBlockTimestamp()
 	}
 
 	//ds := DealDataSource{orm: orm}
-	ds := orm.MergeResultDataSource{Orm: o}
-	anchorNewStartTS, _, newKline1s, err := o.CreateKline1min(startTS, endTS, &ds)
+	ds := orm.MergeResultDataSource{Orm: keeper.Orm}
+	anchorNewStartTS, _, newKline1s, err := keeper.Orm.CreateKline1M(startTS, endTS, &ds)
 	if err != nil {
-		(*log).Debug(fmt.Sprintf("[backend] error: %+v \n", err))
+		keeper.Logger.Debug(fmt.Sprintf("[backend] generateKline1M go routine error: %+v \n", err))
 	}
 
-	pushAllKline1m(newKline1s, keeper, anchorNewStartTS)
+	pushAllKline1M(newKline1s, keeper, anchorNewStartTS)
 
 	waitInSecond := int(60+types.Kline1GoRoutineWaitInSecond-time.Now().Second()) % 60
 	timer := time.NewTimer(time.Duration(waitInSecond * int(time.Second)))
 	interval := time.Second * 60
 	ticker := time.NewTicker(interval)
 
-	go CleanUpKlines(stop, o, conf)
-	var klineNotifyChans *map[int]chan struct{}
+	go CleanUpKlines(keeper.stopChan, keeper.Orm, keeper.Config)
+	klineNotifyChans := generateSyncKlineMXChans()
 	work := func() {
-		if o.GetMaxBlockTimestamp() == 0 {
+		currentBlockTimestamp := keeper.Orm.GetMaxBlockTimestamp()
+		if currentBlockTimestamp == 0 {
 			return
 		}
+		keeper.Logger.Debug(fmt.Sprintf("[backend] generateKline1M line1M [%d, %d) [%s, %s)",
+			anchorNewStartTS, currentBlockTimestamp, types.TimeString(anchorNewStartTS), types.TimeString(currentBlockTimestamp)))
 
-		crrtBlkTS := o.GetMaxBlockTimestamp()
-		(*log).Debug(fmt.Sprintf("[backend] line1M [%d, %d) [%s, %s)",
-			anchorNewStartTS, crrtBlkTS, types.TimeString(anchorNewStartTS), types.TimeString(crrtBlkTS)))
-
-		anchorNextStart, _, newKline1s, err := o.CreateKline1min(anchorNewStartTS, crrtBlkTS, &ds)
-		(*log).Debug(fmt.Sprintf("[backend] generateKline1M's actually merge period [%s, %s)",
+		anchorNextStart, _, newKline1s, err := keeper.Orm.CreateKline1M(anchorNewStartTS, currentBlockTimestamp, &ds)
+		keeper.Logger.Debug(fmt.Sprintf("[backend] generateKline1M's actually merge period [%s, %s)",
 			types.TimeString(anchorNewStartTS), types.TimeString(anchorNextStart)))
 		if err != nil {
-			(*log).Debug(fmt.Sprintf("[backend] generateKline1M error: %s", err.Error()))
+			keeper.Logger.Debug(fmt.Sprintf("[backend] generateKline1M go routine error: %s", err.Error()))
 
 		} else {
 			// if new klines created, push them
 			if anchorNextStart > anchorNewStartTS {
-				pushAllKline1m(newKline1s, keeper, anchorNewStartTS)
+				pushAllKline1M(newKline1s, keeper, anchorNewStartTS)
 				if klineNotifyChans != nil {
 					for _, ch := range *klineNotifyChans {
-						ch <- struct{}{}
+						ch <- anchorNewStartTS
 					}
 				}
 				anchorNewStartTS = anchorNextStart
@@ -90,9 +87,8 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 
 	work()
 
-	klineNotifyChans = generateSyncKlineMXChans()
 	for freq, ntfCh := range *klineNotifyChans {
-		go generateKlinesMX(ntfCh, stop, freq, o, keeper)
+		go generateKlinesMX(ntfCh, freq, keeper)
 	}
 
 	for {
@@ -102,20 +98,19 @@ func generateKline1M(stop chan struct{}, conf *config.Config, o *orm.ORM, log *l
 			ticker = time.NewTicker(interval)
 		case <-ticker.C:
 			work()
-		case <-stop:
+		case <-keeper.stopChan:
 			break
-
 		}
 	}
 }
 
-func generateSyncKlineMXChans() *map[int]chan struct{} {
-	notifyChans := map[int]chan struct{}{}
+func generateSyncKlineMXChans() *map[int]chan int64 {
+	notifyChans := map[int]chan int64{}
 	klineMap := types.GetAllKlineMap()
 
 	for freq := range klineMap {
 		if freq > 60 {
-			notifyCh := make(chan struct{}, 1)
+			notifyCh := make(chan int64, 1)
 			notifyChans[freq] = notifyCh
 		}
 	}
@@ -123,15 +118,14 @@ func generateSyncKlineMXChans() *map[int]chan struct{} {
 	return &notifyChans
 }
 
-
 func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper, klineType string, nextStartTS int64) {
-	if klines != nil && len(klines) >0 {
-		for _, klineArr := range klines {
-			if klineArr == nil {
+	if klines != nil && len(klines) > 0 {
+		for _, kline := range klines {
+			if kline == nil {
 				continue
 			}
 
-			for _, k := range klineArr {
+			for _, k := range kline {
 				baseLine := k.(types.IWebsocket)
 				keeper.pushWSItem(baseLine)
 			}
@@ -144,75 +138,55 @@ func pushAllKlineXm(klines map[string][]interface{}, keeper Keeper, klineType st
 	}
 }
 
-func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInterval int, o *orm.ORM, keeper Keeper) {
-	o.Debug(fmt.Sprintf("[backend] generateKlineMX-#%d# go routine started", refreshInterval))
+func generateKlinesMX(notifyChan chan int64, refreshInterval int, keeper Keeper) {
+	keeper.Logger.Debug(fmt.Sprintf("[backend] generateKlineMX-#%d# go routine started", refreshInterval))
 
 	destKName := types.GetKlineTableNameByFreq(refreshInterval)
 	destK, err := types.NewKlineFactory(destKName, nil)
 	if err != nil {
-		o.Error(fmt.Sprintf("[backend] NewKlineFactory error: %s", err.Error()))
+		keeper.Logger.Error(fmt.Sprintf("[backend] generateKlineMX-#%d# NewKlineFactory error: %s", refreshInterval, err.Error()))
 	}
 
 	destIKline := destK.(types.IKline)
 
-	startTS, endTS := int64(0), time.Now().Unix()-int64(destIKline.GetFreqInSecond())
-	anchorNewStartTS, _, newKlines, err := o.MergeKlineM1(startTS, endTS, destIKline)
+	//startTS, endTS := int64(0), time.Now().Unix()-int64(destIKline.GetFreqInSecond())
+	startTS, endTS := int64(0), time.Now().Unix()+int64(destIKline.GetFreqInSecond())
+	anchorNewStartTS, _, newKlines, err := keeper.Orm.MergeKlineM1(startTS, endTS, destIKline)
 	if err != nil {
-		o.Error(fmt.Sprintf("[backend] MergeKlineM1 error: %s", err.Error()))
+		keeper.Logger.Debug(fmt.Sprintf("[backend] generateKlineMX-#%d# error: %s", refreshInterval, err.Error()))
 	} else {
 		pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
 	}
 
-	//waitInSecond := int(60+KlineX_GOROUTINE_WAIT_IN_SECOND-time.Now().Second()) % 60
-	crrTS := time.Now().Unix()
-	waitInSecond := int64(destIKline.GetFreqInSecond()) - (crrTS - destIKline.GetAnchorTimeTS(crrTS)) + types.KlinexGoRoutineWaitInSecond + 60
-	timer := time.NewTimer(time.Duration(int(waitInSecond) * int(time.Second)))
-	interval := time.Duration(destIKline.GetFreqInSecond() * int(time.Second))
-	o.Debug(fmt.Sprintf("[backend] duaration: %+v(%d s) IKline: %+v ", interval, destIKline.GetFreqInSecond(), destIKline))
-	ticker := time.NewTicker(interval)
-
-	work := func() {
-		if o.GetMaxBlockTimestamp() == 0 {
+	work := func(startTS int64) {
+		latestBlockTS := keeper.Orm.GetMaxBlockTimestamp()
+		if latestBlockTS == 0 {
 			return
 		}
+		latestBlockTS += int64(destIKline.GetFreqInSecond())
+		keeper.Logger.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
+			destIKline.GetFreqInSecond(), startTS, latestBlockTS, types.TimeString(startTS), types.TimeString(latestBlockTS)))
 
-		latestBlockTS := o.GetMaxBlockTimestamp()
+		anchorNextStart, _, newKlines, err := keeper.Orm.MergeKlineM1(startTS, latestBlockTS, destIKline)
 
-		o.Debug(fmt.Sprintf("[backend] entering generateKlinesMX-#%d# [%d, %d)[%s, %s)",
-			destIKline.GetFreqInSecond(), anchorNewStartTS, latestBlockTS, types.TimeString(anchorNewStartTS), types.TimeString(latestBlockTS)))
-
-		anchorNextStart, _, newKlines, err := o.MergeKlineM1(anchorNewStartTS, latestBlockTS, destIKline)
-
-		o.Debug(fmt.Sprintf("[backend] generateKlinesMX-#%d#'s actually merge period [%s, %s)",
+		keeper.Logger.Debug(fmt.Sprintf("[backend] generateKlinesMX-#%d#'s actually merge period [%s, %s)",
 			destIKline.GetFreqInSecond(), types.TimeString(anchorNewStartTS), types.TimeString(anchorNextStart)))
 
 		if err != nil {
-			o.Error(fmt.Sprintf("[backend] error: %s", err.Error()))
+			keeper.Logger.Error(fmt.Sprintf("[backend] generateKlinesMX-#%d# error: %s", destIKline.GetFreqInSecond(), err.Error()))
 
 		} else {
-			if anchorNextStart > anchorNewStartTS {
-				anchorNewStartTS = anchorNextStart
-				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNewStartTS)
+			if len(newKlines) > 0 {
+				pushAllKlineXm(newKlines, keeper, destIKline.GetTableName(), anchorNextStart)
 			}
 		}
 	}
 
 	for {
 		select {
-		case <-notifyChan:
-			time.Sleep(time.Second)
-			if anchorNewStartTS > 0 && time.Now().Unix() < anchorNewStartTS+int64(destIKline.GetFreqInSecond()) {
-				break
-			} else {
-				work()
-				ticker = time.NewTicker(interval)
-			}
-
-		case <-ticker.C:
-			work()
-		case <-timer.C:
-			work()
-		case <-stop:
+		case startTS := <-notifyChan:
+			work(startTS)
+		case <-keeper.stopChan:
 			break
 		}
 	}
@@ -220,7 +194,7 @@ func generateKlinesMX(notifyChan chan struct{}, stop chan struct{}, refreshInter
 
 // nolint
 func CleanUpKlines(stop chan struct{}, o *orm.ORM, conf *config.Config) {
-	o.Debug(fmt.Sprintf("[backend] cleanUpKlines go routine started. MaintainConf: %+v", *conf))
+	o.Debug(fmt.Sprintf("[backend] CleanUpKlines go routine started. MaintainConf: %+v", *conf))
 	interval := time.Duration(60 * int(time.Second))
 	ticker := time.NewTicker(time.Duration(int(60-time.Now().Second()) * int(time.Second)))
 
@@ -233,7 +207,7 @@ func CleanUpKlines(stop chan struct{}, o *orm.ORM, conf *config.Config) {
 			for _, ktype := range m {
 				expiredDays := conf.CleanUpsKeptDays[ktype]
 				if expiredDays != 0 {
-					o.Debug(fmt.Sprintf("[backend] entering cleanUpKlines, "+
+					o.Debug(fmt.Sprintf("[backend] entering CleanUpKlines, "+
 						"fired time: %s(currentTS: %d), kline type: %s", conf.CleanUpsTime, now.Unix(), ktype))
 					//anchorTS := now.Add(-time.Duration(int(time.Second) * 1440 * expiredDays)).Unix()
 					anchorTS := now.Add(-time.Duration(int(time.Second) * types.SecondsInADay * expiredDays)).Unix()
