@@ -210,7 +210,6 @@ func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
 		bankKeeper.SetSendEnabled(ctx, true)
-		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 		return abci.ResponseInitChain{}
 	}
 }
@@ -287,12 +286,12 @@ func FireEndBlockerPeriodicMatch(t *testing.T, enableBackend bool) (mockDexApp *
 	mapp, addrKeysSlice := getMockApp(t, 2, enableBackend, "")
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{Time: time.Now()}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	feeParams := ordertypes.DefaultParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 
-	mapp.dexKeeper.SetOperator(ctx, types2.DEXOperator{Address:tokenPair.Owner, HandlingFeeAddress:tokenPair.Owner})
+	mapp.dexKeeper.SetOperator(ctx, types2.DEXOperator{Address: tokenPair.Owner, HandlingFeeAddress: tokenPair.Owner})
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 	// mock orders
