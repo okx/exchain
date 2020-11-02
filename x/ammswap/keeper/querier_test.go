@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -15,7 +14,7 @@ func initQurierTest(t *testing.T) (*TestInput, mock.AddrKeysSlice, sdk.Context, 
 	mapp, addrSlice := GetTestInput(t, 1)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	keeper := mapp.swapKeeper
 	keeper.SetParams(ctx, types.DefaultParams())
 	return mapp, addrSlice, ctx, keeper, NewQuerier(mapp.swapKeeper)

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -17,7 +16,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	// init a pool token
 	symbol := types.GetPoolTokenName(types.TestBasePooledToken, types.TestQuotePooledToken)
@@ -46,7 +45,7 @@ func TestKeeper_GetSwapTokenPairs(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	swapTokenPair := types.GetTestSwapTokenPair()
 	keeper.SetSwapTokenPair(ctx, types.TestSwapTokenPairName, swapTokenPair)
@@ -61,7 +60,7 @@ func TestKeeper_GetRedeemableAssets(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	swapTokenPair := types.GetTestSwapTokenPair()
 	tokenNumber := sdk.NewDec(100)

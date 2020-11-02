@@ -17,7 +17,7 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	tests := []struct {
 		testCase         string

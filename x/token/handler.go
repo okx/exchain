@@ -143,7 +143,6 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 			token.Symbol))
 	}
 
-	fmt.Printf("gas consumed: %d\n", ctx.GasMeter().GasConsumed())
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
