@@ -3,7 +3,6 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 	token "github.com/okex/okexchain/x/token/types"
 )
 
@@ -23,7 +22,7 @@ type BankKeeper interface {
 
 // SupplyKeeper defines the expected supply interface
 type SupplyKeeper interface {
-	GetSupply(ctx sdk.Context) (supply supplyexported.SupplyI)
+	GetTokenSupplyAmount(ctx sdk.Context, tokenSymbol string) sdk.Dec
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
 		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,

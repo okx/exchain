@@ -103,7 +103,6 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 		gov.ModuleName:        nil,
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
-	supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 
 	// set module accounts
 	supplyKeeper.SetModuleAccount(ctx, feeCollectorAcc)

@@ -162,8 +162,7 @@ func CreateTestInput(
 
 	initCoins := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom, initBalance))
 	totalSupply := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom, initBalance*(int64(len(Addrs)))))
-
-	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
+	supplyKeeper.SetTokensSupply(ctx, totalSupply)
 
 	// for staking/distr rollback to cosmos-sdk
 	stakingKeeper := staking.NewKeeper(cdc, stakingSk, stakingTkSk, supplyKeeper,

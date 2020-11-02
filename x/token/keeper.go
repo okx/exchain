@@ -72,7 +72,7 @@ func (k Keeper) GetTokenInfo(ctx sdk.Context, symbol string) types.Token {
 
 // nolint
 func (k Keeper) GetTokenTotalSupply(ctx sdk.Context, symbol string) sdk.Dec {
-	return k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(symbol)
+	return k.supplyKeeper.GetTokenSupplyAmount(ctx, symbol)
 }
 
 // TokenExist checks whether the token with symbol exist or not
@@ -126,7 +126,7 @@ func (k Keeper) GetCurrenciesInfo(ctx sdk.Context) (currencies []types.Currency)
 		tokenBytes := iter.Value()
 		k.cdc.MustUnmarshalBinaryBare(tokenBytes, &token)
 
-		supply := k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(token.Symbol)
+		supply := k.supplyKeeper.GetTokenSupplyAmount(ctx, token.Symbol)
 		currencies = append(currencies,
 			types.Currency{
 				Description: token.Description,
