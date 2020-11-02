@@ -262,7 +262,6 @@ func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
 		bankKeeper.SetSendEnabled(ctx, true)
-		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
 		return abci.ResponseInitChain{}
 	}
 }

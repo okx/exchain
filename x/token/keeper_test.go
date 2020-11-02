@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -129,7 +128,7 @@ func TestKeeper_UnlockCoins(t *testing.T) {
 
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.DecCoins{
@@ -185,7 +184,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	initCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000))}
 	genAccs, testAccounts := CreateGenAccounts(1, initCoins)
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(initCoins))
+	mapp.supplyKeeper.SetTokensSupply(ctx, initCoins)
 
 	lockCoins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
