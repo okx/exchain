@@ -9,7 +9,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -27,7 +26,7 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
@@ -132,7 +131,7 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	feeParams := types.DefaultTestParams()
 	feeParams.MaxDealsPerBlock = 2
 	k.SetParams(ctx, &feeParams)
@@ -266,7 +265,7 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
@@ -330,7 +329,7 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	feeParams := types.DefaultTestParams()
 
 	tokenPair := dex.GetBuiltInTokenPair()
@@ -387,7 +386,7 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 
@@ -499,7 +498,7 @@ func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
@@ -573,7 +572,7 @@ func TestFillPrecision(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
 	BeginBlocker(ctx, k)
 
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	feeParams := types.DefaultParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 
@@ -656,7 +655,7 @@ func TestEndBlocker(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)

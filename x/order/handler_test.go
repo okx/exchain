@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/stretchr/testify/require"
@@ -205,7 +203,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	//feeParams.CancelNative = sdk.MustNewDecFromStr("0.1")
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 
@@ -267,7 +265,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	// mock orders
 	order := types.MockOrder(types.FormatOrderID(startHeight, 1), types.TestTokenPair, types.SellOrder, "10.0", "1.0")
@@ -527,7 +525,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	handler := NewOrderHandler(keeper)
 
@@ -711,7 +709,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
@@ -932,7 +930,7 @@ func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*t
 
 	var startHeight int64 = 10
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
-	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
+	mapp.supplyKeeper.SetTokensSupply(ctx, mapp.TotalCoinsSupply)
 
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
@@ -1014,7 +1012,7 @@ func getHash(t *testing.T, orderIdList []string, order *Order) {
 	keeper := app.orderKeeper
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := app.BaseApp.NewContext(false, abci.Header{})
-	app.supplyKeeper.SetSupply(ctx, supply.NewSupply(app.TotalCoinsSupply))
+	app.supplyKeeper.SetTokensSupply(ctx, app.TotalCoinsSupply)
 	for _, key := range orderIdList {
 		keeper.SetOrder(ctx, key, order)
 	}
