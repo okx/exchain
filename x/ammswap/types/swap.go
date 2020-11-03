@@ -82,7 +82,7 @@ func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
 		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
-	}else if baseAmountName == quoteAmountName {
+	} else if baseAmountName == quoteAmountName {
 		return errors.New("BaseTokenName should not equal to QuoteTokenName")
 	}
 	if err := ValidateSwapAmountName(baseAmountName); err != nil {
@@ -107,4 +107,15 @@ func ValidateSwapAmountName(amountName string) error {
 
 func GetPoolTokenName(token1, token2 string) string {
 	return PoolTokenPrefix + GetSwapTokenPairName(token1, token2)
+}
+
+func IsPoolToken(symbol string) bool {
+	return token.NotAllowedOriginSymbol(symbol)
+}
+
+func SplitPoolToken(symbol string) (token0, token1 string) {
+	splits := strings.Split(symbol, "_")[1:]
+	token0 = splits[0]
+	token1 = splits[1]
+	return
 }

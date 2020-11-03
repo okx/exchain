@@ -118,3 +118,17 @@ func TestBlackHoleAddress(t *testing.T) {
 	fmt.Println(a)
 	require.Equal(t, addr.String(), "okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx")
 }
+
+func TestGetFixedLengthRandomString(t *testing.T) {
+	require.Equal(t, 100, len(GetFixedLengthRandomString(100)))
+}
+
+func TestForPanicTrace(t *testing.T) {
+	defer func() {
+		if e := recover(); e != nil {
+			PanicTrace(4)
+			//os.Exit(1)
+		}
+	}()
+	panic("just for test")
+}
