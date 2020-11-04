@@ -1077,6 +1077,72 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 
 }
 
+
+func TestHandlerMultiLockAndUnlock(t *testing.T) {
+	tCtx := initEnvironment(t)
+
+	// create pool
+	createPoolMsg := createPool(t, tCtx)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	// provide
+	provide(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	// lock
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[2]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[3]
+	lock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[4]
+	lock(t, tCtx, createPoolMsg)
+
+	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+
+	createPoolMsg.Owner = tCtx.tokenOwner
+	unlock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[1]
+	unlock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[2]
+	unlock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[3]
+	unlock(t, tCtx, createPoolMsg)
+
+	createPoolMsg.Owner = tCtx.addrList[4]
+	unlock(t, tCtx, createPoolMsg)
+
+
+	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
+	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	numHistoricalRewards := 0
+	tCtx.k.IteratePoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName,
+		func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
+			var rewards types.PoolHistoricalRewards
+			types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(value, &rewards)
+			fmt.Println(string(key), rewards)
+			numHistoricalRewards ++
+			return false
+	})
+	require.Equal(t, 1, numHistoricalRewards)
+	numLockInfo := 0
+	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
+		numLockInfo ++
+		fmt.Println(lockInfo.String())
+		return false
+	})
+	require.Equal(t, 0, numLockInfo)
+}
+
 func TestHandlerRandom(t *testing.T) {
 	tCtx := initEnvironment(t)
 
