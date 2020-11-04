@@ -107,6 +107,7 @@
       "withdraw_addr_enabled": true
     },
     "farm": {
+      "lock_infos": [],
       "params": {
         "create_pool_deposit": {
           "amount": "10.00000000",
@@ -125,7 +126,11 @@
         ],
         "manage_white_list_voting_period": "259200000000000",
         "quote_symbol": "usdk"
-      }
+      },
+      "pool_current_rewards": [],
+      "pool_historical_rewards": [],
+      "pools": [],
+      "white_list": null
     },
     "genutil": {
       "gentxs": [
@@ -136,7 +141,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "eac1f0e3e48322dc572fa5d1042323820ac57c9d@127.0.0.1:26656",
+            "memo": "fe76999f4a59df679dd4b2de5b40402164b5a659@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -152,7 +157,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqvchnlhqax4gellf3u9mpphh7364wjkagy3nn6aa9h47a3z68zygq2u50y4",
+                  "pubkey": "okexchainvalconspub1zcjduepqgnrqepvpaaxl2eh43cl4s5wfdgqfdftv3sztdm9xl7xzfmawkh5qynl6jf",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -163,7 +168,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "o5BiBkqzxmcKctZC31z9QtKQUc3rShe+3xlj0I2L0NsSk++X1SmzN24cpzpYI7FA9dPWq2jncQfP6o/eOH8Vxw=="
+                "signature": "YTV1K8VfPmEWUON/XvQffZP7vva8nnq26QYCr+NrMk1V4OQSyeQwRwbHCqPbv55ITIInVIJfio07cwk4FyryPQ=="
               }
             ]
           }
