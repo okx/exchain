@@ -165,9 +165,6 @@ func (k Keeper) UpdateLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName st
 	// period has already been incremented - we want to store the period ended by this lock action
 	previousPeriod := k.GetPoolCurrentRewards(ctx, poolName).Period - 1
 
-	// increment reference count for the period we're going to track
-	k.incrementReferenceCount(ctx, poolName, previousPeriod)
-
 	// get lock info, then set it into store
 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
 	if !found {
@@ -180,6 +177,10 @@ func (k Keeper) UpdateLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName st
 		k.DeleteLockInfo(ctx, lockInfo.Owner, lockInfo.PoolName)
 		k.DeleteAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
 	} else {
+		// increment reference count for the period we're going to track
+		k.incrementReferenceCount(ctx, poolName, previousPeriod)
+
+		// set the updated lock info
 		k.SetLockInfo(ctx, lockInfo)
 		k.SetAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
 	}
