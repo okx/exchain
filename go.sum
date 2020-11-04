@@ -250,6 +250,8 @@ github.com/nacos-group/nacos-sdk-go v1.0.0 h1:CufUF7DZca2ZzIrJtMMCDih1sA58BWCglA
 github.com/nacos-group/nacos-sdk-go v1.0.0/go.mod h1:hlAPn3UdzlxIlSILAyOXKxjFSvDJ9oLzTJ9hLAK1KzA=
 github.com/okex/cosmos-sdk v0.0.0-20200929010635-a65529a5945f h1:s+Yzb7bdzOSHZTXQ18voFLxiIlbj2xL+GHGeFvRgM8M=
 github.com/okex/cosmos-sdk v0.0.0-20200929010635-a65529a5945f/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
+github.com/okex/cosmos-sdk v0.37.9-okexchain4-farm h1:8L+ZmFxAhTuK7NyGX/+FKD5j5bZ8w/WOZ61Niuw6G4w=
+github.com/okex/cosmos-sdk v0.37.9-okexchain4-farm/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
 github.com/okex/cosmos-sdk v0.37.10-0.20200929010635-a65529a5945f h1:bjQBzmWa8rBHUWSA5Y2mq2xSISGARtwMtvz+gXeJx6I=
 github.com/okex/cosmos-sdk v0.37.10-0.20200929010635-a65529a5945f/go.mod h1:HjW0+Q5rWWm+4CaK8f5CIN/xf38vkPA2xue1PB5Nk3A=
 github.com/okex/iavl v0.12.4-okexchain h1:fHH/ax1CABQSNiISXIMba3V76qvNZ4HIILaewsMaMbc=
