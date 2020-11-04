@@ -284,6 +284,7 @@ func (p *ProtocolV0) produceKeepers() {
 	p.paramsKeeper.SetStakingKeeper(stakingKeeper)
 	p.mintKeeper = mint.NewKeeper(
 		p.cdc, p.keys[mint.StoreKey], mintSubspace, &stakingKeeper, p.supplyKeeper, auth.FeeCollectorName,
+		"",
 	)
 
 	p.distrKeeper = distr.NewKeeper(p.cdc, p.keys[distr.StoreKey],

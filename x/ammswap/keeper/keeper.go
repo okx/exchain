@@ -104,7 +104,7 @@ func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Tok
 
 // GetPoolTokenAmount gets the amount of the specified poolToken name
 func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.Dec {
-	return k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(poolTokenName)
+	return k.supplyKeeper.GetSupplyByDenom(ctx, poolTokenName)
 }
 
 // MintPoolCoinsToUser mints coins and send them to the specified user address

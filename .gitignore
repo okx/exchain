@@ -9,6 +9,7 @@
 .idea
 
 # Build
+vendor*
 okchaind
 okchaincli
 vendor
