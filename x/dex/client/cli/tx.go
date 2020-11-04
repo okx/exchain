@@ -262,7 +262,7 @@ func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
 // GetCmdSubmitDelistProposal implememts a command handler for submitting a dex delist proposal transaction
 func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "delist-proposal [proposal-file]",
+		Use:   "delist [proposal-file]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit a dex delist proposal",
 		Long: strings.TrimSpace(
@@ -270,7 +270,7 @@ func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal delist-proposal <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal delist <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
