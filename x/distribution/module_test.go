@@ -1,8 +1,6 @@
 package distribution
 
 import (
-	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -11,11 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
-
-func TestA(t *testing.T){
-	_,err:=sdk.AccAddressFromBech32("okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk")
-	fmt.Println(err)
-}
 
 func TestAppModule(t *testing.T) {
 	ctx, _, k, _, supplyKeeper := keeper.CreateTestInputDefault(t, false, 1000)
