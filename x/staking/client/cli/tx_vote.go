@@ -115,10 +115,10 @@ func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 		Short: fmt.Sprintf("add shares to one or more validators by all deposited %s", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
 			fmt.Sprintf("Add shares to one or more validators by all deposited %s.\n\nExample:\n$ %s tx staking add-shares "+
-				"okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5,"+
-				"okexchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42a3gl7g,"+
-				"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frs863s3m,"+
-				"okexchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6mph5rx --from mykey\n",
+				"okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg,"+
+				"okexchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42dnwst5,"+
+				"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8,"+
+				"okexchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6tr3mk6 --from mykey\n",
 				sdk.DefaultBondDenom, version.ClientName),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -219,7 +219,7 @@ func GetCmdBindProxy(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Bind proxy relationship.
 
 Example:
-$ %s tx staking proxy bind okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9 --from mykey
+$ %s tx staking proxy bind okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 --from mykey
 `,
 				version.ClientName),
 		),

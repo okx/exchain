@@ -46,7 +46,7 @@ func GetCmdQueryValidator(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details about an individual validator.
 
 Example:
-$ %s query staking validator okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
+$ %s query staking validator okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
 `,
 				version.ClientName,
 			),
@@ -183,7 +183,7 @@ func GetCmdQueryProxy(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query the addresses of delegators by a specific proxy
 
 Example:
-$ %s query staking proxy okexchain1hw4r48aww06ldrfeuq2v438ujnl6alszzzqpph
+$ %s query staking proxy okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 `,
 				version.ClientName,
 			),
@@ -238,7 +238,7 @@ func GetCmdQueryDelegator(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query the information of delegations and all shares recently added by a delegator
 
 Example:
-$ %s query staking delegator okexchain1hw4r48aww06ldrfeuq2v438ujnl6alszzzqpph
+$ %s query staking delegator okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 `,
 				version.ClientName,
 			),
@@ -351,7 +351,7 @@ func GetCmdQueryValidatorShares(queryRoute string, cdc *codec.Codec) *cobra.Comm
 			fmt.Sprintf(`Query all shares added to a validator.
 
 Example:
-$ %s query staking shares-added-to okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcs50wu5
+$ %s query staking shares-added-to okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
 `,
 				version.ClientName,
 			),
