@@ -15,5 +15,5 @@ func TestYieldedTokenInfo(t *testing.T) {
 	)
 	yieldInfos := NewYieldedTokenInfos(yieldInfo1, yieldInfo2)
 
-	require.Equal(t, yieldInfos.String(), yieldInfo1.String() + "\n" + yieldInfo2.String())
+	require.Equal(t, yieldInfos.String(), yieldInfo1.String()+"\n"+yieldInfo2.String())
 }

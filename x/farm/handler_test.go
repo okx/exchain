@@ -16,7 +16,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-
 type testContext struct {
 	ctx               sdk.Context
 	k                 Keeper
@@ -244,7 +243,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. create again after destroying",
+			caseName: "success. create again after destroying",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				createPoolMsg := createPool(t, tCtx)
 
@@ -851,7 +850,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. claim after providing at the lower block height",
+			caseName: "success. claim after providing at the lower block height",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				// create pool
 				createPoolMsg := createPool(t, tCtx)
@@ -866,7 +865,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 
 				return createPoolMsg
 			},
-			getMsg:       normalGetClaimMsg,
+			getMsg: normalGetClaimMsg,
 			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
 				if result.Code != testCase.expectedCode {
 					fmt.Println(result.Log)
@@ -880,7 +879,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "failed. Farm pool %s does not exist",
+			caseName: "failed. Farm pool %s does not exist",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil)
 				return createPoolMsg
@@ -934,7 +933,6 @@ func TestNewHandler(t *testing.T) {
 	result := tCtx.handler(tCtx.ctx, msg)
 	require.Equal(t, sdk.CodeUnknownRequest, result.Code)
 }
-
 
 func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	tCtx := initEnvironment(t)
@@ -1006,7 +1004,6 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 
 }
 
-
 func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	tCtx := initEnvironment(t)
 
@@ -1077,7 +1074,6 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 
 }
 
-
 func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	tCtx := initEnvironment(t)
 
@@ -1121,7 +1117,6 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[4]
 	unlock(t, tCtx, createPoolMsg)
 
-
 	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
 	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
 	numHistoricalRewards := 0
@@ -1130,13 +1125,13 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 			var rewards types.PoolHistoricalRewards
 			types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(value, &rewards)
 			fmt.Println(string(key), rewards)
-			numHistoricalRewards ++
+			numHistoricalRewards++
 			return false
-	})
+		})
 	require.Equal(t, 1, numHistoricalRewards)
 	numLockInfo := 0
 	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
-		numLockInfo ++
+		numLockInfo++
 		fmt.Println(lockInfo.String())
 		return false
 	})
@@ -1169,7 +1164,7 @@ func TestHandlerRandom(t *testing.T) {
 		res := tCtx.handler(ctx, msg)
 		if !res.Code.IsOK() {
 			fmt.Println(res.Log)
-		}else {
+		} else {
 			writeCache()
 		}
 		tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + int64(rand.Intn(2)))

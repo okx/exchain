@@ -46,7 +46,7 @@ func TestNewManageWhiteListProposal(t *testing.T) {
 		},
 		{
 			"title",
-			common.GetFixedLengthRandomString(govTypes.MaxDescriptionLength+1),
+			common.GetFixedLengthRandomString(govTypes.MaxDescriptionLength + 1),
 			"pool",
 			true,
 			govTypes.CodeInvalidContent,

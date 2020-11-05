@@ -85,7 +85,6 @@ func NewAppModule(k keeper.Keeper) AppModule {
 	}
 }
 
-
 // RegisterInvariants registers the farm module invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 	RegisterInvariants(ir, am.keeper)

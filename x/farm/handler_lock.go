@@ -20,7 +20,6 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	found = k.HasLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found && msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
 		return types.ErrLockAmountBelowMinimum(DefaultCodespace, pool.MinLockAmount.Amount, msg.Amount.Amount).Result()
-
 	}
 
 	// 2. Calculate how many provided token & native token could be yielded in current period

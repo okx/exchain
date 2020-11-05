@@ -30,7 +30,6 @@ func moduleAccountInvariant(k Keeper) sdk.Invariant {
 			return false
 		})
 
-
 		// get farm module account
 		moduleAccAmount := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
 
