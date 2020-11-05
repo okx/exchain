@@ -14,7 +14,6 @@ type AccountKeeper interface {
 
 // SupplyKeeper defines the expected supply Keeper (noalias)
 type SupplyKeeper interface {
-	GetSupply(ctx sdk.Context) (supply supplyexported.SupplyI)
 	GetSupplyByDenom(ctx sdk.Context, denom string) sdk.Dec
 
 	GetModuleAddress(name string) sdk.AccAddress
