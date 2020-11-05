@@ -104,7 +104,7 @@ func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Tok
 
 // GetPoolTokenAmount gets the amount of the specified poolToken name
 func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.Dec {
-	return k.supplyKeeper.GetSupply(ctx).GetTotal().AmountOf(poolTokenName)
+	return k.supplyKeeper.GetSupplyByDenom(ctx, poolTokenName)
 }
 
 // MintPoolCoinsToUser mints coins and send them to the specified user address
@@ -151,8 +151,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-
-func (k Keeper) GetRedeemableAssets(ctx sdk.Context,baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
+func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
 	err = types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
 		return
