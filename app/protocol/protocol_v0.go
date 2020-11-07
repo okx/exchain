@@ -100,7 +100,7 @@ var (
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
 		farm.YieldFarmingAccount:  nil,
-		farm.MintFarmingAccount:   nil,
+		farm.MintFarmingAccount:   {supply.Burner},
 	}
 )
 

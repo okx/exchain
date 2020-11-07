@@ -21,6 +21,16 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		return
 	}
 
+	yieldedNativeToken := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)
+	// 0. check the YieldNativeTokenEnabled parameters
+	params := k.GetParams(ctx)
+	if !params.YieldNativeTokenEnabled { // if it is false, only burn the minted native token
+		if err := k.SupplyKeeper().BurnCoins(ctx, MintFarmingAccount, yieldedNativeToken); err != nil {
+			panic(err)
+		}
+		return
+	}
+
 	// 1. gets all pools in PoolsYieldNativeToken
 	lockedPoolValueMap, pools, totalPoolsValue := calculateAllocateInfo(ctx, k)
 	if totalPoolsValue.LTE(sdk.ZeroDec()) {
@@ -56,10 +66,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	}
 
 	// 3.liquidate native token minted at current block for yield farming
-	err := k.SupplyKeeper().SendCoinsFromModuleToModule(
-		ctx, MintFarmingAccount, YieldFarmingAccount,
-		sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt),
-	)
+	err := k.SupplyKeeper().SendCoinsFromModuleToModule(ctx, MintFarmingAccount, YieldFarmingAccount, yieldedNativeToken)
 	if err != nil {
 		panic("should not happen")
 	}
