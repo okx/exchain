@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -13,7 +12,8 @@ const (
   Create Pool Deposit:						10.00000000okt
   Manage White List Max Deposit Period:		24h0m0s
   Manage White List Min Deposit:			100.00000000okt
-  Manage White List Voting Period:			72h0m0s`
+  Manage White List Voting Period:			72h0m0s
+  Yield Native Token Enabled:               false`
 )
 
 func TestParams(t *testing.T) {
@@ -21,7 +21,5 @@ func TestParams(t *testing.T) {
 	defaultParams := DefaultParams()
 
 	require.Equal(t, defaultState.Params, defaultParams)
-
-	fmt.Println(defaultParams.String())
 	require.Equal(t, strExpected, defaultParams.String())
 }
