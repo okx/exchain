@@ -118,3 +118,17 @@ func TestBeginBlocker(t *testing.T) {
 	}
 
 }
+
+func TestYieldNativeTokenDisabled(t *testing.T) {
+	ctx, mk := keeper.GetKeeper(t)
+	k := mk.Keeper
+
+	coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+	err := k.SupplyKeeper().MintCoins(ctx, MintFarmingAccount, coins)
+	require.NoError(t, err)
+	retCoins := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount).GetCoins()
+	require.Equal(t, coins, retCoins)
+	BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: 1}}, k)
+	retCoins = k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount).GetCoins()
+	require.Nil(t, retCoins)
+}
