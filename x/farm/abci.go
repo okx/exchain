@@ -16,7 +16,9 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
 	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
-	logger.Debug(fmt.Sprintf("amount of yielded native token: %s", yieldedNativeTokenAmt))
+	logger.Debug(fmt.Sprintf("MintFarmingAccount [%s] balance: %s%s",
+		moduleAcc.GetAddress(), yieldedNativeTokenAmt, sdk.DefaultBondDenom))
+
 	if yieldedNativeTokenAmt.LTE(sdk.ZeroDec()) {
 		return
 	}
