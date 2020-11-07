@@ -1170,3 +1170,124 @@ func TestHandlerRandom(t *testing.T) {
 		tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + int64(rand.Intn(2)))
 	}
 }
+
+func TestHandlerCheckCombination(t *testing.T) {
+	var preExec preExecFunc = func(t *testing.T, tCtx *testContext) interface{} {
+		return normalGetCreatePoolMsg(tCtx, nil)
+	}
+	tests := []testCaseItem{
+		{
+			caseName:     "success. create pool",
+			preExec:      preExec,
+			getMsg:       normalGetCreatePoolMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. provide",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				return normalGetCreatePoolMsg(tCtx, nil)
+			},
+			getMsg:       normalGetProvideMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. lock address 1",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				return normalGetCreatePoolMsg(tCtx, nil)
+			},
+			getMsg:       normalGetLockMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. lock address 2",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
+				createPoolMsg.Owner = tCtx.addrList[0]
+				return createPoolMsg
+			},
+			getMsg:       normalGetLockMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. claim address 1",
+			preExec:      preExec,
+			getMsg:       normalGetClaimMsg,
+			verification: verification,
+			expectedCode: sdk.CodeOK,
+		},
+		{
+			caseName:     "success. unlock address 1",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				return normalGetCreatePoolMsg(tCtx, nil)
+			},
+			getMsg:       normalGetUnlockMsg,
+			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
+				verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
+				createPoolMsg := preData.(types.MsgCreatePool)
+
+				// check current rewards
+				curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
+				var expectedCurrentPeriod uint64 = 6
+				require.Equal(t, expectedCurrentPeriod, curPeriodRewards.Period)
+				require.Equal(t, tCtx.ctx.BlockHeight(), curPeriodRewards.StartBlockHeight)
+
+				// check the number of historicalRewards
+				numHistoricalRewards := 0
+				tCtx.k.IteratePoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName,
+					func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
+						var rewards types.PoolHistoricalRewards
+						types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(value, &rewards)
+						numHistoricalRewards++
+						return false
+					})
+				require.Equal(t, 2, numHistoricalRewards)
+
+				// check the number of lockInfo
+				numLockInfo := 0
+				tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
+					numLockInfo++
+					return false
+				})
+				require.Equal(t, int(1), numLockInfo)
+
+				// check historical rewards of period 3
+				expectedRatio := sdk.NewDecCoinsFromDec(createPoolMsg.YieldedSymbol, sdk.NewDec(1))
+				rewards := tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, 3)
+				require.Equal(t, uint16(1), rewards.ReferenceCount)
+				require.Equal(t, expectedRatio.String(), rewards.CumulativeRewardRatio.String())
+
+				// check historical rewards of period 5
+				expectedRatio = sdk.NewDecCoinsFromDec(createPoolMsg.YieldedSymbol, sdk.NewDecWithPrec(15, 1))
+				rewards = tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, 5)
+				require.Equal(t, uint16(1), rewards.ReferenceCount)
+				require.Equal(t, expectedRatio.String(), rewards.CumulativeRewardRatio.String())
+
+				// check farm pool
+				pool, found := tCtx.k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+				params := tCtx.k.GetParams(tCtx.ctx)
+				require.True(t, found)
+				require.Equal(t, params.CreatePoolDeposit.String(), pool.DepositAmount.String())
+				expectedLockedValue := sdk.NewDecCoinFromDec(createPoolMsg.MinLockAmount.Denom, sdk.NewDec(1))
+				require.Equal(t, expectedLockedValue.String(), pool.TotalValueLocked.String())
+				require.Equal(t, 1, len(pool.YieldedTokenInfos))
+				expectedRemainingAmount := sdk.NewDecCoinFromDec(createPoolMsg.YieldedSymbol, sdk.NewDec(8))
+				require.Equal(t, expectedRemainingAmount.String(), pool.YieldedTokenInfos[0].RemainingAmount.String())
+				expectedTotalAccumulatedRewards := sdk.NewDecCoinsFromDec(createPoolMsg.YieldedSymbol, sdk.NewDecWithPrec(5, 1))
+				require.Equal(t, expectedTotalAccumulatedRewards.String(), pool.TotalAccumulatedRewards.String())
+
+			},
+			expectedCode: sdk.CodeOK,
+		},
+	}
+
+	testCaseCombinationTest(t, tests)
+
+}
