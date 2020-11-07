@@ -18,7 +18,7 @@ func TestBeginBlocker(t *testing.T) {
 	ctx, mk := keeper.GetKeeper(t)
 	k := mk.Keeper
 	farmParams := types.DefaultParams()
-	farmParams.YieldNativeTokenEnabled = true
+	farmParams.YieldNativeToken = true
 	k.SetParams(ctx, farmParams)
 
 	tests := []struct {

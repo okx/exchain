@@ -22,9 +22,9 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	}
 
 	yieldedNativeToken := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)
-	// 0. check the YieldNativeTokenEnabled parameters
+	// 0. check the YieldNativeToken parameters
 	params := k.GetParams(ctx)
-	if !params.YieldNativeTokenEnabled { // if it is false, only burn the minted native token
+	if !params.YieldNativeToken { // if it is false, only burn the minted native token
 		if err := k.SupplyKeeper().BurnCoins(ctx, MintFarmingAccount, yieldedNativeToken); err != nil {
 			panic(err)
 		}
