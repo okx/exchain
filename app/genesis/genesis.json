@@ -107,6 +107,8 @@
       "withdraw_addr_enabled": true
     },
     "farm": {
+      "current_rewards": [],
+      "historical_rewards": [],
       "lock_infos": [],
       "params": {
         "create_pool_deposit": {
@@ -128,10 +130,8 @@
         "quote_symbol": "usdk",
         "yield_native_token": false
       },
-      "pool_current_rewards": [],
-      "pool_historical_rewards": [],
       "pools": [],
-      "white_list": null
+      "pools_yield_native_token": null
     },
     "genutil": {
       "gentxs": [
