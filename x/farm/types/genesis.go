@@ -29,9 +29,9 @@ type LockInfoRecord struct {
 type GenesisState struct {
 	Pools                 FarmPools                     `json:"pools" yaml:"pools"`
 	LockInfos             []LockInfo                    `json:"lock_infos" yaml:"lock_infos"`
-	PoolHistoricalRewards []PoolHistoricalRewardsRecord `json:"pool_historical_rewards" yaml:"pool_historical_rewards"`
-	PoolCurrentRewards    []PoolCurrentRewardsRecord    `json:"pool_current_rewards" yaml:"pool_current_rewards"`
-	WhiteList             PoolNameList                  `json:"white_list" yaml:"white_list"`
+	PoolHistoricalRewards []PoolHistoricalRewardsRecord `json:"historical_rewards" yaml:"historical_rewards"`
+	PoolCurrentRewards    []PoolCurrentRewardsRecord    `json:"current_rewards" yaml:"current_rewards"`
+	WhiteList             PoolNameList                  `json:"pools_yield_native_token" yaml:"pools_yield_native_token"`
 	Params                Params                        `json:"params" yaml:"params"`
 }
 
@@ -68,8 +68,8 @@ func ValidateGenesis(data GenesisState) error {
 	}
 
 	var expectedReferenceCount uint16
-	for _, his := range data.PoolHistoricalRewards {
-		expectedReferenceCount += his.Rewards.ReferenceCount
+	for _, h := range data.PoolHistoricalRewards {
+		expectedReferenceCount += h.Rewards.ReferenceCount
 	}
 
 	actualReferenceCount := len(data.LockInfos) + len(data.PoolCurrentRewards)

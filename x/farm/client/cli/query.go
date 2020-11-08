@@ -117,13 +117,13 @@ $ %s query farm pools
 // GetCmdQueryEarnings gets the earnings query command.
 func GetCmdQueryEarnings(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "earnings [pool-name] [address]",
-		Short: "query the current earnings",
+		Use:   "rewards [pool-name] [address]",
+		Short: "query the current rewards of an account",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the amount of locked coins and yield available.
+			fmt.Sprintf(`Query available rewards for an address.
 
 Example:
-$ %s query farm earnings pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query farm rewards pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 `,
 				version.ClientName,
 			),

@@ -107,6 +107,8 @@
       "withdraw_addr_enabled": true
     },
     "farm": {
+      "current_rewards": [],
+      "historical_rewards": [],
       "lock_infos": [],
       "params": {
         "create_pool_deposit": {
@@ -125,12 +127,11 @@
           }
         ],
         "manage_white_list_voting_period": "259200000000000",
-        "quote_symbol": "usdk"
+        "quote_symbol": "usdk",
+        "yield_native_token": false
       },
-      "pool_current_rewards": [],
-      "pool_historical_rewards": [],
       "pools": [],
-      "white_list": null
+      "pools_yield_native_token": null
     },
     "genutil": {
       "gentxs": [
@@ -141,7 +142,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "fe76999f4a59df679dd4b2de5b40402164b5a659@127.0.0.1:26656",
+            "memo": "11089fb6d73ed14e94446c4f8fc7c1f3a2c665af@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -157,7 +158,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqgnrqepvpaaxl2eh43cl4s5wfdgqfdftv3sztdm9xl7xzfmawkh5qynl6jf",
+                  "pubkey": "okexchainvalconspub1zcjduepqk8g5rm0zg40ws735c6eznsvczsrhz73vjlery9xf4nlseyksakes8nvrfh",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -168,7 +169,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "YTV1K8VfPmEWUON/XvQffZP7vva8nnq26QYCr+NrMk1V4OQSyeQwRwbHCqPbv55ITIInVIJfio07cwk4FyryPQ=="
+                "signature": "oEg2WRSkBu/lq4k23UT9l0dNq7k3o8t884kqv1masd1RPe7ytls6zgM2YZLNOwKaXWlmDOvHGcEqS4+y/kDndQ=="
               }
             ]
           }

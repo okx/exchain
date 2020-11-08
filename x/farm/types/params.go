@@ -27,7 +27,7 @@ var (
 	keyManageWhiteListMaxDepositPeriod = []byte("ManageWhiteListMaxDepositPeriod")
 	keyManageWhiteListMinDeposit       = []byte("ManageWhiteListMinDeposit")
 	keyManageWhiteListVotingPeriod     = []byte("ManageWhiteListVotingPeriod")
-	keyYieldNativeTokenEnabled         = []byte("YieldNativeTokenEnabled")
+	keyYieldNativeToken                = []byte("YieldNativeToken")
 )
 
 // ParamKeyTable for farm module
@@ -44,7 +44,7 @@ type Params struct {
 	ManageWhiteListMaxDepositPeriod time.Duration `json:"manage_white_list_max_deposit_period"`
 	ManageWhiteListMinDeposit       sdk.DecCoins  `json:"manage_white_list_min_deposit"`
 	ManageWhiteListVotingPeriod     time.Duration `json:"manage_white_list_voting_period"`
-	YieldNativeTokenEnabled         bool          `json:"native_token_yield_farming_enabled"`
+	YieldNativeToken                bool          `json:"yield_native_token"`
 }
 
 // String implements the stringer interface for Params
@@ -59,7 +59,7 @@ func (p Params) String() string {
   Yield Native Token Enabled:               %v`,
 		p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit,
 		p.ManageWhiteListMaxDepositPeriod, p.ManageWhiteListMinDeposit, p.ManageWhiteListVotingPeriod,
-		p.YieldNativeTokenEnabled)
+		p.YieldNativeToken)
 }
 
 // ParamSetPairs - Implements params.ParamSet
@@ -71,7 +71,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: keyManageWhiteListMaxDepositPeriod, Value: &p.ManageWhiteListMaxDepositPeriod},
 		{Key: keyManageWhiteListMinDeposit, Value: &p.ManageWhiteListMinDeposit},
 		{Key: keyManageWhiteListVotingPeriod, Value: &p.ManageWhiteListVotingPeriod},
-		{Key: keyYieldNativeTokenEnabled, Value: &p.YieldNativeTokenEnabled},
+		{Key: keyYieldNativeToken, Value: &p.YieldNativeToken},
 	}
 }
 
@@ -84,6 +84,6 @@ func DefaultParams() Params {
 		ManageWhiteListMaxDepositPeriod: time.Hour * 24,
 		ManageWhiteListMinDeposit:       sdk.NewDecCoinsFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultManageWhiteListMinDeposit)),
 		ManageWhiteListVotingPeriod:     time.Hour * 72,
-		YieldNativeTokenEnabled:         false,
+		YieldNativeToken:         false,
 	}
 }
