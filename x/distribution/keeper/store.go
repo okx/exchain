@@ -55,7 +55,7 @@ func (k Keeper) SetFeePool(ctx sdk.Context, feePool types.FeePool) {
 }
 
 // GetFeePoolCommunityCoins returns the community coins
-func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.DecCoins {
+func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.SysCoins {
 	return k.GetFeePool(ctx).CommunityPool
 }
 

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTextProposal(t *testing.T, ctx sdk.Context, initialDeposit sdk.DecCoins, govHandler sdk.Handler) sdk.Result {
+func newTextProposal(t *testing.T, ctx sdk.Context, initialDeposit sdk.SysCoins, govHandler sdk.Handler) sdk.Result {
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
 	res := govHandler(ctx, newProposalMsg)
@@ -33,7 +33,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	require.False(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	proposalCoins := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
+	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
 	res := govHandler(ctx, newProposalMsg)
@@ -81,7 +81,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 func TestEndBlockerIterateInactiveProposalsQueue(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}
 	newTextProposal(t, ctx, initialDeposit, NewHandler(gk))
 
 	newHeader := ctx.BlockHeader()
@@ -99,7 +99,7 @@ func TestEndBlockerIterateInactiveProposalsQueue(t *testing.T) {
 func TestEndBlockerIterateActiveProposalsQueue1(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
 	newTextProposal(t, ctx, initialDeposit, NewHandler(gk))
 
 	newHeader := ctx.BlockHeader()
@@ -128,7 +128,7 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 	keeper.CreateValidators(t, skHandler, ctx, valAddrs, []int64{10, 10, 10})
 	staking.EndBlocker(ctx, sk)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
 	res := newTextProposal(t, ctx, initialDeposit, NewHandler(gk))
 
 	var proposalID uint64
@@ -168,7 +168,7 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 	keeper.CreateValidators(t, skHandler, ctx, valAddrs, []int64{10, 10, 10, 10})
 	staking.EndBlocker(ctx, sk)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
 	res := newTextProposal(t, ctx, initialDeposit, NewHandler(gk))
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
@@ -209,7 +209,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	keeper.CreateValidators(t, skHandler, ctx, valAddrs, []int64{10, 10, 10, 10})
 	staking.EndBlocker(ctx, sk)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}
 	paramsChanges := []params.ParamChange{{Subspace: "staking", Key: "MaxValidators", Value: "105"}}
 	height := uint64(ctx.BlockHeight() + 1000)
 	content := paramsTypes.NewParameterChangeProposal("Test", "", paramsChanges, height)

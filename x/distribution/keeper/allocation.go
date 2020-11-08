@@ -75,7 +75,7 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	}
 }
 
-func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.DecCoins, previousVotes []abci.VoteInfo) sdk.DecCoins {
+func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousVotes []abci.VoteInfo) sdk.SysCoins {
 	logger := k.Logger(ctx)
 
 	//count the total sum of the unJailed val
@@ -105,7 +105,7 @@ func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.DecCoins, previousV
 	return remaining
 }
 
-func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecCoins {
+func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysCoins {
 	logger := k.Logger(ctx)
 
 	//allocate tokens proportionally by votes to validators and candidates
@@ -142,7 +142,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.DecCoins) sdk.DecC
 }
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
-func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.DecCoins) {
+func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
 	// split tokens between validator and delegators according to commissions
 	// commissions is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
 	// only update current commissions

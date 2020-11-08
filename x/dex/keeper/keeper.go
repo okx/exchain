@@ -217,7 +217,7 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 }
 
 // Deposit deposits amount of tokens for a product
-func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
+func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", product))
@@ -243,7 +243,7 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 }
 
 // Withdraw withdraws amount of tokens from a product
-func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
+func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because non-exist product: %s", product))

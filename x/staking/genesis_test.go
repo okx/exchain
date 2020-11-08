@@ -66,7 +66,7 @@ func TestInitGenesis(t *testing.T) {
 	genesisState.AllShares = sharesExportedSlice
 	genesisState.UnbondingDelegations = unbondingDelegations
 	// for the token sum check in staking init-genesis
-	//coinsToModuleAcc := sdk.DecCoins{sdk.NewDecCoinFromDec("okt", sdk.NewDec(100))}.ToCoins()
+	//coinsToModuleAcc := sdk.SysCoins{sdk.NewDecCoinFromDec("okt", sdk.NewDec(100))}.ToCoins()
 	coinsToModuleAcc := sdk.NewCoin(common.NativeToken, sdk.NewInt(100)).ToCoins()
 	_ = supplyKeeper.SendCoinsFromAccountToModule(ctx, Addrs[11], types.NotBondedPoolName, coinsToModuleAcc)
 	vals := InitGenesis(ctx, keeper, nil, supplyKeeper, genesisState)

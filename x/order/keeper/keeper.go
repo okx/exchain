@@ -365,7 +365,7 @@ func (k Keeper) SetBlockMatchResult(result *types.BlockMatchResult) {
 }
 
 // LockCoins locks coins from the specified address,
-func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
+func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	if coins.IsZero() {
 		return nil
 	}
@@ -373,7 +373,7 @@ func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoi
 }
 
 // nolint
-func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) {
+func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) {
 	if coins.IsZero() {
 		return
 	}
@@ -384,7 +384,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecC
 
 // BalanceAccount burns the specified coin and obtains another coin
 func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress,
-	outputCoins sdk.DecCoins, inputCoins sdk.DecCoins) {
+	outputCoins sdk.SysCoins, inputCoins sdk.SysCoins) {
 
 	if err := k.tokenKeeper.BalanceAccount(ctx, addr, outputCoins, inputCoins); err != nil {
 		log.Printf("User(%s) burn locked coins(%s) failed\n", addr.String(), outputCoins.String())
@@ -392,7 +392,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress,
 }
 
 // nolint
-func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
+func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins {
 	return k.tokenKeeper.GetCoins(ctx, addr)
 }
 
@@ -411,7 +411,7 @@ func (k Keeper) GetProductFeeReceiver(ctx sdk.Context, product string) (sdk.AccA
 }
 
 // AddFeeDetail adds detail message of fee to tokenKeeper
-func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.DecCoins,
+func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.SysCoins,
 	feeType string) {
 	if coins.IsZero() {
 		return
@@ -420,7 +420,7 @@ func (k Keeper) AddFeeDetail(ctx sdk.Context, from sdk.AccAddress, coins sdk.Dec
 }
 
 // SendFeesToProductOwner sends fees from the specified address to productOwner
-func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
+func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.SysCoins, from sdk.AccAddress,
 	feeType string, product string) (feeReceiver string, err error) {
 	if coins.IsZero() {
 		return "", nil
@@ -438,7 +438,7 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.DecCoins, from
 }
 
 // AddCollectedFees adds fee to the feePool
-func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.DecCoins, from sdk.AccAddress,
+func (k Keeper) AddCollectedFees(ctx sdk.Context, coins sdk.SysCoins, from sdk.AccAddress,
 	feeType string, hasFeeDetail bool) error {
 	if coins.IsZero() {
 		return nil

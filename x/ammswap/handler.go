@@ -171,7 +171,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 
 	// transfer coins
-	coins := sdk.DecCoins{
+	coins := sdk.SysCoins{
 		msg.QuoteAmount,
 		baseTokens,
 	}
@@ -192,7 +192,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, liquidity)
-	err = k.MintPoolCoinsToUser(ctx, sdk.DecCoins{poolCoins}, msg.Sender)
+	err = k.MintPoolCoinsToUser(ctx, sdk.SysCoins{poolCoins}, msg.Sender)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -252,7 +252,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	}
 
 	// transfer coins
-	coins := sdk.DecCoins{
+	coins := sdk.SysCoins{
 		baseAmount,
 		quoteAmount,
 	}
@@ -271,7 +271,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 
 	// update poolToken
 	poolCoins := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, liquidity)
-	err = k.BurnPoolCoinsFromUser(ctx, sdk.DecCoins{poolCoins}, msg.Sender)
+	err = k.BurnPoolCoinsFromUser(ctx, sdk.SysCoins{poolCoins}, msg.Sender)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInternal,
@@ -289,7 +289,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk.Result 
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
-		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
+		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
 			Log:  err.Error(),
@@ -349,7 +349,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 		}
 	}
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
-		sdk.DecCoins{msg.SoldTokenAmount}); err != nil {
+		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
 			Log:  fmt.Sprintf("Failed to swap token by router %s: %s", sdk.DefaultBondDenom, err.Error()),
@@ -429,11 +429,11 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) sdk
 }
 
 func swapTokenNativeToken(
-	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.DecCoin,
+	ctx sdk.Context, k Keeper, swapTokenPair SwapTokenPair, tokenBuy sdk.SysCoin,
 	msg types.MsgTokenToToken,
 ) sdk.Result {
 	// transfer coins
-	err := k.SendCoinsToPool(ctx, sdk.DecCoins{msg.SoldTokenAmount}, msg.Sender)
+	err := k.SendCoinsToPool(ctx, sdk.SysCoins{msg.SoldTokenAmount}, msg.Sender)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
@@ -441,7 +441,7 @@ func swapTokenNativeToken(
 		}
 	}
 
-	err = k.SendCoinsFromPoolToAccount(ctx, sdk.DecCoins{tokenBuy}, msg.Recipient)
+	err = k.SendCoinsFromPoolToAccount(ctx, sdk.SysCoins{tokenBuy}, msg.Recipient)
 	if err != nil {
 		return sdk.Result{
 			Code: sdk.CodeInsufficientCoins,
@@ -461,8 +461,8 @@ func swapTokenNativeToken(
 	return sdk.Result{}
 }
 
-func coinSort(coins sdk.DecCoins) sdk.DecCoins {
-	var newCoins sdk.DecCoins
+func coinSort(coins sdk.SysCoins) sdk.SysCoins {
+	var newCoins sdk.SysCoins
 	for _, coin := range coins {
 		if coin.Amount.IsPositive() {
 			newCoins = append(newCoins, coin)

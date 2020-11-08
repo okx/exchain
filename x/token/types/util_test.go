@@ -15,7 +15,7 @@ func TestAmountToCoins(t *testing.T) {
 	coinStr := "2btc,1" + common.NativeToken
 	coins, err := sdk.ParseDecCoins(coinStr)
 	require.Nil(t, err)
-	expectedCoins := sdk.DecCoins{
+	expectedCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(2)),
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)),
 	}
@@ -36,7 +36,7 @@ func TestStrToTransfers(t *testing.T) {
 	transfer := []TransferUnit{
 		{
 			To: addr,
-			Coins: []sdk.DecCoin{
+			Coins: []sdk.SysCoin{
 				sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)),
 			},
 		},
@@ -50,14 +50,14 @@ func TestStrToTransfers(t *testing.T) {
 
 func TestMergeCoinInfo(t *testing.T) {
 
-	//availableCoins, freezeCoins, lockCoins sdk.DecCoins
-	availableCoins := sdk.DecCoins{
+	//availableCoins, freezeCoins, lockCoins sdk.SysCoins
+	availableCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("bnb", sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(100)),
 	}
 
-	lockedCoins := sdk.DecCoins{
+	lockedCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("abc", sdk.NewDec(100)),
 	}
@@ -77,7 +77,7 @@ func TestDecAccount_String(t *testing.T) {
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 	dec := sdk.MustNewDecFromStr("0.2")
-	decCoins := sdk.DecCoins{
+	decCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, dec),
 	}
 	decAccount := DecAccount{
@@ -104,7 +104,7 @@ func TestBaseAccountToDecAccount(t *testing.T) {
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 
-	coins := sdk.DecCoins{
+	coins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 	}
 
@@ -117,7 +117,7 @@ func TestBaseAccountToDecAccount(t *testing.T) {
 	}
 
 	dec := sdk.MustNewDecFromStr("100.00000000")
-	decCoins := sdk.DecCoins{
+	decCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, dec),
 	}
 

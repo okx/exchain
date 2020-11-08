@@ -34,7 +34,7 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	require.EqualValues(t, sdk.MustNewDecFromStr("0"), amount)
 
 	mintToken := sdk.NewDecCoinFromDec(symbol, sdk.NewDec(1000000))
-	err = keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{mintToken}, sdk.AccAddress(addrTest))
+	err = keeper.MintPoolCoinsToUser(ctx, sdk.SysCoins{mintToken}, sdk.AccAddress(addrTest))
 	require.Nil(t, err)
 
 	balance := mapp.bankKeeper.GetCoins(ctx, sdk.AccAddress(addrTest))
@@ -70,7 +70,7 @@ func TestKeeper_GetRedeemableAssets(t *testing.T) {
 	keeper.SetSwapTokenPair(ctx, types.TestSwapTokenPairName, swapTokenPair)
 	poolToken := types.InitPoolToken(swapTokenPair.PoolTokenName)
 	initPoolTokenAmount := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, sdk.NewDec(1))
-	err := keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{initPoolTokenAmount}, sdk.AccAddress(addrTest))
+	err := keeper.MintPoolCoinsToUser(ctx, sdk.SysCoins{initPoolTokenAmount}, sdk.AccAddress(addrTest))
 	require.Nil(t, err)
 	mapp.tokenKeeper.NewToken(ctx, poolToken)
 

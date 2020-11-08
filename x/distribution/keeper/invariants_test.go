@@ -9,8 +9,8 @@ import (
 )
 
 type testInvariantParam struct {
-	totalCommission sdk.DecCoins
-	commissions     []sdk.DecCoins
+	totalCommission sdk.SysCoins
+	commissions     []sdk.SysCoins
 	expected        bool
 }
 
@@ -18,27 +18,27 @@ func getTestInvariantParams() []testInvariantParam {
 	return []testInvariantParam{
 		{ // when commission is zero
 			nil,
-			[]sdk.DecCoins{NewTestDecCoins(0, 0)},
+			[]sdk.SysCoins{NewTestDecCoins(0, 0)},
 			true,
 		},
 		{ // when withdraw commission failed
 			NewTestDecCoins(5, 1),
-			[]sdk.DecCoins{NewTestDecCoins(15, 1)},
+			[]sdk.SysCoins{NewTestDecCoins(15, 1)},
 			false,
 		},
 		{ // when the sum of commission is not equal to distribution account
 			NewTestDecCoins(30, 1),
-			[]sdk.DecCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
+			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
 			false,
 		},
 		{ // when the sum of commission is not equal to distribution account
 			NewTestDecCoins(45, 1),
-			[]sdk.DecCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
+			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
 			false,
 		},
 		{ // success
 			NewTestDecCoins(45, 1),
-			[]sdk.DecCoins{NewTestDecCoins(15, 1), NewTestDecCoins(30, 1)},
+			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(30, 1)},
 			true,
 		},
 	}

@@ -20,7 +20,7 @@ func NonNegativeCommissionsInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		var msg string
 		var count int
-		var commission sdk.DecCoins
+		var commission sdk.SysCoins
 
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(addr sdk.ValAddress, c types.ValidatorAccumulatedCommission) (stop bool) {
@@ -71,7 +71,7 @@ func CanWithdrawInvariant(k Keeper) sdk.Invariant {
 // is consistent with the sum of accumulated commissions
 func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var accumulatedCommission sdk.DecCoins
+		var accumulatedCommission sdk.SysCoins
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(_ sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
 				accumulatedCommission = accumulatedCommission.Add(commission)

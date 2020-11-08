@@ -27,7 +27,7 @@ func TestNewCommunityPoolSpendProposal(t *testing.T) {
 	proposal.Title = ""
 	require.Error(t, proposal.ValidateBasic())
 	proposal.Title = title
-	proposal.Amount = sdk.DecCoins{sdk.DecCoin{Denom: "UNKNOWN", Amount: sdk.OneDec()}}
+	proposal.Amount = sdk.SysCoins{sdk.SysCoin{Denom: "UNKNOWN", Amount: sdk.OneDec()}}
 	require.Error(t, proposal.ValidateBasic())
 	proposal.Amount = sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.OneDec())
 	proposal.Recipient = nil

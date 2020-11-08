@@ -3,6 +3,7 @@ SUM := $(shell which shasum)
 
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
+export GO111MODULE = on
 
 GithubTop=github.com
 

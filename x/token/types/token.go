@@ -76,7 +76,7 @@ type Transfer struct {
 
 type TransferUnit struct {
 	To    sdk.AccAddress `json:"to"`
-	Coins sdk.DecCoins   `json:"coins"`
+	Coins sdk.SysCoins   `json:"coins"`
 }
 
 type CoinsInfo []CoinInfo
@@ -123,5 +123,5 @@ type AccountParamV2 struct {
 
 type AccCoins struct {
 	Acc   sdk.AccAddress `json:"address"`
-	Coins sdk.DecCoins   `json:"coins"`
+	Coins sdk.SysCoins   `json:"coins"`
 }

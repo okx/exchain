@@ -12,15 +12,15 @@ import (
 // TokenKeeper : expected token keeper
 type TokenKeeper interface {
 	// Token balance
-	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins
-	LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error
-	UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error
-	BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins, inputCoins sdk.DecCoins) error
-	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error
+	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins
+	LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error
+	UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error
+	BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.SysCoins, inputCoins sdk.SysCoins) error
+	SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.SysCoins) error
 	// Fee detail
-	AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string, receiver string)
+	AddFeeDetail(ctx sdk.Context, from string, fee sdk.SysCoins, feeType string, receiver string)
 	GetAllLockedCoins(ctx sdk.Context) (locks []token.AccCoins)
-	IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool))
+	IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.SysCoins) (stop bool))
 }
 
 // SupplyKeeper : expected supply keeper

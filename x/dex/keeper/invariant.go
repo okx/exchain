@@ -16,18 +16,18 @@ func RegisterInvariants(ir sdk.InvariantRegistry, keeper IKeeper, supplyKeeper S
 // locks amounts held on store
 func ModuleAccountInvariant(keeper IKeeper, supplyKeeper SupplyKeeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var depositsCoins, withdrawCoins sdk.DecCoins
+		var depositsCoins, withdrawCoins sdk.SysCoins
 
 		// get product deposits
 		for _, product := range keeper.GetTokenPairs(ctx) {
 			if product == nil {
 				panic("the nil pointer is not expected")
 			}
-			depositsCoins = depositsCoins.Add(sdk.DecCoins{product.Deposits})
+			depositsCoins = depositsCoins.Add(sdk.SysCoins{product.Deposits})
 		}
 
 		keeper.IterateWithdrawInfo(ctx, func(_ int64, withdrawInfo types.WithdrawInfo) (stop bool) {
-			withdrawCoins = withdrawCoins.Add(sdk.DecCoins{withdrawInfo.Deposits})
+			withdrawCoins = withdrawCoins.Add(sdk.SysCoins{withdrawInfo.Deposits})
 			return false
 		})
 

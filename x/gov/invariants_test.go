@@ -14,7 +14,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	ctx, _, gk, _, crisisKeeper := keeper.CreateTestInput(t, false, 1000)
 	govHandler := NewHandler(gk)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
 	res := govHandler(ctx, newProposalMsg)
@@ -23,7 +23,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
 	newDepositMsg := NewMsgDeposit(keeper.Addrs[0], proposalID,
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)})
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)})
 	res = govHandler(ctx, newDepositMsg)
 	require.True(t, res.IsOK())
 

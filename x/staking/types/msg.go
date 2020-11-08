@@ -20,7 +20,7 @@ var (
 type MsgCreateValidator struct {
 	Description Description `json:"description" yaml:"description"`
 	//Commission        CommissionRates `json:"commission" yaml:"commission"`
-	MinSelfDelegation sdk.DecCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
+	MinSelfDelegation sdk.SysCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
 	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
 	PubKey            crypto.PubKey  `json:"pubkey" yaml:"pubkey"`
@@ -29,7 +29,7 @@ type MsgCreateValidator struct {
 type msgCreateValidatorJSON struct {
 	Description Description `json:"description" yaml:"description"`
 	//Commission        CommissionRates `json:"commission" yaml:"commission"`
-	MinSelfDelegation sdk.DecCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
+	MinSelfDelegation sdk.SysCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
 	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
 	PubKey            string         `json:"pubkey" yaml:"pubkey"`
@@ -39,7 +39,7 @@ type msgCreateValidatorJSON struct {
 // Delegator address and validator address are the same
 func NewMsgCreateValidator(
 	valAddr sdk.ValAddress, pubKey crypto.PubKey,
-	description Description, minSelfDelegation sdk.DecCoin,
+	description Description, minSelfDelegation sdk.SysCoin,
 ) MsgCreateValidator {
 
 	return MsgCreateValidator{

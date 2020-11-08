@@ -123,7 +123,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	if decErr != nil {
 		return nil, sdk.ErrUnknownRequest("invalid params: liquidity")
 	}
-	var tokenList sdk.DecCoins
+	var tokenList sdk.SysCoins
 	baseToken, quoteToken, redeemErr := keeper.GetRedeemableAssets(ctx, baseAmountName, quoteAmountName, liquidity)
 	if redeemErr != nil {
 		return nil, sdk.ErrUnknownRequest(redeemErr.Error())

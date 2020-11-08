@@ -20,7 +20,7 @@ type UpgradeParams struct {
 	// Maximum period for okb holders to deposit on a AppUpgrade proposal. Initial value: 2 days
 	AppUpgradeMaxDepositPeriod time.Duration `json:"app_upgrade_max_deposit_period"`
 	// Minimum deposit for a critical AppUpgrade proposal to enter voting period
-	AppUpgradeMinDeposit sdk.DecCoins `json:"app_upgrade_min_deposit"`
+	AppUpgradeMinDeposit sdk.SysCoins `json:"app_upgrade_min_deposit"`
 	// Length of the critical voting period for AppUpgrade proposal
 	AppUpgradeVotingPeriod time.Duration `json:"app_upgrade_voting_period"`
 }
@@ -49,7 +49,7 @@ func (p UpgradeParams) String() string {
 
 // DefaultParams returns default module parameters
 func DefaultParams() UpgradeParams {
-	var minDeposit = sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
 
 	return UpgradeParams{
 		AppUpgradeMaxDepositPeriod: time.Hour * 24,

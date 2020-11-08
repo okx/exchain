@@ -56,7 +56,7 @@ func TestCache(t *testing.T) {
 	require.Nil(t, err)
 
 	err = keeper.AddCollectedFees(ctx,
-		sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.25920000")}},
+		sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.25920000")}},
 		testInput.TestAddrs[0], types.FeeTypeOrderExpire, true)
 	require.Nil(t, err)
 	tokenKeeper := keeper.GetTokenKeeper()
@@ -123,18 +123,18 @@ func TestKeeper_LockCoins(t *testing.T) {
 	require.Nil(t, err)
 
 	//not enough coin to lock
-	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("99.7408")}}, token.LockCoinsTypeQuantity)
+	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("99.7408")}}, token.LockCoinsTypeQuantity)
 	require.NotNil(t, err)
 
 	//lock coin
-	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
+	err = keeper.LockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
 	require.Nil(t, err)
 
 	//not enough coin to placeorder
 	err = keeper.PlaceOrder(ctx, order)
 	require.NotNil(t, err)
 
-	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
+	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("90")}}, token.LockCoinsTypeQuantity)
 
 	//placeorder success
 	err = keeper.PlaceOrder(ctx, order)
@@ -330,7 +330,7 @@ func TestKeeper_SendFeesToProductOwner(t *testing.T) {
 
 	fee := GetOrderNewFee(order)
 
-	dealFee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.2592")}}
+	dealFee := sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.2592")}}
 	require.EqualValues(t, fee, dealFee)
 
 	_, err = keeper.SendFeesToProductOwner(ctx, dealFee, order.Sender, types.FeeTypeOrderDeal, order.Product)

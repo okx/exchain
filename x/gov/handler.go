@@ -175,7 +175,7 @@ func handleProposalAfterTally(
 	return "", ""
 }
 
-func hasOnlyDefaultBondDenom(decCoins sdk.DecCoins) sdk.Error {
+func hasOnlyDefaultBondDenom(decCoins sdk.SysCoins) sdk.Error {
 	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom || !decCoins.IsValid() {
 		return sdk.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom, decCoins.String()))
 	}

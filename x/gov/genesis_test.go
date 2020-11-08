@@ -14,7 +14,7 @@ import (
 func TestInitGenesisState(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 
-	initialDeposit := sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
 	deposits := types.Deposits{
 		{ProposalID: 1, Depositor: keeper.Addrs[0], Amount: initialDeposit},
 	}
@@ -178,12 +178,12 @@ func TestValidateGenesis(t *testing.T) {
 	data.TallyParams.YesInVotePeriod = sdk.NewDecWithPrec(334, 3)
 	coin, err := sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
-	data.DepositParams.MinDeposit = sdk.DecCoins{sdk.DecCoin{Denom: sdk.DefaultBondDenom, Amount: coin}}
+	data.DepositParams.MinDeposit = sdk.SysCoins{sdk.SysCoin{Denom: sdk.DefaultBondDenom, Amount: coin}}
 	require.NotNil(t, ValidateGenesis(data))
 }
 
 func TestGenesisState_Equal(t *testing.T) {
-	var minDeposit = sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
 	expected := GenesisState{
 		StartingProposalID: 1,
 		Proposals:          []types.Proposal{},

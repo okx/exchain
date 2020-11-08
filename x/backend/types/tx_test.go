@@ -83,7 +83,7 @@ func TestGenerateTx(t *testing.T) {
 		Side:    SellOrder,
 	}
 	keeper.SetOrder(ctx, or.OrderID, or)
-	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
+	fee := sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
 	or.RecordOrderCancelFee(fee)
 	tmpBitset.Set(1)
 	keeper.AddTxHandlerMsgResult(tmpBitset)

@@ -71,7 +71,7 @@ func TestKeeper_GetVote(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
 	require.Nil(t, err)
 
 	err, voteFee := keeper.AddVote(ctx, proposalID, Addrs[0], types.OptionYes)
@@ -102,7 +102,7 @@ func TestKeeper_GetVotes(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
 	require.Nil(t, err)
 
 	err, voteFee := keeper.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)
@@ -142,7 +142,7 @@ func TestKeeper_DeleteVotes(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
 	require.Nil(t, err)
 
 	err, voteFee := keeper.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)

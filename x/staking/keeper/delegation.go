@@ -28,7 +28,7 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 }
 
 // Delegate handles the process of delegating
-func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) sdk.Error {
+func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) sdk.Error {
 
 	delQuantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if delQuantity.LT(minDelLimit) {
@@ -66,7 +66,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecC
 }
 
 // Withdraw handles the process of withdrawing token from deposit account
-func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.DecCoin) (time.Time, sdk.Error) {
+func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) (time.Time, sdk.Error) {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
 		return time.Time{}, types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())

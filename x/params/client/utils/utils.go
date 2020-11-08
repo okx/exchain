@@ -30,7 +30,7 @@ type (
 		Title       string           `json:"title" yaml:"title"`
 		Description string           `json:"description" yaml:"description"`
 		Changes     ParamChangesJSON `json:"changes" yaml:"changes"`
-		Deposit     sdk.DecCoins     `json:"deposit" yaml:"deposit"`
+		Deposit     sdk.SysCoins     `json:"deposit" yaml:"deposit"`
 		Height      uint64           `json:"height" yaml:"height"`
 	}
 
@@ -41,7 +41,7 @@ type (
 		Description string           `json:"description" yaml:"description"`
 		Changes     ParamChangesJSON `json:"changes" yaml:"changes"`
 		Proposer    sdk.AccAddress   `json:"proposer" yaml:"proposer"`
-		Deposit     sdk.DecCoins     `json:"deposit" yaml:"deposit"`
+		Deposit     sdk.SysCoins     `json:"deposit" yaml:"deposit"`
 		Height      uint64           `json:"height" yaml:"height"`
 	}
 )

@@ -70,7 +70,7 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 }
 
 // GetMinDeposit implements ProposalHandler interface
-func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govtypes.Content) (minDeposit sdk.DecCoins) {
+func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govtypes.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
 	case types.ParameterChangeProposal:
 		minDeposit = keeper.GetParams(ctx).MinDeposit

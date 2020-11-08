@@ -15,8 +15,8 @@ const PoolTokenPrefix = "ammswap_"
 
 // SwapTokenPair defines token pair exchange
 type SwapTokenPair struct {
-	QuotePooledCoin sdk.DecCoin `json:"quote_pooled_coin"` // The volume of quote token in the token pair exchange pool
-	BasePooledCoin  sdk.DecCoin `json:"base_pooled_coin"`  // The volume of base token in the token pair exchange pool
+	QuotePooledCoin sdk.SysCoin `json:"quote_pooled_coin"` // The volume of quote token in the token pair exchange pool
+	BasePooledCoin  sdk.SysCoin `json:"base_pooled_coin"`  // The volume of base token in the token pair exchange pool
 	PoolTokenName   string      `json:"pool_token_name"`   // The name of pool token
 }
 
@@ -32,7 +32,7 @@ func NewSwapPair(token0, token1 string) SwapTokenPair {
 }
 
 // NewSwapTokenPair is a constructor function for SwapTokenPair
-func NewSwapTokenPair(quotePooledCoin sdk.DecCoin, basePooledCoin sdk.DecCoin, poolTokenName string) *SwapTokenPair {
+func NewSwapTokenPair(quotePooledCoin sdk.SysCoin, basePooledCoin sdk.SysCoin, poolTokenName string) *SwapTokenPair {
 	swapTokenPair := &SwapTokenPair{
 		QuotePooledCoin: quotePooledCoin,
 		BasePooledCoin:  basePooledCoin,

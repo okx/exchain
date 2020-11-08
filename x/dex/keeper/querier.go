@@ -95,7 +95,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 type depositsData struct {
 	ProductName     string         `json:"product"`
-	ProductDeposits sdk.DecCoin    `json:"deposits"`
+	ProductDeposits sdk.SysCoin    `json:"deposits"`
 	Rank            int            `json:"rank"`
 	BlockHeight     int64          `json:"block_height"`
 	Owner           sdk.AccAddress `json:"owner"`

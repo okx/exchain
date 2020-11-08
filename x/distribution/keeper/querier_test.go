@@ -43,7 +43,7 @@ func TestQueryValidatorCommission(t *testing.T) {
 	commission, err := querior(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
 
-	var data sdk.DecCoins
+	var data sdk.SysCoins
 	err = amino.UnmarshalJSON(commission, &data)
 	require.NoError(t, err)
 	require.Equal(t, NewTestDecCoins(15,1), data)
@@ -75,7 +75,7 @@ func TestQueryCommunityPool(t *testing.T) {
 	communityPool, err := querior(ctx, []string{types.QueryCommunityPool}, abci.RequestQuery{})
 	require.NoError(t, err)
 
-	var data sdk.DecCoins
+	var data sdk.SysCoins
 	err1 := amino.UnmarshalJSON(communityPool, &data)
 	require.NoError(t, err1)
 	require.Equal(t, NewTestDecCoins(123,2), data)

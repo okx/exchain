@@ -75,12 +75,12 @@ func GetTestAddrs() ([]sdk.ValAddress, []crypto.PubKey, []sdk.ConsAddress) {
 }
 
 // NewTestDecCoins returns dec coins
-func NewTestDecCoins(i int64, precison int64) sdk.DecCoins {
-	return sdk.DecCoins{NewTestDecCoin(i, precison)}
+func NewTestDecCoins(i int64, precison int64) sdk.SysCoins {
+	return sdk.SysCoins{NewTestDecCoin(i, precison)}
 }
 
 // NewTestDecCoin returns one dec coin
-func NewTestDecCoin(i int64, precison int64) sdk.DecCoin {
+func NewTestDecCoin(i int64, precison int64) sdk.SysCoin {
 	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison))
 }
 

@@ -145,7 +145,7 @@ func TestMsgDeposit(t *testing.T) {
 	tests := []struct {
 		name          string
 		delegatorAddr sdk.AccAddress
-		amount        sdk.DecCoin
+		amount        sdk.SysCoin
 		expectPass    bool
 	}{
 		{"basic good", dlgAddr1, coinPos, true},
@@ -168,12 +168,12 @@ func TestMsgDeposit(t *testing.T) {
 func TestMsgWithdraw(t *testing.T) {
 
 	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
-	coinNeg := sdk.DecCoin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(-1)}
+	coinNeg := sdk.SysCoin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(-1)}
 
 	tests := []struct {
 		name          string
 		delegatorAddr sdk.AccAddress
-		amount        sdk.DecCoin
+		amount        sdk.SysCoin
 		expectPass    bool
 	}{
 		{"basic good", dlgAddr1, coinPos, true},

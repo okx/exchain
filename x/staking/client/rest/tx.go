@@ -31,7 +31,7 @@ type (
 		BaseReq          rest.BaseReq   `json:"base_req" yaml:"base_req"`
 		DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"` // in bech32
 		ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"` // in bech32
-		Amount           sdk.DecCoin    `json:"amount" yaml:"amount"`
+		Amount           sdk.SysCoin    `json:"amount" yaml:"amount"`
 	}
 
 	// WithdrawRequest defines the properties of a withdraw request's body.
@@ -39,7 +39,7 @@ type (
 		BaseReq          rest.BaseReq   `json:"base_req" yaml:"base_req"`
 		DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"` // in bech32
 		ValidatorAddress sdk.ValAddress `json:"validator_address" yaml:"validator_address"` // in bech32
-		Amount           sdk.DecCoin    `json:"amount" yaml:"amount"`
+		Amount           sdk.SysCoin    `json:"amount" yaml:"amount"`
 	}
 )
 

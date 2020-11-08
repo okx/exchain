@@ -5,6 +5,6 @@ import (
 )
 
 type QueryBuyAmountParams struct {
-	SoldToken    sdk.DecCoin
+	SoldToken    sdk.SysCoin
 	TokenToBuy string
 }
