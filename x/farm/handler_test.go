@@ -1184,7 +1184,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. provide",
+			caseName: "success. provide",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
@@ -1194,7 +1194,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. lock address 1",
+			caseName: "success. lock address 1",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
@@ -1204,7 +1204,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. lock address 2",
+			caseName: "success. lock address 2",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
@@ -1223,12 +1223,12 @@ func TestHandlerCheckCombination(t *testing.T) {
 			expectedCode: sdk.CodeOK,
 		},
 		{
-			caseName:     "success. unlock address 1",
+			caseName: "success. unlock address 1",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
 				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
 			},
-			getMsg:       normalGetUnlockMsg,
+			getMsg: normalGetUnlockMsg,
 			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
 				verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
 				createPoolMsg := preData.(types.MsgCreatePool)
