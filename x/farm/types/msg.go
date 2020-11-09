@@ -5,9 +5,7 @@ import (
 )
 
 const (
-	// TODO: change it back
-	//MaxPoolNameLength = 40
-	MaxPoolNameLength = 100
+	MaxPoolNameLength = 128
 
 	createPoolMsgType  = "create_pool"
 	destroyPoolMsgType = "destroy_pool"

@@ -2,12 +2,10 @@ package farm
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
@@ -16,14 +14,6 @@ import (
 // NewHandler creates an sdk.Handler for all the farm type messages
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
-		// TODO: just for test, should be removed.
-		defer func() {
-			if e := recover(); e != nil {
-				common.PanicTrace(4)
-				os.Exit(1)
-			}
-		}()
-
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var handlerFun func() sdk.Result
 		var name string
