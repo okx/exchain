@@ -16,6 +16,7 @@ require (
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/google/gops v0.3.12 // indirect; indirectgit add
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
@@ -36,6 +37,7 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190704165056-9c2d0518ed81 // indirect
+	github.com/shirou/gopsutil v2.20.9+incompatible // indirect
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
@@ -48,12 +50,14 @@ require (
 	github.com/willf/bitset v1.1.10
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
+	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
 	gopkg.in/yaml.v2 v2.2.7
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.37.9-okexchain7
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.37.9-okexchain8
 	github.com/tendermint/iavl => github.com/okex/iavl v0.12.4-okexchain
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.32.10-okexchain
 )

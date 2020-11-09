@@ -1,9 +1,11 @@
 package common
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"net/http"
 	"os"
 	"runtime"
@@ -15,6 +17,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+)
+
+const(
+	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
 // Int64ToBytes converts int64 to bytes
@@ -121,4 +127,34 @@ func MulAndQuo(a, b, c sdk.Dec) sdk.Dec {
 func BlackHoleAddress() sdk.AccAddress {
 	addr, _ := sdk.AccAddressFromHex(blackHoleHex)
 	return addr
+}
+
+func GetFixedLengthRandomString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func PanicTrace(kb int) {
+	s := []byte("/src/runtime/panic.go")
+	e := []byte("\ngoroutine ")
+	line := []byte("\n")
+	stack := make([]byte, kb<<10) //4KB
+	length := runtime.Stack(stack, true)
+	start := bytes.Index(stack, s)
+	stack = stack[start:length]
+	start = bytes.Index(stack, line) + 1
+	stack = stack[start:]
+	end := bytes.LastIndex(stack, line)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	end = bytes.Index(stack, e)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	stack = bytes.TrimRight(stack, "\n")
+	fmt.Print(string(stack))
 }
