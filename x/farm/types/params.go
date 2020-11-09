@@ -84,6 +84,6 @@ func DefaultParams() Params {
 		ManageWhiteListMaxDepositPeriod: time.Hour * 24,
 		ManageWhiteListMinDeposit:       sdk.NewDecCoinsFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultManageWhiteListMinDeposit)),
 		ManageWhiteListVotingPeriod:     time.Hour * 72,
-		YieldNativeToken:         false,
+		YieldNativeToken:                false,
 	}
 }
