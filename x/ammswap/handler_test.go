@@ -117,8 +117,8 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	tests := []struct {
 		testCase         string
 		minLiquidity     sdk.Dec
-		maxBaseAmount    sdk.DecCoin
-		quoteAmount      sdk.DecCoin
+		maxBaseAmount    sdk.SysCoin
+		quoteAmount      sdk.SysCoin
 		deadLine         int64
 		addr             sdk.AccAddress
 		exceptResultCode sdk.CodeType
@@ -211,8 +211,8 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	tests := []struct {
 		testCase         string
 		liquidity        sdk.Dec
-		minBaseAmount    sdk.DecCoin
-		minQuoteAmount   sdk.DecCoin
+		minBaseAmount    sdk.SysCoin
+		minQuoteAmount   sdk.SysCoin
 		deadLine         int64
 		addr             sdk.AccAddress
 		exceptResultCode sdk.CodeType
@@ -308,8 +308,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	invalidMinBoughtTokenAmount2 := sdk.NewDecCoinFromDec(secondTestTokenName, sdk.NewDec(100000))
 	tests := []struct {
 		testCase             string
-		minBoughtTokenAmount sdk.DecCoin
-		soldTokenAmount      sdk.DecCoin
+		minBoughtTokenAmount sdk.SysCoin
+		soldTokenAmount      sdk.SysCoin
 		deadLine             int64
 		recipient            sdk.AccAddress
 		addr                 sdk.AccAddress
@@ -395,8 +395,8 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 
 	tests := []struct {
 		testCase             string
-		minBoughtTokenAmount sdk.DecCoin
-		soldTokenAmount      sdk.DecCoin
+		minBoughtTokenAmount sdk.SysCoin
+		soldTokenAmount      sdk.SysCoin
 		deadLine             int64
 		recipient            sdk.AccAddress
 		addr                 sdk.AccAddress

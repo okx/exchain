@@ -54,7 +54,7 @@ func TestKeeper_GetProposalsFiltered(t *testing.T) {
 	require.Equal(t, 1, len(proposals))
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)}, "")
 	require.Nil(t, err)
 
 	proposals = keeper.GetProposalsFiltered(ctx, nil, nil,

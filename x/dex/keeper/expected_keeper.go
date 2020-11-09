@@ -34,8 +34,8 @@ type IKeeper interface {
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, tokenPairName string)
-	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error
-	Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error
+	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error
+	Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.SysCoin) sdk.Error
 	GetSupplyKeeper() SupplyKeeper
 	GetTokenKeeper() TokenKeeper
 	GetBankKeeper() BankKeeper

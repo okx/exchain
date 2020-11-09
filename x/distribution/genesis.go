@@ -17,7 +17,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper
 	for _, dwi := range data.DelegatorWithdrawInfos {
 		keeper.SetDelegatorWithdrawAddr(ctx, dwi.DelegatorAddress, dwi.WithdrawAddress)
 	}
-	moduleHoldings := sdk.DecCoins{}
+	moduleHoldings := sdk.SysCoins{}
 	for _, acc := range data.ValidatorAccumulatedCommissions {
 		keeper.SetValidatorAccumulatedCommission(ctx, acc.ValidatorAddress, acc.Accumulated)
 		moduleHoldings = moduleHoldings.Add(acc.Accumulated)

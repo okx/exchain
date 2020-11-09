@@ -9,7 +9,7 @@ import (
 )
 
 type testParam struct {
-	commission sdk.DecCoins
+	commission sdk.SysCoins
 }
 
 func getTestParams() []testParam {

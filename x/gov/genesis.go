@@ -27,7 +27,7 @@ type GenesisState struct {
 
 // DefaultGenesisState get raw genesis raw message for testing
 func DefaultGenesisState() GenesisState {
-	var minDeposit = sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
 	return GenesisState{
 		StartingProposalID: 1,
 		Proposals:          []sdkGov.Proposal{},
@@ -107,7 +107,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, supplyKeeper sdkGov.SupplyKee
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
 	}
 
-	var totalDeposits sdk.DecCoins
+	var totalDeposits sdk.SysCoins
 	for _, deposit := range data.Deposits {
 		k.SetDeposit(ctx, deposit)
 		totalDeposits = totalDeposits.Add(deposit.Amount)

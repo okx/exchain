@@ -28,7 +28,6 @@ require (
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/nacos-group/nacos-sdk-go v1.0.0 // indirect
-	github.com/okex/okchain v0.11.1
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect

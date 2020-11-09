@@ -80,9 +80,9 @@ func TestMsg(t *testing.T) {
 		{"msgDeposit", msgDeposit, true},
 		{"msgWithdraw", msgWithdraw, true},
 
-		{"deposit-invalid-amount", NewMsgDeposit(product, sdk.DecCoin{"", sdk.NewDec(1)}, addr), false},
+		{"deposit-invalid-amount", NewMsgDeposit(product, sdk.SysCoin{"", sdk.NewDec(1)}, addr), false},
 		{"deposit-no-depositor", NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
-		{"withdraw-invalid-amount", NewMsgWithdraw(product, sdk.DecCoin{"", sdk.NewDec(1)}, addr), false},
+		{"withdraw-invalid-amount", NewMsgWithdraw(product, sdk.SysCoin{"", sdk.NewDec(1)}, addr), false},
 		{"withdraw-no-depositor", NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
 
 		{"transfer-no-sign", NewMsgTransferOwnership(fromAddr, toAddr, product), false},

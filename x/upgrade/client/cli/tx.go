@@ -81,7 +81,7 @@ type UpgradeProposalJSON struct {
 	Title              string                   `json:"title" yaml:"title"`
 	Description        string                   `json:"description" yaml:"description"`
 	ProtocolDefinition proto.ProtocolDefinition `json:"protocol_definition" yaml:"protocol_definition"`
-	Deposit            sdk.DecCoins             `json:"deposit" yaml:"deposit"`
+	Deposit            sdk.SysCoins             `json:"deposit" yaml:"deposit"`
 }
 
 func parseDexListProposalJSON(cdc *codec.Codec, proposalFile string) (UpgradeProposalJSON, error) {

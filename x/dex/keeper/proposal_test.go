@@ -17,7 +17,7 @@ func TestKeeper_GetMinDeposit(t *testing.T) {
 	ctx := testInput.Ctx
 
 	p := types.Params{
-		DelistMinDeposit: sdk.DecCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(12345))},
+		DelistMinDeposit: sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(12345))},
 	}
 
 	testInput.DexKeeper.SetParams(ctx, p)
@@ -61,7 +61,7 @@ func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
 
 	content := types.NewDelistProposal("delist xxb_okb", "delist asset from dex", tokenPair.Owner, tokenPair.BaseAssetSymbol, tokenPair.QuoteAssetSymbol)
 	content.Proposer = tokenPair.Owner
-	proposal := govTypes.NewMsgSubmitProposal(content, sdk.DecCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(150))}, tokenPair.Owner)
+	proposal := govTypes.NewMsgSubmitProposal(content, sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(150))}, tokenPair.Owner)
 
 	// error case : fail to check proposal because product(token pair) not exist
 	err := testInput.DexKeeper.CheckMsgSubmitProposal(ctx, proposal)
@@ -75,17 +75,17 @@ func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
 	require.NoError(t, err)
 
 	// error case:  fail to check proposal because the proposer can't afford the initial deposit
-	proposal1 := govTypes.NewMsgSubmitProposal(content, sdk.DecCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(500000))}, tokenPair.Owner)
+	proposal1 := govTypes.NewMsgSubmitProposal(content, sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(500000))}, tokenPair.Owner)
 	err = testInput.DexKeeper.CheckMsgSubmitProposal(ctx, proposal1)
 	require.Error(t, err)
 
 	// error case: fail to check proposal because initial deposit must not be less than 100.00000000okb
-	proposal2 := govTypes.NewMsgSubmitProposal(content, sdk.DecCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1))}, tokenPair.Owner)
+	proposal2 := govTypes.NewMsgSubmitProposal(content, sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1))}, tokenPair.Owner)
 	err = testInput.DexKeeper.CheckMsgSubmitProposal(ctx, proposal2)
 	require.Error(t, err)
 
 	// error case: fail to check proposal because the proposal is nil
-	proposal3 := govTypes.NewMsgSubmitProposal(nil, sdk.DecCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1))}, tokenPair.Owner)
+	proposal3 := govTypes.NewMsgSubmitProposal(nil, sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1))}, tokenPair.Owner)
 	err = testInput.DexKeeper.CheckMsgSubmitProposal(ctx, proposal3)
 	require.Error(t, err)
 

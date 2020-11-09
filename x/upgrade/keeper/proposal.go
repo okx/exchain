@@ -13,7 +13,7 @@ import (
 )
 
 // GetMinDeposit implements ProposalHandler interface
-func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.DecCoins) {
+func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
 	case types.AppUpgradeProposal:
 		minDeposit = k.GetParams(ctx).AppUpgradeMinDeposit

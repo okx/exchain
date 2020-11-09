@@ -108,7 +108,7 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.De
 }
 
 // MintPoolCoinsToUser mints coins and send them to the specified user address
-func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.DecCoins, addr sd
 }
 
 // BurnPoolCoinsFromUser sends coins to account module and burns them
-func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 	if err != nil {
 		return err
@@ -126,12 +126,12 @@ func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.DecCoins, addr 
 }
 
 // SendCoinsToPool sends coins from user account to module account
-func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	return k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 }
 
 // SendCoinsFromPoolToAccount sends coins from module account to user account
-func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.DecCoins, addr sdk.AccAddress) error {
+func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
 
@@ -151,7 +151,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.DecCoin, err error) {
+func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.SysCoin, err error) {
 	err = types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
 		return
@@ -174,7 +174,7 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmount
 }
 
 //CalculateTokenToBuy calculates the amount to buy
-func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.DecCoin, buyTokenDenom string, params types.Params) sdk.DecCoin {
+func CalculateTokenToBuy(swapTokenPair types.SwapTokenPair, sellToken sdk.SysCoin, buyTokenDenom string, params types.Params) sdk.SysCoin {
 	var inputReserve, outputReserve sdk.Dec
 	if buyTokenDenom < sellToken.Denom {
 		inputReserve = swapTokenPair.QuotePooledCoin.Amount

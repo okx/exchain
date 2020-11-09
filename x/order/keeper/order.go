@@ -11,7 +11,7 @@ import (
 )
 
 // TryPlaceOrder tries to charge fee & lock coins for a new order
-func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.DecCoins, err error) {
+func (k Keeper) TryPlaceOrder(ctx sdk.Context, order *types.Order) (fee sdk.SysCoins, err error) {
 	logger := ctx.Logger().With("module", "order")
 	// Trying to lock coins
 	needLockCoins := order.NeedLockCoins()
@@ -60,12 +60,12 @@ func (k Keeper) ExpireOrder(ctx sdk.Context, order *types.Order, logger log.Logg
 }
 
 // CancelOrder quits the specified order with the canceled state
-func (k Keeper) CancelOrder(ctx sdk.Context, order *types.Order, logger log.Logger) sdk.DecCoins {
+func (k Keeper) CancelOrder(ctx sdk.Context, order *types.Order, logger log.Logger) sdk.SysCoins {
 	return k.quitOrder(ctx, order, types.FeeTypeOrderCancel, logger)
 }
 
 // quitOrder unlocks & charges fee, unlocks coins, updates order, and updates DepthBook
-func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, logger log.Logger) (fee sdk.DecCoins) {
+func (k Keeper) quitOrder(ctx sdk.Context, order *types.Order, feeType string, logger log.Logger) (fee sdk.SysCoins) {
 	switch feeType {
 	case types.FeeTypeOrderCancel:
 		order.Cancel()

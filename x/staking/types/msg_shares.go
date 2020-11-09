@@ -217,11 +217,11 @@ func isValsDuplicate(valAddrs []sdk.ValAddress) bool {
 // MsgDeposit - structure for depositing to the delegator account
 type MsgDeposit struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantity"`
+	Amount           sdk.SysCoin    `json:"quantity" yaml:"quantity"`
 }
 
 // NewMsgDeposit creates a new instance of MsgDeposit
-func NewMsgDeposit(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgDeposit {
+func NewMsgDeposit(delAddr sdk.AccAddress, amount sdk.SysCoin) MsgDeposit {
 	return MsgDeposit{
 		DelegatorAddress: delAddr,
 		Amount:           amount,
@@ -255,11 +255,11 @@ func (msg MsgDeposit) GetSignBytes() []byte {
 // MsgWithdraw - structure for withdrawing okt and the corresponding shares from all validators
 type MsgWithdraw struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
-	Amount           sdk.DecCoin    `json:"quantity" yaml:"quantity"`
+	Amount           sdk.SysCoin    `json:"quantity" yaml:"quantity"`
 }
 
 // NewMsgWithdraw creates a new instance of MsgWithdraw
-func NewMsgWithdraw(delAddr sdk.AccAddress, amount sdk.DecCoin) MsgWithdraw {
+func NewMsgWithdraw(delAddr sdk.AccAddress, amount sdk.SysCoin) MsgWithdraw {
 	return MsgWithdraw{
 		DelegatorAddress: delAddr,
 		Amount:           amount,

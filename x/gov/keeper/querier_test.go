@@ -199,7 +199,7 @@ func TestQueries(t *testing.T) {
 	require.Nil(t, err)
 	proposalID1 := proposal1.ProposalID
 	err = keeper.AddDeposit(ctx, proposalID1, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	content = types.NewTextProposal("Test", "description")
@@ -207,7 +207,7 @@ func TestQueries(t *testing.T) {
 	require.Nil(t, err)
 	proposalID2 := proposal2.ProposalID
 	err = keeper.AddDeposit(ctx, proposalID2, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	content = types.NewTextProposal("Test", "description")
@@ -215,7 +215,7 @@ func TestQueries(t *testing.T) {
 	require.Nil(t, err)
 	proposalID3 := proposal3.ProposalID
 	err = keeper.AddDeposit(ctx, proposalID3, Addrs[1],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	// Addrs[1] deposits on proposals #2 & #3

@@ -31,11 +31,11 @@ var _ params.ParamSet = &Params{}
 
 // mint parameters
 type Params struct {
-	FeeIssue               sdk.DecCoin   `json:"issue_fee"`
-	FeeMint                sdk.DecCoin   `json:"mint_fee"`
-	FeeBurn                sdk.DecCoin   `json:"burn_fee"`
-	FeeModify              sdk.DecCoin   `json:"modify_fee"`
-	FeeChown               sdk.DecCoin   `json:"transfer_ownership_fee"`
+	FeeIssue               sdk.SysCoin   `json:"issue_fee"`
+	FeeMint                sdk.SysCoin   `json:"mint_fee"`
+	FeeBurn                sdk.SysCoin   `json:"burn_fee"`
+	FeeModify              sdk.SysCoin   `json:"modify_fee"`
+	FeeChown               sdk.SysCoin   `json:"transfer_ownership_fee"`
 	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 

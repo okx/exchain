@@ -271,7 +271,7 @@ func (keeper Keeper) IterateVotes(ctx sdk.Context, proposalID uint64, cb func(vo
 
 // GetMinDeposit implement ProposalHandler
 // nolint
-func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.DecCoins {
+func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.SysCoins {
 	return keeper.GetDepositParams(ctx).MinDeposit
 }
 

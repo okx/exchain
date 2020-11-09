@@ -89,7 +89,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.True(t, broken)
 }
 
-func invariantMsg(lockCoins sdk.DecCoins) string {
+func invariantMsg(lockCoins sdk.SysCoins) string {
 	return sdk.FormatInvariant(types.ModuleName, "locks",
 		fmt.Sprintf("\ttoken ModuleAccount coins: %s\n\tsum of locks amounts:  %s\n",
 			lockCoins, lockCoins))

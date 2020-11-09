@@ -9,7 +9,7 @@ import (
 )
 
 //------------------
-// test sdk.DecCoin
+// test sdk.SysCoin
 func TestParseDecCoinByDecimal(t *testing.T) {
 
 	decCoin, err := sdk.ParseDecCoin("1000.01" + NativeToken)

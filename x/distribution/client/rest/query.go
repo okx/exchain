@@ -97,7 +97,7 @@ func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.Han
 			return
 		}
 
-		var result sdk.DecCoins
+		var result sdk.SysCoins
 		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return

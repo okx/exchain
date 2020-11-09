@@ -8,13 +8,13 @@ import (
 
 // FeePool is the struct of the global fee pool for distribution
 type FeePool struct {
-	CommunityPool sdk.DecCoins `json:"community_pool" yaml:"community_pool"` // pool for community funds yet to be spent
+	CommunityPool sdk.SysCoins `json:"community_pool" yaml:"community_pool"` // pool for community funds yet to be spent
 }
 
 // InitialFeePool zero fee pool
 func InitialFeePool() FeePool {
 	return FeePool{
-		CommunityPool: sdk.DecCoins{},
+		CommunityPool: sdk.SysCoins{},
 	}
 }
 

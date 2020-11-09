@@ -42,7 +42,7 @@ func TestOrderUpdateExtraInfo(t *testing.T) {
 	require.EqualValues(t, "0.002"+common.NativeToken, order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
 
 	// Record deal fee
-	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.01")}}
+	fee := sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.01")}}
 	order.RecordOrderDealFee(fee)
 	require.EqualValues(t, fee.String(), order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee))
 

@@ -162,7 +162,7 @@ func (k Keeper) UpdateToken(ctx sdk.Context, token types.Token) {
 }
 
 // SendCoinsFromAccountToAccount - send token from one account to another account
-func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.DecCoins) error {
+func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.SysCoins) error {
 	if k.bankKeeper.BlacklistedAddr(to) {
 		return types.ErrBlockedRecipient(DefaultCodespace, to.String())
 	}
@@ -171,7 +171,7 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 }
 
 // nolint
-func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
+func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoi
 }
 
 // nolint
-func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, doAdd bool, lockCoinsType int) error {
+func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, doAdd bool, lockCoinsType int) error {
 	var key []byte
 	switch lockCoinsType {
 	case types.LockCoinsTypeQuantity:
@@ -191,8 +191,8 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 		return fmt.Errorf("unrecognized lock coins type: %d", lockCoinsType)
 	}
 
-	var newCoins sdk.DecCoins
-	var oldCoins sdk.DecCoins
+	var newCoins sdk.SysCoins
+	var oldCoins sdk.SysCoins
 
 	store := ctx.KVStore(k.lockStoreKey)
 	coinsBytes := store.Get(key)
@@ -229,7 +229,7 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 }
 
 // nolint
-func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecCoins, lockCoinsType int) error {
+func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	// update lock coins
 	if err := k.updateLockedCoins(ctx, addr, coins, false, lockCoinsType); err != nil {
 		return err
@@ -244,7 +244,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.DecC
 }
 
 // GetLockCoins gets locked coins by address
-func (k Keeper) GetLockedCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.DecCoins) {
+func (k Keeper) GetLockedCoins(ctx sdk.Context, addr sdk.AccAddress) (coins sdk.SysCoins) {
 	store := ctx.KVStore(k.lockStoreKey)
 	coinsBytes := store.Get(types.GetLockAddress(addr.Bytes()))
 	if coinsBytes == nil {
@@ -263,7 +263,7 @@ func (k Keeper) GetAllLockedCoins(ctx sdk.Context) (locks []types.AccCoins) {
 		var accCoins types.AccCoins
 		accCoins.Acc = iter.Key()[len(types.LockKey):]
 		coinsBytes := iter.Value()
-		var coins sdk.DecCoins
+		var coins sdk.SysCoins
 		k.cdc.MustUnmarshalBinaryBare(coinsBytes, &coins)
 		accCoins.Coins = coins
 		locks = append(locks, accCoins)
@@ -273,14 +273,14 @@ func (k Keeper) GetAllLockedCoins(ctx sdk.Context) (locks []types.AccCoins) {
 }
 
 // IterateAllDeposits iterates over the all the stored lock fee and performs a callback function
-func (k Keeper) IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.DecCoins) (stop bool)) {
+func (k Keeper) IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, coins sdk.SysCoins) (stop bool)) {
 	store := ctx.KVStore(k.lockStoreKey)
 	iter := sdk.KVStorePrefixIterator(store, types.LockedFeeKey)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		acc := iter.Key()[len(types.LockKey):]
 
-		var coins sdk.DecCoins
+		var coins sdk.SysCoins
 		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &coins)
 
 		if cb(acc, coins) {
@@ -291,8 +291,8 @@ func (k Keeper) IterateLockedFees(ctx sdk.Context, cb func(acc sdk.AccAddress, c
 
 // BalanceAccount is ONLY expected by the order module to settle an order where outputCoins
 // is used to exchange inputCoins
-func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.DecCoins,
-	inputCoins sdk.DecCoins) (err error) {
+func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins sdk.SysCoins,
+	inputCoins sdk.SysCoins) (err error) {
 
 	if !outputCoins.IsZero() {
 		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
@@ -308,7 +308,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins
 }
 
 // nolint
-func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.DecCoins {
+func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins {
 	return k.bankKeeper.GetCoins(ctx, addr)
 }
 
@@ -339,7 +339,7 @@ func (k Keeper) GetFeeDetailList() []*FeeDetail {
 }
 
 // nolint
-func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.DecCoins, feeType string, receiver string) {
+func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.SysCoins, feeType string, receiver string) {
 	if k.enableBackend {
 		feeDetail := &FeeDetail{
 			Address:   from,

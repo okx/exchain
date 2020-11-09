@@ -225,7 +225,7 @@ func TestKeeper_IterateVotes(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
 	require.Nil(t, err)
 
 	err, voteFee := keeper.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)
@@ -256,11 +256,11 @@ func TestKeeper_IterateDeposits(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	var findDeposit types.Deposit
@@ -284,11 +284,11 @@ func TestKeeper_IterateAllDeposits(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	// proposal 2
@@ -298,11 +298,11 @@ func TestKeeper_IterateAllDeposits(t *testing.T) {
 	proposalID = proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	var findDeposit types.Deposit
