@@ -9,12 +9,12 @@ import (
 
 // InitGenesis initialize default parameters and the keeper's address to pubkey map
 func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
-	var yieldModuleAccHoldings sdk.DecCoins
-	var moduleAccHoldings sdk.DecCoins
+	var yieldModuleAccHoldings sdk.SysCoins
+	var moduleAccHoldings sdk.SysCoins
 
 	for _, pool := range data.Pools {
-		moduleAccHoldings = moduleAccHoldings.Add(sdk.DecCoins{pool.TotalValueLocked})
-		moduleAccHoldings = moduleAccHoldings.Add(sdk.DecCoins{pool.DepositAmount})
+		moduleAccHoldings = moduleAccHoldings.Add(sdk.SysCoins{pool.TotalValueLocked})
+		moduleAccHoldings = moduleAccHoldings.Add(sdk.SysCoins{pool.DepositAmount})
 		yieldModuleAccHoldings = yieldModuleAccHoldings.Add(pool.TotalAccumulatedRewards)
 		k.SetFarmPool(ctx, pool)
 	}

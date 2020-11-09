@@ -38,11 +38,11 @@ func ParamKeyTable() params.KeyTable {
 // Params - used for initializing default parameter for farm at genesis
 type Params struct {
 	QuoteSymbol       string      `json:"quote_symbol"`
-	CreatePoolFee     sdk.DecCoin `json:"create_pool_fee"`
-	CreatePoolDeposit sdk.DecCoin `json:"create_pool_deposit"`
+	CreatePoolFee     sdk.SysCoin `json:"create_pool_fee"`
+	CreatePoolDeposit sdk.SysCoin `json:"create_pool_deposit"`
 	// proposal params
 	ManageWhiteListMaxDepositPeriod time.Duration `json:"manage_white_list_max_deposit_period"`
-	ManageWhiteListMinDeposit       sdk.DecCoins  `json:"manage_white_list_min_deposit"`
+	ManageWhiteListMinDeposit       sdk.SysCoins  `json:"manage_white_list_min_deposit"`
 	ManageWhiteListVotingPeriod     time.Duration `json:"manage_white_list_voting_period"`
 	YieldNativeToken                bool          `json:"yield_native_token"`
 }

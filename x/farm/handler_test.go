@@ -31,9 +31,9 @@ type getMsgFunc func(tCtx *testContext, preData interface{}) sdk.Msg
 
 type preExecFunc func(t *testing.T, tCtx *testContext) interface{}
 
-type verificationFunc func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{})
+type verificationFunc func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{})
 
-var verification verificationFunc = func(t *testing.T, context *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
+var verification verificationFunc = func(t *testing.T, context *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
 	if result.Code != testCase.expectedCode {
 		fmt.Println(result.Log)
 	}
@@ -866,7 +866,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 				return createPoolMsg
 			},
 			getMsg: normalGetClaimMsg,
-			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
+			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
 				if result.Code != testCase.expectedCode {
 					fmt.Println(result.Log)
 				}
@@ -1229,7 +1229,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 				return normalGetCreatePoolMsg(tCtx, nil)
 			},
 			getMsg:       normalGetUnlockMsg,
-			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.DecCoins, preData interface{}) {
+			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
 				verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
 				createPoolMsg := preData.(types.MsgCreatePool)
 

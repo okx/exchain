@@ -45,14 +45,14 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		0, sdk.ZeroDec())
 	pool := types.NewFarmPool(
 		msg.Owner, msg.PoolName, msg.MinLockAmount, depositAmount, sdk.NewDecCoin(msg.MinLockAmount.Denom, sdk.ZeroInt()),
-		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.DecCoins{},
+		[]types.YieldedTokenInfo{yieldedTokenInfo}, sdk.SysCoins{},
 	)
 	k.SetFarmPool(ctx, pool)
 
 	// initial pool period
-	poolHistoricalRewards := types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1)
+	poolHistoricalRewards := types.NewPoolHistoricalRewards(sdk.SysCoins{}, 1)
 	k.SetPoolHistoricalRewards(ctx, msg.PoolName, 0, poolHistoricalRewards)
-	poolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 1, sdk.DecCoins{})
+	poolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 1, sdk.SysCoins{})
 	k.SetPoolCurrentRewards(ctx, msg.PoolName, poolCurrentRewards)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(

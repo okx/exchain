@@ -70,7 +70,7 @@ func TestBeginBlocker(t *testing.T) {
 				}
 				k.SetFarmPool(ctx, poolA)
 				k.SetWhitelist(ctx, poolA.Name)
-				poolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 3, sdk.DecCoins{})
+				poolCurrentRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), 3, sdk.SysCoins{})
 				k.SetPoolCurrentRewards(ctx, poolA.Name, poolCurrentRewards)
 
 				valueLockedPoolB := yieldedNativeTokenAmt.MulInt64(30).QuoInt64(100)

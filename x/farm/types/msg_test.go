@@ -13,7 +13,7 @@ func TestMsgCreatePool(t *testing.T) {
 	tests := []struct {
 		owner         sdk.AccAddress
 		poolName      string
-		minLockAmount sdk.DecCoin
+		minLockAmount sdk.SysCoin
 		yieldedSymbol string
 		errCode       sdk.CodeType
 	}{
@@ -67,7 +67,7 @@ func TestMsgProvide(t *testing.T) {
 	tests := []struct {
 		poolName         string
 		owner            sdk.AccAddress
-		amount           sdk.DecCoin
+		amount           sdk.SysCoin
 		yieldPerBlock    sdk.Dec
 		startBlockHeight int64
 		errCode          sdk.CodeType
@@ -140,7 +140,7 @@ func TestMsgLock(t *testing.T) {
 	tests := []struct {
 		poolName string
 		addr     sdk.AccAddress
-		amount   sdk.DecCoin
+		amount   sdk.SysCoin
 		errCode  sdk.CodeType
 	}{
 		{
@@ -187,7 +187,7 @@ func TestMsgUnlock(t *testing.T) {
 	tests := []struct {
 		poolName string
 		addr     sdk.AccAddress
-		amount   sdk.DecCoin
+		amount   sdk.SysCoin
 		errCode  sdk.CodeType
 	}{
 		{
@@ -234,7 +234,7 @@ func TestMsgClaim(t *testing.T) {
 	tests := []struct {
 		poolName string
 		addr     sdk.AccAddress
-		amount   sdk.DecCoin
+		amount   sdk.SysCoin
 		errCode  sdk.CodeType
 	}{
 		{

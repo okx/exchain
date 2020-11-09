@@ -16,11 +16,11 @@ func TestPoolCurrentReward(t *testing.T) {
 
 	poolNames := []string{"pool1", "pool2"}
 	for _, poolName := range poolNames {
-		poolCur := types.NewPoolCurrentRewards(100, 3, sdk.DecCoins{})
+		poolCur := types.NewPoolCurrentRewards(100, 3, sdk.SysCoins{})
 		k.Keeper.SetPoolCurrentRewards(ctx, poolName, poolCur)
-		poolHis1 := types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1)
+		poolHis1 := types.NewPoolHistoricalRewards(sdk.SysCoins{}, 1)
 		k.Keeper.SetPoolHistoricalRewards(ctx, poolName, 1, poolHis1)
-		poolHis2 := types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1)
+		poolHis2 := types.NewPoolHistoricalRewards(sdk.SysCoins{}, 1)
 		k.Keeper.SetPoolHistoricalRewards(ctx, poolName, 2, poolHis2)
 	}
 

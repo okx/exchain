@@ -7,11 +7,11 @@ import (
 
 // CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielded from
 // startBlockHeight to endBlockHeight. And return the amount.
-func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPool) (types.FarmPool, sdk.DecCoins) {
+func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPool) (types.FarmPool, sdk.SysCoins) {
 	currentPeriod := k.GetPoolCurrentRewards(ctx, pool.Name)
 	endBlockHeight := ctx.BlockHeight()
 
-	yieldedTokens := sdk.DecCoins{}
+	yieldedTokens := sdk.SysCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 		var startBlockHeight int64
@@ -45,8 +45,8 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 }
 
 func (k Keeper) WithdrawRewards(
-	ctx sdk.Context, poolName string, totalValueLocked sdk.DecCoin, yieldedTokens sdk.DecCoins, addr sdk.AccAddress,
-) (sdk.DecCoins, sdk.Error) {
+	ctx sdk.Context, poolName string, totalValueLocked sdk.SysCoin, yieldedTokens sdk.SysCoins, addr sdk.AccAddress,
+) (sdk.SysCoins, sdk.Error) {
 	// 0. check existence of lock info
 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
 	if !found {
@@ -73,15 +73,15 @@ func (k Keeper) WithdrawRewards(
 
 // IncrementPoolPeriod increments pool period, returning the period just ended
 func (k Keeper) IncrementPoolPeriod(
-	ctx sdk.Context, poolName string, totalValueLocked sdk.DecCoin, yieldedTokens sdk.DecCoins,
+	ctx sdk.Context, poolName string, totalValueLocked sdk.SysCoin, yieldedTokens sdk.SysCoins,
 ) uint64 {
 	// 1. fetch current period rewards
 	rewards := k.GetPoolCurrentRewards(ctx, poolName)
 	// 2. calculate current reward ratio
 	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
-	var currentRatio sdk.DecCoins
+	var currentRatio sdk.SysCoins
 	if totalValueLocked.IsZero() {
-		currentRatio = sdk.DecCoins{}
+		currentRatio = sdk.SysCoins{}
 	} else {
 		currentRatio = rewards.Rewards.QuoDecTruncate(totalValueLocked.Amount)
 	}
@@ -95,7 +95,7 @@ func (k Keeper) IncrementPoolPeriod(
 	k.SetPoolHistoricalRewards(ctx, poolName, rewards.Period, newHistoricalRewards)
 
 	// 4. set new current rewards into store, incrementing period by 1
-	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), rewards.Period+1, sdk.DecCoins{})
+	newCurRewards := types.NewPoolCurrentRewards(ctx.BlockHeight(), rewards.Period+1, sdk.SysCoins{})
 	k.SetPoolCurrentRewards(ctx, poolName, newCurRewards)
 
 	return rewards.Period
@@ -128,7 +128,7 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, poolName string, period
 
 func (k Keeper) calculateRewards(
 	ctx sdk.Context, poolName string, addr sdk.AccAddress, endingPeriod uint64, lockInfo types.LockInfo,
-) (rewards sdk.DecCoins) {
+) (rewards sdk.SysCoins) {
 	if lockInfo.StartBlockHeight == ctx.BlockHeight() {
 		// started this height, no rewards yet
 		return
@@ -141,7 +141,7 @@ func (k Keeper) calculateRewards(
 
 // calculateLockRewardsBetween calculate the rewards accrued by a pool between two periods
 func (k Keeper) calculateLockRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
-	amount sdk.DecCoin) (rewards sdk.DecCoins) {
+	amount sdk.SysCoin) (rewards sdk.SysCoins) {
 
 	// sanity check
 	if startingPeriod > endingPeriod {

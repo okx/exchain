@@ -245,37 +245,37 @@ func initPoolsAndLockInfos(
 	pools = types.FarmPools{
 		types.NewFarmPool(
 			Addrs[2], pool1Name, sdk.NewDecCoinFromDec(pool1LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(100)},
-			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
+			sdk.SysCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(100)},
+			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 		types.NewFarmPool(
 			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.DecCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
-			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.DecCoins(nil),
+			sdk.SysCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
+			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 	}
 	for _, pool := range pools {
 		mockKeeper.Keeper.SetFarmPool(ctx, pool)
 		mockKeeper.Keeper.SetPoolHistoricalRewards(
-			ctx, pool.Name, 1, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1),
+			ctx, pool.Name, 1, types.NewPoolHistoricalRewards(sdk.SysCoins{}, 1),
 		)
 		mockKeeper.Keeper.SetPoolHistoricalRewards(
-			ctx, pool.Name, 2, types.NewPoolHistoricalRewards(sdk.DecCoins{}, 2),
+			ctx, pool.Name, 2, types.NewPoolHistoricalRewards(sdk.SysCoins{}, 2),
 		)
 		mockKeeper.Keeper.SetPoolCurrentRewards(
-			ctx, pool.Name, types.NewPoolCurrentRewards(90, 3, sdk.DecCoins{}),
+			ctx, pool.Name, types.NewPoolCurrentRewards(90, 3, sdk.SysCoins{}),
 		)
 
 		moduleAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 		err := moduleAcc.SetCoins(
-			moduleAcc.GetCoins().Add(sdk.DecCoins{pool.DepositAmount}).Add(sdk.DecCoins{pool.TotalValueLocked}),
+			moduleAcc.GetCoins().Add(sdk.SysCoins{pool.DepositAmount}).Add(sdk.SysCoins{pool.TotalValueLocked}),
 		)
 		require.Nil(t, err)
 		mockKeeper.supplyKeeper.SetModuleAccount(ctx, moduleAcc)
 
 		yieldAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.YieldFarmingAccount)
 		err = yieldAcc.SetCoins(
-			yieldAcc.GetCoins().Add(sdk.DecCoins{pool.YieldedTokenInfos[0].RemainingAmount}).
+			yieldAcc.GetCoins().Add(sdk.SysCoins{pool.YieldedTokenInfos[0].RemainingAmount}).
 				Add(pool.TotalAccumulatedRewards),
 		)
 		require.Nil(t, err)

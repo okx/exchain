@@ -20,13 +20,13 @@ const (
 type MsgCreatePool struct {
 	Owner         sdk.AccAddress `json:"owner" yaml:"owner"`
 	PoolName      string         `json:"pool_name" yaml:"pool_name"`
-	MinLockAmount sdk.DecCoin    `json:"min_lock_amount" yaml:"min_lock_amount"`
+	MinLockAmount sdk.SysCoin    `json:"min_lock_amount" yaml:"min_lock_amount"`
 	YieldedSymbol string         `json:"yielded_symbol"  yaml:"yielded_symbol"`
 }
 
 var _ sdk.Msg = MsgCreatePool{}
 
-func NewMsgCreatePool(address sdk.AccAddress, poolName string, minLockAmount sdk.DecCoin, yieldedSymbol string) MsgCreatePool {
+func NewMsgCreatePool(address sdk.AccAddress, poolName string, minLockAmount sdk.SysCoin, yieldedSymbol string) MsgCreatePool {
 	return MsgCreatePool{
 		Owner:         address,
 		PoolName:      poolName,
@@ -112,12 +112,12 @@ func (m MsgDestroyPool) GetSigners() []sdk.AccAddress {
 type MsgProvide struct {
 	PoolName              string         `json:"pool_name" yaml:"pool_name"`
 	Address               sdk.AccAddress `json:"address" yaml:"address"`
-	Amount                sdk.DecCoin    `json:"amount" yaml:"amount"`
+	Amount                sdk.SysCoin    `json:"amount" yaml:"amount"`
 	AmountYieldedPerBlock sdk.Dec        `json:"amount_yielded_per_block" yaml:"amount_yielded_per_block"`
 	StartHeightToYield    int64          `json:"start_height_to_yield" yaml:"start_height_to_yield"`
 }
 
-func NewMsgProvide(poolName string, address sdk.AccAddress, amount sdk.DecCoin,
+func NewMsgProvide(poolName string, address sdk.AccAddress, amount sdk.SysCoin,
 	amountYieldedPerBlock sdk.Dec, startHeightToYield int64) MsgProvide {
 	return MsgProvide{
 		PoolName:              poolName,
@@ -169,10 +169,10 @@ func (m MsgProvide) GetSigners() []sdk.AccAddress {
 type MsgLock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
 	Address  sdk.AccAddress `json:"address" yaml:"address"`
-	Amount   sdk.DecCoin    `json:"amount" yaml:"amount"`
+	Amount   sdk.SysCoin    `json:"amount" yaml:"amount"`
 }
 
-func NewMsgLock(poolName string, address sdk.AccAddress, amount sdk.DecCoin) MsgLock {
+func NewMsgLock(poolName string, address sdk.AccAddress, amount sdk.SysCoin) MsgLock {
 	return MsgLock{
 		PoolName: poolName,
 		Address:  address,
@@ -215,10 +215,10 @@ func (m MsgLock) GetSigners() []sdk.AccAddress {
 type MsgUnlock struct {
 	PoolName string         `json:"pool_name" yaml:"pool_name"`
 	Address  sdk.AccAddress `json:"address" yaml:"address"`
-	Amount   sdk.DecCoin    `json:"amount" yaml:"amount"`
+	Amount   sdk.SysCoin    `json:"amount" yaml:"amount"`
 }
 
-func NewMsgUnlock(poolName string, address sdk.AccAddress, amount sdk.DecCoin) MsgUnlock {
+func NewMsgUnlock(poolName string, address sdk.AccAddress, amount sdk.SysCoin) MsgUnlock {
 	return MsgUnlock{
 		PoolName: poolName,
 		Address:  address,
