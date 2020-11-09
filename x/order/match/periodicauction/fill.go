@@ -188,19 +188,19 @@ func balanceAccount(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keep
 
 	symbols := strings.Split(order.Product, "_")
 	// transfer tokens
-	var outputCoins, inputCoins sdk.DecCoins
+	var outputCoins, inputCoins sdk.SysCoins
 	if order.Side == types.BuyOrder {
-		outputCoins = sdk.DecCoins{{Denom: symbols[1], Amount: fillPrice.Mul(fillQuantity)}}
-		inputCoins = sdk.DecCoins{{Denom: symbols[0], Amount: fillQuantity}}
+		outputCoins = sdk.SysCoins{{Denom: symbols[1], Amount: fillPrice.Mul(fillQuantity)}}
+		inputCoins = sdk.SysCoins{{Denom: symbols[0], Amount: fillQuantity}}
 	} else {
-		outputCoins = sdk.DecCoins{{Denom: symbols[0], Amount: fillQuantity}}
-		inputCoins = sdk.DecCoins{{Denom: symbols[1], Amount: fillPrice.Mul(fillQuantity)}}
+		outputCoins = sdk.SysCoins{{Denom: symbols[0], Amount: fillQuantity}}
+		inputCoins = sdk.SysCoins{{Denom: symbols[1], Amount: fillPrice.Mul(fillQuantity)}}
 	}
 	keeper.BalanceAccount(ctx, order.Sender, outputCoins, inputCoins)
 }
 
 func chargeFee(order *types.Order, ctx sdk.Context, keeper orderkeeper.Keeper, fillQuantity sdk.Dec,
-	feeParams *types.Params) (dealFee sdk.DecCoins, feeReceiver string) {
+	feeParams *types.Params) (dealFee sdk.SysCoins, feeReceiver string) {
 	// charge fee
 	fee := orderkeeper.GetZeroFee()
 	if order.Status == types.OrderStatusFilled {

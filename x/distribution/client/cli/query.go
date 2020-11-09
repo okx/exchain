@@ -112,7 +112,7 @@ $ %s query distr community-pool
 				return err
 			}
 
-			var result sdk.DecCoins
+			var result sdk.SysCoins
 			cdc.MustUnmarshalJSON(res, &result)
 			return cliCtx.PrintOutput(result)
 		},

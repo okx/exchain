@@ -71,12 +71,12 @@ func (msg MsgList) GetSigners() []sdk.AccAddress {
 // MsgDeposit - high level transaction of the dex module
 type MsgDeposit struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
-	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
+	Amount    sdk.SysCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
 // NewMsgDeposit creates a new MsgDeposit
-func NewMsgDeposit(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgDeposit {
+func NewMsgDeposit(product string, amount sdk.SysCoin, depositor sdk.AccAddress) MsgDeposit {
 	return MsgDeposit{product, amount, depositor}
 }
 
@@ -112,12 +112,12 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 // MsgWithdraw - high level transaction of the dex module
 type MsgWithdraw struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
-	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
+	Amount    sdk.SysCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
 // NewMsgWithdraw creates a new MsgWithdraw
-func NewMsgWithdraw(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgWithdraw {
+func NewMsgWithdraw(product string, amount sdk.SysCoin, depositor sdk.AccAddress) MsgWithdraw {
 	return MsgWithdraw{product, amount, depositor}
 }
 

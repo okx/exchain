@@ -69,7 +69,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 }
 
 // assume that there is only okt in pool, if not panics
-func checkTokenSum(tokenSum sdk.DecCoin, pool supplyexported.ModuleAccountI) {
+func checkTokenSum(tokenSum sdk.SysCoin, pool supplyexported.ModuleAccountI) {
 	poolCoins := pool.GetCoins()
 	if !poolCoins.IsZero() {
 		if len(poolCoins) != 1 {
@@ -83,7 +83,7 @@ func checkTokenSum(tokenSum sdk.DecCoin, pool supplyexported.ModuleAccountI) {
 	}
 }
 
-func checkPools(ctx sdk.Context, keeper Keeper, bondedDecCoin, notBondedDecCoin sdk.DecCoin, isExported bool) {
+func checkPools(ctx sdk.Context, keeper Keeper, bondedDecCoin, notBondedDecCoin sdk.SysCoin, isExported bool) {
 	bondedPool := keeper.GetBondedPool(ctx)
 	if bondedPool == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))

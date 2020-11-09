@@ -17,7 +17,7 @@ func (k Keeper) GetNotBondedPool(ctx sdk.Context) (notBondedPool exported.Module
 }
 
 // bondedTokensToNotBonded transfers coins from the bonded to the not bonded pool within staking
-func (k Keeper) bondedTokensToNotBonded(ctx sdk.Context, tokens sdk.DecCoin) {
+func (k Keeper) bondedTokensToNotBonded(ctx sdk.Context, tokens sdk.SysCoin) {
 
 	coins := tokens.ToCoins()
 	err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.BondedPoolName, types.NotBondedPoolName, coins)

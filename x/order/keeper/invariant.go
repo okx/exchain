@@ -17,14 +17,14 @@ func RegisterInvariants(ir sdk.InvariantRegistry, keeper Keeper) {
 // locks amounts held on store
 func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var lockedCoins, lockedFees, orderLockedFees sdk.DecCoins
+		var lockedCoins, lockedFees, orderLockedFees sdk.SysCoins
 
 		for _, accCoins := range keeper.tokenKeeper.GetAllLockedCoins(ctx) {
 			lockedCoins = lockedCoins.Add(accCoins.Coins)
 		}
 
 		// lock fee
-		keeper.tokenKeeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+		keeper.tokenKeeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
 			lockedFees = lockedFees.Add(coins)
 			return false
 		})

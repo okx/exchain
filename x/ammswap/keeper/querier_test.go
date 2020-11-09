@@ -84,7 +84,7 @@ func TestQuerySwapTokenPairs(t *testing.T) {
 }
 
 func initTestPool(t *testing.T, addrList mock.AddrKeysSlice, mapp *TestInput,
-	ctx sdk.Context, keeper Keeper, baseTokenAmount, quoteTokenAmount sdk.DecCoin, poolTokenAmount sdk.Dec) types.SwapTokenPair{
+	ctx sdk.Context, keeper Keeper, baseTokenAmount, quoteTokenAmount sdk.SysCoin, poolTokenAmount sdk.Dec) types.SwapTokenPair{
 	swapTokenPair := types.SwapTokenPair{
 		QuotePooledCoin: quoteTokenAmount,
 		BasePooledCoin: baseTokenAmount,
@@ -94,7 +94,7 @@ func initTestPool(t *testing.T, addrList mock.AddrKeysSlice, mapp *TestInput,
 	poolToken := types.InitPoolToken(swapTokenPair.PoolTokenName)
 	initPoolTokenAmount := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, poolTokenAmount)
 	mapp.tokenKeeper.NewToken(ctx, poolToken)
-	err := keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{initPoolTokenAmount}, addrList[0].Address)
+	err := keeper.MintPoolCoinsToUser(ctx, sdk.SysCoins{initPoolTokenAmount}, addrList[0].Address)
 	require.Nil(t, err)
 	return swapTokenPair
 }
@@ -111,9 +111,9 @@ func TestQueryRedeemableAssets(t *testing.T) {
 	path := []string{types.QueryRedeemableAssets, swapTokenPair.BasePooledCoin.Denom, swapTokenPair.QuotePooledCoin.Denom, poolTokenAmount.String()}
 	resultBytes, err := querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
-	var result []sdk.DecCoin
+	var result []sdk.SysCoin
 	keeper.cdc.MustUnmarshalJSON(resultBytes, &result)
-	expectedAmountList := []sdk.DecCoin{swapTokenPair.BasePooledCoin, swapTokenPair.QuotePooledCoin}
+	expectedAmountList := []sdk.SysCoin{swapTokenPair.BasePooledCoin, swapTokenPair.QuotePooledCoin}
 	require.Equal(t, expectedAmountList, result)
 }
 

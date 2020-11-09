@@ -22,14 +22,14 @@ var (
 
 // Params defines param object
 type Params struct {
-	ListFee              sdk.DecCoin `json:"list_fee"`
-	TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
-	RegisterOperatorFee  sdk.DecCoin `json:"register_operator_fee"`
+	ListFee              sdk.SysCoin `json:"list_fee"`
+	TransferOwnershipFee sdk.SysCoin `json:"transfer_ownership_fee"`
+	RegisterOperatorFee  sdk.SysCoin `json:"register_operator_fee"`
 
 	//  maximum period for okt holders to deposit on a dex delist proposal
 	DelistMaxDepositPeriod time.Duration `json:"delist_max_deposit_period"`
 	//  minimum deposit for a critical dex delist proposal to enter voting period
-	DelistMinDeposit sdk.DecCoins `json:"delist_min_deposit"`
+	DelistMinDeposit sdk.SysCoins `json:"delist_min_deposit"`
 	//  length of the critical voting period for dex delist proposal
 	DelistVotingPeriod time.Duration `json:"delist_voting_period"`
 
@@ -64,7 +64,7 @@ func DefaultParams() *Params {
 		TransferOwnershipFee:   defaultTransferOwnershipFee,
 		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec()),
 		DelistMaxDepositPeriod: time.Hour * 24,
-		DelistMinDeposit:       sdk.DecCoins{defaultDelistMinDeposit},
+		DelistMinDeposit:       sdk.SysCoins{defaultDelistMinDeposit},
 		DelistVotingPeriod:     time.Hour * 72,
 		WithdrawPeriod:         DefaultWithdrawPeriod,
 	}

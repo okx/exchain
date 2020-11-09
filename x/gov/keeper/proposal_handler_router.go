@@ -24,7 +24,7 @@ type ProposalHandlerRouter interface {
 
 // ProposalHandler defines the interface handler in different periods of proposal
 type ProposalHandler interface {
-	GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.DecCoins
+	GetMinDeposit(ctx sdk.Context, content sdkGov.Content) sdk.SysCoins
 	GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) time.Duration
 	GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) time.Duration
 	CheckMsgSubmitProposal(ctx sdk.Context, msg types.MsgSubmitProposal) sdk.Error

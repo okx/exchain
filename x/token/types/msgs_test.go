@@ -147,22 +147,22 @@ func TestNewTokenMsgSend(t *testing.T) {
 	toPubKey := toPriKey.PubKey()
 	toAddr := sdk.AccAddress(toPubKey.Address())
 
-	coins := sdk.DecCoins{
+	coins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 	}
 
-	Errorcoins := sdk.DecCoins{
+	Errorcoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("okc", sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("okc", sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec("oke", sdk.NewDec(100)),
 	}
 
 	// not valid coins
-	decCoin := sdk.DecCoin{
+	decCoin := sdk.SysCoin{
 		Denom:  "",
 		Amount: sdk.NewDec(100),
 	}
-	notValidCoins := sdk.DecCoins{
+	notValidCoins := sdk.SysCoins{
 		decCoin,
 	}
 
@@ -171,7 +171,7 @@ func TestNewTokenMsgSend(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
-		{NewMsgTokenSend(fromAddr, toAddr, sdk.DecCoins{}), sdk.ErrInsufficientCoins("failed to check send msg because send amount must be positive")},
+		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), sdk.ErrInsufficientCoins("failed to check send msg because send amount must be positive")},
 		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.00000000okc,100.00000000okc,100.00000000oke")},
 		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), sdk.ErrInvalidAddress("failed to check send msg because miss sender address")},
 		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), sdk.ErrInvalidAddress("failed to check send msg because miss recipient address")},
@@ -213,7 +213,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 	transfers0 := []TransferUnit{
 		{
 			To:    toAddr0,
-			Coins: sdk.DecCoins{decCoin0},
+			Coins: sdk.SysCoins{decCoin0},
 		},
 	}
 
@@ -224,7 +224,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 	transfers1 := []TransferUnit{
 		{
 			To:    toAddr1,
-			Coins: sdk.DecCoins{decCoin1},
+			Coins: sdk.SysCoins{decCoin1},
 		},
 	}
 

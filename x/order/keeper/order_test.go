@@ -42,7 +42,7 @@ func TestTryPlaceOrder(t *testing.T) {
 	order = mockOrder("", types.TestTokenPair, types.BuyOrder, "1.0", "9")
 	order.Sender = testInput.TestAddrs[0]
 	_, err = keeper.TryPlaceOrder(ctx, order)
-	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
+	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
 	require.Error(t, err)
 }
 
@@ -65,7 +65,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	require.EqualValues(t, 1, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
-	expectCoins := sdk.DecCoins{
+	expectCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.7408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -96,7 +96,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	require.Equal(t, "", order.GetExtraInfoWithKey(types.OrderExtraInfoKeyCancelFee))
 	// check account balance
 	acc = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		// 100 - 0.002
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
@@ -146,7 +146,7 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	require.EqualValues(t, 1, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
-	expectCoins := sdk.DecCoins{
+	expectCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.7408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -175,7 +175,7 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	require.Equal(t, "", order.GetExtraInfoWithKey(types.OrderExtraInfoKeyExpireFee))
 	// check account balance
 	acc = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		// 100 - 0.002
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),

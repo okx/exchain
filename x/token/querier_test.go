@@ -18,7 +18,7 @@ func TestQueryOrder(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -57,7 +57,7 @@ func TestQueryTokens(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -141,7 +141,7 @@ func TestQueryUserTokens(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -180,7 +180,7 @@ func TestQueryCurrency(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -221,7 +221,7 @@ func TestQueryAccount(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -310,7 +310,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -372,7 +372,7 @@ func TestQueryParameters(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, _ := CreateGenAccounts(1,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -400,7 +400,7 @@ func TestQueryKeysNum(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, _ := CreateGenAccounts(1,
-		sdk.DecCoins{
+		sdk.SysCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))

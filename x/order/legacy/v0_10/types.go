@@ -15,7 +15,7 @@ type (
 	Params struct {
 		OrderExpireBlocks int64       `json:"order_expire_blocks"`
 		MaxDealsPerBlock  int64       `json:"max_deals_per_block"`
-		FeePerBlock       sdk.DecCoin `json:"fee_per_block"`
+		FeePerBlock       sdk.SysCoin `json:"fee_per_block"`
 		TradeFeeRate      sdk.Dec     `json:"trade_fee_rate"`
 	}
 
@@ -34,7 +34,7 @@ type (
 		RemainLocked      sdk.Dec        `json:"remain_locked"`    // Remaining locked quantity of token
 		Timestamp         int64          `json:"timestamp"`        // created timestamp
 		OrderExpireBlocks int64          `json:"order_expire_blocks"`
-		FeePerBlock       sdk.DecCoin    `json:"fee_per_block"`
+		FeePerBlock       sdk.SysCoin    `json:"fee_per_block"`
 		ExtraInfo         string         `json:"extra_info"` // extra info of order in json format
 	}
 )

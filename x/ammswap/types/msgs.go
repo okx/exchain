@@ -13,14 +13,14 @@ const (
 // MsgAddLiquidity Deposit quote_amount and base_amount at current ratio to mint pool tokens.
 type MsgAddLiquidity struct {
 	MinLiquidity  sdk.Dec        `json:"min_liquidity"`   // Minimum number of sender will mint if total pool token supply is greater than 0.
-	MaxBaseAmount sdk.DecCoin    `json:"max_base_amount"` // Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
-	QuoteAmount   sdk.DecCoin    `json:"quote_amount"`    // Quote token amount
+	MaxBaseAmount sdk.SysCoin    `json:"max_base_amount"` // Maximum number of tokens deposited. Deposits max amount if total pool token supply is 0.
+	QuoteAmount   sdk.SysCoin    `json:"quote_amount"`    // Quote token amount
 	Deadline      int64          `json:"deadline"`        // Time after which this transaction can no longer be executed.
 	Sender        sdk.AccAddress `json:"sender"`          // Sender
 }
 
 // NewMsgAddLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseAmount, quoteAmount sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgAddLiquidity {
+func NewMsgAddLiquidity(minLiquidity sdk.Dec, maxBaseAmount, quoteAmount sdk.SysCoin, deadline int64, sender sdk.AccAddress) MsgAddLiquidity {
 	return MsgAddLiquidity{
 		MinLiquidity:  minLiquidity,
 		MaxBaseAmount: maxBaseAmount,
@@ -79,14 +79,14 @@ func (msg MsgAddLiquidity) GetSwapTokenPairName() string {
 // MsgRemoveLiquidity burns pool tokens to withdraw okt and Tokens at current ratio.
 type MsgRemoveLiquidity struct {
 	Liquidity      sdk.Dec        `json:"liquidity"`        // Amount of pool token burned.
-	MinBaseAmount  sdk.DecCoin    `json:"min_base_amount"`  // Minimum base amount.
-	MinQuoteAmount sdk.DecCoin    `json:"min_quote_amount"` // Minimum quote amount.
+	MinBaseAmount  sdk.SysCoin    `json:"min_base_amount"`  // Minimum base amount.
+	MinQuoteAmount sdk.SysCoin    `json:"min_quote_amount"` // Minimum quote amount.
 	Deadline       int64          `json:"deadline"`         // Time after which this transaction can no longer be executed.
 	Sender         sdk.AccAddress `json:"sender"`           // Sender
 }
 
 // NewMsgRemoveLiquidity is a constructor function for MsgAddLiquidity
-func NewMsgRemoveLiquidity(liquidity sdk.Dec, minBaseAmount, minQuoteAmount sdk.DecCoin, deadline int64, sender sdk.AccAddress) MsgRemoveLiquidity {
+func NewMsgRemoveLiquidity(liquidity sdk.Dec, minBaseAmount, minQuoteAmount sdk.SysCoin, deadline int64, sender sdk.AccAddress) MsgRemoveLiquidity {
 	return MsgRemoveLiquidity{
 		Liquidity:      liquidity,
 		MinBaseAmount:  minBaseAmount,
@@ -196,8 +196,8 @@ func (msg MsgCreateExchange) GetSwapTokenPairName() string {
 
 // MsgTokenToToken define the message for swap between token and DefaultBondDenom
 type MsgTokenToToken struct {
-	SoldTokenAmount      sdk.DecCoin    `json:"sold_token_amount"`       // Amount of Tokens sold.
-	MinBoughtTokenAmount sdk.DecCoin    `json:"min_bought_token_amount"` // Minimum token purchased.
+	SoldTokenAmount      sdk.SysCoin    `json:"sold_token_amount"`       // Amount of Tokens sold.
+	MinBoughtTokenAmount sdk.SysCoin    `json:"min_bought_token_amount"` // Minimum token purchased.
 	Deadline             int64          `json:"deadline"`                // Time after which this transaction can no longer be executed.
 	Recipient            sdk.AccAddress `json:"recipient"`               // Recipient address,transfer Tokens to recipient.default recipient is sender.
 	Sender               sdk.AccAddress `json:"sender"`                  // Sender
@@ -205,7 +205,7 @@ type MsgTokenToToken struct {
 
 // NewMsgTokenToToken is a constructor function for MsgTokenOKTSwap
 func NewMsgTokenToToken(
-	soldTokenAmount, minBoughtTokenAmount sdk.DecCoin, deadline int64, recipient, sender sdk.AccAddress,
+	soldTokenAmount, minBoughtTokenAmount sdk.SysCoin, deadline int64, recipient, sender sdk.AccAddress,
 ) MsgTokenToToken {
 	return MsgTokenToToken{
 		SoldTokenAmount:      soldTokenAmount,

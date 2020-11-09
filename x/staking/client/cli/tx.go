@@ -220,7 +220,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	)
 
 	// get the initial validator min self delegation
-	minSelfDelegation := sdk.DecCoin{
+	minSelfDelegation := sdk.SysCoin{
 		Amount: types.DefaultMinSelfDelegation,
 		Denom:  common.NativeToken,
 	}

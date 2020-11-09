@@ -55,7 +55,7 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	}
 	// subtract all okb of addr0
 	// 100 - 10 - 0.2592
-	err = k.LockCoins(ctx, addrKeysSlice[0].Address, sdk.DecCoins{{Denom: common.NativeToken,
+	err = k.LockCoins(ctx, addrKeysSlice[0].Address, sdk.SysCoins{{Denom: common.NativeToken,
 		Amount: sdk.MustNewDecFromStr("89.7408")}}, token.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 
@@ -110,11 +110,11 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.2592")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")), // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.7308")), // 100 + 10 * (1-0.001) - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97")),         // 100 - 0.5 - 2.5
 	}
@@ -208,11 +208,11 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("90")),    // 100 - 10
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")), // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")), // 100 + 5 * (1 - 0.001) - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97")),         // 100 - 0.5 - 2.5
 	}
@@ -249,11 +249,11 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 = sdk.DecCoins{
+	expectCoins0 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("90")),    // 100 - 10
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")), // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 = sdk.DecCoins{
+	expectCoins1 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.7308")), // 100 + 10 * (1 - 0.001) - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97")),         // 100 - 0.5 - 2.5
 	}
@@ -424,12 +424,12 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		// 100 - 9.8 - 0.2592 = 89.9408
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.9408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592 = 104.7408
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
@@ -473,11 +473,11 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 = sdk.DecCoins{
+	expectCoins0 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.7408")), // 100 - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 = sdk.DecCoins{
+	expectCoins1 = sdk.SysCoins{
 		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99.5")),
@@ -547,11 +547,11 @@ func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}

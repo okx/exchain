@@ -104,7 +104,7 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	lockedAsset := keeper.GetAllLockedCoins(ctx)
 
 	var lockedFees []types.AccCoins
-	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
+	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
 		lockedFees = append(lockedFees,
 			types.AccCoins{
 				Acc:   acc,

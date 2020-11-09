@@ -25,7 +25,7 @@ type Params struct {
 	// Maximum period for okb holders to deposit on a dex list proposal. Initial value: 2 days
 	MaxDepositPeriod time.Duration `json:"max_deposit_period"`
 	// Minimum deposit for a critical dex list proposal to enter voting period
-	MinDeposit sdk.DecCoins `json:"min_deposit"`
+	MinDeposit sdk.SysCoins `json:"min_deposit"`
 	// Length of the critical voting period for dex list proposal
 	VotingPeriod time.Duration `json:"voting_period"`
 	// block height for dex list can not be greater than DexListMaxBlockHeight
@@ -34,7 +34,7 @@ type Params struct {
 
 // DefaultParams returns the instance of Params with default value
 func DefaultParams() Params {
-	minDeposit := sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	minDeposit := sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
 	return Params{
 		MaxDepositPeriod: time.Hour * 24,
 		MinDeposit:       minDeposit,

@@ -69,7 +69,7 @@ func TestFeesNewOrders(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins := sdk.DecCoins{
+	expectCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")), // 100
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -82,7 +82,7 @@ func TestFeesNewOrders(t *testing.T) {
 	// check account balance
 	// multi fee 7958528000
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.79264")), // 100 - 10  - 0.20736
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -210,7 +210,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	require.Nil(t, err)
 
 	// subtract all okb of addr0
-	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.DecCoins{{Denom: common.NativeToken,
+	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.SysCoins{{Denom: common.NativeToken,
 		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 
@@ -226,7 +226,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("98")),
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
@@ -245,7 +245,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins0 = sdk.DecCoins{
+	expectCoins0 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.25919900")), // no change
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),          // 100 - 0.000001
 	}
@@ -313,7 +313,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	require.EqualValues(t, types.OrderStatusCancelled, order.Status)
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -444,7 +444,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	require.EqualValues(t, 2, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins := sdk.DecCoins{
+	expectCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.58528")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -477,7 +477,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	require.EqualValues(t, 3, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.32608")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
 	}
@@ -496,7 +496,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	require.EqualValues(t, types.FormatOrderID(10, 4), orderID)
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("78.80768")), // 79.32608 - 0.2592 * 2
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("98")),         // 99 - 1
 	}
@@ -508,7 +508,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	require.EqualValues(t, 4, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("78.80768")), // 78.80768
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("98")),
 	}
@@ -557,7 +557,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	require.EqualValues(t, 3, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins := sdk.DecCoins{
+	expectCoins := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.37792")), // 100 - 10*6 - 0.2592 * 6 * 0.8
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -586,7 +586,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	require.EqualValues(t, 3, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.79264")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -606,7 +606,7 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	require.EqualValues(t, 3, keeper.GetBlockOrderNum(ctx, 10))
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins = sdk.DecCoins{
+	expectCoins = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
@@ -748,11 +748,11 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	// check account balance
 	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.9408")), // 100 - 9.8 - 0.2592
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
@@ -795,7 +795,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	require.EqualValues(t, types.OrderStatusCancelled, orders[0].Status)
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
-	expectCoins0 = sdk.DecCoins{
+	expectCoins0 = sdk.SysCoins{
 		// 100 - 0.002
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")), // 100 - 9.8 + 9.8 - 0.000001
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
@@ -832,7 +832,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	require.EqualValues(t, types.OrderStatusPartialFilledCancelled, orders[1].Status)
 	// check account balance
 	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
-	expectCoins1 = sdk.DecCoins{
+	expectCoins1 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.994999")), // 99.999999 + 5 * (1 - 0.001)
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99.5")),
 	}
@@ -855,7 +855,7 @@ func TestFeesTable(t *testing.T) {
 		types.MockOrder(types.FormatOrderID(10, 1), types.TestTokenPair, types.SellOrder, "10.0", "1"),
 		types.MockOrder(types.FormatOrderID(10, 2), types.TestTokenPair, types.SellOrder, "10.0", "2"),
 	}
-	expectCoins0 := sdk.DecCoins{
+	expectCoins0 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("169.98")), // 200 - 10 -20 - 0.2592*10000/259200*2
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("202.997")),  // 200 + (3 - 3*0.001)
 	}
@@ -865,7 +865,7 @@ func TestFeesTable(t *testing.T) {
 		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_"+common.NativeToken, types.BuyOrder, "10", "1"),
 		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_"+common.NativeToken, types.SellOrder, "10", "1"),
 	}
-	expectCoins1 := sdk.DecCoins{
+	expectCoins1 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),         //100 + (1 - 1*0.0001)
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("189.99")), // 200 - 10 - 0.2592*10000/259200
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
@@ -876,14 +876,14 @@ func TestFeesTable(t *testing.T) {
 		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_xxb", types.BuyOrder, "11", "1"),
 		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_xxb", types.SellOrder, "11", "1"),
 	}
-	expectCoins2 := sdk.DecCoins{
+	expectCoins2 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),        //100 + (1 - 1*0.0001)
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.99")), // 100 - 0.2592*10000/259200
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("189")),     //200 - 11
 	}
 
 	//test btc-b19_xxb match order on 800 block
-	expectCoins3 := sdk.DecCoins{
+	expectCoins3 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),          //100 + (1 - 1*0.0001)
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.9992")), // 100 - 0.2592*800/259200
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("189")),       //200 - 11
@@ -896,7 +896,7 @@ func TestFeesTable(t *testing.T) {
 		types.MockOrder(types.FormatOrderID(10010, 1), "btc-a8a_xxb", types.SellOrder, "11", "1"),
 		types.MockOrder(types.FormatOrderID(10010, 2), "btc-a8a_xxb", types.SellOrder, "11", "2"),
 	}
-	expectCoins4 := sdk.DecCoins{
+	expectCoins4 := sdk.SysCoins{
 		sdk.NewDecCoinFromDec("btc-a8a", sdk.MustNewDecFromStr("102.997")),        //100 +(2 - 2 * 0.001) + (1 - 1*0.0001)
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.98")), // 100 - 0.2592*10000/259200*2
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("167")),     //200 - 11 - 11*2
@@ -906,7 +906,7 @@ func TestFeesTable(t *testing.T) {
 		baseasset   string
 		quoteasset  string
 		orders      []*types.Order
-		balance     sdk.DecCoins
+		balance     sdk.SysCoins
 		blockheight int64
 	}{
 		{common.TestToken, common.NativeToken, orders0, expectCoins0, 10000},
@@ -922,7 +922,7 @@ func TestFeesTable(t *testing.T) {
 	}
 }
 
-func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*types.Order, blockheight int64) sdk.DecCoins {
+func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*types.Order, blockheight int64) sdk.SysCoins {
 	TestTokenPairOwner := "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)

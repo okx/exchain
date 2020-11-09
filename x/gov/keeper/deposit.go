@@ -17,13 +17,13 @@ func (keeper Keeper) SetDeposit(ctx sdk.Context, deposit types.Deposit) {
 }
 
 func tryEnterVotingPeriod(
-	ctx sdk.Context, keeper Keeper, proposal *types.Proposal, depositAmount sdk.DecCoins, eventType string,
+	ctx sdk.Context, keeper Keeper, proposal *types.Proposal, depositAmount sdk.SysCoins, eventType string,
 ) {
 	// Update proposal
 	proposal.TotalDeposit = proposal.TotalDeposit.Add(depositAmount)
 	// Check if deposit has provided sufficient total funds to transition the proposal into the voting period
 	activatedVotingPeriod := false
-	var minDeposit sdk.DecCoins
+	var minDeposit sdk.SysCoins
 	if !keeper.proposalHandlerRouter.HasRoute(proposal.ProposalRoute()) {
 		minDeposit = keeper.GetDepositParams(ctx).MinDeposit
 	} else {
@@ -57,7 +57,7 @@ func tryEnterVotingPeriod(
 }
 
 func updateDeposit(
-	ctx sdk.Context, keeper Keeper, proposalID uint64, depositorAddr sdk.AccAddress, depositAmount sdk.DecCoins,
+	ctx sdk.Context, keeper Keeper, proposalID uint64, depositorAddr sdk.AccAddress, depositAmount sdk.SysCoins,
 ) {
 	deposit, found := keeper.GetDeposit(ctx, proposalID, depositorAddr)
 	if found {
@@ -76,7 +76,7 @@ func updateDeposit(
 // Activates voting period when appropriate
 func (keeper Keeper) AddDeposit(
 	ctx sdk.Context, proposalID uint64, depositorAddr sdk.AccAddress,
-	depositAmount sdk.DecCoins, eventType string,
+	depositAmount sdk.SysCoins, eventType string,
 ) sdk.Error {
 	// Checks to see if proposal exists
 	proposal, ok := keeper.GetProposal(ctx, proposalID)

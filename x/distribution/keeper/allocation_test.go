@@ -29,7 +29,7 @@ type testAllocationParam struct {
 	totalPower int64
 	isVote     []bool
 	isJailed   []bool
-	fee        sdk.DecCoins
+	fee        sdk.SysCoins
 }
 
 func getTestAllocationParams() []testAllocationParam {
@@ -84,7 +84,7 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 	}
 }
 
-func setTestFees(t *testing.T, ctx sdk.Context, k Keeper, ak auth.AccountKeeper, fees sdk.DecCoins) {
+func setTestFees(t *testing.T, ctx sdk.Context, k Keeper, ak auth.AccountKeeper, fees sdk.SysCoins) {
 	feeCollector := k.supplyKeeper.GetModuleAccount(ctx, k.feeCollectorName)
 	require.NotNil(t, feeCollector)
 	err := feeCollector.SetCoins(fees)

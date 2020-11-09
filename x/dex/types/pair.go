@@ -21,7 +21,7 @@ type TokenPair struct {
 	ID               uint64         `json:"token_pair_id"`
 	Delisting        bool           `json:"delisting"`
 	Owner            sdk.AccAddress `json:"owner"`
-	Deposits         sdk.DecCoin    `json:"deposits"`
+	Deposits         sdk.SysCoin    `json:"deposits"`
 	BlockHeight      int64          `json:"block_height"`
 }
 

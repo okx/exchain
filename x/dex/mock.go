@@ -105,7 +105,7 @@ func (k *mockDexKeeper) GetTokenPair(ctx sdk.Context, product string) *TokenPair
 }
 
 // Deposit mocks Deposit of dex.Keeper
-func (k *mockDexKeeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
+func (k *mockDexKeeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	if k.failToDeposit {
 		return sdk.ErrInternal("raise an mock exception here")
 	}
@@ -113,7 +113,7 @@ func (k *mockDexKeeper) Deposit(ctx sdk.Context, product string, from sdk.AccAdd
 }
 
 // Withdraw mocks Withdraw of dex.Keeper
-func (k *mockDexKeeper) Withdraw(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error {
+func (k *mockDexKeeper) Withdraw(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	if k.failToWithdraw {
 		return sdk.ErrInternal("raise an mock exception here")
 	}
@@ -195,7 +195,7 @@ func newMockApp(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, accountsInGe
 	app.SetInitChainer(getInitChainer(mApp, dexKeeper))
 
 	initQuantity := 10000000
-	var decCoins sdk.DecCoins
+	var decCoins sdk.SysCoins
 	decCoins, err = sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
 		initQuantity, common.NativeToken, initQuantity, common.TestToken))
 	if err != nil {
