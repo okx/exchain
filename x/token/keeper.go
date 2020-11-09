@@ -78,8 +78,7 @@ func (k Keeper) GetTokenTotalSupply(ctx sdk.Context, symbol string) sdk.Dec {
 // TokenExist checks whether the token with symbol exist or not
 func (k Keeper) TokenExist(ctx sdk.Context, symbol string) bool {
 	store := ctx.KVStore(k.tokenStoreKey)
-	bz := store.Get(types.GetTokenAddress(symbol))
-	return bz != nil
+  	return store.Has(types.GetTokenAddress(symbol))
 }
 
 // nolint
@@ -385,6 +384,13 @@ func (k Keeper) getTokenNum(ctx sdk.Context) (tokenNumber uint64) {
 
 // addTokenSuffix add token suffix
 func addTokenSuffix(ctx sdk.Context, keeper Keeper, originalSymbol string) (name string, valid bool) {
+	if originalSymbol == "usdk" {
+		name = originalSymbol
+		if !keeper.TokenExist(ctx, name) {
+			return name, true
+		}
+	}
+
 	hash := fmt.Sprintf("%x", tmhash.Sum(ctx.TxBytes()))
 	var i int
 	for i = len(hash)/3 - 1; i >= 0; i-- {

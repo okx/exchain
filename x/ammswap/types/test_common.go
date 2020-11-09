@@ -20,3 +20,4 @@ func GetTestSwapTokenPair() SwapTokenPair {
 		PoolTokenName:   GetPoolTokenName(TestBasePooledToken, TestQuotePooledToken),
 	}
 }
+
