@@ -1,6 +1,4 @@
-//+build !stream
-
-package stream
+package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -9,6 +7,7 @@ import (
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/stream/exported"
 	"github.com/okex/okexchain/x/token"
+	"github.com/willf/bitset"
 )
 
 type OrderKeeper interface {
@@ -21,6 +20,7 @@ type OrderKeeper interface {
 	GetUpdatedDepthbookKeys() []string
 	GetDepthBookCopy(product string) *order.DepthBook
 	GetProductPriceOrderIDs(key string) []string
+	GetTxHandlerMsgResult() []bitset.BitSet
 }
 
 type TokenKeeper interface {
@@ -28,11 +28,11 @@ type TokenKeeper interface {
 	GetCoinsInfo(ctx sdk.Context, addr sdk.AccAddress) token.CoinsInfo
 }
 
-type DexKeeper interface {
-	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
-	SetObserverKeeper(sk exported.StreamKeeper)
-}
-
 type AccountKeeper interface {
 	SetObserverKeeper(observer auth.ObserverI)
+}
+
+type DexKeeper interface {
+	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
+	SetObserverKeeper(keeper exported.StreamKeeper)
 }
