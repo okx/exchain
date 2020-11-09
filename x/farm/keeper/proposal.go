@@ -14,7 +14,7 @@ import (
 var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 
 // GetMinDeposit returns min deposit
-func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.DecCoins) {
+func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.SysCoins) {
 	if _, ok := content.(types.ManageWhiteListProposal); ok {
 		minDeposit = k.GetParams(ctx).ManageWhiteListMinDeposit
 	}

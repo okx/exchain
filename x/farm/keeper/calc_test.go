@@ -14,17 +14,17 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 		curRewards     types.PoolCurrentRewards
 		endBlockHeight int64
 		yieldedInfos   types.YieldedTokenInfos
-		expectedFunc   func(testCase, func() (types.FarmPool, sdk.DecCoins))
+		expectedFunc   func(testCase, func() (types.FarmPool, sdk.SysCoins))
 	}
 
-	expectSuccess := func(test testCase, testFunc func() (types.FarmPool, sdk.DecCoins)) {
+	expectSuccess := func(test testCase, testFunc func() (types.FarmPool, sdk.SysCoins)) {
 		pool, yieldedTokens := testFunc()
 		oldRemaining := test.yieldedInfos[0].RemainingAmount
 		newRemaining := pool.YieldedTokenInfos[0].RemainingAmount
-		require.Equal(t, yieldedTokens, sdk.DecCoins{oldRemaining.Sub(newRemaining)})
+		require.Equal(t, yieldedTokens, sdk.SysCoins{oldRemaining.Sub(newRemaining)})
 	}
 
-	expectNotYield := func(test testCase, testFunc func() (types.FarmPool, sdk.DecCoins)) {
+	expectNotYield := func(test testCase, testFunc func() (types.FarmPool, sdk.SysCoins)) {
 		pool, yieldedTokens := testFunc()
 		require.True(t, yieldedTokens.IsZero())
 		require.Equal(t, test.yieldedInfos, pool.YieldedTokenInfos)
@@ -32,11 +32,11 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 
 	tests := []testCase{
 		{
-			curRewards:     types.NewPoolCurrentRewards(100, 1, sdk.DecCoins{}),
+			curRewards:     types.NewPoolCurrentRewards(100, 1, sdk.SysCoins{}),
 			endBlockHeight: 120,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
-					sdk.DecCoin{},
+					sdk.SysCoin{},
 					0,
 					sdk.NewDec(0),
 				),
@@ -44,7 +44,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			expectedFunc: expectNotYield,
 		},
 		{
-			curRewards:     types.NewPoolCurrentRewards(60, 1, sdk.DecCoins{}),
+			curRewards:     types.NewPoolCurrentRewards(60, 1, sdk.SysCoins{}),
 			endBlockHeight: 100,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
@@ -56,7 +56,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			expectedFunc: expectNotYield,
 		},
 		{
-			curRewards:     types.NewPoolCurrentRewards(120, 1, sdk.DecCoins{}),
+			curRewards:     types.NewPoolCurrentRewards(120, 1, sdk.SysCoins{}),
 			endBlockHeight: 100,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
@@ -68,7 +68,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			expectedFunc: expectNotYield,
 		},
 		{
-			curRewards:     types.NewPoolCurrentRewards(60, 1, sdk.DecCoins{}),
+			curRewards:     types.NewPoolCurrentRewards(60, 1, sdk.SysCoins{}),
 			endBlockHeight: 100,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
@@ -80,7 +80,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			expectedFunc: expectSuccess,
 		},
 		{
-			curRewards:     types.NewPoolCurrentRewards(70, 1, sdk.DecCoins{}),
+			curRewards:     types.NewPoolCurrentRewards(70, 1, sdk.SysCoins{}),
 			endBlockHeight: 100,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
@@ -100,7 +100,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			Name:              poolName,
 			YieldedTokenInfos: types.YieldedTokenInfos{test.yieldedInfos[0]},
 		}
-		wrappedTestFunc := func() (types.FarmPool, sdk.DecCoins) {
+		wrappedTestFunc := func() (types.FarmPool, sdk.SysCoins) {
 			return keeper.CalculateAmountYieldedBetween(ctx, pool)
 		}
 		test.expectedFunc(test, wrappedTestFunc)
@@ -131,7 +131,7 @@ func TestIncrementReferenceCount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		his := types.NewPoolHistoricalRewards(sdk.DecCoins{}, test.referenceCount)
+		his := types.NewPoolHistoricalRewards(sdk.SysCoins{}, test.referenceCount)
 		keeper.SetPoolHistoricalRewards(ctx, poolName, test.period, his)
 		wrappedTestFunc := func() {
 			keeper.incrementReferenceCount(ctx, poolName, test.period)
@@ -177,7 +177,7 @@ func TestDecrementReferenceCount(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		his := types.NewPoolHistoricalRewards(sdk.DecCoins{}, test.referenceCount)
+		his := types.NewPoolHistoricalRewards(sdk.SysCoins{}, test.referenceCount)
 		keeper.SetPoolHistoricalRewards(ctx, poolName, test.period, his)
 		wrappedTestFunc := func() {
 			keeper.decrementReferenceCount(ctx, poolName, test.period)
@@ -192,19 +192,19 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 
 	type testCase struct {
 		startPeriod  uint64
-		startRatio   sdk.DecCoins
+		startRatio   sdk.SysCoins
 		endPeriod    uint64
-		endRatio     sdk.DecCoins
-		amount       sdk.DecCoin
-		expectedFunc func(testCase, func() sdk.DecCoins)
+		endRatio     sdk.SysCoins
+		amount       sdk.SysCoin
+		expectedFunc func(testCase, func() sdk.SysCoins)
 	}
 
-	expectSuccess := func(test testCase, testFunc func() sdk.DecCoins) {
+	expectSuccess := func(test testCase, testFunc func() sdk.SysCoins) {
 		rewards := testFunc()
 		require.Equal(t, rewards, test.endRatio.Sub(test.startRatio).MulDecTruncate(test.amount.Amount))
 	}
 
-	expectPanic := func(test testCase, testFunc func() sdk.DecCoins) {
+	expectPanic := func(test testCase, testFunc func() sdk.SysCoins) {
 		require.Panics(t, func() {
 			testFunc()
 		})
@@ -213,12 +213,12 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 	tests := []testCase{
 		{
 			startPeriod: 0,
-			startRatio: sdk.DecCoins{
+			startRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(10)),
 			},
 			endPeriod: 1,
-			endRatio: sdk.DecCoins{
+			endRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(100)),
 			},
@@ -227,12 +227,12 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 		},
 		{
 			startPeriod: 0,
-			startRatio: sdk.DecCoins{
+			startRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(10)),
 			},
 			endPeriod: 1,
-			endRatio: sdk.DecCoins{
+			endRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(7)),
 			},
@@ -241,26 +241,26 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 		},
 		{
 			startPeriod: 0,
-			startRatio: sdk.DecCoins{
+			startRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(10)),
 			},
 			endPeriod: 1,
-			endRatio: sdk.DecCoins{
+			endRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(100)),
 			},
-			amount:       sdk.DecCoin{"xxb", sdk.NewDec(-1)},
+			amount:       sdk.SysCoin{"xxb", sdk.NewDec(-1)},
 			expectedFunc: expectPanic,
 		},
 		{
 			startPeriod: 1,
-			startRatio: sdk.DecCoins{
+			startRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(10)),
 			},
 			endPeriod: 0,
-			endRatio: sdk.DecCoins{
+			endRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
 				sdk.NewDecCoin("okt", sdk.NewInt(100)),
 			},
@@ -275,7 +275,7 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 		endHis := types.NewPoolHistoricalRewards(test.endRatio, 1)
 		keeper.SetPoolHistoricalRewards(ctx, poolName, test.endPeriod, endHis)
 
-		wrappedTestFunc := func() sdk.DecCoins {
+		wrappedTestFunc := func() sdk.SysCoins {
 			return keeper.calculateLockRewardsBetween(ctx, poolName, test.startPeriod, test.endPeriod, test.amount)
 		}
 		test.expectedFunc(test, wrappedTestFunc)
@@ -289,8 +289,8 @@ func TestIncrementPoolPeriod(t *testing.T) {
 	type testCase struct {
 		curRewards    types.PoolCurrentRewards
 		preHisRewards types.PoolHistoricalRewards
-		valueLocked   sdk.DecCoin
-		yieldedTokens sdk.DecCoins
+		valueLocked   sdk.SysCoin
+		yieldedTokens sdk.SysCoins
 		expectedFunc  func(testCase, func() uint64)
 	}
 
@@ -303,9 +303,9 @@ func TestIncrementPoolPeriod(t *testing.T) {
 		// return the current period ended just now
 		require.Equal(t, test.curRewards.Period, period)
 
-		var currentRatio sdk.DecCoins
+		var currentRatio sdk.SysCoins
 		if test.valueLocked.IsZero() {
-			currentRatio = sdk.DecCoins{}
+			currentRatio = sdk.SysCoins{}
 		} else {
 			currentRatio = test.curRewards.Rewards.Add(test.yieldedTokens).QuoDecTruncate(test.valueLocked.Amount)
 		}
@@ -326,21 +326,21 @@ func TestIncrementPoolPeriod(t *testing.T) {
 
 	tests := []testCase{
 		{
-			curRewards: types.NewPoolCurrentRewards(100, 1, sdk.DecCoins{}),
+			curRewards: types.NewPoolCurrentRewards(100, 1, sdk.SysCoins{}),
 			preHisRewards: types.NewPoolHistoricalRewards(
-				sdk.DecCoins{sdk.NewDecCoinFromDec("xxb", sdk.NewDec(10))}, 1,
+				sdk.SysCoins{sdk.NewDecCoinFromDec("xxb", sdk.NewDec(10))}, 1,
 			),
 			valueLocked:   sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
-			yieldedTokens: sdk.DecCoins{sdk.NewDecCoin("yyb", sdk.NewInt(100))},
+			yieldedTokens: sdk.SysCoins{sdk.NewDecCoin("yyb", sdk.NewInt(100))},
 			expectedFunc:  expectSuccess,
 		},
 		{
-			curRewards: types.NewPoolCurrentRewards(100, 1, sdk.DecCoins{}),
+			curRewards: types.NewPoolCurrentRewards(100, 1, sdk.SysCoins{}),
 			preHisRewards: types.NewPoolHistoricalRewards(
-				sdk.DecCoins{sdk.NewDecCoinFromDec("xxb", sdk.NewDec(10))}, 1,
+				sdk.SysCoins{sdk.NewDecCoinFromDec("xxb", sdk.NewDec(10))}, 1,
 			),
 			valueLocked:   sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
-			yieldedTokens: sdk.DecCoins{sdk.NewDecCoin("yyb", sdk.NewInt(100))},
+			yieldedTokens: sdk.SysCoins{sdk.NewDecCoin("yyb", sdk.NewInt(100))},
 			expectedFunc:  expectSuccess,
 		},
 	}
@@ -421,10 +421,10 @@ func TestUpdateLockInfo(t *testing.T) {
 	for _, test := range tests {
 		keeper.SetPoolHistoricalRewards(
 			ctx, poolName, 1,
-			types.NewPoolHistoricalRewards(sdk.DecCoins{}, 1),
+			types.NewPoolHistoricalRewards(sdk.SysCoins{}, 1),
 		)
 		keeper.SetPoolCurrentRewards(
-			ctx, poolName, types.NewPoolCurrentRewards(ctx.BlockHeight(), 2, sdk.DecCoins{}),
+			ctx, poolName, types.NewPoolCurrentRewards(ctx.BlockHeight(), 2, sdk.SysCoins{}),
 		)
 		if test.isSetLockInfo {
 			keeper.SetLockInfo(ctx, test.lockInfo)
@@ -442,20 +442,20 @@ func TestWithdrawRewards(t *testing.T) {
 
 	type testCase struct {
 		lockInfo       types.LockInfo
-		totalLocked    sdk.DecCoin
-		yieldedAmount  sdk.DecCoins
+		totalLocked    sdk.SysCoin
+		yieldedAmount  sdk.SysCoins
 		isSetLockInfo  bool
 		isSetModuleAcc bool
-		expectedFunc   func(testCase, func() (sdk.DecCoins, sdk.Error))
+		expectedFunc   func(testCase, func() (sdk.SysCoins, sdk.Error))
 	}
 
-	expectError := func(test testCase, testFunc func() (sdk.DecCoins, sdk.Error)) {
+	expectError := func(test testCase, testFunc func() (sdk.SysCoins, sdk.Error)) {
 		rewards, err := testFunc()
-		require.Equal(t, sdk.DecCoins(nil), rewards)
+		require.Equal(t, sdk.SysCoins(nil), rewards)
 		require.NotNil(t, err)
 	}
 
-	expectSuccess := func(test testCase, testFunc func() (sdk.DecCoins, sdk.Error)) {
+	expectSuccess := func(test testCase, testFunc func() (sdk.SysCoins, sdk.Error)) {
 		rewards, err := testFunc()
 		require.Equal(
 			t,
@@ -468,9 +468,9 @@ func TestWithdrawRewards(t *testing.T) {
 		})
 	}
 
-	expectNoRewards := func(test testCase, testFunc func() (sdk.DecCoins, sdk.Error)) {
+	expectNoRewards := func(test testCase, testFunc func() (sdk.SysCoins, sdk.Error)) {
 		rewards, err := testFunc()
-		require.Equal(t, sdk.DecCoins(nil), rewards)
+		require.Equal(t, sdk.SysCoins(nil), rewards)
 		require.Nil(t, err)
 		require.Panics(t, func() {
 			keeper.GetPoolHistoricalRewards(ctx, poolName, test.lockInfo.ReferencePeriod)
@@ -528,10 +528,10 @@ func TestWithdrawRewards(t *testing.T) {
 		ctx = ctx.WithBlockHeight(120)
 		keeper.SetPoolHistoricalRewards(
 			ctx, poolName, 1,
-			types.NewPoolHistoricalRewards(sdk.DecCoins{}, 2),
+			types.NewPoolHistoricalRewards(sdk.SysCoins{}, 2),
 		)
 		keeper.SetPoolCurrentRewards(
-			ctx, poolName, types.NewPoolCurrentRewards(ctx.BlockHeight(), 2, sdk.DecCoins{}),
+			ctx, poolName, types.NewPoolCurrentRewards(ctx.BlockHeight(), 2, sdk.SysCoins{}),
 		)
 		if test.isSetLockInfo {
 			keeper.SetLockInfo(ctx, test.lockInfo)
@@ -544,7 +544,7 @@ func TestWithdrawRewards(t *testing.T) {
 			require.Nil(t, err)
 			keeper.supplyKeeper.SetModuleAccount(ctx, yieldModuleAcc)
 		}
-		wrappedTestFunc := func() (sdk.DecCoins, sdk.Error) {
+		wrappedTestFunc := func() (sdk.SysCoins, sdk.Error) {
 			return keeper.WithdrawRewards(ctx, poolName, test.totalLocked, test.yieldedAmount, test.lockInfo.Owner)
 		}
 		test.expectedFunc(test, wrappedTestFunc)

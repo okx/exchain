@@ -13,7 +13,7 @@ type ManageWhiteListProposalJSON struct {
 	Description string       `json:"description" yaml:"description"`
 	PoolName    string       `json:"pool_name" yaml:"pool_name"`
 	IsAdded     bool         `json:"is_added" yaml:"is_added"`
-	Deposit     sdk.DecCoins `json:"deposit" yaml:"deposit"`
+	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 }
 
 // ParseManageWhiteListProposalJSON parse json from proposal file to ManageWhiteListProposalJSON struct

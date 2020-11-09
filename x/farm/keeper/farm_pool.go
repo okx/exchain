@@ -170,9 +170,9 @@ func (k Keeper) calculateLockedLPTValue(
 
 // calculateLPTValueWithQuote calculates the value of LPT which represents token pair containing quote symbol
 func (k Keeper) calculateLPTValueWithQuote(
-	ctx sdk.Context, token0Amount, token1Amount sdk.DecCoin, quoteSymbol string, swapParams swaptypes.Params,
+	ctx sdk.Context, token0Amount, token1Amount sdk.SysCoin, quoteSymbol string, swapParams swaptypes.Params,
 ) sdk.Dec {
-	var baseTokenAmount, quoteTokenAmount sdk.DecCoin
+	var baseTokenAmount, quoteTokenAmount sdk.SysCoin
 	if token0Amount.Denom == quoteSymbol {
 		baseTokenAmount = token1Amount
 		quoteTokenAmount = token0Amount
@@ -187,7 +187,7 @@ func (k Keeper) calculateLPTValueWithQuote(
 
 // calculateLPTValueWithoutQuote calculates the value of LPT which represents token pair not containing quote symbol
 func (k Keeper) calculateLPTValueWithoutQuote(
-	ctx sdk.Context, token0Amount, token1Amount sdk.DecCoin, quoteSymbol string, swapParams swaptypes.Params,
+	ctx sdk.Context, token0Amount, token1Amount sdk.SysCoin, quoteSymbol string, swapParams swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
 	quote0TokenAmt := k.calculateBaseValueInQuote(ctx, token0Amount, quoteSymbol, swapParams)
@@ -197,7 +197,7 @@ func (k Keeper) calculateLPTValueWithoutQuote(
 
 // calculate base token value denominated in quote token
 func (k Keeper) calculateBaseValueInQuote(
-	ctx sdk.Context, base sdk.DecCoin, quoteSymbol string, params swaptypes.Params,
+	ctx sdk.Context, base sdk.SysCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
 	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(base.Denom, quoteSymbol))

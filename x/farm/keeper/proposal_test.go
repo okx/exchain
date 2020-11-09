@@ -22,7 +22,7 @@ func TestCheckMsgSubmitProposal(t *testing.T) {
 
 	params := types.DefaultParams()
 	k.Keeper.SetParams(ctx, params)
-	require.Equal(t, sdk.DecCoins(nil), k.GetMinDeposit(ctx, MockContent{}))
+	require.Equal(t, sdk.SysCoins(nil), k.GetMinDeposit(ctx, MockContent{}))
 	require.Equal(t, params.ManageWhiteListMinDeposit, k.GetMinDeposit(ctx, proposal.Content))
 
 	require.Equal(t, time.Duration(0), k.GetMaxDepositPeriod(ctx, MockContent{}))

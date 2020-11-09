@@ -11,18 +11,18 @@ import (
 type FarmPool struct {
 	Owner         sdk.AccAddress `json:"owner"`
 	Name          string         `json:"name"`
-	MinLockAmount sdk.DecCoin    `json:"min_lock_amount"`
-	DepositAmount sdk.DecCoin    `json:"deposit_amount"`
+	MinLockAmount sdk.SysCoin    `json:"min_lock_amount"`
+	DepositAmount sdk.SysCoin    `json:"deposit_amount"`
 	// sum of LockInfo.Amount
-	TotalValueLocked        sdk.DecCoin       `json:"total_value_locked"`
+	TotalValueLocked        sdk.SysCoin       `json:"total_value_locked"`
 	YieldedTokenInfos       YieldedTokenInfos `json:"yielded_token_infos"`
-	TotalAccumulatedRewards sdk.DecCoins      `json:"total_accumulated_rewards"`
+	TotalAccumulatedRewards sdk.SysCoins      `json:"total_accumulated_rewards"`
 }
 
 // NewFarmPool creates a new instance of FarmPool
 func NewFarmPool(
-	owner sdk.AccAddress, name string, minLockAmount sdk.DecCoin, depositAmount, totalValueLocked sdk.DecCoin,
-	yieldedTokenInfos YieldedTokenInfos, accumulatedRewards sdk.DecCoins,
+	owner sdk.AccAddress, name string, minLockAmount sdk.SysCoin, depositAmount, totalValueLocked sdk.SysCoin,
+	yieldedTokenInfos YieldedTokenInfos, accumulatedRewards sdk.SysCoins,
 ) FarmPool {
 	return FarmPool{
 		Owner:                   owner,

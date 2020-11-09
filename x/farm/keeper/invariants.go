@@ -17,14 +17,14 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 func moduleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		// iterate all pools, then calculate the total deposit amount
-		totalDepositAmount := sdk.DecCoins{}
+		totalDepositAmount := sdk.SysCoins{}
 		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
 			totalDepositAmount = totalDepositAmount.Add(pool.DepositAmount.ToCoins())
 		}
 
 		// iterate all lock infos
-		totalLockedAmount := sdk.DecCoins{}
+		totalLockedAmount := sdk.SysCoins{}
 		k.IterateAllLockInfos(ctx, func(lockInfo types.LockInfo) (stop bool) {
 			totalLockedAmount = totalLockedAmount.Add(sdk.NewDecCoins(lockInfo.Amount.ToCoins()))
 			return false
@@ -48,12 +48,12 @@ func moduleAccountInvariant(k Keeper) sdk.Invariant {
 func yieldFarmingAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		// iterate all pools, then calculate the total deposit amount
-		expectedYieldModuleAccAmount := sdk.DecCoins{}
+		expectedYieldModuleAccAmount := sdk.SysCoins{}
 		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
 			expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add(pool.TotalAccumulatedRewards)
 			for _, yieldInfo := range pool.YieldedTokenInfos {
-				expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add(sdk.DecCoins{yieldInfo.RemainingAmount})
+				expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add(sdk.SysCoins{yieldInfo.RemainingAmount})
 			}
 		}
 

@@ -12,52 +12,52 @@ func TestFarmPools(t *testing.T) {
 		owner                   sdk.AccAddress
 		name                    string
 		lockedSymbol            string
-		depositAmount           sdk.DecCoin
-		totalValueLocked        sdk.DecCoin
+		depositAmount           sdk.SysCoin
+		totalValueLocked        sdk.SysCoin
 		yieldedTokenInfos       YieldedTokenInfos
-		totalAccumulatedRewards sdk.DecCoins
+		totalAccumulatedRewards sdk.SysCoins
 		isFinished              bool
 	}{
 		{
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.DecCoin{},
+			depositAmount:    sdk.SysCoin{},
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
 					RemainingAmount: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
 				},
 			},
-			totalAccumulatedRewards: sdk.DecCoins{},
+			totalAccumulatedRewards: sdk.SysCoins{},
 			isFinished:              false,
 		},
 		{
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.DecCoin{},
+			depositAmount:    sdk.SysCoin{},
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
 					RemainingAmount: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
 				},
 			},
-			totalAccumulatedRewards: sdk.DecCoins{},
+			totalAccumulatedRewards: sdk.SysCoins{},
 			isFinished:              false,
 		},
 		{
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.DecCoin{},
+			depositAmount:    sdk.SysCoin{},
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
 					RemainingAmount: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 				},
 			},
-			totalAccumulatedRewards: sdk.DecCoins{},
+			totalAccumulatedRewards: sdk.SysCoins{},
 			isFinished:              true,
 		},
 	}
