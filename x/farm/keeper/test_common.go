@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
+	"github.com/okex/okexchain/x/gov"
 	swap "github.com/okex/okexchain/x/ammswap"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
+	govkeeper "github.com/okex/okexchain/x/gov/keeper"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -74,6 +77,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keyToken := sdk.NewKVStoreKey(token.StoreKey)
 	keyLock := sdk.NewKVStoreKey(token.KeyLock)
 	keySwap := sdk.NewKVStoreKey(swaptypes.StoreKey)
+	keyGov := sdk.NewKVStoreKey(govtypes.StoreKey)
 
 	// 0.2 init db
 	db := dbm.NewMemDB()
@@ -86,6 +90,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyToken, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySwap, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyGov, sdk.StoreTypeIAVL, db)
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
@@ -144,6 +149,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 		types.YieldFarmingAccount: nil,
 		types.MintFarmingAccount:  nil,
 		swap.ModuleName:           {supply.Burner, supply.Minter},
+		govtypes.ModuleName: nil,
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
@@ -162,6 +168,32 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	// 1.7 init farm keeper
 	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)
 	fk.SetParams(ctx, types.DefaultParams())
+
+	// 1.8 init gov keeper
+	govSubspace := pk.Subspace(govtypes.DefaultParamspace)
+	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()
+	govProposalHandlerRouter.AddRoute(params.RouterKey, pk)
+	govKeeper := gov.NewKeeper(cdc, keyGov, pk, govSubspace, sk, nil,
+		types.DefaultCodespace, gov.NewRouter(), bk, govProposalHandlerRouter, auth.FeeCollectorName)
+	minDeposit := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(100))
+	depositParams := govtypes.DepositParams{
+		MinDeposit:       minDeposit,
+		MaxDepositPeriod: time.Hour * 24,
+	}
+	votingParams := govtypes.VotingParams{
+		VotingPeriod: time.Hour * 72,
+	}
+	tallyParams := govtypes.TallyParams{
+		Quorum:          sdk.NewDecWithPrec(334, 3),
+		Threshold:       sdk.NewDecWithPrec(5, 1),
+		Veto:            sdk.NewDecWithPrec(334, 3),
+		YesInVotePeriod: sdk.NewDecWithPrec(667, 3),
+	}
+	govKeeper.SetDepositParams(ctx, depositParams)
+	govKeeper.SetVotingParams(ctx, votingParams)
+	govKeeper.SetTallyParams(ctx, tallyParams)
+
+	fk.SetGovKeeper(govKeeper)
 	// 2. init mock keeper
 	mk := NewMockFarmKeeper(fk, keyFarm, sk, ms, ak, bk, tk, swapKeeper)
 

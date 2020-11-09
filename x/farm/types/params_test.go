@@ -10,9 +10,6 @@ const (
   Quote Symbol:								usdk
   Create Pool Fee:							0.00000000okt
   Create Pool Deposit:						10.00000000okt
-  Manage White List Max Deposit Period:		24h0m0s
-  Manage White List Min Deposit:			100.00000000okt
-  Manage White List Voting Period:			72h0m0s
   Yield Native Token Enabled:               false`
 )
 

@@ -119,14 +119,6 @@
           "amount": "0.00000000",
           "denom": "okt"
         },
-        "manage_white_list_max_deposit_period": "86400000000000",
-        "manage_white_list_min_deposit": [
-          {
-            "amount": "100.00000000",
-            "denom": "okt"
-          }
-        ],
-        "manage_white_list_voting_period": "259200000000000",
         "quote_symbol": "usdk",
         "yield_native_token": false
       },
@@ -142,7 +134,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "11089fb6d73ed14e94446c4f8fc7c1f3a2c665af@127.0.0.1:26656",
+            "memo": "cd8415810b97c447751f5d959b89c99e7b792937@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -158,7 +150,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepqk8g5rm0zg40ws735c6eznsvczsrhz73vjlery9xf4nlseyksakes8nvrfh",
+                  "pubkey": "okexchainvalconspub1zcjduepqwwmh848ta3zk87lc4xcrdqwtfzry9ucq7m4dhd0nn0f5vyjnn3nsqlf09g",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -169,7 +161,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "oEg2WRSkBu/lq4k23UT9l0dNq7k3o8t884kqv1masd1RPe7ytls6zgM2YZLNOwKaXWlmDOvHGcEqS4+y/kDndQ=="
+                "signature": "RX8asOV8HkQZmWBq6OMRh4g4o14nc15NOf8QmmlbzHoroH6d1GU5OlvBslL58DhZiAc5QkWIcubbeXaNaFv1VQ=="
               }
             ]
           }

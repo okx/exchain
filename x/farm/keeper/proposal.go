@@ -16,7 +16,7 @@ var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 // GetMinDeposit returns min deposit
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.SysCoins) {
 	if _, ok := content.(types.ManageWhiteListProposal); ok {
-		minDeposit = k.GetParams(ctx).ManageWhiteListMinDeposit
+		minDeposit = k.govKeeper.GetDepositParams(ctx).MinDeposit
 	}
 
 	return
@@ -25,7 +25,7 @@ func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDepos
 // GetMaxDepositPeriod returns max deposit period
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (maxDepositPeriod time.Duration) {
 	if _, ok := content.(types.ManageWhiteListProposal); ok {
-		maxDepositPeriod = k.GetParams(ctx).ManageWhiteListMaxDepositPeriod
+		maxDepositPeriod = k.govKeeper.GetDepositParams(ctx).MaxDepositPeriod
 	}
 
 	return
@@ -34,7 +34,7 @@ func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (ma
 // GetVotingPeriod returns voting period
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (votingPeriod time.Duration) {
 	if _, ok := content.(types.ManageWhiteListProposal); ok {
-		votingPeriod = k.GetParams(ctx).ManageWhiteListVotingPeriod
+		votingPeriod = k.govKeeper.GetVotingParams(ctx).VotingPeriod
 	}
 
 	return
