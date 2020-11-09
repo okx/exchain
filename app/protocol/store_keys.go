@@ -10,6 +10,7 @@ import (
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/debug"
 	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/farm"
 	"github.com/okex/okexchain/x/staking"
 
 	distr "github.com/okex/okexchain/x/distribution"
@@ -39,6 +40,7 @@ var (
 		dex.StoreKey, dex.TokenPairStoreKey,
 		debug.StoreKey,
 		ammswap.StoreKey,
+		farm.StoreKey,
 	)
 
 	transientStoreKeysMap = sdk.NewTransientStoreKeys(staking.TStoreKey, params.TStoreKey)

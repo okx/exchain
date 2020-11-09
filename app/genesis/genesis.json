@@ -106,6 +106,25 @@
       "validator_accumulated_commissions": [],
       "withdraw_addr_enabled": true
     },
+    "farm": {
+      "current_rewards": [],
+      "historical_rewards": [],
+      "lock_infos": [],
+      "params": {
+        "create_pool_deposit": {
+          "amount": "10.00000000",
+          "denom": "okt"
+        },
+        "create_pool_fee": {
+          "amount": "0.00000000",
+          "denom": "okt"
+        },
+        "quote_symbol": "usdk",
+        "yield_native_token": false
+      },
+      "pools": [],
+      "pools_yield_native_token": null
+    },
     "genutil": {
       "gentxs": [
         {
@@ -115,7 +134,7 @@
               "amount": [],
               "gas": "0"
             },
-            "memo": "ab6f676c5d6b4e7c8233ff4ba63d1b5d0d203b56@127.0.0.1:26656",
+            "memo": "cd8415810b97c447751f5d959b89c99e7b792937@127.0.0.1:26656",
             "msg": [
               {
                 "type": "okexchain/staking/MsgCreateValidator",
@@ -131,7 +150,7 @@
                     "amount": "0.00100000",
                     "denom": "okt"
                   },
-                  "pubkey": "okexchainvalconspub1zcjduepq83e8r6lrt44sxvg66vhh8l4yhpsr825m97yc7qxu06zhpxezuhhsmalm87",
+                  "pubkey": "okexchainvalconspub1zcjduepqwwmh848ta3zk87lc4xcrdqwtfzry9ucq7m4dhd0nn0f5vyjnn3nsqlf09g",
                   "validator_address": "okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8"
                 }
               }
@@ -142,7 +161,7 @@
                   "type": "tendermint/PubKeySecp256k1",
                   "value": "AgYaL1tZ7ekqvweQhKojG8sDHUfN23qJWviAsTDIWvYU"
                 },
-                "signature": "42XTaFLh5Z2Aor2kpY5H32ReUUT6Wa5IZhkGSLMas/gvaPY4Pg5XsFPwUuFJpcj36L+E9BQOjxXhM0VF1rKV7A=="
+                "signature": "RX8asOV8HkQZmWBq6OMRh4g4o14nc15NOf8QmmlbzHoroH6d1GU5OlvBslL58DhZiAc5QkWIcubbeXaNaFv1VQ=="
               }
             ]
           }
@@ -184,10 +203,11 @@
         ],
         "next_block_to_update": "0"
       },
-      "original_minted_per_block": "0.05000000",
+      "original_minted_per_block": "1.00000000",
       "params": {
         "blocks_per_year": "10519200",
         "deflation_rate": "0.50000000",
+        "farm_proportion": "0.50000000",
         "inflation_epoch": "3",
         "mint_denom": "okt"
       }
