@@ -64,7 +64,7 @@ func TestPoolCurrentReward(t *testing.T) {
 
 func TestGetPoolHistoricalRewardsPoolNamePeriod(t *testing.T) {
 	period := uint64(10)
-	poolName := common.GetFixedLengthRandomString(120)
+	poolName := common.GetFixedLengthRandomString(types.MaxPoolNameLength + 1)
 	key := types.GetPoolHistoricalRewardsKey(poolName, period)
 	require.Panics(t, func() { GetPoolHistoricalRewardsPoolNamePeriod(key) })
 
