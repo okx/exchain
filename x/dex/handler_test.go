@@ -1,9 +1,8 @@
 package dex
 
 import (
-	"testing"
-
 	"github.com/okex/okexchain/x/common"
+	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/dex/types"
@@ -30,7 +29,7 @@ func TestHandler_HandleMsgList(t *testing.T) {
 
 	address := mApp.GenesisAccounts[0].GetAddress()
 	listMsg := NewMsgList(address, "btc", common.NativeToken, sdk.NewDec(10))
-	mDexKeeper.SetOperator(ctx, types.DEXOperator{Address:address, HandlingFeeAddress:address})
+	mDexKeeper.SetOperator(ctx, types.DEXOperator{Address: address, HandlingFeeAddress: address})
 
 	handlerFunctor := NewHandler(mApp.dexKeeper)
 
@@ -132,4 +131,34 @@ func TestHandler_handleMsgTransferOwnership(t *testing.T) {
 	msgFailedTransferOwnership = types.NewMsgTransferOwnership(tokenPair.Owner, to, tokenPair.Name())
 	spKeeper.behaveEvil = true
 	handlerFunctor(ctx, msgFailedTransferOwnership)
+
+	// fail case : failed to TransferOwnership because the address is not the owner of product
+	msgFailedTransferOwnership = types.NewMsgTransferOwnership(to, to, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgFailedTransferOwnership)
+
+	// confirm ownership successful case
+	msgConfirmOwnership := types.NewMsgConfirmOwnership(to, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgConfirmOwnership)
+
+	// fail case : failed to ConfirmOwnership because the address is not the new owner of product
+	msgTransferOwnership = types.NewMsgTransferOwnership(to, tokenPair.Owner, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgTransferOwnership)
+	msgFailedConfirmOwnership := types.NewMsgConfirmOwnership(to, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgFailedConfirmOwnership)
+
+	// fail case : failed to ConfirmOwnership because there is not transfer-ownership list to confirm
+	mDexKeeper.DeleteConfirmOwnership(ctx, tokenPair.Name())
+	msgFailedConfirmOwnership = types.NewMsgConfirmOwnership(tokenPair.Owner, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgFailedConfirmOwnership)
+
+	// fail case : failed to ConfirmOwnership because the product is not exist
+	mDexKeeper.DeleteTokenPairByName(ctx, tokenPair.Owner, tokenPair.Name())
+	msgFailedConfirmOwnership = types.NewMsgConfirmOwnership(tokenPair.Owner, tokenPair.Name())
+	spKeeper.behaveEvil = false
+	handlerFunctor(ctx, msgFailedConfirmOwnership)
 }

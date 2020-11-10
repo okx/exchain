@@ -9,8 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -48,7 +46,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		getCmdDeposit(cdc),
 		getCmdWithdraw(cdc),
 		getCmdTransferOwnership(cdc),
-		getMultiSignsCmd(cdc),
+		getCmdConfirmOwnership(cdc),
 		getCmdRegisterOperator(cdc),
 		getCmdEditOperator(cdc),
 	)...)
@@ -199,7 +197,7 @@ func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 
 			from := cliCtx.GetFromAddress()
 			msg := types.NewMsgTransferOwnership(from, toAddr, product)
-			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 	cmd.Flags().StringP(FlagProduct, "p", "", "product to be transferred")
@@ -207,55 +205,35 @@ func getCmdTransferOwnership(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func getMultiSignsCmd(cdc *codec.Codec) *cobra.Command {
+func getCmdConfirmOwnership(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "multisign",
-		Short: "append signature to the unsigned tx file of transfer-ownership",
-		Args:  cobra.ExactArgs(1),
+		Use:   "confirm-ownership",
+		Short: "confirm the transfer-ownership of the product",
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-
-			stdTx, err := utils.ReadStdTxFromFile(cdc, args[0])
-			if err != nil {
+			if err := authTypes.NewAccountRetriever(cliCtx).EnsureExists(cliCtx.FromAddress); err != nil {
 				return err
 			}
-
-			if len(stdTx.Msgs) == 0 {
-				return errors.New("msg is empty")
-			}
-
-			msg, ok := stdTx.Msgs[0].(types.MsgTransferOwnership)
-			if !ok {
-				return errors.New("invalid msg type")
-			}
-
 			flags := cmd.Flags()
+
+			product, err := flags.GetString(FlagProduct)
+			if err != nil {
+				return errors.New("invalid product")
+			}
 			_, err = flags.GetString(FlagFrom)
 			if err != nil {
-				return fmt.Errorf("invalid from:%s", err.Error())
+				return errors.New("invalid from")
 			}
 
-			passphrase, err := keys.GetPassphrase(cliCtx.GetFromName())
-			if err != nil {
-				return err
-			}
-			signature, _, err := txBldr.Keybase().Sign(cliCtx.GetFromName(), passphrase, msg.GetSignBytes())
-			if err != nil {
-				return fmt.Errorf("sign failed:%s", err.Error())
-			}
-			info, err := txBldr.Keybase().Get(cliCtx.GetFromName())
-			if err != nil {
-				return err
-			}
-			stdSignature := auth.StdSignature{
-				PubKey:    info.GetPubKey(),
-				Signature: signature,
-			}
-			msg.ToSignature = stdSignature
-			return utils.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg})
+			from := cliCtx.GetFromAddress()
+
+			msg := types.NewMsgConfirmOwnership(from, product)
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
+	cmd.Flags().StringP(FlagProduct, "p", "", "product to be transferred")
 	return cmd
 }
 

@@ -18,6 +18,7 @@ var (
 	keyDelistMinDeposit       = []byte("DelistMinDeposit")
 	keyDelistVotingPeriod     = []byte("DelistVotingPeriod")
 	keyWithdrawPeriod         = []byte("WithdrawPeriod")
+	keyOwnershipConfirmWindow = []byte("OwnershipConfirmWindow")
 )
 
 // Params defines param object
@@ -33,7 +34,8 @@ type Params struct {
 	//  length of the critical voting period for dex delist proposal
 	DelistVotingPeriod time.Duration `json:"delist_voting_period"`
 
-	WithdrawPeriod time.Duration `json:"withdraw_period"`
+	WithdrawPeriod         time.Duration `json:"withdraw_period"`
+	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
@@ -46,6 +48,7 @@ func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit},
 		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod},
 		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod},
+		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow},
 	}
 }
 
@@ -67,12 +70,13 @@ func DefaultParams() *Params {
 		DelistMinDeposit:       sdk.SysCoins{defaultDelistMinDeposit},
 		DelistVotingPeriod:     time.Hour * 72,
 		WithdrawPeriod:         DefaultWithdrawPeriod,
+		OwnershipConfirmWindow: DefaultOwnershipConfirmWindow,
 	}
 }
 
 // String implements the stringer interface.
 func (p Params) String() string {
 	return fmt.Sprintf("Params: \nDexListFee:%s\nTransferOwnershipFee:%s\nRegisterOperatorFee:%s\nDelistMaxDepositPeriod:%s\n"+
-		"DelistMinDeposit:%s\nDelistVotingPeriod:%s\nWithdrawPeriod:%d\n",
-		p.ListFee, p.TransferOwnershipFee, p.RegisterOperatorFee, p.DelistMaxDepositPeriod, p.DelistMinDeposit, p.DelistVotingPeriod, p.WithdrawPeriod)
+		"DelistMinDeposit:%s\nDelistVotingPeriod:%s\nWithdrawPeriod:%d\nOwnershipConfirmWindow: %s\n",
+		p.ListFee, p.TransferOwnershipFee, p.RegisterOperatorFee, p.DelistMaxDepositPeriod, p.DelistMinDeposit, p.DelistVotingPeriod, p.WithdrawPeriod, p.OwnershipConfirmWindow)
 }

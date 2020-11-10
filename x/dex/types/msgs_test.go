@@ -6,8 +6,6 @@ import (
 
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common"
 	"github.com/stretchr/testify/require"
@@ -85,12 +83,9 @@ func TestMsg(t *testing.T) {
 		{"withdraw-invalid-amount", NewMsgWithdraw(product, sdk.SysCoin{"", sdk.NewDec(1)}, addr), false},
 		{"withdraw-no-depositor", NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
 
-		{"transfer-no-sign", NewMsgTransferOwnership(fromAddr, toAddr, product), false},
 		{"transfer-no-from", NewMsgTransferOwnership(nil, toAddr, product), false},
 		{"transfer-no-to", NewMsgTransferOwnership(fromAddr, nil, product), false},
 		{"transfer-no-product", NewMsgTransferOwnership(fromAddr, toAddr, ""), false},
-		{"transfer-worng-pk", MsgTransferOwnership{fromAddr, fromAddr, product, auth.StdSignature{PubKey: fromPubKey}}, false},
-		{"transfer-wright-pk", MsgTransferOwnership{fromAddr, fromAddr, product, auth.StdSignature{PubKey: toPubKey}}, false},
 	}
 	for _, tb := range testBasics {
 		t.Run(tb.name, func(t *testing.T) {

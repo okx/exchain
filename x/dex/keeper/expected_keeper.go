@@ -43,7 +43,6 @@ type IKeeper interface {
 	GetParams(ctx sdk.Context) (params types.Params)
 	SetParams(ctx sdk.Context, params types.Params)
 	GetFeeCollector() string
-	TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error
 	LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock)
 	LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap
 	SetWithdrawInfo(ctx sdk.Context, withdrawInfo types.WithdrawInfo)
@@ -57,6 +56,11 @@ type IKeeper interface {
 	IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool))
 	GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64)
 	SetMaxTokenPairID(ctx sdk.Context, tokenPairMaxID uint64)
+	GetConfirmOwnership(ctx sdk.Context, product string) (confirmOwnership *types.ConfirmOwnership, exist bool)
+	SetConfirmOwnership(ctx sdk.Context, confirmOwnership *types.ConfirmOwnership)
+	DeleteConfirmOwnership(ctx sdk.Context, product string)
+	UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress)
+	UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair)
 }
 
 // StakingKeeper defines the expected staking Keeper (noalias)
