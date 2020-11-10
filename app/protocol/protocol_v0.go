@@ -39,8 +39,6 @@ import (
 	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/stream"
 	"github.com/okex/okexchain/x/token"
-	"github.com/okex/okexchain/x/upgrade"
-	upgradecli "github.com/okex/okexchain/x/upgrade/client"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -65,7 +63,7 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
-			upgradecli.ProposalHandler, paramscli.ProposalHandler, dexcli.DelistProposalHandler, distr.ProposalHandler,
+			paramscli.ProposalHandler, dexcli.DelistProposalHandler, distr.ProposalHandler,
 			farmcli.ManageWhiteListProposalHandler,
 		),
 		params.AppModuleBasic{},
@@ -78,7 +76,6 @@ var (
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
 		backend.AppModuleBasic{},
-		upgrade.AppModuleBasic{},
 		stream.AppModuleBasic{},
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
@@ -134,7 +131,6 @@ type ProtocolV0 struct {
 	protocolKeeper proto.ProtocolKeeper
 	backendKeeper  backend.Keeper
 	streamKeeper   stream.Keeper
-	upgradeKeeper  upgrade.Keeper
 	debugKeeper    debug.Keeper
 	farmKeeper     farm.Keeper
 
@@ -276,7 +272,6 @@ func (p *ProtocolV0) produceKeepers() {
 	crisisSubspace := p.paramsKeeper.Subspace(crisis.DefaultParamspace)
 	tokenSubspace := p.paramsKeeper.Subspace(token.DefaultParamspace)
 	orderSubspace := p.paramsKeeper.Subspace(order.DefaultParamspace)
-	upgradeSubspace := p.paramsKeeper.Subspace(upgrade.DefaultParamspace)
 	dexSubspace := p.paramsKeeper.Subspace(dex.DefaultParamspace)
 	swapSubspace := p.paramsKeeper.Subspace(ammswap.DefaultParamspace)
 	farmSubspace := p.paramsKeeper.Subspace(farm.DefaultParamspace)
@@ -339,13 +334,11 @@ func (p *ProtocolV0) produceKeepers() {
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&p.paramsKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&p.dexKeeper)).
-		AddRoute(upgrade.RouterKey, upgrade.NewAppUpgradeProposalHandler(&p.upgradeKeeper)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(p.distrKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&p.farmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &p.paramsKeeper).
 		AddRoute(dex.RouterKey, &p.dexKeeper).
-		AddRoute(upgrade.RouterKey, &p.upgradeKeeper).
 		AddRoute(farm.RouterKey, &p.farmKeeper)
 	p.govKeeper = gov.NewKeeper(
 		p.cdc, p.keys[gov.StoreKey], p.paramsKeeper, govSubspace,
@@ -358,9 +351,6 @@ func (p *ProtocolV0) produceKeepers() {
 	// 4.register the staking hooks
 	p.stakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(p.distrKeeper.Hooks(), p.slashingKeeper.Hooks()),
-	)
-	p.upgradeKeeper = upgrade.NewKeeper(
-		p.cdc, p.keys[upgrade.StoreKey], p.protocolKeeper, p.stakingKeeper, p.bankKeeper, upgradeSubspace,
 	)
 
 	p.debugKeeper = debug.NewDebugKeeper(p.cdc, p.keys[debug.StoreKey], p.orderKeeper, p.stakingKeeper, &p.crisisKeeper,
@@ -401,7 +391,6 @@ func (p *ProtocolV0) setManager() {
 		dex.NewAppModule(version.ProtocolVersionV0, p.dexKeeper, p.supplyKeeper),
 		backend.NewAppModule(p.backendKeeper),
 		stream.NewAppModule(p.streamKeeper),
-		upgrade.NewAppModule(p.upgradeKeeper),
 		debug.NewAppModule(p.debugKeeper),
 		farm.NewAppModule(p.farmKeeper),
 	)
@@ -427,7 +416,6 @@ func (p *ProtocolV0) setManager() {
 		staking.ModuleName,
 		backend.ModuleName,
 		stream.ModuleName,
-		upgrade.ModuleName,
 	)
 
 	p.mm.SetOrderInitGenesis(
@@ -444,7 +432,6 @@ func (p *ProtocolV0) setManager() {
 		dex.ModuleName,
 		order.ModuleName,
 		ammswap.ModuleName,
-		upgrade.ModuleName,
 		crisis.ModuleName,
 		genutil.ModuleName,
 		params.ModuleName,

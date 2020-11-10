@@ -19,7 +19,6 @@ import (
 	"github.com/okex/okexchain/x/params"
 
 	"github.com/okex/okexchain/x/token"
-	"github.com/okex/okexchain/x/upgrade"
 )
 
 // store keys used in all modules
@@ -36,7 +35,6 @@ var (
 		params.StoreKey,
 		token.StoreKey, token.KeyMint, token.KeyLock,
 		order.OrderStoreKey,
-		upgrade.StoreKey,
 		dex.StoreKey, dex.TokenPairStoreKey,
 		debug.StoreKey,
 		ammswap.StoreKey,

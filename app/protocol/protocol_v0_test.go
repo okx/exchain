@@ -8,7 +8,6 @@ import (
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/token"
-	"github.com/okex/okexchain/x/upgrade"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	dbm "github.com/tendermint/tm-db"
