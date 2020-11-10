@@ -13,7 +13,6 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 
 	totalYieldedTokens := sdk.SysCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
-		yieldedTokens := sdk.SysCoins{}
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 		var startBlockHeight int64
 		if currentPeriod.StartBlockHeight <= startBlockHeightToYield {
@@ -27,6 +26,7 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 			continue
 		}
 
+		yieldedTokens := sdk.SysCoins{}
 		// calculate how many tokens to be yielded between startBlockHeight and endBlockHeight
 		blockInterval := sdk.NewDec(endBlockHeight - startBlockHeight)
 		amount := blockInterval.MulTruncate(pool.YieldedTokenInfos[i].AmountYieldedPerBlock)
