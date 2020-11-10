@@ -8,7 +8,6 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -17,10 +16,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/gov"
-	govKeeper "github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -35,14 +30,10 @@ type MockDexApp struct {
 	keyToken   *sdk.KVStoreKey
 	keyLock    *sdk.KVStoreKey
 	keySupply  *sdk.KVStoreKey
-	keyGov     *sdk.KVStoreKey
-	keyStaking *sdk.KVStoreKey
 
 	bankKeeper    bank.Keeper
 	tokenKeeper   Keeper
 	supplyKeeper  supply.Keeper
-	govKeeper     gov.Keeper
-	stakingKeeper staking.Keeper
 }
 
 func registerCodec(cdc *codec.Codec) {
@@ -69,7 +60,6 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		keyToken:   sdk.NewKVStoreKey("token"),
 		keyLock:    sdk.NewKVStoreKey("lock"),
 		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
-		keyStaking: sdk.NewKVStoreKey(staking.StoreKey),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -86,7 +76,6 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Minter, supply.Burner},
-		gov.ModuleName:        nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc, mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
 	mockDexApp.tokenKeeper = NewKeeper(
@@ -150,8 +139,6 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
 		keyToken:   sdk.NewKVStoreKey("token"),
 		keyLock:    sdk.NewKVStoreKey("lock"),
-		keyGov:     sdk.NewKVStoreKey(gov.ModuleName),
-		keyStaking: sdk.NewKVStoreKey(staking.StoreKey),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -168,9 +155,6 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName:     nil,
 		types.ModuleName:          nil,
-		gov.ModuleName:            nil,
-		staking.BondedPoolName:    nil,
-		staking.NotBondedPoolName: nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(
 		mockDexApp.Cdc,
@@ -189,9 +173,6 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.Cdc,
 		true)
 
-	stakingKeeper := staking.NewKeeper(
-		mockDexApp.Cdc,
-		mockDexApp.keyStaking,
 
 		// for staking/distr rollback to cosmos-sdk
 		//store.NewKVStoreKey(staking.DelegatorPoolKey),
@@ -199,23 +180,6 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		//store.NewKVStoreKey(staking.RedelegationActonKey),
 		//store.NewKVStoreKey(staking.UnbondingKey),
 
-		store.NewKVStoreKey(staking.TStoreKey),
-		mockDexApp.supplyKeeper,
-		mockDexApp.ParamsKeeper.Subspace(staking.DefaultParamspace),
-		staking.DefaultCodespace,
-	)
-	mockDexApp.stakingKeeper = stakingKeeper
-
-	govKp := gov.NewKeeper(
-		mockDexApp.Cdc, mockDexApp.keyGov,
-		params.Keeper{Keeper: mockDexApp.ParamsKeeper},
-		mockDexApp.ParamsKeeper.Subspace(gov.DefaultParamspace),
-		mockDexApp.supplyKeeper, stakingKeeper, gov.DefaultCodespace,
-		gov.NewRouter(), mockDexApp.bankKeeper, govKeeper.NewProposalHandlerRouter(),
-		auth.FeeCollectorName,
-	)
-	//mockDexApp.tokenKeeper.SetGovKeeper(govKp)
-	mockDexApp.govKeeper = govKp
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -242,14 +206,11 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		app.keyToken,
 		app.keyLock,
 		app.keySupply,
-		app.keyGov,
-		app.keyStaking,
 	)
 
 	require.NoError(t, mockDexApp.CompleteSetup())
 	mock.SetGenesis(mockDexApp.App, genAccs)
 	//app.BaseApp.NewContext(true, abci.Header{})
-	mockDexApp.stakingKeeper.SetParams(app.BaseApp.NewContext(true, abci.Header{}), staking.DefaultParams())
 	return mockDexApp, mockDexApp.tokenKeeper, handler
 }
 
