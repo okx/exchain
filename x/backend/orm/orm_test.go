@@ -783,7 +783,12 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 		{Address: "addr2", Fee: "0.3" + common.NativeToken, FeeType: types.FeeTypeOrderDeal, Timestamp: 100},
 	}
 
-	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs)
+	swapInfos := []*types.SwapInfo{
+		{Address: "addr1", TokenPairName: types.TestTokenPair, BaseTokenAmount: "10000xxb", QuoteTokenAmount: "10000yyb",
+			SellAmount: "10xxb", BuysAmount: "9.8yyb", Price: "1", Timestamp: 100},
+	}
+
+	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
 	require.True(t, resultMap != nil && e == nil)
 
 	require.True(t, resultMap != nil && resultMap["newOrders"] == 2000)
@@ -791,8 +796,9 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 	require.True(t, resultMap != nil && resultMap["transactions"] == 1)
 	require.True(t, resultMap != nil && resultMap["deals"] == 4)
 	require.True(t, resultMap != nil && resultMap["feeDetails"] == 4)
+	require.True(t, resultMap != nil && resultMap["swapInfos"] == 1)
 
-	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs)
+	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
 	fmt.Printf("%+v\n", e2)
 	require.True(t, resultMap2 != nil, resultMap2)
 	require.True(t, e2 != nil, e2)

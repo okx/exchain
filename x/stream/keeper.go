@@ -3,15 +3,15 @@ package stream
 import (
 	"fmt"
 
+	"github.com/okex/okexchain/x/ammswap"
+	backend "github.com/okex/okexchain/x/backend/types"
 	"github.com/okex/okexchain/x/dex"
-
 	"github.com/okex/okexchain/x/stream/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -23,14 +23,16 @@ type Keeper struct {
 }
 
 // nolint
-func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, accountKeeper types.AccountKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
+func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, accountKeeper types.AccountKeeper,
+	swapKeeper types.SwapKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
 	logger = logger.With("module", "stream")
 	k := Keeper{
 		metric: metrics,
-		stream: NewStream(orderKeeper, tokenKeeper, dexKeeper, cdc, logger, cfg),
+		stream: NewStream(orderKeeper, tokenKeeper, dexKeeper, swapKeeper, cdc, logger, cfg),
 	}
 	dexKeeper.SetObserverKeeper(k)
 	accountKeeper.SetObserverKeeper(k)
+	swapKeeper.SetObserverKeeper(k)
 	return k
 }
 
@@ -72,4 +74,23 @@ func (k Keeper) OnTokenPairUpdated(ctx sdk.Context) {
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
 	k.stream.logger.Debug(fmt.Sprintf("OnAccountUpdated:%s", acc.GetAddress()))
 	k.stream.Cache.AddUpdatedAccount(acc)
+}
+
+// OnSwapToken called by swap
+func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair ammswap.SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin) {
+	swapInfo := &backend.SwapInfo{
+		Address:          address.String(),
+		TokenPairName:    swapTokenPair.TokenPairName(),
+		BaseTokenAmount:  swapTokenPair.BasePooledCoin.String(),
+		QuoteTokenAmount: swapTokenPair.QuotePooledCoin.String(),
+		SellAmount:       sellAmount.String(),
+		BuysAmount:       buyAmount.String(),
+		Price:            swapTokenPair.BasePooledCoin.Amount.Quo(swapTokenPair.QuotePooledCoin.Amount).String(),
+		Timestamp:        ctx.BlockTime().Unix(),
+	}
+	k.stream.Cache.AddSwapInfo(swapInfo)
+}
+
+func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
+	k.stream.Cache.AddNewSwapTokenPair(&swapTokenPair)
 }

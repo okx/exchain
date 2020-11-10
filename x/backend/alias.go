@@ -33,7 +33,8 @@ type (
 	ORM           = orm.ORM
 	OrmEngineInfo = orm.OrmEngineInfo
 
-	Config = config.Config
+	Config   = config.Config
+	SwapInfo = types.SwapInfo
 )
 
 var (

@@ -36,6 +36,7 @@ type (
 	// nolint
 	FeeDetail = types.FeeDetail
 	CoinsInfo = types.CoinsInfo
+	Token     = types.Token
 )
 
 var (

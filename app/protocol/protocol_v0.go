@@ -325,10 +325,10 @@ func (p *ProtocolV0) produceKeepers() {
 
 	p.swapKeeper = ammswap.NewKeeper(p.supplyKeeper, p.tokenKeeper, p.cdc, p.keys[ammswap.StoreKey], swapSubspace)
 
-	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.accountKeeper,
+	p.streamKeeper = stream.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.accountKeeper, &p.swapKeeper,
 		p.cdc, p.logger, appConfig, streamMetrics)
 
-	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, p.streamKeeper.GetMarketKeeper(),
+	p.backendKeeper = backend.NewKeeper(p.orderKeeper, p.tokenKeeper, &p.dexKeeper, &p.swapKeeper, p.streamKeeper.GetMarketKeeper(),
 		p.cdc, p.logger, appConfig.BackendConfig)
 
 	p.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, p.supplyKeeper, p.tokenKeeper, p.swapKeeper, farmSubspace,

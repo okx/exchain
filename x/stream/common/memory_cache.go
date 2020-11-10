@@ -3,6 +3,7 @@ package common
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex/types"
 )
@@ -13,6 +14,8 @@ type Cache struct {
 	newTokenPairMap   []*types.TokenPair
 	tokenPairChanged  bool
 	updatedAccAddress map[string]struct{}
+	swapInfos         []*backend.SwapInfo
+	newSwapTokenPairs []*ammswap.SwapTokenPair
 }
 
 func NewCache() *Cache {
@@ -21,6 +24,8 @@ func NewCache() *Cache {
 		newTokenPairMap:   []*types.TokenPair{},
 		tokenPairChanged:  false,
 		updatedAccAddress: make(map[string]struct{}),
+		swapInfos:         make([]*backend.SwapInfo, 0, 2000),
+		newSwapTokenPairs: make([]*ammswap.SwapTokenPair, 0, 2000),
 	}
 }
 
@@ -30,6 +35,8 @@ func (c *Cache) Reset() {
 	c.newTokenPairMap = []*types.TokenPair{}
 	c.tokenPairChanged = false
 	c.updatedAccAddress = make(map[string]struct{})
+	c.swapInfos = make([]*backend.SwapInfo, 0, 2000)
+	c.newSwapTokenPairs = make([]*ammswap.SwapTokenPair, 0, 2000)
 }
 
 func (c *Cache) AddTransaction(transaction *backend.Transaction) {
@@ -72,4 +79,24 @@ func (c *Cache) GetUpdatedAccAddress() (accs []sdk.AccAddress) {
 		}
 	}
 	return accs
+}
+
+// AddSwapInfo appends swapInfo to cache SwapInfos
+func (c *Cache) AddSwapInfo(swapInfo *backend.SwapInfo) {
+	c.swapInfos = append(c.swapInfos, swapInfo)
+}
+
+// nolint
+func (c *Cache) GetSwapInfos() []*backend.SwapInfo {
+	return c.swapInfos
+}
+
+// AddNewSwapTokenPairs appends swapTokenPair to cache newSwapTokenPairs
+func (c *Cache) AddNewSwapTokenPair(swapTokenPair *ammswap.SwapTokenPair) {
+	c.newSwapTokenPairs = append(c.newSwapTokenPairs, swapTokenPair)
+}
+
+// nolint
+func (c *Cache) GetNewSwapTokenPairs() []*ammswap.SwapTokenPair {
+	return c.newSwapTokenPairs
 }

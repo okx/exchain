@@ -32,6 +32,7 @@ type Stream struct {
 	tokenKeeper    types.TokenKeeper    // The reference to the TokenKeeper to get fee details
 	marketKeeper   backend.MarketKeeper // The reference to MarketKeeper to get ticker/klines
 	dexKeeper      types.DexKeeper
+	swapKeeper     types.SwapKeeper
 	cdc            *codec.Codec // The wire codec for binary encoding/decoding.
 	logger         log.Logger
 	engines        map[EngineKind]types.IStreamEngine
@@ -48,7 +49,7 @@ type Stream struct {
 	cfg             *appCfg.StreamConfig
 }
 
-func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, cdc *codec.Codec, logger log.Logger, cfg *appCfg.Config) *Stream {
+func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, cdc *codec.Codec, logger log.Logger, cfg *appCfg.Config) *Stream {
 
 	logger.Info("entering NewStreamEngine")
 
@@ -56,6 +57,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		orderKeeper: orderKeeper,
 		tokenKeeper: tokenKeeper,
 		dexKeeper:   dexKeeper,
+		swapKeeper:  swapKeeper,
 		cdc:         cdc,
 		logger:      logger,
 		Cache:       common.NewCache(),

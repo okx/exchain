@@ -100,6 +100,7 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	orm.db.AutoMigrate(&token.FeeDetail{})
 	orm.db.AutoMigrate(&types.Order{})
 	orm.db.AutoMigrate(&types.Transaction{})
+	orm.db.AutoMigrate(&types.SwapInfo{})
 
 	allKlinesMap := types.GetAllKlineMap()
 	for _, v := range allKlinesMap {
@@ -1217,7 +1218,8 @@ func (orm *ORM) GetTransactionList(address string, txType, startTime, endTime in
 }
 
 // BatchInsertOrUpdate return map mean success or fail
-func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal, mrs []*types.MatchResult, feeDetails []*token.FeeDetail, trxs []*types.Transaction) (resultMap map[string]int, err error) {
+func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal,
+	mrs []*types.MatchResult, feeDetails []*token.FeeDetail, trxs []*types.Transaction, swapInfos []*types.SwapInfo) (resultMap map[string]int, err error) {
 
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -1232,8 +1234,8 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	resultMap["feeDetails"] = 0
 	resultMap["transactions"] = 0
 	resultMap["matchResults"] = 0
+	resultMap["swapInfos"] = 0
 
-	// FLT. 20190909.  BatchInsert is faster than insert one by one.
 	// 1. Batch Insert Orders.
 	orderVItems := []string{}
 	for _, order := range newOrders {
@@ -1323,6 +1325,18 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 			return resultMap, ret.Error
 		} else {
 			resultMap["feeDetails"] += len(fdVItems)
+		}
+	}
+
+	// 5. insert swap infos
+	for _, swapInfo := range swapInfos {
+		if swapInfo != nil {
+			ret := trx.Create(swapInfo)
+			if ret.Error != nil {
+				return resultMap, ret.Error
+			} else {
+				resultMap["swapInfos"] += 1
+			}
 		}
 	}
 

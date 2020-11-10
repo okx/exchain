@@ -82,7 +82,8 @@ func (e *MySQLEngine) Write(data types.IStreamData, success *bool) {
 		panic(fmt.Sprintf("MySqlEngine Convert data %+v to DataAnalysis failed", data))
 	}
 
-	results, err := e.orm.BatchInsertOrUpdate(enData.NewOrders, enData.UpdatedOrders, enData.Deals, enData.MatchResults, enData.FeeDetails, enData.Trans)
+	results, err := e.orm.BatchInsertOrUpdate(enData.NewOrders, enData.UpdatedOrders, enData.Deals, enData.MatchResults,
+		enData.FeeDetails, enData.Trans, enData.SwapInfos)
 	if err != nil {
 		e.logger.Error(fmt.Sprintf("MySqlEngine write failed: %s, results: %v", err.Error(), results))
 		*success = false
