@@ -223,12 +223,6 @@ func claim(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) {
 	require.True(t, result.IsOK())
 }
 
-func setWhite(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) {
-	setWhiteMsg := types.NewMsgSetWhite(createPoolMsg.PoolName, createPoolMsg.Owner)
-	result := tCtx.handler(tCtx.ctx, setWhiteMsg)
-	require.True(t, result.IsOK())
-}
-
 func TestHandlerMsgCreatePool(t *testing.T) {
 	preExec := func(t *testing.T, tCtx *testContext) interface{} {
 		return nil
@@ -913,17 +907,6 @@ func TestHandlerMsgClaim(t *testing.T) {
 	}
 
 	testCaseTest(t, tests)
-}
-
-func TestHandlerMsgSetWhite(t *testing.T) {
-	// init
-	tCtx := initEnvironment(t)
-
-	// create pool
-	createPoolMsg := createPool(t, tCtx)
-
-	// setWhite
-	setWhite(t, tCtx, createPoolMsg)
 }
 
 func TestNewHandler(t *testing.T) {
