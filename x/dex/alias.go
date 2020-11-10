@@ -41,6 +41,7 @@ type (
 	MsgDeposit           = types.MsgDeposit
 	MsgWithdraw          = types.MsgWithdraw
 	MsgTransferOwnership = types.MsgTransferOwnership
+	MsgConfirmOwnership  = types.MsgConfirmOwnership
 	MsgUpdateOperator    = types.MsgUpdateOperator
 	MsgCreateOperator    = types.MsgCreateOperator
 

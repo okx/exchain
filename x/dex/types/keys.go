@@ -61,6 +61,8 @@ var (
 	WithdrawTimeKeyPrefix = []byte{0x54}
 	// UserTokenPairKeyPrefix is the store key for user token pair num
 	UserTokenPairKeyPrefix = []byte{0x06}
+    //the prefix of the confirm ownership key
+	PrefixConfirmOwnershipKey = []byte{0x07}
 )
 
 // GetUserTokenPairAddressPrefix returns token pair address prefix key
@@ -120,4 +122,8 @@ func GetKey(it sdk.Iterator) string {
 // GetOperatorAddressKey returns key of operator address
 func GetOperatorAddressKey(addr sdk.AccAddress) []byte {
 	return append(DEXOperatorKeyPrefix, addr.Bytes()...)
+}
+
+func GetConfirmOwnershipKey(product string) []byte {
+	return append(PrefixConfirmOwnershipKey, []byte(product)...)
 }

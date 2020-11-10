@@ -188,7 +188,8 @@ func (k Keeper) DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, pro
 	}
 }
 
-func (k Keeper) updateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
+// UpdateUserTokenPair updates token pair in the store and the cache
+func (k Keeper) UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress) {
 	store := ctx.KVStore(k.tokenPairStoreKey)
 	store.Delete(types.GetUserTokenPairAddress(owner, product))
 	store.Set(types.GetUserTokenPairAddress(to, product), []byte{})
@@ -325,33 +326,6 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 // GetParamSubspace returns paramSubspace
 func (k Keeper) GetParamSubspace() params.Subspace {
 	return k.paramSubspace
-}
-
-// TransferOwnership transfers ownership of product
-func (k Keeper) TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error {
-	tokenPair := k.GetTokenPair(ctx, product)
-	if tokenPair == nil {
-		return types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", product))
-	}
-
-	if !tokenPair.Owner.Equals(from) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of product(%s)", from.String(), product))
-	}
-
-	// Withdraw
-	if tokenPair.Deposits.IsPositive() {
-		if err := k.Withdraw(ctx, product, from, tokenPair.Deposits); err != nil {
-			return sdk.ErrInternal(fmt.Sprintf("withdraw deposits:%s error:%s", tokenPair.Deposits.String(), err.Error()))
-		}
-	}
-
-	// transfer ownership
-	tokenPair.Owner = to
-	tokenPair.Deposits = types.DefaultTokenPairDeposit
-	k.UpdateTokenPair(ctx, product, tokenPair)
-	k.updateUserTokenPair(ctx, product, from, to)
-
-	return nil
 }
 
 // GetWithdrawInfo returns withdraw info binding the addr
@@ -499,4 +473,30 @@ func (k Keeper) SetMaxTokenPairID(ctx sdk.Context, MaxtokenPairID uint64) {
 
 func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
 	k.observerKeeper = sk
+}
+
+// GetConfirmOwnership returns ownership confirming information
+func (k Keeper) GetConfirmOwnership(ctx sdk.Context, product string) (confirmOwnership *types.ConfirmOwnership, exist bool) {
+	store := ctx.KVStore(k.storeKey)
+	bytes := store.Get(types.GetConfirmOwnershipKey(product))
+	if bytes == nil {
+		return nil, false
+	}
+
+	k.cdc.MustUnmarshalBinaryBare(bytes, &confirmOwnership)
+	return confirmOwnership, true
+}
+
+// SetConfirmOwnership sets ownership confirming information to db
+func (k Keeper) SetConfirmOwnership(ctx sdk.Context, confirmOwnership *types.ConfirmOwnership) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetConfirmOwnershipKey(confirmOwnership.Product)
+	store.Set(key, k.cdc.MustMarshalBinaryBare(confirmOwnership))
+}
+
+// DeleteConfirmOwnership deletes ownership confirming information from db
+func (k Keeper) DeleteConfirmOwnership(ctx sdk.Context, product string) {
+	store := ctx.KVStore(k.storeKey)
+	key := types.GetConfirmOwnershipKey(product)
+	store.Delete(key)
 }
