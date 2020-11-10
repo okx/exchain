@@ -8,6 +8,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDeposit{}, "okexchain/dex/MsgDeposit", nil)
 	cdc.RegisterConcrete(MsgWithdraw{}, "okexchain/dex/MsgWithdraw", nil)
 	cdc.RegisterConcrete(MsgTransferOwnership{}, "okexchain/dex/MsgTransferTradingPairOwnership", nil)
+	cdc.RegisterConcrete(MsgConfirmOwnership{}, "okexchain/dex/MsgConfirmOwnership", nil)
 	cdc.RegisterConcrete(DelistProposal{}, "okexchain/dex/DelistProposal", nil)
 	cdc.RegisterConcrete(MsgCreateOperator{}, "okexchain/dex/CreateOperator", nil)
 	cdc.RegisterConcrete(MsgUpdateOperator{}, "okexchain/dex/UpdateOperator", nil)
