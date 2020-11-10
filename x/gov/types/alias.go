@@ -57,9 +57,9 @@ const (
 	QueryVote      = sdkGovTypes.QueryVote
 	QueryTally     = sdkGovTypes.QueryTally
 
-	ParamDeposit    = sdkGovTypes.ParamDeposit
-	ParamVoting     = sdkGovTypes.ParamVoting
-	ParamTallying   = sdkGovTypes.ParamTallying
+	ParamDeposit  = sdkGovTypes.ParamDeposit
+	ParamVoting   = sdkGovTypes.ParamVoting
+	ParamTallying = sdkGovTypes.ParamTallying
 
 	MaxDescriptionLength = sdkGovTypes.MaxDescriptionLength
 )
@@ -71,6 +71,9 @@ var (
 	ErrInvalidGenesis          = sdkGovTypes.ErrInvalidGenesis
 	ErrInvalidProposalType     = sdkGovTypes.ErrInvalidProposalType
 	ErrInvalidVote             = sdkGovTypes.ErrInvalidVote
+
+	CodeInvalidContent      = sdkGovTypes.CodeInvalidContent
+	CodeInvalidProposalType = sdkGovTypes.CodeInvalidProposalType
 
 	ProposalKey         = sdkGovTypes.ProposalKey
 	ValidProposalStatus = sdkGovTypes.ValidProposalStatus
@@ -89,9 +92,9 @@ var (
 
 	ParamKeyTable = sdkGovTypes.ParamKeyTable
 
-	ParamStoreKeyDepositParams    = sdkGovTypes.ParamStoreKeyDepositParams
-	ParamStoreKeyVotingParams     = sdkGovTypes.ParamStoreKeyVotingParams
-	ParamStoreKeyTallyParams      = sdkGovTypes.ParamStoreKeyTallyParams
+	ParamStoreKeyDepositParams = sdkGovTypes.ParamStoreKeyDepositParams
+	ParamStoreKeyVotingParams  = sdkGovTypes.ParamStoreKeyVotingParams
+	ParamStoreKeyTallyParams   = sdkGovTypes.ParamStoreKeyTallyParams
 
 	NewAppModule = sdkGov.NewAppModule
 
