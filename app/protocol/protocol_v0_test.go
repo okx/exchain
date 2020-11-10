@@ -123,24 +123,6 @@ func TestProtocolV0_InitChainer_BeginBlocker_EndBlocker_ExportGenesis_ExportAppS
 	consAddr := protocolV0.GetDistrKeeper().GetPreviousProposerConsAddr(mockApp.GetDeliverStateCtx())
 	require.Equal(t, testConsAddr, consAddr)
 
-	///////////////////////////// test EndBlocker /////////////////////////////
-
-	var endBlockResponse abci.ResponseEndBlock
-
-	// run protocol.EndBlocker
-	require.NotPanics(t, func() {
-		endBlockResponse = protocolV0.EndBlocker(mockApp.GetDeliverStateCtx(), abci.RequestEndBlock{})
-	})
-
-	// check the event type "UpgradeAppVersion" in upgrade EndBlock
-	var existed bool
-	for _, event := range endBlockResponse.Events {
-		if event.Type == upgrade.EventTypeUpgradeAppVersion {
-			existed = true
-		}
-	}
-	require.True(t, existed)
-
 	///////////////////////////// test ExportGenesis /////////////////////////////
 	var jsonRawMessageMap map[string]json.RawMessage
 
