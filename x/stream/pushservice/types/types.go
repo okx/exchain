@@ -84,8 +84,7 @@ func (rb *RedisBlock) storeInstruments(ctx sdk.Context, cache *common.Cache, dex
 
 	// store instruments when token pair changed
 	isTokenPairChanged := cache.GetTokenPairChanged()
-	newSwapPairs := cache.GetNewSwapTokenPairs()
-	if isTokenPairChanged || len(newSwapPairs) > 0 {
+	if isTokenPairChanged {
 		// store token in dex token pair
 		tokenPairs := dexKeeper.GetTokenPairs(ctx)
 		for _, tokenPair := range tokenPairs {
@@ -93,8 +92,11 @@ func (rb *RedisBlock) storeInstruments(ctx sdk.Context, cache *common.Cache, dex
 			rb.Instruments[tokenPair.BaseAssetSymbol] = struct{}{}
 			rb.Instruments[tokenPair.QuoteAssetSymbol] = struct{}{}
 		}
+	}
 
-		// store token in swap token pair
+	// store token in swap token pair
+	newSwapPairs := cache.GetNewSwapTokenPairs()
+	if len(newSwapPairs) > 0 {
 		swapTokenPairs := swapKeeper.GetSwapTokenPairs(ctx)
 		for _, swapTokenPair := range swapTokenPairs {
 			rb.Instruments[swapTokenPair.BasePooledCoin.Denom] = struct{}{}

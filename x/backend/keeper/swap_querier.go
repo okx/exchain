@@ -173,9 +173,9 @@ func calculateDollarAmount(ctx sdk.Context, keeper Keeper, baseAmount sdk.SysCoi
 		baseTokenPairName := ammswap.GetSwapTokenPairName(baseAmount.Denom, types.DollarQuoteToken)
 		if baseTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, baseTokenPairName); err == nil {
 			if baseTokenPair.BasePooledCoin.Denom == types.DollarQuoteToken && baseTokenPair.QuotePooledCoin.Amount.IsPositive() {
-				baseTokenDollar = baseTokenPair.BasePooledCoin.Amount.Quo(baseTokenPair.QuotePooledCoin.Amount).Mul(baseAmount.Amount)
+				baseTokenDollar = common.MulAndQuo(baseTokenPair.BasePooledCoin.Amount, baseAmount.Amount, baseTokenPair.QuotePooledCoin.Amount)
 			} else if baseTokenPair.BasePooledCoin.Amount.IsPositive() {
-				baseTokenDollar = baseTokenPair.QuotePooledCoin.Amount.Quo(baseTokenPair.BasePooledCoin.Amount).Mul(baseAmount.Amount)
+				baseTokenDollar = common.MulAndQuo(baseTokenPair.QuotePooledCoin.Amount, baseAmount.Amount, baseTokenPair.BasePooledCoin.Amount)
 			}
 		}
 	}
@@ -186,9 +186,9 @@ func calculateDollarAmount(ctx sdk.Context, keeper Keeper, baseAmount sdk.SysCoi
 		quoteTokenPairName := ammswap.GetSwapTokenPairName(quoteAmount.Denom, types.DollarQuoteToken)
 		if quoteTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, quoteTokenPairName); err == nil {
 			if quoteTokenPair.BasePooledCoin.Denom == types.DollarQuoteToken && quoteTokenPair.QuotePooledCoin.Amount.IsPositive() {
-				quoteTokenDollar = quoteTokenPair.BasePooledCoin.Amount.Quo(quoteTokenPair.QuotePooledCoin.Amount).Mul(quoteAmount.Amount)
+				quoteTokenDollar = common.MulAndQuo(quoteTokenPair.BasePooledCoin.Amount, quoteAmount.Amount, quoteTokenPair.QuotePooledCoin.Amount)
 			} else if quoteTokenPair.BasePooledCoin.Amount.IsPositive() {
-				quoteTokenDollar = quoteTokenPair.QuotePooledCoin.Amount.Quo(quoteTokenPair.BasePooledCoin.Amount).Mul(quoteAmount.Amount)
+				quoteTokenDollar = common.MulAndQuo(quoteTokenPair.QuotePooledCoin.Amount, quoteAmount.Amount, quoteTokenPair.BasePooledCoin.Amount)
 			}
 		}
 	}
