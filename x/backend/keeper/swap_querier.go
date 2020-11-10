@@ -153,13 +153,12 @@ func querySwapWatchlist(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	} else {
 		response = common.GetEmptyListResponse(total, queryParams.Page, queryParams.PerPage)
 	}
+
 	bz, err := json.Marshal(response)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
 	return bz, nil
-	return nil, nil
-
 }
 
 // calculate baseAmount and quoteAmount in dollar by usdk
