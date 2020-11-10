@@ -1,9 +1,8 @@
-//+build !stream
-
 package stream
 
 import (
 	"encoding/json"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,10 +10,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
-)
-
-const (
-	ModuleName = "stream"
 )
 
 // type check to ensure the interface is properly implemented
@@ -26,43 +21,65 @@ var (
 // app module Basics object
 type AppModuleBasic struct{}
 
-func (AppModuleBasic) Name() string { return ModuleName }
+func (AppModuleBasic) Name() string {
+	return ModuleName
+}
 
-func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {}
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+}
 
-func (AppModuleBasic) DefaultGenesis() json.RawMessage { return nil }
+func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	return nil
+}
 
 // Validation check of the Genesis
-func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error { return nil }
+func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
+	return nil
+}
 
 // Register rest routes
-func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {}
+func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
+}
 
 // Get the root query command of this module
-func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command { return nil }
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
 
 // Get the root tx command of this module
-func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command { return nil }
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	return nil
+}
 
 type AppModule struct {
 	AppModuleBasic
+	keeper Keeper
 }
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(k Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
+		keeper:         k,
 	}
 }
 
-func (AppModule) Name() string { return ModuleName }
+func (AppModule) Name() string {
+	return ModuleName
+}
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
-func (am AppModule) Route() string { return "" }
+func (am AppModule) Route() string {
+	return RouterKey
+}
 
-func (am AppModule) NewHandler() sdk.Handler { return nil }
-func (am AppModule) QuerierRoute() string    { return "" }
+func (am AppModule) NewHandler() sdk.Handler {
+	return nil
+}
+func (am AppModule) QuerierRoute() string {
+	return QuerierRoute
+}
 
 func (am AppModule) NewQuerierHandler() sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
@@ -70,9 +87,12 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 	}
 }
 
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
+func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
+	BeginBlocker(ctx, am.keeper)
+}
 
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+	EndBlocker(ctx, am.keeper)
 	return nil
 }
 
@@ -80,4 +100,6 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 	return nil
 }
 
-func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage { return nil }
+func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	return nil
+}
