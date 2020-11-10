@@ -220,11 +220,11 @@ func getCmdConfirmOwnership(cdc *codec.Codec) *cobra.Command {
 
 			product, err := flags.GetString(FlagProduct)
 			if err != nil {
-				return errors.New("product not valid")
+				return errors.New("invalid product")
 			}
 			_, err = flags.GetString(FlagFrom)
 			if err != nil {
-				return errors.New("from not valid")
+				return errors.New("invalid from")
 			}
 
 			from := cliCtx.GetFromAddress()
