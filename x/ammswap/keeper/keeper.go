@@ -3,6 +3,8 @@ package keeper
 import (
 	"errors"
 	"fmt"
+
+	"github.com/okex/okexchain/x/backend/exported"
 	"github.com/okex/okexchain/x/common"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -18,9 +20,10 @@ type Keeper struct {
 	supplyKeeper types.SupplyKeeper
 	tokenKeeper  types.TokenKeeper
 
-	storeKey   sdk.StoreKey
-	cdc        *codec.Codec
-	paramSpace types.ParamSubspace
+	storeKey       sdk.StoreKey
+	cdc            *codec.Codec
+	paramSpace     types.ParamSubspace
+	ObserverKeeper []exported.BackendKeeper
 }
 
 // NewKeeper creates a swap keeper
@@ -193,4 +196,20 @@ func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sd
 	inputAmountWithFee := inputAmount.MulTruncate(sdk.OneDec().Sub(feeRate).MulTruncate(sdk.NewDec(1000)))
 	denominator := inputReserve.MulTruncate(sdk.NewDec(1000)).Add(inputAmountWithFee)
 	return common.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
+}
+
+func (k *Keeper) SetObserverKeeper(bk exported.BackendKeeper) {
+	k.ObserverKeeper = append(k.ObserverKeeper, bk)
+}
+
+func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair types.SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin) {
+	for _, observer := range k.ObserverKeeper {
+		observer.OnSwapToken(ctx, address, swapTokenPair, sellAmount, buyAmount)
+	}
+}
+
+func (k Keeper) OnCreateExchange(ctx sdk.Context, swapTokenPair types.SwapTokenPair) {
+	for _, observer := range k.ObserverKeeper {
+		observer.OnSwapCreateExchange(ctx, swapTokenPair)
+	}
 }

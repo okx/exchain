@@ -17,10 +17,11 @@ const (
 var (
 	// functions aliases
 	// nolint
-	NewKeeper          = keeper.NewKeeper
-	NewQuerier         = keeper.NewQuerier
-	RegisterCodec      = types.RegisterCodec
-	NewMsgAddLiquidity = types.NewMsgAddLiquidity
+	NewKeeper            = keeper.NewKeeper
+	NewQuerier           = keeper.NewQuerier
+	RegisterCodec        = types.RegisterCodec
+	NewMsgAddLiquidity   = types.NewMsgAddLiquidity
+	GetSwapTokenPairName = types.GetSwapTokenPairName
 
 	// variable aliases
 	// nolint

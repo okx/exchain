@@ -1,8 +1,12 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/mock"
+	"encoding/json"
 	"testing"
+
+	"github.com/okex/okexchain/x/common"
+
+	"github.com/cosmos/cosmos-sdk/x/mock"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -26,34 +30,31 @@ func TestNewQuerier(t *testing.T) {
 
 	// querier with wrong path
 	path0 := []string{"any", types.TestBasePooledToken}
-	tokenpair, err := querier(ctx, path0, abci.RequestQuery{})
+	queryTokenPair, err := querier(ctx, path0, abci.RequestQuery{})
 	require.NotNil(t, err)
-	require.Nil(t, tokenpair)
+	require.Nil(t, queryTokenPair)
 
-	// querier with wrong token
-	path := []string{types.QuerySwapTokenPair, types.TestBasePooledToken, types.TestQuotePooledToken}
-	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
-	require.NotNil(t, err)
-	require.Nil(t, tokenpair)
-
-	// add new tokenpair and querier
-	tokenPair := types.TestSwapTokenPairName
+	// add new token pair and query
+	path := []string{types.QuerySwapTokenPair, types.TestSwapTokenPairName}
 	swapTokenPair := types.GetTestSwapTokenPair()
-	keeper.SetSwapTokenPair(ctx, tokenPair, swapTokenPair)
-	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
+	keeper.SetSwapTokenPair(ctx, types.TestSwapTokenPairName, swapTokenPair)
+	queryTokenPair, err = querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
-	require.NotNil(t, tokenpair)
+	require.NotNil(t, queryTokenPair)
+	var response common.BaseResponse
+	jsonErr := json.Unmarshal(queryTokenPair, &response)
+	require.Nil(t, jsonErr)
+	require.NotNil(t, response.Data)
 
-	// check the value
-	result := &types.SwapTokenPair{}
-	keeper.cdc.MustUnmarshalJSON(tokenpair, result)
-	require.EqualValues(t, result.BasePooledCoin.Denom, types.TestBasePooledToken)
+	// delete token pair and query
+	keeper.DeleteSwapTokenPair(ctx, types.TestSwapTokenPairName)
+	queryTokenPair, err = querier(ctx, path, abci.RequestQuery{})
+	require.Nil(t, err)
+	require.NotNil(t, queryTokenPair)
+	jsonErr = json.Unmarshal(queryTokenPair, &response)
+	require.Nil(t, jsonErr)
+	require.Nil(t, response.Data)
 
-	// delete tokenpair and querier
-	keeper.DeleteSwapTokenPair(ctx, tokenPair)
-	tokenpair, err = querier(ctx, path, abci.RequestQuery{})
-	require.NotNil(t, err)
-	require.Nil(t, tokenpair)
 }
 
 func TestQueryParams(t *testing.T) {
@@ -84,17 +85,17 @@ func TestQuerySwapTokenPairs(t *testing.T) {
 }
 
 func initTestPool(t *testing.T, addrList mock.AddrKeysSlice, mapp *TestInput,
-	ctx sdk.Context, keeper Keeper, baseTokenAmount, quoteTokenAmount sdk.SysCoin, poolTokenAmount sdk.Dec) types.SwapTokenPair{
+	ctx sdk.Context, keeper Keeper, baseTokenAmount, quoteTokenAmount sdk.DecCoin, poolTokenAmount sdk.Dec) types.SwapTokenPair {
 	swapTokenPair := types.SwapTokenPair{
 		QuotePooledCoin: quoteTokenAmount,
-		BasePooledCoin: baseTokenAmount,
-		PoolTokenName: types.GetPoolTokenName(baseTokenAmount.Denom, quoteTokenAmount.Denom),
+		BasePooledCoin:  baseTokenAmount,
+		PoolTokenName:   types.GetPoolTokenName(baseTokenAmount.Denom, quoteTokenAmount.Denom),
 	}
 	keeper.SetSwapTokenPair(ctx, types.GetSwapTokenPairName(baseTokenAmount.Denom, quoteTokenAmount.Denom), swapTokenPair)
 	poolToken := types.InitPoolToken(swapTokenPair.PoolTokenName)
 	initPoolTokenAmount := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, poolTokenAmount)
 	mapp.tokenKeeper.NewToken(ctx, poolToken)
-	err := keeper.MintPoolCoinsToUser(ctx, sdk.SysCoins{initPoolTokenAmount}, addrList[0].Address)
+	err := keeper.MintPoolCoinsToUser(ctx, sdk.DecCoins{initPoolTokenAmount}, addrList[0].Address)
 	require.Nil(t, err)
 	return swapTokenPair
 }
@@ -107,8 +108,7 @@ func TestQueryRedeemableAssets(t *testing.T) {
 	poolTokenAmount := sdk.NewDec(1)
 	swapTokenPair := initTestPool(t, addrList, mapp, ctx, keeper, baseTokenAmount, quoteTokenAmount, poolTokenAmount)
 
-
-	path := []string{types.QueryRedeemableAssets, swapTokenPair.BasePooledCoin.Denom, swapTokenPair.QuotePooledCoin.Denom, poolTokenAmount.String()}
+	path := []string{types.QueryRedeemableAssets, swapTokenPair.TokenPairName(), poolTokenAmount.String()}
 	resultBytes, err := querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
 	var result []sdk.SysCoin

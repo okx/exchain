@@ -115,7 +115,7 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			data = adata
 		case EngineNotifyKind:
 			pBlock := pushservicetypes.NewRedisBlock()
-			pBlock.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.Cache)
+			pBlock.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.swapKeeper, s.Cache)
 			data = pBlock
 		case EngineKlineKind:
 			pData := pulsarclient.NewPulsarData()
@@ -126,7 +126,7 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 		case EngineWebSocketKind:
 			websocket.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)
 			wsdata := websocket.NewPushData()
-			wsdata.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.Cache)
+			wsdata.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.swapKeeper, s.Cache)
 			data = wsdata
 		}
 

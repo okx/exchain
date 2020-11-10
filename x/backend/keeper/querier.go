@@ -68,6 +68,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryDexFeesList:
 			res, err = queryDexFees(ctx, path[1:], req, keeper)
 
+		case types.QuerySwapWatchlist:
+			res, err = querySwapWatchlist(ctx, req, keeper)
 		case types.QueryTickerListV2:
 			if keeper.Config.EnableMktCompute {
 				res, err = queryTickerListV2(ctx, path[1:], req, keeper)

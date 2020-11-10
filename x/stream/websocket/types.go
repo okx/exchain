@@ -18,10 +18,10 @@ func NewPushData() *PushData {
 	return &pd
 }
 
-func (data *PushData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper,
-	tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, cache *common.Cache) {
+func (data *PushData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper,
+	dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, cache *common.Cache) {
 	data.eventMgr = ctx.EventManager()
-	data.RedisBlock.SetData(ctx, orderKeeper, tokenKeeper, dexKeeper, cache)
+	data.RedisBlock.SetData(ctx, orderKeeper, tokenKeeper, dexKeeper, swapKeeper, cache)
 
 	// update depthBook cache
 	products := orderKeeper.GetUpdatedDepthbookKeys()

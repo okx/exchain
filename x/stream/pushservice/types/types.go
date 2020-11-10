@@ -49,22 +49,16 @@ func (rb RedisBlock) String() string {
 	}
 	return string(b)
 }
-func (rb *RedisBlock) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, cache *common.Cache) {
+func (rb *RedisBlock) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, cache *common.Cache) {
 	rb.Height = ctx.BlockHeight()
-	isTokenPairChanged := cache.GetTokenPairChanged()
-	rb.storeInstrumentsWhenChanged(ctx, isTokenPairChanged, dexKeeper)
+
+	rb.storeInstruments(ctx, cache, dexKeeper, swapKeeper)
 	rb.storeNewOrders(ctx, orderKeeper, rb.Height)
 	rb.updateOrders(ctx, orderKeeper)
 	rb.storeDepthBooks(ctx, orderKeeper, 200)
 	updatedAccount := cache.GetUpdatedAccAddress()
 	rb.storeAccount(ctx, updatedAccount, tokenKeeper)
 	rb.storeMatches(ctx, orderKeeper)
-}
-
-func (rb *RedisBlock) storeInstrumentsWhenChanged(ctx sdk.Context, isTokenPairChanged bool, dexKeeper types.DexKeeper) {
-	if isTokenPairChanged {
-		rb.storeInstruments(ctx, dexKeeper)
-	}
 }
 
 func (rb *RedisBlock) Empty() bool {
@@ -85,15 +79,32 @@ func (rb *RedisBlock) Clear() {
 	rb.MatchesMap = make(map[string]backend.MatchResult)
 }
 
-func (rb *RedisBlock) storeInstruments(ctx sdk.Context, dexKeeper types.DexKeeper) {
+func (rb *RedisBlock) storeInstruments(ctx sdk.Context, cache *common.Cache, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper) {
 	logger := ctx.Logger().With("module", "stream")
-	pairs := dexKeeper.GetTokenPairs(ctx)
-	for _, pair := range pairs {
-		product := fmt.Sprintf("%s_%s", pair.BaseAssetSymbol, pair.QuoteAssetSymbol)
-		rb.Instruments[product] = struct{}{}
-		rb.Instruments[pair.BaseAssetSymbol] = struct{}{}
-		rb.Instruments[pair.QuoteAssetSymbol] = struct{}{}
+
+	// store instruments when token pair changed
+	isTokenPairChanged := cache.GetTokenPairChanged()
+	if isTokenPairChanged {
+		// store token in dex token pair
+		tokenPairs := dexKeeper.GetTokenPairs(ctx)
+		for _, tokenPair := range tokenPairs {
+			rb.Instruments[tokenPair.Name()] = struct{}{}
+			rb.Instruments[tokenPair.BaseAssetSymbol] = struct{}{}
+			rb.Instruments[tokenPair.QuoteAssetSymbol] = struct{}{}
+		}
 	}
+
+	// store token in swap token pair
+	newSwapPairs := cache.GetNewSwapTokenPairs()
+	if len(newSwapPairs) > 0 {
+		swapTokenPairs := swapKeeper.GetSwapTokenPairs(ctx)
+		for _, swapTokenPair := range swapTokenPairs {
+			rb.Instruments[swapTokenPair.BasePooledCoin.Denom] = struct{}{}
+			rb.Instruments[swapTokenPair.QuotePooledCoin.Denom] = struct{}{}
+			rb.Instruments[swapTokenPair.PoolTokenName] = struct{}{}
+		}
+	}
+
 	logger.Debug("storeInstruments",
 		"instruments", rb.Instruments,
 	)

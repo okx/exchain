@@ -99,6 +99,9 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	swapTokenPair := types.NewSwapPair(msg.Token0Name, msg.Token1Name)
 	k.SetSwapTokenPair(ctx, tokenPairName, swapTokenPair)
 
+	// 5. notify backend module
+	k.OnCreateExchange(ctx, swapTokenPair)
+
 	event = event.AppendAttributes(sdk.NewAttribute("pool-token-name", poolTokenName))
 	event = event.AppendAttributes(sdk.NewAttribute("token-pair", tokenPairName))
 	ctx.EventManager().EmitEvent(event)
@@ -458,6 +461,7 @@ func swapTokenNativeToken(
 		swapTokenPair.BasePooledCoin = swapTokenPair.BasePooledCoin.Add(msg.SoldTokenAmount)
 	}
 	k.SetSwapTokenPair(ctx, msg.GetSwapTokenPairName(), swapTokenPair)
+	k.OnSwapToken(ctx, msg.Recipient, swapTokenPair, msg.SoldTokenAmount, tokenBuy)
 	return sdk.Result{}
 }
 

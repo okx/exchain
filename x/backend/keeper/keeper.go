@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/okex/okexchain/x/ammswap"
+
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -26,7 +28,8 @@ type Keeper struct {
 	TokenKeeper  types.TokenKeeper  // The reference to the TokenKeeper to get fee details
 	marketKeeper types.MarketKeeper // The reference to the MarketKeeper to get fee details
 	dexKeeper    types.DexKeeper    // The reference to the DexKeeper to get tokenpair
-	cdc          *codec.Codec       // The wire codec for binary encoding/decoding.
+	swapKeeper   types.SwapKeeper
+	cdc          *codec.Codec // The wire codec for binary encoding/decoding.
 	Orm          *orm.ORM
 	stopChan     chan struct{}
 	Config       *config.Config
@@ -37,12 +40,13 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
+func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
 	k := Keeper{
 		OrderKeeper:  orderKeeper,
 		TokenKeeper:  tokenKeeper,
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
+		swapKeeper:   swapKeeper,
 		cdc:          cdc,
 		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
@@ -52,23 +56,28 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	if k.Config.EnableBackend {
 		k.Cache = cache.NewCache()
 		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &k.Logger)
-		if err == nil {
-			k.Orm = orm
-			k.stopChan = make(chan struct{})
-
-			if k.Config.EnableMktCompute {
-				// websocket channel
-				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-				k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-				go generateKline1M(k)
-				// init ticker buffer
-				ts := time.Now().Unix()
-
-				k.UpdateTickersBuffer(ts-types.SecondsInADay*14, ts, nil)
-
-				go k.mergeTicker3SecondEvents()
-			}
+		if err != nil {
+			panic(fmt.Sprintf("backend new orm error:%s", err.Error()))
 		}
+		k.Orm = orm
+		k.stopChan = make(chan struct{})
+
+		if k.Config.EnableMktCompute {
+			// websocket channel
+			k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+			k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+			go generateKline1M(k)
+			// init ticker buffer
+			ts := time.Now().Unix()
+
+			k.UpdateTickersBuffer(ts-types.SecondsInADay*14, ts, nil)
+
+			go k.mergeTicker3SecondEvents()
+
+			// set observer keeper
+			k.swapKeeper.SetObserverKeeper(k)
+		}
+
 	}
 	logger.Debug(fmt.Sprintf("%+v", k.Config))
 	return k
@@ -456,4 +465,21 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 			break
 		}
 	}
+}
+
+func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair ammswap.SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin) {
+	swapInfo := &types.SwapInfo{
+		Address:          address.String(),
+		TokenPairName:    swapTokenPair.TokenPairName(),
+		BaseTokenAmount:  swapTokenPair.BasePooledCoin.String(),
+		QuoteTokenAmount: swapTokenPair.QuotePooledCoin.String(),
+		SellAmount:       sellAmount.String(),
+		BuysAmount:       buyAmount.String(),
+		Price:            swapTokenPair.BasePooledCoin.Amount.Quo(swapTokenPair.QuotePooledCoin.Amount).String(),
+		Timestamp:        ctx.BlockTime().Unix(),
+	}
+	k.Cache.AddSwapInfo(swapInfo)
+}
+
+func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
 }

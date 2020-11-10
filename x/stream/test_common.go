@@ -117,7 +117,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64, cfg *app
 		true,
 		monitor.NopOrderMetrics())
 
-	mockApp.streamKeeper = NewKeeper(mockApp.OrderKeeper, mockApp.TokenKeeper, &mockApp.DexKeeper, &mockApp.AccountKeeper, mockApp.Cdc, mockApp.Logger(), cfg, monitor.NopStreamMetrics())
+	mockApp.streamKeeper = NewKeeper(mockApp.OrderKeeper, mockApp.TokenKeeper, &mockApp.DexKeeper, &mockApp.AccountKeeper, nil, mockApp.Cdc, mockApp.Logger(), cfg, monitor.NopStreamMetrics())
 
 	mockApp.Router().AddRoute(ordertypes.RouterKey, order.NewOrderHandler(mockApp.OrderKeeper))
 	mockApp.QueryRouter().AddRoute(order.QuerierRoute, keeper.NewQuerier(mockApp.OrderKeeper))
