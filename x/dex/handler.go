@@ -250,7 +250,6 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOw
 	}
 	// transfer ownership
 	tokenPair.Owner = msg.Address
-	tokenPair.Deposits = types.DefaultTokenPairDeposit
 	keeper.UpdateTokenPair(ctx, msg.Product, tokenPair)
 	keeper.UpdateUserTokenPair(ctx, msg.Product, confirmOwnership.FromAddress, msg.Address)
 
