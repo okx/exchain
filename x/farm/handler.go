@@ -48,11 +48,6 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			handlerFun = func() sdk.Result {
 				return handleMsgClaim(ctx, k, msg)
 			}
-		case types.MsgSetWhite:
-			name = "handleMsgSetWhite"
-			handlerFun = func() sdk.Result {
-				return handleMsgSetWhite(ctx, k, msg)
-			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -159,19 +154,4 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Re
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 	))
 	return sdk.Result{Events: ctx.EventManager().Events()}
-}
-
-func handleMsgSetWhite(ctx sdk.Context, k keeper.Keeper, msg types.MsgSetWhite) sdk.Result {
-	if _, found := k.GetFarmPool(ctx, msg.PoolName); !found {
-		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
-	}
-
-	k.SetWhitelist(ctx, msg.PoolName)
-
-	return sdk.Result{Events: sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeCreatePool,
-			sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
-		),
-	}}
 }
