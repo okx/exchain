@@ -11,8 +11,9 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 	currentPeriod := k.GetPoolCurrentRewards(ctx, pool.Name)
 	endBlockHeight := ctx.BlockHeight()
 
-	yieldedTokens := sdk.SysCoins{}
+	totalYieldedTokens := sdk.SysCoins{}
 	for i := 0; i < len(pool.YieldedTokenInfos); i++ {
+		yieldedTokens := sdk.SysCoins{}
 		startBlockHeightToYield := pool.YieldedTokenInfos[i].StartBlockHeightToYield
 		var startBlockHeight int64
 		if currentPeriod.StartBlockHeight <= startBlockHeightToYield {
@@ -32,16 +33,17 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 		remaining := pool.YieldedTokenInfos[i].RemainingAmount
 		if amount.LT(remaining.Amount) {
 			pool.YieldedTokenInfos[i].RemainingAmount.Amount = remaining.Amount.Sub(amount)
-			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, amount))
+			yieldedTokens = sdk.NewDecCoinsFromDec(remaining.Denom, amount)
 		} else {
 			pool.YieldedTokenInfos[i] = types.NewYieldedTokenInfo(
 				sdk.NewDecCoin(remaining.Denom, sdk.ZeroInt()), 0, sdk.ZeroDec(),
 			)
-			yieldedTokens = yieldedTokens.Add(sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount))
+			yieldedTokens = sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount)
 		}
 		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add(yieldedTokens)
+		totalYieldedTokens = totalYieldedTokens.Add(yieldedTokens)
 	}
-	return pool, yieldedTokens
+	return pool, totalYieldedTokens
 }
 
 func (k Keeper) WithdrawRewards(
