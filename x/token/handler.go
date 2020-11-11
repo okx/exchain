@@ -223,6 +223,13 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 		return sdk.ErrInternal(fmt.Sprintf("supply mint coins error:%s", err.Error())).Result()
 	}
 
+	// check upper bound
+	totalSupply := keeper.supplyKeeper.GetSupplyByDenom(ctx, msg.Amount.Denom)
+	if totalSupply.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
+		return sdk.ErrInternal(fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)",
+			totalSupply, types.TotalSupplyUpperbound)).Result()
+	}
+
 	// send coins to acc
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Owner, mintCoins)
 	if err != nil {
