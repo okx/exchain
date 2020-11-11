@@ -159,7 +159,7 @@ func (k Keeper) calculateLockedLPTValue(
 	token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0Symbol, token1Symbol,
 		pool.TotalValueLocked.Amount)
 	if err != nil {
-		panic("should not happen: " + err.Error())
+		return sdk.ZeroDec()
 	}
 
 	if token0Symbol == quoteSymbol || token1Symbol == quoteSymbol {
