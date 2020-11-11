@@ -201,7 +201,7 @@ func (k Keeper) calculateBaseValueInQuote(
 ) sdk.Dec {
 	// calculate how much quote token the base token can swap
 	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(base.Denom, quoteSymbol))
-	if err != nil {
+	if err != nil || tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.Amount.IsZero() {
 		return sdk.ZeroDec()
 	}
 	if tokenPair.QuotePooledCoin.Denom == quoteSymbol {
