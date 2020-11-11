@@ -30,17 +30,7 @@ func (k Keeper) DeleteWhiteList(ctx sdk.Context, poolName string) {
 }
 
 func (k Keeper) isPoolNameExistedInWhiteList(ctx sdk.Context, poolName string) bool {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.PoolsYieldNativeTokenPrefix)
-	defer iterator.Close()
-
-	for ; iterator.Valid(); iterator.Next() {
-		if poolName == types.SplitPoolsYieldNativeTokenKey(iterator.Key()) {
-			return true
-		}
-	}
-
-	return false
+	return ctx.KVStore(k.storeKey).Has(types.GetWhitelistMemberKey(poolName))
 }
 
 func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool) sdk.Error {
