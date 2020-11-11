@@ -2,34 +2,30 @@ package app
 
 import (
 	"encoding/json"
+	"github.com/okex/okexchain/app/protocol"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/tendermint/tendermint/libs/log"
+	tmsm "github.com/tendermint/tendermint/state"
+	tm "github.com/tendermint/tendermint/types"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
-	"github.com/okex/okexchain/app/protocol"
 	"github.com/okex/okexchain/x/common/version"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/order/types"
-	"github.com/okex/okexchain/x/upgrade"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/cli/flags"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	tmsm "github.com/tendermint/tendermint/state"
-	tm "github.com/tendermint/tendermint/types"
-
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 
 var (
 	// the genesis file in unittest/ should be modified with this
 	privateKey     = "de0e9d9e7bac1366f7d8719a450dab03c9b704172ba43e0a25a7be1d51c69a87"
-	totalModuleNum = 21
+	totalModuleNum = 20
 )
 
 func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
@@ -113,78 +109,6 @@ func TestExportAppStateAndValidators_abci_postEndBlocker(t *testing.T) {
 	jailWhiteList = []string{"okexchainvaloper1qryc3z7jxlk7ma56qcaz75ksely65havrmtufv"}
 	require.Panics(t, func() {
 		_, _, _ = app.ExportAppStateAndValidators(true, jailWhiteList)
-	})
-
-	///////////////////// test postEndBloker /////////////////////
-
-	// situation 1
-	testInput := &abci.ResponseEndBlock{}
-	event1 := abci.Event{
-		Type: "test",
-		Attributes: []cmn.KVPair{
-			{Key: []byte("key1"), Value: []byte("value1")},
-		},
-	}
-	event2 := abci.Event{
-		Type: upgrade.EventTypeUpgradeAppVersion,
-		Attributes: []cmn.KVPair{
-			{Key: []byte(upgrade.AttributeKeyAppVersion), Value: []byte(strconv.FormatUint(1024, 10))},
-		},
-	}
-	testInput.Events = append(testInput.Events, event1, event2)
-	require.NotPanics(t, func() {
-		app.postEndBlocker(testInput)
-	})
-
-	// situation 2
-	testInput.Events = testInput.Events[:1]
-	require.NotPanics(t, func() {
-		app.postEndBlocker(testInput)
-	})
-
-	// situation 3
-	testInput.Events = []abci.Event{
-		{
-			Type: upgrade.EventTypeUpgradeAppVersion,
-			Attributes: []cmn.KVPair{
-				{Key: []byte(upgrade.AttributeKeyAppVersion), Value: []byte("parse error")},
-			},
-		},
-	}
-	require.NotPanics(t, func() {
-		app.postEndBlocker(testInput)
-	})
-
-	// situation 4
-	testInput.Events = []abci.Event{
-		{
-			Type: upgrade.EventTypeUpgradeAppVersion,
-			Attributes: []cmn.KVPair{
-				{Key: []byte(upgrade.AttributeKeyAppVersion), Value: []byte(strconv.FormatUint(0, 10))},
-			},
-		},
-	}
-	protocol.GetEngine().Clear()
-
-	require.NotPanics(t, func() {
-		app.postEndBlocker(testInput)
-	})
-
-	// situation 5
-	protocolKeeper := protocol.GetEngine().GetProtocolKeeper()
-	protocol.GetEngine().Add(protocol.NewProtocolV0(app, 0, logger, 0, protocolKeeper))
-	//protocol.GetEngine().Add(protocol.NewProtocolV1(app, 1, logger, 0, protocolKeeper))
-	testInput.Events = []abci.Event{
-		{
-			Type: upgrade.EventTypeUpgradeAppVersion,
-			Attributes: []cmn.KVPair{
-				{Key: []byte(upgrade.AttributeKeyAppVersion), Value: []byte(strconv.FormatUint(1, 10))},
-			},
-		},
-	}
-
-	require.NotPanics(t, func() {
-		app.postEndBlocker(testInput)
 	})
 }
 

@@ -2,22 +2,17 @@ package app
 
 import (
 	"fmt"
-	"io"
-	"strconv"
-
 	"github.com/okex/okexchain/app/protocol"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/upgrade"
+	"io"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
-	tmstat "github.com/tendermint/tendermint/state"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -77,51 +72,7 @@ func (app *OKExChainApp) LoadHeight(height int64) error {
 
 // hook function for BaseApp's EndBlock(upgrade)
 func (app *OKExChainApp) postEndBlocker(res *abci.ResponseEndBlock) {
-	var found bool
-	var appVersionBytes []byte
 
-	//	check the event
-	for _, event := range res.Events {
-		if event.Type == upgrade.EventTypeUpgradeAppVersion {
-			appVersionBytes, found = event.Attributes[0].Value, true
-			break
-		}
-	}
-	if !found {
-		return
-	}
-
-	// parse version number from event
-	appVersion, err := strconv.ParseUint(string(appVersionBytes), 10, 64)
-	if err != nil {
-		app.log("upgrade in func postEndBlocker : app version parse uint error")
-		return
-	}
-
-	// check the version between local engine and abci event
-	if appVersion <= protocol.GetEngine().GetCurrentVersion() {
-		return
-	}
-
-	// activate the new protocol
-	if success := protocol.GetEngine().Activate(appVersion); success {
-		txDecoder := auth.DefaultTxDecoder(protocol.GetEngine().GetCurrentProtocol().GetCodec())
-		app.SetTxDecoder(txDecoder)
-		app.log("app version %v was activated successfully\n", appVersion)
-		return
-	}
-
-	// protocol upgraded failed
-	if upgradeConfig, ok := protocol.GetEngine().GetUpgradeConfigByStore(app.GetCommitMultiStore().
-		GetKVStore(protocol.GetMainStoreKey())); ok {
-		newEvent := sdk.NewEvent(upgrade.EventTypeUpgradeFailure, sdk.NewAttribute(tmstat.UpgradeFailureTagKey,
-			fmt.Sprintf("Please install the right application version from %s", upgradeConfig.ProtocolDef.Software)))
-		res.Events = append(res.Events, abci.Event{Type: newEvent.Type, Attributes: newEvent.Attributes})
-	} else {
-		newEvent := sdk.NewEvent(upgrade.EventTypeUpgradeFailure,
-			sdk.NewAttribute(tmstat.UpgradeFailureTagKey, "Please install the right application version"))
-		res.Events = append(res.Events, abci.Event{Type: newEvent.Type, Attributes: newEvent.Attributes})
-	}
 }
 
 func (app *OKExChainApp) recoverLocalEnv(loadLatest bool) {

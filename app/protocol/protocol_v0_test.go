@@ -8,7 +8,6 @@ import (
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/token"
-	"github.com/okex/okexchain/x/upgrade"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	dbm "github.com/tendermint/tm-db"
@@ -123,24 +122,6 @@ func TestProtocolV0_InitChainer_BeginBlocker_EndBlocker_ExportGenesis_ExportAppS
 	// check the PreviousProposerConsAddr in distr module
 	consAddr := protocolV0.GetDistrKeeper().GetPreviousProposerConsAddr(mockApp.GetDeliverStateCtx())
 	require.Equal(t, testConsAddr, consAddr)
-
-	///////////////////////////// test EndBlocker /////////////////////////////
-
-	var endBlockResponse abci.ResponseEndBlock
-
-	// run protocol.EndBlocker
-	require.NotPanics(t, func() {
-		endBlockResponse = protocolV0.EndBlocker(mockApp.GetDeliverStateCtx(), abci.RequestEndBlock{})
-	})
-
-	// check the event type "UpgradeAppVersion" in upgrade EndBlock
-	var existed bool
-	for _, event := range endBlockResponse.Events {
-		if event.Type == upgrade.EventTypeUpgradeAppVersion {
-			existed = true
-		}
-	}
-	require.True(t, existed)
 
 	///////////////////////////// test ExportGenesis /////////////////////////////
 	var jsonRawMessageMap map[string]json.RawMessage
