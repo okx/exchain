@@ -54,6 +54,7 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
 	gopkg.in/yaml.v2 v2.2.7
+	github.com/segmentio/kafka-go v0.2.2
 )
 
 replace (
