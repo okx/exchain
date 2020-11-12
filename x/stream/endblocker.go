@@ -2,6 +2,7 @@ package stream
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common"
 	"time"
 
 	"github.com/okex/okexchain/x/stream/websocket"
@@ -118,7 +119,7 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			pBlock.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.swapKeeper, s.Cache)
 			data = pBlock
 		case EngineKlineKind:
-			pData := pulsarclient.NewPulsarData()
+			pData := common.NewKlineData()
 			pData.SetData(ctx, s.orderKeeper, s.Cache)
 			// should init token pair map here
 			pulsarclient.InitTokenPairMap(ctx, s.dexKeeper)

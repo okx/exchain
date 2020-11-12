@@ -136,7 +136,7 @@ func (e *PulsarEngine) URL() string {
 
 func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering PulsarEngine Write")
-	enData, ok := data.(*pulsarclient.PulsarData)
+	enData, ok := data.(*common.KlineData)
 	if !ok {
 		panic(fmt.Sprintf("Convert data %+v to PulsarData failed", data))
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common"
 	"strconv"
 	"sync"
 	"time"
@@ -49,10 +50,10 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 	return mp
 }
 
-func (p *PulsarProducer) SendAllMsg(data *PulsarData, logger log.Logger) (map[string]int, error) {
+func (p *PulsarProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "pulsar")
 	result := make(map[string]int)
-	matchResults := data.matchResults
+	matchResults := data.GetMatchResults()
 	result["matchResults"] = len(matchResults)
 	if len(matchResults) == 0 {
 		return result, nil
