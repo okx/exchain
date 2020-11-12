@@ -199,6 +199,10 @@ func (k Keeper) calculateLPTValueWithoutQuote(
 func (k Keeper) calculateBaseValueInQuote(
 	ctx sdk.Context, base sdk.SysCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
+	// base token is quote symbol
+	if base.Denom == quoteSymbol {
+		return base.Amount
+	}
 	// calculate how much quote token the base token can swap
 	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(base.Denom, quoteSymbol))
 	if err != nil || tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.Amount.IsZero() {
