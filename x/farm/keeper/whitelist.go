@@ -35,10 +35,14 @@ func (k Keeper) isPoolNameExistedInWhiteList(ctx sdk.Context, poolName string) b
 
 func (k Keeper) satisfyWhiteListAdmittance(ctx sdk.Context, pool types.FarmPool) sdk.Error {
 	quoteTokenSymbol := k.GetParams(ctx).QuoteSymbol
+	// lock token is quote symbol
+	if pool.MinLockAmount.Denom == quoteTokenSymbol {
+		return nil
+	}
 	if !swaptypes.IsPoolToken(pool.MinLockAmount.Denom) {
 		// locked token is common token
 		// check the existence of locked token with default quoteTokenSymbol in Params
-		if pool.MinLockAmount.Denom != quoteTokenSymbol && !k.isSwapTokenPairExisted(ctx, pool.MinLockAmount.Denom, quoteTokenSymbol) {
+		if !k.isSwapTokenPairExisted(ctx, pool.MinLockAmount.Denom, quoteTokenSymbol) {
 			return types.ErrTokenNotExist(types.DefaultParamspace, swaptypes.GetSwapTokenPairName(pool.MinLockAmount.Denom, quoteTokenSymbol))
 
 		}
