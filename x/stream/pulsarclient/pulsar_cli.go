@@ -65,7 +65,7 @@ func (p *PulsarProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (
 	for _, matchResult := range matchResults {
 		go func(matchResult backend.MatchResult) {
 			defer wg.Done()
-			marketID, ok := marketIDMap[matchResult.Product]
+			marketID, ok := common.GetMarketIDMap()[matchResult.Product]
 			if !ok {
 				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
 				errChan <- err

@@ -9,7 +9,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/stream/analyservice"
-	"github.com/okex/okexchain/x/stream/pulsarclient"
 	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
 	"github.com/okex/okexchain/x/stream/types"
 )
@@ -122,7 +121,7 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			pData := common.NewKlineData()
 			pData.SetData(ctx, s.orderKeeper, s.Cache)
 			// should init token pair map here
-			pulsarclient.InitTokenPairMap(ctx, s.dexKeeper)
+			common.InitTokenPairMap(ctx, s.dexKeeper)
 			data = pData
 		case EngineWebSocketKind:
 			websocket.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)

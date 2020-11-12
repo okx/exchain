@@ -5,7 +5,26 @@ import (
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
 	"github.com/okex/okexchain/x/stream/types"
+	"sync"
 )
+
+var (
+	marketIDMap = make(map[string]int64, 200)
+	initMapOnce sync.Once
+)
+
+func InitTokenPairMap(ctx sdk.Context, dexKeeper types.DexKeeper) {
+	initMapOnce.Do(func() {
+		tokenPairs := dexKeeper.GetTokenPairs(ctx)
+		for i := 0; i < len(tokenPairs); i++ {
+			marketIDMap[tokenPairs[i].Name()] = int64(tokenPairs[i].ID)
+		}
+	})
+}
+
+func GetMarketIDMap() map[string]int64 {
+	return marketIDMap
+}
 
 type MarketConfig struct {
 	MarketServiceEnable           bool

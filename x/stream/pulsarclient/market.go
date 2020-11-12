@@ -3,32 +3,16 @@ package pulsarclient
 import (
 	"fmt"
 	"github.com/okex/okexchain/x/stream/common"
-	"sync"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/stream/eureka"
-	"github.com/okex/okexchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
-
-var (
-	marketIDMap = make(map[string]int64, 200)
-	initMapOnce sync.Once
-)
-
-func InitTokenPairMap(ctx sdk.Context, dexKeeper types.DexKeeper) {
-	initMapOnce.Do(func() {
-		tokenPairs := dexKeeper.GetTokenPairs(ctx)
-		for i := 0; i < len(tokenPairs); i++ {
-			marketIDMap[tokenPairs[i].Name()] = int64(tokenPairs[i].ID)
-		}
-	})
-}
 
 func (p *PulsarProducer) RefreshMarketIDMap(data *common.KlineData, logger log.Logger) error {
 	logger.Debug(fmt.Sprintf("marketServiceEnable:%v, eurekaUrl:%s, registerAppName:%s", p.marketServiceEnable, p.marketEurekaURL, p.marketEurekaRegisteredAppName))
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
+		marketIDMap := common.GetMarketIDMap()
 		marketIDMap[tokenPairName] = int64(tokenPair.ID)
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
