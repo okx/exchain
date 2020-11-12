@@ -77,6 +77,10 @@ func (kd *KlineData) GetMatchResults() []*backend.MatchResult {
 	return kd.matchResults
 }
 
+func (kd *KlineData) SetMatchResults(matchResults []*backend.MatchResult) {
+	kd.matchResults = matchResults
+}
+
 func GetMarketServiceURL(eurekaURL, registerAppName string) (string, error) {
 	k, err := eureka.GetOneInstance(eurekaURL, registerAppName)
 	if err != nil {
