@@ -33,6 +33,7 @@ const (
 	StreamRedisKind     Kind = 0x02
 	StreamPulsarKind    Kind = 0x03
 	StreamWebSocketKind Kind = 0x04
+	StreamKafkaKind     Kind = 0x05
 
 	EngineNilKind       EngineKind = 0x00
 	EngineAnalysisKind  EngineKind = 0x01
@@ -45,13 +46,13 @@ var StreamKind2EngineKindMap = map[Kind]EngineKind{
 	StreamMysqlKind:     EngineAnalysisKind,
 	StreamRedisKind:     EngineNotifyKind,
 	StreamPulsarKind:    EngineKlineKind,
+	StreamKafkaKind:     EngineKlineKind,
 	StreamWebSocketKind: EngineWebSocketKind,
 }
 
 var EngineKind2StreamKindMap = map[EngineKind]Kind{
 	EngineAnalysisKind:  StreamMysqlKind,
 	EngineNotifyKind:    StreamRedisKind,
-	EngineKlineKind:     StreamPulsarKind,
 	EngineWebSocketKind: StreamWebSocketKind,
 }
 
@@ -254,6 +255,7 @@ func GetEngineCreator(eKind EngineKind, sKind Kind) (EngineCreator, error) {
 		fmt.Sprintf("%d_%d", EngineNotifyKind, StreamRedisKind):        NewRedisEngine,
 		fmt.Sprintf("%d_%d", EngineKlineKind, StreamPulsarKind):        NewPulsarEngine,
 		fmt.Sprintf("%d_%d", EngineWebSocketKind, StreamWebSocketKind): websocket.NewEngine,
+		fmt.Sprintf("%d_%d", EngineKlineKind, StreamKafkaKind):         NewKafkaEngine,
 	}
 
 	key := fmt.Sprintf("%d_%d", eKind, sKind)
@@ -323,9 +325,13 @@ func StringToStreamKind(kind string) Kind {
 	case "redis":
 		return StreamRedisKind
 	case "pulsar":
+		EngineKind2StreamKindMap[EngineKlineKind] = StreamPulsarKind
 		return StreamPulsarKind
 	case "websocket":
 		return StreamWebSocketKind
+	case "kafka":
+		EngineKind2StreamKindMap[EngineKlineKind] = StreamKafkaKind
+		return StreamKafkaKind
 	default:
 		return StreamNilKind
 	}
