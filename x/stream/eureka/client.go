@@ -2,6 +2,7 @@ package eureka
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common/utils"
 	"os"
 	"os/signal"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/okexchain/x/stream/common"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -117,7 +117,7 @@ func initConfig(config *eurekaConfig) {
 		config.appName = strings.ToLower(config.appName)
 	}
 	if config.appIP == "" {
-		config.appIP = common.GetLocalIP()
+		config.appIP = utils.GetLocalIP()
 	}
 	if config.port == 0 {
 		config.port = 80

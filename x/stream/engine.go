@@ -2,6 +2,7 @@ package stream
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/kafkaclient"
 	"strings"
 	"time"
 
@@ -138,7 +139,7 @@ func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering PulsarEngine Write")
 	enData, ok := data.(*common.KlineData)
 	if !ok {
-		panic(fmt.Sprintf("Convert data %+v to PulsarData failed", data))
+		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
 	}
 
 	err := e.pulsarProducer.RefreshMarketIDMap(enData, e.logger)
@@ -154,6 +155,47 @@ func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 		*success = false
 	} else {
 		e.logger.Debug(fmt.Sprintf("PulsarEngine write result: %+v", results))
+		*success = true
+	}
+}
+
+type KafkaEngine struct {
+	url           string
+	logger        log.Logger
+	kafkaProducer *kafkaclient.KafkaProducer
+}
+
+func NewKafkaEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
+	return &KafkaEngine{
+		url:           url,
+		logger:        logger,
+		kafkaProducer: kafkaclient.NewKafkaProducer(url, cfg),
+	}, nil
+}
+
+func (ke *KafkaEngine) URL() string {
+	return ke.url
+}
+
+func (ke *KafkaEngine) Write(data types.IStreamData, success *bool) {
+	ke.logger.Debug("Entering KafkaEngine Write")
+	enData, ok := data.(*common.KlineData)
+	if !ok {
+		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
+	}
+
+	if err := ke.kafkaProducer.RefreshMarketIDMap(enData, ke.logger); err != nil {
+		ke.logger.Error(fmt.Sprintf("kafka engine RefreshMarketIdMap failed: %s", err.Error()))
+		*success = false
+		return
+	}
+
+	results, err := ke.kafkaProducer.SendAllMsg(enData, ke.logger)
+	if err != nil {
+		ke.logger.Error(fmt.Sprintf("kafka engine write failed: %s, results: %v", err.Error(), results))
+		*success = false
+	} else {
+		ke.logger.Debug(fmt.Sprintf("kafka engine write result: %+v", results))
 		*success = true
 	}
 }

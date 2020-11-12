@@ -2,14 +2,14 @@ package eureka
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common/utils"
 
-	"github.com/okex/okexchain/x/stream/common"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 // StartEurekaClient start eureka client and register rest service in eureka
 func StartEurekaClient(logger log.Logger, url string, name string) {
-	ip, port, err := common.ResolveRestIPAndPort()
+	ip, port, err := utils.ResolveRestIPAndPort()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
 		return

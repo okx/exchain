@@ -2,19 +2,19 @@ package nacos
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common/utils"
 	"strconv"
 	"strings"
 
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/okexchain/x/stream/common"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 // StartNacosClient start eureka client and register rest service in eureka
 func StartNacosClient(logger log.Logger, urls string, namespace string, name string) {
-	ip, port, err := common.ResolveRestIPAndPort()
+	ip, port, err := utils.ResolveRestIPAndPort()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
 		return

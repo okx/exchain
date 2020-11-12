@@ -1,10 +1,13 @@
 package common
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/stream/eureka"
 	"github.com/okex/okexchain/x/stream/types"
+	"github.com/tendermint/tendermint/libs/log"
 	"sync"
 )
 
@@ -72,4 +75,19 @@ func (kd *KlineData) GetNewTokenPairs() []*dex.TokenPair {
 
 func (kd *KlineData) GetMatchResults() []*backend.MatchResult {
 	return kd.matchResults
+}
+
+func GetMarketServiceURL(eurekaURL, registerAppName string) (string, error) {
+	k, err := eureka.GetOneInstance(eurekaURL, registerAppName)
+	if err != nil {
+		return "", err
+	}
+	if len(k.Instances) == 0 {
+		return "", fmt.Errorf("failed to find instance %s in eureka-server %s", registerAppName, eurekaURL)
+	}
+	return k.Instances[0].HomePageURL, nil
+}
+
+func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketServiceURL string, logger log.Logger) (err error) {
+	return nil
 }
