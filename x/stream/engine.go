@@ -2,6 +2,7 @@ package stream
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"github.com/okex/okexchain/x/stream/kafkaclient"
 	"strings"
 	"time"
@@ -138,7 +139,7 @@ func (e *PulsarEngine) URL() string {
 
 func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering PulsarEngine Write")
-	enData, ok := data.(*common.KlineData)
+	enData, ok := data.(*kline.KlineData)
 	if !ok {
 		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
 	}
@@ -180,7 +181,7 @@ func (ke *KafkaEngine) URL() string {
 
 func (ke *KafkaEngine) Write(data types.IStreamData, success *bool) {
 	ke.logger.Debug("Entering KafkaEngine Write")
-	enData, ok := data.(*common.KlineData)
+	enData, ok := data.(*kline.KlineData)
 	if !ok {
 		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
 	}

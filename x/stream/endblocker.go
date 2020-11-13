@@ -2,7 +2,7 @@ package stream
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"time"
 
 	"github.com/okex/okexchain/x/stream/websocket"
@@ -118,10 +118,10 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			pBlock.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.swapKeeper, s.Cache)
 			data = pBlock
 		case EngineKlineKind:
-			pData := common.NewKlineData()
+			pData := kline.NewKlineData()
 			pData.SetData(ctx, s.orderKeeper, s.Cache)
 			// should init token pair map here
-			common.InitTokenPairMap(ctx, s.dexKeeper)
+			kline.InitTokenPairMap(ctx, s.dexKeeper)
 			data = pData
 		case EngineWebSocketKind:
 			websocket.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)

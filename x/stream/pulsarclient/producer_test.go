@@ -2,7 +2,7 @@ package pulsarclient
 
 import (
 	"github.com/okex/okexchain/x/common"
-	streamcommon "github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"math/rand"
 	"os"
 	"testing"
@@ -39,13 +39,13 @@ func TestSendMsg(t *testing.T) {
 	}()
 	mp := NewPulsarProducer("localhost:6650", appCfg.DefaultConfig().StreamConfig, logger, &asyncErrs)
 
-	data := streamcommon.NewKlineData()
+	data := kline.NewKlineData()
 	data.Height = 9
 	_, err := mp.SendAllMsg(data, logger)
 	require.NoError(t, err)
 	logger.Info("send zero matchResult")
 
-	streamcommon.GetMarketIDMap()["xxb_"+common.NativeToken] = int64(9999)
+	kline.GetMarketIDMap()["xxb_"+common.NativeToken] = int64(9999)
 	results10 := make([]*backend.MatchResult, 0, 10)
 	timestamp := time.Now().Unix()
 	for i := 0; i < 10; i++ {
@@ -58,7 +58,7 @@ func TestSendMsg(t *testing.T) {
 		})
 	}
 
-	data = streamcommon.NewKlineData()
+	data = kline.NewKlineData()
 	data.Height = 11
 	data.SetMatchResults(results10)
 	_, err = mp.SendAllMsg(data, logger)
@@ -69,7 +69,7 @@ func TestSendMsg(t *testing.T) {
 	logger.Info("send 10 matchResult success")
 
 	results10 = make([]*backend.MatchResult, 0, 10)
-	streamcommon.GetMarketIDMap()[common.TestToken+common.NativeToken] = int64(10000)
+	kline.GetMarketIDMap()[common.TestToken+common.NativeToken] = int64(10000)
 	for i := 0; i < 10; i++ {
 		results10 = append(results10, &backend.MatchResult{
 			BlockHeight: int64(i),
