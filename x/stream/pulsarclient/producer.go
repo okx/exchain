@@ -18,26 +18,17 @@ import (
 )
 
 type PulsarProducer struct {
-	producers              []*pulsar.ManagedProducer
-	partion                int64
-	marketServiceEnable    bool
-	marketNacosUrls        string
-	marketNacosNamespaceId string
-	marketNacosClusters    []string
-	marketNacosServiceName string
-	marketNacosGroupName   string
+	kline.MarketConfig
+	producers []*pulsar.ManagedProducer
+	partion   int64
 }
 
 func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, asyncErrs *chan error) *PulsarProducer {
 	var mp = &PulsarProducer{
-		producers:              make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
-		partion:                int64(cfg.MarketPulsarPartition),
-		marketServiceEnable:    cfg.MarketServiceEnable,
-		marketNacosUrls:        cfg.MarketNacosUrls,
-		marketNacosNamespaceId: cfg.MarketNacosNamespaceId,
-		marketNacosClusters:    cfg.MarketNacosClusters,
-		marketNacosServiceName: cfg.MarketNacosServiceName,
-		marketNacosGroupName:   cfg.MarketNacosGroupName,
+		MarketConfig: kline.NewMarketConfig(cfg.MarketServiceEnable, cfg.MarketNacosUrls, cfg.MarketNacosNamespaceId,
+			cfg.MarketNacosClusters, cfg.MarketNacosServiceName, cfg.MarketNacosGroupName),
+		producers: make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
+		partion:   int64(cfg.MarketPulsarPartition),
 	}
 
 	for i := 0; i < cfg.MarketPulsarPartition; i++ {
@@ -61,19 +52,18 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 	return mp
 }
 
-func (p *PulsarProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.Logger) error {
+func (pp *PulsarProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.Logger) error {
 	logger.Debug(fmt.Sprintf("marketServiceEnable:%v, nacosUrls:%s, marketNacosServiceName:%s",
-		p.marketServiceEnable, p.marketNacosUrls, p.marketNacosServiceName))
-
+		pp.MarketServiceEnable, pp.MarketNacosUrls, pp.MarketNacosServiceName))
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
 		marketIDMap := kline.GetMarketIDMap()
 		marketIDMap[tokenPairName] = int64(tokenPair.ID)
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
-		if p.marketServiceEnable {
-			param := vo.SelectOneHealthInstanceParam{Clusters: p.marketNacosClusters, ServiceName: p.marketNacosServiceName, GroupName: p.marketNacosGroupName}
-			marketServiceURL, err := kline.GetMarketServiceURL(p.marketNacosUrls, p.marketNacosNamespaceId, param)
+		if pp.MarketServiceEnable {
+			param := vo.SelectOneHealthInstanceParam{Clusters: pp.MarketNacosClusters, ServiceName: pp.MarketNacosServiceName, GroupName: pp.MarketNacosGroupName}
+			marketServiceURL, err := kline.GetMarketServiceURL(pp.MarketNacosUrls, pp.MarketNacosNamespaceId, param)
 			if err == nil {
 				logger.Debug(fmt.Sprintf("successfully get the market service url [%s]", marketServiceURL))
 			} else {
@@ -90,7 +80,7 @@ func (p *PulsarProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.Lo
 	return nil
 }
 
-func (p *PulsarProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (map[string]int, error) {
+func (pp *PulsarProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "pulsar")
 	result := make(map[string]int)
 	matchResults := data.GetMatchResults()
@@ -120,7 +110,7 @@ func (p *PulsarProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (m
 
 			sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			_, err = p.producers[marketID%(p.partion)].Send(sctx, msg)
+			_, err = pp.producers[marketID%(pp.partion)].Send(sctx, msg)
 			if err != nil {
 				errChan <- err
 				return
