@@ -2,15 +2,14 @@ package stream
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/stream/common/kline"
 	"time"
-
-	"github.com/okex/okexchain/x/stream/websocket"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/stream/analyservice"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
 	"github.com/okex/okexchain/x/stream/types"
+	"github.com/okex/okexchain/x/stream/websocket"
 )
 
 func EndBlocker(ctx sdk.Context, k Keeper) {

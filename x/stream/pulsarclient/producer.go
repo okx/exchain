@@ -22,7 +22,7 @@ type PulsarProducer struct {
 	partion                int64
 	marketServiceEnable    bool
 	marketNacosUrls        string
-	marketNacosNamespaceId   string
+	marketNacosNamespaceId string
 	marketNacosClusters    []string
 	marketNacosServiceName string
 	marketNacosGroupName   string
@@ -30,14 +30,14 @@ type PulsarProducer struct {
 
 func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, asyncErrs *chan error) *PulsarProducer {
 	var mp = &PulsarProducer{
-		producers: make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
-		partion: int64(cfg.MarketPulsarPartition),
-		marketServiceEnable: cfg.MarketServiceEnable,
-		marketNacosUrls: cfg.MarketNacosUrls,
+		producers:              make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
+		partion:                int64(cfg.MarketPulsarPartition),
+		marketServiceEnable:    cfg.MarketServiceEnable,
+		marketNacosUrls:        cfg.MarketNacosUrls,
 		marketNacosNamespaceId: cfg.MarketNacosNamespaceId,
-		marketNacosClusters: cfg.MarketNacosClusters,
+		marketNacosClusters:    cfg.MarketNacosClusters,
 		marketNacosServiceName: cfg.MarketNacosServiceName,
-		marketNacosGroupName: cfg.MarketNacosGroupName,
+		marketNacosGroupName:   cfg.MarketNacosGroupName,
 	}
 
 	for i := 0; i < cfg.MarketPulsarPartition; i++ {
