@@ -1,10 +1,11 @@
-package common
+package kline
 
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
+	"github.com/okex/okexchain/x/stream/common"
 	"github.com/okex/okexchain/x/stream/eureka"
 	"github.com/okex/okexchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -63,9 +64,9 @@ func (kd KlineData) DataType() types.StreamDataKind {
 	return types.StreamDataKlineKind
 }
 
-func (kd *KlineData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, cache *Cache) {
+func (kd *KlineData) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper, cache *common.Cache) {
 	kd.Height = ctx.BlockHeight()
-	kd.matchResults = GetMatchResults(ctx, orderKeeper)
+	kd.matchResults = common.GetMatchResults(ctx, orderKeeper)
 	kd.newTokenPairs = cache.GetNewTokenPairs()
 }
 
