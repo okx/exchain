@@ -2,13 +2,16 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
-	"github.com/okex/okexchain/x/stream/eureka"
+	"github.com/okex/okexchain/x/stream/nacos"
 	"github.com/okex/okexchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
-	"sync"
 )
 
 var (
@@ -30,16 +33,22 @@ func GetMarketIDMap() map[string]int64 {
 }
 
 type MarketConfig struct {
-	MarketServiceEnable           bool
-	MarketEurekaURL               string
-	MarketEurekaRegisteredAppName string
+	MarketServiceEnable    bool
+	MarketNacosUrls        string
+	MarketNacosNamespaceId string
+	MarketNacosClusters    []string
+	MarketNacosServiceName string
+	MarketNacosGroupName   string
 }
 
-func NewMarketConfig(marketServiceEnable bool, marketEurekaURL, marketEurekaRegisteredAppName string) MarketConfig {
+func NewMarketConfig(enable bool, urls, nameSpace string, clusters []string, serviceName, groupName string) MarketConfig {
 	return MarketConfig{
-		MarketServiceEnable:           marketServiceEnable,
-		MarketEurekaURL:               marketEurekaURL,
-		MarketEurekaRegisteredAppName: marketEurekaRegisteredAppName,
+		MarketServiceEnable:    enable,
+		MarketNacosUrls:        urls,
+		MarketNacosNamespaceId: nameSpace,
+		MarketNacosClusters:    clusters,
+		MarketNacosServiceName: serviceName,
+		MarketNacosGroupName:   groupName,
 	}
 }
 
@@ -81,15 +90,16 @@ func (kd *KlineData) SetMatchResults(matchResults []*backend.MatchResult) {
 	kd.matchResults = matchResults
 }
 
-func GetMarketServiceURL(eurekaURL, registerAppName string) (string, error) {
-	k, err := eureka.GetOneInstance(eurekaURL, registerAppName)
+func GetMarketServiceURL(urls string, nameSpace string, param vo.SelectOneHealthInstanceParam) (string, error) {
+	k, err := nacos.GetOneInstance(urls, nameSpace, param)
 	if err != nil {
 		return "", err
 	}
-	if len(k.Instances) == 0 {
-		return "", fmt.Errorf("failed to find instance %s in eureka-server %s", registerAppName, eurekaURL)
+	if k == nil {
+		return "", fmt.Errorf("there is no %s service in nacos-server %s", param.ServiceName, urls)
 	}
-	return k.Instances[0].HomePageURL, nil
+	port := strconv.FormatUint(k.Port, 10)
+	return k.Ip + ":" + port + "/manager/add", nil
 }
 
 func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketServiceURL string, logger log.Logger) (err error) {

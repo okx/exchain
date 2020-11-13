@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/okexchain/x/stream/common"
 	"strconv"
 	"sync"
@@ -17,23 +18,33 @@ import (
 )
 
 type PulsarProducer struct {
-	producers                     []*pulsar.ManagedProducer
-	partion                       int64
-	marketServiceEnable           bool
-	marketEurekaURL               string
-	marketEurekaRegisteredAppName string
+	producers              []*pulsar.ManagedProducer
+	partion                int64
+	marketServiceEnable    bool
+	marketNacosUrls        string
+	marketNacosNamespaceId   string
+	marketNacosClusters    []string
+	marketNacosServiceName string
+	marketNacosGroupName   string
 }
 
 func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, asyncErrs *chan error) *PulsarProducer {
-	var mp = &PulsarProducer{producers: make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
-		partion: int64(cfg.MarketPulsarPartition), marketServiceEnable: cfg.MarketServiceEnable, marketEurekaURL: cfg.EurekaServerUrl,
-		marketEurekaRegisteredAppName: cfg.MarketQuotationsEurekaName}
+	var mp = &PulsarProducer{
+		producers: make([]*pulsar.ManagedProducer, 0, cfg.MarketPulsarPartition),
+		partion: int64(cfg.MarketPulsarPartition),
+		marketServiceEnable: cfg.MarketServiceEnable,
+		marketNacosUrls: cfg.MarketNacosUrls,
+		marketNacosNamespaceId: cfg.MarketNacosNamespaceId,
+		marketNacosClusters: cfg.MarketNacosClusters,
+		marketNacosServiceName: cfg.MarketNacosServiceName,
+		marketNacosGroupName: cfg.MarketNacosGroupName,
+	}
 
 	for i := 0; i < cfg.MarketPulsarPartition; i++ {
 		mcp := pulsar.NewManagedClientPool()
 		mpCfg := pulsar.ManagedProducerConfig{
 			Name:                  uuid.New().String() + "-subs_standard_dex_spot-" + strconv.Itoa(i),
-			Topic:                 cfg.MarketPulsarTopic + "-partition-" + strconv.Itoa(i),
+			Topic:                 cfg.MarketTopic + "-partition-" + strconv.Itoa(i),
 			NewProducerTimeout:    time.Second * 3,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,
@@ -51,10 +62,8 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 }
 
 func (p *PulsarProducer) RefreshMarketIDMap(data *common.KlineData, logger log.Logger) error {
-	logger.Debug(
-		fmt.Sprintf("marketServiceEnable:%v, eurekaUrl:%s, registerAppName:%s",
-			p.marketServiceEnable, p.marketEurekaURL, p.marketEurekaRegisteredAppName),
-	)
+	logger.Debug(fmt.Sprintf("marketServiceEnable:%v, nacosUrls:%s, marketNacosServiceName:%s",
+		p.marketServiceEnable, p.marketNacosUrls, p.marketNacosServiceName))
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
 		marketIDMap := common.GetMarketIDMap()
@@ -62,7 +71,8 @@ func (p *PulsarProducer) RefreshMarketIDMap(data *common.KlineData, logger log.L
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
 		if p.marketServiceEnable {
-			marketServiceURL, err := common.GetMarketServiceURL(p.marketEurekaURL, p.marketEurekaRegisteredAppName)
+			param := vo.SelectOneHealthInstanceParam{Clusters: p.marketNacosClusters, ServiceName: p.marketNacosServiceName, GroupName: p.marketNacosGroupName}
+			marketServiceURL, err := common.GetMarketServiceURL(p.marketNacosUrls, p.marketNacosNamespaceId, param)
 			if err == nil {
 				logger.Debug(fmt.Sprintf("successfully get the market service url [%s]", marketServiceURL))
 			} else {
@@ -107,8 +117,8 @@ func (p *PulsarProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (
 				return
 			}
 
-			sctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancle()
+			sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 			_, err = p.producers[marketID%(p.partion)].Send(sctx, msg)
 			if err != nil {
 				errChan <- err

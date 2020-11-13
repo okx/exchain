@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	appcfg "github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/stream/common"
 	"github.com/segmentio/kafka-go"
 	"github.com/tendermint/tendermint/libs/log"
-	"sync"
-	"time"
 )
 
 type KafkaProducer struct {
@@ -20,20 +22,19 @@ type KafkaProducer struct {
 
 func NewKafkaProducer(url string, cfg *appcfg.StreamConfig) *KafkaProducer {
 	return &KafkaProducer{
-		MarketConfig: common.NewMarketConfig(cfg.MarketServiceEnable, cfg.EurekaServerUrl, cfg.MarketQuotationsEurekaName),
+		MarketConfig: common.NewMarketConfig(cfg.MarketServiceEnable, cfg.MarketNacosUrls, cfg.MarketNacosNamespaceId,
+			cfg.MarketNacosClusters, cfg.MarketNacosServiceName, cfg.MarketNacosGroupName),
 		Writer: kafka.NewWriter(kafka.WriterConfig{
 			Brokers:  []string{url},
-			Topic:    cfg.MarketPulsarTopic,
+			Topic:    cfg.MarketTopic,
 			Balancer: &kafka.LeastBytes{},
 		}),
 	}
 }
 
 func (kp *KafkaProducer) RefreshMarketIDMap(data *common.KlineData, logger log.Logger) error {
-	logger.Debug(fmt.Sprintf(
-		"marketServiceEnable:%v, eurekaUrl:%s, registerAppName:%s",
-		kp.MarketServiceEnable, kp.MarketEurekaURL, kp.MarketEurekaRegisteredAppName,
-	))
+	logger.Debug(fmt.Sprintf("marketServiceEnable:%v, nacosUrl:%s, marketNacosServiceName:%s",
+		kp.MarketServiceEnable, kp.MarketNacosUrls, kp.MarketNacosServiceName))
 
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
@@ -42,7 +43,8 @@ func (kp *KafkaProducer) RefreshMarketIDMap(data *common.KlineData, logger log.L
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
 		if kp.MarketServiceEnable {
-			marketServiceURL, err := common.GetMarketServiceURL(kp.MarketEurekaURL, kp.MarketEurekaRegisteredAppName)
+			param := vo.SelectOneHealthInstanceParam{Clusters: kp.MarketNacosClusters, ServiceName: kp.MarketNacosServiceName, GroupName: kp.MarketNacosGroupName}
+			marketServiceURL, err := common.GetMarketServiceURL(kp.MarketNacosUrls, kp.MarketNacosNamespaceId, param)
 			if err == nil {
 				logger.Debug(fmt.Sprintf("successfully get the market service url [%s]", marketServiceURL))
 			} else {
