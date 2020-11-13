@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"strconv"
 	"sync"
 	"time"
@@ -50,26 +50,26 @@ func NewPulsarProducer(url string, cfg *appCfg.StreamConfig, logger log.Logger, 
 	return mp
 }
 
-func (p *PulsarProducer) RefreshMarketIDMap(data *common.KlineData, logger log.Logger) error {
+func (p *PulsarProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.Logger) error {
 	logger.Debug(
 		fmt.Sprintf("marketServiceEnable:%v, eurekaUrl:%s, registerAppName:%s",
 			p.marketServiceEnable, p.marketEurekaURL, p.marketEurekaRegisteredAppName),
 	)
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
-		marketIDMap := common.GetMarketIDMap()
+		marketIDMap := kline.GetMarketIDMap()
 		marketIDMap[tokenPairName] = int64(tokenPair.ID)
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
 		if p.marketServiceEnable {
-			marketServiceURL, err := common.GetMarketServiceURL(p.marketEurekaURL, p.marketEurekaRegisteredAppName)
+			marketServiceURL, err := kline.GetMarketServiceURL(p.marketEurekaURL, p.marketEurekaRegisteredAppName)
 			if err == nil {
 				logger.Debug(fmt.Sprintf("successfully get the market service url [%s]", marketServiceURL))
 			} else {
 				logger.Error(fmt.Sprintf("failed to get the market service url [%s]. error: %s", marketServiceURL, err))
 			}
 
-			err = common.RegisterNewTokenPair(int64(tokenPair.ID), tokenPairName, marketServiceURL, logger)
+			err = kline.RegisterNewTokenPair(int64(tokenPair.ID), tokenPairName, marketServiceURL, logger)
 			if err != nil {
 				logger.Error(fmt.Sprintf("failed register tokenpair %+v in market service. error: %s", tokenPair, err))
 				return err
@@ -79,7 +79,7 @@ func (p *PulsarProducer) RefreshMarketIDMap(data *common.KlineData, logger log.L
 	return nil
 }
 
-func (p *PulsarProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (map[string]int, error) {
+func (p *PulsarProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "pulsar")
 	result := make(map[string]int)
 	matchResults := data.GetMatchResults()
@@ -94,7 +94,7 @@ func (p *PulsarProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (
 	for _, matchResult := range matchResults {
 		go func(matchResult backend.MatchResult) {
 			defer wg.Done()
-			marketID, ok := common.GetMarketIDMap()[matchResult.Product]
+			marketID, ok := kline.GetMarketIDMap()[matchResult.Product]
 			if !ok {
 				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
 				errChan <- err

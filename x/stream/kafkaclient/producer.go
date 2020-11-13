@@ -6,7 +6,7 @@ import (
 	"fmt"
 	appcfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/okex/okexchain/x/backend"
-	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"github.com/segmentio/kafka-go"
 	"github.com/tendermint/tendermint/libs/log"
 	"sync"
@@ -14,13 +14,13 @@ import (
 )
 
 type KafkaProducer struct {
-	common.MarketConfig
+	kline.MarketConfig
 	*kafka.Writer
 }
 
 func NewKafkaProducer(url string, cfg *appcfg.StreamConfig) *KafkaProducer {
 	return &KafkaProducer{
-		MarketConfig: common.NewMarketConfig(cfg.MarketServiceEnable, cfg.EurekaServerUrl, cfg.MarketQuotationsEurekaName),
+		MarketConfig: kline.NewMarketConfig(cfg.MarketServiceEnable, cfg.EurekaServerUrl, cfg.MarketQuotationsEurekaName),
 		Writer: kafka.NewWriter(kafka.WriterConfig{
 			Brokers:  []string{url},
 			Topic:    cfg.MarketPulsarTopic,
@@ -29,7 +29,7 @@ func NewKafkaProducer(url string, cfg *appcfg.StreamConfig) *KafkaProducer {
 	}
 }
 
-func (kp *KafkaProducer) RefreshMarketIDMap(data *common.KlineData, logger log.Logger) error {
+func (kp *KafkaProducer) RefreshMarketIDMap(data *kline.KlineData, logger log.Logger) error {
 	logger.Debug(fmt.Sprintf(
 		"marketServiceEnable:%v, eurekaUrl:%s, registerAppName:%s",
 		kp.MarketServiceEnable, kp.MarketEurekaURL, kp.MarketEurekaRegisteredAppName,
@@ -37,19 +37,19 @@ func (kp *KafkaProducer) RefreshMarketIDMap(data *common.KlineData, logger log.L
 
 	for _, tokenPair := range data.GetNewTokenPairs() {
 		tokenPairName := tokenPair.Name()
-		marketIDMap := common.GetMarketIDMap()
+		marketIDMap := kline.GetMarketIDMap()
 		marketIDMap[tokenPairName] = int64(tokenPair.ID)
 		logger.Debug(fmt.Sprintf("set new tokenpair %+v in map, MarketIdMap: %+v", tokenPair, marketIDMap))
 
 		if kp.MarketServiceEnable {
-			marketServiceURL, err := common.GetMarketServiceURL(kp.MarketEurekaURL, kp.MarketEurekaRegisteredAppName)
+			marketServiceURL, err := kline.GetMarketServiceURL(kp.MarketEurekaURL, kp.MarketEurekaRegisteredAppName)
 			if err == nil {
 				logger.Debug(fmt.Sprintf("successfully get the market service url [%s]", marketServiceURL))
 			} else {
 				logger.Error(fmt.Sprintf("failed to get the market service url [%s]. error: %s", marketServiceURL, err))
 			}
 
-			err = common.RegisterNewTokenPair(int64(tokenPair.ID), tokenPairName, marketServiceURL, logger)
+			err = kline.RegisterNewTokenPair(int64(tokenPair.ID), tokenPairName, marketServiceURL, logger)
 			if err != nil {
 				logger.Error(fmt.Sprintf("failed register tokenpair %+v in market service. error: %s", tokenPair, err))
 				return err
@@ -59,7 +59,7 @@ func (kp *KafkaProducer) RefreshMarketIDMap(data *common.KlineData, logger log.L
 	return nil
 }
 
-func (kp *KafkaProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (map[string]int, error) {
+func (kp *KafkaProducer) SendAllMsg(data *kline.KlineData, logger log.Logger) (map[string]int, error) {
 	// log := logger.With("module", "kafka")
 	result := make(map[string]int)
 	matchResults := data.GetMatchResults()
@@ -74,7 +74,7 @@ func (kp *KafkaProducer) SendAllMsg(data *common.KlineData, logger log.Logger) (
 	for _, matchResult := range matchResults {
 		go func(matchResult backend.MatchResult) {
 			defer wg.Done()
-			marketID, ok := common.GetMarketIDMap()[matchResult.Product]
+			marketID, ok := kline.GetMarketIDMap()[matchResult.Product]
 			if !ok {
 				err := fmt.Errorf("failed to find %s marketId", matchResult.Product)
 				errChan <- err
