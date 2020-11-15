@@ -13,7 +13,7 @@ The Infrastructure of Decentralized Exchange
 
 This repository hosts `OKExChain`, the implementation of the OKExChain based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
-**Note**: Requires [Go 1.12](https://golang.org/dl/)
+**Note**: Requires [Go 1.14](https://golang.org/dl/)
 
 ## Getting Started
 See the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).
