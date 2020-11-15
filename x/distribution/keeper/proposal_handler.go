@@ -25,7 +25,7 @@ func HandleCommunityPoolSpendProposal(ctx sdk.Context, k Keeper, p types.Communi
 
 // distributeFromFeePool distributes funds from the distribution module account to
 // a receiver address while updating the community pool
-func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receiveAddr sdk.AccAddress) sdk.Error {
+func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.SysCoins, receiveAddr sdk.AccAddress) sdk.Error {
 	feePool := k.GetFeePool(ctx)
 
 	// NOTE the community pool isn't a module account, however its coins

@@ -73,7 +73,7 @@ func HandleErrorMsg(w http.ResponseWriter, cliCtx context.CLIContext, msg string
 }
 
 // HasSufficientCoins checks whether the account has sufficient coins
-func HasSufficientCoins(addr sdk.AccAddress, availableCoins, amt sdk.Coins) (err error) {
+func HasSufficientCoins(addr sdk.AccAddress, availableCoins, amt sdk.SysCoins) (err error) {
 	//availableCoins := availCoins[:]
 	if !amt.IsValid() {
 		return sdk.ErrInvalidCoins(amt.String())

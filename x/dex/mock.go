@@ -43,13 +43,13 @@ func (k *mockSupplyKeeper) behave() sdk.Error {
 
 // SendCoinsFromAccountToModule mocks SendCoinsFromAccountToModule of supply.Keeper
 func (k *mockSupplyKeeper) SendCoinsFromAccountToModule(
-	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) sdk.Error {
+	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.SysCoins) sdk.Error {
 	return k.behave()
 }
 
 // SendCoinsFromModuleToAccount mocks SendCoinsFromModuleToAccount of supply.Keeper
 func (k *mockSupplyKeeper) SendCoinsFromModuleToAccount(
-	ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error {
+	ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.SysCoins) sdk.Error {
 	return k.behave()
 }
 
@@ -65,7 +65,7 @@ func (k *mockSupplyKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {
 }
 
 // MintCoins mocks MintCoins of supply.Keeper
-func (k *mockSupplyKeeper) MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error {
+func (k *mockSupplyKeeper) MintCoins(ctx sdk.Context, moduleName string, amt sdk.SysCoins) sdk.Error {
 	return k.behave()
 }
 

@@ -87,7 +87,7 @@ func ValidateGenesis(data GenesisState) error {
 	}
 
 	if !data.DepositParams.MinDeposit.IsValid() {
-		return fmt.Errorf("governance deposit amount must be a valid sdk.Coins amount, is %s",
+		return fmt.Errorf("governance deposit amount must be a valid sdk.SysCoins amount, is %s",
 			data.DepositParams.MinDeposit.String())
 	}
 

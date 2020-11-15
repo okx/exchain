@@ -8,12 +8,12 @@ import (
 
 // BankKeeper defines expected bank keeper
 type BankKeeper interface {
-	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
+	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins
 
 	// TODO remove once governance doesn't require use of accounts
-	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.SysCoins) sdk.Error
 	SetSendEnabled(ctx sdk.Context, enabled bool)
-	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, sdk.Error)
+	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.SysCoins) (sdk.SysCoins, sdk.Error)
 }
 
 // StakingKeeper defines expected staking keeper (Validator and Delegator sets)

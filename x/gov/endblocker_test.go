@@ -151,7 +151,7 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 	require.False(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	require.Equal(t, sdk.Coins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
+	require.Equal(t, sdk.SysCoins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
 }
 
 // test passed
@@ -193,7 +193,7 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 	require.False(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	require.Equal(t, sdk.Coins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
+	require.Equal(t, sdk.SysCoins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
 }
 
 func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {

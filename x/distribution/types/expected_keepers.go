@@ -59,9 +59,9 @@ type SupplyKeeper interface {
 	SetModuleAccount(sdk.Context, supplyexported.ModuleAccountI)
 
 	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string,
-		recipientModule string, amt sdk.Coins) sdk.Error
+		recipientModule string, amt sdk.SysCoins) sdk.Error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
-		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+		recipientAddr sdk.AccAddress, amt sdk.SysCoins) sdk.Error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
-		recipientModule string, amt sdk.Coins) sdk.Error
+		recipientModule string, amt sdk.SysCoins) sdk.Error
 }

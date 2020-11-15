@@ -58,7 +58,7 @@ func TestParseDecCoinByInteger(t *testing.T) {
 }
 
 //--------------
-// test sdk.Coin
+// test sdk.SysCoin
 func TestParseIntCoinByDecimal(t *testing.T) {
 	_, err := sdk.ParseCoin("1000.1" + NativeToken)
 	require.Nil(t, err)
