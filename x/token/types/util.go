@@ -36,7 +36,7 @@ func wholeNameValid(wholeName string) bool {
 
 type BaseAccount struct {
 	Address       sdk.AccAddress `json:"address"`
-	Coins         sdk.Coins      `json:"coins"`
+	Coins         sdk.SysCoins      `json:"coins"`
 	PubKey        crypto.PubKey  `json:"public_key"`
 	AccountNumber uint64         `json:"account_number"`
 	Sequence      uint64         `json:"sequence"`

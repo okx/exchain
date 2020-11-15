@@ -132,7 +132,7 @@ func TestHandleMsgVote3(t *testing.T) {
 	newVoteMsg := NewMsgVote(keeper.Addrs[0], proposalID, types.OptionNoWithVeto)
 	res = govHandler(ctx, newVoteMsg)
 	require.True(t, res.IsOK())
-	require.Equal(t, sdk.Coins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
+	require.Equal(t, sdk.SysCoins(nil), gk.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins())
 }
 
 func TestHandleMsgSubmitProposal(t *testing.T) {

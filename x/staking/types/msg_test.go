@@ -22,7 +22,7 @@ func TestMsgCreateValidator(t *testing.T) {
 		validatorAddr                             sdk.ValAddress
 		delegatorAddr                             sdk.AccAddress
 		pubkey                                    crypto.PubKey
-		bond                                      sdk.Coin
+		bond                                      sdk.SysCoin
 		expectPass                                bool
 	}{
 		{"empty bond", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinZero, true},
@@ -299,7 +299,7 @@ func TestMsgAddShares(t *testing.T) {
 //		delegatorAddr    sdk.AccAddress
 //		validatorSrcAddr sdk.ValAddress
 //		validatorDstAddr sdk.ValAddress
-//		amount           sdk.Coin
+//		amount           sdk.SysCoin
 //		expectPass       bool
 //	}{
 //		{"regular", sdk.AccAddress(addr1), addr2, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), true},
@@ -325,7 +325,7 @@ func TestMsgAddShares(t *testing.T) {
 //		name          string
 //		delegatorAddr sdk.AccAddress
 //		validatorAddr sdk.ValAddress
-//		amount        sdk.Coin
+//		amount        sdk.SysCoin
 //		expectPass    bool
 //	}{
 //		{"regular", sdk.AccAddress(addr1), addr2, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), true},

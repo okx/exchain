@@ -26,12 +26,12 @@ type TokenKeeper interface {
 // SupplyKeeper : expected supply keeper
 type SupplyKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string,
-		amt sdk.Coins) sdk.Error
+		amt sdk.SysCoins) sdk.Error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress,
-		amt sdk.Coins) sdk.Error
+		amt sdk.SysCoins) sdk.Error
 	GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI
 	GetModuleAddress(moduleName string) sdk.AccAddress
-	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
+	MintCoins(ctx sdk.Context, moduleName string, amt sdk.SysCoins) sdk.Error
 }
 
 // DexKeeper : expected dex keeper

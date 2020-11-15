@@ -224,7 +224,7 @@ func getInitChainer(mapp *mock.App, bankKeeper bank.Keeper, supplyKeeper supply.
 			supplyKeeper.SetModuleAccount(ctx, macc)
 		}
 		bankKeeper.SetSendEnabled(ctx, true)
-		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
+		supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.SysCoins{}))
 		return abci.ResponseInitChain{}
 	}
 }
@@ -265,7 +265,7 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 	app.Commit()
 }
 
-func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.AddrKeysSlice, genAccs []auth.Account) {
+func CreateGenAccounts(numAccs int, genCoins sdk.SysCoins) (addrKeysSlice mock.AddrKeysSlice, genAccs []auth.Account) {
 	for i := 0; i < numAccs; i++ {
 		privKey := secp256k1.GenPrivKey()
 		pubKey := privKey.PubKey()

@@ -37,7 +37,7 @@ func DefaultGenesisState() GenesisState {
 // ValidateGenesis checks if parameters are within valid ranges
 func ValidateGenesis(data GenesisState) error {
 	if !data.Params.MinDeposit.IsValid() {
-		return fmt.Errorf("params deposit amount must be a valid sdk.Coins amount, is %s",
+		return fmt.Errorf("params deposit amount must be a valid sdk.SysCoins amount, is %s",
 			data.Params.MinDeposit.String())
 	}
 	return nil

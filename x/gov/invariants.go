@@ -18,7 +18,7 @@ func RegisterInvariants(ir sdk.InvariantRegistry, keeper keeper.Keeper) {
 // deposit amounts held on store
 func ModuleAccountInvariant(keeper keeper.Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var expectedDeposits sdk.Coins
+		var expectedDeposits sdk.SysCoins
 
 		keeper.IterateAllDeposits(ctx, func(deposit types.Deposit) bool {
 			expectedDeposits = expectedDeposits.Add(deposit.Amount)

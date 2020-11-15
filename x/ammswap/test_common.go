@@ -12,7 +12,7 @@ import (
 
 
 func NewTestSwapTokenPairWithInitLiquidity(t *testing.T, ctx sdk.Context, k swapkeeper.Keeper,
-	baseToken, quoteToken sdk.DecCoin, addrList []sdk.AccAddress) SwapTokenPair {
+	baseToken, quoteToken sdk.SysCoin, addrList []sdk.AccAddress) SwapTokenPair {
 	handler := NewHandler(k)
 
 	createExchangeMsg := types.NewMsgCreateExchange(baseToken.Denom, quoteToken.Denom, addrList[0])

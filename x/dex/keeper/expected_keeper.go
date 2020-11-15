@@ -13,12 +13,12 @@ import (
 // SupplyKeeper defines the expected supply Keeper
 type SupplyKeeper interface {
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
-		recipientModule string, amt sdk.Coins) sdk.Error
+		recipientModule string, amt sdk.SysCoins) sdk.Error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
-		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+		recipientAddr sdk.AccAddress, amt sdk.SysCoins) sdk.Error
 	GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI
 	GetModuleAddress(moduleName string) sdk.AccAddress
-	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
+	MintCoins(ctx sdk.Context, moduleName string, amt sdk.SysCoins) sdk.Error
 }
 
 // TokenKeeper defines the expected token Keeper
@@ -70,7 +70,7 @@ type StakingKeeper interface {
 
 // BankKeeper defines the expected bank Keeper
 type BankKeeper interface {
-	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
+	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins
 }
 
 // GovKeeper defines the expected gov Keeper

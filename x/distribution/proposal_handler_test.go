@@ -18,7 +18,7 @@ var (
 	amount = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
 )
 
-func testProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
+func testProposal(recipient sdk.AccAddress, amount sdk.SysCoins) govtypes.Proposal {
 	return govtypes.Proposal{Content: types.NewCommunityPoolSpendProposal(
 		"Test",
 		"description",

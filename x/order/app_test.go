@@ -218,7 +218,7 @@ func getInitChainer(mapp *mock.App, supplyKeeper types.SupplyKeeper,
 //	app.Commit()
 //}
 
-func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.AddrKeysSlice,
+func CreateGenAccounts(numAccs int, genCoins sdk.SysCoins) (addrKeysSlice mock.AddrKeysSlice,
 	genAccs []auth.Account) {
 	for i := 0; i < numAccs; i++ {
 		privKey := secp256k1.GenPrivKey()

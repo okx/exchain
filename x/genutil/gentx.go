@@ -19,7 +19,7 @@ import (
 // ValidateAccountInGenesis checks that the provided key has sufficient coins in the genesis accounts
 func ValidateAccountInGenesis(appGenesisState map[string]json.RawMessage,
 	genAccIterator types.GenesisAccountsIterator,
-	key sdk.AccAddress, coins sdk.Coins, cdc *codec.Codec) error {
+	key sdk.AccAddress, coins sdk.SysCoins, cdc *codec.Codec) error {
 
 	accountIsInGenesis := false
 

@@ -143,7 +143,7 @@ func TestKeeper_DistributeDeposits(t *testing.T) {
 	// after DistributeDeposits
 	keeper.DistributeDeposits(ctx, proposalID)
 	moduleAccBalance = keeper.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
-	require.Equal(t, sdk.Coins(nil), moduleAccBalance)
+	require.Equal(t, sdk.SysCoins(nil), moduleAccBalance)
 	feeCollectorBalance := keeper.SupplyKeeper().GetModuleAccount(ctx, keeper.feeCollectorName).GetCoins()
 	require.Equal(t, amount1.Add(amount2), feeCollectorBalance)
 }
@@ -171,7 +171,7 @@ func TestKeeper_RefundDeposits(t *testing.T) {
 	// after RefundDeposits
 	keeper.RefundDeposits(ctx, proposalID)
 	moduleAccBalance = keeper.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
-	require.Equal(t, sdk.Coins(nil), moduleAccBalance)
+	require.Equal(t, sdk.SysCoins(nil), moduleAccBalance)
 
 	require.Equal(t, amount, sdk.NewDec(1000))
 

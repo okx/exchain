@@ -103,7 +103,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 		gov.ModuleName:        nil,
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
-	supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.Coins{}))
+	supplyKeeper.SetSupply(ctx, supply.NewSupply(sdk.SysCoins{}))
 
 	// set module accounts
 	supplyKeeper.SetModuleAccount(ctx, feeCollectorAcc)
@@ -162,7 +162,7 @@ func (m *mockStakingKeeper) SetFakeValidator(fakeValidator bool) {
 type mockBankKeeper struct{}
 
 // GetCoins returns coins for test
-func (keeper mockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
+func (keeper mockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins {
 	return sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDec(2500))
 }
 
