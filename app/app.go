@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/debug"
 	"io"
 	"os"
 
@@ -60,10 +61,10 @@ const appName = "OKExChain"
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.ethermintcli")
+	DefaultCLIHome = os.ExpandEnv("$HOME/.okexchaincli")
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.ethermintd")
+	DefaultNodeHome = os.ExpandEnv("$HOME/.okexchaind")
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
@@ -91,11 +92,13 @@ var (
 		evm.AppModuleBasic{},
 		faucet.AppModuleBasic{},
 
+
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
 		backend.AppModuleBasic{},
 		stream.AppModuleBasic{},
+		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 	)

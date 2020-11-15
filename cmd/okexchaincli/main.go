@@ -50,8 +50,8 @@ func main() {
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "ethermintcli",
-		Short: "Command line interface for interacting with ethermintd",
+		Use:   "okexchaincli",
+		Short: "Command line interface for interacting with okexchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
