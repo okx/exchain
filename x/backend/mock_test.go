@@ -89,8 +89,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	blacklistedAddrs[feeCollector.String()] = true
 
 	mockApp.bankKeeper = bank.NewBaseKeeper(mockApp.AccountKeeper,
-		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace, blacklistedAddrs)
+		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
@@ -202,7 +201,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mock.SetGenesis(mockApp.App, genAccs)
 	for i := 0; i < numGenAccs; i++ {
 		mock.CheckBalance(t, app.App, keysSlice[i].Address, coins)
-		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add(coins)
+		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add(coins...)
 	}
 	return
 }
@@ -235,8 +234,8 @@ func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg []sdk.Ms
 	seqNum := accs.GetSequence()
 
 	tx := mock.GenTx(msg, []uint64{uint64(accNum)}, []uint64{uint64(seqNum)}, addrKeys.PrivKey)
-	res := app.Check(tx)
-	if !res.IsOK() {
+	_, _, err := app.Check(tx)
+	if err != nil {
 		panic("something wrong in checking transaction")
 	}
 	return tx
@@ -250,14 +249,14 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 	tokenParam := tokentypes.DefaultParams()
 	app.tokenKeeper.SetParams(ctx, tokenParam)
 	for i, tx := range txs {
-		response := app.Deliver(tx)
-		if response.IsOK() {
+		_, _, err := app.Deliver(tx)
+		if err != nil {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix()) // do not use tx
 		} else {
-			app.Logger().Error(fmt.Sprintf("DeliverTx failed: %v", response))
+			app.Logger().Error(fmt.Sprintf("DeliverTx failed: %v", err))
 		}
 	}
 

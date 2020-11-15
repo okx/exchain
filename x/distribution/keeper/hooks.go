@@ -2,6 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/okex/okexchain/x/distribution/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
 )
@@ -32,7 +33,7 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 		// remainder to community pool
 		if !remainder.IsZero() {
 			feePool := h.k.GetFeePool(ctx)
-			feePool.CommunityPool = feePool.CommunityPool.Add(remainder)
+			feePool.CommunityPool = feePool.CommunityPool.Add(remainder...)
 			h.k.SetFeePool(ctx, feePool)
 		}
 		// add to validator account

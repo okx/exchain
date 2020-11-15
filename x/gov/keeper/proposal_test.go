@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
 	//"github.com/okex/okexchain/x/common"
@@ -28,7 +27,7 @@ import (
 func TestKeeper_GetProposalID(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 
-	store := ctx.KVStore(keeper.StoreKey())
+	store := ctx.KVStore(keeper.storeKey)
 	store.Delete(types.ProposalIDKey)
 	proposalID, err := keeper.GetProposalID(ctx)
 	require.NotNil(t, err)
@@ -87,7 +86,7 @@ func TestKeeper_DeleteProposal(t *testing.T) {
 	keeper.DeleteProposal(ctx, proposalID)
 	proposal, ok := keeper.GetProposal(ctx, proposalID)
 	require.False(t, ok)
-	require.Equal(t, sdkGovTypes.Proposal{}, proposal)
+	require.Equal(t, types.Proposal{}, proposal)
 }
 
 func TestKeeper_GetProposals(t *testing.T) {

@@ -116,7 +116,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	codec.RegisterCrypto(cdc)
 
 	// 1.1 init param keeper
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 
 	// 1.2 init account keeper
 	ak := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
@@ -132,7 +132,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	blacklistedAddrs[feeCollectorAcc.String()] = true
 	blacklistedAddrs[farmAcc.String()] = true
 
-	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), bank.DefaultCodespace, blacklistedAddrs)
+	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 	// fill all the addresses with some coins
 	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000)))
 	for _, addr := range Addrs {
@@ -300,15 +300,15 @@ func initPoolsAndLockInfos(
 
 		moduleAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 		err := moduleAcc.SetCoins(
-			moduleAcc.GetCoins().Add(sdk.SysCoins{pool.DepositAmount}).Add(sdk.SysCoins{pool.TotalValueLocked}),
+			moduleAcc.GetCoins().Add2(sdk.SysCoins{pool.DepositAmount}).Add2(sdk.SysCoins{pool.TotalValueLocked}),
 		)
 		require.Nil(t, err)
 		mockKeeper.supplyKeeper.SetModuleAccount(ctx, moduleAcc)
 
 		yieldAcc := mockKeeper.supplyKeeper.GetModuleAccount(ctx, types.YieldFarmingAccount)
 		err = yieldAcc.SetCoins(
-			yieldAcc.GetCoins().Add(sdk.SysCoins{pool.YieldedTokenInfos[0].RemainingAmount}).
-				Add(pool.TotalAccumulatedRewards),
+			yieldAcc.GetCoins().Add2(sdk.SysCoins{pool.YieldedTokenInfos[0].RemainingAmount}).
+				Add2(pool.TotalAccumulatedRewards),
 		)
 		require.Nil(t, err)
 		mockKeeper.supplyKeeper.SetModuleAccount(ctx, yieldAcc)

@@ -50,7 +50,7 @@ func (k Keeper) IterateProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, isClear 
 }
 
 // UpdateShares withdraws and adds shares continuously on the same validator set with different amount of shares
-func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) sdk.Error {
+func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) error {
 	// get last validators that were added shares to and existing in the store
 	vals, lastShares := k.GetLastValsAddedSharesExisted(ctx, delAddr)
 	if vals == nil {
@@ -95,7 +95,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 
 // AddSharesToValidators adds shares to validators and return the amount of the shares
 func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, vals types.Validators, tokens sdk.Dec) (
-	shares types.Shares, sdkErr sdk.Error) {
+	shares types.Shares, sdkErr error) {
 	lenVals := len(vals)
 	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens)
 	if sdkErr != nil {
@@ -172,7 +172,7 @@ func (k Keeper) GetLastValsAddedSharesExisted(ctx sdk.Context, delAddr sdk.AccAd
 }
 
 // GetValidatorsToAddShares gets the validators from their validator addresses
-func (k Keeper) GetValidatorsToAddShares(ctx sdk.Context, valAddrs []sdk.ValAddress) (types.Validators, sdk.Error) {
+func (k Keeper) GetValidatorsToAddShares(ctx sdk.Context, valAddrs []sdk.ValAddress) (types.Validators, error) {
 	lenVals := len(valAddrs)
 	vals := make(types.Validators, lenVals)
 	for i := 0; i < lenVals; i++ {

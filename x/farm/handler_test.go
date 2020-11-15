@@ -34,10 +34,10 @@ type preExecFunc func(t *testing.T, tCtx *testContext) interface{}
 type verificationFunc func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{})
 
 var verification verificationFunc = func(t *testing.T, context *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
-	if result.Code != testCase.expectedCode {
+	if result.Log == "" && testCase.expectedCode != sdk.CodeOK || result.Log != "" && testCase.expectedCode == sdk.CodeOK {
 		fmt.Println(result.Log)
+		require.Zero(t, 1)
 	}
-	require.Equal(t, testCase.expectedCode, result.Code)
 }
 
 type testCaseItem struct {
@@ -45,7 +45,7 @@ type testCaseItem struct {
 	preExec      preExecFunc      // function "preExec" executes the code before executing the specific handler to be tested
 	getMsg       getMsgFunc       // function "getMsg" returns a sdk.Msg for testing, this msg will be tested by executing the function "handler"
 	verification verificationFunc // function "verification" Verifies that the test results are the same as expected
-	expectedCode sdk.CodeType     // expectedCode represents the expected code in the test result
+	expectedCode uint32     // expectedCode represents the expected code in the test result
 }
 
 func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
@@ -57,9 +57,9 @@ func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
 		addrList := msg.GetSigners()
 		addr := addrList[0]
 		preCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
-		result := tCtx.handler(tCtx.ctx, msg)
+		result, _ := tCtx.handler(tCtx.ctx, msg)
 		afterCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
-		testCase.verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
+		testCase.verification(t, tCtx, *result, testCase, preCoins, afterCoins, preData)
 	}
 }
 
@@ -72,9 +72,9 @@ func testCaseCombinationTest(t *testing.T, testCaseList []testCaseItem) {
 		addrList := msg.GetSigners()
 		addr := addrList[0]
 		preCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
-		result := tCtx.handler(tCtx.ctx, msg)
+		result, _ := tCtx.handler(tCtx.ctx, msg)
 		afterCoins := tCtx.k.TokenKeeper().GetCoins(tCtx.ctx, addr)
-		testCase.verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
+		testCase.verification(t, tCtx, *result, testCase, preCoins, afterCoins, preData)
 	}
 }
 
@@ -174,8 +174,8 @@ var normalGetClaimMsg getMsgFunc = func(tCtx *testContext, preData interface{}) 
 
 func createPool(t *testing.T, tCtx *testContext) types.MsgCreatePool {
 	createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
-	result := tCtx.handler(tCtx.ctx, createPoolMsg)
-	require.True(t, result.IsOK())
+	_, err := tCtx.handler(tCtx.ctx, createPoolMsg)
+	require.Nil(t, err)
 
 	k := tCtx.k
 	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
@@ -188,39 +188,39 @@ func destroyPool(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreateP
 	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 	require.True(t, found)
 	destroyPoolMsg := normalGetDestroyPoolMsg(tCtx, createPoolMsg)
-	result := tCtx.handler(tCtx.ctx, destroyPoolMsg)
-	require.True(t, result.IsOK())
+	_, err := tCtx.handler(tCtx.ctx, destroyPoolMsg)
+	require.Nil(t, err)
 	_, found = k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 	require.False(t, found)
 }
 
 func provide(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) types.MsgProvide {
 	provideMsg := normalGetProvideMsg(tCtx, createPoolMsg)
-	result := tCtx.handler(tCtx.ctx, provideMsg)
-	require.True(t, result.IsOK())
+	_, err := tCtx.handler(tCtx.ctx, provideMsg)
+	require.Nil(t, err)
 	return provideMsg.(types.MsgProvide)
 }
 
 func lock(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) types.MsgLock {
 	lockMsg := normalGetLockMsg(tCtx, createPoolMsg)
-	result := tCtx.handler(tCtx.ctx, lockMsg)
-	if !result.IsOK() {
-		fmt.Println(result.Log)
+	_, err := tCtx.handler(tCtx.ctx, lockMsg)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
-	require.True(t, result.IsOK())
+	require.Nil(t, err)
 	return lockMsg.(types.MsgLock)
 }
 
 func unlock(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) {
 	unlockMsg := normalGetUnlockMsg(tCtx, createPoolMsg)
-	result := tCtx.handler(tCtx.ctx, unlockMsg)
-	require.True(t, result.IsOK())
+	_, err := tCtx.handler(tCtx.ctx, unlockMsg)
+	require.Nil(t, err)
 }
 
 func claim(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) {
 	claimMsg := normalGetClaimMsg(tCtx, createPoolMsg)
-	result := tCtx.handler(tCtx.ctx, claimMsg)
-	require.True(t, result.IsOK())
+	_, err := tCtx.handler(tCtx.ctx, claimMsg)
+	require.Nil(t, err)
 }
 
 func TestHandlerMsgCreatePool(t *testing.T) {
@@ -597,8 +597,8 @@ func TestHandlerMsgLock(t *testing.T) {
 				// create pool
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
 				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(math.MaxInt64)
-				result := tCtx.handler(tCtx.ctx, createPoolMsg)
-				require.True(t, result.IsOK())
+				_, err := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.Nil(t, err)
 
 				// provide
 				provide(t, tCtx, createPoolMsg)
@@ -728,8 +728,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// create pool
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
 				createPoolMsg.MinLockAmount.Amount = sdk.NewDec(2)
-				result := tCtx.handler(tCtx.ctx, createPoolMsg)
-				require.True(t, result.IsOK())
+				_, err := tCtx.handler(tCtx.ctx, createPoolMsg)
+				require.Nil(t, err)
 
 				// provide
 				provide(t, tCtx, createPoolMsg)
@@ -737,8 +737,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// lock
 				lockMsg := normalGetLockMsg(tCtx, createPoolMsg).(types.MsgLock)
 				lockMsg.Amount.Amount = sdk.NewDec(2)
-				result = tCtx.handler(tCtx.ctx, lockMsg)
-				require.True(t, result.IsOK())
+				_, err = tCtx.handler(tCtx.ctx, lockMsg)
+				require.Nil(t, err)
 
 				return createPoolMsg
 			},
@@ -861,10 +861,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			},
 			getMsg: normalGetClaimMsg,
 			verification: func(t *testing.T, tCtx *testContext, result sdk.Result, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
-				if result.Code != testCase.expectedCode {
-					fmt.Println(result.Log)
-				}
-				require.Equal(t, testCase.expectedCode, result.Code)
+				verification(t, tCtx, result, testCase, preCoins, afterCoins, preData)
 				createPoolMsg := preData.(types.MsgCreatePool)
 				diffCoins := afterCoins.Sub(preCoins)
 				actualDec := diffCoins.AmountOf(createPoolMsg.YieldedSymbol)
@@ -913,8 +910,8 @@ func TestNewHandler(t *testing.T) {
 	// init
 	tCtx := initEnvironment(t)
 	msg := swaptypes.NewMsgCreateExchange(tCtx.swapTokenPairs[0].BasePooledCoin.Denom, tCtx.swapTokenPairs[0].QuotePooledCoin.Denom, tCtx.tokenOwner)
-	result := tCtx.handler(tCtx.ctx, msg)
-	require.Equal(t, sdk.CodeUnknownRequest, result.Code)
+	_, err := tCtx.handler(tCtx.ctx, msg)
+	require.Error(t, err)
 }
 
 func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
@@ -1144,9 +1141,9 @@ func TestHandlerRandom(t *testing.T) {
 			msg = normalGetDestroyPoolMsg(tCtx, createPoolMsg)
 		}
 		ctx, writeCache := tCtx.ctx.CacheContext()
-		res := tCtx.handler(ctx, msg)
-		if !res.Code.IsOK() {
-			fmt.Println(res.Log)
+		_, err := tCtx.handler(ctx, msg)
+		if err != nil {
+			fmt.Println(err.Error())
 		} else {
 			writeCache()
 		}

@@ -12,7 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/tendermint/tendermint/libs/log"
-	rpccli "github.com/tendermint/tendermint/rpc/client"
+	rpccli "github.com/tendermint/tendermint/rpc/client/http"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -325,7 +325,11 @@ func (conn *Conn) cliSubscribe(op *BaseOp) (err error) {
 		rpcAddr := viper.GetString("rpc.laddr")
 		conn.logger.Debug("cliSubscribe", "rpc.laddr", rpcAddr)
 		// HTTP client can be replaced with LocalClient
-		c := rpccli.NewHTTP(rpcAddr, "/websocket")
+		c, err := rpccli.New(rpcAddr, "/websocket")
+		if err != nil {
+			conn.logger.Error("cliSubscribe", "error", err.Error())
+			return err
+		}
 		conn.rpcConn = c
 		err = c.Start()
 	}

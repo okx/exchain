@@ -2,12 +2,12 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	okexchaincfg "github.com/cosmos/cosmos-sdk/server/config"
-
-	"github.com/tendermint/tendermint/libs/common"
 )
 
 // nolint
@@ -29,7 +29,7 @@ func loadMaintainConf(confDir string, fileName string) (*Config, error) {
 		return nil, err
 	}
 
-	bytes := common.MustReadFile(fPath)
+	bytes := mustReadFile(fPath)
 
 	m := Config{}
 	err := json.Unmarshal(bytes, &m)
@@ -49,7 +49,7 @@ func dumpMaintainConf(maintainConf *Config, confDir string, fileName string) (er
 	if err != nil {
 		return err
 	}
-	common.MustWriteFile(fPath, bs, os.ModePerm)
+	mustWriteFile(fPath, bs, os.ModePerm)
 
 	return nil
 }
@@ -64,4 +64,22 @@ func SafeLoadMaintainConfig(configDir string) (conf *Config, err error) {
 		}
 	}
 	return maintainConf, nil
+}
+
+func mustReadFile(filePath string) []byte {
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Printf(fmt.Sprintf("mustReadFile failed: %v\n", err))
+		os.Exit(1)
+		return nil
+	}
+	return fileBytes
+}
+
+func mustWriteFile(filePath string, contents []byte, mode os.FileMode) {
+	err := ioutil.WriteFile(filePath, contents, mode)
+	if err != nil {
+		fmt.Printf(fmt.Sprintf("mustWriteFile failed: %v\n", err))
+		os.Exit(1)
+	}
 }

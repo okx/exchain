@@ -13,7 +13,7 @@ import (
 
 // Export returns the exported format of validator in genesis export
 func (v Validator) Export() ValidatorExported {
-	consPkStr, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
+	consPkStr, err := Bech32ifyConsPub(v.ConsPubKey)
 	if err != nil {
 		panic(fmt.Sprintf("bech32 of consensus pubkey error: %s", err.Error()))
 	}
@@ -83,7 +83,7 @@ type StandardizedValidator struct {
 
 // String returns a human readable string representation of a StandardizeValidator
 func (sv StandardizedValidator) String() string {
-	bechConsPubkey, err := sdk.Bech32ifyConsPub(sv.ConsPubKey)
+	bechConsPubkey, err := Bech32ifyConsPub(sv.ConsPubKey)
 	if err != nil {
 		panic(err)
 	}

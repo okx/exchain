@@ -14,46 +14,46 @@ import (
 
 // NewHandler handles all "dex" type messages.
 func NewHandler(k IKeeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
 
-		var handlerFun func() sdk.Result
+		var handlerFun func() (*sdk.Result, error)
 		var name string
 		switch msg := msg.(type) {
 		case MsgList:
 			name = "handleMsgList"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgList(ctx, k, msg, logger)
 			}
 		case MsgDeposit:
 			name = "handleMsgDeposit"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgDeposit(ctx, k, msg, logger)
 			}
 		case MsgWithdraw:
 			name = "handleMsgWithDraw"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgWithDraw(ctx, k, msg, logger)
 			}
 		case MsgTransferOwnership:
 			name = "handleMsgTransferOwnership"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTransferOwnership(ctx, k, msg, logger)
 			}
 		case MsgConfirmOwnership:
 			name = "handleMsgConfirmOwnership"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgConfirmOwnership(ctx, k, msg, logger)
 			}
 		case MsgCreateOperator:
 			name = "handleMsgCreateOperator"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgCreateOperator(ctx, k, msg, logger)
 			}
 		case MsgUpdateOperator:
 			name = "handleMsgUpdateOperator"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgUpdateOperator(ctx, k, msg, logger)
 			}
 		default:
@@ -67,7 +67,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 	}
 }
 
-func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logger) sdk.Result {
+func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logger) (*sdk.Result, error) {
 
 	if !keeper.GetTokenKeeper().TokenExist(ctx, msg.ListAsset) ||
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
@@ -129,16 +129,16 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger log.Logger) sdk.Result {
+func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
 		return sdk.ErrInternal(fmt.Sprintf("the product(%s) is transferring ownership, not allowed to be deposited", msg.Product)).Result()
 	}
 	if sdkErr := keeper.Deposit(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgDeposit: "+
@@ -151,13 +151,13 @@ func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger lo
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 
 }
 
-func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger log.Logger) sdk.Result {
+func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger log.Logger) (*sdk.Result, error) {
 	if sdkErr := keeper.Withdraw(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgWithDraw: "+
@@ -170,11 +170,11 @@ func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger 
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransferOwnership,
-	logger log.Logger) sdk.Result {
+	logger log.Logger) (*sdk.Result, error) {
 	// validate
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
@@ -226,10 +226,10 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 			sdk.NewAttribute(sdk.AttributeKeyFee, feeCoins.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOwnership, logger log.Logger) sdk.Result {
+func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOwnership, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if !exist {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of list (%s) to confirm", msg.Address.String())).Result()
@@ -262,10 +262,10 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOw
 			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOperator, logger log.Logger) sdk.Result {
+func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOperator, logger log.Logger) (*sdk.Result, error) {
 
 	logger.Debug(fmt.Sprintf("handleMsgCreateOperator msg: %+v", msg))
 
@@ -297,10 +297,10 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOperator, logger log.Logger) sdk.Result {
+func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOperator, logger log.Logger) (*sdk.Result, error) {
 
 	logger.Debug(fmt.Sprintf("handleMsgUpdateOperator msg: %+v", msg))
 
@@ -324,5 +324,5 @@ func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOpera
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

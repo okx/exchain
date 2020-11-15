@@ -44,17 +44,21 @@ func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 // pairs of auth module's parameters.
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyFeeIssue, &p.FeeIssue},
-		{KeyFeeMint, &p.FeeMint},
-		{KeyFeeBurn, &p.FeeBurn},
-		{KeyFeeModify, &p.FeeModify},
-		{KeyFeeChown, &p.FeeChown},
-		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow},
+		{KeyFeeIssue, &p.FeeIssue, validateParams},
+		{KeyFeeMint, &p.FeeMint, validateParams},
+		{KeyFeeBurn, &p.FeeBurn, validateParams},
+		{KeyFeeModify, &p.FeeModify, validateParams},
+		{KeyFeeChown, &p.FeeChown, validateParams},
+		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, validateParams},
 	}
 }
 

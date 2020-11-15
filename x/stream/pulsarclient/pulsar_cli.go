@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go"
+	pulsar "github.com/Comcast/pulsar-client-go"
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/google/uuid"
 	"github.com/okex/okexchain/x/backend"
+	"github.com/google/uuid"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

@@ -4,10 +4,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/okex/okexchain/x/ammswap"
-	backend "github.com/okex/okexchain/x/backend/exported"
+	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/dex"
 	"github.com/okex/okexchain/x/order"
-	"github.com/okex/okexchain/x/stream/exported"
 	"github.com/okex/okexchain/x/token"
 	"github.com/willf/bitset"
 )
@@ -36,11 +35,11 @@ type AccountKeeper interface {
 
 type DexKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*dex.TokenPair
-	SetObserverKeeper(keeper exported.StreamKeeper)
+	SetObserverKeeper(keeper dex.StreamKeeper)
 }
 
 // SwapKeeper expected swap keeper
 type SwapKeeper interface {
-	SetObserverKeeper(k backend.BackendKeeper)
+	SetObserverKeeper(k ammswaptypes.BackendKeeper)
 	GetSwapTokenPairs(ctx sdk.Context) []ammswap.SwapTokenPair
 }

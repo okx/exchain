@@ -14,7 +14,7 @@ const (
 
 type (
 	// GenesisState is the type alias of the one in cmsdk
-	GenesisState = sdkgenutil.GenesisState
+	GenesisState = types.GenesisState
 	// InitConfig is the type alias of the one in cmsdk
 	InitConfig = sdkgenutil.InitConfig
 	// GenesisAccountsIterator is the type alias of the one in cmsdk
@@ -30,7 +30,7 @@ var (
 	InitializeNodeValidatorFiles = sdkgenutil.InitializeNodeValidatorFiles
 	ExportGenesisFileWithTime    = sdkgenutil.ExportGenesisFileWithTime
 	NewInitConfig                = sdkgenutil.NewInitConfig
-	ValidateGenesis              = sdkgenutil.ValidateGenesis
+	ValidateGenesis              = types.ValidateGenesis
 	GenesisStateFromGenDoc       = sdkgenutil.GenesisStateFromGenDoc
 	SetGenTxsInAppGenesisState   = sdkgenutil.SetGenTxsInAppGenesisState
 	ExportGenesisFile            = sdkgenutil.ExportGenesisFile

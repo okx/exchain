@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 
+	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
+
 	"github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -75,7 +77,7 @@ func (msg MsgCreateValidator) MarshalJSON() ([]byte, error) {
 		Description:       msg.Description,
 		DelegatorAddress:  msg.DelegatorAddress,
 		ValidatorAddress:  msg.ValidatorAddress,
-		PubKey:            sdk.MustBech32ifyConsPub(msg.PubKey),
+		PubKey:            MustBech32ifyConsPub(msg.PubKey),
 		MinSelfDelegation: msg.MinSelfDelegation,
 	})
 }
@@ -91,7 +93,7 @@ func (msg *MsgCreateValidator) UnmarshalJSON(bz []byte) error {
 	msg.DelegatorAddress = msgCreateValJSON.DelegatorAddress
 	msg.ValidatorAddress = msgCreateValJSON.ValidatorAddress
 	var err error
-	msg.PubKey, err = sdk.GetConsPubKeyBech32(msgCreateValJSON.PubKey)
+	msg.PubKey, err = GetConsPubKeyBech32(msgCreateValJSON.PubKey)
 	if err != nil {
 		return err
 	}
@@ -107,7 +109,7 @@ func (msg MsgCreateValidator) GetSignBytes() []byte {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
+func (msg MsgCreateValidator) ValidateBasic() error {
 	// note that unmarshaling from bech32 ensures either empty or valid
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
@@ -122,7 +124,7 @@ func (msg MsgCreateValidator) ValidateBasic() sdk.Error {
 		return ErrMinSelfDelegationInvalid(DefaultCodespace)
 	}
 	if msg.Description == (Description{}) {
-		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "description must be included")
+		return sdkerror.New(DefaultCodespace, CodeInvalidInput, "description must be included")
 	}
 
 	return nil
@@ -156,13 +158,13 @@ func (msg MsgEditValidator) GetSignBytes() []byte {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgEditValidator) ValidateBasic() sdk.Error {
+func (msg MsgEditValidator) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
-		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "nil validator address")
+		return sdkerror.New(ModuleName, CodeInvalidInput, "nil validator address")
 	}
 
 	if msg.Description == (Description{}) {
-		return sdk.NewError(DefaultCodespace, CodeInvalidInput, "transaction must include some information to modify")
+		return sdkerror.New(ModuleName, CodeInvalidInput, "transaction must include some information to modify")
 	}
 
 	return nil

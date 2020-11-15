@@ -8,7 +8,7 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool) sdk.Result {
+func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool) (*sdk.Result, error) {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
 		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
 	}
@@ -64,10 +64,10 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 		sdk.NewAttribute(sdk.AttributeKeyFee, feeAmount.String()),
 		sdk.NewAttribute(types.AttributeKeyDeposit, depositAmount.String()),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool) sdk.Result {
+func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroyPool) (*sdk.Result, error) {
 	// 0. check pool and owner
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
@@ -125,5 +125,5 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 		sdk.NewAttribute(types.AttributeKeyWithdraw, withdrawAmount.String()),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

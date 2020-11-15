@@ -18,7 +18,7 @@ func TestQueryParams(t *testing.T) {
 
 	var taxData sdk.Dec
 	_ = amino.UnmarshalJSON(commnutyTax, &taxData)
-	require.Equal(t, sdk.NewDecWithPrec(2,2), taxData)
+	require.Equal(t, sdk.NewDecWithPrec(2, 2), taxData)
 
 	enabled, err := querior(ctx, []string{types.QueryParams, types.ParamWithdrawAddrEnabled}, abci.RequestQuery{})
 	require.True(t, err == nil)
@@ -36,26 +36,26 @@ func TestQueryParams(t *testing.T) {
 func TestQueryValidatorCommission(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
-	k.SetValidatorAccumulatedCommission(ctx,valOpAddr1, NewTestDecCoins(15,1))
+	k.SetValidatorAccumulatedCommission(ctx,valOpAddr1, NewTestSysCoins(15,1))
 
-	bz,err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(valOpAddr1))
-	require.NoError(t,err)
+	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(valOpAddr1))
+	require.NoError(t, err)
 	commission, err := querior(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
 
 	var data sdk.SysCoins
 	err = amino.UnmarshalJSON(commission, &data)
 	require.NoError(t, err)
-	require.Equal(t, NewTestDecCoins(15,1), data)
+	require.Equal(t, NewTestSysCoins(15,1), data)
 }
 
 func TestQueryDelegatorWithdrawAddress(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
-	require.NoError(t,k.SetWithdrawAddr(ctx, valAccAddr1, valAccAddr2))
+	require.NoError(t, k.SetWithdrawAddr(ctx, valAccAddr1, valAccAddr2))
 
 	bz, err := amino.MarshalJSON(types.NewQueryDelegatorWithdrawAddrParams(valAccAddr1))
-	require.NoError(t,err)
+	require.NoError(t, err)
 	withdrawAddr, err := querior(ctx, []string{types.QueryWithdrawAddr}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestQueryCommunityPool(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
 	feePool := k.GetFeePool(ctx)
-	feePool.CommunityPool = feePool.CommunityPool.Add(NewTestDecCoins(123,2))
+	feePool.CommunityPool = feePool.CommunityPool.Add(NewTestSysCoins(123,2)...)
 	k.SetFeePool(ctx, feePool)
 
 	communityPool, err := querior(ctx, []string{types.QueryCommunityPool}, abci.RequestQuery{})
@@ -78,5 +78,5 @@ func TestQueryCommunityPool(t *testing.T) {
 	var data sdk.SysCoins
 	err1 := amino.UnmarshalJSON(communityPool, &data)
 	require.NoError(t, err1)
-	require.Equal(t, NewTestDecCoins(123,2), data)
+	require.Equal(t, NewTestSysCoins(123,2), data)
 }

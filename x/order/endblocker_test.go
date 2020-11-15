@@ -670,11 +670,12 @@ func TestEndBlocker(t *testing.T) {
 	blockHeight := startHeight
 	for i := 0; i < 100000; i++ {
 		msg := buildRandomOrderMsg(addrKeysSlice[0].Address)
-		result := handler(ctx, msg)
+		result, err := handler(ctx, msg)
 		if (i+1)%1000 == 0 {
 			blockHeight = blockHeight + 1
 			ctx = ctx.WithBlockHeight(blockHeight)
 		}
+		require.Nil(t, err)
 		require.EqualValues(t, "", result.Log)
 	}
 	// call EndBlocker to execute periodic match

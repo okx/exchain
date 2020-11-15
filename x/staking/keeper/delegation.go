@@ -8,7 +8,7 @@ import (
 )
 
 // UpdateProxy updates the shares by the total delegated and self delegated tokens of a proxy
-func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens sdk.Dec) (err sdk.Error) {
+func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens sdk.Dec) (err error) {
 	if !delegator.HasProxy() {
 		return nil
 	}
@@ -28,7 +28,7 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 }
 
 // Delegate handles the process of delegating
-func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) sdk.Error {
+func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) error {
 
 	delQuantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if delQuantity.LT(minDelLimit) {
@@ -36,7 +36,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	}
 
 	// 1.transfer account's okt into bondPool
-	coins := token.ToCoins()
+	coins := sdk.SysCoins{token}
 	if err := k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins); err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 }
 
 // Withdraw handles the process of withdrawing token from deposit account
-func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) (time.Time, sdk.Error) {
+func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) (time.Time, error) {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
 		return time.Time{}, types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
@@ -157,13 +157,13 @@ func (k Keeper) DeleteUndelegating(ctx sdk.Context, delAddr sdk.AccAddress) {
 }
 
 // CompleteUndelegation handles the final process when the undelegation is completed
-func (k Keeper) CompleteUndelegation(ctx sdk.Context, delAddr sdk.AccAddress) (sdk.Dec, sdk.Error) {
+func (k Keeper) CompleteUndelegation(ctx sdk.Context, delAddr sdk.AccAddress) (sdk.Dec, error) {
 	ud, found := k.GetUndelegating(ctx, delAddr)
 	if !found {
 		return sdk.NewDec(0), types.ErrNotInDelegating(k.Codespace(), delAddr.String())
 	}
 
-	coin := sdk.NewDecCoinsFromDec(k.GetParams(ctx).BondDenom, ud.Quantity)
+	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(k.GetParams(ctx).BondDenom, ud.Quantity)}
 
 	err := k.supplyKeeper.UndelegateCoinsFromModuleToAccount(ctx, types.NotBondedPoolName, ud.DelegatorAddress, coin)
 	if err != nil {

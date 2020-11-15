@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/bech32"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -158,4 +163,48 @@ func SplitCompleteTimeWithAddrKey(key []byte) (time.Time, sdk.AccAddress) {
 	}
 	delAddr := sdk.AccAddress(key[1+lenTime:])
 	return endTime, delAddr
+}
+
+// Bech32ifyConsPub returns a Bech32 encoded string containing the
+// Bech32PrefixConsPub prefixfor a given consensus node's PubKey.
+func Bech32ifyConsPub(pub crypto.PubKey) (string, error) {
+	bech32PrefixConsPub := sdk.GetConfig().GetBech32ConsensusPubPrefix()
+	return bech32.ConvertAndEncode(bech32PrefixConsPub, pub.Bytes())
+}
+
+func MustBech32ifyConsPub(pub crypto.PubKey) string {
+	enc, err := Bech32ifyConsPub(pub)
+	if err != nil {
+		panic(err)
+	}
+
+	return enc
+}
+
+// GetConsPubKeyBech32 creates a PubKey for a consensus node with a given public
+// key string using the Bech32 Bech32PrefixConsPub prefix.
+func GetConsPubKeyBech32(pubkey string) (pk crypto.PubKey, err error) {
+	bech32PrefixConsPub := sdk.GetConfig().GetBech32ConsensusPubPrefix()
+	bz, err := sdk.GetFromBech32(pubkey, bech32PrefixConsPub)
+	if err != nil {
+		return nil, err
+	}
+
+	pk, err = cryptoAmino.PubKeyFromBytes(bz)
+	if err != nil {
+		return nil, err
+	}
+
+	return pk, nil
+}
+
+// MustGetConsPubKeyBech32 returns the result of GetConsPubKeyBech32 panicing on
+// failure.
+func MustGetConsPubKeyBech32(pubkey string) (pk crypto.PubKey) {
+	pk, err := GetConsPubKeyBech32(pubkey)
+	if err != nil {
+		panic(err)
+	}
+
+	return pk
 }

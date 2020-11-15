@@ -2,14 +2,22 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
-// const
+// Param module codespace constants
 const (
-	CodeInvalidMaxProposalNum sdk.CodeType = 4
+	DefaultCodespace string = "params"
+	BaseParamsError = 4001
+
+	CodeInvalidMaxProposalNum uint32 = BaseParamsError+4
 )
 
 // ErrInvalidMaxProposalNum returns error when the number of params to change are out of limit
-func ErrInvalidMaxProposalNum(codespace sdk.CodespaceType, msg string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidMaxProposalNum, msg)
+var RegisteredErrInvalidParamsNum = sdkerrors.Register(params.ModuleName, CodeInvalidMaxProposalNum, "invalid param number")
+
+// ErrInvalidParamsNum returns error when the number of params to change are out of limit
+func ErrInvalidParamsNum(codespace string, msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{sdkerrors.Wrap(RegisteredErrInvalidParamsNum, msg)}
 }

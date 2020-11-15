@@ -56,11 +56,11 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt)
 
 		current := k.GetPoolCurrentRewards(ctx, pool.Name)
-		current.Rewards = current.Rewards.Add(allocatedCoins)
+		current.Rewards = current.Rewards.Add2(allocatedCoins)
 		k.SetPoolCurrentRewards(ctx, pool.Name, current)
 		logger.Debug(fmt.Sprintf("Pool %s rewards are %s", pool.Name, current.Rewards))
 
-		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add(allocatedCoins)
+		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add2(allocatedCoins)
 		k.SetFarmPool(ctx, pool)
 	}
 	if !remainingNativeTokenAmt.IsZero() {

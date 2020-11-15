@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	govtypes "github.com/okex/okexchain/x/gov/types"
 )
 
@@ -26,11 +27,11 @@ type CommunityPoolSpendProposal struct {
 	Title       string         `json:"title" yaml:"title"`
 	Description string         `json:"description" yaml:"description"`
 	Recipient   sdk.AccAddress `json:"recipient" yaml:"recipient"`
-	Amount      sdk.Coins      `json:"amount" yaml:"amount"`
+	Amount      sdk.SysCoins      `json:"amount" yaml:"amount"`
 }
 
 // NewCommunityPoolSpendProposal creates a new community pool spned proposal.
-func NewCommunityPoolSpendProposal(title, description string, recipient sdk.AccAddress, amount sdk.Coins) CommunityPoolSpendProposal {
+func NewCommunityPoolSpendProposal(title, description string, recipient sdk.AccAddress, amount sdk.SysCoins) CommunityPoolSpendProposal {
 	return CommunityPoolSpendProposal{title, description, recipient, amount}
 }
 
@@ -47,8 +48,8 @@ func (csp CommunityPoolSpendProposal) ProposalRoute() string { return RouterKey 
 func (csp CommunityPoolSpendProposal) ProposalType() string { return ProposalTypeCommunityPoolSpend }
 
 // ValidateBasic runs basic stateless validity checks
-func (csp CommunityPoolSpendProposal) ValidateBasic() sdk.Error {
-	err := govtypes.ValidateAbstract(DefaultCodespace, csp)
+func (csp CommunityPoolSpendProposal) ValidateBasic() error {
+	err := govtypes.ValidateAbstract(ModuleName, csp)
 	if err != nil {
 		return err
 	}

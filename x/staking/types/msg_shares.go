@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -31,7 +32,7 @@ func (msg MsgDestroyValidator) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgDestroyValidator) ValidateBasic() sdk.Error {
+func (msg MsgDestroyValidator) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -65,7 +66,7 @@ func (msg MsgUnbindProxy) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgUnbindProxy) ValidateBasic() sdk.Error {
+func (msg MsgUnbindProxy) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -101,7 +102,7 @@ func (msg MsgRegProxy) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgRegProxy) ValidateBasic() sdk.Error {
+func (msg MsgRegProxy) ValidateBasic() error {
 	if msg.ProxyAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -136,7 +137,7 @@ func (msg MsgBindProxy) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgBindProxy) ValidateBasic() sdk.Error {
+func (msg MsgBindProxy) ValidateBasic() error {
 	if msg.DelAddr.Empty() || msg.ProxyAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -178,7 +179,7 @@ func (msg MsgAddShares) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgAddShares) ValidateBasic() sdk.Error {
+func (msg MsgAddShares) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -236,7 +237,7 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgDeposit) ValidateBasic() sdk.Error {
+func (msg MsgDeposit) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -274,7 +275,7 @@ func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 }
 
 // ValidateBasic gives a quick validity check
-func (msg MsgWithdraw) ValidateBasic() sdk.Error {
+func (msg MsgWithdraw) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}

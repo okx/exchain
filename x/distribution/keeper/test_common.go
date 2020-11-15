@@ -5,22 +5,21 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okexchain/x/staking"
-
 	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/okexchain/x/params"
+	"github.com/okex/okexchain/x/staking"
 )
 
 //nolint: deadcode unused
@@ -66,6 +65,48 @@ var (
 	distrAcc = supply.NewEmptyModuleAccount(types.ModuleName)
 )
 
+func ReInit() {
+	delPk1 = ed25519.GenPrivKey().PubKey()
+	delPk2 = ed25519.GenPrivKey().PubKey()
+	delPk3 = ed25519.GenPrivKey().PubKey()
+	delPk4 = ed25519.GenPrivKey().PubKey()
+	delAddr1 = sdk.AccAddress(delPk1.Address())
+	delAddr2 = sdk.AccAddress(delPk2.Address())
+	delAddr3 = sdk.AccAddress(delPk3.Address())
+	delAddr4 = sdk.AccAddress(delPk4.Address())
+
+	valOpPk1 = ed25519.GenPrivKey().PubKey()
+	valOpPk2 = ed25519.GenPrivKey().PubKey()
+	valOpPk3 = ed25519.GenPrivKey().PubKey()
+	valOpPk4 = ed25519.GenPrivKey().PubKey()
+	valOpAddr1 = sdk.ValAddress(valOpPk1.Address())
+	valOpAddr2 = sdk.ValAddress(valOpPk2.Address())
+	valOpAddr3 = sdk.ValAddress(valOpPk3.Address())
+	valOpAddr4 = sdk.ValAddress(valOpPk4.Address())
+	valAccAddr1 = sdk.AccAddress(valOpPk1.Address()) // generate acc addresses for these validator keys too
+	valAccAddr2 = sdk.AccAddress(valOpPk2.Address())
+	valAccAddr3 = sdk.AccAddress(valOpPk3.Address())
+	valAccAddr4 = sdk.AccAddress(valOpPk4.Address())
+
+	valConsPk1 = ed25519.GenPrivKey().PubKey()
+	valConsPk2 = ed25519.GenPrivKey().PubKey()
+	valConsPk3 = ed25519.GenPrivKey().PubKey()
+	valConsPk4 = ed25519.GenPrivKey().PubKey()
+	valConsAddr1 = sdk.ConsAddress(valConsPk1.Address())
+	valConsAddr2 = sdk.ConsAddress(valConsPk2.Address())
+	valConsAddr3 = sdk.ConsAddress(valConsPk3.Address())
+	valConsAddr4 = sdk.ConsAddress(valConsPk4.Address())
+
+	// TODO move to common testing package for all modules
+	// test addresses
+	TestAddrs = []sdk.AccAddress{
+		delAddr1, delAddr2, delAddr3, delAddr4,
+		valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4,
+	}
+
+	distrAcc = supply.NewEmptyModuleAccount(types.ModuleName)
+}
+
 // GetTestAddrs returns valOpAddrs, valConsPks, valConsAddrs for test
 func GetTestAddrs() ([]sdk.ValAddress, []crypto.PubKey, []sdk.ConsAddress) {
 	valOpAddrs := []sdk.ValAddress{valOpAddr1, valOpAddr2, valOpAddr3, valOpAddr4}
@@ -74,13 +115,13 @@ func GetTestAddrs() ([]sdk.ValAddress, []crypto.PubKey, []sdk.ConsAddress) {
 	return valOpAddrs, valConsPks, valConsAddrs
 }
 
-// NewTestDecCoins returns dec coins
-func NewTestDecCoins(i int64, precison int64) sdk.SysCoins {
-	return sdk.SysCoins{NewTestDecCoin(i, precison)}
+// NewTestSysCoins returns dec coins
+func NewTestSysCoins(i int64, precison int64) sdk.SysCoins {
+	return sdk.SysCoins{NewTestSysCoin(i, precison)}
 }
 
-// NewTestDecCoin returns one dec coin
-func NewTestDecCoin(i int64, precison int64) sdk.SysCoin {
+// NewTestSysCoin returns one dec coin
+func NewTestSysCoin(i int64, precison int64) sdk.SysCoin {
 	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison))
 }
 
@@ -103,14 +144,15 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 	sdk.Context, auth.AccountKeeper, Keeper, staking.Keeper, types.SupplyKeeper) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, isCheckTx, initPower, communityTax)
-	sh := staking.NewHandler(sk)
+	h := staking.NewHandler(sk)
 	valOpAddrs, valConsPks, _ := GetTestAddrs()
 	// create four validators
 	for i := int64(0); i < 4; i++ {
 		msg := staking.NewMsgCreateValidator(valOpAddrs[i], valConsPks[i],
-			staking.Description{}, NewTestDecCoin(i+1, 0))
-		require.True(t, sh(ctx, msg).IsOK())
+			staking.Description{}, NewTestSysCoin(i+1, 0))
 		// assert initial state: zero current rewards
+		_, e := h(ctx, msg)
+		require.Nil(t, e)
 		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())
 	}
 	return ctx, ak, dk, sk, supplyKeeper
@@ -155,12 +197,12 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	blacklistedAddrs[distrAcc.GetAddress().String()] = true
 
 	cdc := MakeTestCodec()
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, pk.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace, blacklistedAddrs)
+		blacklistedAddrs)
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName:     nil,
 		types.ModuleName:          nil,
@@ -169,12 +211,12 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
 
-	sk := staking.NewKeeper(cdc, keyStaking, tkeyStaking, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace), staking.DefaultCodespace)
+	sk := staking.NewKeeper(cdc, keyStaking, supplyKeeper,
+		pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
 
-	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(DefaultParamspace), sk, supplyKeeper,
-		types.DefaultCodespace, auth.FeeCollectorName, blacklistedAddrs)
+	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper,
+		auth.FeeCollectorName, blacklistedAddrs)
 
 	keeper.SetWithdrawAddrEnabled(ctx, true)
 	initCoins := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), initTokens))

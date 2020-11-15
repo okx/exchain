@@ -36,7 +36,7 @@ func (msg MsgSetWithdrawAddress) GetSignBytes() []byte {
 }
 
 // quick validity check
-func (msg MsgSetWithdrawAddress) ValidateBasic() sdk.Error {
+func (msg MsgSetWithdrawAddress) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr(DefaultCodespace)
 	}
@@ -72,7 +72,7 @@ func (msg MsgWithdrawValidatorCommission) GetSignBytes() []byte {
 }
 
 // quick validity check
-func (msg MsgWithdrawValidatorCommission) ValidateBasic() sdk.Error {
+func (msg MsgWithdrawValidatorCommission) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
 		return ErrNilValidatorAddr(DefaultCodespace)
 	}

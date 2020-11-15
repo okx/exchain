@@ -3,11 +3,11 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/ammswap"
-	"github.com/okex/okexchain/x/backend/exported"
+	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/dex"
 	dextypes "github.com/okex/okexchain/x/dex/types"
 	"github.com/okex/okexchain/x/order"
 	ordertypes "github.com/okex/okexchain/x/order/types"
-	streamexported "github.com/okex/okexchain/x/stream/exported"
 	"github.com/okex/okexchain/x/token"
 	"github.com/willf/bitset"
 )
@@ -35,7 +35,7 @@ type TokenKeeper interface {
 type DexKeeper interface {
 	GetTokenPairs(ctx sdk.Context) []*dextypes.TokenPair
 	GetTokenPair(ctx sdk.Context, product string) *dextypes.TokenPair
-	SetObserverKeeper(keeper streamexported.StreamKeeper)
+	SetObserverKeeper(keeper dex.StreamKeeper)
 }
 
 // MarketKeeper expected market keeper which would get data from pulsar & redis
@@ -50,5 +50,5 @@ type SwapKeeper interface {
 	GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (ammswap.SwapTokenPair, error)
 	GetParams(ctx sdk.Context) (params ammswap.Params)
 	GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.Dec
-	SetObserverKeeper(k exported.BackendKeeper)
+	SetObserverKeeper(k ammswaptypes.BackendKeeper)
 }

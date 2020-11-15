@@ -40,3 +40,9 @@ type TokenKeeper interface {
 	TokenExist(ctx sdk.Context, symbol string) bool
 	GetTokensInfo(ctx sdk.Context) (tokens []token.Token)
 }
+
+
+type BackendKeeper interface {
+	OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin)
+	OnSwapCreateExchange(ctx sdk.Context, swapTokenPair SwapTokenPair)
+}

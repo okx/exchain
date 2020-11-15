@@ -35,28 +35,28 @@ func TestHandler_HandleMsgList(t *testing.T) {
 
 	// fail case : failed to list because token is invalid
 	tkKeeper.exist = false
-	badResult := handlerFunctor(ctx, listMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
+	_, err := handlerFunctor(ctx, listMsg)
+	require.NotNil(t, err)
 
 	// fail case : failed to list because tokenpair has been exist
 	tkKeeper.exist = true
-	badResult = handlerFunctor(ctx, listMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
+	badResult, err := handlerFunctor(ctx, listMsg)
+	require.NotNil(t, err)
 	require.True(t, badResult.Events == nil)
 
 	// fail case : failed to list because SendCoinsFromModuleToAccount return error
 	tkKeeper.exist = true
 	mDexKeeper.getFakeTokenPair = false
 	spKeeper.behaveEvil = true
-	badResult = handlerFunctor(ctx, listMsg)
-	require.True(t, badResult.Code != sdk.CodeOK)
+	_, err = handlerFunctor(ctx, listMsg)
+	require.NotNil(t, err)
 
 	// successful case
 	tkKeeper.exist = true
 	spKeeper.behaveEvil = false
 	mDexKeeper.getFakeTokenPair = false
-	goodResult := handlerFunctor(ctx, listMsg)
-	require.True(t, goodResult.Code == sdk.CodeOK)
+	goodResult, err := handlerFunctor(ctx, listMsg)
+	require.Nil(t, err)
 	require.True(t, goodResult.Events != nil)
 }
 
@@ -70,13 +70,13 @@ func TestHandler_HandleMsgDeposit(t *testing.T) {
 
 	// Case1: failed to deposit
 	mDexKeeper.failToDeposit = true
-	bad1 := handlerFunctor(ctx, depositMsg)
-	require.True(t, bad1.Code != sdk.CodeOK)
+	_, err := handlerFunctor(ctx, depositMsg)
+	require.NotNil(t, err)
 
 	// Case2: success to deposit
 	mDexKeeper.failToDeposit = false
-	good1 := handlerFunctor(ctx, depositMsg)
-	require.True(t, good1.Code == sdk.CodeOK)
+	good1, err := handlerFunctor(ctx, depositMsg)
+	require.Nil(t, err)
 	require.True(t, good1.Events != nil)
 }
 
@@ -90,13 +90,13 @@ func TestHandler_HandleMsgWithdraw(t *testing.T) {
 
 	// Case1: failed to deposit
 	mDexKeeper.failToWithdraw = true
-	bad1 := handlerFunctor(ctx, withdrawMsg)
-	require.True(t, bad1.Code != sdk.CodeOK)
+	_, err := handlerFunctor(ctx, withdrawMsg)
+	require.NotNil(t, err)
 
 	// Case2: success to deposit
 	mDexKeeper.failToWithdraw = false
-	good1 := handlerFunctor(ctx, withdrawMsg)
-	require.True(t, good1.Code == sdk.CodeOK)
+	good1, err := handlerFunctor(ctx, withdrawMsg)
+	require.Nil(t, err)
 	require.True(t, good1.Events != nil)
 }
 
@@ -104,8 +104,8 @@ func TestHandler_HandleMsgBad(t *testing.T) {
 	mApp, _, _, _, ctx := getMockTestCaseEvn(t)
 	handlerFunctor := NewHandler(mApp.dexKeeper)
 
-	res := handlerFunctor(ctx, sdk.NewTestMsg())
-	require.False(t, res.Code.IsOK())
+	_, err := handlerFunctor(ctx, sdk.NewTestMsg())
+	require.NotNil(t, err)
 }
 
 func TestHandler_handleMsgTransferOwnership(t *testing.T) {

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
+
 	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -24,7 +26,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	stakingQueryCmd.AddCommand(client.GetCommands(
+	stakingQueryCmd.AddCommand(flags.GetCommands(
 		GetCmdQueryDelegator(queryRoute, cdc),
 		GetCmdQueryValidatorShares(queryRoute, cdc),
 		GetCmdQueryValidator(queryRoute, cdc),

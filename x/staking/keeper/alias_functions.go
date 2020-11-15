@@ -99,3 +99,8 @@ func (k Keeper) Delegator(ctx sdk.Context, delAddr sdk.AccAddress) exported.Dele
 
 	return delegator
 }
+
+// Delegation get the delegation interface for a particular set of delegator and validator addresses
+func (k Keeper) Delegation(ctx sdk.Context, addrDel sdk.AccAddress, addrVal sdk.ValAddress) exported.DelegationI {
+	return nil
+}

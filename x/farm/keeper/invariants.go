@@ -20,13 +20,13 @@ func moduleAccountInvariant(k Keeper) sdk.Invariant {
 		totalDepositAmount := sdk.SysCoins{}
 		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
-			totalDepositAmount = totalDepositAmount.Add(pool.DepositAmount.ToCoins())
+			totalDepositAmount = totalDepositAmount.Add2(pool.DepositAmount.ToCoins())
 		}
 
 		// iterate all lock infos
 		totalLockedAmount := sdk.SysCoins{}
 		k.IterateAllLockInfos(ctx, func(lockInfo types.LockInfo) (stop bool) {
-			totalLockedAmount = totalLockedAmount.Add(sdk.NewDecCoins(lockInfo.Amount.ToCoins()))
+			totalLockedAmount = totalLockedAmount.Add2(sdk.NewDecCoins(lockInfo.Amount))
 			return false
 		})
 
@@ -34,7 +34,7 @@ func moduleAccountInvariant(k Keeper) sdk.Invariant {
 		moduleAccAmount := k.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
 
 		// make a comparison
-		broken := !(moduleAccAmount.IsEqual(totalDepositAmount.Add(totalLockedAmount)))
+		broken := !(moduleAccAmount.IsEqual(totalDepositAmount.Add2(totalLockedAmount)))
 
 		return sdk.FormatInvariant(types.ModuleName, "ModuleAccount coins",
 			fmt.Sprintf("\texpected farm ModuleAccount coins: %s\n"+
@@ -51,9 +51,9 @@ func yieldFarmingAccountInvariant(k Keeper) sdk.Invariant {
 		expectedYieldModuleAccAmount := sdk.SysCoins{}
 		pools := k.GetFarmPools(ctx)
 		for _, pool := range pools {
-			expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add(pool.TotalAccumulatedRewards)
+			expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add2(pool.TotalAccumulatedRewards)
 			for _, yieldInfo := range pool.YieldedTokenInfos {
-				expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add(sdk.SysCoins{yieldInfo.RemainingAmount})
+				expectedYieldModuleAccAmount = expectedYieldModuleAccAmount.Add2(sdk.SysCoins{yieldInfo.RemainingAmount})
 			}
 		}
 

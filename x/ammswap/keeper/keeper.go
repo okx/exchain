@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okex/okexchain/x/backend/exported"
 	"github.com/okex/okexchain/x/common"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -23,7 +22,7 @@ type Keeper struct {
 	storeKey       sdk.StoreKey
 	cdc            *codec.Codec
 	paramSpace     types.ParamSubspace
-	ObserverKeeper []exported.BackendKeeper
+	ObserverKeeper []types.BackendKeeper
 }
 
 // NewKeeper creates a swap keeper
@@ -198,7 +197,7 @@ func GetInputPrice(inputAmount, inputReserve, outputReserve, feeRate sdk.Dec) sd
 	return common.MulAndQuo(inputAmountWithFee, outputReserve, denominator)
 }
 
-func (k *Keeper) SetObserverKeeper(bk exported.BackendKeeper) {
+func (k *Keeper) SetObserverKeeper(bk types.BackendKeeper) {
 	k.ObserverKeeper = append(k.ObserverKeeper, bk)
 }
 

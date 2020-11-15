@@ -5,8 +5,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/okex/okexchain/x/farm/types"
+	sdkGov "github.com/okex/okexchain/x/gov"
 	govKeeper "github.com/okex/okexchain/x/gov/keeper"
 	govTypes "github.com/okex/okexchain/x/gov/types"
 )

@@ -2,14 +2,33 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
-
 	"github.com/okex/okexchain/x/gov/types"
 	"github.com/okex/okexchain/x/staking/exported"
 )
 
+// validatorGovInfo used for tallying
+type validatorGovInfo struct {
+	Address             sdk.ValAddress // address of the validator operator
+	BondedTokens        sdk.Int        // Power of a Validator
+	DelegatorShares     sdk.Dec        // Total outstanding delegator shares
+	DelegatorDeductions sdk.Dec        // Delegator deductions from validator's delegators voting independently
+	Vote                types.VoteOption     // Vote of the validator
+}
+
+func newValidatorGovInfo(address sdk.ValAddress, bondedTokens sdk.Int, delegatorShares,
+	delegatorDeductions sdk.Dec, vote types.VoteOption) validatorGovInfo {
+
+	return validatorGovInfo{
+		Address:             address,
+		BondedTokens:        bondedTokens,
+		DelegatorShares:     delegatorShares,
+		DelegatorDeductions: delegatorDeductions,
+		Vote:                vote,
+	}
+}
+
 func tallyDelegatorVotes(
-	ctx sdk.Context, keeper Keeper, currValidators map[string]sdkGov.ValidatorGovInfo, proposalID uint64,
+	ctx sdk.Context, keeper Keeper, currValidators map[string]validatorGovInfo, proposalID uint64,
 	voteP *types.Vote, voterPower, totalVotedPower *sdk.Dec, results map[types.VoteOption]sdk.Dec,
 ) {
 	// iterate over all the votes
@@ -52,7 +71,7 @@ func tallyDelegatorVotes(
 }
 
 func tallyValidatorVotes(
-	currValidators map[string]sdkGov.ValidatorGovInfo, voteP *types.Vote, voterPower,
+	currValidators map[string]validatorGovInfo, voteP *types.Vote, voterPower,
 	totalPower, totalVotedPower *sdk.Dec, results map[types.VoteOption]sdk.Dec,
 ) {
 	// iterate over the validators again to tally their voting power
@@ -85,11 +104,11 @@ func preTally(
 	totalVotedPower = sdk.ZeroDec()
 	totalPower := sdk.ZeroDec()
 	voterPower := sdk.ZeroDec()
-	currValidators := make(map[string]sdkGov.ValidatorGovInfo)
+	currValidators := make(map[string]validatorGovInfo)
 
 	// fetch all the current validators except candidate, insert them into currValidators
 	keeper.sk.IterateBondedValidatorsByPower(ctx, func(index int64, validator exported.ValidatorI) (stop bool) {
-		currValidators[validator.GetOperator().String()] = sdkGov.NewValidatorGovInfo(
+		currValidators[validator.GetOperator().String()] = newValidatorGovInfo(
 			validator.GetOperator(),
 			validator.GetBondedTokens(),
 			validator.GetDelegatorShares(),

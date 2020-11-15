@@ -22,7 +22,6 @@ func TestProposalHandlerPassed(t *testing.T) {
 	proposal1 := govtypes.Proposal{Content: keeper.MockContent{}}
 	err := hdlr(ctx, &proposal1)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeUnexpectedProposalType, err.Code())
 
 	proposal2 := govtypes.Proposal{Content: types.NewManageWhiteListProposal(
 		"Test",
@@ -32,7 +31,6 @@ func TestProposalHandlerPassed(t *testing.T) {
 	)}
 	err = hdlr(ctx, &proposal2)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	pool := types.FarmPool{
 		Name:          poolName,
@@ -41,7 +39,6 @@ func TestProposalHandlerPassed(t *testing.T) {
 	k.SetFarmPool(ctx, pool)
 	err = hdlr(ctx, &proposal2)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	keeper.SetSwapTokenPair(ctx, k.Keeper, pool.MinLockAmount.Denom, quoteSymbol)
 	err = hdlr(ctx, &proposal2)
@@ -65,7 +62,6 @@ func TestProposalHandlerPassed(t *testing.T) {
 	)}
 	err = hdlr(ctx, &proposal3)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	keeper.SetSwapTokenPair(ctx, k.Keeper, baseSymbol, quoteSymbol)
 	err = hdlr(ctx, &proposal3)

@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 	stakingexported "github.com/okex/okexchain/x/staking/exported"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,3 +27,18 @@ type StakingKeeper interface {
 	// gov use it for getting votes of delegator which has been voted to validator
 	Delegator(ctx sdk.Context, delAddr sdk.AccAddress) stakingexported.DelegatorI
 }
+
+// SupplyKeeper defines the supply Keeper for module accounts
+type SupplyKeeper interface {
+	GetModuleAddress(name string) sdk.AccAddress
+	GetModuleAccount(ctx sdk.Context, name string) supplyexported.ModuleAccountI
+
+	// TODO remove with genesis 2-phases refactor https://github.com/cosmos/cosmos-sdk/issues/2862
+	SetModuleAccount(sdk.Context, supplyexported.ModuleAccountI)
+
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) sdk.Error
+	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule, recipientModule string, amt sdk.Coins) sdk.Error
+	BurnCoins(ctx sdk.Context, name string, amt sdk.Coins) sdk.Error
+}
+

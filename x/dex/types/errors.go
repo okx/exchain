@@ -2,25 +2,37 @@ package types
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // const CodeType
 const (
-	codeInvalidProduct          sdk.CodeType = 1
-	codeTokenPairNotFound       sdk.CodeType = 2
-	codeDelistOwnerNotMatch     sdk.CodeType = 3
-	codeInvalidBalanceNotEnough sdk.CodeType = 4
-	codeInvalidAsset            sdk.CodeType = 5
-	codeUnknownOperator         sdk.CodeType = 6
-	codeExistOperator           sdk.CodeType = 7
-	codeInvalidWebsiteLength    sdk.CodeType = 8
-	codeInvalidWebsiteURL       sdk.CodeType = 9
+	codeInvalidProduct          uint32 = 1
+	codeTokenPairNotFound       uint32 = 2
+	codeDelistOwnerNotMatch     uint32 = 3
+	codeInvalidBalanceNotEnough uint32 = 4
+	codeInvalidAsset            uint32 = 5
+	codeUnknownOperator         uint32 = 6
+	codeExistOperator           uint32 = 7
+	codeInvalidWebsiteLength    uint32 = 8
+	codeInvalidWebsiteURL       uint32 = 9
+)
+
+var (
+	errInvalidProduct 			= sdkerrors.Register(DefaultCodespace, codeInvalidProduct, "invalid product")
+	errTokenPairNotFound 		= sdkerrors.Register(DefaultCodespace, codeTokenPairNotFound, "token pair not found")
+	errDelistOwnerNotMatch 		= sdkerrors.Register(DefaultCodespace, codeDelistOwnerNotMatch, "delist owner not match")
+	errInvalidBalanceNotEnough 	= sdkerrors.Register(DefaultCodespace, codeInvalidBalanceNotEnough, "invalid balance not enough")
+	errInvalidAsset 			= sdkerrors.Register(DefaultCodespace, codeInvalidAsset, "invalid asset")
+	errUnknownOperator 			= sdkerrors.Register(DefaultCodespace, codeUnknownOperator, "unknown operator")
+	errExistOperator 			= sdkerrors.Register(DefaultCodespace, codeExistOperator, "exist operator")
+	errInvalidWebsiteLength 	= sdkerrors.Register(DefaultCodespace, codeInvalidWebsiteLength, "invalid website length")
+	errInvalidWebsiteURL 		= sdkerrors.Register(DefaultCodespace, codeInvalidWebsiteURL, "invalid website URL")
 )
 
 // CodeType to Message
-func codeToDefaultMsg(code sdk.CodeType) string {
+func codeToDefaultMsg(code uint32) string {
 	switch code {
 	case codeInvalidProduct:
 		return "invalid product"
@@ -34,49 +46,48 @@ func codeToDefaultMsg(code sdk.CodeType) string {
 }
 
 // ErrInvalidProduct returns invalid product error
-func ErrInvalidProduct(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidProduct, codeToDefaultMsg(codeInvalidProduct)+": %s", msg)
+func ErrInvalidProduct(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidProduct, codeToDefaultMsg(codeInvalidProduct)+": %s", msg)}
 }
 
 // ErrTokenPairNotFound returns token pair not found error
-func ErrTokenPairNotFound(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeTokenPairNotFound, codeToDefaultMsg(codeTokenPairNotFound)+": %s", msg)
+func ErrTokenPairNotFound(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errTokenPairNotFound, codeToDefaultMsg(codeTokenPairNotFound)+": %s", msg)}
 }
 
 // ErrDelistOwnerNotMatch returns delist owner not match error
-func ErrDelistOwnerNotMatch(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeDelistOwnerNotMatch, codeToDefaultMsg(codeDelistOwnerNotMatch)+": %s", msg)
+func ErrDelistOwnerNotMatch(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errDelistOwnerNotMatch, codeToDefaultMsg(codeDelistOwnerNotMatch)+": %s", msg)}
 }
 
 // ErrInvalidBalanceNotEnough returns invalid balance not enough error
-func ErrInvalidBalanceNotEnough(message string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidBalanceNotEnough, message)
+func ErrInvalidBalanceNotEnough(message string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidBalanceNotEnough, message)}
 }
 
 // ErrInvalidAsset returns invalid asset error
-func ErrInvalidAsset(message string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidAsset, message)
+func ErrInvalidAsset(message string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidAsset, message)}
 }
 
-func ErrUnknownOperator(addr sdk.AccAddress) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeUnknownOperator, fmt.Sprintf("unknown dex operator with address %s", addr.String()))
+func ErrUnknownOperator(addr sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownOperator, fmt.Sprintf("unknown dex operator with address %s", addr.String()))}
 }
 
-func ErrExistOperator(addr sdk.AccAddress) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeExistOperator, fmt.Sprintf("dex operator already exists with address %s", addr.String()))
+func ErrExistOperator(addr sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errExistOperator, fmt.Sprintf("dex operator already exists with address %s", addr.String()))}
 }
 
-func ErrInvalidWebsiteLength(got, max int) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidWebsiteLength, fmt.Sprintf("invalid website length, got length %v, max is %v", got, max))
+func ErrInvalidWebsiteLength(got, max int) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidWebsiteLength, fmt.Sprintf("invalid website length, got length %v, max is %v", got, max))}
 }
 
-func ErrInvalidWebsiteURL(msg string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidWebsiteURL, fmt.Sprintf("invalid website URL: %s", msg))
+func ErrInvalidWebsiteURL(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidWebsiteURL, fmt.Sprintf("invalid website URL: %s", msg))}
 }
 
 // ErrTokenPairExisted returns an error when the token pair is existed during the process of listing
 // ErrTokenPairExisted returns an error when the token pair is existing during the process of listing
-func ErrTokenPairExisted(baseAsset, quoteAsset string) sdk.Error {
-	return sdk.NewError(DefaultCodespace, codeInvalidAsset,
-		fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))
+func ErrTokenPairExisted(baseAsset, quoteAsset string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidAsset, fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))}
 }

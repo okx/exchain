@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	"github.com/gorilla/mux"
 	"github.com/okex/okexchain/x/backend/client/cli"
 	"github.com/okex/okexchain/x/backend/types"
 	"github.com/okex/okexchain/x/common"
+	"github.com/gorilla/mux"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -403,7 +403,7 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h, err := client.GetChainHeight(cliCtx)
+		h, err := rpc.GetChainHeight(cliCtx)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return

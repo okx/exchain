@@ -106,16 +106,10 @@ func broadcastPlaceOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		//TODO: OrderID needs to be obtained when the new version of the interface is developed
 		orderID := ""
-		events := res.Events
-		if len(events) > 0 {
-			attributes := events[0].Attributes
-			for i := 0; i < len(attributes); i++ {
-				if attributes[i].Key == "orderID" {
-					orderID = attributes[i].Value
-				}
-			}
-		}
+
+
 		res2 := placeCancelOrderResponse{
 			res,
 			orderID,

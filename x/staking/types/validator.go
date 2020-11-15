@@ -76,7 +76,7 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		MinSelfDelegation       sdk.Dec
 	}{
 		OperatorAddress:         v.OperatorAddress,
-		ConsPubKey:              sdk.MustBech32ifyConsPub(v.ConsPubKey),
+		ConsPubKey:              MustBech32ifyConsPub(v.ConsPubKey),
 		Jailed:                  v.Jailed,
 		Status:                  v.Status,
 		Tokens:                  v.Tokens,
@@ -152,7 +152,7 @@ func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, er
 
 // String returns a human readable string representation of a validator.
 func (v Validator) String() string {
-	bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
+	bechConsPubKey, err := Bech32ifyConsPub(v.ConsPubKey)
 	if err != nil {
 		panic(err)
 	}
@@ -203,7 +203,7 @@ type bechValidator struct {
 
 // MarshalJSON marshals the validator to JSON using Bech32
 func (v Validator) MarshalJSON() ([]byte, error) {
-	bechConsPubKey, err := sdk.Bech32ifyConsPub(v.ConsPubKey)
+	bechConsPubKey, err := Bech32ifyConsPub(v.ConsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 	if err := codec.Cdc.UnmarshalJSON(data, bv); err != nil {
 		return err
 	}
-	consPubKey, err := sdk.GetConsPubKeyBech32(bv.ConsPubKey)
+	consPubKey, err := GetConsPubKeyBech32(bv.ConsPubKey)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func NewDescription(moniker, identity, website, details string) Description {
 
 // UpdateDescription updates the fields of a given description. An error is
 // returned if the resulting description contains an invalid length.
-func (d Description) UpdateDescription(d2 Description) (Description, sdk.Error) {
+func (d Description) UpdateDescription(d2 Description) (Description, error) {
 	if d2.Moniker == DoNotModifyDesc {
 		d2.Moniker = d.Moniker
 	}
@@ -326,7 +326,7 @@ func (d Description) UpdateDescription(d2 Description) (Description, sdk.Error) 
 }
 
 // EnsureLength ensures the length of a validator's description.
-func (d Description) EnsureLength() (Description, sdk.Error) {
+func (d Description) EnsureLength() (Description, error) {
 	if len(d.Moniker) > MaxMonikerLength {
 		return d, ErrDescriptionLength(DefaultCodespace, "moniker", len(d.Moniker), MaxMonikerLength)
 	}
@@ -363,7 +363,7 @@ func (v Validator) ABCIValidatorUpdateZero() abci.ValidatorUpdate {
 
 // SetInitialCommission attempts to set a validator's initial commission. An
 // error is returned if the commission is invalid.
-func (v Validator) SetInitialCommission(commission Commission) (Validator, sdk.Error) {
+func (v Validator) SetInitialCommission(commission Commission) (Validator, error) {
 	if err := commission.Validate(); err != nil {
 		return v, err
 	}
@@ -394,7 +394,7 @@ func (v Validator) TokensFromSharesRoundUp(shares sdk.Dec) sdk.Dec {
 // SharesFromTokens returns the shares of a delegation given a bond amount
 // It returns an error if the validator has no tokens
 // No usage found in All Places
-func (v Validator) SharesFromTokens(amt sdk.Int) (sdk.Dec, sdk.Error) {
+func (v Validator) SharesFromTokens(amt sdk.Int) (sdk.Dec, error) {
 	return sdk.ZeroDec(), nil
 	//if v.Tokens.IsZero() {
 	//	return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)
@@ -406,7 +406,7 @@ func (v Validator) SharesFromTokens(amt sdk.Int) (sdk.Dec, sdk.Error) {
 // SharesFromTokensTruncated returns the truncated shares of a delegation given a bond amount
 // It returns an error if the validator has no tokens
 // No usage found in All Places
-func (v Validator) SharesFromTokensTruncated(amt sdk.Int) (sdk.Dec, sdk.Error) {
+func (v Validator) SharesFromTokensTruncated(amt sdk.Int) (sdk.Dec, error) {
 	return sdk.ZeroDec(), nil
 	//if v.Tokens.IsZero() {
 	//	return sdk.ZeroDec(), ErrInsufficientShares(DefaultCodespace)

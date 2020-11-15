@@ -203,7 +203,7 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 			newCoins = coins
 		} else {
 			k.cdc.MustUnmarshalBinaryBare(coinsBytes, &oldCoins)
-			newCoins = oldCoins.Add(coins)
+			newCoins = oldCoins.Add2(coins)
 		}
 	} else {
 		// unlock coins

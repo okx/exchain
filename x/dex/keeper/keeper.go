@@ -5,8 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/okex/okexchain/x/stream/exported"
-
 	"github.com/pkg/errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -23,7 +21,7 @@ type Keeper struct {
 	stakingKeeper     StakingKeeper         // The reference to the staking keeper to check whether proposer is  validator
 	bankKeeper        BankKeeper            // The reference to the bank keeper to check whether proposer can afford  proposal deposit
 	govKeeper         GovKeeper             // The reference to the gov keeper to handle proposal
-	observerKeeper    exported.StreamKeeper // The reference to the stream keeper
+	observerKeeper    StreamKeeper // The reference to the stream keeper
 	storeKey          sdk.StoreKey
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
@@ -471,7 +469,7 @@ func (k Keeper) SetMaxTokenPairID(ctx sdk.Context, MaxtokenPairID uint64) {
 	store.Set(types.MaxTokenPairIDKey, b)
 }
 
-func (k *Keeper) SetObserverKeeper(sk exported.StreamKeeper) {
+func (k *Keeper) SetObserverKeeper(sk StreamKeeper) {
 	k.observerKeeper = sk
 }
 

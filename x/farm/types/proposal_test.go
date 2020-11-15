@@ -71,7 +71,7 @@ func TestNewManageWhiteListProposal(t *testing.T) {
 		err := proposal.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 
 		require.NotPanics(t, func() {

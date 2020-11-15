@@ -14,58 +14,58 @@ import (
 
 // NewTokenHandler returns a handler for "token" type messages.
 func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		//logger := ctx.Logger().With("module", "token")
 		// NOTE msg already has validate basic run
 		var name string
-		var handlerFun func() sdk.Result
+		var handlerFun func() (*sdk.Result, error)
 		logger := ctx.Logger().With("module", "token")
 		switch msg := msg.(type) {
 		case types.MsgTokenIssue:
 			name = "handleMsgTokenIssue"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTokenIssue(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgTokenBurn:
 			name = "handleMsgTokenBurn"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTokenBurn(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgTokenMint:
 			name = "handleMsgTokenMint"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTokenMint(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgMultiSend:
 			name = "handleMsgMultiSend"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgMultiSend(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgSend:
 			name = "handleMsgSend"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgSend(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgTransferOwnership:
 			name = "handleMsgTransferOwnership"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTransferOwnership(ctx, keeper, msg, logger)
 			}
 		case types.MsgConfirmOwnership:
 			name = "handleMsgConfirmOwnership"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgConfirmOwnership(ctx, keeper, msg, logger)
 			}
 
 		case types.MsgTokenModify:
 			name = "handleMsgTokenModify"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTokenModify(ctx, keeper, msg, logger)
 			}
 		default:
@@ -79,7 +79,7 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 	}
 }
 
-func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue, logger log.Logger) sdk.Result {
+func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue, logger log.Logger) (*sdk.Result, error) {
 	// check upper bound
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
@@ -151,10 +151,10 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 			sdk.NewAttribute("symbol", token.Symbol),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, logger log.Logger) sdk.Result {
+func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, logger log.Logger) (*sdk.Result, error) {
 
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 
@@ -200,10 +200,10 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 			sdk.NewAttribute(sdk.AttributeKeyFee, feeDecCoins.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, logger log.Logger) sdk.Result {
+func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, logger log.Logger) (*sdk.Result, error) {
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
@@ -254,10 +254,10 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 			sdk.NewAttribute(sdk.AttributeKeyFee, feeDecCoins.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) sdk.Result {
+func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, logger log.Logger) (*sdk.Result, error) {
 	if !keeper.bankKeeper.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled(DefaultCodespace).Result()
 	}
@@ -288,10 +288,10 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log.Logger) sdk.Result {
+func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log.Logger) (*sdk.Result, error) {
 	if !keeper.bankKeeper.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled(DefaultCodespace).Result()
 	}
@@ -315,10 +315,10 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 		sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName)),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOwnership, logger log.Logger) sdk.Result {
+func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTransferOwnership, logger log.Logger) (*sdk.Result, error) {
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
 
 	if !tokenInfo.Owner.Equals(msg.FromAddress) {
@@ -371,10 +371,10 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeChown.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConfirmOwnership, logger log.Logger) sdk.Result {
+func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConfirmOwnership, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if !exist {
 		return sdk.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of token (%s) to confirm",
@@ -412,10 +412,10 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeChown.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModify, logger log.Logger) sdk.Result {
+func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModify, logger log.Logger) (*sdk.Result, error) {
 	token := keeper.GetTokenInfo(ctx, msg.Symbol)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
@@ -460,5 +460,5 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 			sdk.NewAttribute(sdk.AttributeKeyFee, keeper.GetParams(ctx).FeeModify.String()),
 		),
 	)
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

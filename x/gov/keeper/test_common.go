@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"strconv"
 	"testing"
 	"time"
@@ -82,8 +83,8 @@ func CreateValidators(
 			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DefaultMSD),
 		)
 
-		res := stakingHandler(ctx, valCreateMsg)
-		require.True(t, res.IsOK())
+		_, err := stakingHandler(ctx, valCreateMsg)
+		require.Nil(t, err)
 	}
 }
 
@@ -134,7 +135,7 @@ func CreateTestInput(
 	blacklistedAddrs[notBondedPool.String()] = true
 	blacklistedAddrs[bondPool.String()] = true
 
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 	pk.SetParams(ctx, params.DefaultParams())
 
 	accountKeeper := auth.NewAccountKeeper(
@@ -147,7 +148,6 @@ func CreateTestInput(
 	bk := bank.NewBaseKeeper(
 		accountKeeper,
 		pk.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 	pk.SetBankKeeper(bk)
@@ -166,8 +166,8 @@ func CreateTestInput(
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	// for staking/distr rollback to cosmos-sdk
-	stakingKeeper := staking.NewKeeper(cdc, stakingSk, stakingTkSk, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace), staking.DefaultCodespace)
+	stakingKeeper := staking.NewKeeper(cdc, stakingSk, supplyKeeper,
+		pk.Subspace(staking.DefaultParamspace))
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())
 	pk.SetStakingKeeper(stakingKeeper)
@@ -239,7 +239,7 @@ func MakeTestCodec() *codec.Codec {
 	cdc.RegisterConcrete(types.Proposal{}, "test/gov/Proposal", nil)
 
 	// Register AppAccount
-	cdc.RegisterInterface((*auth.Account)(nil), nil)
+	cdc.RegisterInterface((*authexported.Account)(nil), nil)
 	cdc.RegisterConcrete(&auth.BaseAccount{}, "test/gov/BaseAccount", nil)
 	supply.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)

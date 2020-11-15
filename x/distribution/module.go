@@ -2,16 +2,18 @@ package distribution
 
 import (
 	"encoding/json"
+	"math/rand"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-
-	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/okex/okexchain/x/distribution/client/cli"
 	"github.com/okex/okexchain/x/distribution/client/rest"
 	"github.com/okex/okexchain/x/distribution/types"
@@ -71,6 +73,25 @@ type AppModule struct {
 	AppModuleBasic
 	keeper       Keeper
 	supplyKeeper types.SupplyKeeper
+}
+
+// TODO: implement AppModuleSimulation later
+func (am AppModule) GenerateGenesisState(input *module.SimulationState) {
+}
+
+func (am AppModule) ProposalContents(simState module.SimulationState) []simulation.WeightedProposalContent {
+	return nil
+}
+
+func (am AppModule) RandomizedParams(r *rand.Rand) []simulation.ParamChange {
+	return nil
+}
+
+func (am AppModule) RegisterStoreDecoder(registry sdk.StoreDecoderRegistry) {
+}
+
+func (am AppModule) WeightedOperations(simState module.SimulationState) []simulation.WeightedOperation {
+	return nil
 }
 
 // NewAppModule creates a new AppModule object

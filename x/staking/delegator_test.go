@@ -5,12 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okexchain/x/common"
+
 	"github.com/okex/okexchain/x/staking/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
+	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
 
@@ -100,6 +103,7 @@ func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 
 func TestDelegator(t *testing.T) {
 
+	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 
 	params := DefaultParams()
@@ -194,6 +198,7 @@ func TestDelegator(t *testing.T) {
 }
 
 func TestProxy(t *testing.T) {
+	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
 
@@ -325,6 +330,7 @@ func TestProxy(t *testing.T) {
 }
 
 func TestRebindProxy(t *testing.T) {
+	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
 
@@ -436,6 +442,7 @@ func TestRebindProxy(t *testing.T) {
 }
 
 func TestLimitedProxy(t *testing.T) {
+	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
 
@@ -502,6 +509,7 @@ func TestLimitedProxy(t *testing.T) {
 //          iterate all the possibilities to run delegatorConstraintCheck and validatorConstrainCheck
 //
 func TestDelegatorProxyValidatorConstraints4Steps(t *testing.T) {
+	common.InitConfig()
 	params := DefaultParams()
 
 	originVaSet := addrVals[1:]

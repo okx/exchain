@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/okex/okexchain/x/distribution/types"
 	"github.com/okex/okexchain/x/staking/exported"
 )
@@ -74,12 +75,12 @@ func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 		var accumulatedCommission sdk.SysCoins
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(_ sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
-				accumulatedCommission = accumulatedCommission.Add(commission)
+				accumulatedCommission = accumulatedCommission.Add(commission...)
 				return false
 			})
 		communityPool := k.GetFeePoolCommunityCoins(ctx)
 		macc := k.GetDistributionAccount(ctx)
-		broken := !macc.GetCoins().IsEqual(communityPool.Add(accumulatedCommission))
+		broken := !macc.GetCoins().IsEqual(communityPool.Add(accumulatedCommission...))
 		return sdk.FormatInvariant(types.ModuleName, "ModuleAccount coins",
 			fmt.Sprintf("\texpected distribution ModuleAccount coins:     %s\n"+
 				"\tacutal distribution ModuleAccount coins: %s\n",

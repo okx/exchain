@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -12,14 +16,21 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	sdkGovCli "github.com/cosmos/cosmos-sdk/x/gov/client/cli"
-	"github.com/spf13/cobra"
 
+	govutils "github.com/okex/okexchain/x/gov/client/utils"
 	"github.com/okex/okexchain/x/gov/types"
 )
 
 // Proposal flags
 const (
+	FlagTitle        = "title"
+	FlagDescription  = "description"
+	FlagDeposit      = "deposit"
+	flagVoter        = "voter"
+	flagDepositor    = "depositor"
+	flagStatus       = "status"
+	flagNumLimit     = "limit"
+	FlagProposal     = "proposal"
 	flagTitle        = "title"
 	flagDescription  = "description"
 	flagProposalType = "type"
@@ -60,12 +71,12 @@ func GetTxCmd(storeKey string, cdc *codec.Codec, pcmds []*cobra.Command) *cobra.
 
 	cmdSubmitProp := getCmdSubmitProposal(cdc)
 	for _, pcmd := range pcmds {
-		cmdSubmitProp.AddCommand(client.PostCommands(pcmd)[0])
+		cmdSubmitProp.AddCommand(flags.PostCommands(pcmd)[0])
 	}
 
-	govTxCmd.AddCommand(client.PostCommands(
+	govTxCmd.AddCommand(flags.PostCommands(
 		getCmdDeposit(cdc),
-		sdkGovCli.GetCmdVote(cdc),
+		GetCmdVote(cdc),
 		cmdSubmitProp,
 	)...)
 
@@ -102,7 +113,8 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			proposal, err := parseSubmitProposalFlags()
@@ -154,7 +166,8 @@ $ %s tx gov deposit 1 10okt --from mykey
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			// validate that the proposal id is a uint
@@ -173,6 +186,55 @@ $ %s tx gov deposit 1 10okt --from mykey
 			}
 
 			msg := types.NewMsgDeposit(from, proposalID, amount)
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdVote implements creating a new vote command.
+func GetCmdVote(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "vote [proposal-id] [option]",
+		Args:  cobra.ExactArgs(2),
+		Short: "Vote for an active proposal, options: yes/no/no_with_veto/abstain",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a vote for an active proposal. You can
+find the proposal-id by running "%s query gov proposals".
+
+
+Example:
+$ %s tx gov vote 1 yes --from mykey
+`,
+				version.ClientName, version.ClientName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			// Get voting address
+			from := cliCtx.GetFromAddress()
+
+			// validate that the proposal id is a uint
+			proposalID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("proposal-id %s not a valid int, please input a valid proposal-id", args[0])
+			}
+
+			// Find out which vote option user chose
+			byteVoteOption, err := types.VoteOptionFromString(govutils.NormalizeVoteOption(args[1]))
+			if err != nil {
+				return err
+			}
+
+			// Build vote message and run basic validation
+			msg := types.NewMsgVote(from, proposalID, byteVoteOption)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

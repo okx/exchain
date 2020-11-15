@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTextProposal(t *testing.T, ctx sdk.Context, initialDeposit sdk.SysCoins, govHandler sdk.Handler) sdk.Result {
+func newTextProposal(t *testing.T, ctx sdk.Context, initialDeposit sdk.SysCoins, govHandler sdk.Handler) *sdk.Result {
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
-	res := govHandler(ctx, newProposalMsg)
-	require.True(t, res.IsOK())
+	res, err := govHandler(ctx, newProposalMsg)
+	require.Nil(t, err)
 	return res
 }
 
@@ -36,8 +36,8 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
-	res := govHandler(ctx, newProposalMsg)
-	require.True(t, res.IsOK())
+	res, err := govHandler(ctx, newProposalMsg)
+	require.Nil(t, err)
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
@@ -46,8 +46,8 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	ctx = ctx.WithBlockHeader(newHeader)
 
 	newDepositMsg := NewMsgDeposit(keeper.Addrs[1], proposalID, proposalCoins)
-	res = govHandler(ctx, newDepositMsg)
-	require.False(t, res.IsOK())
+	res, err = govHandler(ctx, newDepositMsg)
+	require.NotNil(t, err)
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetDepositParams(ctx).MaxDepositPeriod).
@@ -61,7 +61,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	activeQueue = gk.ActiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, activeQueue.Valid())
 	var activeProposalID uint64
-	err := gk.Cdc().UnmarshalBinaryLengthPrefixed(activeQueue.Value(), &activeProposalID)
+	err = gk.Cdc().UnmarshalBinaryLengthPrefixed(activeQueue.Value(), &activeProposalID)
 	require.Nil(t, err)
 	proposal, ok := gk.GetProposal(ctx, activeProposalID)
 	require.True(t, ok)
@@ -137,8 +137,8 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 	require.Equal(t, initialDeposit, gk.SupplyKeeper().
 		GetModuleAccount(ctx, types.ModuleName).GetCoins())
 	newVoteMsg := NewMsgVote(keeper.Addrs[0], proposalID, types.OptionNoWithVeto)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err := govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetVotingPeriod(ctx, nil))
@@ -176,11 +176,11 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 	require.Equal(t, initialDeposit, gk.SupplyKeeper().
 		GetModuleAccount(ctx, types.ModuleName).GetCoins())
 	newVoteMsg := NewMsgVote(keeper.Addrs[0], proposalID, types.OptionYes)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err := govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 	newVoteMsg = NewMsgVote(keeper.Addrs[1], proposalID, types.OptionYes)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err = govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetVotingPeriod(ctx, nil))
@@ -214,20 +214,20 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	height := uint64(ctx.BlockHeight() + 1000)
 	content := paramsTypes.NewParameterChangeProposal("Test", "", paramsChanges, height)
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
-	res := govHandler(ctx, newProposalMsg)
-	require.True(t, res.IsOK())
+	res, err := govHandler(ctx, newProposalMsg)
+	require.Nil(t, err)
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
 	newVoteMsg := NewMsgVote(keeper.Addrs[0], proposalID, types.OptionYes)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err = govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 	newVoteMsg = NewMsgVote(keeper.Addrs[1], proposalID, types.OptionYes)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err = govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 	newVoteMsg = NewMsgVote(keeper.Addrs[2], proposalID, types.OptionYes)
-	res = govHandler(ctx, newVoteMsg)
-	require.True(t, res.IsOK())
+	res, err = govHandler(ctx, newVoteMsg)
+	require.Nil(t, err)
 
 	ctx = ctx.WithBlockHeight(int64(height))
 	waitingQueue := gk.WaitingProposalQueueIterator(ctx, uint64(ctx.BlockHeight()))

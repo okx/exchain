@@ -5,29 +5,37 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/config"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 )
 
+const (
+	// Update the validator set every 252 blocks by default
+	DefaultBlocksPerEpoch = 252
+
+	// Default maximum number of validators to vote
+	DefaultMaxValsToVote = 30
+
+	// Default validate rate update interval by hours
+	DefaultValidateRateUpdateInterval = 24
+)
+
 // Staking params default values
 const (
-	// DefaultUnbondingTime reflects three weeks in seconds as the default
-	// unbonding time.
-	// TODO: Justify our choice of default here.
-	DefaultUnbondingTime = config.DefaultUnbondingTime
+
+	// Default unbonding duration, 14 days
+	DefaultUnbondingTime time.Duration = time.Hour * 24 * 7 * 2
 
 	// Default maximum number of bonded validators
-	DefaultMaxValidators = config.DefaultMaxValidators
+	DefaultMaxValidators uint16 = 21
 
-	DefaultEpoch              uint16 = config.DefaultBlocksPerEpoch
-	DefaultMaxValsToAddShares uint16 = config.DefaultMaxValsToVote
+	DefaultEpoch              uint16 = DefaultBlocksPerEpoch
+	DefaultMaxValsToAddShares uint16 = DefaultMaxValsToVote
 )
 
 var (
 	// DefaultMinDelegation is the limit value of delegation or undelegation
-	DefaultMinDelegation = config.DefaultMinDelegation
+	DefaultMinDelegation = sdk.NewDecWithPrec(1, 4)
 	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
 	DefaultMinSelfDelegation = sdk.NewDec(10000)
 )
@@ -80,16 +88,21 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, bondDenom stri
 	}
 }
 
+// TODO: to supplement the validate function for every pair of param
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs is the implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyUnbondingTime, Value: &p.UnbondingTime},
-		{Key: KeyMaxValidators, Value: &p.MaxValidators},
-		{Key: KeyBondDenom, Value: &p.BondDenom},
-		{Key: KeyEpoch, Value: &p.Epoch},
-		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares},
-		{Key: KeyMinDelegation, Value: &p.MinDelegation},
-		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation},
+		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: validateParams},
+		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: validateParams},
+		{Key: KeyBondDenom, Value: &p.BondDenom, ValidatorFn: validateParams},
+		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: validateParams},
+		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: validateParams},
+		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: validateParams},
+		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: validateParams},
 	}
 }
 

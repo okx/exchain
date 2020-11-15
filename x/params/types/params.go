@@ -52,14 +52,19 @@ MaxBlockHeight:   %d,
 `, p.MaxDepositPeriod, p.MinDeposit, p.VotingPeriod, p.MaxBlockHeight)
 }
 
+// TODO: to supplement the validate function for every pair of param
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 // pairs of auth module's parameters.
 // nolint
 func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 	return subspace.ParamSetPairs{
-		{KeyMaxDepositPeriod, &p.MaxDepositPeriod},
-		{KeyMinDeposit, &p.MinDeposit},
-		{KeyVotingPeriod, &p.VotingPeriod},
-		{KeyMaxBlockHeight, &p.MaxBlockHeight},
+		{KeyMaxDepositPeriod, &p.MaxDepositPeriod, validateParams},
+		{KeyMinDeposit, &p.MinDeposit, validateParams},
+		{KeyVotingPeriod, &p.VotingPeriod, validateParams},
+		{KeyMaxBlockHeight, &p.MaxBlockHeight, validateParams},
 	}
 }

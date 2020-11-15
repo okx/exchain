@@ -8,7 +8,7 @@ import (
 // const
 const (
 	ModuleName        = sdkparams.ModuleName
-	DefaultCodespace  = sdkparams.DefaultCodespace
+	DefaultCodespace  = types.DefaultCodespace
 	DefaultParamspace = sdkparams.ModuleName
 	StoreKey          = sdkparams.StoreKey
 	TStoreKey         = sdkparams.TStoreKey
@@ -18,6 +18,8 @@ const (
 type (
 	// KeyTable is the type alias of the one in cmsdk
 	KeyTable = sdkparams.KeyTable
+	// ParamSetPairs is the type alias of the one in cmsdk
+	ParamSetPair = sdkparams.ParamSetPair
 	// ParamSetPairs is the type alias of the one in cmsdk
 	ParamSetPairs = sdkparams.ParamSetPairs
 	// Subspace is the type alias of the one in cmsdk
@@ -32,7 +34,8 @@ type (
 
 var (
 	// nolint
-	NewKeyTable    = sdkparams.NewKeyTable
-	NewParamChange = sdkparams.NewParamChange
-	DefaultParams  = types.DefaultParams
+	NewKeyTable     = sdkparams.NewKeyTable
+	NewParamChange  = sdkparams.NewParamChange
+	DefaultParams   = types.DefaultParams
+	NewParamSetPair = sdkparams.NewParamSetPair
 )

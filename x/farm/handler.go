@@ -13,39 +13,39 @@ import (
 
 // NewHandler creates an sdk.Handler for all the farm type messages
 func NewHandler(k keeper.Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
-		var handlerFun func() sdk.Result
+		var handlerFun func() (*sdk.Result, error)
 		var name string
 		switch msg := msg.(type) {
 		case types.MsgCreatePool:
 			name = "handleMsgCreatePool"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgCreatePool(ctx, k, msg)
 			}
 		case types.MsgDestroyPool:
 			name = "handleMsgDestroyPool"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgDestroyPool(ctx, k, msg)
 			}
 		case types.MsgProvide:
 			name = "handleMsgProvide"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgProvide(ctx, k, msg)
 			}
 		case types.MsgLock:
 			name = "handleMsgLock"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgLock(ctx, k, msg)
 			}
 		case types.MsgUnlock:
 			name = "handleMsgUnlock"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgUnlock(ctx, k, msg)
 			}
 		case types.MsgClaim:
 			name = "handleMsgClaim"
-			handlerFun = func() sdk.Result {
+			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
@@ -59,7 +59,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sdk.Result {
+func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*sdk.Result, error) {
 	// 0. Check if the start_height_to_yield is more than current height
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
 		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
@@ -102,7 +102,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins(),
 	); err != nil {
-		return err.Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
 	// 5. init a new yielded_token_info struct, then set it into store
@@ -119,10 +119,10 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) sd
 		sdk.NewAttribute(types.AttributeKeyStartHeightToYield, strconv.FormatInt(msg.StartHeightToYield, 10)),
 		sdk.NewAttribute(types.AttributeKeyAmountYieldPerBlock, msg.AmountYieldedPerBlock.String()),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Result {
+func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) (*sdk.Result, error) {
 	// 1. Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
@@ -135,7 +135,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Re
 	// 3. Withdraw rewards
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
-		return err.Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
 	// 4. Update the lock_info data
@@ -153,5 +153,5 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) sdk.Re
 		sdk.NewAttribute(types.AttributeKeyAddress, msg.Address.String()),
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

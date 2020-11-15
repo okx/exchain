@@ -69,7 +69,6 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.bankKeeper = bank.NewBaseKeeper(
 		mockDexApp.AccountKeeper,
 		mockDexApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 
@@ -120,7 +119,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 
 	for i := 0; i < numGenAccs; i++ {
 		mock.CheckBalance(t, app.App, addrs[i], coins)
-		mockDexApp.TotalCoinsSupply = mockDexApp.TotalCoinsSupply.Add(coins)
+		mockDexApp.TotalCoinsSupply = mockDexApp.TotalCoinsSupply.Add2(coins)
 	}
 
 	return mockDexApp, mockDexApp.tokenKeeper, addrs
@@ -148,7 +147,6 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	mockDexApp.bankKeeper = bank.NewBaseKeeper(
 		mockDexApp.AccountKeeper,
 		mockDexApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 
@@ -402,8 +400,8 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], MsgErrorName))
 
 	ctx = mockApplyBlock(t, app, TokenIssue, 3)
-
-	require.NotNil(t, handleMsgTokenIssue(ctx, keeper, MsgErrorSupply, nil))
+	_, err := handleMsgTokenIssue(ctx, keeper, MsgErrorSupply, nil)
+	require.NotNil(t, err)
 	//require.NotNil(t, handleMsgTokenIssue(ctx, keeper, MsgErrorName, nil))
 
 	//test if zzb is not exist
@@ -1077,8 +1075,8 @@ func TestHandleTransferOwnership(t *testing.T) {
 	symbol := "xxb"
 	msgNewIssue := types.NewMsgTokenIssue("xxb desc", symbol, symbol, symbol,
 		"1000000", testAccounts[0], true)
-	result := handler(ctx, msgNewIssue)
-	require.True(t, result.IsOK())
+	_, err := handler(ctx, msgNewIssue)
+	require.Nil(t, err)
 
 	tokenName := getTokenSymbol(ctx, keeper, symbol)
 
@@ -1086,7 +1084,7 @@ func TestHandleTransferOwnership(t *testing.T) {
 	tests := []struct {
 		ctx          sdk.Context
 		msg          sdk.Msg
-		expectedCode sdk.CodeType
+		expectedCode uint32
 	}{
 		// case 1. sender is not the owner of token
 		{
@@ -1145,8 +1143,8 @@ func TestHandleTransferOwnership(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		result := handler(testCase.ctx, testCase.msg)
-		require.Equal(t, testCase.expectedCode, result.Code)
+		_, err := handler(testCase.ctx, testCase.msg)
+		require.Nil(t, err)
 	}
 
 	token := keeper.GetTokenInfo(ctx, tokenName)

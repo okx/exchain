@@ -117,11 +117,11 @@ func TestInitGenesis(t *testing.T) {
 	require.Equal(t, actualGenesis.Validators[1].Import(), resVal)
 	// 0x22
 	resVal, found = newKeeper.GetValidatorByConsAddr(newCtx,
-		sdk.GetConsAddress(sdk.MustGetConsPubKeyBech32(actualGenesis.Validators[0].ConsPubKey)))
+		sdk.GetConsAddress(types.MustGetConsPubKeyBech32(actualGenesis.Validators[0].ConsPubKey)))
 	require.True(t, found)
 	require.Equal(t, actualGenesis.Validators[0].Import(), resVal)
 	resVal, found = newKeeper.GetValidatorByConsAddr(newCtx,
-		sdk.GetConsAddress(sdk.MustGetConsPubKeyBech32(actualGenesis.Validators[1].ConsPubKey)))
+		sdk.GetConsAddress(types.MustGetConsPubKeyBech32(actualGenesis.Validators[1].ConsPubKey)))
 	require.True(t, found)
 	require.Equal(t, actualGenesis.Validators[1].Import(), resVal)
 	// 0x23

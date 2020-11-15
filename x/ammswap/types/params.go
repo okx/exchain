@@ -48,10 +48,15 @@ func (p Params) String() string {
   TradeFeeRate: %s`, p.FeeRate)
 }
 
+
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyFeeRate, Value: &p.FeeRate},
+		{Key: KeyFeeRate, Value: &p.FeeRate, ValidatorFn: validateParams},
 	}
 }
 

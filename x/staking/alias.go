@@ -13,18 +13,15 @@ import (
 )
 
 const (
-	DefaultParamspace  = keeper.DefaultParamspace
-	DefaultCodespace   = types.DefaultCodespace
-	CodeInvalidInput   = types.CodeInvalidInput
-	CodeUnknownRequest = types.CodeUnknownRequest
-	ModuleName         = types.ModuleName
-	StoreKey           = types.StoreKey
-	TStoreKey          = types.TStoreKey
-	QuerierRoute       = types.QuerierRoute
-	RouterKey          = types.RouterKey
-	NotBondedPoolName  = types.NotBondedPoolName
-	BondedPoolName     = types.BondedPoolName
-	QueryParameters    = types.QueryParameters
+	DefaultParamspace = keeper.DefaultParamspace
+	ModuleName        = types.ModuleName
+	StoreKey          = types.StoreKey
+	TStoreKey         = types.TStoreKey
+	QuerierRoute      = types.QuerierRoute
+	RouterKey         = types.RouterKey
+	NotBondedPoolName = types.NotBondedPoolName
+	BondedPoolName    = types.BondedPoolName
+	QueryParameters   = types.QueryParameters
 )
 
 var (

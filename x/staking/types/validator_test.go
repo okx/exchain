@@ -3,6 +3,8 @@ package types
 import (
 	"testing"
 
+	"github.com/okex/okexchain/x/common"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -125,6 +127,7 @@ func TestShareTokens(t *testing.T) {
 }
 
 func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
+	common.InitConfig()
 	validator := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
 	js, err := codec.Cdc.MarshalJSON(validator)
 	require.NoError(t, err)

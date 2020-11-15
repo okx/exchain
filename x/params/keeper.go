@@ -23,10 +23,10 @@ type Keeper struct {
 }
 
 // NewKeeper creates a new instance of params keeper
-func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey, codespace sdk.CodespaceType) (
+func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey) (
 	k Keeper) {
 	k = Keeper{
-		Keeper: sdkparams.NewKeeper(cdc, key, tkey, codespace),
+		Keeper: sdkparams.NewKeeper(cdc, key, tkey),
 	}
 	k.cdc = cdc
 	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())

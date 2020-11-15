@@ -36,8 +36,8 @@ func TestValidatorByPowerIndex(t *testing.T) {
 
 	// create validator
 	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], DefaultMSD)
-	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
-	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)
+	got, err := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.Nil(t, err, "expected create-validator to be ok, got %v", got)
 
 	// must end-block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -51,8 +51,8 @@ func TestValidatorByPowerIndex(t *testing.T) {
 
 	// create a second validator keep it bonded
 	msgCreateValidator = NewTestMsgCreateValidator(validatorAddr2, keep.PKs[2], DefaultMSD)
-	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
-	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)
+	got, err = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.Nil(t, err, "expected create-validator to be ok, got %v", got)
 
 	// must end-block
 	updates = keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -78,8 +78,8 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	pk1, pk2 := keep.PKs[0], keep.PKs[1]
 
 	msgCreateValidator1 := NewTestMsgCreateValidator(addr1, pk1, DefaultMSD)
-	got := handleMsgCreateValidator(ctx, msgCreateValidator1, keeper)
-	require.True(t, got.IsOK(), "%v", got)
+	got, err := handleMsgCreateValidator(ctx, msgCreateValidator1, keeper)
+	require.Nil(t, err, "%v", got)
 
 	keeper.ApplyAndReturnValidatorSetUpdates(ctx)
 
@@ -96,18 +96,18 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 
 	// two validators can't have the same operator address
 	msgCreateValidator2 := NewTestMsgCreateValidator(addr1, pk2, DefaultMSD)
-	got = handleMsgCreateValidator(ctx, msgCreateValidator2, keeper)
-	require.False(t, got.IsOK(), "%v", got)
+	got, err = handleMsgCreateValidator(ctx, msgCreateValidator2, keeper)
+	require.NotNil(t, err, "%v", got)
 
 	// two validators can't have the same pubkey
 	msgCreateValidator3 := NewTestMsgCreateValidator(addr2, pk1, DefaultMSD)
-	got = handleMsgCreateValidator(ctx, msgCreateValidator3, keeper)
-	require.False(t, got.IsOK(), "%v", got)
+	got, err = handleMsgCreateValidator(ctx, msgCreateValidator3, keeper)
+	require.NotNil(t, err, "%v", got)
 
 	// must have different pubkey and operator
 	msgCreateValidator4 := NewTestMsgCreateValidator(addr2, pk2, DefaultMSD)
-	got = handleMsgCreateValidator(ctx, msgCreateValidator4, keeper)
-	require.True(t, got.IsOK(), "%v", got)
+	got, err = handleMsgCreateValidator(ctx, msgCreateValidator4, keeper)
+	require.Nil(t, err, "%v", got)
 
 	// must end-block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -144,15 +144,15 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 
 	// invalid pukKey type should not be allowed
 	msgCreateValidator := NewTestMsgCreateValidator(addr, invalidPk, DefaultMSD)
-	got := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
-	require.False(t, got.IsOK(), "%v", got)
+	got, err := handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.NotNil(t, err, "%v", got)
 
 	ctx = ctx.WithConsensusParams(&abci.ConsensusParams{
 		Validator: &abci.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeSecp256k1}},
 	})
 
-	got = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
-	require.True(t, got.IsOK(), "%v", got)
+	got, err = handleMsgCreateValidator(ctx, msgCreateValidator, keeper)
+	require.Nil(t, err, "%v", got)
 }
 
 // TODO: msd is fixed now. nothing could change it!!!
@@ -165,8 +165,8 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	// create validator
 	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], DefaultMSD)
 	handler := NewHandler(keeper)
-	got := handler(ctx, msgCreateValidator)
-	require.True(t, got.IsOK(), "expected create-validator to be ok, got %v", got)
+	got, err := handler(ctx, msgCreateValidator)
+	require.Nil(t, err, "expected create-validator to be ok, got %v", got)
 
 	// must end-block
 	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
@@ -179,8 +179,8 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	require.Nil(t, msgEditValidator.ValidateBasic())
 
 	// no one could change msd
-	got = handler(ctx, msgEditValidator)
-	require.True(t, got.IsOK(), "should not be able to decrease minSelfDelegation")
+	got, err = handler(ctx, msgEditValidator)
+	require.Nil(t, err, "should not be able to decrease minSelfDelegation")
 	SimpleCheckValidator(t, ctx, keeper, validatorAddr, DefaultMSD, sdk.Bonded,
 		SharesFromDefaultMSD, false)
 }

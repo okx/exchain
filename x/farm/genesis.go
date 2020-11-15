@@ -13,9 +13,9 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 	var moduleAccHoldings sdk.SysCoins
 
 	for _, pool := range data.Pools {
-		moduleAccHoldings = moduleAccHoldings.Add(sdk.SysCoins{pool.TotalValueLocked})
-		moduleAccHoldings = moduleAccHoldings.Add(sdk.SysCoins{pool.DepositAmount})
-		yieldModuleAccHoldings = yieldModuleAccHoldings.Add(pool.TotalAccumulatedRewards)
+		moduleAccHoldings = moduleAccHoldings.Add2(sdk.SysCoins{pool.TotalValueLocked})
+		moduleAccHoldings = moduleAccHoldings.Add2(sdk.SysCoins{pool.DepositAmount})
+		yieldModuleAccHoldings = yieldModuleAccHoldings.Add2(pool.TotalAccumulatedRewards)
 		k.SetFarmPool(ctx, pool)
 	}
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -23,7 +23,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Querying commands for the backend module",
 	}
 
-	queryCmd.AddCommand(client.GetCommands(
+	queryCmd.AddCommand(flags.GetCommands(
 		GetCmdMatches(queryRoute, cdc),
 		GetCmdDeals(queryRoute, cdc),
 		GetCmdFeeDetails(queryRoute, cdc),
@@ -407,11 +407,6 @@ func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error)
 
 	if !cliCtx.TrustNode {
 		check, err := cliCtx.Verify(res.Block.Height)
-		if err != nil {
-			return nil, err
-		}
-
-		err = tmliteProxy.ValidateBlockMeta(res.BlockMeta, check)
 		if err != nil {
 			return nil, err
 		}

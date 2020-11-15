@@ -23,17 +23,17 @@ func ModuleAccountInvariant(keeper IKeeper, supplyKeeper SupplyKeeper) sdk.Invar
 			if product == nil {
 				panic("the nil pointer is not expected")
 			}
-			depositsCoins = depositsCoins.Add(sdk.SysCoins{product.Deposits})
+			depositsCoins = depositsCoins.Add2(sdk.SysCoins{product.Deposits})
 		}
 
 		keeper.IterateWithdrawInfo(ctx, func(_ int64, withdrawInfo types.WithdrawInfo) (stop bool) {
-			withdrawCoins = withdrawCoins.Add(sdk.SysCoins{withdrawInfo.Deposits})
+			withdrawCoins = withdrawCoins.Add2(sdk.SysCoins{withdrawInfo.Deposits})
 			return false
 		})
 
 		moduleAcc := supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 
-		broken := !moduleAcc.GetCoins().IsEqual(depositsCoins.Add(withdrawCoins))
+		broken := !moduleAcc.GetCoins().IsEqual(depositsCoins.Add2(withdrawCoins))
 
 		return sdk.FormatInvariant(types.ModuleName, "module coins",
 			fmt.Sprintf("\tdex ModuleAccount coins: %s\n\tsum of deposits coins: %s\tsum of withdraw coins: %s\n",

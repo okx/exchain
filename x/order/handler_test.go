@@ -43,7 +43,7 @@ func TestEventNewOrders(t *testing.T) {
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 
 	require.EqualValues(t, 2, len(result.Events[4].Attributes))
 
@@ -77,7 +77,7 @@ func TestFeesNewOrders(t *testing.T) {
 
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result := handler(ctx, msg)
+	_, err = handler(ctx, msg)
 
 	// check account balance
 	// multi fee 7958528000
@@ -87,7 +87,7 @@ func TestFeesNewOrders(t *testing.T) {
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
-	require.EqualValues(t, true, result.Code.IsOK())
+	require.Nil(t, err)
 
 }
 
@@ -107,7 +107,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 
 	// not-exist product
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.Nil(t, orderRes)
 
@@ -128,9 +128,10 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 
 	// insufficient coins
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
+	require.Nil(t, err)
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
@@ -152,13 +153,13 @@ func TestValidateMsgNewOrder(t *testing.T) {
 
 	// normal
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	result := ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.Nil(t, err)
 
 	// not-exist product
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.Nil(t, err)
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -177,20 +178,20 @@ func TestValidateMsgNewOrder(t *testing.T) {
 
 	// insufficient coins
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
-	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeInsufficientCoins, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.NotNil(t, err)
 
 	// busy product
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeInternal, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.NotNil(t, err)
 
 	// price * quantity over accuracy
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.000001", "1.0001")
-	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeInternal, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.NotNil(t, err)
 }
 
 // test order cancel without enough okb as fee
@@ -237,9 +238,9 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 
 	// Test fully cancel
 	msg := types.NewMsgCancelOrder(addrKeysSlice[0].Address, orders[0].OrderID)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	// check result
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	require.Nil(t, err)
 	orderRes := parseOrderResult(result)
 	require.NotNil(t, orderRes)
 	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
@@ -281,30 +282,31 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 
 	// invalid owner
 	msg := types.NewMsgCancelOrder(addrKeysSlice[1].Address, order.OrderID)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	orderRes := parseOrderResult(result)
 	require.Nil(t, orderRes)
 
 	// invalid orderID
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, "InvalidID-0001")
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
+	require.Nil(t, err)
 
 	// busy product
 	keeper.SetProductLock(ctx, order.Product, &types.ProductLock{})
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
 	keeper.UnlockProduct(ctx, order.Product)
 
 	// normal
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 
 	// check result
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	require.Nil(t, err)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
 	require.EqualValues(t, "0.00000000"+common.NativeToken, orderRes[0].Message)
@@ -321,9 +323,10 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 
 	// invalid order status
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 	orderRes = parseOrderResult(result)
 	require.Nil(t, orderRes)
+	require.Nil(t, err)
 }
 
 func TestHandleInvalidMsg(t *testing.T) {
@@ -343,7 +346,7 @@ func TestHandleInvalidMsg(t *testing.T) {
 
 const orderKey = "orders"
 
-func getOrderID(result sdk.Result) string {
+func getOrderID(result *sdk.Result) string {
 	var res = ""
 	var evs []types.OrderResult
 	for i := 0; i < len(result.Events); i++ {
@@ -365,7 +368,7 @@ func getOrderID(result sdk.Result) string {
 	return res
 }
 
-func getOrderIDList(result sdk.Result) []string {
+func getOrderIDList(result *sdk.Result) []string {
 	var res []string
 	for i := 0; i < len(result.Events); i++ {
 		event := result.Events[i]
@@ -386,7 +389,7 @@ func getOrderIDList(result sdk.Result) []string {
 	return res
 }
 
-func parseOrderResult(result sdk.Result) []types.OrderResult {
+func parseOrderResult(result *sdk.Result) []types.OrderResult {
 	var evs []types.OrderResult
 	for i := 0; i < len(result.Events); i++ {
 		event := result.Events[i]
@@ -427,13 +430,14 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
-	result1 := handler(ctx, msg)
+	result1, err:= handler(ctx, msg)
 	res1 := parseOrderResult(result1)
 	require.Nil(t, res1)
+	require.NotNil(t, err)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	//check result & order
@@ -467,7 +471,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
 	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 
 	// check result & order
 	orderID = getOrderID(result)
@@ -490,10 +494,11 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.SellOrder, "10.0", "1.0"),
 	}
 	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 
 	orderID = getOrderID(result)
 	require.EqualValues(t, types.FormatOrderID(10, 4), orderID)
+	require.Nil(t, err)
 	// check account balance
 	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	expectCoins = sdk.SysCoins{
@@ -538,14 +543,15 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 		types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0"),
 	}
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	require.Equal(t, "", result.Log)
 	// Test order when locked
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 
-	result1 := handler(ctx, msg)
+	result1, err := handler(ctx, msg)
 
 	require.Equal(t, "", result1.Log)
+	require.Nil(t, err)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	// check result & order
@@ -578,9 +584,9 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	// Test cancel order
 	orderIDItems := getOrderIDList(result)
 	multiCancelMsg := types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems[:len(orderItems)-1])
-	result = handler(ctx, multiCancelMsg)
+	result, err = handler(ctx, multiCancelMsg)
 
-	require.Equal(t, true, result.Code.IsOK())
+	require.Nil(t, err)
 	// check result & order
 
 	require.EqualValues(t, 3, keeper.GetBlockOrderNum(ctx, 10))
@@ -597,9 +603,9 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	orderIDItems = append(orderIDItems, "")
 
 	multiCancelMsg = types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems)
-	result = handler(ctx, multiCancelMsg)
+	result, err = handler(ctx, multiCancelMsg)
 
-	require.Equal(t, true, result.Code.IsOK())
+	require.Nil(t, err)
 	require.Equal(t, "", result.Log)
 	// check result & order
 
@@ -635,14 +641,14 @@ func TestValidateMsgMultiNewOrder(t *testing.T) {
 	// normal
 	orderItem := types.NewOrderItem(types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
-	result := ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.Nil(t, err)
 
 	// not-exist product
 	orderItem = types.NewOrderItem("nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
-	result = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
+	require.NotNil(t, err)
 
 	// invalid price precision
 	//orderItem = types.NewMultiNewOrderItem(types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -678,8 +684,8 @@ func TestValidateMsgMultiCancelOrder(t *testing.T) {
 
 	orderIDItems := []string{""}
 	multiCancelMsg := types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems)
-	result := ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
-	require.EqualValues(t, sdk.CodeUnknownRequest, result.Code)
+	err = ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
+	require.NotNil(t, err)
 
 	err = mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
@@ -687,20 +693,20 @@ func TestValidateMsgMultiCancelOrder(t *testing.T) {
 
 	// new order
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
-	result = handler(ctx, msg)
+	result, err := handler(ctx, msg)
 
 	// validate true
 	orderID := getOrderID(result)
 	orderIDItems = []string{orderID}
 	multiCancelMsg = types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems)
-	result = ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	err = ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
+	require.Nil(t, err)
 
 	// validate empty orderIDItems
 	orderIDItems = []string{}
 	multiCancelMsg = types.NewMsgCancelOrders(addrKeysSlice[0].Address, orderIDItems)
-	result = ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	err = ValidateMsgCancelOrders(ctx, keeper, multiCancelMsg)
+	require.Nil(t, err)
 
 }
 
@@ -777,7 +783,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 
 	// Test fully cancel
 	msg := types.NewMsgCancelOrder(addrKeysSlice[0].Address, orders[0].OrderID)
-	result := handler(ctx, msg)
+	result, err := handler(ctx, msg)
 	for i := 0; i < len(result.Events); i++ {
 		fmt.Println(i)
 		for j := 0; j < len(result.Events[i].Attributes); j++ {
@@ -788,7 +794,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 
 	orderRes := parseOrderResult(result)
 	// check result
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	require.Nil(t, err)
 	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
 	// check order status
 	orders[0] = keeper.GetOrder(ctx, orders[0].OrderID)
@@ -824,9 +830,9 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 
 	// Test partially cancel
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, orders[1].OrderID)
-	result = handler(ctx, msg)
+	result, err = handler(ctx, msg)
 	// check result
-	require.EqualValues(t, sdk.CodeOK, result.Code)
+	require.Nil(t, err)
 	// check order status
 	orders[1] = keeper.GetOrder(ctx, orders[1].OrderID)
 	require.EqualValues(t, types.OrderStatusPartialFilledCancelled, orders[1].Status)

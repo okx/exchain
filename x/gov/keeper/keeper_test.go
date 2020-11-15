@@ -6,10 +6,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGovTypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/okexchain/x/gov/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKeeper_IterateProposals(t *testing.T) {
@@ -19,8 +17,8 @@ func TestKeeper_IterateProposals(t *testing.T) {
 	_, err := keeper.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
-	var findProposal sdkGovTypes.Proposal
-	keeper.IterateProposals(ctx, func(proposal sdkGovTypes.Proposal) (stop bool) {
+	var findProposal types.Proposal
+	keeper.IterateProposals(ctx, func(proposal types.Proposal) (stop bool) {
 		if proposal.ProposalID == 1 {
 			findProposal = proposal
 			return true
@@ -56,7 +54,7 @@ func TestKeeper_IterateWaitingProposalsQueue(t *testing.T) {
 	keeper.InsertWaitingProposalQueue(ctx, 101, 2)
 	keeper.InsertWaitingProposalQueue(ctx, 103, 3)
 
-	var proposals sdkGovTypes.Proposals
+	var proposals types.Proposals
 	keeper.IterateWaitingProposalsQueue(ctx, 103, func(proposal types.Proposal) (stop bool) {
 		if proposal.Status == types.StatusDepositPeriod {
 			proposals = append(proposals, proposal)
@@ -65,7 +63,7 @@ func TestKeeper_IterateWaitingProposalsQueue(t *testing.T) {
 	})
 	require.Equal(t, 3, len(proposals))
 
-	proposals = sdkGovTypes.Proposals{}
+	proposals = types.Proposals{}
 	keeper.IterateWaitingProposalsQueue(ctx, 103, func(proposal types.Proposal) (stop bool) {
 		if proposal.ProposalID == 1 {
 			proposals = append(proposals, proposal)
@@ -102,7 +100,7 @@ func TestKeeper_IterateAllWaitingProposals(t *testing.T) {
 	keeper.InsertWaitingProposalQueue(ctx, 101, 2)
 	keeper.InsertWaitingProposalQueue(ctx, 103, 3)
 
-	var proposals sdkGovTypes.Proposals
+	var proposals types.Proposals
 	keeper.IterateAllWaitingProposals(ctx, func(proposal types.Proposal, _, _ uint64) (stop bool) {
 		if proposal.Status == types.StatusDepositPeriod {
 			proposals = append(proposals, proposal)
@@ -111,7 +109,7 @@ func TestKeeper_IterateAllWaitingProposals(t *testing.T) {
 	})
 	require.Equal(t, 3, len(proposals))
 
-	proposals = sdkGovTypes.Proposals{}
+	proposals = types.Proposals{}
 	keeper.IterateAllWaitingProposals(ctx, func(proposal types.Proposal, _, _ uint64) (stop bool) {
 		if proposal.ProposalID == 1 {
 			proposals = append(proposals, proposal)
@@ -150,7 +148,7 @@ func TestKeeper_IterateActiveProposalsQueue(t *testing.T) {
 	keeper.InsertActiveProposalQueue(ctx, 2, baseTime.Add(time.Second*1))
 	keeper.InsertActiveProposalQueue(ctx, 3, baseTime.Add(time.Second*2))
 
-	var proposals sdkGovTypes.Proposals
+	var proposals types.Proposals
 	keeper.IterateActiveProposalsQueue(ctx, baseTime.Add(time.Second*2), func(proposal types.Proposal) (stop bool) {
 		if proposal.Status == types.StatusDepositPeriod {
 			proposals = append(proposals, proposal)
@@ -159,7 +157,7 @@ func TestKeeper_IterateActiveProposalsQueue(t *testing.T) {
 	})
 	require.Equal(t, 3, len(proposals))
 
-	proposals = sdkGovTypes.Proposals{}
+	proposals = types.Proposals{}
 	keeper.IterateActiveProposalsQueue(ctx, baseTime.Add(time.Second*2), func(proposal types.Proposal) (stop bool) {
 		if proposal.ProposalID == 1 {
 			proposals = append(proposals, proposal)
@@ -196,7 +194,7 @@ func TestKeeper_IterateInactiveProposalsQueue(t *testing.T) {
 	_, err = keeper.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
-	var proposals sdkGovTypes.Proposals
+	var proposals types.Proposals
 	keeper.IterateInactiveProposalsQueue(ctx, baseTime.Add(time.Second*2), func(proposal types.Proposal) (stop bool) {
 		if proposal.Status == types.StatusDepositPeriod {
 			proposals = append(proposals, proposal)
@@ -205,7 +203,7 @@ func TestKeeper_IterateInactiveProposalsQueue(t *testing.T) {
 	})
 	require.Equal(t, 3, len(proposals))
 
-	proposals = sdkGovTypes.Proposals{}
+	proposals = types.Proposals{}
 	keeper.IterateInactiveProposalsQueue(ctx, baseTime.Add(time.Second*2), func(proposal types.Proposal) (stop bool) {
 		if proposal.ProposalID == 1 {
 			proposals = append(proposals, proposal)
@@ -338,7 +336,7 @@ func TestKeeper_RemoveFromWaitingProposalQueue(t *testing.T) {
 	require.Nil(t, err)
 	proposalID := proposal.ProposalID
 
-	var proposals sdkGovTypes.Proposals
+	var proposals types.Proposals
 	keeper.InsertWaitingProposalQueue(ctx, 100, proposalID)
 	keeper.IterateWaitingProposalsQueue(ctx, 100, func(proposal types.Proposal) (stop bool) {
 		proposals = append(proposals, proposal)
@@ -346,7 +344,7 @@ func TestKeeper_RemoveFromWaitingProposalQueue(t *testing.T) {
 	})
 	require.Equal(t, 1, len(proposals))
 
-	proposals = sdkGovTypes.Proposals{}
+	proposals = types.Proposals{}
 	keeper.RemoveFromWaitingProposalQueue(ctx, 100, proposalID)
 	keeper.IterateWaitingProposalsQueue(ctx, 100, func(proposal types.Proposal) (stop bool) {
 		proposals = append(proposals, proposal)
@@ -360,7 +358,7 @@ func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
 	content := types.ContentFromProposalType("text", "text", types.ProposalTypeText)
 
 	// not satisfy initial deposit
-	amount, err := sdk.ParseDecCoins(fmt.Sprintf("1%s", sdk.DefaultBondDenom))
+	amount, err := sdk.ParseDecCoins(fmt.Sprintf("1.0%s", sdk.DefaultBondDenom))
 	require.Nil(t, err)
 	msg := types.NewMsgSubmitProposal(content, amount, Addrs[0])
 	err = keeper.CheckMsgSubmitProposal(ctx, msg)

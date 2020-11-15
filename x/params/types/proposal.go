@@ -38,28 +38,28 @@ func NewParameterChangeProposal(title, description string, changes []types.Param
 // ValidateBasic validates the parameter change proposal
 func (pcp ParameterChangeProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(pcp.Title)) == 0 {
-		return govtypes.ErrInvalidProposalContent(types.DefaultCodespace, "proposal title cannot be blank")
+		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "proposal title cannot be blank")
 	}
 	if len(pcp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent(types.DefaultCodespace,
+		return govtypes.ErrInvalidProposalContent(DefaultCodespace,
 			fmt.Sprintf("proposal title is longer than max length of %d", govtypes.MaxTitleLength))
 	}
 
 	if len(pcp.Description) == 0 {
-		return govtypes.ErrInvalidProposalContent(types.DefaultCodespace, "proposal description cannot be blank")
+		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "proposal description cannot be blank")
 	}
 
 	if len(pcp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent(types.DefaultCodespace,
+		return govtypes.ErrInvalidProposalContent(DefaultCodespace,
 			fmt.Sprintf("proposal description is longer than max length of %d", govtypes.MaxDescriptionLength))
 	}
 
 	if pcp.ProposalType() != sdkparams.ProposalTypeChange {
-		return govtypes.ErrInvalidProposalType(types.DefaultCodespace, pcp.ProposalType())
+		return govtypes.ErrInvalidProposalType(DefaultCodespace, pcp.ProposalType())
 	}
 
 	if len(pcp.Changes) != 1 {
-		return ErrInvalidMaxProposalNum(types.DefaultCodespace, fmt.Sprintf("one proposal can only change one pair of parameter"))
+		return ErrInvalidParamsNum(DefaultCodespace, fmt.Sprintf("one proposal can only change one pair of parameter"))
 	}
 
 	return sdkparams.ValidateChanges(pcp.Changes)

@@ -8,7 +8,7 @@ import (
 	"github.com/okex/okexchain/x/staking/types"
 )
 
-func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper) sdk.Result {
+func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper) (*sdk.Result, error) {
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 
 	if !found || delegator.Tokens.IsZero() {
@@ -41,13 +41,13 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, updateTokens); err != nil {
 			return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
 		}
-		return sdk.Result{Events: ctx.EventManager().Events()}
+		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 	}
 
 	// unbind from the original proxy
 	if len(delegator.ProxyAddress) != 0 {
 		if sdkErr := unbindProxy(ctx, delegator.DelegatorAddress, k); sdkErr != nil {
-			return sdkErr.Result()
+			return nil, sdkErr
 		}
 	}
 
@@ -67,10 +67,10 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
 	}
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.Error {
+func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) error {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
 		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
@@ -78,12 +78,12 @@ func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.E
 
 	proxyDelegator, found := k.GetDelegator(ctx, delegator.ProxyAddress)
 	if !found {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, delegator.ProxyAddress.String())
+		return types.ErrNotFoundProxy(types.DefaultCodespace, delAddr.String())
 	}
 
 	// update proxy's shares weight
 	if k.UpdateProxy(ctx, delegator, delegator.Tokens.Mul(sdk.NewDec(-1))) != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String())
+		return types.ErrInvalidDelegation(types.DefaultCodespace, delAddr.String())
 	}
 	// unbind proxy relationship
 	delegator.UnbindProxy()
@@ -93,15 +93,15 @@ func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) sdk.E
 	return nil
 }
 
-func handleMsgUnbindProxy(ctx sdk.Context, msg types.MsgUnbindProxy, k keeper.Keeper) sdk.Result {
+func handleMsgUnbindProxy(ctx sdk.Context, msg types.MsgUnbindProxy, k keeper.Keeper) (*sdk.Result, error) {
 	if sdkErr := unbindProxy(ctx, msg.DelAddr, k); sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Result {
+func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sdk.Result, error) {
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
@@ -111,7 +111,7 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Re
 		return types.ErrAlreadyProxied(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
 	if len(proxy.ProxyAddress) != 0 {
-		return types.ErrAlreadyBound(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
+		return types.ErrAlreadyBound(types.DefaultCodespace, proxyAddr.String()).Result()
 	}
 
 	proxy.RegProxy(true)
@@ -121,11 +121,11 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Re
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 
 }
 
-func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.Result {
+func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sdk.Result, error) {
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
@@ -146,11 +146,11 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) sdk.
 		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
 	}
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 
 }
 
-func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) sdk.Result {
+func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) (*sdk.Result, error) {
 	if msg.Reg {
 		return regProxy(ctx, msg.ProxyAddress, k)
 	}
@@ -158,12 +158,12 @@ func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) sdk
 	return unregProxy(ctx, msg.ProxyAddress, k)
 }
 
-func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) sdk.Result {
+func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) (*sdk.Result, error) {
 	maxValsToAddShares := int(k.ParamsMaxValsToAddShares(ctx))
 	if len(msg.ValAddrs) == 0 {
-		return types.ErrNilValidatorAddrs(DefaultCodespace).Result()
+		return types.ErrNilValidatorAddrs(types.DefaultCodespace).Result()
 	} else if len(msg.ValAddrs) > maxValsToAddShares {
-		return types.ErrExceedValidatorAddrs(DefaultCodespace, maxValsToAddShares).Result()
+		return types.ErrExceedValidatorAddrs(types.DefaultCodespace, maxValsToAddShares).Result()
 	}
 
 	// 0. check whether the delegator has delegation
@@ -185,10 +185,10 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	// 3. get validators to add shares this time (if the validator doesn't exist, return error)
 	vals, sdkErr := k.GetValidatorsToAddShares(ctx, msg.ValAddrs)
 	if sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 	if sdkErr = validateSharesAdding(vals); sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	// 4. get the total amount of self token and delegated token
@@ -197,7 +197,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	// 5. add shares to the vals this time
 	shares, sdkErr := k.AddSharesToValidators(ctx, msg.DelAddr, vals, totalTokens)
 	if sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	// 6. update the delegator entity for this time
@@ -206,11 +206,11 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	k.SetDelegator(ctx, delegator)
 
 	ctx.EventManager().EmitEvent(buildEventForHandlerAddShares(delegator))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 // validateSharesAdding gives a quick validity of target validators before shares adding
-func validateSharesAdding(vals types.Validators) sdk.Error {
+func validateSharesAdding(vals types.Validators) error {
 	if len(vals) == 0 {
 		return types.ErrNoAvailableValsToAddShares(types.DefaultCodespace)
 	}
@@ -257,7 +257,7 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 	return sdk.NewEvent(types.EventTypeAddShares, attributes...)
 }
 
-func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) sdk.Result {
+func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*sdk.Result, error) {
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
@@ -265,7 +265,7 @@ func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) sd
 
 	err := k.Delegate(ctx, msg.DelegatorAddress, msg.Amount)
 	if err != nil {
-		return err.Result()
+		return nil, err
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -275,17 +275,17 @@ func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) sd
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 		),
 	})
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) sdk.Result {
+func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) (*sdk.Result, error) {
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom(k.Codespace()).Result()
 	}
 
 	completionTime, err := k.Withdraw(ctx, msg.DelegatorAddress, msg.Amount)
 	if err != nil {
-		return err.Result()
+		return nil, err
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -297,10 +297,10 @@ func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) 
 		),
 	})
 	completionTimeBz := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(completionTime)
-	return sdk.Result{Data: completionTimeBz, Events: ctx.EventManager().Events()}
+	return &sdk.Result{Data: completionTimeBz, Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k keeper.Keeper) (result sdk.Result) {
+func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k keeper.Keeper) (*sdk.Result, error) {
 	valAddr := sdk.ValAddress(msg.DelAddr)
 	// 0.check to see if the validator which belongs to the delegator exists
 	validator, found := k.GetValidator(ctx, valAddr)
@@ -310,7 +310,7 @@ func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k
 
 	completionTime, sdkErr := k.WithdrawMinSelfDelegation(ctx, msg.DelAddr, validator)
 	if sdkErr != nil {
-		return sdkErr.Result()
+		return nil, sdkErr
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -323,6 +323,6 @@ func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k
 	})
 
 	completionTimeBytes := types.ModuleCdc.MustMarshalBinaryLengthPrefixed(completionTime)
-	return sdk.Result{Data: completionTimeBytes, Events: ctx.EventManager().Events()}
+	return &sdk.Result{Data: completionTimeBytes, Events: ctx.EventManager().Events()}, nil
 
 }

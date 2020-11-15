@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/config"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -103,7 +102,7 @@ func (c CommissionRates) Validate() sdk.Error {
 // If validation fails, an SDK error is returned.
 func (c Commission) ValidateNewRate(newRate sdk.Dec, blockTime time.Time) sdk.Error {
 	switch {
-	case blockTime.Sub(c.UpdateTime).Hours() < config.DefaultValidateRateUpdateInterval:
+	case blockTime.Sub(c.UpdateTime).Hours() < DefaultValidateRateUpdateInterval:
 		// new rate cannot be changed more than once within 24 hours
 		return ErrCommissionUpdateTime(DefaultCodespace)
 

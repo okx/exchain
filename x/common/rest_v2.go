@@ -3,12 +3,12 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tendermint/tendermint/libs/log"
 	"net/http"
 	"os"
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // const

@@ -2,6 +2,7 @@ package params
 
 import (
 	"fmt"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"math"
 	"time"
 
@@ -45,25 +46,12 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 	for _, c := range paramProposal.Changes {
 		ss, ok := k.GetSubspace(c.Subspace)
 		if !ok {
-			return sdkparams.ErrUnknownSubspace(k.Codespace(), c.Subspace)
+			return sdkerrors.Wrap(sdkparams.ErrUnknownSubspace, c.Subspace)
 		}
 
-		var err error
-		if len(c.Subkey) == 0 {
-			k.Logger(ctx).Info(
-				fmt.Sprintf("setting new parameter; key: %s, value: %s", c.Key, c.Value),
-			)
-
-			err = ss.Update(ctx, []byte(c.Key), []byte(c.Value))
-		} else {
-			k.Logger(ctx).Info(
-				fmt.Sprintf("setting new parameter; key: %s, subkey: %s, value: %s", c.Key, c.Subspace, c.Value),
-			)
-			err = ss.UpdateWithSubkey(ctx, []byte(c.Key), []byte(c.Subkey), []byte(c.Value))
-		}
-
+		err := ss.Update(ctx, []byte(c.Key), []byte(c.Value))
 		if err != nil {
-			return sdkparams.ErrSettingParameter(k.Codespace(), c.Key, c.Subkey, c.Value, err.Error())
+			return sdkerrors.Wrap(sdkparams.ErrSettingParameter, err.Error())
 		}
 	}
 	return nil
@@ -104,7 +92,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {
-		return govtypes.ErrInvalidProposer(sdkparams.DefaultCodespace,
+		return govtypes.ErrInvalidProposer(DefaultCodespace,
 			fmt.Sprintf("proposer of ParamChange proposal must be validator"))
 	}
 	// check initial deposit more than or equal to ratio of MinDeposit

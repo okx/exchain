@@ -8,8 +8,8 @@ import (
 	"github.com/okex/okexchain/x/stream/websocket"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/google/uuid"
 	"github.com/okex/okexchain/x/stream/distrlock"
+	"github.com/google/uuid"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 

@@ -40,8 +40,8 @@ func (k Keeper) CalculateAmountYieldedBetween(ctx sdk.Context, pool types.FarmPo
 			)
 			yieldedTokens = sdk.NewDecCoinsFromDec(remaining.Denom, remaining.Amount)
 		}
-		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add(yieldedTokens)
-		totalYieldedTokens = totalYieldedTokens.Add(yieldedTokens)
+		pool.TotalAccumulatedRewards = pool.TotalAccumulatedRewards.Add2(yieldedTokens)
+		totalYieldedTokens = totalYieldedTokens.Add2(yieldedTokens)
 	}
 	return pool, totalYieldedTokens
 }
@@ -80,7 +80,7 @@ func (k Keeper) IncrementPoolPeriod(
 	// 1. fetch current period rewards
 	rewards := k.GetPoolCurrentRewards(ctx, poolName)
 	// 2. calculate current reward ratio
-	rewards.Rewards = rewards.Rewards.Add(yieldedTokens)
+	rewards.Rewards = rewards.Rewards.Add2(yieldedTokens)
 	var currentRatio sdk.SysCoins
 	if totalValueLocked.IsZero() {
 		currentRatio = sdk.SysCoins{}
@@ -93,7 +93,7 @@ func (k Keeper) IncrementPoolPeriod(
 	// 3.2 decrement reference count
 	k.decrementReferenceCount(ctx, poolName, rewards.Period-1)
 	// 3.3 create new pool historical rewards with reference count of 1, then set it into store
-	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add(currentRatio), 1)
+	newHistoricalRewards := types.NewPoolHistoricalRewards(historical.Add2(currentRatio), 1)
 	k.SetPoolHistoricalRewards(ctx, poolName, rewards.Period, newHistoricalRewards)
 
 	// 4. set new current rewards into store, incrementing period by 1

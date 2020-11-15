@@ -6,7 +6,7 @@ import (
 	"github.com/okex/okexchain/x/farm/types"
 )
 
-func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Result {
+func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Result, error) {
 	// 1.1 Get farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
@@ -30,7 +30,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
-			return err.Result()
+			return sdk.ErrInternal(err.Error()).Result()
 		}
 		if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 			panic("should not happen")
@@ -56,7 +56,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Address, ModuleName, msg.Amount.ToCoins(),
 	); err != nil {
-		return err.Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
 	// 6. Update farm pool
@@ -69,10 +69,10 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) sdk.Resu
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.Result {
+func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) (*sdk.Result, error) {
 	// 1.1 Check if there are enough tokens to unlock
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
@@ -106,7 +106,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 	// 3. Withdraw money
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
-		return err.Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
 	// 4. Update the lock info
@@ -114,7 +114,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 
 	// 5. Send the locked-tokens from farm module account to its own account
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
-		return err.Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
 	// 6. Update farm pool
@@ -131,5 +131,5 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 		sdk.NewAttribute(types.AttributeKeyPool, msg.PoolName),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 	))
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

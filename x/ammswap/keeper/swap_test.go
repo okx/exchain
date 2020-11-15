@@ -24,7 +24,7 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 		tokennames       []string
 		tokentypes       []int
 		tokenname        string
-		exceptResultCode sdk.CodeType
+		exceptResultCode uint32
 	}{
 		{"token is not exist", []string{"toa", "tob"}, []int{1, 1}, "nota", sdk.CodeInternal},
 		{"token is not exist", nil, nil, "nota", sdk.CodeInternal},
@@ -37,7 +37,11 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 		genToken(mapp, ctx, testCase.tokennames, testCase.tokentypes)
 		result := keeper.IsTokenExist(ctx, testCase.tokenname)
 		if nil != result {
-			require.Equal(t, testCase.exceptResultCode, result.(sdk.Error).Code())
+			if testCase.exceptResultCode == 0 {
+				require.Nil(t, result)
+			}else {
+				require.NotNil(t, result)
+			}
 		}
 	}
 

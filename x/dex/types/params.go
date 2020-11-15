@@ -5,7 +5,6 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params/subspace"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/params"
 )
@@ -38,17 +37,21 @@ type Params struct {
 	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
-func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
+func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: keyDexListFee, Value: &p.ListFee},
-		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee},
-		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee},
-		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod},
-		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit},
-		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod},
-		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod},
-		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow},
+		{Key: keyDexListFee, Value: &p.ListFee, ValidatorFn: validateParams},
+		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee, ValidatorFn: validateParams},
+		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee, ValidatorFn: validateParams},
+		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod, ValidatorFn: validateParams},
+		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit, ValidatorFn: validateParams},
+		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod, ValidatorFn: validateParams},
+		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod, ValidatorFn: validateParams},
+		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow, ValidatorFn: validateParams},
 	}
 }
 

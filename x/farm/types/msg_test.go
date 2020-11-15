@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
+	if expectedCode != 0 {
+		require.NotNil(t, err)
+	}else {
+		require.Nil(t, err)
+	}
+}
+
 func TestMsgCreatePool(t *testing.T) {
 	negMinLockAmount := sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec())
 	negMinLockAmount.Amount = sdk.NewDec(-1)
@@ -15,7 +23,7 @@ func TestMsgCreatePool(t *testing.T) {
 		poolName      string
 		minLockAmount sdk.SysCoin
 		yieldedSymbol string
-		errCode       sdk.CodeType
+		errCode       uint32
 	}{
 		{sdk.AccAddress{0x1}, "pool", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "wwb", sdk.CodeOK},
 		{nil, "pool", sdk.NewDecCoinFromDec("xxb", sdk.ZeroDec()), "wwb", sdk.CodeInvalidAddress},
@@ -33,7 +41,7 @@ func TestMsgCreatePool(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }
@@ -42,7 +50,7 @@ func TestMsgDestroyPool(t *testing.T) {
 	tests := []struct {
 		owner    sdk.AccAddress
 		poolName string
-		errCode  sdk.CodeType
+		errCode  uint32
 	}{
 		{sdk.AccAddress{0x1}, "pool", sdk.CodeOK},
 		{nil, "pool", CodeInvalidAddress},
@@ -58,7 +66,7 @@ func TestMsgDestroyPool(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }
@@ -70,7 +78,7 @@ func TestMsgProvide(t *testing.T) {
 		amount           sdk.SysCoin
 		yieldPerBlock    sdk.Dec
 		startBlockHeight int64
-		errCode          sdk.CodeType
+		errCode          uint32
 	}{
 		{
 			"pool",
@@ -131,7 +139,7 @@ func TestMsgProvide(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }
@@ -141,7 +149,7 @@ func TestMsgLock(t *testing.T) {
 		poolName string
 		addr     sdk.AccAddress
 		amount   sdk.SysCoin
-		errCode  sdk.CodeType
+		errCode  uint32
 	}{
 		{
 			"pool",
@@ -178,7 +186,7 @@ func TestMsgLock(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }
@@ -188,7 +196,7 @@ func TestMsgUnlock(t *testing.T) {
 		poolName string
 		addr     sdk.AccAddress
 		amount   sdk.SysCoin
-		errCode  sdk.CodeType
+		errCode  uint32
 	}{
 		{
 			"pool",
@@ -225,7 +233,7 @@ func TestMsgUnlock(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }
@@ -235,7 +243,7 @@ func TestMsgClaim(t *testing.T) {
 		poolName string
 		addr     sdk.AccAddress
 		amount   sdk.SysCoin
-		errCode  sdk.CodeType
+		errCode  uint32
 	}{
 		{
 			"pool",
@@ -266,7 +274,7 @@ func TestMsgClaim(t *testing.T) {
 		err := msg.ValidateBasic()
 		if test.errCode != sdk.CodeOK {
 			require.Error(t, err)
-			require.Equal(t, test.errCode, err.Code())
+			testCode(t, err, test.errCode)
 		}
 	}
 }

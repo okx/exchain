@@ -3,12 +3,14 @@ package keeper
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	"github.com/okex/okexchain/x/distribution/types"
 	"github.com/okex/okexchain/x/staking"
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
@@ -17,11 +19,11 @@ func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
 	val := sk.Validator(ctx, valOpAddr1)
 
 	// allocate tokens
-	tokens := NewTestDecCoins(1, 8)
+	tokens := NewTestSysCoins(1, 8)
 	k.AllocateTokensToValidator(ctx, val, tokens)
 
 	// check commissions
-	expected := NewTestDecCoins(1, 8)
+	expected := NewTestSysCoins(1, 8)
 	require.Equal(t, expected, k.GetValidatorAccumulatedCommission(ctx, val.GetOperator()))
 }
 
@@ -42,17 +44,17 @@ func getTestAllocationParams() []testAllocationParam {
 		{ //test the case where total power is zero
 			0,
 			[]bool{true, true, true, true}, []bool{false, false, false, false},
-			NewTestDecCoins(123, 2),
+			NewTestSysCoins(123, 2),
 		},
 		{ //test the case where just the part of vals has voted
 			10,
 			[]bool{true, true, false, false}, []bool{false, false, false, false},
-			NewTestDecCoins(123, 2),
+			NewTestSysCoins(123, 2),
 		},
 		{ //test the case where two vals is jailed
 			10,
 			[]bool{true, true, false, false}, []bool{false, true, true, false},
-			NewTestDecCoins(123, 2),
+			NewTestSysCoins(123, 2),
 		},
 	}
 }
@@ -71,15 +73,15 @@ func TestAllocateTokensToManyValidators(t *testing.T) {
 
 		// allocate the tokens
 		k.AllocateTokens(ctx, test.totalPower, valConsAddrs[0], votes)
-		commissions := NewTestDecCoins(0, 0)
+		commissions := NewTestSysCoins(0, 0)
 		k.IterateValidatorAccumulatedCommissions(ctx,
 			func(val sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
-				commissions = commissions.Add(commission)
+				commissions = commissions.Add(commission...)
 				return false
 			})
 		totalCommissions := k.GetDistributionAccount(ctx).GetCoins()
 		communityCoins := k.GetFeePoolCommunityCoins(ctx)
-		require.Equal(t, totalCommissions, communityCoins.Add(commissions))
+		require.Equal(t, totalCommissions, communityCoins.Add(commissions...))
 		require.Equal(t, test.fee, totalCommissions)
 	}
 }

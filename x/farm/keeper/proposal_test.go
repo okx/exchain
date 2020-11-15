@@ -32,7 +32,6 @@ func TestCheckMsgSubmitProposal(t *testing.T) {
 	require.Error(t, k.CheckMsgSubmitProposal(ctx, govtypes.MsgSubmitProposal{Content: MockContent{}}))
 	err := k.CheckMsgSubmitProposal(ctx, govtypes.MsgSubmitProposal{Content: proposal.Content})
 	require.Error(t, err)
-	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 }
 
 func TestCheckMsgManageWhiteListProposal(t *testing.T) {
@@ -48,7 +47,6 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 
 	err := k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.Error(t, err)
-	require.Equal(t, types.CodePoolNotInWhiteList, err.Code())
 
 	k.SetWhitelist(ctx, proposal.PoolName)
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
@@ -57,7 +55,6 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 	proposal.IsAdded = true
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.Error(t, err)
-	require.Equal(t, types.CodeNoFarmPoolFound, err.Code())
 
 	lockedSymbol := "xxb"
 	pool := types.FarmPool{
@@ -67,7 +64,6 @@ func TestCheckMsgManageWhiteListProposal(t *testing.T) {
 	k.SetFarmPool(ctx, pool)
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)
 	require.Error(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	SetSwapTokenPair(ctx, k.Keeper, lockedSymbol, quoteSymbol)
 	err = k.CheckMsgManageWhiteListProposal(ctx, proposal)

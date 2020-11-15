@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/okexchain/x/gov/types"
@@ -49,7 +48,7 @@ func TestKeeper_AddVote(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "", votefee)
 	vote, ok := keeper.GetVote(ctx, proposalID, Addrs[0])
-	expectedVote := sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionYes}
+	expectedVote := types.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionYes}
 	require.True(t, ok)
 	require.Equal(t, expectedVote, vote)
 
@@ -57,7 +56,7 @@ func TestKeeper_AddVote(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "", votefee)
 	vote, ok = keeper.GetVote(ctx, proposalID, Addrs[0])
-	expectedVote = sdkGov.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionNo}
+	expectedVote = types.Vote{ProposalID: proposalID, Voter: Addrs[0], Option: types.OptionNo}
 	require.True(t, ok)
 	require.Equal(t, expectedVote, vote)
 }

@@ -2,13 +2,14 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/okex/okexchain/x/distribution/types"
 )
 
 // GetDelegatorWithdrawAddr returns the delegator withdraw address, defaulting to the delegator address
 func (k Keeper) GetDelegatorWithdrawAddr(ctx sdk.Context, delAddr sdk.AccAddress) sdk.AccAddress {
 	store := ctx.KVStore(k.storeKey)
-	b := store.Get(GetDelegatorWithdrawAddrKey(delAddr))
+	b := store.Get(types.GetDelegatorWithdrawAddrKey(delAddr))
 	if b == nil {
 		return delAddr
 	}
@@ -18,18 +19,18 @@ func (k Keeper) GetDelegatorWithdrawAddr(ctx sdk.Context, delAddr sdk.AccAddress
 // SetDelegatorWithdrawAddr sets the delegator withdraw address
 func (k Keeper) SetDelegatorWithdrawAddr(ctx sdk.Context, delAddr, withdrawAddr sdk.AccAddress) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(GetDelegatorWithdrawAddrKey(delAddr), withdrawAddr.Bytes())
+	store.Set(types.GetDelegatorWithdrawAddrKey(delAddr), withdrawAddr.Bytes())
 }
 
 // IterateDelegatorWithdrawAddrs iterates over delegator withdraw addrs
 func (k Keeper) IterateDelegatorWithdrawAddrs(ctx sdk.Context,
 	handler func(del sdk.AccAddress, addr sdk.AccAddress) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, DelegatorWithdrawAddrPrefix)
+	iter := sdk.KVStorePrefixIterator(store, types.DelegatorWithdrawAddrPrefix)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		addr := sdk.AccAddress(iter.Value())
-		del := GetDelegatorWithdrawInfoAddress(iter.Key())
+		del := types.GetDelegatorWithdrawInfoAddress(iter.Key())
 		if handler(del, addr) {
 			break
 		}
@@ -39,7 +40,7 @@ func (k Keeper) IterateDelegatorWithdrawAddrs(ctx sdk.Context,
 // GetFeePool returns the global fee pool distribution info
 func (k Keeper) GetFeePool(ctx sdk.Context) (feePool types.FeePool) {
 	store := ctx.KVStore(k.storeKey)
-	b := store.Get(FeePoolKey)
+	b := store.Get(types.FeePoolKey)
 	if b == nil {
 		panic("Stored fee pool should not have been nil")
 	}
@@ -51,7 +52,7 @@ func (k Keeper) GetFeePool(ctx sdk.Context) (feePool types.FeePool) {
 func (k Keeper) SetFeePool(ctx sdk.Context, feePool types.FeePool) {
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(feePool)
-	store.Set(FeePoolKey, b)
+	store.Set(types.FeePoolKey, b)
 }
 
 // GetFeePoolCommunityCoins returns the community coins
@@ -62,7 +63,7 @@ func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.SysCoins {
 // GetPreviousProposerConsAddr returns the proposer public key for this block
 func (k Keeper) GetPreviousProposerConsAddr(ctx sdk.Context) (consAddr sdk.ConsAddress) {
 	store := ctx.KVStore(k.storeKey)
-	b := store.Get(ProposerKey)
+	b := store.Get(types.ProposerKey)
 	if b == nil {
 		panic("Previous proposer not set")
 	}
@@ -74,7 +75,7 @@ func (k Keeper) GetPreviousProposerConsAddr(ctx sdk.Context) (consAddr sdk.ConsA
 func (k Keeper) SetPreviousProposerConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) {
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(consAddr)
-	store.Set(ProposerKey, b)
+	store.Set(types.ProposerKey, b)
 }
 
 // GetValidatorAccumulatedCommission returns accumulated commission for a validator
@@ -82,7 +83,7 @@ func (k Keeper) GetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 	commission types.ValidatorAccumulatedCommission) {
 
 	store := ctx.KVStore(k.storeKey)
-	b := store.Get(GetValidatorAccumulatedCommissionKey(val))
+	b := store.Get(types.GetValidatorAccumulatedCommissionKey(val))
 	if b == nil {
 		return types.ValidatorAccumulatedCommission{}
 	}
@@ -101,13 +102,13 @@ func (k Keeper) SetValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAd
 	} else {
 		bz = k.cdc.MustMarshalBinaryLengthPrefixed(commission)
 	}
-	store.Set(GetValidatorAccumulatedCommissionKey(val), bz)
+	store.Set(types.GetValidatorAccumulatedCommissionKey(val), bz)
 }
 
 // deleteValidatorAccumulatedCommission deletes accumulated commission for a validator
 func (k Keeper) deleteValidatorAccumulatedCommission(ctx sdk.Context, val sdk.ValAddress) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetValidatorAccumulatedCommissionKey(val))
+	store.Delete(types.GetValidatorAccumulatedCommissionKey(val))
 }
 
 // IterateValidatorAccumulatedCommissions iterates over accumulated commissions
@@ -115,12 +116,12 @@ func (k Keeper) IterateValidatorAccumulatedCommissions(ctx sdk.Context,
 	handler func(val sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool)) {
 
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, ValidatorAccumulatedCommissionPrefix)
+	iter := sdk.KVStorePrefixIterator(store, types.ValidatorAccumulatedCommissionPrefix)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var commission types.ValidatorAccumulatedCommission
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(iter.Value(), &commission)
-		addr := GetValidatorAccumulatedCommissionAddress(iter.Key())
+		addr := types.GetValidatorAccumulatedCommissionAddress(iter.Key())
 		if handler(addr, commission) {
 			break
 		}

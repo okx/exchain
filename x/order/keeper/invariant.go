@@ -20,12 +20,12 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 		var lockedCoins, lockedFees, orderLockedFees sdk.SysCoins
 
 		for _, accCoins := range keeper.tokenKeeper.GetAllLockedCoins(ctx) {
-			lockedCoins = lockedCoins.Add(accCoins.Coins)
+			lockedCoins = lockedCoins.Add2(accCoins.Coins)
 		}
 
 		// lock fee
 		keeper.tokenKeeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
-			lockedFees = lockedFees.Add(coins)
+			lockedFees = lockedFees.Add2(coins)
 			return false
 		})
 
@@ -40,7 +40,7 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 				orderIDList = append(orderIDList, keeper.GetProductPriceOrderIDs(sellKey)...)
 				for _, orderID := range orderIDList {
 					order := keeper.GetOrder(ctx, orderID)
-					orderLockedFees = orderLockedFees.Add(GetOrderNewFee(order))
+					orderLockedFees = orderLockedFees.Add2(GetOrderNewFee(order))
 				}
 			}
 		}
@@ -52,9 +52,9 @@ func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 		}
 
 		macc := keeper.supplyKeeper.GetModuleAccount(ctx, token.ModuleName)
-		broken := !macc.GetCoins().IsEqual(lockedCoins.Add(lockedFees))
+		broken := !macc.GetCoins().IsEqual(lockedCoins.Add2(lockedFees))
 		return sdk.FormatInvariant(types.ModuleName, "locks",
 			fmt.Sprintf("\ttoken ModuleAccount coins: %s\n\tsum of locks amounts:  %s\n",
-				macc.GetCoins(), lockedCoins.Add(lockedFees))), broken
+				macc.GetCoins(), lockedCoins.Add2(lockedFees))), broken
 	}
 }

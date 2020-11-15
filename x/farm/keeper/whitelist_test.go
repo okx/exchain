@@ -22,7 +22,6 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 	k.SetFarmPool(ctx, pool1)
 	err := k.satisfyWhiteListAdmittance(ctx, pool1)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	// test add LPT
 	lockSymbol := swaptypes.PoolTokenPrefix + baseSymbol + "_" + quoteSymbol
@@ -33,7 +32,6 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 	k.SetFarmPool(ctx, pool2)
 	err = k.satisfyWhiteListAdmittance(ctx, pool2)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	base1Symbol := "okb"
 	lockSymbol = swaptypes.PoolTokenPrefix + baseSymbol + "_" + base1Symbol
@@ -43,7 +41,6 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 	}
 	err = k.satisfyWhiteListAdmittance(ctx, pool3)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	SetSwapTokenPair(ctx, k.Keeper, baseSymbol, quoteSymbol)
 
@@ -55,7 +52,6 @@ func TestSatisfyWhiteListAdmittance(t *testing.T) {
 
 	err = k.satisfyWhiteListAdmittance(ctx, pool3)
 	require.NotNil(t, err)
-	require.Equal(t, types.CodeTokenNotExist, err.Code())
 
 	SetSwapTokenPair(ctx, k.Keeper, base1Symbol, quoteSymbol)
 	err = k.satisfyWhiteListAdmittance(ctx, pool3)

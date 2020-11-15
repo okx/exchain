@@ -77,3 +77,8 @@ type BankKeeper interface {
 type GovKeeper interface {
 	RemoveFromActiveProposalQueue(ctx sdk.Context, proposalID uint64, endTime time.Time)
 }
+
+type StreamKeeper interface {
+	OnAddNewTokenPair(ctx sdk.Context, tokenPair *types.TokenPair)
+	OnTokenPairUpdated(ctx sdk.Context)
+}

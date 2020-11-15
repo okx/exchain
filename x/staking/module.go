@@ -2,6 +2,10 @@ package staking
 
 import (
 	"encoding/json"
+	"math/rand"
+
+	sim "github.com/cosmos/cosmos-sdk/x/simulation"
+	"github.com/okex/okexchain/x/staking/simulation"
 
 	"github.com/okex/okexchain/x/staking/keeper"
 
@@ -157,4 +161,27 @@ func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // EndBlock is invoked on the end of each block
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return EndBlocker(ctx, am.keeper)
+}
+
+// GenerateGenesisState performs a no-op.
+func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
+}
+
+// ProposalContents returns all the params content functions used to
+// simulate governance proposals.
+func (am AppModule) ProposalContents(simState module.SimulationState) []sim.WeightedProposalContent {
+	return simulation.ProposalContents(simState.ParamChanges)
+}
+
+// RandomizedParams creates randomized distribution param changes for the simulator.
+func (AppModule) RandomizedParams(r *rand.Rand) []sim.ParamChange {
+	return nil
+}
+
+// RegisterStoreDecoder doesn't register any type.
+func (AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {}
+
+// WeightedOperations returns the all the gov module operations with their respective weights.
+func (am AppModule) WeightedOperations(_ module.SimulationState) []sim.WeightedOperation {
+	return nil
 }

@@ -47,7 +47,7 @@ func TestOrderUpdateExtraInfo(t *testing.T) {
 	require.EqualValues(t, fee.String(), order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee))
 
 	order.RecordOrderDealFee(fee)
-	require.EqualValues(t, fee.Add(fee).String(),
+	require.EqualValues(t, fee.Add2(fee).String(),
 		order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee))
 
 	// Record new fee

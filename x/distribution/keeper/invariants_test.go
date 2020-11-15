@@ -18,27 +18,27 @@ func getTestInvariantParams() []testInvariantParam {
 	return []testInvariantParam{
 		{ // when commission is zero
 			nil,
-			[]sdk.SysCoins{NewTestDecCoins(0, 0)},
+			[]sdk.SysCoins{NewTestSysCoins(0, 0)},
 			true,
 		},
 		{ // when withdraw commission failed
-			NewTestDecCoins(5, 1),
-			[]sdk.SysCoins{NewTestDecCoins(15, 1)},
+			NewTestSysCoins(5, 1),
+			[]sdk.SysCoins{NewTestSysCoins(15, 1)},
 			false,
 		},
 		{ // when the sum of commission is not equal to distribution account
-			NewTestDecCoins(30, 1),
-			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
+			NewTestSysCoins(30, 1),
+			[]sdk.SysCoins{NewTestSysCoins(15, 1), NewTestSysCoins(20, 1)},
 			false,
 		},
 		{ // when the sum of commission is not equal to distribution account
-			NewTestDecCoins(45, 1),
-			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(20, 1)},
+			NewTestSysCoins(45, 1),
+			[]sdk.SysCoins{NewTestSysCoins(15, 1), NewTestSysCoins(20, 1)},
 			false,
 		},
 		{ // success
-			NewTestDecCoins(45, 1),
-			[]sdk.SysCoins{NewTestDecCoins(15, 1), NewTestDecCoins(30, 1)},
+			NewTestSysCoins(45, 1),
+			[]sdk.SysCoins{NewTestSysCoins(15, 1), NewTestSysCoins(30, 1)},
 			true,
 		},
 	}

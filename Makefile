@@ -7,10 +7,10 @@ export GO111MODULE = on
 
 GithubTop=github.com
 
-Version=v0.13.0
-CosmosSDK=v0.37.9
-Tendermint=v0.32.10
-Iavl=v0.12.4
+Version=v0.20.0
+CosmosSDK=v0.39.1
+Tendermint=v0.33.7
+Iavl=v0.14.0
 Name=okexchain
 ServerName=okexchaind
 ClientName=okexchaincli

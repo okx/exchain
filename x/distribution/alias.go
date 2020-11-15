@@ -13,11 +13,6 @@ import (
 )
 
 const (
-	DefaultParamspace           = keeper.DefaultParamspace
-	DefaultCodespace            = types.DefaultCodespace
-	CodeInvalidInput            = types.CodeInvalidInput
-	CodeNoValidatorCommission   = types.CodeNoValidatorCommission
-	CodeSetWithdrawAddrDisabled = types.CodeSetWithdrawAddrDisabled
 	ModuleName                  = types.ModuleName
 	StoreKey                    = types.StoreKey
 	RouterKey                   = types.RouterKey
@@ -26,22 +21,20 @@ const (
 	QueryValidatorCommission    = types.QueryValidatorCommission
 	QueryWithdrawAddr           = types.QueryWithdrawAddr
 	ParamWithdrawAddrEnabled    = types.ParamWithdrawAddrEnabled
+	DefaultParamspace           = types.DefaultParamspace
 )
 
 var (
 	// functions aliases
 	RegisterInvariants                       = keeper.RegisterInvariants
 	NewKeeper                                = keeper.NewKeeper
-	GetDelegatorWithdrawInfoAddress          = keeper.GetDelegatorWithdrawInfoAddress
-	GetValidatorAccumulatedCommissionAddress = keeper.GetValidatorAccumulatedCommissionAddress
-	GetDelegatorWithdrawAddrKey              = keeper.GetDelegatorWithdrawAddrKey
-	GetValidatorAccumulatedCommissionKey     = keeper.GetValidatorAccumulatedCommissionKey
-	ParamKeyTable                            = keeper.ParamKeyTable
+	GetDelegatorWithdrawInfoAddress          = types.GetDelegatorWithdrawInfoAddress
+	GetValidatorAccumulatedCommissionAddress = types.GetValidatorAccumulatedCommissionAddress
+	GetDelegatorWithdrawAddrKey              = types.GetDelegatorWithdrawAddrKey
+	GetValidatorAccumulatedCommissionKey     = types.GetValidatorAccumulatedCommissionKey
 	NewQuerier                               = keeper.NewQuerier
 	RegisterCodec                            = types.RegisterCodec
 	ErrNilDelegatorAddr                      = types.ErrNilDelegatorAddr
-	ErrNilWithdrawAddr                       = types.ErrNilWithdrawAddr
-	ErrNilValidatorAddr                      = types.ErrNilValidatorAddr
 	ErrNoValidatorCommission                 = types.ErrNoValidatorCommission
 	ErrSetWithdrawAddrDisabled               = types.ErrSetWithdrawAddrDisabled
 	InitialFeePool                           = types.InitialFeePool
@@ -55,12 +48,10 @@ var (
 	InitialValidatorAccumulatedCommission    = types.InitialValidatorAccumulatedCommission
 
 	// variable aliases
-	FeePoolKey                           = keeper.FeePoolKey
-	ProposerKey                          = keeper.ProposerKey
-	DelegatorWithdrawAddrPrefix          = keeper.DelegatorWithdrawAddrPrefix
-	ValidatorAccumulatedCommissionPrefix = keeper.ValidatorAccumulatedCommissionPrefix
-	ParamStoreKeyCommunityTax            = keeper.ParamStoreKeyCommunityTax
-	ParamStoreKeyWithdrawAddrEnabled     = keeper.ParamStoreKeyWithdrawAddrEnabled
+	FeePoolKey                           = types.FeePoolKey
+	ProposerKey                          = types.ProposerKey
+	DelegatorWithdrawAddrPrefix          = types.DelegatorWithdrawAddrPrefix
+	ValidatorAccumulatedCommissionPrefix = types.ValidatorAccumulatedCommissionPrefix
 	ModuleCdc                            = types.ModuleCdc
 	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
 	EventTypeCommission                  = types.EventTypeCommission
@@ -75,7 +66,6 @@ var (
 type (
 	Hooks                                = keeper.Hooks
 	Keeper                               = keeper.Keeper
-	CodeType                             = types.CodeType
 	DelegatorWithdrawInfo                = types.DelegatorWithdrawInfo
 	ValidatorAccumulatedCommissionRecord = types.ValidatorAccumulatedCommissionRecord
 	GenesisState                         = types.GenesisState

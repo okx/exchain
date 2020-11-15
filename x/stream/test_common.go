@@ -75,9 +75,8 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64, cfg *app
 	blacklistedAddrs := make(map[string]bool)
 	blacklistedAddrs[feeCollector.String()] = true
 
-	mockApp.BankKeeper = bank.NewBaseKeeper(mockApp.AccountKeeper,
-		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
-		bank.DefaultCodespace, blacklistedAddrs)
+	mockApp.BankKeeper = bank.NewBaseKeeper(mockApp.AccountKeeper, mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
+		blacklistedAddrs)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
@@ -197,9 +196,9 @@ func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg sdk.Msg)
 	seqNum := accs.GetSequence()
 
 	tx := mock.GenTx([]sdk.Msg{msg}, []uint64{accNum}, []uint64{seqNum}, addrKeys.PrivKey)
-	res := app.Check(tx)
-	if !res.IsOK() {
-		panic(fmt.Sprintf("something wrong in checking transaction: %v", res))
+	_, _, err := app.Check(tx)
+	if err != nil {
+		panic(fmt.Sprintf("something wrong in checking transaction: %v", err))
 	}
 	return tx
 }

@@ -51,17 +51,22 @@ func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+// TODO: to supplement the validate function for every pair of param
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 // pairs of auth module's parameters.
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyOrderExpireBlocks, &p.OrderExpireBlocks},
-		{KeyMaxDealsPerBlock, &p.MaxDealsPerBlock},
-		{KeyFeePerBlock, &p.FeePerBlock},
-		{KeyTradeFeeRate, &p.TradeFeeRate},
-		{KeyNewOrderMsgGasUnit, &p.NewOrderMsgGasUnit},
-		{KeyCancelOrderMsgGasUnit, &p.CancelOrderMsgGasUnit},
+		{KeyOrderExpireBlocks, &p.OrderExpireBlocks, validateParams},
+		{KeyMaxDealsPerBlock, &p.MaxDealsPerBlock, validateParams},
+		{KeyFeePerBlock, &p.FeePerBlock, validateParams},
+		{KeyTradeFeeRate, &p.TradeFeeRate, validateParams},
+		{KeyNewOrderMsgGasUnit, &p.NewOrderMsgGasUnit, validateParams},
+		{KeyCancelOrderMsgGasUnit, &p.CancelOrderMsgGasUnit, validateParams},
 	}
 }
 

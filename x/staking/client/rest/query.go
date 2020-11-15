@@ -2,7 +2,6 @@ package rest
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -10,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/staking/types"
 )
 

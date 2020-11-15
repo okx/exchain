@@ -55,9 +55,9 @@ var (
 	DelegatedToken1      = SharesFromDefaultMSD.MulInt64(1024)
 	DelegatedToken2      = SharesFromDefaultMSD.MulInt64(2048)
 
-	GlobalContext        = sdk.Context{}
-	ExpectExist          = true
-	ExpectNotExist       = false
+	GlobalContext  = sdk.Context{}
+	ExpectExist    = true
+	ExpectNotExist = false
 )
 
 var (
@@ -90,7 +90,7 @@ type ActionResultCtx struct {
 	endBlockerResult abci.ValidatorUpdates
 	isBlkHeightInc   bool
 	params           types.Params
-	context			 *sdk.Context
+	context          *sdk.Context
 	tc               *basicStakingSMTestCase
 	t                *testing.T
 }
@@ -130,7 +130,7 @@ func (a baseAction) desc() string {
 	return "ActX"
 }
 
-func (a baseAction) setMockKeeper(k keeper.MockStakingKeeper)  {
+func (a baseAction) setMockKeeper(k keeper.MockStakingKeeper) {
 	a.mStkKeeper = k
 }
 
@@ -142,7 +142,6 @@ type createValidatorAction struct {
 func (a createValidatorAction) desc() string {
 	return "createVa"
 }
-
 
 func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 
@@ -161,10 +160,10 @@ func (a createValidatorAction) apply(ctx sdk.Context, expVaStatus IValidatorStat
 	}
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
 
-	msgResponse := handler(ctx, msgCreateValidator)
+	msgResponse, err := handler(ctx, msgCreateValidator)
 
-	if resultCtx != nil {
-		resultCtx.txMsgResult = &msgResponse
+	if resultCtx != nil && err == nil {
+		resultCtx.txMsgResult = msgResponse
 		resultCtx.isBlkHeightInc = false
 
 		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
@@ -226,10 +225,10 @@ func (a destroyValidatorAction) apply(ctx sdk.Context, vaStatus IValidatorStatus
 		panic(err)
 	}
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
-	msgResponse := handler(ctx, msgDestroyValidator)
+	msgResponse, err := handler(ctx, msgDestroyValidator)
 
-	if resultCtx != nil {
-		resultCtx.txMsgResult = &msgResponse
+	if resultCtx != nil && err == nil {
+		resultCtx.txMsgResult = msgResponse
 		resultCtx.isBlkHeightInc = false
 
 		validator, found := resultCtx.tc.mockKeeper.Keeper.GetValidator(ctx, val.OperatorAddress)
@@ -319,11 +318,9 @@ type delegatorDepositAction struct {
 	dlgDenom  string
 }
 
-
 func (a delegatorDepositAction) desc() string {
 	return "dlgDeposit"
 }
-
 
 func (action delegatorDepositAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
 	resultCtx.t.Logf("====> Apply delegatorDepositAction[%d], dlgAddr: %s, dlgAmount: %s, dlgDenon: %s\n",
@@ -335,12 +332,12 @@ func (action delegatorDepositAction) apply(ctx sdk.Context, vaStatus IValidatorS
 		panic(err)
 	}
 
-	res := handler(ctx, msgDeposit)
+	res, _ := handler(ctx, msgDeposit)
 
 	newDlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, action.dlgAddr)
-	resultCtx.t.Logf("     ==>>> NewDelegatorInfo :%s, resOK: %+v, info: %+v \n", action.dlgAddr.String(), res.IsOK(), newDlg)
+	resultCtx.t.Logf("     ==>>> NewDelegatorInfo :%s, resOK: %+v, info: %+v \n", action.dlgAddr.String(), res != nil, newDlg)
 	if resultCtx != nil {
-		resultCtx.txMsgResult = &res
+		resultCtx.txMsgResult = res
 	}
 }
 
@@ -360,13 +357,13 @@ func (action delegatorsDepositAction) apply(ctx sdk.Context, vaStatus IValidator
 		return
 	}
 
-	for i:=0; i < len(action.dlgAddrs); i++ {
+	for i := 0; i < len(action.dlgAddrs); i++ {
 		dlgAmount := action.dlgAmounts[i]
 		dlgAddr := action.dlgAddrs[i]
 		subAction := delegatorDepositAction{action.baseAction, dlgAddr, dlgAmount, action.dlgDenom}
 		subAction.apply(ctx, vaStatus, resultCtx)
 
-		if  resultCtx.errorResult != nil {
+		if resultCtx.errorResult != nil {
 			break
 		}
 	}
@@ -415,9 +412,9 @@ func (action delegatorsAddSharesAction) apply(ctx sdk.Context, vaStatus IValidat
 		resultCtx.t.Logf("     ==>>> Delegator: %s add shares to Validators: %s\n", d.String(), vaAddrs)
 		addSharesMsg := NewMsgAddShares(d, vaAddrs)
 
-		res := handler(ctx, addSharesMsg)
+		res, _ := handler(ctx, addSharesMsg)
 		if resultCtx != nil {
-			resultCtx.txMsgResult = &res
+			resultCtx.txMsgResult = res
 		}
 	}
 
@@ -433,8 +430,6 @@ type delegatorWithdrawAction struct {
 	tokenDenom    string
 }
 
-
-
 func (action delegatorWithdrawAction) desc() string {
 	return "dlgWithdraw"
 }
@@ -446,18 +441,19 @@ func (action delegatorWithdrawAction) apply(ctx sdk.Context, vaStatus IValidator
 	coins := sdk.NewDecCoinFromDec(action.tokenDenom, action.withdrawToken)
 
 	msg := NewMsgWithdraw(action.dlgAddr, coins)
-	res := handler(ctx, msg)
+	res, _ := handler(ctx, msg)
 	if resultCtx != nil {
-		resultCtx.txMsgResult = &res
+		resultCtx.txMsgResult = res
 	}
 
 	newDlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, action.dlgAddr)
-	resultCtx.t.Logf("     ==>>> DelegatorWithdrawAction Result: %s unbond: %s, resOK: %+v, info: %+v \n", msg.DelegatorAddress, coins.String(), res.IsOK(), newDlg)
+	resultCtx.t.Logf("     ==>>> DelegatorWithdrawAction Result: %s unbond: %s, resOK: %+v, info: %+v \n", msg.DelegatorAddress, coins.String(), res != nil, newDlg)
 }
 
 type delegatorWithdrawAllAction struct {
 	delegatorWithdrawAction
 }
+
 func (action delegatorWithdrawAllAction) desc() string {
 	return "dlg2WithdrawAll"
 }
@@ -522,10 +518,10 @@ func (action delegatorRegProxyAction) apply(ctx sdk.Context, vaStatus IValidator
 		panic(err)
 	}
 
-	res := handler(ctx, msg)
+	res, _ := handler(ctx, msg)
 
 	if resultCtx != nil {
-		resultCtx.txMsgResult = &res
+		resultCtx.txMsgResult = res
 	}
 }
 
@@ -536,14 +532,14 @@ type proxyBindAction struct {
 }
 
 func (action proxyBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus, resultCtx *ActionResultCtx) {
-	resultCtx.t.Logf(  "====> Apply proxyBindAction[%d], dlg: %s bind to proxy: %s\n",
+	resultCtx.t.Logf("====> Apply proxyBindAction[%d], dlg: %s bind to proxy: %s\n",
 		ctx.BlockHeight(), action.dlgAddr.String(), action.proxyAddr.String())
 	msg := types.NewMsgBindProxy(action.dlgAddr, action.proxyAddr)
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
-	res := handler(ctx, msg)
+	res, _ := handler(ctx, msg)
 
 	if resultCtx != nil {
-		resultCtx.txMsgResult = &res
+		resultCtx.txMsgResult = res
 	}
 }
 
@@ -556,9 +552,9 @@ func (action proxyUnBindAction) apply(ctx sdk.Context, vaStatus IValidatorStatus
 	resultCtx.t.Logf("====> Apply proxyUnBindAction[%d]\n", ctx.BlockHeight())
 	msg := types.NewMsgUnbindProxy(action.dlgAddr)
 	handler := NewHandler(resultCtx.tc.mockKeeper.Keeper)
-	res := handler(ctx, msg)
+	res, _ := handler(ctx, msg)
 	if resultCtx != nil {
-		resultCtx.txMsgResult = &res
+		resultCtx.txMsgResult = res
 	}
 }
 
@@ -607,7 +603,7 @@ func validatorDelegatorShareIncreased(expectIncr bool) actResChecker {
 		b1 := assert.NotNil(t, beforeStatus) && assert.NotNil(t, afterStatus)
 
 		resultCtx.t.Logf("     ====>>> Checking validatorDelegatorShareIncreased[%d], Val: %s, beforeValidatorShare: %s, afterValidatorShare: %s \n",
-			resultCtx.context.BlockHeight(), beforeStatus.getValidator().OperatorAddress.String(),  beforeStatus.getValidator().DelegatorShares, afterStatus.getValidator().DelegatorShares)
+			resultCtx.context.BlockHeight(), beforeStatus.getValidator().OperatorAddress.String(), beforeStatus.getValidator().DelegatorShares, afterStatus.getValidator().DelegatorShares)
 
 		beforeDS := beforeStatus.getValidator().GetDelegatorShares()
 		afterDS := afterStatus.getValidator().GetDelegatorShares()
@@ -623,11 +619,11 @@ func validatorDelegatorShareIncreased(expectIncr bool) actResChecker {
 
 func noErrorInHandlerResult(expectNoError bool) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) bool {
-		b1 := assert.NotNil(t, resultCtx.txMsgResult, resultCtx)
+		b1 := false
 		if expectNoError {
-			b1 = b1 && assert.True(t, resultCtx.txMsgResult.IsOK(), resultCtx.txMsgResult)
+			b1 = assert.NotNil(t, resultCtx.txMsgResult, resultCtx.txMsgResult)
 		} else {
-			b1 = b1 && assert.False(t, resultCtx.txMsgResult.IsOK(), resultCtx.txMsgResult)
+			b1 = assert.Nil(t, resultCtx.txMsgResult, resultCtx.txMsgResult)
 		}
 
 		return b1
@@ -696,7 +692,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 		checkRes := true
 
 		//P1:  delegator is also a proxy
-		proxyChecker := func () (bool, error) {
+		proxyChecker := func() (bool, error) {
 			b := dlg.IsProxy && (dlg.ProxyAddress == nil || len(dlg.ProxyAddress) == 0) && dlg.TotalDelegatedTokens.GTE(sdk.ZeroDec())
 			if !b {
 				return b, fmt.Errorf("proxyChecker Error: %+v", dlg)
@@ -708,7 +704,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 		notProxyChecker := func() (bool, error) {
 			b := !dlg.IsProxy && dlg.TotalDelegatedTokens.Equal(sdk.ZeroDec()) &&
 				((dlg.ProxyAddress != nil && len(dlg.ProxyAddress) > 0) ||
-				 (dlg.ProxyAddress == nil || len(dlg.ProxyAddress) == 0))
+					(dlg.ProxyAddress == nil || len(dlg.ProxyAddress) == 0))
 			if !b {
 				return b, fmt.Errorf("notProxyChecker Error: %+v", dlg)
 			}
@@ -737,16 +733,16 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 			var e error
 			if dlg.ValidatorAddresses == nil || len(dlg.ValidatorAddresses) == 0 {
 				b1 = dlg.Shares.Equal(sdk.ZeroDec())
-			} else  {
-				for i:=0; i<len(dlg.ValidatorAddresses) && b1; i++ {
+			} else {
+				for i := 0; i < len(dlg.ValidatorAddresses) && b1; i++ {
 					v, found := resultCtx.tc.mockKeeper.GetValidator(*resultCtx.context, dlg.ValidatorAddresses[i])
 					if !found {
 						e = fmt.Errorf("No Validator : %s found", dlg.ValidatorAddresses[i])
 					}
 
-					if found &&  dlg.Shares.GT(sdk.ZeroDec()) {
+					if found && dlg.Shares.GT(sdk.ZeroDec()) {
 						if v.MinSelfDelegation.Equal(sdk.ZeroDec()) {
-							b1 =v.DelegatorShares.GTE(dlg.Shares)
+							b1 = v.DelegatorShares.GTE(dlg.Shares)
 						} else {
 							b1 = v.DelegatorShares.GTE(dlg.Shares.Add(sdk.OneDec()))
 						}
@@ -764,7 +760,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 			return true, nil
 		}
 
-		functors := []func() (bool, error) {
+		functors := []func() (bool, error){
 			depositTokenChecker,
 			addSharesChecker,
 		}
@@ -780,7 +776,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 			pass, err := f()
 			checkRes = pass
 
-			if  !pass {
+			if !pass {
 				resultCtx.t.Logf("     ====>>> [ERROR] Checking delegatorConstraintCheck[%d], Delegator[%s]: %+v",
 					resultCtx.context.BlockHeight(), dlg.DelegatorAddress, dlg)
 				if err != nil {
@@ -797,7 +793,7 @@ func delegatorConstraintCheck(dlg Delegator) actResChecker {
 	}
 }
 
-func validatorCheck(validator sdk.ValAddress)  actResChecker {
+func validatorCheck(validator sdk.ValAddress) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) (r bool) {
 		q := keeper.NewQuerier(resultCtx.tc.mockKeeper.Keeper)
 		ctx := getNewContext(resultCtx.tc.mockKeeper.MountedStore, resultCtx.tc.currentHeight)
@@ -812,7 +808,6 @@ func validatorCheck(validator sdk.ValAddress)  actResChecker {
 		return validatorConstraintCheck(validator)(t, beforeStatus, afterStatus, resultCtx)
 	}
 }
-
 
 func validatorConstraintCheck(validator types.Validator) actResChecker {
 	return func(t *testing.T, beforeStatus, afterStatus IValidatorStatus, resultCtx *ActionResultCtx) (r bool) {
@@ -851,7 +846,7 @@ func validatorConstraintCheck(validator types.Validator) actResChecker {
 				}
 				if validator.MinSelfDelegation.GT(sdk.ZeroDec()) {
 					r22 = assert.True(t, validator.DelegatorShares.Equal(totalShares.Add(sdk.OneDec())), totalShares, validator.DelegatorShares.String())
-				} else  {
+				} else {
 					r22 = assert.True(t, totalShares.Equal(validator.DelegatorShares), totalShares, validator.DelegatorShares.String())
 				}
 			}
@@ -956,7 +951,7 @@ func queryDelegatorCheck(dlgAddr sdk.AccAddress, expExist bool, expVAs []sdk.Val
 			require.NoError(t, err)
 			res, sdkErr := q(ctx, []string{types.QueryUnbondingDelegation}, abci.RequestQuery{Data: bz})
 			if expUnbondingToken.Equal(sdk.ZeroDec()) && sdkErr != nil {
-				b5 = assert.True(t, sdkErr.Code() == 102, sdkErr.Error())
+				fmt.Println(sdkErr.Error())
 			} else {
 				require.NoError(t, sdkErr)
 				unDelegationInfo := types.DefaultUndelegation()
@@ -1031,7 +1026,6 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 			expectDlgShares := sdk.ZeroDec()
 			b6 = assert.Equal(t, expectDlgShares.String(), dlg.Shares.String(), dlg)
 		}
-
 
 		constraintCheckRes := delegatorConstraintCheck(dlg)(t, beforeStatus, afterStatus, resultCtx)
 

@@ -2,21 +2,22 @@ package gov
 
 import (
 	"encoding/json"
+	"math/rand"
+	sim "github.com/cosmos/cosmos-sdk/x/simulation"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	sdkGov "github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/common/version"
 	"github.com/okex/okexchain/x/gov/client"
 	"github.com/okex/okexchain/x/gov/client/cli"
 	GovCli "github.com/okex/okexchain/x/gov/client/cli"
 	"github.com/okex/okexchain/x/gov/client/rest"
+	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/gov/types"
 )
 
@@ -81,23 +82,23 @@ func (a AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		proposalCLIHandlers[i] = proposalHandler.CLIHandler(cdc)
 	}
 
-	return GovCli.GetTxCmd(StoreKey, cdc, proposalCLIHandlers)
+	return GovCli.GetTxCmd(types.StoreKey, cdc, proposalCLIHandlers)
 }
 
 // GetQueryCmd gets the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetQueryCmd(StoreKey, cdc)
+	return cli.GetQueryCmd(types.StoreKey, cdc)
 }
 
 // AppModule defines app module
 type AppModule struct {
 	AppModuleBasic
 	keeper       Keeper
-	supplyKeeper sdkGov.SupplyKeeper
+	supplyKeeper keeper.SupplyKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(_ version.ProtocolVersionType, keeper Keeper, supplyKeeper sdkGov.SupplyKeeper) AppModule {
+func NewAppModule(keeper Keeper, supplyKeeper keeper.SupplyKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         keeper,
@@ -117,7 +118,7 @@ func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 
 // Route gets module message route name
 func (AppModule) Route() string {
-	return RouterKey
+	return types.RouterKey
 }
 
 // NewHandler gets module handler
@@ -127,7 +128,7 @@ func (am AppModule) NewHandler() sdk.Handler {
 
 // QuerierRoute module querier route name
 func (AppModule) QuerierRoute() string {
-	return QuerierRoute
+	return types.QuerierRoute
 }
 
 // NewQuerierHandler gets module querier
@@ -156,4 +157,31 @@ func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	EndBlocker(ctx, am.keeper)
 	return []abci.ValidatorUpdate{}
+}
+
+// AppModuleSimulation functions
+// TODO: implement the AppModuleSimulation interface
+
+// GenerateGenesisState creates a randomized GenState of the staking module.
+func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
+}
+
+// ProposalContents doesn't return any content functions for governance proposals.
+func (AppModule) ProposalContents(_ module.SimulationState) []sim.WeightedProposalContent {
+	return nil
+}
+
+// RandomizedParams creates randomized staking param changes for the simulator.
+func (AppModule) RandomizedParams(r *rand.Rand) []sim.ParamChange {
+	return nil
+}
+
+// RegisterStoreDecoder registers a decoder for staking module's types
+func (AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
+
+}
+
+// WeightedOperations returns the all the staking module operations with their respective weights.
+func (am AppModule) WeightedOperations(simState module.SimulationState) []sim.WeightedOperation {
+	return nil
 }

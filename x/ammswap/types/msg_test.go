@@ -14,6 +14,14 @@ import (
 
 const addrStr = "1212121212121212123412121212121212121234"
 
+func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
+	if expectedCode != 0 {
+		require.NotNil(t, err)
+	}else {
+		require.Nil(t, err)
+	}
+}
+
 func TestMsgCreateExchange(t *testing.T) {
 	addr, err := hex.DecodeString(addrStr)
 	require.Nil(t, err)
@@ -42,7 +50,7 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		symbol0           string
 		symbol1           string
 		addr             sdk.AccAddress
-		exceptResultCode sdk.CodeType
+		exceptResultCode uint32
 	}{
 		{"success", "aaa", common.NativeToken, addr, sdk.CodeOK},
 		{"success", "aaa", "bbb", addr, sdk.CodeOK},
@@ -57,11 +65,7 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		msg := NewMsgCreateExchange(testCase.symbol0, testCase.symbol1, testCase.addr)
 		err := msg.ValidateBasic()
 		fmt.Println(i, err)
-		if err == nil {
-			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
-			continue
-		}
-		require.Equal(t, testCase.exceptResultCode, err.Code())
+		testCode(t, err, testCase.exceptResultCode)
 	}
 }
 
@@ -109,7 +113,7 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 		quoteAmount      sdk.SysCoin
 		deadLine         int64
 		addr             sdk.AccAddress
-		exceptResultCode sdk.CodeType
+		exceptResultCode uint32
 	}{
 		{"success", minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr, sdk.CodeOK},
 		{"tokens must be positive", minLiquidity, maxBaseAmount, notPositiveQuoteAmount, deadLine, addr, sdk.CodeUnknownRequest},
@@ -125,11 +129,7 @@ func TestMsgAddLiquidityInvalid(t *testing.T) {
 		msg := NewMsgAddLiquidity(testCase.minLiquidity, testCase.maxBaseAmount, testCase.quoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
 		fmt.Println(i, err)
-		if err == nil {
-			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
-			continue
-		}
-		require.Equal(t, testCase.exceptResultCode, err.Code())
+		testCode(t, err, testCase.exceptResultCode)
 	}
 }
 
@@ -180,7 +180,7 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 		minQuoteAmount   sdk.SysCoin
 		deadLine         int64
 		addr             sdk.AccAddress
-		exceptResultCode sdk.CodeType
+		exceptResultCode uint32
 	}{
 		{"success", liquidity, minBaseAmount, minQuoteAmount, deadLine, addr, sdk.CodeOK},
 		{"empty sender", liquidity, minBaseAmount, minQuoteAmount, deadLine, nil, sdk.CodeInvalidAddress},
@@ -196,11 +196,7 @@ func TestMsgRemoveLiquidityInvalid(t *testing.T) {
 	for _, testCase := range tests {
 		msg := NewMsgRemoveLiquidity(testCase.liquidity, testCase.minBaseAmount, testCase.minQuoteAmount, testCase.deadLine, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil {
-			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
-			continue
-		}
-		require.Equal(t, testCase.exceptResultCode, err.Code())
+		testCode(t, err, testCase.exceptResultCode)
 	}
 }
 
@@ -249,7 +245,7 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 		deadLine             int64
 		recipient            sdk.AccAddress
 		addr                 sdk.AccAddress
-		exceptResultCode     sdk.CodeType
+		exceptResultCode     uint32
 	}{
 		{"success", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, addr, sdk.CodeOK},
 		{"empty sender", minBoughtTokenAmount, soldTokenAmount, deadLine, addr, nil, sdk.CodeInvalidAddress},
@@ -265,10 +261,6 @@ func TestMsgTokenToTokenInvalid(t *testing.T) {
 	for _, testCase := range tests {
 		msg := NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
 		err := msg.ValidateBasic()
-		if err == nil  {
-			require.Equal(t, testCase.exceptResultCode, sdk.CodeOK)
-			continue
-		}
-		require.Equal(t, testCase.exceptResultCode, err.Code())
+		testCode(t, err, testCase.exceptResultCode)
 	}
 }

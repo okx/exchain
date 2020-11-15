@@ -13,15 +13,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	apptypes "github.com/okex/okexchain/app/types"
 )
 
-const(
+const (
 	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
+
+func InitConfig() {
+	config := sdk.GetConfig()
+	if config.GetBech32ConsensusAddrPrefix() == apptypes.Bech32PrefixConsAddr {
+		return
+	}
+	apptypes.SetBech32Prefixes(config)
+	apptypes.SetBip44CoinType(config)
+	config.Seal()
+}
 
 // Int64ToBytes converts int64 to bytes
 func Int64ToBytes(i int64) []byte {
@@ -76,15 +88,15 @@ func HandleErrorMsg(w http.ResponseWriter, cliCtx context.CLIContext, msg string
 func HasSufficientCoins(addr sdk.AccAddress, availableCoins, amt sdk.Coins) (err error) {
 	//availableCoins := availCoins[:]
 	if !amt.IsValid() {
-		return sdk.ErrInvalidCoins(amt.String())
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 	if !availableCoins.IsValid() {
-		return sdk.ErrInvalidCoins(availableCoins.String())
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
 	_, hasNeg := availableCoins.SafeSub(amt)
 	if hasNeg {
-		return sdk.ErrInsufficientCoins(
+		return sdkerrors.Wrap(sdkerrors.ErrInsufficientFunds,
 			fmt.Sprintf("insufficient account funds;address: %s, availableCoin: %s, needCoin: %s",
 				addr.String(), availableCoins, amt),
 		)

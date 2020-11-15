@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -12,7 +13,7 @@ import (
 
 // NewHandler handle all "gov" type messages.
 func NewHandler(keeper Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
@@ -32,10 +33,10 @@ func NewHandler(keeper Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgSubmitProposal(ctx sdk.Context, keeper keeper.Keeper, msg MsgSubmitProposal) sdk.Result {
+func handleMsgSubmitProposal(ctx sdk.Context, keeper keeper.Keeper, msg MsgSubmitProposal) (*sdk.Result, error) {
 	err := hasOnlyDefaultBondDenom(msg.InitialDeposit)
 	if err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 
 	// use ctx directly
@@ -46,18 +47,18 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper keeper.Keeper, msg MsgSubmi
 		err = proposalHandler.CheckMsgSubmitProposal(ctx, msg)
 	}
 	if err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 
 	proposal, err := keeper.SubmitProposal(ctx, msg.Content)
 	if err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 
 	err = keeper.AddDeposit(ctx, proposal.ProposalID, msg.Proposer,
 		msg.InitialDeposit, types.EventTypeSubmitProposal)
 	if err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -68,27 +69,27 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper keeper.Keeper, msg MsgSubmi
 		),
 	)
 
-	return sdk.Result{
+	return &sdk.Result{
 		Data:   keeper.Cdc().MustMarshalBinaryLengthPrefixed(proposal.ProposalID),
 		Events: ctx.EventManager().Events(),
-	}
+	}, nil
 }
 
-func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) sdk.Result {
+func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*sdk.Result, error) {
 	if err := hasOnlyDefaultBondDenom(msg.Amount); err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 	// check depositor has sufficient coins
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		sdk.NewError(DefaultCodespace, sdk.CodeInsufficientCoins, err.Error()).Result()
+		sdk.EnvelopedErr{sdkerrors.New(types.DefaultCodespace, sdk.CodeInsufficientCoins, err.Error())}.Result()
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,
 		msg.Amount, types.EventTypeProposalDeposit)
 	if sdkErr != nil {
-		return sdkErr.Result()
+		return sdk.EnvelopedErr{sdkErr}.Result()
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -99,18 +100,18 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) sdk
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) sdk.Result {
+func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) (*sdk.Result, error) {
 	proposal, ok := k.GetProposal(ctx, msg.ProposalID)
 	if !ok {
-		return types.ErrUnknownProposal(types.DefaultCodespace, msg.ProposalID).Result()
+		return sdk.EnvelopedErr{types.ErrUnknownProposal(types.DefaultCodespace, msg.ProposalID)}.Result()
 	}
 
 	err, _ := k.AddVote(ctx, msg.ProposalID, msg.Voter, msg.Option)
 	if err != nil {
-		return err.Result()
+		return sdk.EnvelopedErr{err}.Result()
 	}
 
 	status, distribute, tallyResults := keeper.Tally(ctx, k, proposal, false)
@@ -135,7 +136,7 @@ func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) sdk.Result {
 		),
 	)
 
-	return sdk.Result{Events: ctx.EventManager().Events()}
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
 func handleProposalAfterTally(
@@ -164,7 +165,7 @@ func handleProposalAfterTally(
 
 		proposal.Status = StatusFailed
 		return types.AttributeValueProposalFailed, fmt.Sprintf("passed, but failed on execution: %s",
-			err.ABCILog())
+			err.Error())
 	} else if status == StatusRejected {
 		if k.ProposalHandlerRouter().HasRoute(proposal.ProposalRoute()) {
 			k.ProposalHandlerRouter().GetRoute(proposal.ProposalRoute()).RejectedHandler(ctx, proposal.Content)

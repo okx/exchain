@@ -35,6 +35,7 @@ type (
 	StakingKeeper       = keeper.StakingKeeper
 	BankKeeper          = keeper.BankKeeper
 	ProtocolVersionType = version.ProtocolVersionType
+	StreamKeeper        = keeper.StreamKeeper
 
 	// Messages
 	MsgList              = types.MsgList

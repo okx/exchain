@@ -1,10 +1,13 @@
 package staking
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
+	"bufio"
+	"os"
+	"testing"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"testing"
 
 	"github.com/okex/okexchain/x/staking/keeper"
 	"github.com/okex/okexchain/x/staking/types"
@@ -90,8 +93,9 @@ func TestAppSmoke(t *testing.T) {
 
 	// Extra Helper
 	appModule.CreateValidatorMsgHelpers("0.0.0.0")
-	cliCtx := client.NewCLIContext().WithCodec(mApp.Cdc)
-	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(mApp.Cdc))
+	cliCtx := context.NewCLIContext().WithCodec(mApp.Cdc)
+	inBuf := bufio.NewReader(os.Stdin)
+	txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(mApp.Cdc))
 	appModule.BuildCreateValidatorMsg(cliCtx, txBldr)
 
 	// Initialization for genesis

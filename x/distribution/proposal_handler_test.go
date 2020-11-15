@@ -3,12 +3,14 @@ package distribution
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+
 	"github.com/okex/okexchain/x/distribution/keeper"
 	"github.com/okex/okexchain/x/distribution/types"
-	govtypes "github.com/okex/okexchain/x/gov/types"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 var (
@@ -33,7 +35,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 
 	// add coins to the module account
 	macc := k.GetDistributionAccount(ctx)
-	err := macc.SetCoins(macc.GetCoins().Add(amount))
+	err := macc.SetCoins(macc.GetCoins().Add(amount...))
 	require.NoError(t, err)
 
 	supplyKeeper.SetModuleAccount(ctx, macc)
@@ -43,7 +45,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 	accountKeeper.SetAccount(ctx, account)
 
 	feePool := k.GetFeePool(ctx)
-	feePool.CommunityPool = sdk.NewDecCoins(amount)
+	feePool.CommunityPool = sdk.NewCoins(amount...)
 	k.SetFeePool(ctx, feePool)
 
 	tp := testProposal(recipient, amount)

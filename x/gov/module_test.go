@@ -6,9 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdkGovClient "github.com/cosmos/cosmos-sdk/x/gov/client"
-	sdkGovRest "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
-	"github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/gov/client"
+	"github.com/okex/okexchain/x/gov/client/rest"
 	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/gov/types"
 	"github.com/spf13/cobra"
@@ -24,14 +23,14 @@ func getCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{}
 }
 
-func proposalRESTHandler(cliCtx context.CLIContext) sdkGovRest.ProposalRESTHandler {
-	return sdkGovRest.ProposalRESTHandler{}
+func proposalRESTHandler(cliCtx context.CLIContext) rest.ProposalRESTHandler {
+	return rest.ProposalRESTHandler{}
 }
 
 func TestNewAppModuleBasic(t *testing.T) {
 	ctx, _, gk, _, crisisKeeper := keeper.CreateTestInput(t, false, 1000)
 
-	moduleBasic := NewAppModuleBasic(sdkGovClient.ProposalHandler{
+	moduleBasic := NewAppModuleBasic(client.ProposalHandler{
 		CLIHandler:  getCmdSubmitProposal,
 		RESTHandler: proposalRESTHandler,
 	})
@@ -59,17 +58,17 @@ func TestNewAppModuleBasic(t *testing.T) {
 	// todo: check diff after GetQueryCmd
 	moduleBasic.GetQueryCmd(cdc)
 
-	appModule := NewAppModule(version.CurrentProtocolVersion, gk, gk.SupplyKeeper())
+	appModule := NewAppModule(gk, gk.SupplyKeeper())
 	require.Equal(t, types.ModuleName, appModule.Name())
 
 	// todo: check diff after RegisterInvariants
 	appModule.RegisterInvariants(&crisisKeeper)
 
-	require.Equal(t, RouterKey, appModule.Route())
+	require.Equal(t, types.RouterKey, appModule.Route())
 
 	require.IsType(t, NewHandler(gk), appModule.NewHandler())
 
-	require.Equal(t, QuerierRoute, appModule.QuerierRoute())
+	require.Equal(t, types.QuerierRoute, appModule.QuerierRoute())
 
 	require.IsType(t, NewQuerier(gk), appModule.NewQuerierHandler())
 

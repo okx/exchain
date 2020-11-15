@@ -2,85 +2,90 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/cosmos/cosmos-sdk/client/rpc"
+	"github.com/spf13/cobra"
+
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/libs/cli"
+
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
+
 	"github.com/okex/okexchain/app"
-	debugcli "github.com/okex/okexchain/x/debug/client/cli"
-	tokencli "github.com/okex/okexchain/x/token/client/cli"
+	"github.com/okex/okexchain/cmd/client"
+	"github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/rpc"
+	ethermint "github.com/okex/okexchain/app/types"
+)
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
-	"github.com/tendermint/go-amino"
-	"github.com/tendermint/tendermint/libs/cli"
+var (
+	cdc = codec.MakeCodec(app.ModuleBasics)
 )
 
 func main() {
-	// configure cobra to sort commands
+	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
 
-	// instantiate the codec for the command line application
-	cdc := app.MakeCodec()
+	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
+	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
 
-	// read in the configuration file for the sdk
+	keys.CryptoCdc = cdc
+	clientkeys.KeysCdc = cdc
+
+	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	ethermint.SetBech32Prefixes(config)
+	ethermint.SetBip44CoinType(config)
 	config.Seal()
 
-	// TODO: setup keybase, viper object, etc. to be passed into
-	// the below functions and eliminate global vars, like we do with the cdc
-
 	rootCmd := &cobra.Command{
-		Use:   "okexchaincli",
-		Short: "Command line interface for interacting with okexchaind",
+		Use:   "ethermintcli",
+		Short: "Command line interface for interacting with ethermintd",
 	}
 
-	// add --chain-id to persistent flags and mark it required
-	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
-	rootCmd.PersistentFlags().String(client.FlagKeyPass, client.DefaultKeyPass, "Pass word of sender")
-
+	// Add --chain-id to persistent flags and mark it required
+	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
-		return initConfig(rootCmd)
+		return client.InitConfig(rootCmd)
 	}
 
-	// construct root command
+	// Construct Root Command
 	rootCmd.AddCommand(
-		rpc.StatusCommand(),
-		client.ConfigCmd(app.DefaultCLIHome),
+		clientrpc.StatusCommand(),
+		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		debugcli.GetDebugCmd(cdc),
-		client.LineBreak,
-		lcd.ServeCommand(cdc, registerRoutes),
-		client.LineBreak,
-		keys.Commands(),
-		client.LineBreak,
+		client.ValidateChainID(
+			rpc.EmintServeCmd(cdc),
+		),
+		flags.LineBreak,
+		client.KeyCommands(),
+		flags.LineBreak,
 		version.Cmd,
-		client.NewCompletionCmd(rootCmd, true),
+		flags.NewCompletionCmd(rootCmd, true),
 	)
 
-	// add flags and prefix all env exposed with OKEXCHAIN
-	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
+	// Add flags and prefix all env exposed with EM
+	executor := cli.PrepareMainCmd(rootCmd, "EM", app.DefaultCLIHome)
 
-	if err := executor.Execute(); err != nil {
-		fmt.Printf("Failed executing CLI command: %s, exiting...\n", err)
-		os.Exit(1)
+	err := executor.Execute()
+	if err != nil {
+		panic(fmt.Errorf("failed executing CLI command: %w", err))
 	}
 }
 
-func queryCmd(cdc *amino.Codec) *cobra.Command {
+func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:     "query",
 		Aliases: []string{"q"},
@@ -89,12 +94,10 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 
 	queryCmd.AddCommand(
 		authcmd.GetAccountCmd(cdc),
-		client.LineBreak,
-		rpc.ValidatorCommand(cdc),
-		rpc.BlockCommand(),
+		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
 		authcmd.QueryTxCmd(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 	)
 
 	// add modules' query commands
@@ -103,21 +106,22 @@ func queryCmd(cdc *amino.Codec) *cobra.Command {
 	return queryCmd
 }
 
-func txCmd(cdc *amino.Codec) *cobra.Command {
+func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:   "tx",
 		Short: "Transactions subcommands",
 	}
 
 	txCmd.AddCommand(
-		tokencli.SendTxCmd(cdc),
-		client.LineBreak,
+		bankcmd.SendTxCmd(cdc),
+		flags.LineBreak,
 		authcmd.GetSignCommand(cdc),
 		authcmd.GetMultiSignCommand(cdc),
-		client.LineBreak,
+		flags.LineBreak,
 		authcmd.GetBroadcastCommand(cdc),
 		authcmd.GetEncodeCommand(cdc),
-		client.LineBreak,
+		authcmd.GetDecodeCommand(cdc),
+		flags.LineBreak,
 	)
 
 	// add modules' tx commands
@@ -135,35 +139,4 @@ func txCmd(cdc *amino.Codec) *cobra.Command {
 	txCmd.RemoveCommand(cmdsToRemove...)
 
 	return txCmd
-}
-
-// registerRoutes registers the routes from the different modules for the LCD.
-// NOTE: details on the routes added for each module are in the module documentation
-// NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
-func registerRoutes(rs *lcd.RestServer) {
-	client.RegisterRoutes(rs.CliCtx, rs.Mux)
-	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
-}
-
-func initConfig(cmd *cobra.Command) error {
-	home, err := cmd.PersistentFlags().GetString(cli.HomeFlag)
-	if err != nil {
-		return err
-	}
-
-	cfgFile := path.Join(home, "config", "config.toml")
-	if _, err := os.Stat(cfgFile); err == nil {
-		viper.SetConfigFile(cfgFile)
-
-		if err := viper.ReadInConfig(); err != nil {
-			return err
-		}
-	}
-	if err := viper.BindPFlag(client.FlagChainID, cmd.PersistentFlags().Lookup(client.FlagChainID)); err != nil {
-		return err
-	}
-	if err := viper.BindPFlag(cli.EncodingFlag, cmd.PersistentFlags().Lookup(cli.EncodingFlag)); err != nil {
-		return err
-	}
-	return viper.BindPFlag(cli.OutputFlag, cmd.PersistentFlags().Lookup(cli.OutputFlag))
 }

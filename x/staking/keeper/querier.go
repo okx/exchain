@@ -2,20 +2,22 @@ package keeper
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/tendermint/tendermint/crypto"
-	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okexchain/x/staking/types"
 )
 
 // NewQuerier creates a querier for staking REST endpoints
 func NewQuerier(k Keeper) sdk.Querier {
-	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
+	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
 		switch path[0] {
 		case types.QueryValidators:
 			return queryValidators(ctx, req, k)
@@ -41,12 +43,12 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown staking query endpoint")
+			return nil, sdkerrors.ErrUnknownRequest
 		}
 	}
 }
 
-func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryDelegatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -66,7 +68,7 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, s
 	return res, nil
 }
 
-func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryValidatorsParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -102,7 +104,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 	return res, nil
 }
 
-func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryValidatorParams
 
 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
@@ -123,12 +125,12 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, s
 	return res, nil
 }
 
-func queryPool(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
+func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 	bondDenom := k.BondDenom(ctx)
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
-		return nil, sdk.ErrInternal("pool accounts haven't been set")
+		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, "pool accounts haven't been set")
 	}
 
 	pool := types.NewPool(
@@ -144,7 +146,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 	return res, nil
 }
 
-func queryParameters(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
+func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
@@ -155,7 +157,7 @@ func queryParameters(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 	return res, nil
 }
 
-func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryDelegatorParams
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, defaultQueryErrParseParams(err)
@@ -170,11 +172,11 @@ func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 	return resp, nil
 }
 
-func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryValidatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, sdk.ErrInternal(fmt.Sprintf("failed to parse validator params. %s", err))
+		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, fmt.Sprintf("failed to parse validator params. %s", err))
 	}
 
 	sharesResponses := k.GetValidatorAllShares(ctx, params.ValidatorAddr)
@@ -186,7 +188,7 @@ func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 	return resp, nil
 }
 
-func queryUndelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Error) {
+func queryUndelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryDelegatorParams
 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
@@ -206,7 +208,7 @@ func queryUndelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte
 	return res, nil
 }
 
-func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err sdk.Error) {
+func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err error) {
 
 	ovPairs := k.GetOperAndValidatorAddr(ctx)
 	res, errRes := codec.MarshalJSONIndent(types.ModuleCdc, ovPairs)
@@ -216,7 +218,7 @@ func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err sdk.Error) {
 	return res, nil
 }
 
-func queryForAddress(ctx sdk.Context, req abci.RequestQuery, k Keeper) (res []byte, err sdk.Error) {
+func queryForAddress(ctx sdk.Context, req abci.RequestQuery, k Keeper) (res []byte, err error) {
 	validatorAddr := string(req.Data)
 	if len(validatorAddr) != crypto.AddressSize*2 {
 		return nil, types.ErrBadValidatorAddr(types.DefaultCodespace)
@@ -234,11 +236,11 @@ func queryForAddress(ctx sdk.Context, req abci.RequestQuery, k Keeper) (res []by
 	return res, nil
 }
 
-func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err sdk.Error) {
+func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err error) {
 
 	valAddr, errBech32 := sdk.ValAddressFromBech32(string(req.Data))
 	if errBech32 != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to get operator address", errBech32.Error()))
+		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, "failed to get operator address"+errBech32.Error())
 	}
 
 	accAddr := sdk.AccAddress(valAddr)
@@ -250,10 +252,10 @@ func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err
 	return res, nil
 }
 
-func defaultQueryErrJSONMarshal(err error) sdk.Error {
-	return sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+func defaultQueryErrJSONMarshal(err error) error {
+	return sdkerrors.New(types.ModuleName, types.CodeInternalError, "failed to marshal result to JSON"+err.Error())
 }
 
-func defaultQueryErrParseParams(err error) sdk.Error {
-	return sdk.ErrInternal(fmt.Sprintf("failed to parse params. %s", err))
+func defaultQueryErrParseParams(err error) error {
+	return sdkerrors.New(types.ModuleName, types.CodeInternalError, fmt.Sprintf("failed to parse params. %s", err))
 }

@@ -307,12 +307,12 @@ func TestIncrementPoolPeriod(t *testing.T) {
 		if test.valueLocked.IsZero() {
 			currentRatio = sdk.SysCoins{}
 		} else {
-			currentRatio = test.curRewards.Rewards.Add(test.yieldedTokens).QuoDecTruncate(test.valueLocked.Amount)
+			currentRatio = test.curRewards.Rewards.Add2(test.yieldedTokens).QuoDecTruncate(test.valueLocked.Amount)
 		}
 
 		// create new current period rewards
 		newHis := keeper.GetPoolHistoricalRewards(ctx, poolName, test.curRewards.Period)
-		require.Equal(t, test.preHisRewards.CumulativeRewardRatio.Add(currentRatio),
+		require.Equal(t, test.preHisRewards.CumulativeRewardRatio.Add2(currentRatio),
 			newHis.CumulativeRewardRatio,
 		)
 

@@ -15,3 +15,7 @@ type (
 	// StakingKeeper is the type alias of the one in cmsdk
 	StakingKeeper = sdkgenutiltypes.StakingKeeper
 )
+
+var (
+	NewInitConfig = sdkgenutiltypes.NewInitConfig
+)

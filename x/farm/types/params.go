@@ -48,13 +48,17 @@ func (p Params) String() string {
 		p.QuoteSymbol, p.CreatePoolFee, p.CreatePoolDeposit, p.YieldNativeToken)
 }
 
+func validateParams(value interface{}) error {
+	return nil
+}
+
 // ParamSetPairs - Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyQuoteSymbol, Value: &p.QuoteSymbol},
-		{Key: KeyCreatePoolFee, Value: &p.CreatePoolFee},
-		{Key: KeyCreatePoolDeposit, Value: &p.CreatePoolDeposit},
-		{Key: keyYieldNativeToken, Value: &p.YieldNativeToken},
+		{Key: KeyQuoteSymbol, Value: &p.QuoteSymbol, ValidatorFn: validateParams},
+		{Key: KeyCreatePoolFee, Value: &p.CreatePoolFee, ValidatorFn: validateParams},
+		{Key: KeyCreatePoolDeposit, Value: &p.CreatePoolDeposit, ValidatorFn: validateParams},
+		{Key: keyYieldNativeToken, Value: &p.YieldNativeToken, ValidatorFn: validateParams},
 	}
 }
 

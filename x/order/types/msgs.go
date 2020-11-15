@@ -220,7 +220,7 @@ func (msg MsgCancelOrders) CalculateGas(gasUnit uint64) uint64 {
 
 // nolint
 type OrderResult struct {
-	Code    sdk.CodeType `json:"code"`    // order return code
-	Message string       `json:"msg"`     // order return error message
-	OrderID string       `json:"orderid"` // order return orderid
+	Error   error  `json:"error"`
+	Message string `json:"msg"`     // order return error message
+	OrderID string `json:"orderid"` // order return orderid
 }

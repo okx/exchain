@@ -3,8 +3,8 @@ package distrlock
 import (
 	"fmt"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/okex/okexchain/x/stream/common"
+	"github.com/garyburd/redigo/redis"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

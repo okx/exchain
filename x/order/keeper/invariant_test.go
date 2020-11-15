@@ -29,7 +29,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 
 	msg, broken := invariant(ctx)
 	require.False(t, broken)
-	expectedLockCoins := order1.NeedLockCoins().Add(GetOrderNewFee(order1))
+	expectedLockCoins := order1.NeedLockCoins().Add2(GetOrderNewFee(order1))
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	order2 := mockOrder("", types.TestTokenPair, types.SellOrder, "20.0", "3.0")
@@ -40,7 +40,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 
 	msg, broken = invariant(ctx)
 	require.False(t, broken)
-	expectedLockCoins = expectedLockCoins.Add(order2.NeedLockCoins()).Add(GetOrderNewFee(order2))
+	expectedLockCoins = expectedLockCoins.Add2(order2.NeedLockCoins()).Add2(GetOrderNewFee(order2))
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// cancel order
@@ -67,7 +67,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.NoError(t, err)
 	msg, broken = invariant(ctx)
 	require.False(t, broken)
-	expectedLockCoins = expectedLockCoins.Add(lockCoins)
+	expectedLockCoins = expectedLockCoins.Add2(lockCoins)
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// error case: lock LockCoinsTypeFee

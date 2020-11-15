@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/okex/okexchain/x/gov/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/okexchain/x/common/perf"
@@ -15,8 +15,8 @@ import (
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) {
 	logger := k.Logger(ctx)
 
-	seq := perf.GetPerf().OnEndBlockEnter(ctx, ModuleName)
-	defer perf.GetPerf().OnEndBlockExit(ctx, ModuleName, seq)
+	seq := perf.GetPerf().OnEndBlockEnter(ctx, types.ModuleName)
+	defer perf.GetPerf().OnEndBlockExit(ctx, types.ModuleName, seq)
 
 	handleWaitingProposals(ctx, k, logger)
 	handleInActiveProposals(ctx, k, logger)
