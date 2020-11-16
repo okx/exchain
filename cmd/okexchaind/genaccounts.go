@@ -21,7 +21,7 @@ import (
 	"github.com/okex/okexchain/x/genutil"
 
 	"github.com/okex/okexchain/app/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -114,7 +114,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					return errors.New("invalid vesting parameters; must supply start and end time or end time")
 				}
 			} else {
-				genAccount = ethermint.EthAccount{
+				genAccount = okexchain.EthAccount{
 					BaseAccount: baseAccount,
 					CodeHash:    ethcrypto.Keccak256(nil),
 				}

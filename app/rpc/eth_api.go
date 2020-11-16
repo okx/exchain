@@ -12,7 +12,7 @@ import (
 
 	"github.com/okex/okexchain/app/crypto"
 	params "github.com/okex/okexchain/app/rpc/args"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/app/utils"
 	"github.com/okex/okexchain/app/version"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
@@ -55,7 +55,7 @@ type PublicEthAPI struct {
 func NewPublicEthAPI(cliCtx context.CLIContext, backend Backend, nonceLock *AddrLocker,
 	key []crypto.PrivKeySecp256k1) *PublicEthAPI {
 
-	epoch, err := ethermint.ParseChainID(cliCtx.ChainID)
+	epoch, err := okexchain.ParseChainID(cliCtx.ChainID)
 	if err != nil {
 		panic(err)
 	}
@@ -403,7 +403,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// ChainID must be set as flag to send transaction
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	chainIDEpoch, err := okexchain.ParseChainID(chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -474,7 +474,7 @@ type CallArgs struct {
 // Call performs a raw contract call.
 func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, _ *map[common.Address]account) (hexutil.Bytes, error) {
 	e.logger.Debug("eth_call", "args", args, "block number", blockNr)
-	simRes, err := e.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
+	simRes, err := e.doCall(args, blockNr, big.NewInt(okexchain.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -527,7 +527,7 @@ func (e *PublicEthAPI) doCall(
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
-	gas := uint64(ethermint.DefaultRPCGasLimit)
+	gas := uint64(okexchain.DefaultRPCGasLimit)
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
 	}
@@ -537,7 +537,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Set gas price using default or parameter if passed in
-	gasPrice := new(big.Int).SetUint64(ethermint.DefaultGasPrice)
+	gasPrice := new(big.Int).SetUint64(okexchain.DefaultGasPrice)
 	if args.GasPrice != nil {
 		gasPrice = args.GasPrice.ToInt()
 	}
@@ -597,7 +597,7 @@ func (e *PublicEthAPI) doCall(
 // param from the SDK.
 func (e *PublicEthAPI) EstimateGas(args CallArgs) (hexutil.Uint64, error) {
 	e.logger.Debug("eth_estimateGas", "args", args)
-	simResponse, err := e.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
+	simResponse, err := e.doCall(args, 0, big.NewInt(okexchain.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, err
 	}
@@ -1003,7 +1003,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEt
 
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
+		gasPrice = big.NewInt(okexchain.DefaultGasPrice)
 	}
 
 	if args.Nonce == nil {

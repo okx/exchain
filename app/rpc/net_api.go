@@ -7,7 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -19,7 +19,7 @@ type PublicNetAPI struct {
 func NewPublicNetAPI(_ context.CLIContext) *PublicNetAPI {
 	chainID := viper.GetString(flags.FlagChainID)
 	// parse the chainID from a integer string
-	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	chainIDEpoch, err := okexchain.ParseChainID(chainID)
 	if err != nil {
 		panic(err)
 	}

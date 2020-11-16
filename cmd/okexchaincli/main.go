@@ -26,7 +26,7 @@ import (
 	"github.com/okex/okexchain/app/codec"
 	"github.com/okex/okexchain/app/crypto"
 	"github.com/okex/okexchain/app/rpc"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 )
 
 var (
@@ -45,13 +45,13 @@ func main() {
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
-	ethermint.SetBech32Prefixes(config)
-	ethermint.SetBip44CoinType(config)
+	okexchain.SetBech32Prefixes(config)
+	okexchain.SetBip44CoinType(config)
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "ethermintcli",
-		Short: "Command line interface for interacting with ethermintd",
+		Use:   "okexchaincli",
+		Short: "Command line interface for interacting with okexchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required

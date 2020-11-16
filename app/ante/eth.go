@@ -10,7 +10,7 @@ import (
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -141,7 +141,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return ctx, err
 	}

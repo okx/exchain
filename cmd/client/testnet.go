@@ -38,7 +38,7 @@ import (
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
 
 	"github.com/okex/okexchain/app/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 )
 
@@ -68,7 +68,7 @@ necessary files (private validator, genesis, config, etc.).
 
 Note, strict routability for addresses is turned off in the config file.`,
 
-		Example: "ethermintd testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
+		Example: "okexchaind testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			config := ctx.Config
 
@@ -95,13 +95,13 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
 	cmd.Flags().StringP(flagOutputDir, "o", "./build", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
-	cmd.Flags().String(flagNodeDaemonHome, "ethermintd", "Home directory of the node's daemon configuration")
-	cmd.Flags().String(flagNodeCLIHome, "ethermintcli", "Home directory of the node's cli configuration")
+	cmd.Flags().String(flagNodeDaemonHome, "okexchaind", "Home directory of the node's daemon configuration")
+	cmd.Flags().String(flagNodeCLIHome, "okexchaincli", "Home directory of the node's cli configuration")
 	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
 	cmd.Flags().StringSlice(flagIPAddrs, []string{}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
-	cmd.Flags().String(flagCoinDenom, ethermint.AttoPhoton, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
-	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.AttoPhoton), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
+	cmd.Flags().String(flagCoinDenom, okexchain.NativeToken, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
+	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", okexchain.NativeToken), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(flagKeyAlgo, string(crypto.EthSecp256k1), "Key signing algorithm to generate keys for")
 	return cmd
@@ -132,7 +132,7 @@ func InitTestnet(
 		chainID = fmt.Sprintf("ethermint-%d", tmrand.Int63n(9999999999999)+1)
 	}
 
-	if !ethermint.IsValidChainID(chainID) {
+	if !okexchain.IsValidChainID(chainID) {
 		return fmt.Errorf("invalid chain-id: %s", chainID)
 	}
 
@@ -238,7 +238,7 @@ func InitTestnet(
 			sdk.NewCoin(coinDenom, accStakingTokens),
 		)
 
-		genAccounts = append(genAccounts, ethermint.EthAccount{
+		genAccounts = append(genAccounts, okexchain.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
 		})

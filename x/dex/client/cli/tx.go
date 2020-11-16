@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/okex/okexchain/x/gov"
 
@@ -42,7 +42,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		Short: "Decentralized exchange management subcommands",
 	}
 
-	txCmd.AddCommand(flags.PostCommands(
+	txCmd.AddCommand(client.PostCommands(
 		getCmdList(cdc),
 		getCmdDeposit(cdc),
 		getCmdWithdraw(cdc),

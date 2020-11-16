@@ -15,7 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"github.com/cosmos/cosmos-sdk/tests"
 
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 )
 
 func TestEthermintKeygenFunc(t *testing.T) {
@@ -70,7 +70,7 @@ func TestKeyring(t *testing.T) {
 	mockIn := strings.NewReader("")
 	t.Cleanup(cleanup)
 
-	kr, err := keys.NewKeyring("ethermint", keys.BackendTest, dir, mockIn, EthSecp256k1Options()...)
+	kr, err := keys.NewKeyring("okexchain", keys.BackendTest, dir, mockIn, EthSecp256k1Options()...)
 	require.NoError(t, err)
 
 	// fail in retrieving key
@@ -79,14 +79,14 @@ func TestKeyring(t *testing.T) {
 	require.Nil(t, info)
 
 	mockIn.Reset("password\npassword\n")
-	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, ethermint.BIP44HDPath, EthSecp256k1)
+	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, okexchain.BIP44HDPath, EthSecp256k1)
 	require.NoError(t, err)
 	require.NotEmpty(t, mnemonic)
 	require.Equal(t, "foo", info.GetName())
 	require.Equal(t, "local", info.GetType().String())
 	require.Equal(t, EthSecp256k1, info.GetAlgo())
 
-	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
+	params := *hd.NewFundraiserParams(0, okexchain.Bip44CoinType, 0)
 	hdPath := params.String()
 
 	bz, err := DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, keys.Secp256k1)

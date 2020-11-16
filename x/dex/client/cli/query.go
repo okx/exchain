@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -21,7 +21,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Querying commands for the dex module",
 	}
 
-	queryCmd.AddCommand(flags.GetCommands(
+	queryCmd.AddCommand(client.GetCommands(
 		GetCmdQueryProducts(queryRoute, cdc),
 		GetCmdQueryDeposits(queryRoute, cdc),
 		GetCmdQueryProductRank(queryRoute, cdc),

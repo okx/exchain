@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -29,10 +28,10 @@ import (
 	"github.com/okex/okexchain/x/staking"
 
 	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/app/codec"
 	"github.com/okex/okexchain/app/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -53,14 +52,14 @@ func main() {
 	clientkeys.KeysCdc = cdc
 
 	config := sdk.GetConfig()
-	ethermint.SetBech32Prefixes(config)
-	ethermint.SetBip44CoinType(config)
+	okexchain.SetBech32Prefixes(config)
+	okexchain.SetBip44CoinType(config)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
-		Use:               "ethermintd",
+		Use:               "okexchaind",
 		Short:             "OKExChain App Daemon (server)",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
@@ -123,8 +122,4 @@ func exportAppStateAndTMValidators(
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
-}
-
-func registerRoutes(rs *lcd.RestServer) {
-
 }
