@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -29,10 +28,10 @@ import (
 	"github.com/okex/okexchain/x/staking"
 
 	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/app/codec"
 	"github.com/okex/okexchain/app/crypto"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -123,8 +122,4 @@ func exportAppStateAndTMValidators(
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
-}
-
-func registerRoutes(rs *lcd.RestServer) {
-
 }
