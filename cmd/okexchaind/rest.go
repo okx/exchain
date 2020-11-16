@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/cosmos/cosmos-sdk/x/supply/client/rest"
@@ -29,13 +30,13 @@ func registerRoutes(rs *lcd.RestServer) {
 func registerRoutesV1(rs *lcd.RestServer) {
 	v1Router := rs.Mux.PathPrefix("/okexchain/v1").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
-	authrest.RegisterRoutes(rs.CliCtx, v1Router, "")
+	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	distrest.RegisterRoutes(rs.CliCtx, v1Router, dist.StoreKey)
 
 	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
-	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.ModuleName)
+	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.StoreKey)
 	backendrest.RegisterRoutes(rs.CliCtx, v1Router)
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -46,12 +47,12 @@ func registerRoutesV1(rs *lcd.RestServer) {
 func registerRoutesV2(rs *lcd.RestServer) {
 	v2Router := rs.Mux.PathPrefix("/okexchain/v2").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v2Router)
-	authrest.RegisterRoutes(rs.CliCtx, v2Router, "")
+	authrest.RegisterRoutes(rs.CliCtx, v2Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v2Router)
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
 
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
-	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.ModuleName)
+	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
 	backendrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }
