@@ -16,19 +16,19 @@ type ParamSubspace interface {
 
 // BankKeeper defines the expected bank interface
 type BankKeeper interface {
-	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, error)
-	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+	SubtractCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.SysCoins) (sdk.SysCoins, error)
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.SysCoins) error
 }
 
 // SupplyKeeper defines the expected supply interface
 type SupplyKeeper interface {
 	GetSupplyByDenom(ctx sdk.Context, denom string) sdk.Dec
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string,
-		recipientAddr sdk.AccAddress, amt sdk.Coins) sdk.Error
+		recipientAddr sdk.AccAddress, amt sdk.SysCoins) sdk.Error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress,
-		recipientModule string, amt sdk.Coins) sdk.Error
-	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
-	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error
+		recipientModule string, amt sdk.SysCoins) sdk.Error
+	MintCoins(ctx sdk.Context, moduleName string, amt sdk.SysCoins) sdk.Error
+	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.SysCoins) sdk.Error
 }
 
 // TokenKeeper defines the expected token interface

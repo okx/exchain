@@ -13,7 +13,7 @@ import (
 )
 
 type MockGetFeeKeeper struct {
-	coins    sdk.Coins
+	coins    sdk.SysCoins
 	priceMap map[string]sdk.Dec
 }
 
@@ -21,7 +21,7 @@ func NewMockGetFeeKeeper() MockGetFeeKeeper {
 	return MockGetFeeKeeper{sdk.NewCoins(), make(map[string]sdk.Dec)}
 }
 
-func (k MockGetFeeKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
+func (k MockGetFeeKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins {
 	return k.coins
 }
 
