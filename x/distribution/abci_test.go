@@ -3,11 +3,9 @@ package distribution
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	"github.com/okex/okexchain/x/distribution/keeper"
+	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func TestBeginBlocker(t *testing.T) {

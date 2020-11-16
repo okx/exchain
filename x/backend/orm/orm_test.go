@@ -1,7 +1,7 @@
 package orm
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -17,7 +17,7 @@ import (
 	"github.com/okex/okexchain/x/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tcommon "github.com/tendermint/tendermint/libs/common"
+	//tcommon "github.com/tendermint/tendermint/libs/common"
 )
 
 func TestGorm(t *testing.T) {
@@ -371,9 +371,9 @@ func TestCandles_NewKlinesFactory(t *testing.T) {
 		fmt.Printf("%+v\n", r)
 	}
 
-	r, _ := json.Marshal(result)
+	//r, _ := json.Marshal(result)
 
-	err = tcommon.WriteFile("/tmp/k1.txt", r, os.ModePerm)
+	//err = tcommon.WriteFile("/tmp/k1.txt", r, os.ModePerm)
 	require.Nil(t, err)
 }
 
