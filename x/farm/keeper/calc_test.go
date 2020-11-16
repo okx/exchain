@@ -241,6 +241,20 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 			expectedFunc: expectPanic,
 		},
 		{
+			startPeriod: 0,
+			startRatio: sdk.SysCoins{
+				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
+				sdk.NewDecCoin("okt", sdk.NewInt(10)),
+			},
+			endPeriod: 1,
+			endRatio: sdk.SysCoins{
+				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
+				sdk.NewDecCoin("okt", sdk.NewInt(100)),
+			},
+			amount:       sdk.SysCoin{"xxb", sdk.NewDec(-1)},
+			expectedFunc: expectPanic,
+		},
+		{
 			startPeriod: 1,
 			startRatio: sdk.SysCoins{
 				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
