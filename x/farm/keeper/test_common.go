@@ -282,7 +282,7 @@ func initPoolsAndLockInfos(
 		),
 		types.NewFarmPool(
 			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.SysCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
+			sdk.NewDecCoin(stakingtypes.DefaultParams().BondDenom, sdk.NewInt(200)),
 			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 	}
