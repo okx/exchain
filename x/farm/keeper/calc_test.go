@@ -1,10 +1,11 @@
 package keeper
 
 import (
+	"testing"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCalculateAmountYieldedBetween(t *testing.T) {
@@ -36,7 +37,7 @@ func TestCalculateAmountYieldedBetween(t *testing.T) {
 			endBlockHeight: 120,
 			yieldedInfos: types.YieldedTokenInfos{
 				types.NewYieldedTokenInfo(
-					sdk.SysCoin{},
+					sdk.NewDecCoin("xxb", sdk.ZeroInt()),
 					0,
 					sdk.NewDec(0),
 				),
@@ -237,20 +238,6 @@ func TestCalculateLockRewardsBetween(t *testing.T) {
 				sdk.NewDecCoin("okt", sdk.NewInt(7)),
 			},
 			amount:       sdk.NewDecCoin("xxb", sdk.NewInt(10)),
-			expectedFunc: expectPanic,
-		},
-		{
-			startPeriod: 0,
-			startRatio: sdk.SysCoins{
-				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
-				sdk.NewDecCoin("okt", sdk.NewInt(10)),
-			},
-			endPeriod: 1,
-			endRatio: sdk.SysCoins{
-				sdk.NewDecCoin("wwb", sdk.NewInt(10)),
-				sdk.NewDecCoin("okt", sdk.NewInt(100)),
-			},
-			amount:       sdk.SysCoin{"xxb", sdk.NewDec(-1)},
 			expectedFunc: expectPanic,
 		},
 		{
