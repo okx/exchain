@@ -38,8 +38,8 @@ import (
 	"github.com/okex/okexchain/x/staking"
 
 	"github.com/okex/okexchain/app/ante"
-	ethermintcodec "github.com/okex/okexchain/app/codec"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchaincodec "github.com/okex/okexchain/app/codec"
+	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/faucet"
 
@@ -53,8 +53,8 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
-	ethermint.SetBech32Prefixes(config)
-	ethermint.SetBip44CoinType(config)
+	okexchain.SetBech32Prefixes(config)
+	okexchain.SetBip44CoinType(config)
 }
 
 const appName = "OKExChain"
@@ -193,7 +193,7 @@ func NewOKExChainApp(
 		panic(err)
 	}
 
-	cdc := ethermintcodec.MakeCodec(ModuleBasics)
+	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
@@ -239,7 +239,7 @@ func NewOKExChainApp(
 
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], ethermint.ProtoAccount,
+		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),

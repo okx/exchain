@@ -30,7 +30,7 @@ import (
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/codec"
 	"github.com/okex/okexchain/app/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/cmd/client"
 )
 
@@ -52,8 +52,8 @@ func main() {
 	clientkeys.KeysCdc = cdc
 
 	config := sdk.GetConfig()
-	ethermint.SetBech32Prefixes(config)
-	ethermint.SetBip44CoinType(config)
+	okexchain.SetBech32Prefixes(config)
+	okexchain.SetBip44CoinType(config)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()

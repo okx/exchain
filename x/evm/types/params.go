@@ -41,7 +41,7 @@ func NewParams(evmDenom string) Params {
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EvmDenom: ethermint.AttoPhoton,
+		EvmDenom: ethermint.NativeToken,
 	}
 }
 
