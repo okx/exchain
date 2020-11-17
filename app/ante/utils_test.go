@@ -26,7 +26,7 @@ type AnteTestSuite struct {
 	suite.Suite
 
 	ctx         sdk.Context
-	app         *app.EthermintApp
+	app         *app.OKExChainApp
 	anteHandler sdk.AnteHandler
 }
 

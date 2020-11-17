@@ -36,7 +36,7 @@ type EvmTestSuite struct {
 	ctx     sdk.Context
 	handler sdk.Handler
 	querier sdk.Querier
-	app     *app.EthermintApp
+	app     *app.OKExChainApp
 	codec   *codec.Codec
 }
 
