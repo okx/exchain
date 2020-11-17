@@ -9,8 +9,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+func resetConfig(config *sdk.Config) {
+	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	config.SetCoinType(sdk.CoinType)
+	config.SetFullFundraiserPath(sdk.FullFundraiserPath)
+}
+
 func TestSetBech32Prefixes(t *testing.T) {
 	config := sdk.GetConfig()
+	resetConfig(config)
 
 	require.Equal(t, sdk.Bech32PrefixAccAddr, config.GetBech32AccountAddrPrefix())
 	require.Equal(t, sdk.Bech32PrefixAccPub, config.GetBech32AccountPubPrefix())
@@ -37,6 +46,7 @@ func TestSetBech32Prefixes(t *testing.T) {
 
 func TestSetCoinType(t *testing.T) {
 	config := sdk.GetConfig()
+	resetConfig(config)
 	require.Equal(t, sdk.CoinType, int(config.GetCoinType()))
 	require.Equal(t, sdk.FullFundraiserPath, config.GetFullFundraiserPath())
 
