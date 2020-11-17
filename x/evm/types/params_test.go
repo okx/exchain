@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -50,5 +48,5 @@ func TestParamsValidatePriv(t *testing.T) {
 }
 
 func TestParams_String(t *testing.T) {
-	require.Equal(t, fmt.Sprintf("evm_denom: %s\n", sdk.DefaultBondDenom), DefaultParams().String())
+	require.Equal(t, "evm_denom: aphoton\n", DefaultParams().String())
 }

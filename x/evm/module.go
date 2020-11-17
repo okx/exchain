@@ -52,7 +52,6 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 
 // RegisterRESTRoutes Registers rest routes
 func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
-	//rpc.RegisterRoutes(ctx, rtr, StoreKey)
 }
 
 // GetQueryCmd Gets the root query command of this module
@@ -62,7 +61,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetTxCmd Gets the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(cdc)
+	return nil
 }
 
 //____________________________________________________________________________
@@ -113,12 +112,12 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 
 // BeginBlock function for module at start of each block
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	BeginBlock(am.keeper, ctx, req)
+	am.keeper.BeginBlock(ctx, req)
 }
 
 // EndBlock function for module at end of block
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return EndBlock(am.keeper, ctx, req)
+	return am.keeper.EndBlock(ctx, req)
 }
 
 // InitGenesis instantiates the genesis state

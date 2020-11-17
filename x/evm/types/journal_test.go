@@ -15,14 +15,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 )
 
@@ -40,7 +40,7 @@ func newTestCodec() *sdkcodec.Codec {
 
 	RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	crypto.RegisterCodec(cdc)
+	ethsecp256k1.RegisterCodec(cdc)
 	sdkcodec.RegisterCrypto(cdc)
 	auth.RegisterCodec(cdc)
 	ethermint.RegisterCodec(cdc)
@@ -51,7 +51,7 @@ func newTestCodec() *sdkcodec.Codec {
 func (suite *JournalTestSuite) SetupTest() {
 	suite.setup()
 
-	privkey, err := crypto.GenerateKey()
+	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
@@ -218,6 +218,12 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			"addLogChange - 2 logs",
 			addLogChange{
 				txhash: ethcmn.BytesToHash([]byte("txhash")),
+			},
+		},
+		{
+			"accessListAddAccountChange",
+			accessListAddAccountChange{
+				address: &suite.address,
 			},
 		},
 	}

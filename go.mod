@@ -11,7 +11,7 @@ require (
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.39.1
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/ethereum/go-ethereum v1.9.21
+	github.com/ethereum/go-ethereum v1.9.24
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/garyburd/redigo v1.6.2
 	github.com/go-kit/kit v0.10.0
@@ -32,8 +32,8 @@ require (
 	github.com/shirou/gopsutil v2.20.9+incompatible // indirect
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.5
+ 	github.com/spf13/cobra v1.1.1
+ 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
 	github.com/stretchr/testify v1.6.1

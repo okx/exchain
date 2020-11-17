@@ -7,8 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 
-	emintcrypto "github.com/okex/okexchain/app/crypto"
-	okexchain "github.com/okex/okexchain/app/types"
+	cryptocodec "github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okex/okexchain/app/types"
 )
 
 // MakeCodec registers the necessary types and interfaces for an sdk.App. This
@@ -22,9 +22,9 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	bm.RegisterCodec(cdc)
 	vesting.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	emintcrypto.RegisterCodec(cdc)
+	cryptocodec.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
-	okexchain.RegisterCodec(cdc)
+	ethermint.RegisterCodec(cdc)
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
 	return cdc

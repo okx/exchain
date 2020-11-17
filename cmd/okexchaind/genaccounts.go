@@ -20,8 +20,8 @@ import (
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/okex/okexchain/x/genutil"
 
-	"github.com/okex/okexchain/app/crypto"
 	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/app/crypto/hd"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -60,7 +60,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 					viper.GetString(flags.FlagKeyringBackend),
 					viper.GetString(flagClientHome),
 					inBuf,
-					crypto.EthSecp256k1Options()...,
+					hd.EthSecp256k1Options()...,
 				)
 				if err != nil {
 					return err

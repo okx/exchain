@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	ethermint "github.com/okex/okexchain/app/types"
 )

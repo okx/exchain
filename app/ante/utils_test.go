@@ -12,8 +12,8 @@ import (
 
 	"github.com/okex/okexchain/app"
 	ante "github.com/okex/okexchain/app/ante"
-	"github.com/okex/okexchain/app/crypto"
-	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -26,7 +26,7 @@ type AnteTestSuite struct {
 	suite.Suite
 
 	ctx         sdk.Context
-	app         *app.OKExChainApp
+	app         *app.EthermintApp
 	anteHandler sdk.AnteHandler
 }
 
@@ -36,10 +36,10 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "okexchain-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper)
 }
 
 func TestAnteTestSuite(t *testing.T) {
@@ -51,16 +51,16 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 }
 
 func newTestCoins() sdk.Coins {
-	return sdk.NewCoins(okexchain.NewPhotonCoinInt64(500000000))
+	return sdk.NewCoins(ethermint.NewPhotonCoinInt64(500000000))
 }
 
 func newTestStdFee() auth.StdFee {
-	return auth.NewStdFee(220000, sdk.NewCoins(okexchain.NewPhotonCoinInt64(150)))
+	return auth.NewStdFee(220000, sdk.NewCoins(ethermint.NewPhotonCoinInt64(150)))
 }
 
 // GenerateAddress generates an Ethereum address.
 func newTestAddrKey() (sdk.AccAddress, tmcrypto.PrivKey) {
-	privkey, _ := crypto.GenerateKey()
+	privkey, _ := ethsecp256k1.GenerateKey()
 	addr := ethcrypto.PubkeyToAddress(privkey.ToECDSA().PublicKey)
 
 	return sdk.AccAddress(addr.Bytes()), privkey
@@ -90,12 +90,12 @@ func newTestSDKTx(
 }
 
 func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
-	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	privkey, ok := priv.(crypto.PrivKeySecp256k1)
+	privkey, ok := priv.(ethsecp256k1.PrivKey)
 	if !ok {
 		return nil, fmt.Errorf("invalid private key type: %T", priv)
 	}

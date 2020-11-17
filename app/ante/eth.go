@@ -10,7 +10,7 @@ import (
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	okexchain "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -100,20 +100,21 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	evmDenom := emfd.evmKeeper.GetParams(ctx).EvmDenom
 
-	// fee = GP * GL
+	// fee = gas price * gas limit
 	fee := sdk.NewInt64DecCoin(evmDenom, msgEthTx.Fee().Int64())
 
 	minGasPrices := ctx.MinGasPrices()
+	minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
 
-	// check that fee provided is greater than the minimum
-	// NOTE: we only check if aphotons are present in min gas prices. It is up to the
+	// check that fee provided is greater than the minimum defined by the validator node
+	// NOTE: we only check if the evm denom tokens are present in min gas prices. It is up to the
 	// sender if they want to send additional fees in other denominations.
 	var hasEnoughFees bool
-	if fee.Amount.GTE(minGasPrices.AmountOf(evmDenom)) {
+	if fee.Amount.GTE(minFees) {
 		hasEnoughFees = true
 	}
 
-	// reject transaction if minimum gas price is positive and the transaction does not
+	// reject transaction if minimum gas price is not zero and the transaction does not
 	// meet the minimum fee
 	if !ctx.MinGasPrices().IsZero() && !hasEnoughFees {
 		return ctx, sdkerrors.Wrap(
@@ -141,7 +142,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
+	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return ctx, err
 	}

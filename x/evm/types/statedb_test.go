@@ -15,7 +15,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -43,7 +43,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
-	privkey, err := crypto.GenerateKey()
+	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	suite.address = ethcmn.BytesToAddress(privkey.PubKey().Address().Bytes())
@@ -113,8 +113,8 @@ func (suite *StateDBTestSuite) TestBloomFilter() {
 			}
 		} else {
 			// get logs bloom from the log
-			bloomInt := ethtypes.LogsBloom(logs)
-			bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+			bloomBytes := ethtypes.LogsBloom(logs)
+			bloomFilter := ethtypes.BytesToBloom(bloomBytes)
 			suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress), tc.name)
 			suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))), tc.name)
 		}
@@ -377,7 +377,7 @@ func (suite *StateDBTestSuite) TestStateDB_CreateAccount() {
 }
 
 func (suite *StateDBTestSuite) TestStateDB_ClearStateObj() {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -390,7 +390,7 @@ func (suite *StateDBTestSuite) TestStateDB_ClearStateObj() {
 }
 
 func (suite *StateDBTestSuite) TestStateDB_Reset() {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -497,7 +497,7 @@ func (suite *StateDBTestSuite) TestSuiteDB_Suicide() {
 			suite.Require().True(suite.stateDB.HasSuicided(suite.address), tc.name)
 		} else {
 			//Suicide only works for an account with non-zero balance/nonce
-			priv, err := crypto.GenerateKey()
+			priv, err := ethsecp256k1.GenerateKey()
 			suite.Require().NoError(err)
 
 			addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -694,4 +694,22 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 		})
 		storage = types.Storage{}
 	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
+	addr := ethcmn.Address([20]byte{77})
+	hash := ethcmn.Hash([32]byte{99})
+
+	suite.Require().False(suite.stateDB.AddressInAccessList(addr))
+
+	suite.stateDB.AddAddressToAccessList(addr)
+	suite.Require().True(suite.stateDB.AddressInAccessList(addr))
+	addrIn, slotIn := suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().False(slotIn)
+
+	suite.stateDB.AddSlotToAccessList(addr, hash)
+	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
+	suite.Require().True(addrIn)
+	suite.Require().True(slotIn)
 }
