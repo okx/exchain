@@ -2,7 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/okex/okexchain/x/params"
 	token "github.com/okex/okexchain/x/token/types"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/okex/okexchain/x/params/types"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 )
 
@@ -47,6 +47,7 @@ func SimulateParamChangeProposalContent(paramChangePool []simulation.ParamChange
 			simulation.RandStringOfLength(r, 140),  // title
 			simulation.RandStringOfLength(r, 5000), // description
 			paramChanges,                           // set of changes
+			100,
 		)
 	}
 }
