@@ -2,7 +2,6 @@ package params
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"math"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/okex/okexchain/x/params/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
 )
 

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	params "github.com/cosmos/cosmos-sdk/x/params/subspace"
+	"github.com/okex/okexchain/x/params/subspace"
 )
 
 // Parameter store key
@@ -21,9 +21,9 @@ func validateParams(value interface{}) error {
 }
 
 // Key declaration for parameters
-func ParamKeyTable() params.KeyTable {
-	return params.NewKeyTable(
-		params.ParamSetPairs{
+func ParamKeyTable() subspace.KeyTable {
+	return subspace.NewKeyTable(
+		subspace.ParamSetPairs{
 			{ParamStoreKeyDepositParams, DepositParams{}, validateParams},
 			{ParamStoreKeyVotingParams, VotingParams{}, validateParams},
 			{ParamStoreKeyTallyParams, TallyParams{}, validateParams},
