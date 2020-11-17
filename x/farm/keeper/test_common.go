@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/okexchain/x/gov"
 	swap "github.com/okex/okexchain/x/ammswap"
+	"github.com/okex/okexchain/x/gov"
+	govkeeper "github.com/okex/okexchain/x/gov/keeper"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
-	govkeeper "github.com/okex/okexchain/x/gov/keeper"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -149,7 +149,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 		types.YieldFarmingAccount: nil,
 		types.MintFarmingAccount:  nil,
 		swap.ModuleName:           {supply.Burner, supply.Minter},
-		govtypes.ModuleName: nil,
+		govtypes.ModuleName:       nil,
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bk, maccPerms)
 	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
@@ -277,12 +277,12 @@ func initPoolsAndLockInfos(
 	pools = types.FarmPools{
 		types.NewFarmPool(
 			Addrs[2], pool1Name, sdk.NewDecCoinFromDec(pool1LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.SysCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(100)},
+			sdk.NewDecCoin(stakingtypes.DefaultParams().BondDenom, sdk.NewInt(100)),
 			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 		types.NewFarmPool(
 			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.SysCoin{Denom: stakingtypes.DefaultParams().BondDenom, Amount: sdk.NewDec(200)},
+			sdk.NewDecCoin(stakingtypes.DefaultParams().BondDenom, sdk.NewInt(200)),
 			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 	}
