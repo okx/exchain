@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 )
 
 const (
@@ -22,10 +23,12 @@ const (
 	Bech32PrefixConsPub = EthBech32Prefix + sdk.PrefixValidator + sdk.PrefixConsensus + sdk.PrefixPublic
 
 	// Bip44CoinType satisfies EIP84. See https://github.com/ethereum/EIPs/issues/84 for more info.
-	Bip44CoinType = 996
+	Bip44CoinType = 60
+)
 
+var (
 	// BIP44HDPath is the BIP44 HD path used on Ethereum.
-	BIP44HDPath = "44'/996'/0'/0/0"
+	BIP44HDPath = ethaccounts.DefaultBaseDerivationPath.String()
 )
 
 // SetBech32Prefixes sets the global prefixes to be used when serializing addresses and public keys to Bech32 strings.

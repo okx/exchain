@@ -12,7 +12,7 @@ import (
 
 	"github.com/okex/okexchain/app"
 	ante "github.com/okex/okexchain/app/ante"
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	okexchain "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
@@ -60,7 +60,7 @@ func newTestStdFee() auth.StdFee {
 
 // GenerateAddress generates an Ethereum address.
 func newTestAddrKey() (sdk.AccAddress, tmcrypto.PrivKey) {
-	privkey, _ := crypto.GenerateKey()
+	privkey, _ := ethsecp256k1.GenerateKey()
 	addr := ethcrypto.PubkeyToAddress(privkey.ToECDSA().PublicKey)
 
 	return sdk.AccAddress(addr.Bytes()), privkey
@@ -95,7 +95,7 @@ func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.Pri
 		return nil, err
 	}
 
-	privkey, ok := priv.(crypto.PrivKeySecp256k1)
+	privkey, ok := priv.(ethsecp256k1.PrivKey)
 	if !ok {
 		return nil, fmt.Errorf("invalid private key type: %T", priv)
 	}

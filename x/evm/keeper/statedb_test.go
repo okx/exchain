@@ -10,7 +10,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 )
@@ -62,7 +62,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		} else {
 			// get logs bloom from the log
 			bloomInt := ethtypes.LogsBloom(logs)
-			bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+			bloomFilter := ethtypes.BytesToBloom(bloomInt)
 			suite.Require().True(ethtypes.BloomLookup(bloomFilter, contractAddress), tc.name)
 			suite.Require().False(ethtypes.BloomLookup(bloomFilter, ethcmn.BigToAddress(big.NewInt(2))), tc.name)
 		}
@@ -328,7 +328,7 @@ func (suite *KeeperTestSuite) TestStateDB_CreateAccount() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_ClearStateObj() {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -341,7 +341,7 @@ func (suite *KeeperTestSuite) TestStateDB_ClearStateObj() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_Reset() {
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
@@ -444,7 +444,7 @@ func (suite *KeeperTestSuite) TestSuiteDB_Suicide() {
 			suite.Require().True(suite.app.EvmKeeper.HasSuicided(suite.ctx, suite.address), tc.name)
 		} else {
 			//Suicide only works for an account with non-zero balance/nonce
-			priv, err := crypto.GenerateKey()
+			priv, err := ethsecp256k1.GenerateKey()
 			suite.Require().NoError(err)
 
 			addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)

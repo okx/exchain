@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params"
 
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -98,7 +98,7 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bo
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
-		return ethtypes.Bloom{}, true // TODO: sometimes bloom cannot be found, fix this
+		return ethtypes.Bloom{}, false
 	}
 
 	bz := store.Get(types.BloomKey(height))

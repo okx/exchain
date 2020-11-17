@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// AttoPhoton defines the default coin denomination used in OKExChain in:
+	// NativeToken defines the default coin denomination used in OKExChain in:
 	//
 	// - Staking parameters: denomination used as stake in the dPoS chain
 	// - Mint parameters: denomination minted due to fee distribution rewards

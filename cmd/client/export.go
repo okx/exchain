@@ -15,8 +15,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/okexchain/app/crypto/hd"
 )
 
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
@@ -34,7 +34,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				viper.GetString(flags.FlagKeyringBackend),
 				viper.GetString(flags.FlagHome),
 				inBuf,
-				crypto.EthSecp256k1Options()...,
+				hd.EthSecp256k1Options()...,
 			)
 			if err != nil {
 				return err
@@ -63,8 +63,8 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 				return err
 			}
 
-			// Converts key to OKExChain secp256 implementation
-			emintKey, ok := privKey.(crypto.PrivKeySecp256k1)
+			// Converts key to Ethermint secp256 implementation
+			emintKey, ok := privKey.(ethsecp256k1.PrivKey)
 			if !ok {
 				return fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
 			}

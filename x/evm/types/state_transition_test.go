@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -22,7 +22,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	_ = acc.SetCoins(sdk.NewCoins(balance))
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-	priv, err := crypto.GenerateKey()
+	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 	recipient := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
 
@@ -40,7 +40,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Price:        big.NewInt(10),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       sdk.NewDec(50).BigInt(),
+				Amount:       big.NewInt(50),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -58,7 +58,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Price:        big.NewInt(10),
 				GasLimit:     11,
 				Recipient:    nil,
-				Amount:       sdk.NewDec(10).BigInt(),
+				Amount:       big.NewInt(10),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -76,7 +76,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Price:        big.NewInt(10),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       sdk.NewDec(10).BigInt(),
+				Amount:       big.NewInt(10),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -94,7 +94,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Price:        big.NewInt(10),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       sdk.NewDec(500000).BigInt(),
+				Amount:       big.NewInt(500000),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -108,7 +108,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			"nil gas price",
 			func() {
 				invalidGas := sdk.DecCoins{
-					{Denom: ethermint.AttoPhoton},
+					{Denom: ethermint.NativeToken},
 				}
 				suite.ctx = suite.ctx.WithMinGasPrices(invalidGas)
 			},
@@ -117,7 +117,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Price:        big.NewInt(10),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       sdk.NewDec(10).BigInt(),
+				Amount:       big.NewInt(10),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -138,8 +138,8 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			suite.Require().NoError(err, tc.name)
 			fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
 			toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
-			suite.Require().Equal(fromBalance, sdk.NewDec(4950).BigInt(), tc.name)
-			suite.Require().Equal(toBalance, sdk.NewDec(50).BigInt(), tc.name)
+			suite.Require().Equal(fromBalance, big.NewInt(4950), tc.name)
+			suite.Require().Equal(toBalance, big.NewInt(50), tc.name)
 		} else {
 			suite.Require().Error(err, tc.name)
 		}

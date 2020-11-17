@@ -13,13 +13,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
-	"github.com/okex/okexchain/app/crypto"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/types"
 )
 
 func init() {
-	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 }
 
 type AccountTestSuite struct {
@@ -51,10 +51,10 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 		initialCoins sdk.Coins
 		amount       sdk.Int
 	}{
-		{"positive diff", types.AttoPhoton, sdk.Coins{}, sdk.OneInt()},
-		{"zero diff, same coin", types.AttoPhoton, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"positive diff", types.NativeToken, sdk.Coins{}, sdk.OneInt()},
+		{"zero diff, same coin", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
 		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"negative diff", types.AttoPhoton, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
+		{"negative diff", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
 	}
 
 	for _, tc := range testCases {
@@ -62,7 +62,7 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 			suite.SetupTest() // reset values
 			suite.account.SetCoins(tc.initialCoins)
 
-			suite.account.SetBalance(tc.denom, sdk.NewDecFromInt(tc.amount))
+			suite.account.SetBalance(tc.denom, tc.amount)
 			suite.Require().Equal(tc.amount, suite.account.Balance(tc.denom))
 		})
 	}
@@ -84,7 +84,7 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 }
 
 func (suite *AccountTestSuite) TestEthermintPubKeyJSON() {
-	privkey, err := crypto.GenerateKey()
+	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 	bz := privkey.PubKey().Bytes()
 

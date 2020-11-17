@@ -24,9 +24,9 @@ import (
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/app/codec"
-	"github.com/okex/okexchain/app/crypto"
 	"github.com/okex/okexchain/app/rpc"
 	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 )
 
 var (
@@ -37,8 +37,8 @@ func main() {
 	// Configure cobra to sort commands
 	cobra.EnableCommandSorting = false
 
-	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 
 	keys.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc
@@ -67,7 +67,7 @@ func main() {
 		queryCmd(cdc),
 		txCmd(cdc),
 		client.ValidateChainID(
-			rpc.EmintServeCmd(cdc),
+			rpc.ServeCmd(cdc),
 		),
 		flags.LineBreak,
 		client.KeyCommands(),

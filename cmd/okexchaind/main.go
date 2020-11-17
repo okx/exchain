@@ -29,9 +29,9 @@ import (
 
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/codec"
-	"github.com/okex/okexchain/app/crypto"
 	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/cmd/client"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -43,8 +43,8 @@ func main() {
 
 	cdc := codec.MakeCodec(app.ModuleBasics)
 
-	tmamino.RegisterKeyType(crypto.PubKeySecp256k1{}, crypto.PubKeyAminoName)
-	tmamino.RegisterKeyType(crypto.PrivKeySecp256k1{}, crypto.PrivKeyAminoName)
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 
 	keys.CryptoCdc = cdc
 	genutil.ModuleCdc = cdc
