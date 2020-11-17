@@ -5,9 +5,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params/subspace"
-	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/params"
+	"github.com/okex/okexchain/x/common"
 )
 
 var (
@@ -39,7 +38,7 @@ type Params struct {
 }
 
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
-func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
+func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
 		{Key: keyDexListFee, Value: &p.ListFee},
 		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee},
