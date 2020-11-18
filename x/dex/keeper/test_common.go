@@ -168,6 +168,8 @@ func (keeper mockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.
 
 // GetBuiltInTokenPair returns built in token pair for test
 func GetBuiltInTokenPair() *types.TokenPair {
+
+	common.InitConfig()
 	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)
 	if err != nil {
 		panic(err)

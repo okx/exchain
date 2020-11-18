@@ -134,7 +134,7 @@ func TestQueryBuyAmount(t *testing.T) {
 	require.Nil(t, err)
 	var result string
 	keeper.cdc.MustUnmarshalJSON(resultBytes, &result)
-	expectedToken := "49.92488733"
+	expectedToken := "49.924887330996494742"
 	require.Equal(t, expectedToken, result)
 
 	baseTokenAmount2 := sdk.NewDecCoinFromDec(types.TestBasePooledToken2, sdk.NewDec(100))
@@ -148,6 +148,6 @@ func TestQueryBuyAmount(t *testing.T) {
 	resultBytes, err = querier(ctx, path, abci.RequestQuery{Data: requestBytes})
 	require.Nil(t, err)
 	keeper.cdc.MustUnmarshalJSON(resultBytes, &result)
-	expectedToken = "33.23323333"
+	expectedToken = "33.233233333634235135"
 	require.Equal(t, expectedToken, result)
 }
