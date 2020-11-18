@@ -35,7 +35,7 @@ func unTestSetBech32Prefixes(t *testing.T) {
 	require.Equal(t, sdk.GetConfig().GetBech32ConsensusPubPrefix(), config.GetBech32ConsensusPubPrefix())
 }
 
-func TestSetCoinType(t *testing.T) {
+func unTestSetCoinType(t *testing.T) {
 	config := sdk.GetConfig()
 	require.Equal(t, sdk.CoinType, int(config.GetCoinType()))
 	require.Equal(t, sdk.FullFundraiserPath, config.GetFullFundraiserPath())
