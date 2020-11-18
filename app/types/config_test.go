@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func unTestSetBech32Prefixes(t *testing.T) {
+func TestSetBech32Prefixes(t *testing.T) {
 	config := sdk.GetConfig()
 
 	require.Equal(t, sdk.Bech32PrefixAccAddr, config.GetBech32AccountAddrPrefix())
@@ -35,7 +35,7 @@ func unTestSetBech32Prefixes(t *testing.T) {
 	require.Equal(t, sdk.GetConfig().GetBech32ConsensusPubPrefix(), config.GetBech32ConsensusPubPrefix())
 }
 
-func unTestSetCoinType(t *testing.T) {
+func TestSetCoinType(t *testing.T) {
 	config := sdk.GetConfig()
 	require.Equal(t, sdk.CoinType, int(config.GetCoinType()))
 	require.Equal(t, sdk.FullFundraiserPath, config.GetFullFundraiserPath())

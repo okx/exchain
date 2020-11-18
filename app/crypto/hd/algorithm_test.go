@@ -66,7 +66,7 @@ func TestEthermintKeygenFunc(t *testing.T) {
 	}
 }
 
-func unTestKeyring(t *testing.T) {
+func TestKeyring(t *testing.T) {
 	dir, cleanup := tests.NewTestCaseDir(t)
 	mockIn := strings.NewReader("")
 	t.Cleanup(cleanup)
