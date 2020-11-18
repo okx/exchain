@@ -65,7 +65,6 @@ jobs:
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
-#            included_packages=("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm")
             included_packages=("./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
@@ -94,3 +93,4 @@ jobs:
             echo "--> upload codecov:"
             bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
+#            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm")
