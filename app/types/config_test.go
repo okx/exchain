@@ -9,7 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func TestSetBech32Prefixes(t *testing.T) {
+func unTestSetBech32Prefixes(t *testing.T) {
 	config := sdk.GetConfig()
 
 	require.Equal(t, sdk.Bech32PrefixAccAddr, config.GetBech32AccountAddrPrefix())
