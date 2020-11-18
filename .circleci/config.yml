@@ -65,7 +65,7 @@ jobs:
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
-            included_packages=("./app" "./x/common" "./x/dex" "./x/backend" "./x/distribution" "./x/gov" "./x/order" "./x/params" "./x/staking" "./x/token" "./x/ammswap" "./x/farm")
+            included_packages=("./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
@@ -93,39 +93,4 @@ jobs:
             echo "--> upload codecov:"
             bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
-
-#            for pkg in $(go list ./... | grep -v -E "${excluded_packages_expr}" | circleci tests split); do
-#              id=$(echo "$pkg" | sed 's|[/.]|_|g')
-#              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -covermode=atomic -tags='ledger test_ledger_mock' "$pkg" | tee "/tmp/logs/$id-$RANDOM.log"
-#            done
-#      - persist_to_workspace:
-#          root: /tmp/workspace
-#          paths:
-#            - "profiles/*"
-#      - store_artifacts:
-#          path: /tmp/logs
-#      - attach_workspace:
-#          at: /tmp/workspace
-#      - run:
-#          name: gather coverage
-#          command: |
-#            set -ex
-#
-#            echo "--> Concatenating profiles:"
-#            ls /tmp/workspace/profiles/
-#            echo "mode: atomic" > coverage.txt
-#            for prof in $(ls /tmp/workspace/profiles/); do
-#              tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
-#            done
-#      - run:
-#          name: filter out DONTCOVER
-#          command: |
-#            excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
-#            for filename in ${excludelist}; do
-#              filename=$(echo $filename | sed 's/^./github.com\/okex\/okexchain/g')
-#              echo "Excluding ${filename} from coverage report..."
-#              sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
-#            done
-#      - run:
-#          name: upload codecov
-#          command: bash <(curl -s https://codecov.io/bash) -f coverage.txt
+#            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm")
