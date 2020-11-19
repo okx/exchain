@@ -3,6 +3,8 @@ package types
 import (
 	"testing"
 
+	"github.com/okex/okexchain/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +24,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.SysCoin{},
+			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
@@ -36,7 +38,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.SysCoin{},
+			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
@@ -50,7 +52,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.SysCoin{},
+			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
