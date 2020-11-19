@@ -649,7 +649,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	csdb.journal.append(suicideChange{
 		account:     &addr,
 		prev:        so.suicided,
-		prevBalance: sdk.NewIntFromBigInt(so.Balance()),
+		prevBalance: sdk.NewDecFromBigInt(so.Balance()),
 	})
 
 	so.markSuicided()
@@ -733,7 +733,7 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
 		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewIntFromBigInt(prevobj.Balance()))
+		newobj.setBalance(evmDenom, sdk.NewDecFromBigInt(prevobj.Balance()))
 	}
 }
 

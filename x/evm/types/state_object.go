@@ -196,19 +196,19 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 
 // SetBalance sets the state object's balance.
 func (so *stateObject) SetBalance(amount *big.Int) {
-	amt := sdk.NewIntFromBigInt(amount)
+	amt := sdk.NewDecFromBigInt(amount)
 
 	evmDenom := so.stateDB.GetParams().EvmDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    sdk.NewIntFromBigInt(so.account.GetCoins().AmountOf(evmDenom).BigInt()),
+		prev:    so.account.GetCoins().AmountOf(evmDenom),
 	})
 
 	so.setBalance(evmDenom, amt)
 }
 
-func (so *stateObject) setBalance(denom string, amount sdk.Int) {
-	so.account.SetBalance(denom, sdk.Dec{amount.BigInt()})
+func (so *stateObject) setBalance(denom string, amount sdk.Dec) {
+	so.account.SetBalance(denom, amount)
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
