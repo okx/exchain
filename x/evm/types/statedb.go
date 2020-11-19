@@ -544,7 +544,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.Dec{so.Balance()}}
+	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigInt(so.Balance())}
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
