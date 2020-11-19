@@ -46,10 +46,3 @@ func TestParamsValidate(t *testing.T) {
 func TestParamsValidatePriv(t *testing.T) {
 	require.Error(t, validateEVMDenom(false))
 }
-
-func TestParams_String(t *testing.T) {
-	defaultParam := Params{
-		EvmDenom: "tokt",
-	}
-	require.Equal(t, defaultParam.String(), DefaultParams().String())
-}
