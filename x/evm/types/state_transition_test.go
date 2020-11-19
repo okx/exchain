@@ -37,10 +37,10 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			func() {},
 			types.StateTransition{
 				AccountNonce: 123,
-				Price:        big.NewInt(10),
+				Price:        sdk.NewDec(10).BigInt(),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       big.NewInt(50),
+				Amount:       sdk.NewDec(50).BigInt(),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -55,10 +55,10 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			func() {},
 			types.StateTransition{
 				AccountNonce: 123,
-				Price:        big.NewInt(10),
+				Price:        sdk.NewDec(10).BigInt(),
 				GasLimit:     11,
 				Recipient:    nil,
-				Amount:       big.NewInt(10),
+				Amount:       sdk.NewDec(10).BigInt(),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -73,10 +73,10 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			func() {},
 			types.StateTransition{
 				AccountNonce: 123,
-				Price:        big.NewInt(10),
+				Price:        sdk.NewDec(10).BigInt(),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       big.NewInt(10),
+				Amount:       sdk.NewDec(10).BigInt(),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -91,10 +91,10 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			func() {},
 			types.StateTransition{
 				AccountNonce: 123,
-				Price:        big.NewInt(10),
+				Price:        sdk.NewDec(10).BigInt(),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       big.NewInt(500000),
+				Amount:       sdk.NewDec(500000).BigInt(),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -114,10 +114,10 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			},
 			types.StateTransition{
 				AccountNonce: 123,
-				Price:        big.NewInt(10),
+				Price:        sdk.NewDec(10).BigInt(),
 				GasLimit:     11,
 				Recipient:    &recipient,
-				Amount:       big.NewInt(10),
+				Amount:       sdk.NewDec(10).BigInt(),
 				Payload:      []byte("data"),
 				ChainID:      big.NewInt(1),
 				Csdb:         suite.stateDB,
@@ -138,8 +138,8 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			suite.Require().NoError(err, tc.name)
 			fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
 			toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
-			suite.Require().Equal(fromBalance, big.NewInt(4950), tc.name)
-			suite.Require().Equal(toBalance, big.NewInt(50), tc.name)
+			suite.Require().Equal(fromBalance, sdk.NewDec(4950).BigInt(), tc.name)
+			suite.Require().Equal(toBalance, sdk.NewDec(50).BigInt(), tc.name)
 		} else {
 			suite.Require().Error(err, tc.name)
 		}
