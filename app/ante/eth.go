@@ -335,7 +335,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		evmDenom := egcd.evmKeeper.GetParams(ctx).EvmDenom
 
 		feeAmt := sdk.NewCoins(
-			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost,18)),
+			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, 18)), // int2dec
 		)
 
 		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
