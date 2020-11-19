@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/app/rpc"
 
 	"github.com/spf13/cobra"
 
@@ -65,9 +66,9 @@ func main() {
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		//client.ValidateChainID(
-		//	rpc.ServeCmd(cdc),
-		//),
+		client.ValidateChainID(
+			rpc.ServeCmd(cdc),
+		),
 		flags.LineBreak,
 		client.KeyCommands(),
 		flags.LineBreak,

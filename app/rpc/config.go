@@ -1,9 +1,12 @@
 package rpc
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/spf13/viper"
 	"os"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -28,39 +31,37 @@ const (
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func RegisterRoutes(rs *lcd.RestServer) {
-	// NOTE: ONLY SUPPORT okexchaind
 	server := rpc.NewServer()
 
-	//accountName := viper.GetString(flagUnlockKey)
-	//accountNames := strings.Split(accountName, ",")
-	//
-	//var privkeys []ethsecp256k1.PrivKey
-	//if len(accountName) > 0 {
-	//	var err error
-	//	inBuf := bufio.NewReader(os.Stdin)
-	//
-	//	keyringBackend := viper.GetString(flags.FlagKeyringBackend)
-	//	passphrase := ""
-	//	switch keyringBackend {
-	//	case keys.BackendOS:
-	//		break
-	//	case keys.BackendFile:
-	//		passphrase, err = input.GetPassword(
-	//			"Enter password to unlock key for RPC API: ",
-	//			inBuf)
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//	}
-	//
-	//	privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}
+	accountName := viper.GetString(flagUnlockKey)
+	accountNames := strings.Split(accountName, ",")
 
-	//apis := GetAPIs(rs.CliCtx, privkeys...)
-	apis := GetAPIs(rs.CliCtx)
+	var privkeys []ethsecp256k1.PrivKey
+	if len(accountName) > 0 {
+		var err error
+		inBuf := bufio.NewReader(os.Stdin)
+
+		keyringBackend := viper.GetString(flags.FlagKeyringBackend)
+		passphrase := ""
+		switch keyringBackend {
+		case keys.BackendOS:
+			break
+		case keys.BackendFile:
+			passphrase, err = input.GetPassword(
+				"Enter password to unlock key for RPC API: ",
+				inBuf)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	apis := GetAPIs(rs.CliCtx, privkeys...)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
