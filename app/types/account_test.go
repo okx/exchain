@@ -62,8 +62,8 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 			suite.SetupTest() // reset values
 			suite.account.SetCoins(tc.initialCoins)
 
-			suite.account.SetBalance(tc.denom, tc.amount.ToDec())
-			suite.Require().Equal(tc.amount.ToDec(), suite.account.Balance(tc.denom))
+			suite.account.SetBalance(tc.denom, sdk.NewDecFromInt(tc.amount))
+			suite.Require().Equal(sdk.NewDecFromInt(tc.amount), suite.account.Balance(tc.denom))
 		})
 	}
 
