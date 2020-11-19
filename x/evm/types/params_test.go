@@ -48,5 +48,5 @@ func TestParamsValidatePriv(t *testing.T) {
 }
 
 func TestParams_String(t *testing.T) {
-	require.Equal(t, "evm_denom: aphoton\n", DefaultParams().String())
+	require.Equal(t, "evm_denom: tokt\n", DefaultParams().String())
 }
