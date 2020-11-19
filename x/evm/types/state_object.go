@@ -164,7 +164,7 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // AddBalance adds an amount to a state object's balance. It is used to add
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
-	amt := sdk.Dec{amount}
+	amt := sdk.NewDecFromBigInt(amount) // int2dec
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 
@@ -184,11 +184,10 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // SubBalance removes an amount from the stateObject's balance. It is used to
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
-	amt := sdk.Dec{amount}
+	amt := sdk.NewDecFromBigInt(amount) // int2dec
 	if amt.IsZero() {
 		return
 	}
-
 	evmDenom := so.stateDB.GetParams().EvmDenom
 	newBalance := so.account.GetCoins().AmountOf(evmDenom).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
@@ -196,19 +195,19 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 
 // SetBalance sets the state object's balance.
 func (so *stateObject) SetBalance(amount *big.Int) {
-	amt := sdk.NewIntFromBigInt(amount)
+	amt := sdk.NewDecFromBigInt(amount) // int2dec
 
 	evmDenom := so.stateDB.GetParams().EvmDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    sdk.NewIntFromBigInt(so.account.GetCoins().AmountOf(evmDenom).BigInt()),
+		prev:    so.account.GetCoins().AmountOf(evmDenom),  // int2dec
 	})
 
 	so.setBalance(evmDenom, amt)
 }
 
-func (so *stateObject) setBalance(denom string, amount sdk.Int) {
-	so.account.SetBalance(denom, sdk.Dec{amount.BigInt()})
+func (so *stateObject) setBalance(denom string, amount sdk.Dec) {
+	so.account.SetBalance(denom, amount)
 }
 
 // SetNonce sets the state object's nonce (i.e sequence number of the account).
