@@ -1,18 +1,15 @@
 package rpc
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
-
 	"github.com/spf13/viper"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	cmserver "github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
@@ -31,36 +28,39 @@ const (
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func RegisterRoutes(rs *lcd.RestServer) {
+	// NOTE: ONLY SUPPORT okexchaind
 	server := rpc.NewServer()
-	accountName := viper.GetString(flagUnlockKey)
-	accountNames := strings.Split(accountName, ",")
 
-	var privkeys []ethsecp256k1.PrivKey
-	if len(accountName) > 0 {
-		var err error
-		inBuf := bufio.NewReader(os.Stdin)
+	//accountName := viper.GetString(flagUnlockKey)
+	//accountNames := strings.Split(accountName, ",")
+	//
+	//var privkeys []ethsecp256k1.PrivKey
+	//if len(accountName) > 0 {
+	//	var err error
+	//	inBuf := bufio.NewReader(os.Stdin)
+	//
+	//	keyringBackend := viper.GetString(flags.FlagKeyringBackend)
+	//	passphrase := ""
+	//	switch keyringBackend {
+	//	case keys.BackendOS:
+	//		break
+	//	case keys.BackendFile:
+	//		passphrase, err = input.GetPassword(
+	//			"Enter password to unlock key for RPC API: ",
+	//			inBuf)
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//	}
+	//
+	//	privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}
 
-		keyringBackend := viper.GetString(flags.FlagKeyringBackend)
-		passphrase := ""
-		switch keyringBackend {
-		case keys.BackendOS:
-			break
-		case keys.BackendFile:
-			passphrase, err = input.GetPassword(
-				"Enter password to unlock key for RPC API: ",
-				inBuf)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	apis := GetAPIs(rs.CliCtx, false, privkeys...)
+	//apis := GetAPIs(rs.CliCtx, privkeys...)
+	apis := GetAPIs(rs.CliCtx)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
@@ -79,7 +79,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// start websockets server
-	websocketAddr := viper.GetString(flagWebsocket)
+	websocketAddr := viper.GetString(cmserver.FlagWebsocket)
 	ws := websockets.NewServer(rs.CliCtx, websocketAddr)
 	ws.Start()
 }

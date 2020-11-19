@@ -26,7 +26,7 @@ const (
 )
 
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
-func GetAPIs(clientCtx context.CLIContext, startWithNode bool, keys ...ethsecp256k1.PrivKey) []rpc.API {
+func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
 	backend := backend.New(clientCtx)
 	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
@@ -47,7 +47,7 @@ func GetAPIs(clientCtx context.CLIContext, startWithNode bool, keys ...ethsecp25
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   filters.NewAPI(clientCtx, backend, startWithNode),
+			Service:   filters.NewAPI(clientCtx, backend),
 			Public:    true,
 		},
 		{

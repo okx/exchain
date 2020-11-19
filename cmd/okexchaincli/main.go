@@ -22,11 +22,10 @@ import (
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 
 	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/app/codec"
-	"github.com/okex/okexchain/app/rpc"
-	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 var (
@@ -66,9 +65,9 @@ func main() {
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		client.ValidateChainID(
-			rpc.ServeCmd(cdc),
-		),
+		//client.ValidateChainID(
+		//	rpc.ServeCmd(cdc),
+		//),
 		flags.LineBreak,
 		client.KeyCommands(),
 		flags.LineBreak,
