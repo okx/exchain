@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/okex/okexchain/app/rpc"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -29,9 +30,9 @@ import (
 
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/cmd/client"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -64,6 +65,7 @@ func main() {
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 	// CLI commands to initialize the chain
+	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.AddCommand(
 		client.ValidateChainID(
 			genutilcli.InitCmd(ctx, cdc, app.ModuleBasics, app.DefaultNodeHome),
@@ -79,6 +81,9 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
+		client.ValidateChainID(
+			rpc.ServeCmd(cdc),
+		),
 	)
 
 	// Tendermint node base commands
