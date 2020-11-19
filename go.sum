@@ -493,6 +493,10 @@ github.com/okex/cosmos-sdk v0.39.1-okexchain1 h1:ZxisJuqM5/v2EMUg+Zraxu1AQTH8+NK
 github.com/okex/cosmos-sdk v0.39.1-okexchain1/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
 github.com/okex/cosmos-sdk v0.39.1-okexchain2 h1:vmiewXWKkKiiAxBfyI0X3/D/GXnLzlulDI1ScuMubeM=
 github.com/okex/cosmos-sdk v0.39.1-okexchain2/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
+github.com/okex/cosmos-sdk v0.39.1-okexchain2.0.20201119095514-e9e86892aa17 h1:BbkocsRQp3nfaaraJPZwRBJRiMv41M87Dlz8eWRIk1U=
+github.com/okex/cosmos-sdk v0.39.1-okexchain2.0.20201119095514-e9e86892aa17/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
+github.com/okex/cosmos-sdk v0.39.2-0.20201119102432-d5cab8370283 h1:lxbSsC7kuzfix9/Kz0lvVCnSYExKdQnEncqmLzY99yQ=
+github.com/okex/cosmos-sdk v0.39.2-0.20201119102432-d5cab8370283/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
 github.com/okex/iavl v0.14.0-okexchain1 h1:QDs97pIDXirLttMAQddXLxBMnFauyH1b6n5KGRXOOho=
 github.com/okex/iavl v0.14.0-okexchain1/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/tendermint v0.33.7-okexchain1 h1:OhBxS4ql1iZm47TSaClz/l1F4zR1j6lARH5eyyQpaJo=

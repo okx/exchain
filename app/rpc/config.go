@@ -16,11 +16,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/websockets"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
@@ -60,7 +60,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetAPIs(rs.CliCtx, privkeys...)
+	apis := GetAPIs(rs.CliCtx, false, privkeys...)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
