@@ -240,7 +240,7 @@ func TestQueryAccount(t *testing.T) {
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
 			Symbol:    common.NativeToken,
-			Available: "1000000000.00000000",
+			Available: "1000000000.000000000000000000",
 			Locked:    "0",
 		},
 	}
@@ -342,7 +342,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
 			Symbol:    common.NativeToken,
-			Available: "1000000000.00000000",
+			Available: "1000000000.000000000000000000",
 			Locked:    "0",
 		},
 		types.CoinInfo{

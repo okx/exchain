@@ -1,11 +1,12 @@
 package token
 
 import (
+	"fmt"
+	"github.com/tendermint/tendermint/crypto"
 	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/tendermint/tendermint/crypto"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -747,13 +748,6 @@ func TestCreateMsgMultiSend(t *testing.T) {
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
-		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
-			return sdk.Result{}
-
-		},
-		func(ctx sdk.Context, msgs []sdk.Msg) bool {
-			return false
-		},
 	))
 
 	ctx := app.NewContext(true, abci.Header{})
@@ -891,13 +885,6 @@ func getMockAppToHandleFee(t *testing.T, initBalance int64, numAcc int) (app *Mo
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
-		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
-			return sdk.Result{}
-
-		},
-		func(ctx sdk.Context, msgs []sdk.Msg) bool {
-			return false
-		},
 	))
 
 	return app, testAccounts
@@ -941,13 +928,13 @@ func TestTxFailedFeeTable(t *testing.T) {
 		msg     auth.StdTx
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"fail to issue : 0.01", "9.99000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
-		{"fail to mint  : 0.01", "9.98000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
-		{"fail to burn  : 0.01", "9.97000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
-		{"fail to modify: 0.01", "9.96000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
-		{"fail to send  : 0.01", "9.95000000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
-		{"fail to multi : 0.01", "9.94000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
-		{"fail to chown : 0.01", "9.93000000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
+		{"fail to issue : 0.01", "9.990000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
+		{"fail to mint  : 0.01", "9.980000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
+		{"fail to burn  : 0.01", "9.970000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
+		{"fail to modify: 0.01", "9.960000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
+		{"fail to send  : 0.01", "9.950000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
+		{"fail to multi : 0.01", "9.940000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
+		{"fail to chown : 0.01", "9.930000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
 	}
 	for i, tt := range failTestSets {
 		t.Run(tt.name, func(t *testing.T) {
@@ -996,13 +983,13 @@ func TestTxSuccessFeeTable(t *testing.T) {
 		account     *testAccount
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"success to issue : 2500+0.01", "27499.99000000", successfulIssueMsg, testAccounts[0]},
-		{"success to mint  : 10+0.01", "27489.98000000", successfulMintMsg, testAccounts[0]},
-		{"success to burn  : 10+0.01", "27479.97000000", successfulBurnMsg, testAccounts[0]},
-		{"success to send  : 0.01", "27479.96000000", successfulSendMsg, testAccounts[0]},
-		{"success to multi : 10(amount of transfer) +0.01", "27469.95000000", successfulMultiSendMsg, testAccounts[0]},
-		{"success to modify: 0.01", "27469.94000000", successfulEditMsg, testAccounts[0]},
-		{"success to chown : 10+0.01", "27459.93000000", successfulChownMsg, testAccounts[0]},
+		{"success to issue : 2500+0.01", "27499.990000000000000000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 10+0.01", "27489.980000000000000000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.01", "27479.970000000000000000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.01", "27479.960000000000000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10(amount of transfer) +0.01", "27469.950000000000000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify: 0.01", "27469.940000000000000000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.01", "27459.930000000000000000", successfulChownMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.description, func(t *testing.T) {
@@ -1046,10 +1033,10 @@ func TestBlockedAddrSend(t *testing.T) {
 		account     *testAccount
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"success to send  : 50+0.01", "29949.99000000", successfulSendMsg, testAccounts[0]},
-		{"fail to send  : 0.01", "29949.98000000", failedSendMsg, testAccounts[0]},
-		{"success to multi-send  : 100+0.01", "29849.97000000", successfulMultiSendMsg, testAccounts[0]},
-		{"fail to multi-send  : 0.01", "29849.96000000", failedMultiSendMsg, testAccounts[0]},
+		{"success to send  : 50+0.01", "29949.990000000000000000", successfulSendMsg, testAccounts[0]},
+		{"fail to send  : 0.01", "29949.980000000000000000", failedSendMsg, testAccounts[0]},
+		{"success to multi-send  : 100+0.01", "29849.970000000000000000", successfulMultiSendMsg, testAccounts[0]},
+		{"fail to multi-send  : 0.01", "29849.960000000000000000", failedMultiSendMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.description, func(t *testing.T) {
@@ -1062,6 +1049,7 @@ func TestBlockedAddrSend(t *testing.T) {
 }
 
 func TestHandleTransferOwnership(t *testing.T) {
+	common.InitConfig()
 	app, keeper, testAccounts := getMockDexApp(t, 2)
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
@@ -1084,67 +1072,72 @@ func TestHandleTransferOwnership(t *testing.T) {
 	tests := []struct {
 		ctx          sdk.Context
 		msg          sdk.Msg
-		expectedCode uint32
+		expectedMsg  string
 	}{
 		// case 1. sender is not the owner of token
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedCode: sdk.CodeUnauthorized,
+			expectedMsg:  fmt.Sprintf("unauthorized: %s is not the owner of token(%s)",testAccounts[1], tokenName),
 		},
 		// case 2. transfer ownership to testAccounts[1] successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedCode: sdk.CodeOK,
+			expectedMsg:  "",
 		},
 		// case 3. confirm ownership not exists
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
-			expectedCode: sdk.CodeUnknownRequest,
+			expectedMsg:  fmt.Sprintf("unknown request: no transfer-ownership of token (%s) to confirm",testAccounts[1]),
 		},
-		// case 4. sender is not the owner of ConfirmOwnership
+		//// case 4. sender is not the owner of ConfirmOwnership
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
-			expectedCode: sdk.CodeUnauthorized,
+			expectedMsg:  fmt.Sprintf("unauthorized: %s is expected as the new owner",testAccounts[1]),
 		},
 		// case 5. confirm ownership expired
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedCode: sdk.CodeInternal,
+			expectedMsg:  fmt.Sprintf("internal: transfer-ownership is expired, expire time (%s)", time.Time{}.Add(types.DefaultOwnershipConfirmWindow).String()),
 		},
 		// case 6. confirm ownership successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedCode: sdk.CodeOK,
+			expectedMsg:  "",
 		},
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedCode: sdk.CodeOK,
+			expectedMsg:  "",
 		},
 
 		// case 7. transfer ownership to testAccounts[0] successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedCode: sdk.CodeOK,
+			expectedMsg:  "",
 		},
 		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
-			expectedCode: sdk.CodeOK,
+			expectedMsg:  "",
 		},
 	}
 
 	for _, testCase := range tests {
 		_, err := handler(testCase.ctx, testCase.msg)
-		require.Nil(t, err)
+
+		if err != nil {
+			require.EqualValues(t, testCase.expectedMsg, err.Error())
+		} else {
+			require.EqualValues(t, testCase.expectedMsg, "")
+		}
 	}
 
 	token := keeper.GetTokenInfo(ctx, tokenName)

@@ -23,7 +23,7 @@ func TestNewMsgTokenIssue(t *testing.T) {
 		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", totalSupply, addr, true),
 			nil},
 		{NewMsgTokenIssue("", "", "", "binance coin", totalSupply, addr, true),
-			sdk.ErrUnknownRequest("failed to check issue msg because original symbol cannot be empty")},
+			   sdk.ErrUnknownRequest("failed to check issue msg because original symbol cannot be empty")},
 		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance 278343298$%%^&  coin", totalSupply, addr, true),
 			sdk.ErrUnknownRequest("failed to check issue msg because invalid wholename")},
 		{NewMsgTokenIssue("bnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbnbbn", "bnb", "bnb", "binance coin", totalSupply, addr, true),
@@ -38,7 +38,12 @@ func TestNewMsgTokenIssue(t *testing.T) {
 
 	for _, msgCase := range testCase {
 		err := msgCase.issueMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
+
 	}
 
 	tokenIssueMsg := testCase[0].issueMsg
@@ -68,14 +73,18 @@ func TestNewMsgTokenBurn(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenBurn(decCoin, addr), nil},
-		{NewMsgTokenBurn(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.00000000")},
+		{NewMsgTokenBurn(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.000000000000000000")},
 		{NewMsgTokenBurn(decCoin, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenBurn(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.000000001okb-ads")},
+		{NewMsgTokenBurn(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: 100.0000000000000000001okb-ads")},
 	}
 
 	for _, msgCase := range testCase {
 		err := msgCase.burnMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	tokenBurnMsg := testCase[0].burnMsg
@@ -112,15 +121,19 @@ func TestNewMsgTokenMint(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenMint(decCoin, addr), nil},
-		{NewMsgTokenMint(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.00000000")},
+		{NewMsgTokenMint(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.000000000000000000")},
 		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenMint(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.0000000011234")},
+		{NewMsgTokenMint(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.00000000000000000011234")},
 		{NewMsgTokenMint(decCoin2, addr), sdk.ErrUnknownRequest("failed to check mint msg because invalid amount")},
 	}
 
 	for _, msgCase := range testCase {
 		err := msgCase.mintMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	tokenMintMsg := testCase[0].mintMsg
@@ -172,14 +185,18 @@ func TestNewTokenMsgSend(t *testing.T) {
 	}{
 		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
 		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), sdk.ErrInsufficientCoins("failed to check send msg because send amount must be positive")},
-		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.00000000okc,100.00000000okc,100.00000000oke")},
+		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.000000000000000000okc,100.000000000000000000okc,100.000000000000000000oke")},
 		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), sdk.ErrInvalidAddress("failed to check send msg because miss sender address")},
 		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), sdk.ErrInvalidAddress("failed to check send msg because miss recipient address")},
-		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.00000000")},
+		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: 100.000000000000000000")},
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.sendMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	tokenSendMsg := testCase[0].sendMsg
@@ -196,6 +213,7 @@ func TestNewTokenMsgSend(t *testing.T) {
 }
 
 func TestNewTokenMultiSend(t *testing.T) {
+	common.InitConfig()
 	// from
 	fromPriKey := secp256k1.GenPrivKey()
 	fromPubKey := fromPriKey.PubKey()
@@ -240,7 +258,11 @@ func TestNewTokenMultiSend(t *testing.T) {
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.multiSendMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	tokenMultiSendMsg := testCase[0].multiSendMsg
@@ -259,6 +281,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 }
 
 func TestNewMsgTransferOwnership(t *testing.T) {
+	common.InitConfig()
 	// from
 	fromPriKey := secp256k1.GenPrivKey()
 	fromPubKey := fromPriKey.PubKey()
@@ -280,7 +303,11 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.transferOwnershipMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	transferOwnershipMsg := testCase[0].transferOwnershipMsg
@@ -291,6 +318,8 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 }
 
 func TestNewMsgTokenModify(t *testing.T) {
+	common.InitConfig()
+
 	priKey := secp256k1.GenPrivKey()
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
@@ -326,7 +355,11 @@ bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "bnbbbbbbbbbb", false, fals
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.tokenModifyMsg.ValidateBasic()
-		require.EqualValues(t, msgCase.err, err)
+		if err != nil {
+			require.EqualValues(t, msgCase.err.Error(), err.Error())
+		} else {
+			require.EqualValues(t, err, msgCase.err)
+		}
 	}
 
 	// correct message
