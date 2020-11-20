@@ -149,6 +149,9 @@ func (m MsgProvide) ValidateBasic() sdk.Error {
 	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
 		return ErrInvalidInput(DefaultCodespace, "amount yielded per block must be > 0")
 	}
+	if m.Amount.Amount.LT(m.AmountYieldedPerBlock) {
+		return ErrInvalidInput(DefaultCodespace, "provided amount must be bigger than amount_yielded_per_block")
+	}
 	if m.StartHeightToYield <= 0 {
 		return ErrInvalidInput(DefaultCodespace, "start height to yield must be > 0")
 	}

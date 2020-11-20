@@ -90,6 +90,22 @@ func TestMsgProvide(t *testing.T) {
 		},
 		{
 			"pool",
+			sdk.AccAddress{0x1},
+			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
+			sdk.NewDec(100),
+			1,
+			sdk.CodeOK,
+		},
+		{
+			"pool",
+			sdk.AccAddress{0x1},
+			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
+			sdk.NewDec(1000),
+			1,
+			CodeInvalidInput,
+		},
+		{
+			"pool",
 			nil,
 			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
 			sdk.NewDec(10),
