@@ -40,12 +40,12 @@ func TestCurrency(t *testing.T) {
 			Description: "my currency",
 			Symbol:      common.NativeToken,
 			TotalSupply: sdk.NewDec(10000000),
-		}, `{"description":"my currency","symbol":"` + common.NativeToken + `","total_supply":"10000000.00000000"}`},
+		}, `{"description":"my currency","symbol":"` + common.NativeToken + `","total_supply":"10000000.000000000000000000"}`},
 		{Currency{
 			Description: common.NativeToken,
 			Symbol:      common.NativeToken,
 			TotalSupply: sdk.NewDec(10000),
-		}, `{"description":"` + common.NativeToken + `","symbol":"` + common.NativeToken + `","total_supply":"10000.00000000"}`},
+		}, `{"description":"` + common.NativeToken + `","symbol":"` + common.NativeToken + `","total_supply":"10000.000000000000000000"}`},
 	}
 	for _, currencyCase := range testCase {
 		b, err := json.Marshal(currencyCase.currency)
@@ -56,6 +56,8 @@ func TestCurrency(t *testing.T) {
 }
 
 func TestToken(t *testing.T) {
+
+	common.InitConfig()
 	addr, err := sdk.AccAddressFromBech32("okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f")
 	require.Nil(t, err)
 
@@ -72,7 +74,7 @@ func TestToken(t *testing.T) {
 			Type:                0,
 			Owner:               nil,
 			Mintable:            false,
-		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.00000000","type":0,"owner":"","mintable":false}`},
+		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.000000000000000000","type":0,"owner":"","mintable":false}`},
 		{Token{
 			Description:         "okblockchain coin",
 			Symbol:              common.NativeToken,
@@ -82,7 +84,7 @@ func TestToken(t *testing.T) {
 			Type:                0,
 			Owner:               addr,
 			Mintable:            true,
-		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.00000000","type":0,"owner":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","mintable":true}`},
+		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.000000000000000000","type":0,"owner":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","mintable":true}`},
 	}
 	for _, tokenCase := range testCase {
 		b, err := json.Marshal(tokenCase.token)
