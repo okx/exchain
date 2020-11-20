@@ -77,10 +77,6 @@ var (
 		staking.AppModuleBasic{},
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
-		// TODO: add upgrade later
-		//gov.NewAppModuleBasic(
-		//	paramsclient.ProposalHandler, distr.ProposalHandler, upgradeclient.ProposalHandler,
-		//),
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
 		),
@@ -101,6 +97,7 @@ var (
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		evm.AppModuleBasic{},
 	)
 
 	// module account permissions
