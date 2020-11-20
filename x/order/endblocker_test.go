@@ -21,6 +21,7 @@ import (
 )
 
 func TestEndBlockerPeriodicMatch(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 2)
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
@@ -489,7 +490,7 @@ func TestEndBlockerExpireOrders(t *testing.T) {
 	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
 	// 0.2592 + 0.2592
-	require.EqualValues(t, "0.51840000"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.518400000000000000"+common.NativeToken, collectedFees.String())
 }
 
 func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {

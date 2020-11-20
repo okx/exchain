@@ -15,6 +15,7 @@ import (
 var mockOrder = types.MockOrder
 
 func TestFillDepthBook(t *testing.T) {
+	common.InitConfig()
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
