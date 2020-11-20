@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/okex/okexchain/x/common"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 
 	"github.com/spf13/cobra"
@@ -223,10 +225,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	)
 
 	// get the initial validator min self delegation
-	minSelfDelegation := sdk.SysCoin{
-		Amount: types.DefaultMinSelfDelegation,
-		Denom:  sdk.DefaultBondDenom,
-	}
+	minSelfDelegation := sdk.NewDecCoinFromDec(common.NativeToken, types.DefaultMinSelfDelegation)
 
 	msg := types.NewMsgCreateValidator(
 		sdk.ValAddress(valAddr),

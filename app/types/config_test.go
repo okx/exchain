@@ -9,8 +9,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+func resetConfig(config *sdk.Config) {
+	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	config.SetCoinType(sdk.CoinType)
+	config.SetFullFundraiserPath(sdk.FullFundraiserPath)
+}
+
 func TestSetBech32Prefixes(t *testing.T) {
 	config := sdk.GetConfig()
+	resetConfig(config)
 
 	require.Equal(t, sdk.Bech32PrefixAccAddr, config.GetBech32AccountAddrPrefix())
 	require.Equal(t, sdk.Bech32PrefixAccPub, config.GetBech32AccountPubPrefix())
@@ -37,6 +46,7 @@ func TestSetBech32Prefixes(t *testing.T) {
 
 func TestSetCoinType(t *testing.T) {
 	config := sdk.GetConfig()
+	resetConfig(config)
 	require.Equal(t, sdk.CoinType, int(config.GetCoinType()))
 	require.Equal(t, sdk.FullFundraiserPath, config.GetFullFundraiserPath())
 
@@ -49,7 +59,7 @@ func TestSetCoinType(t *testing.T) {
 func TestHDPath(t *testing.T) {
 	params := *hd.NewFundraiserParams(0, Bip44CoinType, 0)
 	// need to prepend "m/" because the below method provided by the sdk does not add the proper prepending
-	hdPath := "m/" + params.String()
-	require.Equal(t, "m/44'/60'/0'/0/0", hdPath)
-	require.Equal(t, hdPath, BIP44HDPath)
+	hdPath :=  params.String()
+	require.Equal(t, "m/44'/996'/0'/0/0", hdPath)
+	require.Equal(t, "m/44'/60'/0'/0/0", BIP44HDPath)
 }

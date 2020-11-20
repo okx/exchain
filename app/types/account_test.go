@@ -62,8 +62,8 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 			suite.SetupTest() // reset values
 			suite.account.SetCoins(tc.initialCoins)
 
-			suite.account.SetBalance(tc.denom, tc.amount)
-			suite.Require().Equal(tc.amount, suite.account.Balance(tc.denom))
+			suite.account.SetBalance(tc.denom, sdk.NewDecFromInt(tc.amount))
+			suite.Require().Equal(sdk.NewDecFromInt(tc.amount), suite.account.Balance(tc.denom))
 		})
 	}
 
@@ -113,8 +113,8 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   address: %s
   eth_address: %s
   coins:
-  - denom: aphoton
-    amount: "1"
+  - denom: tokt
+    amount: "1.000000000000000000"
   public_key: %s
   account_number: 10
   sequence: 50
