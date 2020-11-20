@@ -97,7 +97,6 @@ var (
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
-		evm.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -354,14 +353,27 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
-		stream.ModuleName, order.ModuleName, token.ModuleName, evm.ModuleName, mint.ModuleName, distr.ModuleName,
-		slashing.ModuleName, dex.ModuleName, token.ModuleName, evm.ModuleName, mint.ModuleName, distr.ModuleName,
-		slashing.ModuleName, farm.ModuleName,
+		stream.ModuleName,
+		order.ModuleName,
+		token.ModuleName,
+		dex.ModuleName,
+		mint.ModuleName,
+		distr.ModuleName,
+		slashing.ModuleName,
+		staking.ModuleName,
+		farm.ModuleName,
+		evm.ModuleName,
 		//	evidence.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		evm.ModuleName, crisis.ModuleName, gov.ModuleName, dex.ModuleName, order.ModuleName, staking.ModuleName,
-		backend.ModuleName, stream.ModuleName,
+		evm.ModuleName,
+		crisis.ModuleName,
+		gov.ModuleName,
+		dex.ModuleName,
+		order.ModuleName,
+		staking.ModuleName,
+		backend.ModuleName,
+		stream.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -369,7 +381,7 @@ func NewOKExChainApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName,
-		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName, dex.ModuleName,
+		dex.ModuleName,
 		order.ModuleName, crisis.ModuleName, genutil.ModuleName /*evidence.ModuleName, */, evm.ModuleName,
 		faucet.ModuleName, ammswap.ModuleName, farm.ModuleName,
 	)
