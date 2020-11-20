@@ -17,7 +17,6 @@ import (
 
 func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
 	if expectedCode != 0 {
-		fmt.Println(err)
 		require.NotNil(t, err)
 	}else {
 		require.Nil(t, err)
@@ -474,7 +473,7 @@ func TestGetInputPrice(t *testing.T) {
 		},
 		{
 			testCase:           "min input",
-			inputAmount:        sdk.NewDecWithPrec(1, 18),
+			inputAmount:        sdk.NewDecWithPrec(1, sdk.Precision),
 			inputReserve:       sdk.NewDec(100),
 			outputReserve:      sdk.NewDec(100),
 			feeRate:            sdk.NewDecWithPrec(3, 3),
