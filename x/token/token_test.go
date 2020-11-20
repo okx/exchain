@@ -748,13 +748,6 @@ func TestCreateMsgMultiSend(t *testing.T) {
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
-		//func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
-		//	return sdk.Result{}
-		//
-		//},
-		//func(ctx sdk.Context, msgs []sdk.Msg) bool {
-		//	return false
-		//},
 	))
 
 	ctx := app.NewContext(true, abci.Header{})
@@ -892,13 +885,6 @@ func getMockAppToHandleFee(t *testing.T, initBalance int64, numAcc int) (app *Mo
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
-		//func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
-		//	return sdk.Result{}
-		//
-		//},
-		//func(ctx sdk.Context, msgs []sdk.Msg) bool {
-		//	return false
-		//},
 	))
 
 	return app, testAccounts
