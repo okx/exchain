@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/okex/okexchain/x/params"
 )
 
 // ParamKeyTable is the type declaration for parameters
