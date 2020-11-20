@@ -7,6 +7,7 @@ import (
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/cosmos/cosmos-sdk/x/supply/client/rest"
+	"github.com/okex/okexchain/app/rpc"
 	ammswaprest "github.com/okex/okexchain/x/ammswap/client/rest"
 	backendrest "github.com/okex/okexchain/x/backend/client/rest"
 	dexrest "github.com/okex/okexchain/x/dex/client/rest"
@@ -23,6 +24,7 @@ import (
 // NOTE: details on the routes added for each module are in the module documentation
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
 func registerRoutes(rs *lcd.RestServer) {
+	rpc.RegisterRoutes(rs)
 	registerRoutesV1(rs)
 	registerRoutesV2(rs)
 }

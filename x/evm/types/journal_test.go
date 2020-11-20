@@ -157,14 +157,14 @@ func (suite *JournalTestSuite) TestJournal_append_revert() {
 			suicideChange{
 				account:     &suite.address,
 				prev:        false,
-				prevBalance: sdk.OneInt(),
+				prevBalance: sdk.OneDec(),
 			},
 		},
 		{
 			"balanceChange",
 			balanceChange{
 				account: &suite.address,
-				prev:    sdk.OneInt(),
+				prev:    sdk.OneDec(),
 			},
 		},
 		{

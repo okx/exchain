@@ -23,7 +23,7 @@ const (
 	Bech32PrefixConsPub = EthBech32Prefix + sdk.PrefixValidator + sdk.PrefixConsensus + sdk.PrefixPublic
 
 	// Bip44CoinType satisfies EIP84. See https://github.com/ethereum/EIPs/issues/84 for more info.
-	Bip44CoinType = 60
+	Bip44CoinType = 996
 )
 
 var (
