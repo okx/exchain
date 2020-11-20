@@ -487,6 +487,8 @@ github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
+github.com/okex/cosmos-sdk v0.0.0-20201120050952-400f12daccf1 h1:EyHL/O1WMbj+kT1W2UTLXeT/1RvCxlHbBcKIGrzUW2o=
+github.com/okex/cosmos-sdk v0.0.0-20201120050952-400f12daccf1/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
 github.com/okex/cosmos-sdk v0.39.1-okexchain2 h1:vmiewXWKkKiiAxBfyI0X3/D/GXnLzlulDI1ScuMubeM=
 github.com/okex/cosmos-sdk v0.39.1-okexchain2/go.mod h1:DD4vYMIf+H1JgcprgMAS6liJSMaQz5vmL4K/RjhWElo=
 github.com/okex/cosmos-sdk v0.39.1-okexchain3 h1:NMhcfHovz6UlVNv0YVLSZ2qtTGpphX0QCaB2k+cx8mE=
