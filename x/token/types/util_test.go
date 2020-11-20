@@ -23,6 +23,7 @@ func TestAmountToCoins(t *testing.T) {
 }
 
 func TestStrToTransfers(t *testing.T) {
+	common.InitConfig()
 	//coinStr := `[{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1BNB,2BTC"},
 	//{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1OKB,2BTC"}]`
 	coinStr := `[{"to":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","amount":"1` + common.NativeToken + `"}]`
@@ -64,10 +65,10 @@ func TestMergeCoinInfo(t *testing.T) {
 
 	coinsInfo := MergeCoinInfo(availableCoins, lockedCoins)
 	expectedCoinsInfo := CoinsInfo{
-		CoinInfo{"abc", "0", "100.00000000"},
-		CoinInfo{"bnb", "100.00000000", "0"},
-		CoinInfo{"btc", "100.00000000", "100.00000000"},
-		CoinInfo{common.NativeToken, "100.00000000", "0"},
+		CoinInfo{"abc", "0", "100.000000000000000000"},
+		CoinInfo{"bnb", "100.000000000000000000", "0"},
+		CoinInfo{"btc", "100.000000000000000000", "100.000000000000000000"},
+		CoinInfo{common.NativeToken, "100.000000000000000000", "0"},
 	}
 	require.EqualValues(t, expectedCoinsInfo, coinsInfo)
 }
@@ -91,7 +92,7 @@ func TestDecAccount_String(t *testing.T) {
 	expectedStr := `Account:
  Address:       ` + addr.String() + `
  Pubkey:        ` + sdk.MustBech32ifyAccPub(pubKey) + `
- Coins:         0.20000000` + common.NativeToken + `
+ Coins:         0.200000000000000000` + common.NativeToken + `
  AccountNumber: 1
  Sequence:      1`
 

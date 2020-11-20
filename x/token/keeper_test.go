@@ -276,6 +276,6 @@ func TestKeeper_SetCoins(t *testing.T) {
 		testAccounts[1].baseAccount.Address, coins)
 	require.Nil(t, err1)
 
-	require.EqualValues(t, "1001.00000000", keeper.GetCoinsInfo(ctx,
+	require.EqualValues(t, "1001.000000000000000000", keeper.GetCoinsInfo(ctx,
 		testAccounts[1].baseAccount.Address)[0].Available)
 }
