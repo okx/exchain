@@ -40,9 +40,8 @@ func TestHandler_HandleMsgList(t *testing.T) {
 
 	// fail case : failed to list because tokenpair has been exist
 	tkKeeper.exist = true
-	badResult, err := handlerFunctor(ctx, listMsg)
+	_, err = handlerFunctor(ctx, listMsg)
 	require.NotNil(t, err)
-	require.True(t, badResult.Events == nil)
 
 	// fail case : failed to list because SendCoinsFromModuleToAccount return error
 	tkKeeper.exist = true

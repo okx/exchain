@@ -178,19 +178,19 @@ func createPool(t *testing.T, tCtx *testContext) types.MsgCreatePool {
 	require.Nil(t, err)
 
 	k := tCtx.k
-	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	found := k.HasFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 	require.True(t, found)
 	return createPoolMsg
 }
 
 func destroyPool(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) {
 	k := tCtx.k
-	_, found := k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	found := k.HasFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 	require.True(t, found)
 	destroyPoolMsg := normalGetDestroyPoolMsg(tCtx, createPoolMsg)
 	_, err := tCtx.handler(tCtx.ctx, destroyPoolMsg)
 	require.Nil(t, err)
-	_, found = k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
+	found = k.HasFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 	require.False(t, found)
 }
 

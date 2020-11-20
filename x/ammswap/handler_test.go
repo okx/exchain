@@ -284,10 +284,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 
 	result, err := handler(ctx, msgCreateExchange)
-	require.Equal(t, "", result.Log)
 	require.Nil(t, err)
 	result, err = handler(ctx, msgCreateExchange2)
-	require.Equal(t, "", result.Log)
 	require.Nil(t, err)
 
 	minLiquidity := sdk.NewDec(1)
@@ -344,8 +342,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	for _, testCase := range tests {
 		fmt.Println(testCase.testCase)
 		addLiquidityMsg := types.NewMsgTokenToToken(testCase.soldTokenAmount, testCase.minBoughtTokenAmount, testCase.deadLine, testCase.recipient, testCase.addr)
-		result, err := handler(ctx, addLiquidityMsg)
-		fmt.Println(result.Log)
+		_, err := handler(ctx, addLiquidityMsg)
+		//fmt.Println(result.Log)
 		testCode(t, err, testCase.exceptResultCode)
 
 	}
@@ -360,9 +358,9 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	queryCheck[testPoolToken2], err = sdk.NewDecFromStr("1")
 	require.Nil(t, err)
 	queryCheck[types.TestQuotePooledToken] = sdk.NewDec(69998)
-	queryCheck[types.TestBasePooledToken], err = sdk.NewDecFromStr("79999.99380121")
+	queryCheck[types.TestBasePooledToken], err = sdk.NewDecFromStr("79999.993801218018563549")
 	require.Nil(t, err)
-	queryCheck[types.TestBasePooledToken2], err = sdk.NewDecFromStr("90001.98782155")
+	queryCheck[types.TestBasePooledToken2], err = sdk.NewDecFromStr("90001.987821560020383296")
 	require.Nil(t, err)
 	queryCheck[types.TestBasePooledToken3] = sdk.NewDec(100000)
 
@@ -441,7 +439,7 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 	queryCheck[testPoolToken1], err = sdk.NewDecFromStr("1")
 	require.Nil(t, err)
 
-	queryCheck[types.TestBasePooledToken], err = sdk.NewDecFromStr("90001.99360247")
+	queryCheck[types.TestBasePooledToken], err = sdk.NewDecFromStr("90001.993602475666352129")
 	require.Nil(t, err)
 	queryCheck[types.TestBasePooledToken2] = sdk.NewDec(89998)
 	require.Nil(t, err)
@@ -475,7 +473,7 @@ func TestGetInputPrice(t *testing.T) {
 		},
 		{
 			testCase:           "min input",
-			inputAmount:        sdk.NewDecWithPrec(1, 8),
+			inputAmount:        sdk.NewDecWithPrec(1, sdk.Precision),
 			inputReserve:       sdk.NewDec(100),
 			outputReserve:      sdk.NewDec(100),
 			feeRate:            sdk.NewDecWithPrec(3, 3),
@@ -503,10 +501,10 @@ func TestRandomData(t *testing.T) {
 	mapp.tokenKeeper.NewToken(ctx, testToken)
 	mapp.tokenKeeper.NewToken(ctx, testQuoteToken)
 	msgCreateExchange := types.NewMsgCreateExchange(testToken.Symbol, types.TestQuotePooledToken, addrKeysSlice[0].Address)
-	result, err := handler(ctx, msgCreateExchange)
-	require.Equal(t, "", result.Log)
+	_, err := handler(ctx, msgCreateExchange)
+	require.Nil(t, err)
 	addr := addrKeysSlice[0].Address
-	result, err = handler(ctx, buildRandomMsgAddLiquidity(addr))
+	_, err = handler(ctx, buildRandomMsgAddLiquidity(addr))
 	require.Nil(t, err)
 
 	for i := 0; i < 100; i++ {
@@ -520,14 +518,14 @@ func TestRandomData(t *testing.T) {
 		case 2:
 			msg = buildRandomMsgTokenToToken(addr)
 		}
-		res, err := handler(ctx, msg)
+		_, err := handler(ctx, msg)
 		if err != nil {
 			fmt.Println(mapp.tokenKeeper.GetCoins(ctx, addr))
 			swapTokenPair, err := mapp.swapKeeper.GetSwapTokenPair(ctx, types.TestSwapTokenPairName)
 			require.Nil(t, err)
 			fmt.Println(swapTokenPair)
 			fmt.Println("poolToken: " + keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName).String())
-			fmt.Println(res.Log)
+			//fmt.Println(res.Log)
 		}
 	}
 

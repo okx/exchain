@@ -12,6 +12,8 @@ import (
 )
 
 func TestMsg(t *testing.T) {
+
+	common.InitConfig()
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)
 	product := common.TestToken + "_" + common.NativeToken

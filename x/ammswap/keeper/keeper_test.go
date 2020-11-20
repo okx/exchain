@@ -81,7 +81,7 @@ func TestKeeper_GetRedeemableAssets(t *testing.T) {
 }
 
 func TestGetInputPrice(t *testing.T) {
-	inputAmount := sdk.NewDecWithPrec(1, 8)
+	inputAmount := sdk.NewDecWithPrec(1, sdk.Precision)
 	inputReserve := sdk.NewDec(1)
 	outputReserve := sdk.NewDec(1)
 	feeRate := sdk.NewDecWithPrec(3, 3)
