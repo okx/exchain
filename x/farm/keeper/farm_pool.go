@@ -159,37 +159,9 @@ func (k Keeper) calculateLockedLPTValue(
 	token0Amount, token1Amount, err := k.swapKeeper.GetRedeemableAssets(ctx, token0Symbol, token1Symbol,
 		pool.TotalValueLocked.Amount)
 	if err != nil {
-		panic("should not happen: " + err.Error())
+		return sdk.ZeroDec()
 	}
 
-	if token0Symbol == quoteSymbol || token1Symbol == quoteSymbol {
-		return k.calculateLPTValueWithQuote(ctx, token0Amount, token1Amount, quoteSymbol, swapParams)
-	}
-	return k.calculateLPTValueWithoutQuote(ctx, token0Amount, token1Amount, quoteSymbol, swapParams)
-}
-
-// calculateLPTValueWithQuote calculates the value of LPT which represents token pair containing quote symbol
-func (k Keeper) calculateLPTValueWithQuote(
-	ctx sdk.Context, token0Amount, token1Amount sdk.SysCoin, quoteSymbol string, swapParams swaptypes.Params,
-) sdk.Dec {
-	var baseTokenAmount, quoteTokenAmount sdk.SysCoin
-	if token0Amount.Denom == quoteSymbol {
-		baseTokenAmount = token1Amount
-		quoteTokenAmount = token0Amount
-	} else {
-		baseTokenAmount = token0Amount
-		quoteTokenAmount = token1Amount
-	}
-	swappedQuoteTokenAmt := k.calculateBaseValueInQuote(ctx, baseTokenAmount, quoteSymbol, swapParams)
-	poolValue := swappedQuoteTokenAmt.Add(quoteTokenAmount.Amount)
-	return poolValue
-}
-
-// calculateLPTValueWithoutQuote calculates the value of LPT which represents token pair not containing quote symbol
-func (k Keeper) calculateLPTValueWithoutQuote(
-	ctx sdk.Context, token0Amount, token1Amount sdk.SysCoin, quoteSymbol string, swapParams swaptypes.Params,
-) sdk.Dec {
-	// calculate how much quote token the base token can swap
 	quote0TokenAmt := k.calculateBaseValueInQuote(ctx, token0Amount, quoteSymbol, swapParams)
 	quote1TokenAmt := k.calculateBaseValueInQuote(ctx, token1Amount, quoteSymbol, swapParams)
 	return quote0TokenAmt.Add(quote1TokenAmt)
@@ -199,9 +171,13 @@ func (k Keeper) calculateLPTValueWithoutQuote(
 func (k Keeper) calculateBaseValueInQuote(
 	ctx sdk.Context, base sdk.SysCoin, quoteSymbol string, params swaptypes.Params,
 ) sdk.Dec {
+	// base token is quote symbol
+	if base.Denom == quoteSymbol {
+		return base.Amount
+	}
 	// calculate how much quote token the base token can swap
 	tokenPair, err := k.swapKeeper.GetSwapTokenPair(ctx, swaptypes.GetSwapTokenPairName(base.Denom, quoteSymbol))
-	if err != nil {
+	if err != nil || tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.Amount.IsZero() {
 		return sdk.ZeroDec()
 	}
 	if tokenPair.QuotePooledCoin.Denom == quoteSymbol {

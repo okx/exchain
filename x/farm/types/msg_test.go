@@ -82,6 +82,22 @@ func TestMsgProvide(t *testing.T) {
 		},
 		{
 			"pool",
+			sdk.AccAddress{0x1},
+			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
+			sdk.NewDec(100),
+			1,
+			sdk.CodeOK,
+		},
+		{
+			"pool",
+			sdk.AccAddress{0x1},
+			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
+			sdk.NewDec(1000),
+			1,
+			CodeInvalidInput,
+		},
+		{
+			"pool",
 			nil,
 			sdk.NewDecCoinFromDec("xxb", sdk.NewDec(100)),
 			sdk.NewDec(10),
@@ -129,9 +145,10 @@ func TestMsgProvide(t *testing.T) {
 		require.Equal(t, []sdk.AccAddress{test.owner}, msg.GetSigners())
 		require.Equal(t, sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg)), msg.GetSignBytes())
 		err := msg.ValidateBasic()
-		if test.errCode != sdk.CodeOK {
-			require.Error(t, err)
+		if err != nil {
 			require.Equal(t, test.errCode, err.Code())
+		} else {
+			require.Equal(t, test.errCode, sdk.CodeOK)
 		}
 	}
 }
