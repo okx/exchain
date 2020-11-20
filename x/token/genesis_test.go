@@ -1,6 +1,7 @@
 package token
 
 import (
+	"github.com/okex/okexchain/x/common"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestDefault(t *testing.T) {
+	common.InitConfig()
 	genesisState := defaultGenesisState()
 	err := validateGenesis(genesisState)
 	require.NoError(t, err)
@@ -17,6 +19,7 @@ func TestDefault(t *testing.T) {
 }
 
 func TestInitGenesis(t *testing.T) {
+	common.InitConfig()
 	mapp, keeper, _ := getMockDexApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
