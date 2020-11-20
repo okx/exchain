@@ -57,7 +57,7 @@ func buildTransactionsTransfer(tx *auth.StdTx, msg tokenTypes.MsgSend, txHash st
 		Side:      TxSideTo,
 		Symbol:    decCoins[0].Denom,
 		Quantity:  decCoins[0].Amount.String(),
-		Fee:       sdk.SysCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String(),
+		Fee:       sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()).String(),
 		Timestamp: timestamp,
 	}
 	return txFrom, txTo
@@ -83,7 +83,7 @@ func buildTransactionNew(handlerMsgResult bitset.BitSet, msg orderTypes.MsgNewOr
 			Side:      int64(side),
 			Symbol:    item.Product,
 			Quantity:  item.Quantity.String(),
-			Fee:       sdk.SysCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String(), // TODO: get fee from params
+			Fee:       sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()).String(),
 			Timestamp: timestamp,
 		}
 
@@ -111,7 +111,7 @@ func buildTransactionCancel(handlerMsgResult bitset.BitSet, msg orderTypes.MsgCa
 		}
 		cancelFeeStr := order.GetExtraInfoWithKey(orderTypes.OrderExtraInfoKeyCancelFee)
 		if cancelFeeStr == "" {
-			cancelFeeStr = sdk.SysCoin{Denom: common.NativeToken, Amount: sdk.ZeroDec()}.String()
+			cancelFeeStr = sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()).String()
 		}
 		tx := Transaction{
 			TxHash:    txHash,

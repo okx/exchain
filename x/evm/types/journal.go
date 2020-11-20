@@ -144,13 +144,13 @@ type (
 	suicideChange struct {
 		account     *ethcmn.Address
 		prev        bool // whether account had already suicided
-		prevBalance sdk.Int
+		prevBalance sdk.Dec
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
 		account *ethcmn.Address
-		prev    sdk.Int
+		prev    sdk.Dec
 	}
 
 	nonceChange struct {

@@ -80,7 +80,7 @@ func TestKeyring(t *testing.T) {
 	require.Nil(t, info)
 
 	mockIn.Reset("password\npassword\n")
-	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, ethermint.BIP44HDPath, EthSecp256k1)
+	info, mnemonic, err := kr.CreateMnemonic("foo", keys.English, ethermint.BIP44HDPath, EthSecp256k1, "")
 	require.NoError(t, err)
 	require.NotEmpty(t, mnemonic)
 	require.Equal(t, "foo", info.GetName())
@@ -88,7 +88,7 @@ func TestKeyring(t *testing.T) {
 	require.Equal(t, EthSecp256k1, info.GetAlgo())
 
 	params := *hd.NewFundraiserParams(0, ethermint.Bip44CoinType, 0)
-	hdPath := params.String()
+	hdPath := strings.Trim(params.String(), "m/")
 
 	bz, err := DeriveKey(mnemonic, keys.DefaultBIP39Passphrase, hdPath, keys.Secp256k1)
 	require.NoError(t, err)
