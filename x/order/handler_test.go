@@ -109,7 +109,8 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 
 	// not-exist product
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	_, err = handler(ctx, msg)
+	res, err := handler(ctx, msg)
+	require.Nil(t, res)
 	require.EqualValues(t, "internal: all order items failed to execute", err.Error())
 
 	// invalid price precision
