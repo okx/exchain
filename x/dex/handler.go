@@ -2,6 +2,7 @@ package dex
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"strconv"
 
 	"github.com/okex/okexchain/x/common/perf"
@@ -63,7 +64,9 @@ func NewHandler(k IKeeper) sdk.Handler {
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, ModuleName, name, seq)
-		return handlerFun()
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 

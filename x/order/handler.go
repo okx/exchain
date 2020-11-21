@@ -3,6 +3,7 @@ package order
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"math"
 
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
@@ -69,7 +70,9 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		return handlerFun()
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 

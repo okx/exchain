@@ -170,3 +170,12 @@ func PanicTrace(kb int) {
 	stack = bytes.TrimRight(stack, "\n")
 	fmt.Print(string(stack))
 }
+
+func SanityCheckHandler(res *sdk.Result, err error)  {
+	if res == nil && err == nil {
+		panic("Invalid handler")
+	}
+	if res != nil && err != nil {
+		panic("Invalid handler")
+	}
+}

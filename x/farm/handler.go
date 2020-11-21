@@ -2,6 +2,7 @@ package farm
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -55,7 +56,9 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		return handlerFun()
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 
