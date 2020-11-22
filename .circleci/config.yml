@@ -63,12 +63,9 @@ jobs:
             export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
-
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
-
-            included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order")
+            included_packages=("./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order")
             without_race_packages=("./app")
-
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
