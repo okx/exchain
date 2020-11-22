@@ -65,14 +65,21 @@ jobs:
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
-            included_packages=("./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token")
+            included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token")
+            without_race_packages=("./app")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
               cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
               packages=`echo ${package_lines[@]}`
               id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
-              go test -mod=readonly -timeout 8m -race -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+              RACE=-race
+              found=`echo "${without_race_packages[@]}" | grep -wq "${pkg}" &&  echo "Yes" || echo "No"`
+              if [ ${found} = "Yes" ]; then
+                RACE=
+              fi
+              echo ${RACE}
+              go test -mod=readonly -timeout 8m ${RACE} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
             echo "--> Gather coverage:"
