@@ -14,6 +14,9 @@ type (
 	// evidence module.
 	StakingKeeper interface {
 		ValidatorByConsAddr(sdk.Context, sdk.ConsAddress) stakingexported.ValidatorI
+
+		//Append abandoned validator to staking keeper
+		AppendAbandonedValidatorAddrs(ctx sdk.Context, ConsAddr sdk.ConsAddress)
 	}
 
 	// SlashingKeeper defines the slashing module interface contract needed by the
