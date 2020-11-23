@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/okex/okexchain/x/params/subspace"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -171,11 +173,156 @@ func PanicTrace(kb int) {
 	fmt.Print(string(stack))
 }
 
-func SanityCheckHandler(res *sdk.Result, err error)  {
+func SanityCheckHandler(res *sdk.Result, err error) {
 	if res == nil && err == nil {
 		panic("Invalid handler")
 	}
 	if res != nil && err != nil {
 		panic("Invalid handler")
+	}
+}
+
+func ValidateSysCoin(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(sdk.SysCoin)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if !v.IsValid() {
+			return fmt.Errorf("invalid %s: %s", param, v)
+		}
+
+		return nil
+	}
+}
+
+func ValidateSysCoins(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(sdk.SysCoins)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if !v.IsValid() {
+			return fmt.Errorf("invalid %s: %s", param, v)
+		}
+
+		return nil
+	}
+}
+
+func ValidateDuration(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(time.Duration)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if v <= 0 {
+			return fmt.Errorf("%s must be positive: %d", param, v)
+		}
+
+		return nil
+	}
+}
+
+func ValidateBool(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		_, ok := i.(bool)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		return nil
+	}
+}
+
+func ValidateInt64(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(int64)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if v <= 0 {
+			return fmt.Errorf("%s must be positive: %d", param, v)
+		}
+
+		return nil
+	}
+}
+
+func ValidateUint64(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(uint64)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if v <= 0 {
+			return fmt.Errorf("%s must be positive: %d", param, v)
+		}
+
+		return nil
+	}
+}
+
+func ValidateRateNotNeg(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(sdk.Dec)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+		if v.IsNegative() {
+			return fmt.Errorf("%s cannot be negative: %s", param, v)
+		}
+		if v.GT(sdk.OneDec()) {
+			return fmt.Errorf("quorom too large: %s", v)
+		}
+		return nil
+	}
+}
+
+func ValidateDecPositive(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(sdk.Dec)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+		if !v.IsPositive() {
+			return fmt.Errorf("%s must be positive: %s", param, v)
+		}
+		return nil
+	}
+}
+
+func ValidateDenom(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(string)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if sdk.ValidateDenom(v) != nil {
+			return fmt.Errorf("invalid %s", param)
+		}
+
+		return nil
+	}
+}
+
+func ValidateUint16(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(uint16)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+
+		if v <= 0 {
+			return fmt.Errorf("%s must be positive: %d", param, v)
+		}
+
+		return nil
 	}
 }
