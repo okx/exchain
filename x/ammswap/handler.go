@@ -43,7 +43,10 @@ func NewHandler(k Keeper) sdk.Handler {
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		return handlerFun()
+
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 

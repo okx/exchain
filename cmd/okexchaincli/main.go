@@ -22,11 +22,11 @@ import (
 	tokencmd "github.com/okex/okexchain/x/token/client/cli"
 
 	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc"
 	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 var (
@@ -76,8 +76,8 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 	)
 
-	// Add flags and prefix all env exposed with EM
-	executor := cli.PrepareMainCmd(rootCmd, "EM", app.DefaultCLIHome)
+	// Add flags and prefix all env exposed with OKEXCHAIN
+	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
 
 	err := executor.Execute()
 	if err != nil {

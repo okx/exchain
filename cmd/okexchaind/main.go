@@ -22,16 +22,16 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+
+	"github.com/okex/okexchain/app"
+	"github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/x/genutil"
 	genutilcli "github.com/okex/okexchain/x/genutil/client/cli"
 	genutiltypes "github.com/okex/okexchain/x/genutil/types"
 	"github.com/okex/okexchain/x/staking"
-
-	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/app/codec"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/cmd/client"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -85,7 +85,7 @@ func main() {
 	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes)
 
 	// prepare and add flags
-	executor := cli.PrepareBaseCmd(rootCmd, "EM", app.DefaultNodeHome)
+	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
 	err := executor.Execute()

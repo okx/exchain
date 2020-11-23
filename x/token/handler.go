@@ -75,7 +75,10 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		return handlerFun()
+
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 
