@@ -90,7 +90,7 @@ func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
 // ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed
 func ErrPoolNotFinished(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodePoolNotFinished,
-		"failed. the pool %s is not finished and can not be destroyed", poolName)
+		"failed. the pool %s that is with unclaimed rewards or locked coins can not be destroyed", poolName)
 }
 
 // ErrPoolNameNotExistedInWhiteList returns an error when the pool name is not existed in the white list
