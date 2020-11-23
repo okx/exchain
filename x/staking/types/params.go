@@ -97,11 +97,11 @@ func validateParams(value interface{}) error {
 // ParamSetPairs is the implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: common.ValidateDuration("unbonding time")},
-		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: common.ValidateUint16("max validators")},
+		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: common.ValidateDurationPositive("unbonding time")},
+		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: common.ValidateUint16Positive("max validators")},
 		{Key: KeyBondDenom, Value: &p.BondDenom, ValidatorFn: common.ValidateDenom("bond denom")},
-		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16("epoch")},
-		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16("max vals to add shares")},
+		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16Positive("epoch")},
+		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
 	}

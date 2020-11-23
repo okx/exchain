@@ -63,9 +63,9 @@ func validateParams(value interface{}) error {
 // nolint
 func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 	return subspace.ParamSetPairs{
-		{KeyMaxDepositPeriod, &p.MaxDepositPeriod, common.ValidateDuration("max deposit period")},
+		{KeyMaxDepositPeriod, &p.MaxDepositPeriod, common.ValidateDurationPositive("max deposit period")},
 		{KeyMinDeposit, &p.MinDeposit, common.ValidateSysCoins("min deposit")},
-		{KeyVotingPeriod, &p.VotingPeriod, common.ValidateDuration("voting period")},
-		{KeyMaxBlockHeight, &p.MaxBlockHeight, common.ValidateUint64("max block height")},
+		{KeyVotingPeriod, &p.VotingPeriod, common.ValidateDurationPositive("voting period")},
+		{KeyMaxBlockHeight, &p.MaxBlockHeight, common.ValidateUint64Positive("max block height")},
 	}
 }

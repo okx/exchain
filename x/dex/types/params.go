@@ -43,11 +43,11 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: keyDexListFee, Value: &p.ListFee, ValidatorFn: common.ValidateSysCoin("list fee")},
 		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee, ValidatorFn: common.ValidateSysCoin("transfer ownership fee")},
 		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee, ValidatorFn: common.ValidateSysCoin("register operator fee")},
-		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod, ValidatorFn: common.ValidateDuration("delist max deposit period")},
+		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod, ValidatorFn: common.ValidateDurationPositive("delist max deposit period")},
 		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit, ValidatorFn: common.ValidateSysCoins("delist min deposit")},
-		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod, ValidatorFn: common.ValidateDuration("delist voting period")},
-		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod, ValidatorFn: common.ValidateDuration("withdraw period")},
-		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow, ValidatorFn: common.ValidateDuration("ownership confirm window")},
+		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod, ValidatorFn: common.ValidateDurationPositive("delist voting period")},
+		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod, ValidatorFn: common.ValidateDurationPositive("withdraw period")},
+		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow, ValidatorFn: common.ValidateDurationPositive("ownership confirm window")},
 	}
 }
 

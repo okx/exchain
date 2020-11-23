@@ -212,7 +212,7 @@ func ValidateSysCoins(param string) subspace.ValueValidatorFn {
 	}
 }
 
-func ValidateDuration(param string) subspace.ValueValidatorFn {
+func ValidateDurationPositive(param string) subspace.ValueValidatorFn {
 	return func(i interface{}) error {
 		v, ok := i.(time.Duration)
 		if !ok {
@@ -238,7 +238,7 @@ func ValidateBool(param string) subspace.ValueValidatorFn {
 	}
 }
 
-func ValidateInt64(param string) subspace.ValueValidatorFn {
+func ValidateInt64Positive(param string) subspace.ValueValidatorFn {
 	return func(i interface{}) error {
 		v, ok := i.(int64)
 		if !ok {
@@ -253,14 +253,14 @@ func ValidateInt64(param string) subspace.ValueValidatorFn {
 	}
 }
 
-func ValidateUint64(param string) subspace.ValueValidatorFn {
+func ValidateUint64Positive(param string) subspace.ValueValidatorFn {
 	return func(i interface{}) error {
 		v, ok := i.(uint64)
 		if !ok {
 			return fmt.Errorf("invalid parameter type: %T", i)
 		}
 
-		if v <= 0 {
+		if v == 0 {
 			return fmt.Errorf("%s must be positive: %d", param, v)
 		}
 
@@ -312,14 +312,14 @@ func ValidateDenom(param string) subspace.ValueValidatorFn {
 	}
 }
 
-func ValidateUint16(param string) subspace.ValueValidatorFn {
+func ValidateUint16Positive(param string) subspace.ValueValidatorFn {
 	return func(i interface{}) error {
 		v, ok := i.(uint16)
 		if !ok {
 			return fmt.Errorf("invalid parameter type: %T", i)
 		}
 
-		if v <= 0 {
+		if v == 0 {
 			return fmt.Errorf("%s must be positive: %d", param, v)
 		}
 

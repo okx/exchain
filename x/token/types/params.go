@@ -58,7 +58,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyFeeBurn, &p.FeeBurn, common.ValidateSysCoin("burn fee")},
 		{KeyFeeModify, &p.FeeModify, common.ValidateSysCoin("modify fee")},
 		{KeyFeeChown, &p.FeeChown, common.ValidateSysCoin("change ownership fee")},
-		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, common.ValidateDuration("confirm ownership window")},
+		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, common.ValidateDurationPositive("confirm ownership window")},
 	}
 }
 
