@@ -37,7 +37,7 @@ func TestTryPlaceOrder(t *testing.T) {
 	require.Nil(t, err)
 
 	order.RecordOrderNewFee(fee)
-	require.Equal(t, "0.25920000"+common.NativeToken, order.GetExtraInfoWithKey(types.OrderExtraInfoKeyNewFee))
+	require.Equal(t, "0.259200000000000000"+common.NativeToken, order.GetExtraInfoWithKey(types.OrderExtraInfoKeyNewFee))
 
 	order = mockOrder("", types.TestTokenPair, types.BuyOrder, "1.0", "9")
 	order.Sender = testInput.TestAddrs[0]
@@ -90,7 +90,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	ctx = ctx.WithBlockHeight(11)
 	fee := keeper.CancelOrder(ctx, order, ctx.Logger())
 	// check result
-	require.Equal(t, "0.00000100"+common.NativeToken, fee.String())
+	require.Equal(t, "0.000001000000000000"+common.NativeToken, fee.String())
 	// check order status
 	require.EqualValues(t, types.OrderStatusCancelled, order.Status)
 	require.Equal(t, "", order.GetExtraInfoWithKey(types.OrderExtraInfoKeyCancelFee))
@@ -105,7 +105,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	// check fee pool
 	feeCollector := testInput.SupplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.00000100"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
 	// check depth book
 	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 0, len(depthBook.Items))
@@ -184,7 +184,7 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	// check fee pool
 	feeCollector := testInput.SupplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.00000100"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
 	// check depth book
 	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 0, len(depthBook.Items))

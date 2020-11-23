@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/dex"
 	"github.com/okex/okexchain/x/order/types"
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestDumpStore(t *testing.T) {
+	common.InitConfig()
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
