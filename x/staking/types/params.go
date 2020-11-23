@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -96,13 +97,13 @@ func validateParams(value interface{}) error {
 // ParamSetPairs is the implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: validateParams},
-		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: validateParams},
-		{Key: KeyBondDenom, Value: &p.BondDenom, ValidatorFn: validateParams},
-		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: validateParams},
-		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: validateParams},
-		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: validateParams},
-		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: validateParams},
+		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: common.ValidateDuration("unbonding time")},
+		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: common.ValidateUint16("max validators")},
+		{Key: KeyBondDenom, Value: &p.BondDenom, ValidatorFn: common.ValidateDenom("bond denom")},
+		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16("epoch")},
+		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16("max vals to add shares")},
+		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
+		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
 	}
 }
 
