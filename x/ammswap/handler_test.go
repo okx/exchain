@@ -535,8 +535,8 @@ func buildRandomMsgAddLiquidity(addr sdk.AccAddress) types.MsgAddLiquidity {
 	minLiquidity := sdk.NewDec(0)
 	d := rand.Intn(100) + 1
 	d2 := rand.Intn(100) + 1
-	maxBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(int64(d), 8))
-	quoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d2), 8))
+	maxBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(int64(d), sdk.Precision))
+	quoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d2), sdk.Precision))
 	deadLine := time.Now().Unix()
 	msg := types.NewMsgAddLiquidity(minLiquidity, maxBaseAmount, quoteAmount, deadLine, addr)
 	return msg
@@ -544,8 +544,8 @@ func buildRandomMsgAddLiquidity(addr sdk.AccAddress) types.MsgAddLiquidity {
 
 func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity {
 	liquidity := sdk.NewDec(1)
-	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(1, 8))
-	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(1, 8))
+	minBaseAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDecWithPrec(1, sdk.Precision))
+	minQuoteAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(1, sdk.Precision))
 	deadLine := time.Now().Unix()
 	msg := types.NewMsgRemoveLiquidity(liquidity, minBaseAmount, minQuoteAmount, deadLine, addr)
 	return msg
@@ -554,7 +554,7 @@ func buildRandomMsgRemoveLiquidity(addr sdk.AccAddress) types.MsgRemoveLiquidity
 func buildRandomMsgTokenToToken(addr sdk.AccAddress) types.MsgTokenToToken {
 	minBoughtTokenAmount := sdk.NewDecCoinFromDec(types.TestBasePooledToken, sdk.NewDec(0))
 	d := rand.Intn(100) + 1
-	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), 8))
+	soldTokenAmount := sdk.NewDecCoinFromDec(types.TestQuotePooledToken, sdk.NewDecWithPrec(int64(d), sdk.Precision))
 	deadLine := time.Now().Unix()
 	judge := rand.Intn(2)
 	var msg types.MsgTokenToToken

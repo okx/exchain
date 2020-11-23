@@ -75,7 +75,10 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		return handlerFun()
+
+		res, err := handlerFun()
+		common.SanityCheckHandler(res, err)
+		return res, err
 	}
 }
 
@@ -214,6 +217,13 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	// check whether token is mintable
 	if !token.Mintable {
 		return sdk.ErrUnauthorized(fmt.Sprintf("token(%s) is not mintable", token.Symbol)).Result()
+	}
+
+	// check upper bound
+	totalSupplyAfterMint := keeper.supplyKeeper.GetSupplyByDenom(ctx, msg.Amount.Denom).Add(msg.Amount.Amount)
+	if totalSupplyAfterMint.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
+		return sdk.ErrInternal(fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)",
+			totalSupplyAfterMint, types.TotalSupplyUpperbound)).Result()
 	}
 
 	mintCoins := msg.Amount.ToCoins()
