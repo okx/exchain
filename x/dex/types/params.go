@@ -37,21 +37,17 @@ type Params struct {
 	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 
-func validateParams(value interface{}) error {
-	return nil
-}
-
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{Key: keyDexListFee, Value: &p.ListFee, ValidatorFn: validateParams},
-		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee, ValidatorFn: validateParams},
-		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee, ValidatorFn: validateParams},
-		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod, ValidatorFn: validateParams},
-		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit, ValidatorFn: validateParams},
-		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod, ValidatorFn: validateParams},
-		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod, ValidatorFn: validateParams},
-		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow, ValidatorFn: validateParams},
+		{Key: keyDexListFee, Value: &p.ListFee, ValidatorFn: common.ValidateSysCoin("list fee")},
+		{Key: keyTransferOwnershipFee, Value: &p.TransferOwnershipFee, ValidatorFn: common.ValidateSysCoin("transfer ownership fee")},
+		{Key: keyRegisterOperatorFee, Value: &p.RegisterOperatorFee, ValidatorFn: common.ValidateSysCoin("register operator fee")},
+		{Key: keyDelistMaxDepositPeriod, Value: &p.DelistMaxDepositPeriod, ValidatorFn: common.ValidateDuration("delist max deposit period")},
+		{Key: keyDelistMinDeposit, Value: &p.DelistMinDeposit, ValidatorFn: common.ValidateSysCoins("delist min deposit")},
+		{Key: keyDelistVotingPeriod, Value: &p.DelistVotingPeriod, ValidatorFn: common.ValidateDuration("delist voting period")},
+		{Key: keyWithdrawPeriod, Value: &p.WithdrawPeriod, ValidatorFn: common.ValidateDuration("withdraw period")},
+		{Key: keyOwnershipConfirmWindow, Value: &p.OwnershipConfirmWindow, ValidatorFn: common.ValidateDuration("ownership confirm window")},
 	}
 }
 
