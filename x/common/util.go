@@ -278,7 +278,7 @@ func ValidateRateNotNeg(param string) subspace.ValueValidatorFn {
 			return fmt.Errorf("%s cannot be negative: %s", param, v)
 		}
 		if v.GT(sdk.OneDec()) {
-			return fmt.Errorf("quorom too large: %s", v)
+			return fmt.Errorf("%s is too large: %s", param, v)
 		}
 		return nil
 	}
