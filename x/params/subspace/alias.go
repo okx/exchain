@@ -5,8 +5,9 @@ import (
 )
 
 type (
-	ParamSetPairs = subspace.ParamSetPairs
-	KeyTable      = subspace.KeyTable
+	ParamSetPairs    = subspace.ParamSetPairs
+	KeyTable         = subspace.KeyTable
+	ValueValidatorFn = subspace.ValueValidatorFn
 )
 
 var (
