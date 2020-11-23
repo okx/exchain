@@ -19,7 +19,10 @@ func calculateWeight(nowTime int64, tokens sdk.Dec) (shares types.Shares, sdkErr
 	nowWeek := (nowTime - blockTimestampEpoch) / secondsPerWeek
 	rate := float64(nowWeek) / weeksPerYear
 	weight := math.Pow(float64(2), rate)
-	weightByDec, sdkErr := sdk.NewDecFromStr(fmt.Sprintf("%.8f", weight))
+
+	precision := fmt.Sprintf("%d", sdk.Precision)
+
+	weightByDec, sdkErr := sdk.NewDecFromStr(fmt.Sprintf("%." + precision + "f", weight))
 	if sdkErr == nil {
 		shares = tokens.Mul(weightByDec)
 	}
