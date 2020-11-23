@@ -19,11 +19,11 @@ func TestAllocateTokensToValidatorWithCommission(t *testing.T) {
 	val := sk.Validator(ctx, valOpAddr1)
 
 	// allocate tokens
-	tokens := NewTestSysCoins(1, 8)
+	tokens := NewTestSysCoins(1, sdk.Precision)
 	k.AllocateTokensToValidator(ctx, val, tokens)
 
 	// check commissions
-	expected := NewTestSysCoins(1, 8)
+	expected := NewTestSysCoins(1, sdk.Precision)
 	require.Equal(t, expected, k.GetValidatorAccumulatedCommission(ctx, val.GetOperator()))
 }
 
