@@ -21,6 +21,7 @@ import (
 )
 
 func TestEventNewOrders(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
@@ -45,7 +46,7 @@ func TestEventNewOrders(t *testing.T) {
 	msg := types.NewMsgNewOrders(addrKeysSlice[0].Address, orderItems)
 	result, err := handler(ctx, msg)
 
-	require.EqualValues(t, 2, len(result.Events[4].Attributes))
+	require.EqualValues(t, 3, len(result.Events[4].Attributes))
 
 }
 
@@ -92,6 +93,7 @@ func TestFeesNewOrders(t *testing.T) {
 }
 
 func TestHandleMsgNewOrderInvalid(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
@@ -107,9 +109,9 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 
 	// not-exist product
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
-	result, err := handler(ctx, msg)
-	orderRes := parseOrderResult(result)
-	require.Nil(t, orderRes)
+	res, err := handler(ctx, msg)
+	require.Nil(t, res)
+	require.EqualValues(t, "internal: all order items failed to execute", err.Error())
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -128,10 +130,8 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 
 	// insufficient coins
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
-	result, err = handler(ctx, msg)
-	orderRes = parseOrderResult(result)
-	require.Nil(t, orderRes)
-	require.Nil(t, err)
+	_, err = handler(ctx, msg)
+	require.EqualValues(t, "internal: all order items failed to execute", err.Error())
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
@@ -139,6 +139,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 }
 
 func TestValidateMsgNewOrder(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
@@ -159,7 +160,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	// not-exist product
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.Nil(t, err)
+	require.EqualValues(t, "unknown request: trading pair 'nobb_tokt' does not exist", err.Error())
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -243,21 +244,22 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	require.Nil(t, err)
 	orderRes := parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, orderRes[0].Message)
 	// check account balance
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.25919900")), // no change
+		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.259199000000000000")), // no change
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),          // 100 - 0.000001
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 	// check fee pool
 	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.00000100"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
 }
 
 func TestHandleMsgCancelOrderInvalid(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 2)
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
@@ -288,10 +290,8 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 
 	// invalid orderID
 	msg = types.NewMsgCancelOrder(addrKeysSlice[1].Address, "InvalidID-0001")
-	result, err = handler(ctx, msg)
-	orderRes = parseOrderResult(result)
-	require.Nil(t, orderRes)
-	require.Nil(t, err)
+	_, err = handler(ctx, msg)
+	require.NotNil(t, err)
 
 	// busy product
 	keeper.SetProductLock(ctx, order.Product, &types.ProductLock{})
@@ -309,7 +309,7 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 	require.Nil(t, err)
 	orderRes = parseOrderResult(result)
 	require.NotNil(t, orderRes)
-	require.EqualValues(t, "0.00000000"+common.NativeToken, orderRes[0].Message)
+	require.EqualValues(t, "0.000000000000000000"+common.NativeToken, orderRes[0].Message)
 	// check order status
 	order = keeper.GetOrder(ctx, order.OrderID)
 	require.EqualValues(t, types.OrderStatusCancelled, order.Status)
@@ -323,10 +323,8 @@ func TestHandleMsgCancelOrderInvalid(t *testing.T) {
 
 	// invalid order status
 	msg = types.NewMsgCancelOrder(addrKeysSlice[0].Address, order.OrderID)
-	result, err = handler(ctx, msg)
-	orderRes = parseOrderResult(result)
-	require.Nil(t, orderRes)
-	require.Nil(t, err)
+	_, err = handler(ctx, msg)
+	require.NotNil(t, err)
 }
 
 func TestHandleInvalidMsg(t *testing.T) {
@@ -391,6 +389,9 @@ func getOrderIDList(result *sdk.Result) []string {
 
 func parseOrderResult(result *sdk.Result) []types.OrderResult {
 	var evs []types.OrderResult
+	if result == nil {
+		return nil
+	}
 	for i := 0; i < len(result.Events); i++ {
 		event := result.Events[i]
 
@@ -521,6 +522,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 }
 
 func TestHandleMsgMultiCancelOrder(t *testing.T) {
+	common.InitConfig()
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	keeper := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
@@ -548,10 +550,8 @@ func TestHandleMsgMultiCancelOrder(t *testing.T) {
 	// Test order when locked
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
 
-	result1, err := handler(ctx, msg)
-
-	require.Equal(t, "", result1.Log)
-	require.Nil(t, err)
+	_, err = handler(ctx, msg)
+	require.NotNil(t, err)
 	keeper.UnlockProduct(ctx, types.TestTokenPair)
 
 	// check result & order
@@ -795,7 +795,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	orderRes := parseOrderResult(result)
 	// check result
 	require.Nil(t, err)
-	require.EqualValues(t, "0.00000100"+common.NativeToken, orderRes[0].Message)
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, orderRes[0].Message)
 	// check order status
 	orders[0] = keeper.GetOrder(ctx, orders[0].OrderID)
 	require.EqualValues(t, types.OrderStatusCancelled, orders[0].Status)
@@ -810,7 +810,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	// check fee pool
 	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.00000100"+common.NativeToken, collectedFees.String()) // 0.002+0.002
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String()) // 0.002+0.002
 	// check depth book
 	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 1, len(depthBook.Items))
@@ -846,7 +846,7 @@ func TestHandleMsgCancelOrder(t *testing.T) {
 	// check fee pool, partially cancel, no fees
 	feeCollector = mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees = feeCollector.GetCoins()
-	require.EqualValues(t, "0.00000200"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000002000000000000"+common.NativeToken, collectedFees.String())
 	// check order ids
 	key = types.FormatOrderIDsKey(types.TestTokenPair, sdk.MustNewDecFromStr("10"), types.SellOrder)
 	orderIDs = keeper.GetProductPriceOrderIDs(key)

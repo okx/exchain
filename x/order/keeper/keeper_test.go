@@ -169,7 +169,7 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 
 	account := keeper.GetCoins(ctx, testInput.TestAddrs[0])
 	require.NotNil(t, account)
-	require.EqualValues(t, "99.00000000", account[0].Amount.String())
+	require.EqualValues(t, "99.000000000000000000", account[0].Amount.String())
 }
 
 func TestLastPrice(t *testing.T) {
@@ -266,6 +266,7 @@ func TestDropOrder(t *testing.T) {
 }
 
 func TestKeeper_UpdateOrder(t *testing.T) {
+	common.InitConfig()
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx.WithBlockHeight(10)
@@ -280,7 +281,7 @@ func TestKeeper_UpdateOrder(t *testing.T) {
 	require.Nil(t, err)
 
 	//xxb_okt:10.00000000:BUY
-	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.orderIDsMap.Data["xxb_"+common.NativeToken+":10.00000000:BUY"][0])
+	require.EqualValues(t, "ID0000000010-1", keeper.diskCache.orderIDsMap.Data["xxb_"+common.NativeToken+":10.000000000000000000:BUY"][0])
 
 	order.Price = sdk.MustNewDecFromStr("11.0")
 

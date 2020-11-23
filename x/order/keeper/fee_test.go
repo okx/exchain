@@ -119,7 +119,7 @@ func TestOrderDealFee(t *testing.T) {
 		Price:    sdk.MustNewDecFromStr("1.0"),
 		Quantity: sdk.MustNewDecFromStr("0.00000001"),
 	}
-	feeOther = GetDealFee(order, sdk.MustNewDecFromStr("0.00000001"), ctx, keeper, &feeParams)
-	expectFee = sdk.SysCoins{sdk.NewDecCoinFromDec("xxb", sdk.MustNewDecFromStr("0.00000001"))}
+	feeOther = GetDealFee(order, sdk.MustNewDecFromStr("0.000000000000000001"), ctx, keeper, &feeParams)
+	expectFee = sdk.SysCoins{sdk.NewDecCoinFromDec("xxb", sdk.MustNewDecFromStr(minFee))}
 	require.EqualValues(t, expectFee, feeOther)
 }
