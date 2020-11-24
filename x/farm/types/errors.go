@@ -44,8 +44,8 @@ func ErrTokenNotExist(codespace sdk.CodespaceType, tokenName string) sdk.Error {
 }
 
 // ErrNoLockInfoFound returns an error when an address doesn't have any lock infos
-func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s doesn't have any lock infos", addr)
+func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string, pool string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s haven't locked in pool %s", addr, pool)
 }
 
 // ErrRemainingAmountNotZero returns an error when the remaining amount in yieldedTokenInfo is not zero

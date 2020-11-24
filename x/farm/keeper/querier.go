@@ -121,7 +121,7 @@ func queryLockInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 
 	lockInfo, found := k.GetLockInfo(ctx, params.AccAddress, params.PoolName)
 	if !found {
-		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, params.AccAddress.String())
+		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, params.AccAddress.String(), params.PoolName)
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, lockInfo)
