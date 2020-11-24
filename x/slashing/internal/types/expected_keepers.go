@@ -43,6 +43,9 @@ type StakingKeeper interface {
 
 	// MaxValidators returns the maximum amount of bonded validators
 	MaxValidators(sdk.Context) uint16
+
+	//Append abandoned validator to staking keeper
+	AppendAbandonedValidatorAddrs(ctx sdk.Context, ConsAddr sdk.ConsAddress)
 }
 
 // StakingHooks event hooks for staking validator object (noalias)
