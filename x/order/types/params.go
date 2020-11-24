@@ -61,12 +61,12 @@ func validateParams(value interface{}) error {
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyOrderExpireBlocks, &p.OrderExpireBlocks, validateParams},
-		{KeyMaxDealsPerBlock, &p.MaxDealsPerBlock, validateParams},
-		{KeyFeePerBlock, &p.FeePerBlock, validateParams},
-		{KeyTradeFeeRate, &p.TradeFeeRate, validateParams},
-		{KeyNewOrderMsgGasUnit, &p.NewOrderMsgGasUnit, validateParams},
-		{KeyCancelOrderMsgGasUnit, &p.CancelOrderMsgGasUnit, validateParams},
+		{KeyOrderExpireBlocks, &p.OrderExpireBlocks, common.ValidateInt64Positive("order expire blocks")},
+		{KeyMaxDealsPerBlock, &p.MaxDealsPerBlock, common.ValidateInt64Positive("max deals per block")},
+		{KeyFeePerBlock, &p.FeePerBlock, common.ValidateSysCoin("fee per block")},
+		{KeyTradeFeeRate, &p.TradeFeeRate, common.ValidateRateNotNeg("trade fee rate")},
+		{KeyNewOrderMsgGasUnit, &p.NewOrderMsgGasUnit, common.ValidateUint64Positive("new order msg gas unit")},
+		{KeyCancelOrderMsgGasUnit, &p.CancelOrderMsgGasUnit, common.ValidateUint64Positive("cancel order msg gas unit")},
 	}
 }
 

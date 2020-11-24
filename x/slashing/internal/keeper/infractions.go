@@ -94,8 +94,7 @@ func (k Keeper) HandleValidatorSignature(ctx sdk.Context, addr crypto.Address, p
 			//don't slashing tokens, just jail the validator
 			//k.sk.Slash(ctx, consAddr, distributionHeight, power, k.SlashFractionDowntime(ctx))
 			k.sk.Jail(ctx, consAddr)
-			//todo AppendAbandonedValidatorAddrs added by staking
-			//		k.GetStakingKeeper().AppendAbandonedValidatorAddrs(ctx, consAddr)
+			k.GetStakingKeeper().AppendAbandonedValidatorAddrs(ctx, consAddr)
 
 			signInfo.JailedUntil = ctx.BlockHeader().Time.Add(k.DowntimeJailDuration(ctx))
 
