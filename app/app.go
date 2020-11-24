@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/okex/okexchain/x/debug"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"io"
 	"os"
 
@@ -437,6 +438,30 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	return app.mm.EndBlock(ctx, req)
+}
+
+func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+	resp := app.BaseApp.DeliverTx(req)
+	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
+		app.syncTx(req.Tx)
+	}
+
+	return resp
+}
+
+func (app *OKExChainApp) syncTx(txBytes []byte) {
+
+	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
+		if stdTx, ok := tx.(auth.StdTx); ok {
+			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
+			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
+			ctx := app.GetDeliverStateCtx()
+			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
+				ctx.BlockHeader().Time.Unix())
+			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
+				ctx.BlockHeader().Time.Unix())
+		}
+	}
 }
 
 // InitChainer updates at chain initialization
