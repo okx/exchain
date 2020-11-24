@@ -3,7 +3,6 @@ package evidence_test
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evidence/internal/types"
@@ -23,8 +22,7 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) SetupTest() {
 	checkTx := false
-	app := simapp.Setup(checkTx)
-
+	app := MakeOKEXApp()
 	// get the app's codec and register custom testing types
 	cdc := app.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
