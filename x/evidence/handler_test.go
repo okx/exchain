@@ -3,7 +3,6 @@ package evidence_test
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evidence/internal/types"
@@ -23,21 +22,20 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) SetupTest() {
 	checkTx := false
-	app := simapp.Setup(checkTx)
-
+	okexapp := MakeOKEXApp()
 	// get the app's codec and register custom testing types
-	cdc := app.Codec()
+	cdc := okexapp.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
 
 	// recreate keeper in order to use custom testing types
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, app.GetKey(evidence.StoreKey), app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
+		cdc, okexapp.GetKey(evidence.StoreKey), okexapp.GetSubspace(evidence.ModuleName), okexapp.StakingKeeper, okexapp.SlashingKeeper,
 	)
 	router := evidence.NewRouter()
 	router = router.AddRoute(types.TestEvidenceRouteEquivocation, types.TestEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
-	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = okexapp.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.handler = evidence.NewHandler(*evidenceKeeper)
 	suite.keeper = *evidenceKeeper
 }

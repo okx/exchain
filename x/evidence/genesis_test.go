@@ -1,12 +1,17 @@
 package evidence_test
 
 import (
+	"os"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/okexchain/app"
+	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evidence/exported"
@@ -22,23 +27,41 @@ type GenesisTestSuite struct {
 	keeper evidence.Keeper
 }
 
+func MakeOKEXApp() *app.OKExChainApp {
+	genesisState := app.NewDefaultGenesisState()
+	db := dbm.NewMemDB()
+	okexapp := app.NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
+
+	stateBytes, err := codec.MarshalJSONIndent(okexapp.Codec(), genesisState)
+	if err != nil {
+		panic(err)
+	}
+	okexapp.InitChain(
+		abci.RequestInitChain{
+			Validators:    []abci.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+		},
+	)
+	return okexapp
+}
+
 func (suite *GenesisTestSuite) SetupTest() {
 	checkTx := false
-	app := simapp.Setup(checkTx)
 
+	okexapp := MakeOKEXApp()
 	// get the app's codec and register custom testing types
-	cdc := app.Codec()
+	cdc := okexapp.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
 
 	// recreate keeper in order to use custom testing types
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, app.GetKey(evidence.StoreKey), app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
+		cdc, okexapp.GetKey(evidence.StoreKey), okexapp.GetSubspace(evidence.ModuleName), okexapp.StakingKeeper, okexapp.SlashingKeeper,
 	)
 	router := evidence.NewRouter()
 	router = router.AddRoute(types.TestEvidenceRouteEquivocation, types.TestEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
-	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = okexapp.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.keeper = *evidenceKeeper
 }
 

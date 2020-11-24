@@ -491,6 +491,13 @@ func (app *OKExChainApp) Codec() *codec.Codec {
 	return app.cdc
 }
 
+// GetSubspace returns a param subspace for a given module name.
+//
+// NOTE: This is solely to be used for testing purposes.
+func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
+	return app.subspaces[moduleName]
+}
+
 // GetMaccPerms returns a copy of the module account permissions
 func GetMaccPerms() map[string][]string {
 	dupMaccPerms := make(map[string][]string)

@@ -2,15 +2,20 @@ package keeper_test
 
 import (
 	"encoding/hex"
+	"os"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/okexchain/app"
+	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evidence/exported"
 	"github.com/okex/okexchain/x/evidence/internal/keeper"
 	"github.com/okex/okexchain/x/evidence/internal/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -31,7 +36,7 @@ var (
 		sdk.ValAddress(pubkeys[2].Address()),
 	}
 
-	initAmt   = sdk.TokensFromConsensusPower(200)
+	initAmt   = sdk.NewIntFromUint64(20000)
 	initCoins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt))
 )
 
@@ -53,29 +58,47 @@ type KeeperTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	keeper  keeper.Keeper
-	app     *simapp.SimApp
+	app     *app.OKExChainApp
+}
+
+func MakeOKEXApp() *app.OKExChainApp {
+	genesisState := app.NewDefaultGenesisState()
+	db := dbm.NewMemDB()
+	okexapp := app.NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
+
+	stateBytes, err := codec.MarshalJSONIndent(okexapp.Codec(), genesisState)
+	if err != nil {
+		panic(err)
+	}
+	okexapp.InitChain(
+		abci.RequestInitChain{
+			Validators:    []abci.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+		},
+	)
+	return okexapp
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-	app := simapp.Setup(checkTx)
 
+	okexapp := MakeOKEXApp()
 	// get the app's codec and register custom testing types
-	cdc := app.Codec()
+	cdc := okexapp.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
 
 	// recreate keeper in order to use custom testing types
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, app.GetKey(evidence.StoreKey), app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
+		cdc, okexapp.GetKey(evidence.StoreKey), okexapp.GetSubspace(evidence.ModuleName), okexapp.StakingKeeper, okexapp.SlashingKeeper,
 	)
 	router := evidence.NewRouter()
 	router = router.AddRoute(types.TestEvidenceRouteEquivocation, types.TestEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
-	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = okexapp.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.querier = keeper.NewQuerier(*evidenceKeeper)
 	suite.keeper = *evidenceKeeper
-	suite.app = app
+	suite.app = okexapp
 }
 
 func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int) []exported.Evidence {

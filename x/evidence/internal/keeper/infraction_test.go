@@ -5,26 +5,29 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/evidence/internal/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/okex/okexchain/x/staking"
+	stakingtypes "github.com/okex/okexchain/x/staking/types"
 
 	"github.com/tendermint/tendermint/crypto"
 )
 
-func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {
-	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-	return staking.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt),
-		staking.Description{}, commission, sdk.OneInt(),
+const EPOCH = 252
+
+func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) stakingtypes.MsgCreateValidator {
+	//	commission := staking.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+	return staking.NewMsgCreateValidator(address, pubKey,
+		staking.NewDescription("my moniker", "my identity", "my website", "my details"), msd,
 	)
 }
 
 func (suite *KeeperTestSuite) TestHandleDoubleSign() {
-	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1)
+	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(EPOCH)
 	suite.populateValidators(ctx)
 
-	power := int64(100)
+	power := sdk.NewIntFromUint64(10000)
 	stakingParams := suite.app.StakingKeeper.GetParams(ctx)
-	amt := sdk.TokensFromConsensusPower(power)
+	amt := power
 	operatorAddr, val := valAddresses[0], pubkeys[0]
 
 	// create validator
@@ -38,17 +41,15 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
 	)
-	suite.Equal(amt, suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetBondedTokens())
 
 	// handle a signature to set signing info
 	suite.app.SlashingKeeper.HandleValidatorSignature(ctx, val.Address(), amt.Int64(), true)
 
 	// double sign less than max age
-	oldTokens := suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens()
 	evidence := types.Equivocation{
 		Height:           0,
 		Time:             time.Unix(0, 0),
-		Power:            power,
+		Power:            power.Int64(),
 		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
 	suite.keeper.HandleDoubleSign(ctx, evidence)
@@ -57,15 +58,8 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.True(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())
 	suite.True(suite.app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(val.Address())))
 
-	// tokens should be decreased
-	newTokens := suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens()
-	suite.True(newTokens.LT(oldTokens))
-
 	// submit duplicate evidence
 	suite.keeper.HandleDoubleSign(ctx, evidence)
-
-	// tokens should be the same (capped slash)
-	suite.True(suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens().Equal(newTokens))
 
 	// jump to past the unbonding period
 	ctx = ctx.WithBlockTime(time.Unix(1, 0).Add(stakingParams.UnbondingTime))
@@ -75,22 +69,19 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 
 	// require we be able to unbond now
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
-	del, _ := suite.app.StakingKeeper.GetDelegation(ctx, sdk.AccAddress(operatorAddr), operatorAddr)
-	validator, _ := suite.app.StakingKeeper.GetValidator(ctx, operatorAddr)
-	totalBond := validator.TokensFromShares(del.GetShares()).TruncateInt()
-	msgUnbond := staking.NewMsgUndelegate(sdk.AccAddress(operatorAddr), operatorAddr, sdk.NewCoin(stakingParams.BondDenom, totalBond))
-	res, err = staking.NewHandler(suite.app.StakingKeeper)(ctx, msgUnbond)
+	msgDestroy := stakingtypes.NewMsgDestroyValidator(sdk.AccAddress(operatorAddr))
+	res, err = staking.NewHandler(suite.app.StakingKeeper)(ctx, msgDestroy)
 	suite.NoError(err)
 	suite.NotNil(res)
 }
 
 func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
-	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1).WithBlockTime(time.Now())
+	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(EPOCH).WithBlockTime(time.Now())
 	suite.populateValidators(ctx)
 
-	power := int64(100)
+	power := sdk.NewIntFromUint64(10000)
 	stakingParams := suite.app.StakingKeeper.GetParams(ctx)
-	amt := sdk.TokensFromConsensusPower(power)
+	amt := power
 	operatorAddr, val := valAddresses[0], pubkeys[0]
 
 	// create validator
@@ -104,12 +95,11 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
 		sdk.NewCoins(sdk.NewCoin(stakingParams.BondDenom, initAmt.Sub(amt))),
 	)
-	suite.Equal(amt, suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetBondedTokens())
 
 	evidence := types.Equivocation{
 		Height:           0,
 		Time:             ctx.BlockTime(),
-		Power:            power,
+		Power:            power.Int64(),
 		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
 	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
