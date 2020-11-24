@@ -2,15 +2,20 @@ package keeper_test
 
 import (
 	"encoding/hex"
+	"os"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/okexchain/app"
+	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evidence/exported"
 	"github.com/okex/okexchain/x/evidence/internal/keeper"
 	"github.com/okex/okexchain/x/evidence/internal/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -31,7 +36,7 @@ var (
 		sdk.ValAddress(pubkeys[2].Address()),
 	}
 
-	initAmt   = sdk.TokensFromConsensusPower(200)
+	initAmt   = sdk.NewIntFromUint64(20000)
 	initCoins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt))
 )
 
@@ -53,13 +58,31 @@ type KeeperTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	keeper  keeper.Keeper
-	app     *simapp.SimApp
+	app     *app.OKExChainApp
+}
+
+func MakeOKEXApp() *app.OKExChainApp {
+	genesisState := app.NewDefaultGenesisState()
+	db := dbm.NewMemDB()
+	okexapp := app.NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
+
+	stateBytes, err := codec.MarshalJSONIndent(okexapp.Codec(), genesisState)
+	if err != nil {
+		panic(err)
+	}
+	okexapp.InitChain(
+		abci.RequestInitChain{
+			Validators:    []abci.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+		},
+	)
+	return okexapp
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-	app := simapp.Setup(checkTx)
 
+	app := MakeOKEXApp()
 	// get the app's codec and register custom testing types
 	cdc := app.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
