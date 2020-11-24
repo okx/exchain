@@ -16,11 +16,10 @@ func TestKeeper_GetMinDeposit(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
-	p := types.Params{
-		DelistMinDeposit: sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(12345))},
-	}
+	p := types.DefaultParams()
+	p.DelistMinDeposit = sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(12345))}
 
-	testInput.DexKeeper.SetParams(ctx, p)
+	testInput.DexKeeper.SetParams(ctx, *p)
 	var contentImpl types.DelistProposal
 	minDeposit := testInput.DexKeeper.GetMinDeposit(ctx, contentImpl)
 	require.True(t, minDeposit.IsEqual(p.DelistMinDeposit))
@@ -30,10 +29,10 @@ func TestKeeper_GetMaxDepositPeriod(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
-	p := types.Params{
-		DelistMaxDepositPeriod: time.Second * 123,
-	}
-	testInput.DexKeeper.SetParams(ctx, p)
+	p := types.DefaultParams()
+	p.DelistMaxDepositPeriod = time.Second * 123
+
+	testInput.DexKeeper.SetParams(ctx, *p)
 	var contentImpl types.DelistProposal
 	maxDepositPeriod := testInput.DexKeeper.GetMaxDepositPeriod(ctx, contentImpl)
 	require.EqualValues(t, maxDepositPeriod, p.DelistMaxDepositPeriod)
@@ -43,10 +42,10 @@ func TestKeeper_GetVotingPeriod(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
-	p := types.Params{
-		DelistVotingPeriod: time.Second * 123,
-	}
-	testInput.DexKeeper.SetParams(ctx, p)
+	p := types.DefaultParams()
+	p.DelistVotingPeriod = time.Second * 123
+
+	testInput.DexKeeper.SetParams(ctx, *p)
 	var contentImpl types.DelistProposal
 	maxListVotingPeriod := testInput.DexKeeper.GetVotingPeriod(ctx, contentImpl)
 	require.EqualValues(t, maxListVotingPeriod, p.DelistVotingPeriod)
