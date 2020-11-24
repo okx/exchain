@@ -19,7 +19,7 @@ import (
 // retrieve params which are instant
 func setInstantUnbondPeriod(keeper keep.Keeper, ctx sdk.Context) types.Params {
 	params := keeper.GetParams(ctx)
-	params.UnbondingTime = 0
+	params.UnbondingTime = 1
 	keeper.SetParams(ctx, params)
 	return params
 }
