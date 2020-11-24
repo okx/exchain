@@ -76,7 +76,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) sdk.
 	// 1.1 Check if there are enough tokens to unlock
 	lockInfo, found := k.GetLockInfo(ctx, msg.Address, msg.PoolName)
 	if !found {
-		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String()).Result()
+		return types.ErrNoLockInfoFound(DefaultCodespace, msg.Address.String(), msg.PoolName).Result()
 	}
 
 	if lockInfo.Amount.Denom != msg.Amount.Denom {

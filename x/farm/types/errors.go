@@ -44,8 +44,8 @@ func ErrTokenNotExist(codespace sdk.CodespaceType, tokenName string) sdk.Error {
 }
 
 // ErrNoLockInfoFound returns an error when an address doesn't have any lock infos
-func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string) sdk.Error {
-	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s doesn't have any lock infos", addr)
+func ErrNoLockInfoFound(codespace sdk.CodespaceType, addr string, pool string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidLockInfo, "failed. %s hasn't locked in pool %s", addr, pool)
 }
 
 // ErrRemainingAmountNotZero returns an error when the remaining amount in yieldedTokenInfo is not zero
@@ -90,7 +90,7 @@ func ErrNilAddress(codespace sdk.CodespaceType) sdk.Error {
 // ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed
 func ErrPoolNotFinished(codespace sdk.CodespaceType, poolName string) sdk.Error {
 	return sdk.NewError(codespace, CodePoolNotFinished,
-		"failed. the pool %s is not finished and can not be destroyed", poolName)
+		"failed. the pool %s that is with unclaimed rewards or locked coins can not be destroyed", poolName)
 }
 
 // ErrPoolNameNotExistedInWhiteList returns an error when the pool name is not existed in the white list
