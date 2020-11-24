@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/x/params/subspace"
@@ -62,9 +63,9 @@ func validateParams(value interface{}) error {
 // nolint
 func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 	return subspace.ParamSetPairs{
-		{KeyMaxDepositPeriod, &p.MaxDepositPeriod, validateParams},
-		{KeyMinDeposit, &p.MinDeposit, validateParams},
-		{KeyVotingPeriod, &p.VotingPeriod, validateParams},
-		{KeyMaxBlockHeight, &p.MaxBlockHeight, validateParams},
+		{KeyMaxDepositPeriod, &p.MaxDepositPeriod, common.ValidateDurationPositive("max deposit period")},
+		{KeyMinDeposit, &p.MinDeposit, common.ValidateSysCoins("min deposit")},
+		{KeyVotingPeriod, &p.VotingPeriod, common.ValidateDurationPositive("voting period")},
+		{KeyMaxBlockHeight, &p.MaxBlockHeight, common.ValidateUint64Positive("max block height")},
 	}
 }
