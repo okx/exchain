@@ -54,7 +54,9 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Er
 		return nil, types.ErrNoFarmPoolFound(types.DefaultCodespace, params.PoolName)
 	}
 
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, pool)
+	updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, updatedPool)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}
@@ -70,15 +72,21 @@ func queryPools(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.E
 	}
 
 	pools := k.GetFarmPools(ctx)
+	var updatedPools types.FarmPools
+	for _, pool := range pools {
+		updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
+		updatedPools = append(updatedPools, updatedPool)
+	}
+
 	if !(params.Page == 1 && params.Limit == 0) {
-		start, end := client.Paginate(len(pools), params.Page, params.Limit, defaultPoolsDisplayedNum)
+		start, end := client.Paginate(len(updatedPools), params.Page, params.Limit, defaultPoolsDisplayedNum)
 		if start < 0 || end < 0 {
 			start, end = 0, 0
 		}
-		pools = pools[start:end]
+		updatedPools = updatedPools[start:end]
 	}
 
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, pools)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, updatedPools)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)
 	}
