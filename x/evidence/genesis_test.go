@@ -48,20 +48,20 @@ func MakeOKEXApp() *app.OKExChainApp {
 func (suite *GenesisTestSuite) SetupTest() {
 	checkTx := false
 
-	okexapp := MakeOKEXApp()
+	app := MakeOKEXApp()
 	// get the app's codec and register custom testing types
-	cdc := okexapp.Codec()
+	cdc := app.Codec()
 	cdc.RegisterConcrete(types.TestEquivocationEvidence{}, "test/TestEquivocationEvidence", nil)
 
 	// recreate keeper in order to use custom testing types
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, okexapp.GetKey(evidence.StoreKey), okexapp.GetSubspace(evidence.ModuleName), okexapp.StakingKeeper, okexapp.SlashingKeeper,
+		cdc, app.GetKey(evidence.StoreKey), app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
 	)
 	router := evidence.NewRouter()
 	router = router.AddRoute(types.TestEvidenceRouteEquivocation, types.TestEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
-	suite.ctx = okexapp.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
 	suite.keeper = *evidenceKeeper
 }
 
