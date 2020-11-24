@@ -52,7 +52,7 @@ func (k Keeper) WithdrawRewards(
 	// 0. check existence of lock info
 	lockInfo, found := k.GetLockInfo(ctx, addr, poolName)
 	if !found {
-		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, addr.String())
+		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, addr.String(), poolName)
 	}
 
 	// 1. end current period and calculate rewards
