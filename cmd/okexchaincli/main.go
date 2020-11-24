@@ -19,7 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
+	tokencmd "github.com/okex/okexchain/x/token/client/cli"
 
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/codec"
@@ -113,7 +113,7 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	}
 
 	txCmd.AddCommand(
-		bankcmd.SendTxCmd(cdc),
+		tokencmd.SendTxCmd(cdc),
 		flags.LineBreak,
 		authcmd.GetSignCommand(cdc),
 		authcmd.GetMultiSignCommand(cdc),

@@ -53,12 +53,12 @@ func validateParams(value interface{}) error {
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyFeeIssue, &p.FeeIssue, validateParams},
-		{KeyFeeMint, &p.FeeMint, validateParams},
-		{KeyFeeBurn, &p.FeeBurn, validateParams},
-		{KeyFeeModify, &p.FeeModify, validateParams},
-		{KeyFeeChown, &p.FeeChown, validateParams},
-		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, validateParams},
+		{KeyFeeIssue, &p.FeeIssue, common.ValidateSysCoin("issue fee")},
+		{KeyFeeMint, &p.FeeMint, common.ValidateSysCoin("mint fee")},
+		{KeyFeeBurn, &p.FeeBurn, common.ValidateSysCoin("burn fee")},
+		{KeyFeeModify, &p.FeeModify, common.ValidateSysCoin("modify fee")},
+		{KeyFeeChown, &p.FeeChown, common.ValidateSysCoin("change ownership fee")},
+		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, common.ValidateDurationPositive("confirm ownership window")},
 	}
 }
 

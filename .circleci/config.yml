@@ -100,4 +100,4 @@ jobs:
             echo "--> upload codecov:"
             bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
-#            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm")
+#            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm"  "./x/backend")
