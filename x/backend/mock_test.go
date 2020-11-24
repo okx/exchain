@@ -250,7 +250,7 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 	app.tokenKeeper.SetParams(ctx, tokenParam)
 	for i, tx := range txs {
 		_, _, err := app.Deliver(tx)
-		if err != nil {
+		if err == nil {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
