@@ -57,9 +57,10 @@ func GetDealFee(order *types.Order, fillAmt sdk.Dec, ctx sdk.Context, keeper Get
 		quantity = fillAmt.Mul(keeper.GetLastPrice(ctx, order.Product))
 	}
 
+	minFeeDec := sdk.MustNewDecFromStr(minFee)
 	feeAmt := quantity.Mul(feeParams.TradeFeeRate)
-	if feeAmt.IsPositive() {
+	if feeAmt.GT(minFeeDec) {
 		return sdk.SysCoins{sdk.NewDecCoinFromDec(symbol, feeAmt)}
 	}
-	return sdk.SysCoins{sdk.NewDecCoinFromDec(symbol, sdk.MustNewDecFromStr(minFee))}
+	return sdk.SysCoins{sdk.NewDecCoinFromDec(symbol, minFeeDec)}
 }

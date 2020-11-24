@@ -149,7 +149,9 @@ func TestQuerier_QueryParams(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 
-	testInput.DexKeeper.SetParams(ctx, types.Params{DelistMaxDepositPeriod: time.Second * 123})
+	p := types.DefaultParams()
+	p.DelistMaxDepositPeriod = time.Second * 123
+	testInput.DexKeeper.SetParams(ctx, *p)
 	querier := NewQuerier(testInput.DexKeeper)
 	res, err := querier(ctx, []string{"params"}, abci.RequestQuery{})
 

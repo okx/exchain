@@ -225,10 +225,12 @@ func TestQueryParameters(t *testing.T) {
 	querier := NewQuerier(keeper)
 
 	params := &types.Params{
-		OrderExpireBlocks: 1000,
-		MaxDealsPerBlock:  10000,
-		FeePerBlock:       sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)),
-		TradeFeeRate:      sdk.MustNewDecFromStr("0.001"),
+		OrderExpireBlocks:     1000,
+		MaxDealsPerBlock:      10000,
+		FeePerBlock:           sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)),
+		TradeFeeRate:          sdk.MustNewDecFromStr("0.001"),
+		NewOrderMsgGasUnit:    1,
+		CancelOrderMsgGasUnit: 1,
 	}
 	keeper.SetParams(ctx, params)
 	path := []string{types.QueryParameters}

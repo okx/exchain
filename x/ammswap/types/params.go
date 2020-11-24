@@ -50,6 +50,17 @@ func (p Params) String() string {
 
 
 func validateParams(value interface{}) error {
+	v, ok := value.(sdk.Dec)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", value)
+	}
+
+	if v.IsNegative() {
+		return fmt.Errorf("fee rate cannot be negative: %s", v)
+	}
+	if v.GT(sdk.OneDec()) {
+		return fmt.Errorf("fee rate too large: %s", v)
+	}
 	return nil
 }
 

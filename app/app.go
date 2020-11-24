@@ -26,7 +26,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
-	"github.com/cosmos/cosmos-sdk/x/evidence"
+	"github.com/okex/okexchain/x/evidence"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
@@ -294,13 +294,12 @@ func NewOKExChainApp(
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
 	// create evidence keeper with router
-	/*evidenceKeeper := evidence.NewKeeper(
+	evidenceKeeper := evidence.NewKeeper(
 		cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
 	)
 	evidenceRouter := evidence.NewRouter()
-	// TODO: Register evidence routes.
 	evidenceKeeper.SetRouter(evidenceRouter)
-	app.EvidenceKeeper = *evidenceKeeper*/
+	app.EvidenceKeeper = *evidenceKeeper
 
 	// register the proposal types
 	// 3.register the proposal types
@@ -338,7 +337,7 @@ func NewOKExChainApp(
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
-		//	evidence.NewAppModule(app.EvidenceKeeper),
+		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
 		faucet.NewAppModule(app.FaucetKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
@@ -364,7 +363,7 @@ func NewOKExChainApp(
 		staking.ModuleName,
 		farm.ModuleName,
 		evm.ModuleName,
-		//	evidence.ModuleName,
+		evidence.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		evm.ModuleName,
@@ -383,7 +382,7 @@ func NewOKExChainApp(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName,
 		dex.ModuleName,
-		order.ModuleName, crisis.ModuleName, genutil.ModuleName /*evidence.ModuleName, */, evm.ModuleName,
+		order.ModuleName, crisis.ModuleName, genutil.ModuleName ,evidence.ModuleName, evm.ModuleName,
 		faucet.ModuleName, ammswap.ModuleName, farm.ModuleName,
 	)
 
