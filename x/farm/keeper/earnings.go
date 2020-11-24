@@ -12,7 +12,7 @@ func (k Keeper) getEarnings(
 	var earnings types.Earnings
 	lockInfo, found := k.GetLockInfo(ctx, accAddr, poolName)
 	if !found {
-		return earnings, types.ErrNoLockInfoFound(types.DefaultCodespace, accAddr.String())
+		return earnings, types.ErrNoLockInfoFound(types.DefaultCodespace, accAddr.String(), poolName)
 	}
 
 	pool, found := k.GetFarmPool(ctx, poolName)
