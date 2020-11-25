@@ -3,7 +3,7 @@ SUM := $(shell which shasum)
 
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
-export GO111MODULE = off
+export GO111MODULE=on
 
 GithubTop=github.com
 
@@ -15,7 +15,7 @@ Name=okexchain
 ServerName=okexchaind
 ClientName=okexchaincli
 # the height of the 1st block is GenesisHeight+1
-GenesisHeight=0
+GenesisHeight=1000
 
 # process linker flags
 ifeq ($(VERSION),)
