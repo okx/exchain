@@ -30,7 +30,7 @@ var SupportedAlgorithms = []keys.SigningAlgo{EthSecp256k1, keys.Secp256k1}
 // EthSecp256k1Options defines a keys options for the ethereum Secp256k1 curve.
 func EthSecp256k1Options() []keys.KeybaseOption {
 	return []keys.KeybaseOption{
-		keys.WithKeygenFunc(KeygenFunc),
+		keys.WithKeygenFunc(EthermintKeygenFunc),
 		keys.WithDeriveFunc(DeriveKey),
 		keys.WithSupportedAlgos(SupportedAlgorithms),
 		keys.WithSupportedAlgosLedger(SupportedAlgorithms),
@@ -48,8 +48,8 @@ func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) 
 	}
 }
 
-// KeygenFunc is the key generation function to generate secp256k1.
-func KeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
+// EthermintKeygenFunc is the key generation function to generate secp256k1.
+func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
 	switch algo {
 	case keys.Secp256k1:
 		return keys.StdPrivKeyGen(bz, algo)
