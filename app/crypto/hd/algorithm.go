@@ -1,13 +1,11 @@
 package hd
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
+	"github.com/bartekn/go-bip39"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/tyler-smith/go-bip39"
 
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -32,7 +30,7 @@ var SupportedAlgorithms = []keys.SigningAlgo{EthSecp256k1, keys.Secp256k1}
 // EthSecp256k1Options defines a keys options for the ethereum Secp256k1 curve.
 func EthSecp256k1Options() []keys.KeybaseOption {
 	return []keys.KeybaseOption{
-		keys.WithKeygenFunc(EthermintKeygenFunc),
+		keys.WithKeygenFunc(KeygenFunc),
 		keys.WithDeriveFunc(DeriveKey),
 		keys.WithSupportedAlgos(SupportedAlgorithms),
 		keys.WithSupportedAlgosLedger(SupportedAlgorithms),
@@ -50,14 +48,16 @@ func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) 
 	}
 }
 
-// EthermintKeygenFunc is the key generation function to generate secp256k1 ToECDSA
-// from ethereum.
-func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
-	if algo != EthSecp256k1 {
-		return nil, fmt.Errorf("signing algorithm must be %s, got %s", EthSecp256k1, algo)
+// KeygenFunc is the key generation function to generate secp256k1.
+func KeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
+	switch algo {
+	case keys.Secp256k1:
+		return keys.StdPrivKeyGen(bz, algo)
+	case EthSecp256k1:
+		return ethsecp256k1.PrivKey(bz), nil
+	default:
+		return nil, errors.Wrap(keys.ErrUnsupportedSigningAlgo, string(algo))
 	}
-
-	return ethsecp256k1.PrivKey(bz), nil
 }
 
 // DeriveSecp256k1 derives and returns the eth_secp256k1 private key for the given mnemonic and HD path.
