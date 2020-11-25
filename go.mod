@@ -45,6 +45,7 @@ require (
 	github.com/willf/bitset v1.1.11
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
+	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
 
