@@ -38,8 +38,8 @@ require (
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
 	github.com/stretchr/testify v1.6.1
 	github.com/tendermint/go-amino v0.15.1
-	github.com/tendermint/iavl v0.14.0
-	github.com/tendermint/tendermint v0.33.7
+	github.com/tendermint/iavl v0.14.1
+	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.1
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
@@ -49,7 +49,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-0.20201124030442-e063c12350c1
-	github.com/tendermint/iavl => github.com/okex/iavl v0.14.0-okexchain1
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.7-okexchain1
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20201124235946-a9ea637bf739
+	github.com/tendermint/iavl => github.com/okex/iavl v0.14.1-okexchain1
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain1
 )
