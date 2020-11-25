@@ -3,9 +3,9 @@ package hd
 import (
 	"github.com/pkg/errors"
 
-	"github.com/bartekn/go-bip39"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
+	"github.com/tyler-smith/go-bip39"
 
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
