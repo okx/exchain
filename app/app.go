@@ -362,11 +362,10 @@ func NewOKExChainApp(
 		slashing.ModuleName,
 		staking.ModuleName,
 		farm.ModuleName,
-		evm.ModuleName,
 		evidence.ModuleName,
+		evm.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		evm.ModuleName,
 		crisis.ModuleName,
 		gov.ModuleName,
 		dex.ModuleName,
@@ -374,16 +373,16 @@ func NewOKExChainApp(
 		staking.ModuleName,
 		backend.ModuleName,
 		stream.ModuleName,
+		evm.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
 	// properly initialized with tokens from genesis accounts.
 	app.mm.SetOrderInitGenesis(
-		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
-		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName,
-		dex.ModuleName,
-		order.ModuleName, crisis.ModuleName, genutil.ModuleName ,evidence.ModuleName, evm.ModuleName,
-		faucet.ModuleName, ammswap.ModuleName, farm.ModuleName,
+		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName, slashing.ModuleName,
+		gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName, dex.ModuleName,
+		order.ModuleName, crisis.ModuleName, genutil.ModuleName, evidence.ModuleName, faucet.ModuleName,
+		ammswap.ModuleName, farm.ModuleName, evm.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
