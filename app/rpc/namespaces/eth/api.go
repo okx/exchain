@@ -196,6 +196,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	api.logger.Debug("eth_accounts")
 	api.keyringLock.Lock()
+	defer api.keyringLock.Unlock()
 
 	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 
@@ -204,7 +205,6 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 		return addresses, err
 	}
 
-	api.keyringLock.Unlock()
 
 	for _, info := range infos {
 		addressBytes := info.GetPubKey().Address().Bytes()

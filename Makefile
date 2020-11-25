@@ -3,14 +3,14 @@ SUM := $(shell which shasum)
 
 COMMIT := $(shell git rev-parse HEAD)
 CAT := $(if $(filter $(OS),Windows_NT),type,cat)
-export GO111MODULE = on
+export GO111MODULE=on
 
 GithubTop=github.com
 
 Version=v0.20.0
-CosmosSDK=v0.39.1
-Tendermint=v0.33.7
-Iavl=v0.14.0
+CosmosSDK=v0.39.2
+Tendermint=v0.33.9
+Iavl=v0.14.1
 Name=okexchain
 ServerName=okexchaind
 ClientName=okexchaincli
