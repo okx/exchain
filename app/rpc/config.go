@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -13,14 +14,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cmserver "github.com/cosmos/cosmos-sdk/server"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/websockets"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
@@ -32,7 +33,7 @@ const (
 // Rpc calls are enabled based on their associated module (eg. "eth").
 func RegisterRoutes(rs *lcd.RestServer) {
 	server := rpc.NewServer()
-	accountName := viper.GetString(flagUnlockKey)
+	accountName := viper.GetString(cmserver.FlagUlockKey)
 	accountNames := strings.Split(accountName, ",")
 
 	var privkeys []ethsecp256k1.PrivKey
@@ -88,7 +89,7 @@ func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
+		viper.GetString(cmserver.FlagUlockKeyHome),
 		os.Stdin,
 		hd.EthSecp256k1Options()...,
 	)

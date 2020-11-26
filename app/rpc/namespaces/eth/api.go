@@ -9,6 +9,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -33,7 +35,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -94,7 +95,7 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
+		viper.GetString(cmserver.FlagUlockKeyHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
 	)
