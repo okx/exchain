@@ -1,8 +1,6 @@
 package hd
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -50,14 +48,16 @@ func DeriveKey(mnemonic, bip39Passphrase, hdPath string, algo keys.SigningAlgo) 
 	}
 }
 
-// EthermintKeygenFunc is the key generation function to generate secp256k1 ToECDSA
-// from ethereum.
+// EthermintKeygenFunc is the key generation function to generate secp256k1.
 func EthermintKeygenFunc(bz []byte, algo keys.SigningAlgo) (tmcrypto.PrivKey, error) {
-	if algo != EthSecp256k1 {
-		return nil, fmt.Errorf("signing algorithm must be %s, got %s", EthSecp256k1, algo)
+	switch algo {
+	case keys.Secp256k1:
+		return keys.StdPrivKeyGen(bz, algo)
+	case EthSecp256k1:
+		return ethsecp256k1.PrivKey(bz), nil
+	default:
+		return nil, errors.Wrap(keys.ErrUnsupportedSigningAlgo, string(algo))
 	}
-
-	return ethsecp256k1.PrivKey(bz), nil
 }
 
 // DeriveSecp256k1 derives and returns the eth_secp256k1 private key for the given mnemonic and HD path.
