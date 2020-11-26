@@ -14,7 +14,7 @@ func TestNewManageWhiteListProposal(t *testing.T) {
 		description string
 		poolName    string
 		isAdded     bool
-		errCode     sdk.CodeType
+		errCode     uint32
 	}{
 		{
 			"title",

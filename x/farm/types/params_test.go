@@ -8,8 +8,8 @@ import (
 const (
 	strExpected = `Params:
   Quote Symbol:								usdk
-  Create Pool Fee:							0.00000000okt
-  Create Pool Deposit:						10.00000000okt
+  Create Pool Fee:							0.000000000000000000tokt
+  Create Pool Deposit:						10.000000000000000000tokt
   Yield Native Token Enabled:               false`
 )
 
