@@ -95,20 +95,20 @@ $ %s query farm pools
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			resKVs, _, err := cliCtx.QuerySubspace(types.FarmPoolPrefix, storeName)
+			// fixed to all pools query
+			jsonBytes, err := cdc.MarshalJSON(types.NewQueryPoolsParams(1, 0))
+			if err != nil {
+				return err
+			}
+
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryPools)
+			bz, _, err := cliCtx.QueryWithData(route, jsonBytes)
 			if err != nil {
 				return err
 			}
 
 			var pools types.FarmPools
-			for _, kv := range resKVs {
-				var pool types.FarmPool
-				if err := cdc.UnmarshalBinaryLengthPrefixed(kv.Value, &pool); err != nil {
-					return err
-				}
-				pools = append(pools, pool)
-			}
-
+			cdc.MustUnmarshalJSON(bz, &pools)
 			return cliCtx.PrintOutput(pools)
 		},
 	}
