@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -54,7 +55,6 @@ func RegisterRoutes(rs *lcd.RestServer) {
 			}
 		}
 
-		passphrase = viper.GetString(cmserver.FlagUlockKeyPassword)
 		privkeys, err = unlockKeyFromNameAndPassphrase(accountNames, passphrase)
 		if err != nil {
 			panic(err)
@@ -87,8 +87,8 @@ func RegisterRoutes(rs *lcd.RestServer) {
 
 func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {
 	keybase, err := keys.NewKeyring(
-		"okexchain",
-		"test",
+		sdk.KeyringServiceName(),
+		viper.GetString(flags.FlagKeyringBackend),
 		viper.GetString(cmserver.FlagUlockKeyHome),
 		os.Stdin,
 		hd.EthSecp256k1Options()...,

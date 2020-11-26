@@ -498,6 +498,10 @@ github.com/okex/cosmos-sdk v0.39.3-0.20201125073440-bbf8a464f0a6 h1:j4f7QnI/vep0
 github.com/okex/cosmos-sdk v0.39.3-0.20201125073440-bbf8a464f0a6/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/cosmos-sdk v0.39.3-0.20201125103711-2a3c52c59472 h1:xaLzhGS4onurwuC4zQ6xhSMeP3JQaorW1x77Ke7mv9c=
 github.com/okex/cosmos-sdk v0.39.3-0.20201125103711-2a3c52c59472/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
+github.com/okex/cosmos-sdk v0.39.3-0.20201126080944-a7938240d0f4 h1:nJAawRqQ5qIcNKP/W5ZsPl7GovCx5LvQq2yBnOAr2KA=
+github.com/okex/cosmos-sdk v0.39.3-0.20201126080944-a7938240d0f4/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
+github.com/okex/cosmos-sdk v0.39.3-0.20201126081548-4623017c4570 h1:WcnE3sm3iOevLDfzP07V/h85X4s+LBMnfLiYjnzpL8Y=
+github.com/okex/cosmos-sdk v0.39.3-0.20201126081548-4623017c4570/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/iavl v0.14.1 h1:QYU8tdZc1lSc9y2h0cBJ8kfblVVsE96w7c0mIr4IO2w=
 github.com/okex/iavl v0.14.1/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/tendermint v0.0.0-20201125052658-c2ffe3b6be41 h1:Po0HPIBwv/vy9YLaRAhnzO/tfEqBMhNcxGJid2lTrgg=
