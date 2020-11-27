@@ -26,11 +26,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
-	"github.com/okex/okexchain/x/evidence"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/genutil"
 	"github.com/okex/okexchain/x/gov"
 	"github.com/okex/okexchain/x/params"
@@ -88,7 +88,6 @@ var (
 		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
 		faucet.AppModuleBasic{},
-
 
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
@@ -347,6 +346,7 @@ func NewOKExChainApp(
 		farm.NewAppModule(app.FarmKeeper),
 		backend.NewAppModule(app.BackendKeeper),
 		stream.NewAppModule(app.StreamKeeper),
+		params.NewAppModule(app.ParamsKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -381,7 +381,7 @@ func NewOKExChainApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName, slashing.ModuleName,
 		gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName, dex.ModuleName,
-		order.ModuleName, crisis.ModuleName, genutil.ModuleName, evidence.ModuleName, faucet.ModuleName,
+		order.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName, faucet.ModuleName,
 		ammswap.ModuleName, farm.ModuleName, evm.ModuleName,
 	)
 
