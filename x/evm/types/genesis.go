@@ -24,7 +24,7 @@ type (
 	// storage type and that it doesn't contain the private key field.
 	GenesisAccount struct {
 		Address string        `json:"address"`
-		Balance sdk.Int       `json:"balance"`
+		Balance sdk.Dec       `json:"balance"`
 		Code    hexutil.Bytes `json:"code,omitempty"`
 		Storage Storage       `json:"storage,omitempty"`
 	}

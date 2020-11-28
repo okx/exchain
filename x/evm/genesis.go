@@ -99,7 +99,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		balanceInt := k.GetBalance(ctx, addr)
-		balance := sdk.NewIntFromBigInt(balanceInt)
+		balance := sdk.NewDecFromBigIntWithPrec(balanceInt, sdk.Precision)
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
