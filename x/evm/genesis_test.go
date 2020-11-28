@@ -4,7 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/okex/okexchain/crypto/ethsecp256k1"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/evm/types"
@@ -54,7 +54,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
+						Balance: sdk.OneDec(),
 						Storage: types.Storage{
 							{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
 						},
@@ -87,7 +87,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
+						Balance: sdk.OneDec(),
 					},
 				},
 			},
@@ -105,7 +105,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						Balance: sdk.OneInt(),
+						Balance: sdk.OneDec(),
 					},
 				},
 			},
