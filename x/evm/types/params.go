@@ -52,8 +52,8 @@ func NewParams(evmDenom string, enableCreate, enableCall bool) Params {
 func DefaultParams() Params {
 	return Params{
 		EvmDenom: ethermint.NativeToken,
-		EnableCreate: true,
-		EnableCall:   true,
+		EnableCreate: false,
+		EnableCall:   false,
 	}
 }
 
