@@ -1,6 +1,8 @@
 package app
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/upgrade"
+	"github.com/okex/okexchain/x/debug"
 	"os"
 	"testing"
 
@@ -34,4 +36,17 @@ func TestOKExChainAppExport(t *testing.T) {
 	app2 := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 	_, _, err = app2.ExportAppStateAndValidators(false, []string{})
 	require.NoError(t, err, "ExportAppStateAndValidators should not have an error")
+}
+
+func TestModuleManager(t *testing.T) {
+	db := dbm.NewMemDB()
+	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
+
+	for moduleName, _ := range ModuleBasics {
+		if moduleName == upgrade.ModuleName || moduleName == debug.ModuleName {
+			continue
+		}
+		_, found := app.mm.Modules[moduleName]
+		require.True(t, found)
+	}
 }
