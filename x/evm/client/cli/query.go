@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	evmQueryCmd.AddCommand(flags.GetCommands(
 		GetCmdGetStorageAt(moduleName, cdc),
 		GetCmdGetCode(moduleName, cdc),
+		GetCmdQueryParams(moduleName, cdc),
 	)...)
 	return evmQueryCmd
 }
@@ -83,6 +85,32 @@ func GetCmdGetCode(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			var out types.QueryResCode
 			cdc.MustUnmarshalJSON(res, &out)
 			return clientCtx.PrintOutput(out)
+		},
+	}
+}
+
+// GetCmdQueryParams implements the query params command.
+func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "params",
+		Short: "Query all the modifiable parameters of gov proposal",
+		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
+
+$ okexchaincli query evm params
+`),
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryParameters)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var params types.Params
+			cdc.MustUnmarshalJSON(bz, &params)
+			return cliCtx.PrintOutput(params)
 		},
 	}
 }
