@@ -45,6 +45,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryAccount(ctx, path, keeper)
 		case types.QueryExportAccount:
 			return queryExportAccount(ctx, path, keeper)
+		case types.QueryParameters:
+			return queryParams(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -229,4 +231,13 @@ func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, 
 	}
 
 	return bz, nil
+}
+
+func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	params := keeper.GetParams(ctx)
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, params)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+	return res, nil
 }
