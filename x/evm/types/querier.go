@@ -20,6 +20,8 @@ const (
 	QueryLogs            = "logs"
 	QueryAccount         = "account"
 	QueryExportAccount   = "exportAccount"
+	// QueryParameters defines 	QueryParameters = "params" query route path
+	QueryParameters = "params"
 )
 
 // QueryResProtocolVersion is response type for protocol version query
