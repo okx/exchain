@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/debug"
-	"github.com/tendermint/tendermint/crypto/tmhash"
 	"io"
 	"os"
+
+	"github.com/okex/okexchain/x/debug"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 
 	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/okex/okexchain/x/ammswap"
@@ -253,7 +254,7 @@ func NewOKExChainApp(
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
-		app.SupplyKeeper, auth.FeeCollectorName, "",
+		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
 	)
 	app.DistrKeeper = distr.NewKeeper(
 		cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
@@ -275,14 +276,14 @@ func NewOKExChainApp(
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, false)
+		app.cdc, appConfig.BackendConfig.EnableBackend)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, false, orderMetrics,
+		app.keys[order.OrderStoreKey], app.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
