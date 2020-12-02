@@ -11,7 +11,9 @@ import (
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
+	dexclient "github.com/okex/okexchain/x/dex/client"
 	"github.com/okex/okexchain/x/farm"
+	farmclient "github.com/okex/okexchain/x/farm/client"
 	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/stream"
@@ -80,6 +82,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
+			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -305,9 +308,13 @@ func NewOKExChainApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
-	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper)
+	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
+		AddRoute(dex.RouterKey, &app.DexKeeper).
+		AddRoute(farm.RouterKey, &app.FarmKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
