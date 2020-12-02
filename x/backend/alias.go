@@ -35,6 +35,7 @@ type (
 
 	Config   = config.Config
 	SwapInfo = types.SwapInfo
+	Block    = types.Block
 )
 
 var (

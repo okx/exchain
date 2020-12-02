@@ -3,8 +3,9 @@ package types
 
 import (
 	"fmt"
-	orderTypes "github.com/okex/okexchain/x/order/types"
 	"time"
+
+	orderTypes "github.com/okex/okexchain/x/order/types"
 )
 
 const (
@@ -42,7 +43,7 @@ type Ticker struct {
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
 }
 
-func (t *Ticker) GetTimestamp() int64  {
+func (t *Ticker) GetTimestamp() int64 {
 	return t.Timestamp
 }
 
@@ -113,4 +114,9 @@ type Transaction struct {
 	Quantity  string `gorm:"type:varchar(40)" json:"quantity" v2:"quantity"`
 	Fee       string `gorm:"type:varchar(40)" json:"fee" v2:"fee"`
 	Timestamp int64  `gorm:"index" json:"timestamp" v2:"timestamp"`
+}
+
+type Block struct {
+	Height int64 `gorm:"PRIMARY_KEY;" json:"block_height"`
+	NumTxs int   `gorm:"" json:"num_txs"`
 }

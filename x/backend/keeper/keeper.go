@@ -205,6 +205,7 @@ func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))
 		txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
 		k.Cache.AddTransaction(txs)
+		k.Cache.AddNumTxs(1)
 	}
 }
 
