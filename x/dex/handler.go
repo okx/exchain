@@ -2,8 +2,9 @@ package dex
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"strconv"
+
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/dex/types"
@@ -256,6 +257,8 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOw
 	tokenPair.Owner = msg.Address
 	keeper.UpdateTokenPair(ctx, msg.Product, tokenPair)
 	keeper.UpdateUserTokenPair(ctx, msg.Product, confirmOwnership.FromAddress, msg.Address)
+	// delete ownership confirming information
+	keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Product)
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgConfirmOwnership: "+
 		"BlockHeight: %d, Msg: %+v", ctx.BlockHeight(), msg))
