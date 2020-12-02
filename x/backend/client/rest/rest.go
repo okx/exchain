@@ -9,10 +9,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/gorilla/mux"
 	"github.com/okex/okexchain/x/backend/client/cli"
 	"github.com/okex/okexchain/x/backend/types"
 	"github.com/okex/okexchain/x/common"
-	"github.com/gorilla/mux"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -29,7 +29,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/swap/watchlist", swapWatchlistHandler(cliCtx)).Methods("GET")
-
+	r.HandleFunc("/blocks/{height}/total_txs", blockTotalTxsHandler(cliCtx)).Methods("GET")
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -472,6 +472,24 @@ func swapWatchlistHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QuerySwapWatchlist), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func blockTotalTxsHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		height, err := strconv.ParseInt(vars["height"], 10, 64)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, "couldn't parse block height. assumed format is '/block/{height}/total_txs'.")
+			return
+		}
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%d", types.QueryBlocksTotalTxs, height), nil)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, err.Error())
 			return
