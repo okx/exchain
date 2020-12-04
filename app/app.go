@@ -449,14 +449,14 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
+	if app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable() {
+		app.syncTx(req.Tx, resp.IsOK())
 	}
 
 	return resp
 }
 
-func (app *OKExChainApp) syncTx(txBytes []byte) {
+func (app *OKExChainApp) syncTx(txBytes []byte, isOK bool) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
@@ -464,9 +464,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetDeliverStateCtx()
 			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
+				ctx.BlockHeader().Time.Unix(), isOK)
 			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
+				ctx.BlockHeader().Time.Unix(), isOK)
 		}
 	}
 }

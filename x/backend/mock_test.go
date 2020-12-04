@@ -254,7 +254,7 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
-			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix()) // do not use tx
+			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix(), true) // do not use tx
 		} else {
 			app.Logger().Error(fmt.Sprintf("DeliverTx failed: %v", err))
 		}
