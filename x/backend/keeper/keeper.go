@@ -200,12 +200,14 @@ func (k Keeper) Flush() {
 }
 
 // SyncTx generate transaction and add it to cache, called at DeliverTx
-func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
+func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64, isOK bool) {
 	if k.Config.EnableBackend && k.Config.EnableMktCompute {
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))
-		txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
-		k.Cache.AddTransaction(txs)
 		k.Cache.AddNumTxs(1)
+		if isOK { // successful tx
+			txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
+			k.Cache.AddTransaction(txs)
+		}
 	}
 }
 
