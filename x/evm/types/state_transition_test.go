@@ -215,7 +215,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"call disabled",
 			func() {
-				params := types.NewParams(ethermint.AttoPhoton, true, false)
+				params := types.NewParams(ethermint.NativeToken, true, false)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -236,7 +236,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"create disabled",
 			func() {
-				params := types.NewParams(ethermint.AttoPhoton, false, true)
+				params := types.NewParams(ethermint.NativeToken, false, true)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{

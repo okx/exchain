@@ -9,8 +9,8 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	ethermint "github.com/cosmos/ethermint/types"
-	"github.com/cosmos/ethermint/x/evm/types"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height
