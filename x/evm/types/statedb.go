@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/params"
 
-	emint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/cosmos/ethermint/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -107,7 +107,7 @@ func NewCommitStateDB(
 	}
 }
 
-// WithContext returns a Database with an updated sdk context
+// WithContext returns a Database with an updated SDK context
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
 	return csdb
@@ -116,6 +116,13 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 // ----------------------------------------------------------------------------
 // Setters
 // ----------------------------------------------------------------------------
+
+// SetHeightHash sets the block header hash associated with a given height.
+func (csdb *CommitStateDB) SetHeightHash(epoch, height uint64, hash ethcmn.Hash) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(epoch, height)
+	store.Set(key, hash.Bytes())
+}
 
 // SetParams sets the evm parameters to the param space.
 func (csdb *CommitStateDB) SetParams(params Params) {
@@ -285,6 +292,18 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
+
+// GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
+func (csdb *CommitStateDB) GetHeightHash(epoch, height uint64) (ethcmn.Hash, bool) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	key := HeightHashKey(epoch, height)
+	bz := store.Get(key)
+	if len(bz) == 0 {
+		return ethcmn.Hash{}, false
+	}
+
+	return ethcmn.BytesToHash(bz), true
+}
 
 // GetParams returns the total set of evm parameters.
 func (csdb *CommitStateDB) GetParams() (params Params) {
@@ -680,7 +699,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 func (csdb *CommitStateDB) UpdateAccounts() {
 	for _, stateEntry := range csdb.stateObjects {
 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
-		emintAcc, ok := currAcc.(*emint.EthAccount)
+		ethermintAcc, ok := currAcc.(*ethermint.EthAccount)
 		if !ok {
 			continue
 		}
@@ -688,12 +707,12 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 		evmDenom := csdb.GetParams().EvmDenom
 		balance := sdk.Coin{
 			Denom:  evmDenom,
-			Amount: emintAcc.GetCoins().AmountOf(evmDenom),
+			Amount: ethermintAcc.GetCoins().AmountOf(evmDenom),
 		}
 
 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
-			stateEntry.stateObject.Nonce() != emintAcc.GetSequence() {
-			stateEntry.stateObject.account = emintAcc
+			stateEntry.stateObject.Nonce() != ethermintAcc.GetSequence() {
+			stateEntry.stateObject.account = ethermintAcc
 		}
 	}
 }
@@ -919,6 +938,28 @@ func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 // TODO: Implement if we need it, especially for the RPC API.
 func (csdb *CommitStateDB) RawDump() ethstate.Dump {
 	return ethstate.Dump{}
+}
+
+// FindHeightHash iterates over all the hashes stored for a given height. The function will always
+// return the hash for the latest chain epoch at the requested height. If there's no hash stored for
+// the height, the function will return not found.
+func (csdb *CommitStateDB) FindHeightHash(height uint64) (ethcmn.Hash, bool) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	// use the height as the prefix iterator to iterate on all the epochs
+	prefix := append(KeyPrefixHeightHash, sdk.Uint64ToBigEndian(height)...)
+	// use the reverse iterator to iterate in descending order (i.e from latest epoch to earliest).
+	iterator := sdk.KVStoreReversePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	if !iterator.Valid() {
+		// not found
+		return ethcmn.Hash{}, false
+	}
+
+	// NOTE: if the store has a hash for the requested height, then we know that the first
+	// element will be the one from the latest epoch (due to the reverse/descending iteration).
+	// Thus it's safe to return the hash directly here.
+	return ethcmn.BytesToHash(iterator.Value()), true
 }
 
 type preimageEntry struct {

@@ -8,6 +8,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	ethermint "github.com/cosmos/ethermint/types"
+	"github.com/cosmos/ethermint/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height
@@ -29,18 +32,31 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
 // deleting the empty ones. It also sets the bloom filers for the request block to
-// the store. The EVM end block loginc doesn't update the validator set, thus it returns
+// the store. The EVM end block logic doesn't update the validator set, thus it returns
 // an empty slice.
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
+	epoch, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		panic(err)
+	}
+
+	// set the hash for the current height and epoch
+	// NOTE: we set the hash here instead of on BeginBlock in order to set the final block prior to
+	// an upgrade. If we set it on BeginBlock the last block from prior to the upgrade wouldn't be
+	// included on the store.
+	hash := types.HashFromContext(ctx)
+	k.SetHeightHash(ctx, epoch.Uint64(), uint64(ctx.BlockHeight()), hash)
+
 	// Update account balances before committing other parts of state
 	k.UpdateAccounts(ctx)
 
 	// Commit state objects to KV store
-	_, err := k.Commit(ctx, true)
+	_, err = k.Commit(ctx, true)
 	if err != nil {
+		k.Logger(ctx).Error("failed to commit state objects", "error", err, "height", ctx.BlockHeight())
 		panic(err)
 	}
 

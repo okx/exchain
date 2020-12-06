@@ -27,7 +27,20 @@ var (
 	KeyPrefixCode        = []byte{0x04}
 	KeyPrefixStorage     = []byte{0x05}
 	KeyPrefixChainConfig = []byte{0x06}
+	KeyPrefixHeightHash  = []byte{0x07}
 )
+
+// HeightHashKey returns the key for the given chain epoch and height.
+// The key will be composed in the following order:
+//   key = prefix + bytes(height) + bytes(epoch)
+// This ordering facilitates the iteration by height for the EVM GetHashFn
+// queries. The epoch (i.e chain version) needs to be stored in case a software
+// upgrade resets the height to 0.
+func HeightHashKey(epoch, height uint64) []byte {
+	epochBz := sdk.Uint64ToBigEndian(epoch)
+	heightBz := sdk.Uint64ToBigEndian(height)
+	return append(heightBz, epochBz...)
+}
 
 // BloomKey defines the store key for a block Bloom
 func BloomKey(height int64) []byte {

@@ -27,6 +27,7 @@ type StateDBTestSuite struct {
 
 	ctx         sdk.Context
 	app         *app.OKExChainApp
+	chainEpoch  uint64
 	stateDB     *types.CommitStateDB
 	address     ethcmn.Address
 	stateObject types.StateObject
@@ -40,7 +41,8 @@ func (suite *StateDBTestSuite) SetupTest() {
 	checkTx := false
 
 	suite.app = app.Setup(checkTx)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
+	suite.chainEpoch = 1
 	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
@@ -65,6 +67,19 @@ func (suite *StateDBTestSuite) TestParams() {
 	suite.stateDB.SetParams(params)
 	newParams := suite.stateDB.GetParams()
 	suite.Require().Equal(newParams, params)
+}
+
+func (suite *StateDBTestSuite) TestGetHeightHash() {
+	hash, found := suite.stateDB.GetHeightHash(0, 0)
+	suite.Require().False(found)
+	suite.Require().Equal(ethcmn.Hash{}.String(), hash.String())
+
+	expHash := ethcmn.BytesToHash([]byte("hash"))
+	suite.stateDB.SetHeightHash(0, 10, expHash)
+
+	hash, found = suite.stateDB.GetHeightHash(0, 10)
+	suite.Require().True(found)
+	suite.Require().Equal(expHash.String(), hash.String())
 }
 
 func (suite *StateDBTestSuite) TestBloomFilter() {
@@ -712,4 +727,29 @@ func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
 	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
 	suite.Require().True(addrIn)
 	suite.Require().True(slotIn)
+}
+
+func (suite *StateDBTestSuite) TestFindHeightHash() {
+	hash, found := suite.stateDB.FindHeightHash(10)
+	suite.Require().False(found)
+	suite.Require().Equal(ethcmn.Hash{}.String(), hash.String())
+
+	epoch0 := ethcmn.BytesToHash([]byte("hash_epoch0"))
+	epoch1 := ethcmn.BytesToHash([]byte("hash_epoch1"))
+	epoch2 := ethcmn.BytesToHash([]byte("hash_epoch2"))
+
+	suite.stateDB.SetHeightHash(0, 10, epoch0)
+	suite.stateDB.SetHeightHash(1, 10, epoch1)
+
+	// should match the latest epoch hash
+	hash, found = suite.stateDB.FindHeightHash(10)
+	suite.Require().True(found)
+	suite.Require().Equal(epoch1.String(), hash.String())
+
+	suite.stateDB.SetHeightHash(2, 10, epoch2)
+
+	// should match the latest epoch hash
+	hash, found = suite.stateDB.FindHeightHash(10)
+	suite.Require().True(found)
+	suite.Require().Equal(epoch2.String(), hash.String())
 }
