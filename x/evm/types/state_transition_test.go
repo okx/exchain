@@ -55,7 +55,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 					},
 				)
 				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, 1, hash)
+				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
 			},
 			false,
 		},
@@ -74,28 +74,12 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			true,
 		},
 		{
-			"valid hash, case 3",
-			1,
-			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
-					abci.Header{
-						ChainID:        "ethermint-2",
-						Height:         100,
-						ValidatorsHash: []byte("val_hash"),
-					},
-				)
-				hash := types.HashFromContext(suite.ctx)
-				suite.stateDB.WithContext(suite.ctx).SetHeightHash(2, 1, hash)
-			},
-			false,
-		},
-		{
 			"empty hash, case 3",
 			1000,
 			func() {
 				suite.ctx = suite.ctx.WithBlockHeader(
 					abci.Header{
-						ChainID:        "ethermint-2",
+						ChainID:        "ethermint-1",
 						Height:         100,
 						ValidatorsHash: []byte("val_hash"),
 					},
@@ -111,7 +95,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 
 			tc.malleate()
 
-			hash := types.GetHashFn(suite.ctx, suite.stateDB, suite.chainEpoch)(tc.height)
+			hash := types.GetHashFn(suite.ctx, suite.stateDB)(tc.height)
 			if tc.expEmptyHash {
 				suite.Require().Equal(common.Hash{}.String(), hash.String())
 			} else {

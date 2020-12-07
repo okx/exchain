@@ -94,13 +94,13 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 // ----------------------------------------------------------------------------
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
-func (k Keeper) GetHeightHash(ctx sdk.Context, epoch, height uint64) (common.Hash, bool) {
-	return k.CommitStateDB.WithContext(ctx).GetHeightHash(epoch, height)
+func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) common.Hash {
+	return k.CommitStateDB.WithContext(ctx).GetHeightHash(height)
 }
 
 // SetHeightHash sets the block header hash associated with a given height.
-func (k Keeper) SetHeightHash(ctx sdk.Context, epoch, height uint64, hash common.Hash) {
-	k.CommitStateDB.WithContext(ctx).SetHeightHash(epoch, height, hash)
+func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) {
+	k.CommitStateDB.WithContext(ctx).SetHeightHash(height, hash)
 }
 
 // ----------------------------------------------------------------------------
