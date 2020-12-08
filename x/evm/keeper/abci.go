@@ -9,7 +9,6 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 )
 
@@ -38,24 +37,18 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
-	epoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		panic(err)
-	}
-
-	// set the hash for the current height and epoch
+	// Set the hash for the current height.
 	// NOTE: we set the hash here instead of on BeginBlock in order to set the final block prior to
 	// an upgrade. If we set it on BeginBlock the last block from prior to the upgrade wouldn't be
 	// included on the store.
 	hash := types.HashFromContext(ctx)
-	k.SetHeightHash(ctx, epoch.Uint64(), uint64(ctx.BlockHeight()), hash)
+	k.SetHeightHash(ctx, uint64(ctx.BlockHeight()), hash)
 
 	// Update account balances before committing other parts of state
 	k.UpdateAccounts(ctx)
 
 	// Commit state objects to KV store
-	_, err = k.Commit(ctx, true)
-	if err != nil {
+	if _, err := k.Commit(ctx, true); err != nil {
 		k.Logger(ctx).Error("failed to commit state objects", "error", err, "height", ctx.BlockHeight())
 		panic(err)
 	}
