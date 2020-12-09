@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/vm"
 
 	"gopkg.in/yaml.v2"
 
@@ -21,6 +22,7 @@ var (
 	ParamStoreKeyEVMDenom     = []byte("EVMDenom")
 	ParamStoreKeyEnableCreate = []byte("EnableCreate")
 	ParamStoreKeyEnableCall   = []byte("EnableCall")
+	ParamStoreKeyExtraEIPs    = []byte("EnableExtraEIPs")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -37,14 +39,17 @@ type Params struct {
 	EnableCreate bool `json:"enable_create" yaml:"enable_create"`
 	// EnableCall toggles state transitions that use the vm.Call function
 	EnableCall bool `json:"enable_call" yaml:"enable_call"`
+	// ExtraEIPs defines the additional EIPs for the vm.Config
+	ExtraEIPs []int `json:"extra_eips" yaml:"extra_eips"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall bool) Params {
+func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int) Params {
 	return Params{
 		EvmDenom:     evmDenom,
 		EnableCreate: enableCreate,
 		EnableCall:   enableCall,
+		ExtraEIPs:    extraEIPs,
 	}
 }
 
@@ -54,6 +59,7 @@ func DefaultParams() Params {
 		EvmDenom: ethermint.NativeToken,
 		EnableCreate: true,
 		EnableCall:   true,
+		ExtraEIPs:    []int(nil), // TODO: define default values
 	}
 }
 
@@ -69,12 +75,17 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyEVMDenom, &p.EvmDenom, validateEVMDenom),
 		params.NewParamSetPair(ParamStoreKeyEnableCreate, &p.EnableCreate, validateBool),
 		params.NewParamSetPair(ParamStoreKeyEnableCall, &p.EnableCall, validateBool),
+		params.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
 	}
 }
 
 // Validate performs basic validation on evm parameters.
 func (p Params) Validate() error {
-	return sdk.ValidateDenom(p.EvmDenom)
+	if err := sdk.ValidateDenom(p.EvmDenom); err != nil {
+		return err
+	}
+
+	return validateEIPs(p.ExtraEIPs)
 }
 
 func validateEVMDenom(i interface{}) error {
@@ -91,5 +102,21 @@ func validateBool(i interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
+	return nil
+}
+
+
+func validateEIPs(i interface{}) error {
+	eips, ok := i.([]int)
+	if !ok {
+		return fmt.Errorf("invalid EIP slice type: %T", i)
+	}
+
+	for _, eip := range eips {
+		if !vm.ValidEip(eip) {
+			return fmt.Errorf("EIP %d is not activateable", eip)
+		}
+	}
+
 	return nil
 }
