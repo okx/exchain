@@ -100,7 +100,7 @@ func GetMarketServiceURL(urls string, nameSpace string, param vo.SelectOneHealth
 		return "", fmt.Errorf("there is no %s service in nacos-server %s", param.ServiceName, urls)
 	}
 	port := strconv.FormatUint(k.Port, 10)
-	return k.Ip + ":" + port + "/manager/add", nil
+	return k.Ip + ":" + port, nil
 }
 
 func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketServiceURL string, logger log.Logger) (err error) {
