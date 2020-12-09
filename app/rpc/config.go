@@ -9,16 +9,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	cmserver "github.com/cosmos/cosmos-sdk/server"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
-
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/websockets"
@@ -73,11 +69,6 @@ func RegisterRoutes(rs *lcd.RestServer) {
 
 	// Web3 RPC API route
 	rs.Mux.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
-
-	// Register all other Cosmos routes
-	client.RegisterRoutes(rs.CliCtx, rs.Mux)
-	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
-	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
