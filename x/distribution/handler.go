@@ -22,7 +22,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized distribution message type: %T", msg)
+			return types.ErrUnknownRequest(types.DefaultCodespace).Result()
 		}
 	}
 }
@@ -31,7 +31,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAddress, k keeper.Keeper) (*sdk.Result, error) {
 	err := k.SetWithdrawAddr(ctx, msg.DelegatorAddress, msg.WithdrawAddress)
 	if err != nil {
-		return nil, err
+		return types.ErrSetWithdrawAddrFailed(types.DefaultCodespace).Result(), types.ErrSetWithdrawAddrFailed(k.GetCodeSpace())
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -48,7 +48,7 @@ func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAdd
 func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdrawValidatorCommission, k keeper.Keeper) (*sdk.Result, error) {
 	_, err := k.WithdrawValidatorCommission(ctx, msg.ValidatorAddress)
 	if err != nil {
-		return nil, err
+		return types.ERRWithdrawValidatorCommissionFailed(types.DefaultCodespace).Result(), types.ERRWithdrawValidatorCommissionFailed(codespace)
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -68,7 +68,7 @@ func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 
 		default:
-			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized distr proposal content type: %T", c)
+			return types.ErrUnknownRequest(types.DefaultCodespace)
 		}
 	}
 }

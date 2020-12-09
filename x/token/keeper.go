@@ -173,7 +173,7 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 // nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
-		return err
+		return types.ErrSendCoinsFromAccountToModuleFailed(types.DefaultCodespace, err.Error())
 	}
 	// update lock coins
 	return k.updateLockedCoins(ctx, addr, coins, true, lockCoinsType)
@@ -188,7 +188,8 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	case types.LockCoinsTypeFee:
 		key = types.GetLockFeeAddress(addr.Bytes())
 	default:
-		return fmt.Errorf("unrecognized lock coins type: %d", lockCoinsType)
+		msg := fmt.Sprintf("unrecognized lock coins type: %d", lockCoinsType)
+		return types.ErrUnrecognizedLockCoinsType(types.DefaultCodespace, msg)
 	}
 
 	var newCoins sdk.SysCoins
@@ -208,13 +209,15 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	} else {
 		// unlock coins
 		if coinsBytes == nil {
-			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
+			msg := fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
+			return types.ErrFailedToUnlockAddress(types.DefaultCodespace, msg)
 		}
 		k.cdc.MustUnmarshalBinaryBare(coinsBytes, &oldCoins)
 		var isNegative bool
 		newCoins, isNegative = oldCoins.SafeSub(coins)
 		if isNegative {
-			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
+			msg := fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
+			return types.ErrFailedToUnlockAddress(types.DefaultCodespace, msg)
 		}
 	}
 

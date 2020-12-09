@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	comm "github.com/okex/okexchain/x/common"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -63,7 +64,7 @@ func setDelegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext) http.Handler
 
 		msg := types.NewMsgSetWithdrawAddress(delAddr, req.WithdrawAddress)
 		if err := msg.ValidateBasic(); err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalideBasic, err.Error())
 			return
 		}
 
@@ -94,7 +95,7 @@ func withdrawValidatorRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 		// prepare multi-message transaction
 		msgs, err := common.WithdrawValidatorRewardsAndCommission(valAddr)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, types.CodeWithdrawValidatorRewardsAndCommissionFailed, err.Error())
 			return
 		}
 
@@ -107,7 +108,7 @@ func withdrawValidatorRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 func checkDelegatorAddressVar(w http.ResponseWriter, r *http.Request) (sdk.AccAddress, bool) {
 	addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["delegatorAddr"])
 	if err != nil {
-		rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("invalid address：%s", mux.Vars(r)["delegatorAddr"]))
+		rest.WriteErrorResponse(w, int(types.CodeAccAddressFromBech32Failed), fmt.Sprintf("invalid address：%s", mux.Vars(r)["delegatorAddr"]))
 		return nil, false
 	}
 
@@ -117,7 +118,7 @@ func checkDelegatorAddressVar(w http.ResponseWriter, r *http.Request) (sdk.AccAd
 func checkValidatorAddressVar(w http.ResponseWriter, r *http.Request) (sdk.ValAddress, bool) {
 	addr, err := sdk.ValAddressFromBech32(mux.Vars(r)["validatorAddr"])
 	if err != nil {
-		rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("invalid address：%s", mux.Vars(r)["validatorAddr"]))
+		rest.WriteErrorResponse(w, int(types.CodeValAddressFromBech32), fmt.Sprintf("invalid address：%s", mux.Vars(r)["validatorAddr"]))
 		return nil, false
 	}
 

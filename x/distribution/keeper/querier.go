@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	comm "github.com/okex/okexchain/x/common"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -36,18 +37,18 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 	case types.ParamCommunityTax:
 		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetCommunityTax(ctx))
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+			return nil, comm.ErrMarshalJSONFailed(err.Error())
 		}
 		return bz, nil
 	case types.ParamWithdrawAddrEnabled:
 		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetWithdrawAddrEnabled(ctx))
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+			return nil, comm.ErrMarshalJSONFailed(err.Error())
 		}
 		return bz, nil
 
 	default:
-		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "%s is not a valid query request path", req.Path)
+		return nil, types.ErrUnknownRequest(k.codespace)
 	}
 }
 
@@ -55,7 +56,7 @@ func queryValidatorCommission(ctx sdk.Context, _ []string, req abci.RequestQuery
 	var params types.QueryValidatorCommissionParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	commission := k.GetValidatorAccumulatedCommission(ctx, params.ValidatorAddress)
@@ -65,7 +66,7 @@ func queryValidatorCommission(ctx sdk.Context, _ []string, req abci.RequestQuery
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, commission)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -75,7 +76,7 @@ func queryDelegatorWithdrawAddress(ctx sdk.Context, _ []string, req abci.Request
 	var params types.QueryDelegatorWithdrawAddrParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	// cache-wrap context as to not persist state changes during querying
@@ -84,7 +85,7 @@ func queryDelegatorWithdrawAddress(ctx sdk.Context, _ []string, req abci.Request
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, withdrawAddr)
 	if err != nil {
-		return  nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -98,7 +99,7 @@ func queryCommunityPool(ctx sdk.Context, _ []string, req abci.RequestQuery, k Ke
 
 	bz, err := k.cdc.MarshalJSON(pool)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil

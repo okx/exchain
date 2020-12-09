@@ -9,12 +9,12 @@ import (
 func (k Keeper) IsTokenExist(ctx sdk.Context, token string) error {
 	isExist := k.tokenKeeper.TokenExist(ctx, token)
 	if !isExist {
-		return sdk.ErrInternal("Failed: token does not exist")
+		return types.ErrTokenNotExist(types.DefaultCodespace, "Failed: token does not exist")
 	}
 
 	t := k.tokenKeeper.GetTokenInfo(ctx, token)
 	if t.Type == types.GenerateTokenType {
-		return sdk.ErrInvalidCoins("Failed to create exchange with pool token")
+		return types.ErrInvalidCoins(types.DefaultCodespace, "Failed to create exchange with pool token")
 	}
 	return nil
 

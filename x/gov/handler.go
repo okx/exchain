@@ -83,7 +83,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		sdk.EnvelopedErr{sdkerrors.New(types.DefaultCodespace, sdk.CodeInsufficientCoins, err.Error())}.Result()
+		types.ErrInsufficientCoins(DefaultCodespace, err.Error()).Result()
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,
@@ -178,7 +178,7 @@ func handleProposalAfterTally(
 
 func hasOnlyDefaultBondDenom(decCoins sdk.SysCoins) sdk.Error {
 	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom || !decCoins.IsValid() {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom, decCoins.String()))
+		return types.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom, decCoins.String()))
 	}
 	return nil
 }

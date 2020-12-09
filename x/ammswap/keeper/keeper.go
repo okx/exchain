@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/okex/okexchain/x/common"
@@ -49,11 +48,11 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
 	if rawItem == nil {
-		return types.SwapTokenPair{}, errors.New(fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName))
+		return types.SwapTokenPair{}, types.ErrUnexistswapTokenPair(types.DefaultCodespace, fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName))
 	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
-		return types.SwapTokenPair{}, err
+		return types.SwapTokenPair{}, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	return item, nil
@@ -99,7 +98,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		return poolToken, fmt.Errorf("Pool token %s does not exist", symbol)
+		return poolToken, types.ErrUnexistPoolToken(types.DefaultCodespace, fmt.Sprintf("Pool token %s does not exist", symbol))
 	}
 	return poolToken, nil
 }
@@ -113,7 +112,7 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.De
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return err
+		return types.ErrCodeMinCoinsFailed(types.DefaultCodespace, err.Error())
 	}
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
@@ -122,7 +121,7 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sd
 func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 	if err != nil {
-		return err
+		return types.ErrSendCoinsFromAccountToModule(types.DefaultCodespace, err.Error())
 	}
 	return k.supplyKeeper.BurnCoins(ctx, types.ModuleName, coins)
 }
@@ -156,16 +155,16 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.SysCoin, err error) {
 	err = types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
-		return
+		return baseAmount, quoteAmount, err
 	}
 	swapTokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
 	if err != nil {
-		return
+		return baseAmount, quoteAmount, err
 	}
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {
-		return baseAmount, quoteAmount, errors.New("insufficient pool token")
+		return baseAmount, quoteAmount, types.ErrInsufficientPoolToken(types.DefaultCodespace, "insufficient pool token")
 	}
 
 	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)

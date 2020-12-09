@@ -12,15 +12,18 @@ import (
 const (
 	DefaultCodespace string = ModuleName
 
-	CodeInvalidValidator  uint32 = 101
-	CodeInvalidDelegation uint32 = 102
-	CodeInvalidInput      uint32 = 103
+	CodeInvalidValidator  		uint32 = 67000
+	CodeInvalidDelegation 		uint32 = 67001
+	CodeInvalidInput      		uint32 = 67002
 
-	CodeInvalidMinSelfDelegation uint32 = 104
-	CodeInvalidProxy             uint32 = 105
-	CodeInvalidShareAdding       uint32 = 106
-	CodeInvalidAddress           uint32 = 107
-	CodeInternalError            uint32 = 108
+	CodeInvalidAddress          uint32 = 67003
+	CodeUnknownRequest          uint32 = 67004
+	CodeInvalidMinSelfDelegation uint32 = 67005
+	CodeInvalidProxy             uint32 = 67006
+	CodeInvalidShareAdding       uint32 = 67007
+	CodeParseHTTPArgsWithLimit	 uint32 = 67008
+	CodeInvalidValidateBasic	 uint32 = 67009
+	CodeAddressNotEqual			 uint32 = 67010
 )
 
 // ErrNilValidatorAddr returns an error when an empty validator address appears

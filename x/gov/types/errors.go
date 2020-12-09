@@ -9,7 +9,7 @@ import (
 
 const (
 	DefaultCodespace string = "gov"
-	BaseGovError     uint32 = 2000
+	BaseGovError     uint32 = 68000
 
 	CodeUnknownProposal          uint32 = BaseGovError+1
 	CodeInactiveProposal         uint32 = BaseGovError+2
@@ -20,11 +20,15 @@ const (
 	CodeInvalidProposalType      uint32 = BaseGovError+7
 	CodeInvalidVote              uint32 = BaseGovError+8
 	CodeInvalidGenesis           uint32 = BaseGovError+9
-	CodeInvalidProposalStatus    uint32 = BaseGovError+10
-	CodeProposalHandlerNotExists uint32 = BaseGovError+11
-	CodeInitialDepositNotEnough  uint32 = BaseGovError+12
-	CodeInvalidProposer          uint32 = BaseGovError+13
-	CodeInvalidHeight            uint32 = BaseGovError+14
+	CodeProposalHandlerNotExists uint32 = BaseGovError+10
+	CodeInvalidProposalStatus   uint32 = BaseGovError+11
+	CodeInitialDepositNotEnough uint32 = BaseGovError+12
+	CodeInvalidProposer         uint32 = BaseGovError+13
+	CodeInvalidHeight           uint32 = BaseGovError+14
+	CodeInsufficientCoins		uint32 = BaseGovError+15
+	CodeUnknownRequest			uint32 = BaseGovError+16
+	CodeInvalidCoins			uint32 = BaseGovError+17
+
 )
 
 func ErrInactiveProposal(codespace string, proposalID uint64) sdk.Error {
@@ -84,4 +88,16 @@ func ErrInvalidHeight(codespace string, h, ch, max uint64) sdk.Error {
 	return sdkerrors.New(codespace, CodeInvalidHeight,
 		fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.",
 			h, ch, ch, max))
+}
+
+func ErrInsufficientCoins(codespace string, message string) sdk.Error {
+	return sdkerrors.New(codespace, CodeInsufficientCoins, message)
+}
+
+func ErrUnknownRequest(codespace string, message string) sdk.Error {
+	return sdkerrors.New(codespace, CodeUnknownRequest, message)
+}
+
+func ErrInvalidCoins(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, message)
 }

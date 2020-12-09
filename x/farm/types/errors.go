@@ -13,16 +13,16 @@ type CodeType = uint32
 const (
 	DefaultCodespace string = ModuleName
 
-	CodeInvalidInput           CodeType = 101
-	CodePoolAlreadyExist       CodeType = 102
-	CodeNoFarmPoolFound        CodeType = 103
-	CodePoolNotInWhiteList     CodeType = 104
-	CodeInvalidLockInfo        CodeType = 105
-	CodeTokenNotExist          CodeType = 106
-	CodePoolNotFinished        CodeType = 107
-	CodeUnexpectedProposalType CodeType = 108
-	CodeInvalidAddress         CodeType = 109
-	CodeUnknownRequest         CodeType = 110
+	CodeInvalidInput           uint32 = 101
+	CodePoolAlreadyExist       uint32 = 102
+	CodeNoFarmPoolFound        uint32 = 103
+	CodePoolNotInWhiteList     uint32 = 104
+	CodeInvalidLockInfo        uint32 = 105
+	CodeTokenNotExist          uint32 = 106
+	CodePoolNotFinished        uint32 = 107
+	CodeUnexpectedProposalType uint32 = 108
+	CodeInvalidAddress         uint32 = 109
+	CodeUnknownRequest         uint32 = 110
 )
 
 var (

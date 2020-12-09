@@ -33,7 +33,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown token query endpoint")
+			return nil, types.ErrUnknownRequest(types.DefaultCodespace, "unknown token query endpoint")
 		}
 	}
 }

@@ -19,7 +19,7 @@ import (
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
 		if !keeper.Config.EnableBackend {
-			response := common.GetErrorResponse(-1, "", "Backend Plugin's Not Enabled")
+			response := common.GetErrorResponse(types.CodeBackendPluginNotEnabled, "", "Backend Plugin's Not Enabled")
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
 				return nil, sdk.ErrInternal(eJSON.Error())
@@ -30,7 +30,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		defer func() {
 			if e := recover(); e != nil {
 				errMsg := fmt.Sprintf("%+v", e)
-				response := common.GetErrorResponse(-1, "", errMsg)
+				response := common.GetErrorResponse(types.CodeRecoverPanicGoroutineFailed, "", errMsg)
 				resJSON, eJSON := json.Marshal(response)
 				if eJSON != nil {
 					res = nil
@@ -106,11 +106,11 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTxListV2:
 			res, err = queryTxListV2(ctx, path[1:], req, keeper)
 		default:
-			res, err = nil, sdk.ErrUnknownRequest("unknown backend endpoint")
+			res, err = nil, types.ErrUnknownBackendEndpoint("unknown backend endpoint")
 		}
 
 		if err != nil {
-			response := common.GetErrorResponse(-1, "", err.Error())
+			response := common.GetErrorResponse(types.CodeUnknownBackendEndpoint, "unknown backend endpoint", err.Error())
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
 				return nil, sdk.ErrInternal(eJSON.Error())
@@ -231,7 +231,7 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 
 	var response *common.BaseResponse
 	if err != nil {
-		response = common.GetErrorResponse(-1, "", err.Error())
+		response = common.GetErrorResponse(types.CodeGetCandlesFailed, "", err.Error())
 	} else {
 		response = common.GetBaseResponse(restData)
 	}
@@ -263,7 +263,7 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 
 	var response *common.BaseResponse
 	if err != nil {
-		response = common.GetErrorResponse(-1, "", err.Error())
+		response = common.GetErrorResponse(types.CodeGetCandlesByMarketFailed, "", err.Error())
 	} else {
 		response = common.GetBaseResponse(restData)
 	}
@@ -402,7 +402,7 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 
 	var response *common.BaseResponse
 	if err != nil {
-		response = common.GetErrorResponse(-1, "", err.Error())
+		response = common.GetErrorResponse(types.CodeGetTickerByProductsFailed, "", err.Error())
 	} else {
 		response = common.GetBaseResponse(filterTickers)
 	}

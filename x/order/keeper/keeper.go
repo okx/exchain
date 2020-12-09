@@ -400,7 +400,7 @@ func (k Keeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins {
 func (k Keeper) GetProductFeeReceiver(ctx sdk.Context, product string) (sdk.AccAddress, error) {
 	tokenPair := k.GetDexKeeper().GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.AccAddress{}, fmt.Errorf("failed. token pair %s doesn't exist", product)
+		return sdk.AccAddress{}, types.ErrGetTokenPairFailed(fmt.Sprintf("failed. token pair %s doesn't exist", product))
 	}
 
 	operator, exists := k.GetDexKeeper().GetOperator(ctx, tokenPair.Owner)
@@ -432,7 +432,8 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.SysCoins, from
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, "")
 	if err := k.tokenKeeper.SendCoinsFromAccountToAccount(ctx, from, to, coins); err != nil {
 		log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
-		return "", err
+		message := fmt.Sprintf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
+		return "", types.ErrSendCoinsFromAccountToAccountFaile(message)
 	}
 	return to.String(), nil
 }

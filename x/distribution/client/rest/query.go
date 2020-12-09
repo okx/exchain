@@ -12,6 +12,7 @@ import (
 
 	"github.com/okex/okexchain/x/distribution/client/common"
 	"github.com/okex/okexchain/x/distribution/types"
+	comm "github.com/okex/okexchain/x/common"
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {
@@ -56,7 +57,8 @@ func delegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext, queryRoute stri
 		bz := cliCtx.Codec.MustMarshalJSON(types.NewQueryDelegatorWithdrawAddrParams(delegatorAddr))
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/withdraw_addr", queryRoute), bz)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -75,7 +77,7 @@ func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerF
 
 		params, err := common.QueryParams(cliCtx, queryRoute)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalideRoute, err.Error())
 			return
 		}
 
@@ -93,13 +95,14 @@ func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.Han
 
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/community_pool", queryRoute), nil)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
 		var result sdk.SysCoins
 		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, types.CodeUnmarshalJSONFailed, err.Error())
 			return
 		}
 
@@ -124,7 +127,8 @@ func accumulatedCommissionHandlerFn(cliCtx context.CLIContext, queryRoute string
 		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr))
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_commission", queryRoute), bin)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 

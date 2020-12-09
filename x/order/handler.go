@@ -9,7 +9,6 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/willf/bitset"
@@ -82,7 +81,8 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return fmt.Errorf("trading pair '%s' does not exist", msg.Product)
+		msg := fmt.Sprintf("trading pair '%s' does not exist", msg.Product)
+		return types.ErrGetTokenPairFailed(msg)
 	}
 
 	// check if the order is involved with the tokenpair in dex Delist
@@ -91,7 +91,8 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 		return err
 	}
 	if isDelisting {
-		return errors.Errorf("trading pair '%s' is delisting", msg.Product)
+		msg := fmt.Sprintf("trading pair '%s' is delisting", msg.Product)
+		return types.ErrTradingPairIsdelisting(msg)
 	}
 
 	priceDigit := tokenPair.MaxPriceDigit
@@ -99,14 +100,17 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	roundedPrice := msg.Price.RoundDecimal(priceDigit)
 	roundedQuantity := msg.Quantity.RoundDecimal(quantityDigit)
 	if !roundedPrice.Equal(msg.Price) {
-		return fmt.Errorf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
+		msg := fmt.Sprintf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
+		return types.ErrRoundedPriceEqual(msg)
 	}
 	if !roundedQuantity.Equal(msg.Quantity) {
-		return fmt.Errorf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
+		msg := fmt.Sprintf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
+		return types.ErrRoundedQuantityEqual(msg)
 	}
 
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
-		return fmt.Errorf("quantity should be greater than %s", tokenPair.MinQuantity)
+		msg := fmt.Sprintf("quantity should be greater than %s", tokenPair.MinQuantity)
+		return types.ErrMsgQuantityLessThan(msg)
 	}
 	return nil
 }
@@ -301,7 +305,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return sdk.ErrInternal("").Result()
+		return sdk.Result{Code: types.CodeInternal}
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)

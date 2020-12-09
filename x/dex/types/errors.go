@@ -6,7 +6,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-// const CodeType
+// const uint32
 const (
 	codeInvalidProduct          uint32 = 1
 	codeTokenPairNotFound       uint32 = 2
@@ -31,7 +31,7 @@ var (
 	errInvalidWebsiteURL 		= sdkerrors.Register(DefaultCodespace, codeInvalidWebsiteURL, "invalid website URL")
 )
 
-// CodeType to Message
+// uint32 to Message
 func codeToDefaultMsg(code uint32) string {
 	switch code {
 	case codeInvalidProduct:
