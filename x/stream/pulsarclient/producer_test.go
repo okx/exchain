@@ -1,6 +1,8 @@
 package pulsarclient
 
 import (
+	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	"math/rand"
 	"os"
 	"testing"
@@ -8,7 +10,6 @@ import (
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/okex/okexchain/x/backend"
-	"github.com/okex/okexchain/x/common"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -38,12 +39,13 @@ func TestSendMsg(t *testing.T) {
 	}()
 	mp := NewPulsarProducer("localhost:6650", appCfg.DefaultConfig().StreamConfig, logger, &asyncErrs)
 
-	pd := PulsarData{Height: 9, matchResults: nil}
-	_, err := mp.SendAllMsg(&pd, logger)
+	data := kline.NewKlineData()
+	data.Height = 9
+	_, err := mp.SendAllMsg(data, logger)
 	require.NoError(t, err)
 	logger.Info("send zero matchResult")
 
-	marketIDMap["xxb_"+common.NativeToken] = int64(9999)
+	kline.GetMarketIDMap()["xxb_"+common.NativeToken] = int64(9999)
 	results10 := make([]*backend.MatchResult, 0, 10)
 	timestamp := time.Now().Unix()
 	for i := 0; i < 10; i++ {
@@ -56,8 +58,10 @@ func TestSendMsg(t *testing.T) {
 		})
 	}
 
-	pds := PulsarData{Height: 11, matchResults: results10}
-	_, err = mp.SendAllMsg(&pds, logger)
+	data = kline.NewKlineData()
+	data.Height = 11
+	data.SetMatchResults(results10)
+	_, err = mp.SendAllMsg(data, logger)
 	if err != nil {
 		logger.Info("send 10 matchResult failed")
 	}
@@ -65,7 +69,7 @@ func TestSendMsg(t *testing.T) {
 	logger.Info("send 10 matchResult success")
 
 	results10 = make([]*backend.MatchResult, 0, 10)
-	marketIDMap[common.TestToken+common.NativeToken] = int64(10000)
+	kline.GetMarketIDMap()[common.TestToken+common.NativeToken] = int64(10000)
 	for i := 0; i < 10; i++ {
 		results10 = append(results10, &backend.MatchResult{
 			BlockHeight: int64(i),
@@ -76,8 +80,8 @@ func TestSendMsg(t *testing.T) {
 		})
 	}
 
-	pds = PulsarData{Height: 11, matchResults: results10}
-	_, err = mp.SendAllMsg(&pds, logger)
+	data.SetMatchResults(results10)
+	_, err = mp.SendAllMsg(data, logger)
 	if err != nil {
 		logger.Info("send 10 matchResult failed")
 	}
