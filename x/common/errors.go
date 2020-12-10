@@ -60,3 +60,8 @@ func ErrMarshalJSONFailed(msg string) sdk.Error {
 func ErrUnMarshalJSONFailed(msg string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnMarshalJSONFailed, fmt.Sprintf("incorrectly formatted request data, %s", msg))
 }
+
+func ErrStrconvFailed(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion "))
+
+}

@@ -76,3 +76,11 @@ func ErrTokenNotExist (codespace string, message string) sdk.Error {
 func ErrInvalidCoins (codespace string, message string) sdk.Error {
 	return sdkerrors.New(codespace, CodeInvalidCoins, message)
 }
+
+func ErrInternalError(codespace string, message string) (sdk.Error) {
+	return sdkerrors.New(codespace, CodeInternalError, message)
+}
+
+func ErrInsufficientCoins(codespace string, message string) (sdk.Error) {
+	return sdkerrors.New(codespace, CodeInsufficientCoins, message)
+}

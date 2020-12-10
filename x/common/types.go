@@ -6,14 +6,14 @@ import (
 
 // BaseResponse is the main frame of response
 type BaseResponse struct {
-	Code      int         `json:"code"`
+	Code      uint32         `json:"code"`
 	Msg       string      `json:"msg"`
 	DetailMsg string      `json:"detail_msg"`
 	Data      interface{} `json:"data"`
 }
 
 // GetErrorResponse creates an error base response
-func GetErrorResponse(code int, msg, detailMsg string) *BaseResponse {
+func GetErrorResponse(code uint32, msg, detailMsg string) *BaseResponse {
 	return &BaseResponse{
 		Code:      code,
 		DetailMsg: detailMsg,
@@ -23,7 +23,7 @@ func GetErrorResponse(code int, msg, detailMsg string) *BaseResponse {
 }
 
 // GetErrorResponseJSON marshals the base response into JSON bytes
-func GetErrorResponseJSON(code int, msg, detailMsg string) []byte {
+func GetErrorResponseJSON(code uint32, msg, detailMsg string) []byte {
 	res, err := json.Marshal(BaseResponse{
 		Code:      code,
 		DetailMsg: detailMsg,

@@ -130,7 +130,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
-		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, "pool accounts haven't been set")
+		return nil, types.ErrCodeInternalError(types.DefaultCodespace)
 	}
 
 	pool := types.NewPool(

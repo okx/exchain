@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okexchain/x/common"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -59,7 +58,7 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 		}
 		return bz, nil
 	default:
-		return nil, types.ErrUnknownRequest(keeper.Codespace(), fmt.Sprintf("%s is not a valid query request path", req.Path))
+		return nil, types.ErrUnknownRequest(types.DefaultCodespace, fmt.Sprintf("%s is not a valid query request path", req.Path))
 	}
 }
 

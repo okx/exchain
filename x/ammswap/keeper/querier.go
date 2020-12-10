@@ -41,7 +41,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		}
 
 		if err != nil {
-			response := common.GetErrorResponse(-1, "", err.Error())
+			response := common.GetErrorResponse(types.CodeInternalError, "", err.Error())
 			res, errJSON := json.Marshal(response)
 			if errJSON != nil {
 				return nil, sdk.ErrInternal(errJSON.Error())

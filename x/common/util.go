@@ -82,7 +82,7 @@ func GetPage(page, perPage int) (offset, limit int) {
 
 // HandleErrorMsg handles the error msg
 func HandleErrorMsg(w http.ResponseWriter, cliCtx context.CLIContext, code uint32, msg string) {
-	response := GetErrorResponseJSON(int(code), msg, msg)
+	response := GetErrorResponseJSON(code, msg, msg)
 	rest.PostProcessResponse(w, cliCtx, response)
 }
 

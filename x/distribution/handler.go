@@ -2,7 +2,6 @@ package distribution
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/okex/okexchain/x/distribution/keeper"
 	"github.com/okex/okexchain/x/distribution/types"
@@ -22,7 +21,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		default:
-			return types.ErrUnknownRequest(types.DefaultCodespace).Result()
+			return nil, types.ErrUnknownRequest(types.DefaultCodespace)
 		}
 	}
 }
@@ -31,7 +30,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAddress, k keeper.Keeper) (*sdk.Result, error) {
 	err := k.SetWithdrawAddr(ctx, msg.DelegatorAddress, msg.WithdrawAddress)
 	if err != nil {
-		return types.ErrSetWithdrawAddrFailed(types.DefaultCodespace).Result(), types.ErrSetWithdrawAddrFailed(k.GetCodeSpace())
+		return nil, types.ErrSetWithdrawAddrFailed(types.DefaultCodespace)
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -48,7 +47,7 @@ func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAdd
 func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdrawValidatorCommission, k keeper.Keeper) (*sdk.Result, error) {
 	_, err := k.WithdrawValidatorCommission(ctx, msg.ValidatorAddress)
 	if err != nil {
-		return types.ERRWithdrawValidatorCommissionFailed(types.DefaultCodespace).Result(), types.ERRWithdrawValidatorCommissionFailed(codespace)
+		return nil, types.ERRWithdrawValidatorCommissionFailed(types.DefaultCodespace)
 	}
 
 	ctx.EventManager().EmitEvent(

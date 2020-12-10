@@ -113,7 +113,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			response := common.GetErrorResponse(types.CodeUnknownBackendEndpoint, "unknown backend endpoint", err.Error())
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
-				return nil, sdk.ErrInternal(eJSON.Error())
+				return nil, common.ErrMarshalJSONFailed(eJSON.Error())
 			}
 			return res, err
 		}
@@ -127,19 +127,19 @@ func queryDeals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	var params types.QueryDealsParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Address != "" {
 		_, err := sdk.AccAddressFromBech32(params.Address)
 		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
+			return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
 		}
 	}
 	if params.Side != "" && params.Side != orderTypes.BuyOrder && params.Side != orderTypes.SellOrder {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("Side should not be %s", params.Side))
+		return nil, types.ErrOrderSideParamMustBuyOrSell(params.Side)
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -152,7 +152,7 @@ func queryDeals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -162,10 +162,10 @@ func queryMatchResults(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 	var params types.QueryMatchParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 	matches, total := keeper.getMatchResults(ctx, params.Product, params.Start, params.End, offset, limit)
@@ -177,7 +177,7 @@ func queryMatchResults(ctx sdk.Context, path []string, req abci.RequestQuery, ke
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -187,14 +187,14 @@ func queryFeeDetails(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	var params types.QueryFeeDetailsParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
@@ -207,7 +207,7 @@ func queryFeeDetails(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -217,13 +217,13 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	var params types.QueryKlinesParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Product == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+		return nil, types.ErrProductIsRequired()
 	}
 	if keeper.dexKeeper.GetTokenPair(ctx, params.Product) == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
+		return nil, types.ErrProductDoesNotExist(params.Product)
 	}
 
 	ctx.Logger().Debug(fmt.Sprintf("queryCandleList : %+v", params))
@@ -238,7 +238,7 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -247,14 +247,14 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	var params types.QueryKlinesParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Product == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: product is required")
+		return nil, types.ErrProductIsRequired()
 	}
 	tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
+		return nil, types.ErrProductDoesNotExist(params.Product)
 	}
 
 	ctx.Logger().Debug(fmt.Sprintf("queryCandleList : %+v", params))
@@ -270,7 +270,7 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -278,13 +278,13 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	params := types.QueryTickerParams{}
 	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data, ", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	products := []string{}
 	if params.Product != "" {
 		if tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product); tokenPair == nil {
-			return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
+			return nil, types.ErrProductDoesNotExist(params.Product)
 		}
 		products = append(products, params.Product)
 	} else {
@@ -352,7 +352,7 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 	var products []string
 	if params.Product != "" {
 		if tokenPair := keeper.dexKeeper.GetTokenPair(ctx, params.Product); tokenPair == nil {
-			return nil, sdk.ErrUnknownRequest(fmt.Sprintf("product %s does not exist", params.Product))
+			return nil, types.ErrProductDoesNotExist(params.Product)
 		}
 		products = append(products, params.Product)
 	} else {
@@ -409,7 +409,7 @@ func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -419,14 +419,14 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	var params types.QueryOrderListParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 	orders, total := keeper.GetOrderList(ctx, params.Address, params.Product, params.Side, isOpen,
@@ -440,7 +440,7 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -450,14 +450,14 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	var params types.QueryTxListParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("invalid address", err.Error()))
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 	txs, total := keeper.GetTransactionList(ctx, params.Address, params.TxType, params.StartTime, params.EndTime, offset, limit)
@@ -470,7 +470,7 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -479,10 +479,10 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	var params types.QueryDexFeesParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Page < 0 || params.PerPage < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid page %d or per_page %d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 	offset, limit := common.GetPage(params.Page, params.PerPage)
 
@@ -513,7 +513,7 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	}
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -521,14 +521,14 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 func queryBlocksTotalTxs(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	height, err := strconv.ParseInt(path[0], 10, 64)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted block height", path[0]))
+		return nil, common.ErrStrconvFailed(err.Error())
 	}
 
 	totalTxs := keeper.Orm.GetTotalTxsByHeight(height)
 	response := common.GetBaseResponse(totalTxs)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }

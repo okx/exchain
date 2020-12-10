@@ -24,6 +24,7 @@ const (
 	CodeParseHTTPArgsWithLimit	 uint32 = 67008
 	CodeInvalidValidateBasic	 uint32 = 67009
 	CodeAddressNotEqual			 uint32 = 67010
+	CodeInternalError			 uint32 = 67011
 )
 
 // ErrNilValidatorAddr returns an error when an empty validator address appears
@@ -275,4 +276,8 @@ func ErrAlreadyBound(codespace string, delAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(codespace, CodeInvalidProxy,
 		fmt.Sprintf("failed. %s has already bound a proxy. it's necessary to unbind before proxy register",
 			delAddr))}
+}
+
+func ErrCodeInternalError(codespace string) sdk.Error {
+	return sdkerrors.New(codespace, CodeInternalError, "code occur internal error")
 }

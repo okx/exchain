@@ -21,6 +21,8 @@ const (
 	CodeInternal								uint32 = 63010
 	CodeInsufficientCoins						uint32 = 63011
 	CodeUnauthorized							uint32 = 63012
+	CodeGetOrderFailed							uint32 = 63013
+	CodeTokenPairNotFound						uint32 = 63014
 )
 
 // invalid size
@@ -58,4 +60,16 @@ func ErrInternal(message string) sdk.Error {
 
 func ErrInsufficientCoins(message string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, message)
+}
+
+func ErrUnknownRequest(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, message)
+}
+
+func ErrGetOrderFailed(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetOrderFailed, message)
+}
+
+func ErrTokenPairNotFound(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, message)
 }

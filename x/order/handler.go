@@ -305,7 +305,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return sdk.Result{Code: types.CodeInternal}
+		return nil, types.ErrInternal("occur error internal")
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)

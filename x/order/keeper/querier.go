@@ -32,7 +32,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryDepthBookV2:
 			return queryDepthBookV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown order query endpoint")
+			return nil, types.ErrUnknownRequest("unknown order query endpoint")
 		}
 	}
 }
@@ -42,7 +42,7 @@ func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	err sdk.Error) {
 	order := keeper.GetOrder(ctx, path[0])
 	if order == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("order(%v) does not exist", path[0]))
+		return nil, types.ErrGetOrderFailed(fmt.Sprintf("order(%v) does not exist", path[0]))
 	}
 	bz := keeper.cdc.MustMarshalJSON(order)
 	return bz, nil
@@ -83,15 +83,14 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	var params QueryDepthBookParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(
-			sdk.AppendMsgToErr("incorrectly formatted request Data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed("incorrectly formatted request Data")
 	}
 	if params.Size == 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid param: size= %d", params.Size))
+		return nil, types.ErrInvalidSizeParam(params.Size)
 	}
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("Non-exist product: %s", params.Product))
+		return nil, types.ErrTokenPairNotFound(params.Product)
 	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 
@@ -177,8 +176,7 @@ func queryParameters(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error)
 	params := keeper.GetParams(ctx)
 	res, errRes := codec.MarshalJSONIndent(keeper.cdc, params)
 	if errRes != nil {
-		return nil, sdk.ErrInternal(
-			sdk.AppendMsgToErr("could not marshal result to JSON", errRes.Error()))
+		return nil, common.ErrMarshalJSONFailed(errRes.Error())
 	}
 	return res, nil
 }
@@ -187,10 +185,10 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 	var params QueryDepthBookParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if params.Size == 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid param: size= %d", params.Size))
+		return nil, types.ErrInvalidSizeParam(params.Size)
 	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 
@@ -218,7 +216,7 @@ func queryDepthBookV2(ctx sdk.Context, path []string, req abci.RequestQuery, kee
 
 	res, err := common.JSONMarshalV2(bookRes)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return res, nil
 }

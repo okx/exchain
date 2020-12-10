@@ -2,7 +2,6 @@ package gov
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -83,7 +82,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		types.ErrInsufficientCoins(DefaultCodespace, err.Error()).Result()
+		return nil, types.ErrInsufficientCoins(types.DefaultCodespace, err.Error())
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,
