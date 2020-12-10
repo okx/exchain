@@ -115,8 +115,3 @@ type Transaction struct {
 	Fee       string `gorm:"type:varchar(40)" json:"fee" v2:"fee"`
 	Timestamp int64  `gorm:"index" json:"timestamp" v2:"timestamp"`
 }
-
-type Block struct {
-	Height int64 `gorm:"PRIMARY_KEY;" json:"block_height"`
-	NumTxs int   `gorm:"" json:"num_txs"`
-}

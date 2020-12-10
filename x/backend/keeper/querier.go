@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -71,8 +70,6 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 
 		case types.QuerySwapWatchlist:
 			res, err = querySwapWatchlist(ctx, req, keeper)
-		case types.QueryBlocksTotalTxs:
-			res, err = queryBlocksTotalTxs(ctx, path[1:], req, keeper)
 		case types.QueryTickerListV2:
 			if keeper.Config.EnableMktCompute {
 				res, err = queryTickerListV2(ctx, path[1:], req, keeper)
@@ -511,21 +508,6 @@ func queryDexFees(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	} else {
 		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
 	}
-	bz, err := json.Marshal(response)
-	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
-	}
-	return bz, nil
-}
-
-func queryBlocksTotalTxs(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	height, err := strconv.ParseInt(path[0], 10, 64)
-	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted block height", path[0]))
-	}
-
-	totalTxs := keeper.Orm.GetTotalTxsByHeight(height)
-	response := common.GetBaseResponse(totalTxs)
 	bz, err := json.Marshal(response)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
