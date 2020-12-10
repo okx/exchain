@@ -1,18 +1,13 @@
 package kline
 
 import (
-	"fmt"
-	"strconv"
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
 	"github.com/okex/okexchain/x/stream/common"
-	"github.com/okex/okexchain/x/stream/nacos"
 	"github.com/okex/okexchain/x/stream/types"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 var (
@@ -89,20 +84,4 @@ func (kd *KlineData) GetMatchResults() []*backend.MatchResult {
 
 func (kd *KlineData) SetMatchResults(matchResults []*backend.MatchResult) {
 	kd.matchResults = matchResults
-}
-
-func GetMarketServiceURL(urls string, nameSpace string, param vo.SelectOneHealthInstanceParam) (string, error) {
-	k, err := nacos.GetOneInstance(urls, nameSpace, param)
-	if err != nil {
-		return "", err
-	}
-	if k == nil {
-		return "", fmt.Errorf("there is no %s service in nacos-server %s", param.ServiceName, urls)
-	}
-	port := strconv.FormatUint(k.Port, 10)
-	return k.Ip + ":" + port, nil
-}
-
-func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketServiceURL string, logger log.Logger) (err error) {
-	return nil
 }
