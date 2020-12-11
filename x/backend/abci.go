@@ -23,7 +23,6 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeFeeDetails(keeper)
 		storeTransactions(keeper)
 		storeSwapInfos(keeper)
-		storeBlock(ctx, keeper)
 		keeper.EmitAllWsItems(ctx)
 		// refresh cache
 		keeper.Flush()
@@ -243,18 +242,4 @@ func GetUpdatedOrdersAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) 
 		}
 	}
 	return orders
-}
-
-func storeBlock(ctx sdk.Context, keeper Keeper) {
-	defer types.PrintStackIfPanic()
-	block := types.Block{
-		Height: ctx.BlockHeight(),
-		NumTxs: keeper.Cache.GetNumTxs(),
-	}
-	err := keeper.Orm.AddBlock(block)
-	if err != nil {
-		keeper.Logger.Error(fmt.Sprintf("[backend] failed to insert block %+v, err: %+v", block, err))
-	} else {
-		keeper.Logger.Debug(fmt.Sprintf("[backend] successful to insert block %+v", block))
-	}
 }
