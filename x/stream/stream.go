@@ -66,14 +66,16 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	se.cfg = cfg.StreamConfig
 	logger.Debug("NewStream", "config", *se.cfg)
 
-	// start eureka client
+	// start eureka client for registering restful service
 	if cfg.BackendConfig.EnableBackend && se.cfg.EurekaServerUrl != "" {
 		eureka.StartEurekaClient(logger, se.cfg.EurekaServerUrl, se.cfg.RestApplicationName)
 	}
-	// start nacos client
-	if cfg.BackendConfig.EnableBackend && se.cfg.NacosServerUrl != "" {
-		nacos.StartNacosClient(logger, se.cfg.NacosServerUrl, se.cfg.NacosNamespaceId, se.cfg.RestApplicationName)
+
+	// start nacos client for registering restful service
+	if cfg.BackendConfig.EnableBackend && se.cfg.RestNacosUrls != "" {
+		nacos.StartNacosClient(logger, se.cfg.RestNacosUrls, se.cfg.RestNacosNamespaceId, se.cfg.RestApplicationName)
 	}
+
 	// Enable marketKeeper if KlineQueryConnect is set.
 	if se.cfg.KlineQueryConnect != "" {
 		address, password, err := common.ParseRedisURL(se.cfg.KlineQueryConnect, se.cfg.RedisRequirePass)
