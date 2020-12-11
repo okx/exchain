@@ -21,7 +21,6 @@ type DataAnalysis struct {
 	DepthBook     keeper.BookRes          `json:"depth_book"`
 	AccStates     []token.AccountResponse `json:"account_states"`
 	SwapInfos     []*backend.SwapInfo     `json:"swap_infos"`
-	Block         backend.Block           `json:"block"`
 }
 
 func (d *DataAnalysis) Empty() bool {
@@ -60,8 +59,4 @@ func (d *DataAnalysis) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper,
 	d.FeeDetails = tokenKeeper.GetFeeDetailList()
 	d.Trans = cache.GetTransactions()
 	d.SwapInfos = cache.GetSwapInfos()
-	d.Block = backend.Block{
-		Height: ctx.BlockHeight(),
-		NumTxs: cache.GetNumTxs(),
-	}
 }

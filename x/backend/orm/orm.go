@@ -101,7 +101,6 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	orm.db.AutoMigrate(&types.Order{})
 	orm.db.AutoMigrate(&types.Transaction{})
 	orm.db.AutoMigrate(&types.SwapInfo{})
-	orm.db.AutoMigrate(&types.Block{})
 
 	allKlinesMap := types.GetAllKlineMap()
 	for _, v := range allKlinesMap {
@@ -1219,9 +1218,8 @@ func (orm *ORM) GetTransactionList(address string, txType, startTime, endTime in
 }
 
 // BatchInsertOrUpdate return map mean success or fail
-func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal,
-	mrs []*types.MatchResult, feeDetails []*token.FeeDetail, trxs []*types.Transaction, swapInfos []*types.SwapInfo,
-	block types.Block) (resultMap map[string]int, err error) {
+func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal, mrs []*types.MatchResult,
+	feeDetails []*token.FeeDetail, trxs []*types.Transaction, swapInfos []*types.SwapInfo) (resultMap map[string]int, err error) {
 
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()
@@ -1237,7 +1235,6 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 	resultMap["transactions"] = 0
 	resultMap["matchResults"] = 0
 	resultMap["swapInfos"] = 0
-	resultMap["block"] = 0
 
 	// 1. Batch Insert Orders.
 	orderVItems := []string{}
@@ -1341,14 +1338,6 @@ func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*t
 				resultMap["swapInfos"] += 1
 			}
 		}
-	}
-
-	// 6. insert block
-	ret := trx.Create(block)
-	if ret.Error != nil {
-		return resultMap, ret.Error
-	} else {
-		resultMap["block"] += 1
 	}
 
 	trx.Commit()
@@ -1482,25 +1471,4 @@ func (orm *ORM) GetTransactionListV2(address string, txType int, after string, b
 
 	query.Order("timestamp desc").Limit(limit).Find(&txs)
 	return txs
-}
-
-// AddBlock insert into block data
-func (orm *ORM) AddBlock(block types.Block) error {
-	orm.singleEntryLock.Lock()
-	defer orm.singleEntryLock.Unlock()
-	ret := orm.db.Create(block)
-	if ret.Error != nil {
-		return ret.Error
-	}
-	return nil
-}
-
-func (orm *ORM) GetTotalTxsByHeight(blockHeight int64) int {
-	sql := fmt.Sprintf("select SUM(num_txs) as total from blocks where height<=%d;", blockHeight)
-	total := 0
-	raw := orm.db.Raw(sql)
-	if err := raw.Row().Scan(&total); err != nil {
-		orm.Error(fmt.Sprintf("failed to execute sql:%s result, error:%s", sql, err.Error()))
-	}
-	return total
 }

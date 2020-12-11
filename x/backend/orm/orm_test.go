@@ -788,12 +788,7 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 			SellAmount: "10xxb", BuysAmount: "9.8yyb", Price: "1", Timestamp: 100},
 	}
 
-	block := types.Block{
-		Height: 1,
-		NumTxs: len(txs),
-	}
-
-	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos, block)
+	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
 	require.True(t, resultMap != nil && e == nil)
 
 	require.True(t, resultMap != nil && resultMap["newOrders"] == 2000)
@@ -803,7 +798,7 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 	require.True(t, resultMap != nil && resultMap["feeDetails"] == 4)
 	require.True(t, resultMap != nil && resultMap["swapInfos"] == 1)
 
-	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos, block)
+	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
 	fmt.Printf("%+v\n", e2)
 	require.True(t, resultMap2 != nil, resultMap2)
 	require.True(t, e2 != nil, e2)
