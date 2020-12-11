@@ -182,7 +182,8 @@ func queryWhitelistHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryWhitelist)
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -201,7 +202,8 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 

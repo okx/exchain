@@ -37,7 +37,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryPoolNum:
 			return queryPoolNum(ctx, k)
 		default:
-			return nil, sdk.ErrUnknownRequest("failed. unknown farm query endpoint")
+			return nil, types.ErrUnknownRequest("failed. unknown farm query endpoint")
 		}
 	}
 }
@@ -51,7 +51,7 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk.Er
 
 	pool, found := k.GetFarmPool(ctx, params.PoolName)
 	if !found {
-		return nil, types.ErrNoFarmPoolFound(types.DefaultCodespace, params.PoolName)
+		return nil, types.ErrNoFarmPoolFound(params.PoolName)
 	}
 
 	updatedPool, _ := k.CalculateAmountYieldedBetween(ctx, pool)
@@ -102,7 +102,7 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 
 	earnings, sdkErr := k.getEarnings(ctx, params.PoolName, params.AccAddress)
 	if sdkErr != nil {
-		return nil, sdkErr
+		return nil, types.ErrGetEarningsFailed(sdkErr.Error())
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, earnings)
@@ -121,7 +121,7 @@ func queryLockInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 
 	lockInfo, found := k.GetLockInfo(ctx, params.AccAddress, params.PoolName)
 	if !found {
-		return nil, types.ErrNoLockInfoFound(types.DefaultCodespace, params.AccAddress.String(), params.PoolName)
+		return nil, types.ErrNoLockInfoFound(params.AccAddress.String(), params.PoolName)
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, lockInfo)
@@ -193,9 +193,9 @@ func queryPoolNum(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 }
 
 func defaultQueryErrJSONMarshal(err error) sdk.Error {
-	return sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+	return types.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
 }
 
 func defaultQueryErrParseParams(err error) sdk.Error {
-	return sdk.ErrInternal(fmt.Sprintf("failed to parse params. %s", err))
+	return types.ErrInternal(fmt.Sprintf("failed to parse params. %s", err))
 }
