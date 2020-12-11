@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okexchain/x/stream/websocket"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/stream/analyservice"
-	"github.com/okex/okexchain/x/stream/pulsarclient"
+	"github.com/okex/okexchain/x/stream/common/kline"
 	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
 	"github.com/okex/okexchain/x/stream/types"
+	"github.com/okex/okexchain/x/stream/websocket"
 )
 
 func EndBlocker(ctx sdk.Context, k Keeper) {
@@ -118,10 +117,10 @@ func createStreamTaskWithData(ctx sdk.Context, s *Stream) *TaskWithData {
 			pBlock.SetData(ctx, s.orderKeeper, s.tokenKeeper, s.dexKeeper, s.swapKeeper, s.Cache)
 			data = pBlock
 		case EngineKlineKind:
-			pData := pulsarclient.NewPulsarData()
+			pData := kline.NewKlineData()
 			pData.SetData(ctx, s.orderKeeper, s.Cache)
 			// should init token pair map here
-			pulsarclient.InitTokenPairMap(ctx, s.dexKeeper)
+			kline.InitTokenPairMap(ctx, s.dexKeeper)
 			data = pData
 		case EngineWebSocketKind:
 			websocket.InitialCache(ctx, s.orderKeeper, s.dexKeeper, s.logger)
