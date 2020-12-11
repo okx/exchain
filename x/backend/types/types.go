@@ -3,8 +3,9 @@ package types
 
 import (
 	"fmt"
-	orderTypes "github.com/okex/okexchain/x/order/types"
 	"time"
+
+	orderTypes "github.com/okex/okexchain/x/order/types"
 )
 
 const (
@@ -42,7 +43,7 @@ type Ticker struct {
 	ChangePercentage string  `json:"change_percentage"` // Change / Open * 100%
 }
 
-func (t *Ticker) GetTimestamp() int64  {
+func (t *Ticker) GetTimestamp() int64 {
 	return t.Timestamp
 }
 

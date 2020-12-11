@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	"gopkg.in/yaml.v2"
@@ -56,9 +57,9 @@ func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int)
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EvmDenom: ethermint.NativeToken,
-		EnableCreate: true,
-		EnableCall:   true,
+		EvmDenom:     ethermint.NativeToken,
+		EnableCreate: false,
+		EnableCall:   false,
 		ExtraEIPs:    []int(nil), // TODO: define default values
 	}
 }
@@ -104,7 +105,6 @@ func validateBool(i interface{}) error {
 	}
 	return nil
 }
-
 
 func validateEIPs(i interface{}) error {
 	eips, ok := i.([]int)

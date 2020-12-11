@@ -1218,8 +1218,8 @@ func (orm *ORM) GetTransactionList(address string, txType, startTime, endTime in
 }
 
 // BatchInsertOrUpdate return map mean success or fail
-func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal,
-	mrs []*types.MatchResult, feeDetails []*token.FeeDetail, trxs []*types.Transaction, swapInfos []*types.SwapInfo) (resultMap map[string]int, err error) {
+func (orm *ORM) BatchInsertOrUpdate(newOrders []*types.Order, updatedOrders []*types.Order, deals []*types.Deal, mrs []*types.MatchResult,
+	feeDetails []*token.FeeDetail, trxs []*types.Transaction, swapInfos []*types.SwapInfo) (resultMap map[string]int, err error) {
 
 	orm.singleEntryLock.Lock()
 	defer orm.singleEntryLock.Unlock()

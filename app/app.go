@@ -2,16 +2,19 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/debug"
-	"github.com/tendermint/tendermint/crypto/tmhash"
 	"io"
 	"os"
+
+	"github.com/okex/okexchain/x/debug"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 
 	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/dex"
+	dexclient "github.com/okex/okexchain/x/dex/client"
 	"github.com/okex/okexchain/x/farm"
+	farmclient "github.com/okex/okexchain/x/farm/client"
 	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/stream"
@@ -80,6 +83,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
+			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -250,7 +254,7 @@ func NewOKExChainApp(
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
-		app.SupplyKeeper, auth.FeeCollectorName, "",
+		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
 	)
 	app.DistrKeeper = distr.NewKeeper(
 		cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
@@ -272,14 +276,14 @@ func NewOKExChainApp(
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, false)
+		app.cdc, appConfig.BackendConfig.EnableBackend)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.cdc, false, orderMetrics,
+		app.keys[order.OrderStoreKey], app.cdc, appConfig.BackendConfig.EnableBackend, orderMetrics,
 	)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.cdc, app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
@@ -305,9 +309,13 @@ func NewOKExChainApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
-	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper)
+	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
+		AddRoute(dex.RouterKey, &app.DexKeeper).
+		AddRoute(farm.RouterKey, &app.FarmKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
