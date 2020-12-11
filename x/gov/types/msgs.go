@@ -33,13 +33,13 @@ func (msg MsgSubmitProposal) Type() string  { return TypeMsgSubmitProposal }
 // Implements Msg.
 func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	if msg.Content == nil {
-		return ErrInvalidProposalContent(DefaultCodespace, "missing content")
+		return ErrInvalidProposalContent()
 	}
 	if msg.Content.ProposalType() == ProposalTypeSoftwareUpgrade {
 		// Disable software upgrade proposals as they are currently equivalent
 		// to text proposals. Re-enable once a valid software upgrade proposal
 		// handler is implemented.
-		return ErrInvalidProposalType(DefaultCodespace, msg.Content.ProposalType())
+		return ErrInvalidProposalType(msg.Content.ProposalType())
 	}
 	if msg.Proposer.Empty() {
 		return sdk.ErrInvalidAddress(msg.Proposer.String())
@@ -57,7 +57,7 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	}
 
 	if !IsValidProposalType(msg.Content.ProposalType()) {
-		return ErrInvalidProposalType(DefaultCodespace, msg.Content.ProposalType())
+		return ErrInvalidProposalType(msg.Content.ProposalType())
 	}
 
 	return msg.Content.ValidateBasic()
@@ -153,7 +153,7 @@ func (msg MsgVote) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidAddress(msg.Voter.String())
 	}
 	if !ValidVoteOption(msg.Option) {
-		return ErrInvalidVote(DefaultCodespace, msg.Option)
+		return ErrInvalidVote(msg.Option)
 	}
 
 	return nil

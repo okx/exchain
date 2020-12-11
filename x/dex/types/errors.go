@@ -140,21 +140,21 @@ func ErrInvalidProduct() sdk.Error {
 }
 
 func ErrInvalidAddress(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, message)
+	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("there is no withdrawing for address %s", message))
 }
 
 func ErrUnknownRequest(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, message)
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, fmt.Sprintf("unknown request: %s", message))
 }
 
 func ErrInternal(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInternal, message)
+	return sdkerrors.New(DefaultCodespace, CodeInternal, fmt.Sprintf("internal error: %s", message))
 }
 
-func ErrUnauthorized(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnauthorized, message)
+func ErrUnauthorized(address string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnauthorized, fmt.Sprintf("%s is not the owner of product", address))
 }
 
-func ErrInsufficientCoins(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, message)
+func ErrInsufficientCoins(feeCoin string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, fmt.Sprintf("insufficient fee coins(need %s)", feeCoin))
 }

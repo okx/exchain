@@ -399,7 +399,7 @@ func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
 	if !ok {
-		return types.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address %s", addr.String()))
+		return types.ErrInvalidAddress(addr.String())
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)

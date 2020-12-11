@@ -38,24 +38,22 @@ func NewParameterChangeProposal(title, description string, changes []types.Param
 // ValidateBasic validates the parameter change proposal
 func (pcp ParameterChangeProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(pcp.Title)) == 0 {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "proposal title cannot be blank")
+		return govtypes.ErrInvalidProposalContent()
 	}
 	if len(pcp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace,
-			fmt.Sprintf("proposal title is longer than max length of %d", govtypes.MaxTitleLength))
+		return govtypes.ErrInvalidProposalContent()
 	}
 
 	if len(pcp.Description) == 0 {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "proposal description cannot be blank")
+		return govtypes.ErrInvalidProposalContent()
 	}
 
 	if len(pcp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace,
-			fmt.Sprintf("proposal description is longer than max length of %d", govtypes.MaxDescriptionLength))
+		return govtypes.ErrInvalidProposalContent()
 	}
 
 	if pcp.ProposalType() != sdkparams.ProposalTypeChange {
-		return govtypes.ErrInvalidProposalType(DefaultCodespace, pcp.ProposalType())
+		return govtypes.ErrInvalidProposalType(pcp.ProposalType())
 	}
 
 	if len(pcp.Changes) != 1 {

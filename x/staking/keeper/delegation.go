@@ -17,7 +17,7 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 		// tokens might be negative
 		proxy.TotalDelegatedTokens = proxy.TotalDelegatedTokens.Add(tokens)
 		if proxy.TotalDelegatedTokens.LT(sdk.ZeroDec()) {
-			return types.ErrInvalidProxyUpdating(types.DefaultCodespace)
+			return types.ErrInvalidProxyUpdating()
 		}
 
 		finalTokens := proxy.TotalDelegatedTokens.Add(proxy.Tokens)
@@ -32,7 +32,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 
 	delQuantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if delQuantity.LT(minDelLimit) {
-		return types.ErrInsufficientQuantity(types.DefaultCodespace, delQuantity.String(), minDelLimit.String())
+		return types.ErrInsufficientQuantity(delQuantity.String(), minDelLimit.String())
 	}
 
 	// 1.transfer account's okt into bondPool
@@ -69,19 +69,19 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysCoin) (time.Time, error) {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return time.Time{}, types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
+		return time.Time{}, types.ErrNoDelegationToAddShares(delAddr.String())
 	}
 	quantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if quantity.LT(minDelLimit) {
-		return time.Time{}, types.ErrInsufficientQuantity(types.DefaultCodespace, quantity.String(), minDelLimit.String())
+		return time.Time{}, types.ErrInsufficientQuantity(quantity.String(), minDelLimit.String())
 	} else if delegator.Tokens.LT(quantity) {
-		return time.Time{}, types.ErrInsufficientDelegation(types.DefaultCodespace, quantity.String(), delegator.Tokens.String())
+		return time.Time{}, types.ErrInsufficientDelegation(quantity.String(), delegator.Tokens.String())
 	}
 
 	// proxy has to unreg before withdrawing total tokens
 	leftTokens := delegator.Tokens.Sub(quantity)
 	if delegator.IsProxy && leftTokens.IsZero() {
-		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(types.DefaultCodespace, delAddr.String())
+		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(delegator.DelegatorAddress.String())
 	}
 
 	// 1.some okt transfer bondPool into unbondPool
@@ -160,7 +160,7 @@ func (k Keeper) DeleteUndelegating(ctx sdk.Context, delAddr sdk.AccAddress) {
 func (k Keeper) CompleteUndelegation(ctx sdk.Context, delAddr sdk.AccAddress) (sdk.Dec, error) {
 	ud, found := k.GetUndelegating(ctx, delAddr)
 	if !found {
-		return sdk.NewDec(0), types.ErrNotInDelegating(k.Codespace(), delAddr.String())
+		return sdk.NewDec(0), types.ErrNotInDelegating(delAddr.String())
 	}
 
 	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(k.GetParams(ctx).BondDenom, ud.Quantity)}

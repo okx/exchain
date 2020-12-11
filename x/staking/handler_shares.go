@@ -12,34 +12,34 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 
 	if !found || delegator.Tokens.IsZero() {
-		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, msg.DelAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(msg.DelAddr.String()).Result()
 	}
 
 	if !delegator.Shares.Equal(sdk.ZeroDec()) {
-		return types.ErrAlreadyAddedShares(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
+		return types.ErrAlreadyAddedShares(delegator.DelegatorAddress.String()).Result()
 	}
 
 	// proxy must delegated
 	proxyDelegator, found := k.GetDelegator(ctx, msg.ProxyAddress)
 	if !found || proxyDelegator.Tokens.IsZero() {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, msg.ProxyAddress.String()).Result()
+		return types.ErrNotFoundProxy(msg.ProxyAddress.String()).Result()
 	}
 
 	// target delegator must reg as a proxy
 	if !proxyDelegator.IsProxy {
-		return types.ErrDelegatorNotAProxy(types.DefaultCodespace, msg.ProxyAddress.String()).Result()
+		return types.ErrDelegatorNotAProxy(msg.ProxyAddress.String()).Result()
 	}
 
 	// double proxy is denied on okexchain
 	if delegator.IsProxy {
-		return types.ErrDoubleProxy(types.DefaultCodespace, delegator.DelegatorAddress.String()).Result()
+		return types.ErrDoubleProxy(delegator.DelegatorAddress.String()).Result()
 	}
 
 	// same proxy, only update shares
 	if delegator.HasProxy() && delegator.ProxyAddress.Equals(proxyDelegator.DelegatorAddress) {
 		updateTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
 		if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, updateTokens); err != nil {
-			return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
+			return types.ErrInvalidDelegation(proxyDelegator.DelegatorAddress.String()).Result()
 		}
 		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 	}
@@ -64,7 +64,7 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	finalTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
 
 	if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, finalTokens); err != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, proxyDelegator.DelegatorAddress.String()).Result()
+		return types.ErrInvalidDelegation(proxyDelegator.DelegatorAddress.String()).Result()
 	}
 
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
@@ -73,17 +73,17 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) error {
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, delAddr.String())
+		return types.ErrNoDelegationToAddShares(delAddr.String())
 	}
 
 	proxyDelegator, found := k.GetDelegator(ctx, delegator.ProxyAddress)
 	if !found {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, delAddr.String())
+		return types.ErrNotFoundProxy(delAddr.String())
 	}
 
 	// update proxy's shares weight
 	if k.UpdateProxy(ctx, delegator, delegator.Tokens.Mul(sdk.NewDec(-1))) != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, delAddr.String())
+		return types.ErrInvalidDelegation(delAddr.String())
 	}
 	// unbind proxy relationship
 	delegator.UnbindProxy()
@@ -105,20 +105,20 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sdk.
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
-		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(proxyAddr.String()).Result()
 	}
 	if proxy.IsProxy {
-		return types.ErrAlreadyProxied(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrAlreadyProxied(proxyAddr.String()).Result()
 	}
 	if len(proxy.ProxyAddress) != 0 {
-		return types.ErrAlreadyBound(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrAlreadyBound(proxyAddr.String()).Result()
 	}
 
 	proxy.RegProxy(true)
 	k.SetDelegator(ctx, proxy)
 
 	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
+		return types.ErrInvalidDelegation(proxy.DelegatorAddress.String()).Result()
 	}
 
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
@@ -129,11 +129,11 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sd
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
-		return types.ErrNotFoundProxy(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrNotFoundProxy(proxyAddr.String()).Result()
 	}
 
 	if !proxy.IsProxy {
-		return types.ErrNeverProxied(types.DefaultCodespace, proxyAddr.String()).Result()
+		return types.ErrNeverProxied(proxyAddr.String()).Result()
 	}
 
 	proxy.RegProxy(false)
@@ -143,7 +143,7 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sd
 	k.SetDelegator(ctx, proxy)
 
 	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
-		return types.ErrInvalidDelegation(types.DefaultCodespace, proxy.DelegatorAddress.String()).Result()
+		return types.ErrInvalidDelegation(proxy.DelegatorAddress.String()).Result()
 	}
 
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
@@ -161,18 +161,18 @@ func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) (*s
 func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) (*sdk.Result, error) {
 	maxValsToAddShares := int(k.ParamsMaxValsToAddShares(ctx))
 	if len(msg.ValAddrs) == 0 {
-		return types.ErrNilValidatorAddrs(types.DefaultCodespace).Result()
+		return types.ErrNilValidatorAddrs().Result()
 	} else if len(msg.ValAddrs) > maxValsToAddShares {
-		return types.ErrExceedValidatorAddrs(types.DefaultCodespace, maxValsToAddShares).Result()
+		return types.ErrExceedValidatorAddrs(maxValsToAddShares).Result()
 	}
 
 	// 0. check whether the delegator has delegation
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 	if !found || delegator.Tokens.IsZero() {
-		return types.ErrNoDelegationToAddShares(types.DefaultCodespace, msg.DelAddr.String()).Result()
+		return types.ErrNoDelegationToAddShares(msg.DelAddr.String()).Result()
 	}
 	if delegator.HasProxy() {
-		return types.ErrAddSharesDuringProxy(types.DefaultCodespace, delegator.DelegatorAddress.String(),
+		return types.ErrAddSharesDuringProxy(delegator.DelegatorAddress.String(),
 			delegator.ProxyAddress.String()).Result()
 	}
 
@@ -212,11 +212,11 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 // validateSharesAdding gives a quick validity of target validators before shares adding
 func validateSharesAdding(vals types.Validators) error {
 	if len(vals) == 0 {
-		return types.ErrNoAvailableValsToAddShares(types.DefaultCodespace)
+		return types.ErrNoAvailableValsToAddShares()
 	}
 
 	if valAddr, ok := isDismissed(vals); ok {
-		return types.ErrAddSharesToDismission(types.DefaultCodespace, valAddr.String())
+		return types.ErrAddSharesToDismission(valAddr.String())
 	}
 
 	return nil
@@ -260,7 +260,7 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*sdk.Result, error) {
 
 	if msg.Amount.Denom != k.BondDenom(ctx) {
-		return ErrBadDenom(k.Codespace()).Result()
+		return ErrBadDenom().Result()
 	}
 
 	err := k.Delegate(ctx, msg.DelegatorAddress, msg.Amount)
@@ -280,7 +280,7 @@ func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*
 
 func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) (*sdk.Result, error) {
 	if msg.Amount.Denom != k.BondDenom(ctx) {
-		return ErrBadDenom(k.Codespace()).Result()
+		return ErrBadDenom().Result()
 	}
 
 	completionTime, err := k.Withdraw(ctx, msg.DelegatorAddress, msg.Amount)
@@ -305,7 +305,7 @@ func handleMsgDestroyValidator(ctx sdk.Context, msg types.MsgDestroyValidator, k
 	// 0.check to see if the validator which belongs to the delegator exists
 	validator, found := k.GetValidator(ctx, valAddr)
 	if !found {
-		return ErrNoValidatorFound(types.DefaultCodespace, valAddr.String()).Result()
+		return ErrNoValidatorFound(valAddr.String()).Result()
 	}
 
 	completionTime, sdkErr := k.WithdrawMinSelfDelegation(ctx, msg.DelAddr, validator)

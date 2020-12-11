@@ -122,7 +122,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var deposits []depositsData
 	for i, tokenPair := range tokenPairs {
 		if tokenPair == nil {
-			return nil, types.ErrInternal("unexpected token pair")
+			return nil, types.ErrInternal("tokenPair is nil")
 		}
 		// filter address
 		if params.Address != "" && tokenPair.Owner.String() != params.Address {
@@ -162,7 +162,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
-		return nil, types.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, types.ErrInternal(errMarshal.Error())
 	}
 
 	return res, nil

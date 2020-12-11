@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -34,7 +32,7 @@ func (msg MsgDestroyValidator) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgDestroyValidator) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 
 	return nil
@@ -68,7 +66,7 @@ func (msg MsgUnbindProxy) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgUnbindProxy) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 	return nil
 }
@@ -104,7 +102,7 @@ func (msg MsgRegProxy) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgRegProxy) ValidateBasic() error {
 	if msg.ProxyAddress.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 	return nil
 }
@@ -139,13 +137,11 @@ func (msg MsgBindProxy) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgBindProxy) ValidateBasic() error {
 	if msg.DelAddr.Empty() || msg.ProxyAddress.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 
 	if msg.DelAddr.Equals(msg.ProxyAddress) {
-		return ErrWrongOperationAddr(DefaultCodespace,
-			fmt.Sprintf("ProxyAddress: %s eqauls to DelegatorAddress: %s",
-				msg.ProxyAddress.String(), msg.DelAddr.String()))
+		return ErrWrongOperationAddr()
 	}
 
 	return nil
@@ -181,15 +177,15 @@ func (msg MsgAddShares) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgAddShares) ValidateBasic() error {
 	if msg.DelAddr.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 
 	if msg.ValAddrs == nil || len(msg.ValAddrs) == 0 {
-		return ErrWrongOperationAddr(DefaultCodespace, "ValAddrs is empty")
+		return ErrWrongOperationAddr()
 	}
 
 	if isValsDuplicate(msg.ValAddrs) {
-		return ErrTargetValsDuplicate(DefaultCodespace)
+		return ErrTargetValsDuplicate()
 	}
 
 	return nil
@@ -239,10 +235,10 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgDeposit) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 	if msg.Amount.Amount.LTE(sdk.ZeroDec()) || !msg.Amount.IsValid() {
-		return ErrBadDelegationAmount(DefaultCodespace)
+		return ErrBadDelegationAmount()
 	}
 	return nil
 }
@@ -277,10 +273,10 @@ func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 // ValidateBasic gives a quick validity check
 func (msg MsgWithdraw) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 	if !msg.Amount.IsValid() {
-		return ErrBadUnDelegationAmount(DefaultCodespace)
+		return ErrBadUnDelegationAmount()
 	}
 	return nil
 }

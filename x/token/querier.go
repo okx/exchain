@@ -33,7 +33,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, types.ErrUnknownRequest(types.DefaultCodespace, "unknown token query endpoint")
+			return nil, types.ErrUnknownRequest()
 		}
 	}
 }
@@ -44,7 +44,7 @@ func queryInfo(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Kee
 
 	token := keeper.GetTokenInfo(ctx, name)
 	if token.Symbol == "" {
-		return nil, types.ErrInvalidCoins(types.DefaultCodespace, "unknown token")
+		return nil, types.ErrInvalidCoins()
 
 	}
 

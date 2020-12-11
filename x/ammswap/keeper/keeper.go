@@ -48,7 +48,7 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
 	if rawItem == nil {
-		return types.SwapTokenPair{}, types.ErrUnexistswapTokenPair(types.DefaultCodespace, fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName))
+		return types.SwapTokenPair{}, types.ErrUnexistswapTokenPair()
 	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
@@ -98,7 +98,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		return poolToken, types.ErrUnexistPoolToken(types.DefaultCodespace, fmt.Sprintf("Pool token %s does not exist", symbol))
+		return poolToken, types.ErrUnexistPoolToken()
 	}
 	return poolToken, nil
 }
@@ -112,7 +112,7 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.De
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return types.ErrCodeMinCoinsFailed(types.DefaultCodespace, err.Error())
+		return types.ErrCodeMinCoinsFailed()
 	}
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
@@ -121,7 +121,7 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sd
 func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 	if err != nil {
-		return types.ErrSendCoinsFromAccountToModule(types.DefaultCodespace, err.Error())
+		return types.ErrSendCoinsFromAccountToModule()
 	}
 	return k.supplyKeeper.BurnCoins(ctx, types.ModuleName, coins)
 }
@@ -164,7 +164,7 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmount
 	}
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {
-		return baseAmount, quoteAmount, types.ErrInsufficientPoolToken(types.DefaultCodespace, "insufficient pool token")
+		return baseAmount, quoteAmount, types.ErrInsufficientPoolToken()
 	}
 
 	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)

@@ -48,59 +48,59 @@ var (
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
-func ErrBlockedRecipient(codespace string, blockedAddr string) sdk.EnvelopedErr {
+func ErrBlockedRecipient(blockedAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errBlockedRecipient, "failed. %s is not allowed to receive transactions", blockedAddr)}
 }
 
 // ErrSendDisabled returns an error when the transaction sending is disabled in bank module
-func ErrSendDisabled(codespace string) sdk.EnvelopedErr {
+func ErrSendDisabled() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendDisabled, "failed. send transactions are currently disabled")}
 }
 
-func ErrInvalidDexList(codespace string, message string) sdk.EnvelopedErr {
+func ErrInvalidDexList(message string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidDexList, message)}
 }
 
-func ErrInvalidBalanceNotEnough(codespace string, message string) sdk.EnvelopedErr {
+func ErrInvalidBalanceNotEnough(message string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidBalanceNotEnough, message)}
 }
 
-func ErrInvalidHeight(codespace string, h, ch, max int64) sdk.EnvelopedErr {
+func ErrInvalidHeight(h, ch, max int64) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidHeight, fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.", h, ch, ch, max))}
 }
 
-func ErrInvalidCommon(codespace string, message string) sdk.EnvelopedErr {
+func ErrInvalidCommon(message string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidCommon, message)}
 }
 
-func ErrSendCoinsFromAccountToModuleFailed(codespace string, message string) sdk.Error {
+func ErrSendCoinsFromAccountToModuleFailed(message string) sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToModuleFailed, message)}
 }
 
-func ErrUnrecognizedLockCoinsType(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnrecognizedLockCoinsType, message)}
+func ErrUnrecognizedLockCoinsType(lockCoinsType int) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnrecognizedLockCoinsType, fmt.Sprintf("unrecognized lock coins type: %d", lockCoinsType))}
 }
 
-func ErrFailedToUnlockAddress(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeFailedToUnlockAddress, message)}
+func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeFailedToUnlockAddress, fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr))}
 }
 
-func ErrUnknownRequest(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownRequest, message)}
+func ErrUnknownRequest() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownRequest, "unknown request: %s")}
 }
 
-func ErrInternal(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInternal, message)}
+func ErrInternal() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInternal, "occur error internal")}
 }
 
-func ErrInvalidCoins(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, message)}
+func ErrInvalidCoins() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "unknown token")}
 }
 
-func ErrInsufficientCoins(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInsufficientCoins, message)}
+func ErrInsufficientCoins(coins string) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInsufficientCoins, fmt.Sprintf("insufficient coins(need %s)", coins))}
 }
 
-func ErrUnauthorized(codespace string, message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, message)}
+func ErrUnauthorized() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, "code unauthorized")}
 }

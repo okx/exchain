@@ -31,73 +31,73 @@ const (
 
 )
 
-func ErrInactiveProposal(codespace string, proposalID uint64) sdk.Error {
-	return sdkerrors.New(codespace, CodeInactiveProposal, fmt.Sprintf("inactive proposal with id %d", proposalID))
+func ErrInactiveProposal(proposalID uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInactiveProposal, fmt.Sprintf("inactive proposal with id %d", proposalID))
 }
 
-func ErrAlreadyActiveProposal(codespace string, proposalID uint64) sdk.Error {
-	return sdkerrors.New(codespace, CodeAlreadyActiveProposal, fmt.Sprintf("proposal %d has been already active", proposalID))
+func ErrAlreadyActiveProposal(proposalID uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeAlreadyActiveProposal, fmt.Sprintf("proposal %d has been already active", proposalID))
 }
 
-func ErrAlreadyFinishedProposal(codespace string, proposalID uint64) sdk.Error {
-	return sdkerrors.New(codespace, CodeAlreadyFinishedProposal, fmt.Sprintf("proposal %d has already passed its voting period", proposalID))
+func ErrAlreadyFinishedProposal(proposalID uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeAlreadyFinishedProposal, fmt.Sprintf("proposal %d has already passed its voting period", proposalID))
 }
 
-func ErrAddressNotStaked(codespace string, address sdk.AccAddress) sdk.Error {
-	return sdkerrors.New(codespace, CodeAddressNotStaked, fmt.Sprintf("address %s is not staked and is thus ineligible to vote", address))
+func ErrAddressNotStaked(address sdk.AccAddress) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeAddressNotStaked, fmt.Sprintf("address %s is not staked and is thus ineligible to vote", address))
 }
 
-func ErrInvalidProposalContent(cs string, msg string) sdk.Error {
-	return sdkerrors.New(cs, CodeInvalidContent, fmt.Sprintf("invalid proposal content: %s", msg))
+func ErrInvalidProposalContent() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidContent, fmt.Sprintf("invalid proposal content"))
 }
 
-func ErrInvalidProposalType(codespace string, proposalType string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidProposalType, fmt.Sprintf("proposal type '%s' is not valid", proposalType))
+func ErrInvalidProposalType(proposalType string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidProposalType, fmt.Sprintf("proposal type '%s' is not valid", proposalType))
 }
 
-func ErrInvalidVote(codespace string, voteOption VoteOption) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidVote, fmt.Sprintf("'%v' is not a valid voting option", voteOption.String()))
+func ErrInvalidVote(voteOption VoteOption) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidVote, fmt.Sprintf("'%v' is not a valid voting option", voteOption.String()))
 }
 
-func ErrInvalidGenesis(codespace string, msg string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidVote, msg)
+func ErrInvalidGenesis() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidVote, "initial proposal ID hasn't been set")
 }
 
-func ErrNoProposalHandlerExists(codespace string, content interface{}) sdk.Error {
-	return sdkerrors.New(codespace, CodeProposalHandlerNotExists, fmt.Sprintf("'%T' does not have a corresponding handler", content))
+func ErrNoProposalHandlerExists(content interface{}) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeProposalHandlerNotExists, fmt.Sprintf("'%T' does not have a corresponding handler", content))
 }
 
-func ErrUnknownProposal(codespace string, proposalID uint64) sdk.Error {
-	return sdkerrors.New(codespace, CodeUnknownProposal, fmt.Sprintf("unknown proposal with id %d", proposalID))
+func ErrUnknownProposal(proposalID uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownProposal, fmt.Sprintf("unknown proposal with id %d", proposalID))
 }
 
-func ErrInvalidateProposalStatus(codespace string, msg string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidProposalStatus, msg)
+func ErrInvalidateProposalStatus() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidProposalStatus, "The status of proposal is can not be voted.")
 }
 
-func ErrInitialDepositNotEnough(codespace string, initDeposit string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInitialDepositNotEnough,
+func ErrInitialDepositNotEnough(initDeposit string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInitialDepositNotEnough,
 		fmt.Sprintf("InitialDeposit must be greater than or equal to %s", initDeposit))
 }
 
-func ErrInvalidProposer(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidProposer, message)
+func ErrInvalidProposer() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidProposer, "invalid proposer")
 }
 
-func ErrInvalidHeight(codespace string, h, ch, max uint64) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidHeight,
+func ErrInvalidHeight(h, ch, max uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidHeight,
 		fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.",
 			h, ch, ch, max))
 }
 
-func ErrInsufficientCoins(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInsufficientCoins, message)
+func ErrInsufficientCoins() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }
 
-func ErrUnknownRequest(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeUnknownRequest, message)
+func ErrUnknownRequest() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unkonwn request")
 }
 
-func ErrInvalidCoins(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, message)
+func ErrInvalidCoins(bondDenom string, decCoins string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, fmt.Sprintf("must deposit %s but got %s", bondDenom, decCoins))
 }

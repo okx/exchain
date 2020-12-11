@@ -81,8 +81,7 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		msg := fmt.Sprintf("trading pair '%s' does not exist", msg.Product)
-		return types.ErrGetTokenPairFailed(msg)
+		return types.ErrGetTokenPairFailed(msg.Product)
 	}
 
 	// check if the order is involved with the tokenpair in dex Delist
@@ -91,8 +90,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 		return err
 	}
 	if isDelisting {
-		msg := fmt.Sprintf("trading pair '%s' is delisting", msg.Product)
-		return types.ErrTradingPairIsdelisting(msg)
+		return types.ErrTradingPairIsdelisting(msg.Product)
 	}
 
 	priceDigit := tokenPair.MaxPriceDigit
@@ -100,17 +98,14 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	roundedPrice := msg.Price.RoundDecimal(priceDigit)
 	roundedQuantity := msg.Quantity.RoundDecimal(quantityDigit)
 	if !roundedPrice.Equal(msg.Price) {
-		msg := fmt.Sprintf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
-		return types.ErrRoundedPriceEqual(msg)
+		return types.ErrRoundedPriceEqual(priceDigit)
 	}
 	if !roundedQuantity.Equal(msg.Quantity) {
-		msg := fmt.Sprintf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
-		return types.ErrRoundedQuantityEqual(msg)
+		return types.ErrRoundedQuantityEqual(quantityDigit)
 	}
 
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
-		msg := fmt.Sprintf("quantity should be greater than %s", tokenPair.MinQuantity)
-		return types.ErrMsgQuantityLessThan(msg)
+		return types.ErrMsgQuantityLessThan(tokenPair.MinQuantity.String())
 	}
 	return nil
 }
@@ -305,7 +300,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return nil, types.ErrInternal("occur error internal")
+		return nil, types.ErrInternal()
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)

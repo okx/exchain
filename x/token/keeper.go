@@ -164,7 +164,7 @@ func (k Keeper) UpdateToken(ctx sdk.Context, token types.Token) {
 // SendCoinsFromAccountToAccount - send token from one account to another account
 func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.SysCoins) error {
 	if k.bankKeeper.BlacklistedAddr(to) {
-		return types.ErrBlockedRecipient(DefaultCodespace, to.String())
+		return types.ErrBlockedRecipient(to.String())
 	}
 
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
@@ -173,7 +173,7 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 // nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
-		return types.ErrSendCoinsFromAccountToModuleFailed(types.DefaultCodespace, err.Error())
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 	// update lock coins
 	return k.updateLockedCoins(ctx, addr, coins, true, lockCoinsType)
@@ -188,8 +188,7 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	case types.LockCoinsTypeFee:
 		key = types.GetLockFeeAddress(addr.Bytes())
 	default:
-		msg := fmt.Sprintf("unrecognized lock coins type: %d", lockCoinsType)
-		return types.ErrUnrecognizedLockCoinsType(types.DefaultCodespace, msg)
+		return types.ErrUnrecognizedLockCoinsType(lockCoinsType)
 	}
 
 	var newCoins sdk.SysCoins
@@ -209,15 +208,13 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	} else {
 		// unlock coins
 		if coinsBytes == nil {
-			msg := fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
-			return types.ErrFailedToUnlockAddress(types.DefaultCodespace, msg)
+			return types.ErrFailedToUnlockAddress(coins.String(), addr.String())
 		}
 		k.cdc.MustUnmarshalBinaryBare(coinsBytes, &oldCoins)
 		var isNegative bool
 		newCoins, isNegative = oldCoins.SafeSub(coins)
 		if isNegative {
-			msg := fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
-			return types.ErrFailedToUnlockAddress(types.DefaultCodespace, msg)
+			return types.ErrFailedToUnlockAddress(coins.String(), addr.String())
 		}
 	}
 

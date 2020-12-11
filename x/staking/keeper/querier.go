@@ -57,7 +57,7 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 
 	delegator, found := k.GetDelegator(ctx, params.DelegatorAddr)
 	if !found {
-		return nil, types.ErrNoDelegatorExisted(types.DefaultCodespace, params.DelegatorAddr.String())
+		return nil, types.ErrNoDelegatorExisted(params.DelegatorAddr.String())
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegator)
@@ -114,7 +114,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 
 	validator, found := k.GetValidator(ctx, params.ValidatorAddr)
 	if !found {
-		return nil, types.ErrNoValidatorFound(types.DefaultCodespace, params.ValidatorAddr.String())
+		return nil, types.ErrNoValidatorFound(params.ValidatorAddr.String())
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, validator)
@@ -130,7 +130,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
-		return nil, types.ErrCodeInternalError(types.DefaultCodespace)
+		return nil, types.ErrCodeInternalError()
 	}
 
 	pool := types.NewPool(
@@ -197,7 +197,7 @@ func queryUndelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte
 
 	undelegation, found := k.GetUndelegating(ctx, params.DelegatorAddr)
 	if !found {
-		return nil, types.ErrNoUnbondingDelegation(types.DefaultCodespace)
+		return nil, types.ErrNoUnbondingDelegation()
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, undelegation)
@@ -221,12 +221,12 @@ func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err error) {
 func queryForAddress(ctx sdk.Context, req abci.RequestQuery, k Keeper) (res []byte, err error) {
 	validatorAddr := string(req.Data)
 	if len(validatorAddr) != crypto.AddressSize*2 {
-		return nil, types.ErrBadValidatorAddr(types.DefaultCodespace)
+		return nil, types.ErrBadValidatorAddr()
 	}
 
 	operAddr, found := k.GetOperAddrFromValidatorAddr(ctx, validatorAddr)
 	if !found {
-		return nil, types.ErrNoValidatorFound(types.DefaultCodespace, validatorAddr)
+		return nil, types.ErrNoValidatorFound(validatorAddr)
 	}
 
 	res, errRes := codec.MarshalJSONIndent(types.ModuleCdc, operAddr)

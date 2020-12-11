@@ -30,46 +30,46 @@ func ErrInvalidSizeParam(size uint) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))
 }
 
-func ErrGetTokenPairFailed(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeGetTokenPairFailed, message)
+func ErrGetTokenPairFailed(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetTokenPairFailed, fmt.Sprintf("failed. token pair %s doesn't exist", product))
 }
 
-func ErrSendCoinsFromAccountToAccountFaile(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToAccountFaile, message)
+func ErrSendCoinsFromAccountToAccountFaile(coins string, to string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToAccountFaile, fmt.Sprintf("send fee(%s) to address(%s) failed\n", coins, to))
 }
 
-func ErrTradingPairIsdelisting(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTradingPairIsdelisting, message)
+func ErrTradingPairIsdelisting(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTradingPairIsdelisting, fmt.Sprintf("trading pair '%s' is delisting", product))
 }
 
-func ErrRoundedPriceEqual(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeRoundedPriceEqual, message)
+func ErrRoundedPriceEqual(priceDigit int64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeRoundedPriceEqual, fmt.Sprintf("price over accuracy(%d)", priceDigit))
 }
 
-func ErrRoundedQuantityEqual(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeRoundedQuantityEqual, message)
+func ErrRoundedQuantityEqual(quantityDigit int64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeRoundedQuantityEqual, fmt.Sprintf("quantity over accuracy(%d)", quantityDigit))
 }
 
-func ErrMsgQuantityLessThan(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMsgQuantityLessThan, message)
+func ErrMsgQuantityLessThan(minQuantity string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeMsgQuantityLessThan, fmt.Sprintf("quantity should be greater than %s", minQuantity))
 }
 
-func ErrInternal(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInternal, message)
+func ErrInternal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInternal, "occur error internal")
 }
 
-func ErrInsufficientCoins(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, message)
+func ErrInsufficientCoins() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }
 
-func ErrUnknownRequest(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, message)
+func ErrUnknownRequest() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 
-func ErrGetOrderFailed(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeGetOrderFailed, message)
+func ErrGetOrderFailed(order string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetOrderFailed, fmt.Sprintf("order(%v) does not exist", order))
 }
 
-func ErrTokenPairNotFound(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, message)
+func ErrTokenPairNotFound(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, fmt.Sprintf("token pair not found %s", product))
 }

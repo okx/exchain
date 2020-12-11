@@ -82,7 +82,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(types.DefaultCodespace, err.Error())
+		return nil, types.ErrInsufficientCoins()
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,
@@ -105,7 +105,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) (*sdk.Result, error) {
 	proposal, ok := k.GetProposal(ctx, msg.ProposalID)
 	if !ok {
-		return sdk.EnvelopedErr{types.ErrUnknownProposal(types.DefaultCodespace, msg.ProposalID)}.Result()
+		return sdk.EnvelopedErr{types.ErrUnknownProposal(msg.ProposalID)}.Result()
 	}
 
 	err, _ := k.AddVote(ctx, msg.ProposalID, msg.Voter, msg.Option)
@@ -177,7 +177,7 @@ func handleProposalAfterTally(
 
 func hasOnlyDefaultBondDenom(decCoins sdk.SysCoins) sdk.Error {
 	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom || !decCoins.IsValid() {
-		return types.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom, decCoins.String()))
+		return types.ErrInvalidCoins(sdk.DefaultBondDenom, decCoins.String())
 	}
 	return nil
 }

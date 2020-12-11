@@ -1,14 +1,12 @@
 package keeper
 
 import (
-	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/okexchain/x/gov/types"
-
 )
 
 // NewQuerier returns all query handlers
@@ -58,7 +56,7 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 		}
 		return bz, nil
 	default:
-		return nil, types.ErrUnknownRequest(types.DefaultCodespace, fmt.Sprintf("%s is not a valid query request path", req.Path))
+		return nil, types.ErrUnknownRequest()
 	}
 }
 
@@ -67,12 +65,12 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 	var params types.QueryProposalParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, types.ErrUnknownRequest(types.DefaultCodespace,"incorrectly formatted request data")
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	proposal, ok := keeper.GetProposal(ctx, params.ProposalID)
 	if !ok {
-		return nil, types.ErrUnknownProposal(types.DefaultCodespace, params.ProposalID)
+		return nil, types.ErrUnknownProposal(params.ProposalID)
 	}
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposal)
@@ -87,7 +85,7 @@ func queryDeposit(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	var params types.QueryDepositParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, types.ErrUnknownRequest(types.DefaultCodespace, sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	deposit, _ := keeper.GetDeposit(ctx, params.ProposalID, params.Depositor)
@@ -143,7 +141,7 @@ func queryTally(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 
 	proposal, ok := keeper.GetProposal(ctx, proposalID)
 	if !ok {
-		return nil, types.ErrUnknownProposal(types.DefaultCodespace, proposalID)
+		return nil, types.ErrUnknownProposal(proposalID)
 	}
 
 	var tallyResult types.TallyResult

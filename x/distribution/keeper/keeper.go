@@ -60,11 +60,11 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // SetWithdrawAddr sets a new address that will receive the rewards upon withdrawal
 func (k Keeper) SetWithdrawAddr(ctx sdk.Context, delegatorAddr sdk.AccAddress, withdrawAddr sdk.AccAddress) error {
 	if k.blacklistedAddrs[withdrawAddr.String()] {
-		return types.ErrUnauthorized(types.DefaultCodespace)
+		return types.ErrUnauthorized()
 	}
 
 	if !k.GetWithdrawAddrEnabled(ctx) {
-		return types.ErrSetWithdrawAddrDisabled(types.DefaultCodespace)
+		return types.ErrSetWithdrawAddrDisabled()
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -83,7 +83,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	// fetch validator accumulated commission
 	accumCommission := k.GetValidatorAccumulatedCommission(ctx, valAddr)
 	if accumCommission.IsZero() {
-		return nil, types.ErrNoValidatorCommission(types.DefaultCodespace)
+		return nil, types.ErrNoValidatorCommission()
 	}
 
 	commission, remainder := accumCommission.TruncateDecimal()
@@ -94,7 +94,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, accAddr)
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, commission)
 		if err != nil {
-			return nil, types.ErrSendCoinsFromModuleToAccountFailed(types.DefaultCodespace)
+			return nil, types.ErrSendCoinsFromModuleToAccountFailed()
 		}
 	}
 

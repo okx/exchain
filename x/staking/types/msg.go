@@ -112,19 +112,19 @@ func (msg MsgCreateValidator) GetSignBytes() []byte {
 func (msg MsgCreateValidator) ValidateBasic() error {
 	// note that unmarshaling from bech32 ensures either empty or valid
 	if msg.DelegatorAddress.Empty() {
-		return ErrNilDelegatorAddr(DefaultCodespace)
+		return ErrNilDelegatorAddr()
 	}
 	if msg.ValidatorAddress.Empty() {
-		return ErrNilValidatorAddr(DefaultCodespace)
+		return ErrNilValidatorAddr()
 	}
 	if !sdk.AccAddress(msg.ValidatorAddress).Equals(msg.DelegatorAddress) {
-		return ErrBadValidatorAddr(DefaultCodespace)
+		return ErrBadValidatorAddr()
 	}
 	if msg.MinSelfDelegation.Amount.LTE(sdk.ZeroDec()) || !msg.MinSelfDelegation.IsValid() {
-		return ErrMinSelfDelegationInvalid(DefaultCodespace)
+		return ErrMinSelfDelegationInvalid()
 	}
 	if msg.Description == (Description{}) {
-		return sdkerror.New(DefaultCodespace, CodeInvalidInput, "description must be included")
+		return ErrDescriptionIsEmpty()
 	}
 
 	return nil

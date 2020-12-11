@@ -25,62 +25,62 @@ const (
 	CodeInternalError						uint32 = 65014
 )
 
-func ErrUnexistswapTokenPair(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeUnexistwapTokenPair, "validator address is nil")
+func ErrUnexistswapTokenPair () sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "validator address is nil")
 }
 
-func ErrUnexistPoolToken(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeUnexistPoolToken, message)
+func ErrUnexistPoolToken() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistPoolToken, "pool token does not exist")
 }
 
-func ErrCodeMinCoinsFailed(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeMintCoinsFailed, message)
+func ErrCodeMinCoinsFailed() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeMintCoinsFailed, "min coins failed")
 }
 
-func ErrSendCoinsFromAccountToModule(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeSendCoinsFromAccountToModule, message)
+func ErrSendCoinsFromAccountToModule() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToModule, "send coins from account to module failed")
 }
 
-func ErrBaseAmountNameBigerQuoteAmountName(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeBaseAmountNameBigerQuoteAmountName, message)
+func ErrBaseAmountNameBigerQuoteAmountName() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBaseAmountNameBigerQuoteAmountName, "base amount name biger quote amount name")
 }
 
-func ErrValidateSwapAmountName(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeValidateSwapAmountName, message)
+func ErrValidateSwapAmountName() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeValidateSwapAmountName, "validate swap amount name failed")
 }
 
-func ErrBaseAmountNameEqualQuoteAmountName(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeBaseAmountNameEqualQuoteAmountName, message)
+func ErrBaseAmountNameEqualQuoteAmountName() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBaseAmountNameEqualQuoteAmountName, "base amount name equal quote amount name")
 }
 
-func ErrValidateDenom(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeValidateDenom, message)
+func ErrValidateDenom() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeValidateDenom, "validate denom failed")
 }
 
-func ErrNotAllowedOriginSymbol(codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeNotAllowedOriginSymbol, message)
+func ErrNotAllowedOriginSymbol() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotAllowedOriginSymbol, "liquidity-pool-token is not allowed to be a base or quote token")
 }
 
-func ErrInsufficientPoolToken (codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInsufficientPoolToken, message)
+func ErrInsufficientPoolToken () sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")
 }
 
-func ErrUnknownRequest (codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeUnknownRequest, message)
+func ErrUnknownRequest () sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 
-func ErrTokenNotExist (codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeTokenNotExist, message)
+func ErrTokenNotExist () sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
 }
 
-func ErrInvalidCoins (codespace string, message string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidCoins, message)
+func ErrInvalidCoins () sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with pool token")
 }
 
-func ErrInternalError(codespace string, message string) (sdk.Error) {
-	return sdkerrors.New(codespace, CodeInternalError, message)
+func ErrInternalError() (sdk.Error) {
+	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
 }
 
 func ErrInsufficientCoins(codespace string, message string) (sdk.Error) {
-	return sdkerrors.New(codespace, CodeInsufficientCoins, message)
+	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }

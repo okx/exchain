@@ -12,16 +12,14 @@ func (keeper Keeper) AddVote(
 ) (sdk.Error, string) {
 	proposal, ok := keeper.GetProposal(ctx, proposalID)
 	if !ok {
-		return types.ErrUnknownProposal(keeper.codespace, proposalID), ""
+		return types.ErrUnknownProposal(proposalID), ""
 	}
 	if proposal.Status != types.StatusVotingPeriod {
-		return types.ErrInvalidateProposalStatus(keeper.codespace,
-			fmt.Sprintf("The status of proposal %d is in %s can not be voted.",
-				proposal.ProposalID, proposal.Status)), ""
+		return types.ErrInvalidateProposalStatus(), ""
 	}
 
 	if !types.ValidVoteOption(option) {
-		return types.ErrInvalidVote(keeper.codespace, option), ""
+		return types.ErrInvalidVote(option), ""
 	}
 
 	voteFeeStr := ""

@@ -35,7 +35,7 @@ func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receive
 	// must be reduced separately from the SendCoinsFromModuleToAccount call
 	newPool, negative := feePool.CommunityPool.SafeSub(amount)
 	if negative {
-		return types.ErrBadDistribution(types.DefaultCodespace)
+		return types.ErrBadDistribution()
 	}
 	feePool.CommunityPool = newPool
 

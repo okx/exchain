@@ -66,12 +66,12 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 
 	delegator, found := k.GetDelegator(ctx, delAddr)
 	if !found {
-		return types.ErrNoDelegatorExisted(types.DefaultCodespace, delAddr.String())
+		return types.ErrNoDelegatorExisted(delAddr.String())
 	}
 
 	for i := 0; i < lenVals; i++ {
 		if vals[i].MinSelfDelegation.IsZero() {
-			return types.ErrAddSharesToDismission(types.DefaultCodespace, vals[i].OperatorAddress.String())
+			return types.ErrAddSharesToDismission(vals[i].OperatorAddress.String())
 		}
 
 		// 1.delete related store
@@ -181,7 +181,7 @@ func (k Keeper) GetValidatorsToAddShares(ctx sdk.Context, valAddrs []sdk.ValAddr
 			// get the validator hasn't been removed
 			vals[i] = val
 		} else {
-			return nil, types.ErrNoValidatorFound(types.DefaultCodespace, valAddrs[i].String())
+			return nil, types.ErrNoValidatorFound(valAddrs[i].String())
 		}
 	}
 

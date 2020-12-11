@@ -48,7 +48,7 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 		return bz, nil
 
 	default:
-		return nil, types.ErrUnknownRequest(types.DefaultCodespace)
+		return nil, types.ErrUnknownRequest()
 	}
 }
 

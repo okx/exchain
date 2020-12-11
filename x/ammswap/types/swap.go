@@ -80,26 +80,26 @@ func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
 
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
-		return ErrBaseAmountNameBigerQuoteAmountName(DefaultCodespace, "The lexicographic order of BaseTokenName must be less than QuoteTokenName")
+		return ErrBaseAmountNameBigerQuoteAmountName()
 	} else if baseAmountName == quoteAmountName {
-		return ErrBaseAmountNameEqualQuoteAmountName(DefaultCodespace, "BaseTokenName should not equal to QuoteTokenName")
+		return ErrBaseAmountNameEqualQuoteAmountName()
 	}
 	if err := ValidateSwapAmountName(baseAmountName); err != nil {
-		return ErrValidateSwapAmountName(DefaultCodespace, err.Error())
+		return ErrValidateSwapAmountName()
 	}
 
 	if err := ValidateSwapAmountName(quoteAmountName); err != nil {
-		return ErrValidateSwapAmountName(DefaultCodespace, err.Error())
+		return ErrValidateSwapAmountName()
 	}
 	return nil
 }
 
 func ValidateSwapAmountName(amountName string) error {
 	if sdk.ValidateDenom(amountName) != nil {
-		return ErrValidateDenom(DefaultCodespace, fmt.Sprintf("invalid token name: %s", amountName))
+		return ErrValidateDenom()
 	}
 	if token.NotAllowedOriginSymbol(amountName) {
-		return ErrNotAllowedOriginSymbol(DefaultCodespace, fmt.Sprintf("liquidity-pool-token(with prefix \"%s\") is not allowed to be a base or quote token", PoolTokenPrefix))
+		return ErrNotAllowedOriginSymbol()
 	}
 	return nil
 }

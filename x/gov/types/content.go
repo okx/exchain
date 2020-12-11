@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,18 +34,18 @@ type Handler func(ctx sdk.Context, proposal *Proposal) sdk.Error
 func ValidateAbstract(codespace string, c Content) sdk.Error {
 	title := c.GetTitle()
 	if len(strings.TrimSpace(title)) == 0 {
-		return ErrInvalidProposalContent(codespace, "proposal title cannot be blank")
+		return ErrInvalidProposalContent()
 	}
 	if len(title) > MaxTitleLength {
-		return ErrInvalidProposalContent(codespace, fmt.Sprintf("proposal title is longer than max length of %d", MaxTitleLength))
+		return ErrInvalidProposalContent()
 	}
 
 	description := c.GetDescription()
 	if len(description) == 0 {
-		return ErrInvalidProposalContent(codespace, "proposal description cannot be blank")
+		return ErrInvalidProposalContent()
 	}
 	if len(description) > MaxDescriptionLength {
-		return ErrInvalidProposalContent(codespace, fmt.Sprintf("proposal description is longer than max length of %d", MaxDescriptionLength))
+		return ErrInvalidProposalContent()
 	}
 
 	return nil

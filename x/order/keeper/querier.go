@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -32,7 +30,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryDepthBookV2:
 			return queryDepthBookV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, types.ErrUnknownRequest("unknown order query endpoint")
+			return nil, types.ErrUnknownRequest()
 		}
 	}
 }
@@ -42,7 +40,7 @@ func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	err sdk.Error) {
 	order := keeper.GetOrder(ctx, path[0])
 	if order == nil {
-		return nil, types.ErrGetOrderFailed(fmt.Sprintf("order(%v) does not exist", path[0]))
+		return nil, types.ErrGetOrderFailed(path[0])
 	}
 	bz := keeper.cdc.MustMarshalJSON(order)
 	return bz, nil
