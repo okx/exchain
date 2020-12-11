@@ -56,8 +56,8 @@ $ okexchaincli query swap pool eth-355
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			baseToken := args[0]
 			quoteToken := args[1]
-
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, baseToken, quoteToken), nil)
+			swapTokenPairName := types.GetSwapTokenPairName(baseToken, quoteToken)
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QuerySwapTokenPair, swapTokenPairName), nil)
 			if err != nil {
 				return err
 			}
@@ -187,8 +187,9 @@ $ okexchaincli query swap redeemable-assets eth xxb 1
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			baseTokenName := args[0]
 			quoteTokenName := args[1]
+			swapTokenPairName := types.GetSwapTokenPairName(baseTokenName, quoteTokenName)
 			liquidity := args[2]
-			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, baseTokenName, quoteTokenName, liquidity), nil)
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", queryRoute, types.QueryRedeemableAssets, swapTokenPairName, liquidity), nil)
 			if err != nil {
 				return err
 			}
