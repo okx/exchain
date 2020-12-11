@@ -39,18 +39,18 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPer
 func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.DelistProposal, proposer sdk.AccAddress, initialDeposit sdk.SysCoins) sdk.Error {
 	// check the proposer of the msg is a validator
 	if !k.stakingKeeper.IsValidator(ctx, proposer) {
-		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of delist proposal should be a validator")
+		return gov.ErrInvalidProposer()
 	}
 
 	// check the propose of the msg is equal the proposer in proposal content
 	if !proposer.Equals(delistProposal.Proposer) {
-		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of proposal msg should be equal the proposer in proposal content")
+		return gov.ErrInvalidProposer()
 	}
 
 	// check whether the baseAsset is in the Dex list
 	queryTokenPair := k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	if queryTokenPair == nil {
-		return types.ErrTokenPairNotFound(fmt.Sprintf("failed to submit proposal because the asset with base asset '%s' and quote asset '%s' didn't exist on the Dex", delistProposal.BaseAsset, delistProposal.QuoteAsset))
+		return types.ErrTokenPairNotFound()
 	}
 
 	// check the initial deposit

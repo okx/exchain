@@ -11,6 +11,7 @@ const (
 	DefaultCodespace string = "gov"
 	BaseGovError     uint32 = 68000
 
+	CodeInvalidAddress			 uint32 = BaseGovError
 	CodeUnknownProposal          uint32 = BaseGovError+1
 	CodeInactiveProposal         uint32 = BaseGovError+2
 	CodeAlreadyActiveProposal    uint32 = BaseGovError+3
@@ -30,6 +31,10 @@ const (
 	CodeInvalidCoins			uint32 = BaseGovError+17
 
 )
+
+func ErrInvalidAddress(address string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address %s", address))
+}
 
 func ErrInactiveProposal(proposalID uint64) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInactiveProposal, fmt.Sprintf("inactive proposal with id %d", proposalID))
@@ -98,6 +103,6 @@ func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unkonwn request")
 }
 
-func ErrInvalidCoins(bondDenom string, decCoins string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, fmt.Sprintf("must deposit %s but got %s", bondDenom, decCoins))
+func ErrInvalidCoins() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalide coins")
 }

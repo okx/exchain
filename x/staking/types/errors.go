@@ -25,11 +25,12 @@ const (
 	CodeInvalidValidateBasic	 uint32 = 67009
 	CodeAddressNotEqual			 uint32 = 67010
 	CodeInternalError			 uint32 = 67011
+	CodeGetConsPubKeyBech32Failed uint32 = 67012
 )
 
 // ErrNilValidatorAddr returns an error when an empty validator address appears
 func ErrNilValidatorAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "validator address is nil")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "validator address is invalid input")
 }
 
 // ErrBadValidatorAddr returns an error when an invalid validator address appears
@@ -284,4 +285,8 @@ func ErrAlreadyBound(delAddr string) sdk.EnvelopedErr {
 
 func ErrCodeInternalError() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInternalError, "occur internal error")
+}
+
+func ErrGetConsPubKeyBech32() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetConsPubKeyBech32Failed, "get cons public key bech32 failed")
 }

@@ -2,8 +2,7 @@ package types
 
 import (
 	"encoding/json"
-
-	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/tendermint/tendermint/crypto"
 
@@ -86,7 +85,7 @@ func (msg MsgCreateValidator) MarshalJSON() ([]byte, error) {
 func (msg *MsgCreateValidator) UnmarshalJSON(bz []byte) error {
 	var msgCreateValJSON msgCreateValidatorJSON
 	if err := json.Unmarshal(bz, &msgCreateValJSON); err != nil {
-		return err
+		return common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	msg.Description = msgCreateValJSON.Description
@@ -95,7 +94,7 @@ func (msg *MsgCreateValidator) UnmarshalJSON(bz []byte) error {
 	var err error
 	msg.PubKey, err = GetConsPubKeyBech32(msgCreateValJSON.PubKey)
 	if err != nil {
-		return err
+		return ErrGetConsPubKeyBech32()
 	}
 	msg.MinSelfDelegation = msgCreateValJSON.MinSelfDelegation
 
@@ -160,11 +159,11 @@ func (msg MsgEditValidator) GetSignBytes() []byte {
 // ValidateBasic gives a quick validity check
 func (msg MsgEditValidator) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
-		return sdkerror.New(ModuleName, CodeInvalidInput, "nil validator address")
+		ErrNilValidatorAddr()
 	}
 
 	if msg.Description == (Description{}) {
-		return sdkerror.New(ModuleName, CodeInvalidInput, "transaction must include some information to modify")
+		ErrNilValidatorAddr()
 	}
 
 	return nil

@@ -42,13 +42,13 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 		return ErrInvalidProposalType(msg.Content.ProposalType())
 	}
 	if msg.Proposer.Empty() {
-		return sdk.ErrInvalidAddress(msg.Proposer.String())
+		return ErrInvalidAddress(msg.Proposer.String())
 	}
 	if !msg.InitialDeposit.IsValid() {
-		return sdk.ErrInvalidCoins(msg.InitialDeposit.String())
+		return ErrInvalidCoins()
 	}
 	if msg.InitialDeposit.IsAnyNegative() {
-		return sdk.ErrInvalidCoins(msg.InitialDeposit.String())
+		return ErrInvalidCoins()
 	}
 
 	if len(msg.InitialDeposit) != 1 || msg.InitialDeposit[0].Denom != sdk.DefaultBondDenom || !msg.InitialDeposit.IsValid() {
@@ -100,13 +100,13 @@ func (msg MsgDeposit) Type() string  { return TypeMsgDeposit }
 // Implements Msg.
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return sdk.ErrInvalidAddress(msg.Depositor.String())
+		return ErrInvalidAddress(msg.Depositor.String())
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return ErrInvalidCoins()
 	}
 	if msg.Amount.IsAnyNegative() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return ErrInvalidCoins()
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func (msg MsgVote) Type() string  { return TypeMsgVote }
 // Implements Msg.
 func (msg MsgVote) ValidateBasic() sdk.Error {
 	if msg.Voter.Empty() {
-		return sdk.ErrInvalidAddress(msg.Voter.String())
+		return ErrInvalidAddress(msg.Voter.String())
 	}
 	if !ValidVoteOption(msg.Option) {
 		return ErrInvalidVote(msg.Option)

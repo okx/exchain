@@ -208,8 +208,7 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 		isDelisting = tp.Delisting
 	} else {
 		isDelisting = true
-		msg := fmt.Sprintf("product %s doesn't exist", product)
-		err = types.ErrTokenPairNotFound(msg)
+		err = types.ErrTokenPairNotFound()
 	}
 	return isDelisting, err
 }

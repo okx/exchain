@@ -106,7 +106,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTxListV2:
 			res, err = queryTxListV2(ctx, path[1:], req, keeper)
 		default:
-			res, err = nil, types.ErrUnknownBackendEndpoint("unknown backend endpoint")
+			res, err = nil, types.ErrUnknownBackendEndpoint()
 		}
 
 		if err != nil {

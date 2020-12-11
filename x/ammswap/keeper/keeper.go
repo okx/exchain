@@ -155,12 +155,12 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmountName string, liquidity sdk.Dec) (baseAmount, quoteAmount sdk.SysCoin, err error) {
 	err = types.ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
-		return baseAmount, quoteAmount, err
+		return baseAmount, quoteAmount, types.ErrValidateSwapAmountName()
 	}
 	swapTokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
 	if err != nil {
-		return baseAmount, quoteAmount, err
+		return baseAmount, quoteAmount, types.ErrGetSwapTokenPair()
 	}
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {

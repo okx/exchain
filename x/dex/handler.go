@@ -181,7 +181,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	// validate
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return nil, types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", msg.Product))
+		return nil, types.ErrTokenPairNotFound()
 	}
 	if !tokenPair.Owner.Equals(msg.FromAddress) {
 		return nil, types.ErrUnauthorized(msg.FromAddress.String())
@@ -247,7 +247,7 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOw
 
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return nil, types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", msg.Product))
+		return nil, types.ErrTokenPairNotFound()
 	}
 	// transfer ownership
 	tokenPair.Owner = msg.Address

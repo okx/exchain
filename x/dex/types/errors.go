@@ -36,6 +36,7 @@ const (
 	CodeInternal							uint32 = 64024
 	CodeUnauthorized						uint32 = 64025
 	CodeInsufficientCoins					uint32 = 64026
+	CodeInvalidCoins						uint32 = 64027
 )
 
 // CodeType to Message
@@ -63,8 +64,8 @@ func ErrTokenPairIsInvalid() sdk.Error {
 }
 
 // ErrTokenPairNotFound returns token pair not found error
-func ErrTokenPairNotFound(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, codeTokenPairNotFound, fmt.Sprintf(codeToDefaultMsg(codeTokenPairNotFound)+": %s", msg))
+func ErrTokenPairNotFound() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, codeTokenPairNotFound, codeToDefaultMsg(codeTokenPairNotFound))
 }
 
 // ErrDelistOwnerNotMatch returns delist owner not match error
@@ -157,4 +158,8 @@ func ErrUnauthorized(address string) sdk.Error {
 
 func ErrInsufficientCoins(feeCoin string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, fmt.Sprintf("insufficient fee coins(need %s)", feeCoin))
+}
+
+func ErrInvalidCoins() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalid coins")
 }

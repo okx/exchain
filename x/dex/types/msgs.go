@@ -43,15 +43,15 @@ func (msg MsgList) Type() string { return "list" }
 // ValidateBasic Implements Msg
 func (msg MsgList) ValidateBasic() sdk.Error {
 	if msg.ListAsset == msg.QuoteAsset {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("failed to list product because base asset is same as quote asset"))
+		return ErrInvalidCoins()
 	}
 
 	if !msg.InitPrice.IsPositive() {
-		return sdk.ErrUnknownRequest("invalid init price")
+		return ErrUnknownRequest("invalid init price")
 	}
 
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress("missing owner address")
+		return ErrInvalidAddress(msg.Owner.String())
 	}
 	return nil
 }
@@ -88,10 +88,10 @@ func (msg MsgDeposit) Type() string { return typeMsgDeposit }
 // ValidateBasic Implements Msg
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return sdk.ErrInvalidAddress(msg.Depositor.String())
+		return ErrInvalidAddress(msg.Depositor.String())
 	}
 	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return ErrInvalidCoins()
 	}
 
 	return nil
@@ -129,10 +129,10 @@ func (msg MsgWithdraw) Type() string { return typeMsgWithdraw }
 // ValidateBasic Implements Msg
 func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return sdk.ErrInvalidAddress(msg.Depositor.String())
+		return ErrInvalidAddress(msg.Depositor.String())
 	}
 	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
-		return sdk.ErrInvalidCoins(msg.Amount.String())
+		return ErrInvalidCoins()
 	}
 
 	return nil
@@ -175,15 +175,15 @@ func (msg MsgTransferOwnership) Type() string { return typeMsgTransferOwnership 
 // ValidateBasic Implements Msg
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing sender address")
+		return ErrInvalidAddress("missing sender address")
 	}
 
 	if msg.ToAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing recipient address")
+		return ErrInvalidAddress("missing recipient address")
 	}
 
 	if msg.Product == "" {
-		return sdk.ErrUnknownRequest("product cannot be empty")
+		return ErrUnknownRequest("product cannot be empty")
 	}
 	return nil
 }
@@ -218,10 +218,10 @@ func (msg MsgConfirmOwnership) Type() string { return "confirm" }
 
 func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress("failed to check MsgConfirmOwnership msg because miss sender address")
+		return ErrInvalidAddress("failed to check MsgConfirmOwnership msg because miss sender address")
 	}
 	if len(msg.Product) == 0 {
-		return sdk.ErrUnknownRequest("failed to check MsgConfirmOwnership msg because product cannot be empty")
+		return ErrUnknownRequest("failed to check MsgConfirmOwnership msg because product cannot be empty")
 	}
 	return nil
 }
@@ -262,10 +262,10 @@ func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
 // ValidateBasic Implements Msg
 func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress("missing owner address")
+		return ErrInvalidAddress("missing owner address")
 	}
 	if msg.HandlingFeeAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing handling fee address")
+		return ErrInvalidAddress("missing handling fee address")
 	}
 	return checkWebsite(msg.Website)
 }
@@ -308,7 +308,7 @@ func (msg MsgUpdateOperator) Type() string { return typeMsgUpdateOperator }
 // ValidateBasic Implements Msg
 func (msg MsgUpdateOperator) ValidateBasic() sdk.Error {
 	if msg.HandlingFeeAddress.Empty() {
-		return sdk.ErrInvalidAddress("missing handling fee address")
+		return ErrInvalidAddress("missing handling fee address")
 	}
 	return checkWebsite(msg.Website)
 }

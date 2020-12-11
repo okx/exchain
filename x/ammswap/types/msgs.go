@@ -39,23 +39,23 @@ func (msg MsgAddLiquidity) Type() string { return "add_liquidity" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if msg.MinLiquidity.IsNegative() {
-		return sdk.ErrUnknownRequest("invalid minimum of liquidity")
+		return ErrUnknownRequest()
 	}
 	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
-		return sdk.ErrUnknownRequest("invalid base amount or quote amount")
+		return ErrUnknownRequest()
 	}
 	if !msg.MaxBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid MaxBaseAmount")
+		return ErrUnknownRequest()
 	}
 	if !msg.QuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid QuoteAmount")
+		return ErrUnknownRequest()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 	if err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+		return ErrUnknownRequest()
 	}
 
 	return nil
@@ -105,20 +105,20 @@ func (msg MsgRemoveLiquidity) Type() string { return "remove_liquidity" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if !(msg.Liquidity.IsPositive()) {
-		return sdk.ErrUnknownRequest("invalid liquidity")
+		return ErrUnknownRequest()
 	}
 	if !msg.MinBaseAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid minimum of base amount")
+		return ErrUnknownRequest()
 	}
 	if !msg.MinQuoteAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid minimum of quote amount")
+		return ErrUnknownRequest()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+		return ErrUnknownRequest()
 	}
 	return nil
 }
@@ -163,18 +163,18 @@ func (msg MsgCreateExchange) Type() string { return "create_exchange" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if err := ValidateSwapAmountName(msg.Token0Name); err != nil {
-		return sdk.ErrInvalidCoins(err.Error())
+		return ErrInvalidCoins()
 	}
 
 	if err := ValidateSwapAmountName(msg.Token1Name); err != nil {
-		return sdk.ErrInvalidCoins(err.Error())
+		return ErrInvalidCoins()
 	}
 
 	if msg.Token0Name == msg.Token1Name {
-		return sdk.ErrInvalidCoins("Token0Name should not equal to Token1Name")
+		return ErrInvalidCoins()
 	}
 	return nil
 }
@@ -225,28 +225,28 @@ func (msg MsgTokenToToken) Type() string { return TypeMsgTokenSwap }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return sdk.ErrInvalidAddress(msg.Sender.String())
+		return ErrInvalidAddress(msg.Sender.String())
 	}
 
 	if msg.Recipient.Empty() {
-		return sdk.ErrInvalidAddress(msg.Recipient.String())
+		return ErrInvalidAddress(msg.Recipient.String())
 	}
 
 	if !(msg.SoldTokenAmount.IsPositive()) {
-		return sdk.ErrUnknownRequest("invalid sold token amount")
+		return ErrUnknownRequest()
 	}
 	if !msg.SoldTokenAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid sold token amount")
+		return ErrUnknownRequest()
 	}
 
 	if !msg.MinBoughtTokenAmount.IsValid() {
-		return sdk.ErrUnknownRequest("invalid minimum of bought token amount")
+		return ErrUnknownRequest()
 	}
 
 	baseAmountName, quoteAmountName := GetBaseQuoteTokenName(msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)
 	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
-		return sdk.ErrUnknownRequest(err.Error())
+		return ErrUnknownRequest()
 	}
 	return nil
 }

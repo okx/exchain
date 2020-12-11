@@ -9,6 +9,7 @@ import (
 
 // const uint32
 const (
+	CodeInvalidAddress							uint32 = 63000
 	CodeProductIsEmpty 							uint32 = 63001
 	CodeSizeIsInvalid  							uint32 = 63002
 	CodeGetTokenPairFailed						uint32 = 63003
@@ -23,8 +24,11 @@ const (
 	CodeUnauthorized							uint32 = 63012
 	CodeGetOrderFailed							uint32 = 63013
 	CodeTokenPairNotFound						uint32 = 63014
-)
+	)
 
+func ErrInvalidAddress(address string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
+}
 // invalid size
 func ErrInvalidSizeParam(size uint) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))
@@ -72,4 +76,8 @@ func ErrGetOrderFailed(order string) sdk.Error {
 
 func ErrTokenPairNotFound(product string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, fmt.Sprintf("token pair not found %s", product))
+}
+
+func ErrUnauthorized() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, "unauthorized")
 }

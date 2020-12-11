@@ -43,25 +43,25 @@ func (msg MsgTokenIssue) Type() string { return "issue" }
 func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress(msg.Owner.String())
+		return ErrInvalidAddress()
 	}
 
 	// check original symbol
 	if len(msg.OriginalSymbol) == 0 {
-		return sdk.ErrUnknownRequest("failed to check issue msg because original symbol cannot be empty")
+		return ErrUnknownRequest()
 	}
 	if !ValidOriginalSymbol(msg.OriginalSymbol) {
-		return sdk.ErrUnknownRequest("failed to check issue msg because invalid original symbol: " + msg.OriginalSymbol)
+		return ErrUnknownRequest()
 	}
 
 	// check wholeName
 	isValid := wholeNameValid(msg.WholeName)
 	if !isValid {
-		return sdk.ErrUnknownRequest("failed to check issue msg because invalid wholename")
+		return ErrUnknownRequest()
 	}
 	// check desc
 	if len(msg.Description) > DescLenLimit {
-		return sdk.ErrUnknownRequest("failed to check issue msg because invalid desc")
+		return ErrUnknownRequest()
 	}
 	// check totalSupply
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
@@ -69,7 +69,7 @@ func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 		return err
 	}
 	if totalSupply.GT(sdk.NewDec(TotalSupplyUpperbound)) || totalSupply.LTE(sdk.ZeroDec()) {
-		return sdk.ErrUnknownRequest("failed to check issue msg because invalid total supply")
+		return ErrUnknownRequest()
 	}
 	return nil
 }
@@ -102,10 +102,10 @@ func (msg MsgTokenBurn) Type() string { return "burn" }
 func (msg MsgTokenBurn) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress(msg.Owner.String())
+		return ErrInvalidAddress()
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInsufficientCoins("failed to check burn msg because invalid Coins: " + msg.Amount.String())
+		return ErrInsufficientCoins(msg.Amount.String())
 	}
 
 	return nil
@@ -138,15 +138,15 @@ func (msg MsgTokenMint) Type() string { return "mint" }
 
 func (msg MsgTokenMint) ValidateBasic() sdk.Error {
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress(msg.Owner.String())
+		return ErrInvalidAddress()
 	}
 
 	amount := msg.Amount.Amount
 	if amount.GT(sdk.NewDec(TotalSupplyUpperbound)) {
-		return sdk.ErrUnknownRequest("failed to check mint msg because invalid amount")
+		return ErrUnknownRequest()
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: " + msg.Amount.String())
+		return ErrInsufficientCoins(msg.Amount.String())
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func (msg MsgMultiSend) Type() string { return "multi-send" }
 
 func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 	if msg.From.Empty() {
-		return sdk.ErrInvalidAddress(msg.From.String())
+		return ErrInvalidAddress()
 	}
 
 	// check transfers
@@ -192,7 +192,7 @@ func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 		}
 
 		if transfer.To.Empty() {
-			return sdk.ErrInvalidAddress("failed to check multisend msg because address is empty, not valid")
+			return ErrInvalidAddress()
 		}
 	}
 	return nil
@@ -228,16 +228,16 @@ func (msg MsgSend) Type() string { return "send" }
 
 func (msg MsgSend) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return sdk.ErrInvalidAddress("failed to check send msg because miss sender address")
+		return ErrInvalidAddress()
 	}
 	if msg.ToAddress.Empty() {
-		return sdk.ErrInvalidAddress("failed to check send msg because miss recipient address")
+		return ErrInvalidAddress()
 	}
 	if !msg.Amount.IsValid() {
-		return sdk.ErrInvalidCoins("failed to check send msg because send amount is invalid: " + msg.Amount.String())
+		return ErrInvalidCoins()
 	}
 	if !msg.Amount.IsAllPositive() {
-		return sdk.ErrInsufficientCoins("failed to check send msg because send amount must be positive")
+		return ErrInsufficientCoins(msg.Amount.String())
 	}
 	return nil
 }
@@ -272,17 +272,17 @@ func (msg MsgTransferOwnership) Type() string { return "transfer" }
 
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return sdk.ErrInvalidAddress("failed to check transferownership msg because miss sender address")
+		return ErrInvalidAddress()
 	}
 	if msg.ToAddress.Empty() {
-		return sdk.ErrInvalidAddress("failed to check transferownership msg because miss recipient address")
+		return ErrInvalidAddress()
 	}
 	if len(msg.Symbol) == 0 {
-		return sdk.ErrUnknownRequest("failed to check transferownership msg because symbol cannot be empty")
+		return ErrUnknownRequest()
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return sdk.ErrUnknownRequest("failed to check transferownership msg because invalid token symbol: " + msg.Symbol)
+		return ErrUnknownRequest()
 	}
 	return nil
 }
@@ -323,20 +323,20 @@ func (msg MsgTokenModify) Type() string { return "edit" }
 func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress(msg.Owner.String())
+		return ErrInvalidAddress()
 	}
 	// check symbol
 	if len(msg.Symbol) == 0 {
-		return sdk.ErrUnknownRequest("failed to check modify msg because symbol cannot be empty")
+		return ErrUnknownRequest()
 	}
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return sdk.ErrUnknownRequest("failed to check modify msg because invalid token symbol: " + msg.Symbol)
+		return ErrUnknownRequest()
 	}
 	// check wholeName
 	if msg.IsWholeNameModified {
 		isValid := wholeNameValid(msg.WholeName)
 		if !isValid {
-			return sdk.ErrUnknownRequest("failed to check modify msg because invalid wholename")
+			return ErrUnknownRequest()
 		}
 	}
 	// check desc
@@ -376,15 +376,15 @@ func (msg MsgConfirmOwnership) Type() string { return "confirm" }
 
 func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress("failed to check confirmownership msg because miss sender address")
+		return ErrInvalidAddress()
 	}
 
 	if len(msg.Symbol) == 0 {
-		return sdk.ErrUnknownRequest("failed to check confirmownership msg because symbol cannot be empty")
+		return ErrUnknownRequest()
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return sdk.ErrUnknownRequest("failed to check confirmownership msg because invalid token symbol: " + msg.Symbol)
+		return ErrUnknownRequest()
 	}
 	return nil
 }

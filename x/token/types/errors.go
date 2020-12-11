@@ -25,6 +25,7 @@ const (
 	CodeUnauthorized						uint32 = 61015
 	CodeInvalidPriceDigit       			uint32 = 61016
 	CodeInvalidMinTradeSize     			uint32 = 61017
+	CodeInvalidAddress						uint32 = 61018
 )
 
 var (
@@ -45,6 +46,7 @@ var (
 	errCodeUnauthorized							= sdkerrors.Register(DefaultCodespace, CodeUnauthorized	, "code unauthorized")
 	errCodeInvalidPriceDigit       				= sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
 	errCodeInvalidMinTradeSize     				= sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
+	errCodeInvalidAddress						= sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "invalid address")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -103,4 +105,8 @@ func ErrInsufficientCoins(coins string) sdk.Error {
 
 func ErrUnauthorized() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, "code unauthorized")}
+}
+
+func ErrInvalidAddress() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidAddress, "invalid address")}
 }

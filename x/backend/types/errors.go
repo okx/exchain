@@ -46,22 +46,22 @@ func ErrProductDoesNotExist(product string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeProductDoesNotExist, fmt.Sprintf("product %s does not exist", product))
 }
 
-func ErrBackendPluginNotEnabled(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, message)
+func ErrBackendPluginNotEnabled() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled, no candle found, maintian.conf")
 }
 
-func ErrParamNotCorrect(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, message)
+func ErrParamNotCorrect(size int, granularity int) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity))
 }
 
-func ErrNoKlinesFunctionFound(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNoKlinesFunctionFound, message)
+func ErrNoKlinesFunctionFound() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNoKlinesFunctionFound, "no klines constructor function found.")
 }
 
-func ErrMarketkeeperNotInitialized(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, message)
+func ErrMarketkeeperNotInitialized() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")
 }
 
-func ErrUnknownBackendEndpoint(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownBackendEndpoint, message)
+func ErrUnknownBackendEndpoint() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownBackendEndpoint, "unknown backend endpoint")
 }

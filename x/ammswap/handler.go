@@ -1,7 +1,6 @@
 package ammswap
 
 import (
-	"fmt"
 	"github.com/okex/okexchain/x/ammswap/keeper"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/common"
@@ -275,7 +274,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	}
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
 		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
-		return nil, types.ErrInsufficientCoins(types.DefaultCodespace, fmt.Sprintf("Failed to swap token by router %s: %s", sdk.DefaultBondDenom, err.Error()))
+		return nil, types.ErrInsufficientCoins()
 	}
 	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
@@ -336,12 +335,12 @@ func swapTokenNativeToken(
 	// transfer coins
 	err := k.SendCoinsToPool(ctx, sdk.SysCoins{msg.SoldTokenAmount}, msg.Sender)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(types.DefaultCodespace, "insufficient Coins")
+		return nil, types.ErrInsufficientCoins()
 	}
 
 	err = k.SendCoinsFromPoolToAccount(ctx, sdk.SysCoins{tokenBuy}, msg.Recipient)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(types.DefaultCodespace, "insufficient Coins")
+		return nil, types.ErrInsufficientCoins()
 	}
 
 	// update swapTokenPair

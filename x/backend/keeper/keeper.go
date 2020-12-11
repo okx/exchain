@@ -251,15 +251,13 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 // nolint
 func (k Keeper) getCandlesWithTimeFromORM(product string, granularity, size int, ts int64) (r []types.IKline, err error) {
 	if !k.Config.EnableBackend {
-		msg := fmt.Sprintf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
-		return nil, types.ErrBackendPluginNotEnabled(msg)
+		return nil, types.ErrBackendPluginNotEnabled()
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		msg := fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity)
-		return nil, types.ErrParamNotCorrect(msg)
+		return nil, types.ErrParamNotCorrect(size, granularity)
 	}
 
 	klines, err := types.NewKlinesFactory(candleType)
@@ -285,20 +283,17 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 
 func (k Keeper) getCandlesByMarketKeeper(productID uint64, granularity, size int) (r [][]string, err error) {
 	if !k.Config.EnableBackend {
-		msg := fmt.Sprintf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
-		return nil, types.ErrBackendPluginNotEnabled(msg)
+		return nil, types.ErrBackendPluginNotEnabled()
 	}
 
 	if k.marketKeeper == nil {
-		msg := "Market keeper is not initialized properly"
-		return nil, types.ErrMarketkeeperNotInitialized(msg)
+		return nil, types.ErrMarketkeeperNotInitialized()
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		msg := fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity)
-		return nil, types.ErrParamNotCorrect(msg)
+		return nil, types.ErrParamNotCorrect(size, granularity)
 	}
 
 	klines, err := k.marketKeeper.GetKlineByProductID(productID, granularity, size)

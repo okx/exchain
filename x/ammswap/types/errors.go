@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -23,6 +24,8 @@ const (
 	CodeTokenNotExist						uint32 = 65012
 	CodeInvalidCoins						uint32 = 65013
 	CodeInternalError						uint32 = 65014
+	CodeGetSwapTokenPairFailed				uint32 = 65015
+	CodeInvalidAddress						uint32 = 65016
 )
 
 func ErrUnexistswapTokenPair () sdk.Error {
@@ -77,10 +80,18 @@ func ErrInvalidCoins () sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with pool token")
 }
 
-func ErrInternalError() (sdk.Error) {
+func ErrInternalError() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
 }
 
-func ErrInsufficientCoins(codespace string, message string) (sdk.Error) {
+func ErrInsufficientCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
+}
+
+func ErrGetSwapTokenPair() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetSwapTokenPairFailed, "get swap token pair failed")
+}
+
+func ErrInvalidAddress(address string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
 }
