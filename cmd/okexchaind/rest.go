@@ -33,6 +33,7 @@ func registerRoutesV1(rs *lcd.RestServer) {
 	v1Router := rs.Mux.PathPrefix("/okexchain/v1").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
+	authrest.RegisterTxRoutes(rs.CliCtx, v1Router)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	distrest.RegisterRoutes(rs.CliCtx, v1Router, dist.StoreKey)

@@ -2,6 +2,8 @@ package stream
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/stream/common/kline"
+	"github.com/okex/okexchain/x/stream/kafkaclient"
 	"strings"
 	"time"
 
@@ -32,6 +34,7 @@ const (
 	StreamRedisKind     Kind = 0x02
 	StreamPulsarKind    Kind = 0x03
 	StreamWebSocketKind Kind = 0x04
+	StreamKafkaKind     Kind = 0x05
 
 	EngineNilKind       EngineKind = 0x00
 	EngineAnalysisKind  EngineKind = 0x01
@@ -44,13 +47,13 @@ var StreamKind2EngineKindMap = map[Kind]EngineKind{
 	StreamMysqlKind:     EngineAnalysisKind,
 	StreamRedisKind:     EngineNotifyKind,
 	StreamPulsarKind:    EngineKlineKind,
+	StreamKafkaKind:     EngineKlineKind,
 	StreamWebSocketKind: EngineWebSocketKind,
 }
 
 var EngineKind2StreamKindMap = map[EngineKind]Kind{
 	EngineAnalysisKind:  StreamMysqlKind,
 	EngineNotifyKind:    StreamRedisKind,
-	EngineKlineKind:     StreamPulsarKind,
 	EngineWebSocketKind: StreamWebSocketKind,
 }
 
@@ -136,9 +139,9 @@ func (e *PulsarEngine) URL() string {
 
 func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 	e.logger.Debug("Entering PulsarEngine Write")
-	enData, ok := data.(*pulsarclient.PulsarData)
+	enData, ok := data.(*kline.KlineData)
 	if !ok {
-		panic(fmt.Sprintf("Convert data %+v to PulsarData failed", data))
+		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
 	}
 
 	err := e.pulsarProducer.RefreshMarketIDMap(enData, e.logger)
@@ -154,6 +157,47 @@ func (e *PulsarEngine) Write(data types.IStreamData, success *bool) {
 		*success = false
 	} else {
 		e.logger.Debug(fmt.Sprintf("PulsarEngine write result: %+v", results))
+		*success = true
+	}
+}
+
+type KafkaEngine struct {
+	url           string
+	logger        log.Logger
+	kafkaProducer *kafkaclient.KafkaProducer
+}
+
+func NewKafkaEngine(url string, logger log.Logger, cfg *appCfg.StreamConfig) (types.IStreamEngine, error) {
+	return &KafkaEngine{
+		url:           url,
+		logger:        logger,
+		kafkaProducer: kafkaclient.NewKafkaProducer(url, cfg),
+	}, nil
+}
+
+func (ke *KafkaEngine) URL() string {
+	return ke.url
+}
+
+func (ke *KafkaEngine) Write(data types.IStreamData, success *bool) {
+	ke.logger.Debug("Entering KafkaEngine Write")
+	enData, ok := data.(*kline.KlineData)
+	if !ok {
+		panic(fmt.Sprintf("Convert data %+v to KlineData failed", data))
+	}
+
+	if err := ke.kafkaProducer.RefreshMarketIDMap(enData, ke.logger); err != nil {
+		ke.logger.Error(fmt.Sprintf("kafka engine RefreshMarketIdMap failed: %s", err.Error()))
+		*success = false
+		return
+	}
+
+	results, err := ke.kafkaProducer.SendAllMsg(enData, ke.logger)
+	if err != nil {
+		ke.logger.Error(fmt.Sprintf("kafka engine write failed: %s, results: %v", err.Error(), results))
+		*success = false
+	} else {
+		ke.logger.Debug(fmt.Sprintf("kafka engine write result: %+v", results))
 		*success = true
 	}
 }
@@ -212,6 +256,7 @@ func GetEngineCreator(eKind EngineKind, sKind Kind) (EngineCreator, error) {
 		fmt.Sprintf("%d_%d", EngineNotifyKind, StreamRedisKind):        NewRedisEngine,
 		fmt.Sprintf("%d_%d", EngineKlineKind, StreamPulsarKind):        NewPulsarEngine,
 		fmt.Sprintf("%d_%d", EngineWebSocketKind, StreamWebSocketKind): websocket.NewEngine,
+		fmt.Sprintf("%d_%d", EngineKlineKind, StreamKafkaKind):         NewKafkaEngine,
 	}
 
 	key := fmt.Sprintf("%d_%d", eKind, sKind)
@@ -281,9 +326,13 @@ func StringToStreamKind(kind string) Kind {
 	case "redis":
 		return StreamRedisKind
 	case "pulsar":
+		EngineKind2StreamKindMap[EngineKlineKind] = StreamPulsarKind
 		return StreamPulsarKind
 	case "websocket":
 		return StreamWebSocketKind
+	case "kafka":
+		EngineKind2StreamKindMap[EngineKlineKind] = StreamKafkaKind
+		return StreamKafkaKind
 	default:
 		return StreamNilKind
 	}

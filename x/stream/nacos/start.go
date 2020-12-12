@@ -2,19 +2,17 @@ package nacos
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
-	"github.com/okex/okexchain/x/stream/common"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
+	"github.com/okex/okexchain/x/stream/common/utils"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-// StartNacosClient start eureka client and register rest service in eureka
+// StartNacosClient start nacos client and register rest service in nacos
 func StartNacosClient(logger log.Logger, urls string, namespace string, name string) {
-	ip, port, err := common.ResolveRestIPAndPort()
+	ip, port, err := utils.ResolveRestIPAndPort()
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
 		return
@@ -33,8 +31,6 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 			NotLoadCacheAtStart: true,
 			LogDir:              "/dev/null",
 			NamespaceId:         namespace,
-			//Username:			 "nacos",
-			//Password:			 "nacos",
 		},
 	})
 	if err != nil {
@@ -60,21 +56,4 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 		return
 	}
 	logger.Info("register application instance in nacos successfully")
-}
-
-func getServerConfigs(urls string) ([]constant.ServerConfig, error) {
-	// nolint
-	var configs []constant.ServerConfig
-	for _, url := range strings.Split(urls, ",") {
-		laddr := strings.Split(url, ":")
-		serverPort, err := strconv.Atoi(laddr[1])
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, constant.ServerConfig{
-			IpAddr: laddr[0],
-			Port:   uint64(serverPort),
-		})
-	}
-	return configs, nil
 }

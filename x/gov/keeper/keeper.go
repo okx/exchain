@@ -442,6 +442,10 @@ func (keeper Keeper) Router() Router {
 	return keeper.router
 }
 
+func (keeper Keeper) ProposalHandleRouter() ProposalHandlerRouter {
+	return keeper.proposalHandlerRouter
+}
+
 func (keeper Keeper) SupplyKeeper() SupplyKeeper {
 	return keeper.supplyKeeper
 }
