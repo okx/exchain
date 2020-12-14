@@ -44,7 +44,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			response := common.GetErrorResponse(types.CodeInternalError, "", err.Error())
 			res, errJSON := json.Marshal(response)
 			if errJSON != nil {
-				return nil, types.ErrInternal()
+				return nil, types.ErrInternalError()
 			}
 			return res, err
 		}
@@ -69,7 +69,7 @@ func querySwapTokenPair(
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternal()
+		return nil, types.ErrInternalError()
 	}
 	return bz, nil
 }
@@ -81,7 +81,7 @@ func queryBuyAmount(
 	var queryParams types.QueryBuyAmountParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, types.ErrUnknownRequest()
 	}
 	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
 	if errToken != nil {
@@ -97,7 +97,7 @@ func queryBuyAmount(
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
 	if errTokenPair == nil {
 		if tokenPair.BasePooledCoin.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternal()
+			return nil, types.ErrInternalError()
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
@@ -107,7 +107,7 @@ func queryBuyAmount(
 			return nil, types.ErrUnknownRequest()
 		}
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternal()
+			return nil, types.ErrInternalError()
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
@@ -115,7 +115,7 @@ func queryBuyAmount(
 			return nil, types.ErrUnknownRequest()
 		}
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternal()
+			return nil, types.ErrInternalError()
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
@@ -218,7 +218,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	response := common.GetBaseResponse(swapTokensResp)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternal()
+		return nil, types.ErrInternalError()
 	}
 	return bz, nil
 }
@@ -401,7 +401,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	response := common.GetBaseResponse(swapBuyInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternal()
+		return nil, types.ErrInternalError()
 	}
 	return bz, nil
 
@@ -461,7 +461,7 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	response := common.GetBaseResponse(liquidityInfoList)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternal()
+		return nil, types.ErrInternalError()
 	}
 	return bz, nil
 
@@ -479,7 +479,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 		return nil, types.ErrUnknownRequest()
 	}
 	if queryParams.BaseToken == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: base_token is required")
+		return nil, types.ErrUnknownRequest()
 	}
 	queryTokenAmount, err := sdk.ParseDecCoin(queryParams.QuoteTokenAmount)
 	if err != nil {
@@ -516,7 +516,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	response := common.GetBaseResponse(addInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternal()
+		return nil, types.ErrInternalError()
 	}
 	return bz, nil
 

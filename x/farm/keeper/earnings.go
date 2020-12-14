@@ -12,12 +12,12 @@ func (k Keeper) getEarnings(
 	var earnings types.Earnings
 	lockInfo, found := k.GetLockInfo(ctx, accAddr, poolName)
 	if !found {
-		return earnings, types.ErrNoLockInfoFound(types.DefaultCodespace, accAddr.String(), poolName)
+		return earnings, types.ErrNoLockInfoFound(accAddr.String(), poolName)
 	}
 
 	pool, found := k.GetFarmPool(ctx, poolName)
 	if !found {
-		return earnings, types.ErrNoFarmPoolFound(types.DefaultCodespace, poolName)
+		return earnings, types.ErrNoFarmPoolFound(poolName)
 	}
 
 	// 1.1 Calculate how many provided token & native token have been yielded

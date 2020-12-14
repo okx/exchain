@@ -102,13 +102,13 @@ func StringInSlice(a string, list []string) bool {
 // These functions assumes everything has been authenticated, now we just perform action and save
 func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k keeper.Keeper) (*sdk.Result, error) {
 	if _, found := k.GetValidator(ctx, msg.ValidatorAddress); found {
-		return nil, ErrValidatorOwnerExists(k.Codespace())
+		return nil, ErrValidatorOwnerExists()
 	}
 	if _, found := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey)); found {
-		return nil, ErrValidatorPubKeyExists(k.Codespace())
+		return nil, ErrValidatorPubKeyExists()
 	}
 	if msg.MinSelfDelegation.Denom != k.BondDenom(ctx) {
-		return nil, ErrBadDenom(k.Codespace())
+		return nil, ErrBadDenom()
 	}
 
 	if _, err := msg.Description.EnsureLength(); err != nil {
@@ -117,7 +117,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if ctx.ConsensusParams() != nil {
 		tmPubKey := tmtypes.TM2PB.PubKey(msg.PubKey)
 		if !StringInSlice(tmPubKey.Type, ctx.ConsensusParams().Validator.PubKeyTypes) {
-			return nil, ErrValidatorPubKeyTypeNotSupported(k.Codespace(), tmPubKey.Type,
+			return nil, ErrValidatorPubKeyTypeNotSupported(tmPubKey.Type,
 				ctx.ConsensusParams().Validator.PubKeyTypes)
 		}
 	}
@@ -153,7 +153,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	// validator must already be registered
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
 	if !found {
-		return nil, ErrNoValidatorFound(k.Codespace(), msg.ValidatorAddress.String())
+		return nil, ErrNoValidatorFound(msg.ValidatorAddress.String())
 	}
 
 	// replace all editable fields (clients should autofill existing values)

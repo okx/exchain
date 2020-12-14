@@ -13,7 +13,7 @@ func NewManageWhiteListProposalHandler(k *Keeper) govTypes.Handler {
 		case types.ManageWhiteListProposal:
 			return handleManageWhiteListProposal(ctx, k, proposal)
 		default:
-			return types.ErrUnexpectedProposalType(DefaultParamspace, content.ProposalType())
+			return types.ErrUnexpectedProposalType(content.ProposalType())
 		}
 	}
 }
@@ -22,7 +22,7 @@ func handleManageWhiteListProposal(ctx sdk.Context, k *Keeper, proposal *govType
 	// check
 	manageWhiteListProposal, ok := proposal.Content.(types.ManageWhiteListProposal)
 	if !ok {
-		return types.ErrUnexpectedProposalType(DefaultParamspace, proposal.Content.ProposalType())
+		return types.ErrUnexpectedProposalType(proposal.Content.ProposalType())
 	}
 	if sdkErr := k.CheckMsgManageWhiteListProposal(ctx, manageWhiteListProposal); sdkErr != nil {
 		return sdkErr
