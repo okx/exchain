@@ -120,7 +120,7 @@ func ErrBadDenom(codespace string) sdk.EnvelopedErr {
 
 // ErrBadDelegationAmount returns an error when the amount of delegation isn't positive
 func ErrBadDelegationAmount(codespace string) sdk.Error {
-	return sdkerrors.New(codespace, CodeInvalidDelegation, "amount must be > 0")
+	return sdkerrors.New(codespace, CodeInvalidDelegation, "amount must be greater than 0")
 }
 
 // ErrNoUnbondingDelegation returns an error when the unbonding delegation doesn't exist
