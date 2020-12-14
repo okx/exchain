@@ -60,7 +60,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 			}
 		default:
 			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return nil, types.ErrUnknownRequest(errMsg)
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
@@ -141,7 +141,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger lo
 		return nil, types.ErrInternal(msg.Product)
 	}
 	if sdkErr := keeper.Deposit(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return nil, sdkErr
+		return nil, types.ErrInternal(sdkErr.Error())
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgDeposit: "+
@@ -160,7 +160,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger lo
 
 func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger log.Logger) (*sdk.Result, error) {
 	if sdkErr := keeper.Withdraw(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return nil, sdkErr
+		return nil, types.ErrInternal(sdkErr.Error())
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgWithDraw: "+

@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/okex/okexchain/x/params"
 	"github.com/okex/okexchain/x/token/types"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -237,7 +236,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysC
 
 	// update account
 	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
-		return errors.New(err.Error())
+		return types.ErrInternal()
 	}
 
 	return nil
@@ -296,7 +295,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins
 
 	if !outputCoins.IsZero() {
 		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
-			return err
+			return types.ErrUnknownRequest()
 		}
 	}
 

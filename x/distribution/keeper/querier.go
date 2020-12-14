@@ -1,10 +1,9 @@
 package keeper
 
 import (
-	comm "github.com/okex/okexchain/x/common"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	comm "github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/okexchain/x/distribution/types"
@@ -27,7 +26,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryCommunityPool(ctx, path[1:], req, k)
 
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
+			return nil, types.ErrUnknownRequest()
 		}
 	}
 }

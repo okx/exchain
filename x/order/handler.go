@@ -87,7 +87,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	// check if the order is involved with the tokenpair in dex Delist
 	isDelisting, err := keeper.GetDexKeeper().CheckTokenPairUnderDexDelist(ctx, msg.Product)
 	if err != nil {
-		return err
+		return types.ErrInternal()
 	}
 	if isDelisting {
 		return types.ErrTradingPairIsdelisting(msg.Product)
@@ -224,16 +224,16 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 		}
 		err := checkOrderNewMsg(ctx, k, msg)
 		if err != nil {
-			return sdk.ErrUnknownRequest(err.Error()).Result()
+			return nil, types.ErrUnknownRequest()
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
-			return sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", msg.Product)).Result()
+			return nil, types.ErrInternal()
 		}
 
 		order := getOrderFromMsg(ctx, k, msg, ratio)
 		_, err = k.TryPlaceOrder(ctx, order)
 		if err != nil {
-			return sdk.ErrInsufficientCoins(err.Error()).Result()
+			return nil, types.ErrInsufficientCoins()
 		}
 	}
 
@@ -314,16 +314,16 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 
 	// Check order
 	if order == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("order(%s) does not exist or already closed", msg.OrderID))
+		return types.ErrUnknownRequest()
 	}
 	if order.Status != types.OrderStatusOpen {
-		return sdk.ErrInternal(fmt.Sprintf("cannot cancel order with status(%d)", order.Status))
+		return types.ErrInternal()
 	}
 	if !order.Sender.Equals(msg.Sender) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("not the owner of order(%v)", msg.OrderID))
+		return types.ErrUnauthorized()
 	}
 	if keeper.IsProductLocked(ctx, order.Product) {
-		return sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product))
+		return types.ErrInternal()
 	}
 	return nil
 }

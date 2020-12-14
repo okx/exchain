@@ -43,7 +43,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
 		default:
-			return nil, sdkerrors.ErrUnknownRequest
+			return nil, types.ErrUnknownRequest()
 		}
 	}
 }
