@@ -22,7 +22,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			response := common.GetErrorResponse(types.CodeBackendPluginNotEnabled, "", "Backend Plugin's Not Enabled")
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
-				return nil, sdk.ErrInternal(eJSON.Error())
+				return nil, types.ErrInternal()
 			}
 			return res, nil
 		}
@@ -34,7 +34,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 				resJSON, eJSON := json.Marshal(response)
 				if eJSON != nil {
 					res = nil
-					err = sdk.ErrInternal(eJSON.Error())
+					err = types.ErrInternal()
 				} else {
 					res = resJSON
 					err = nil
@@ -338,7 +338,7 @@ func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	response := common.GetBaseResponse(sortedTickers)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, types.ErrInternal()
 	}
 	return bz, nil
 }
@@ -346,7 +346,7 @@ func queryTickerList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 func queryTickerListFromMarketKeeper(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	params := types.QueryTickerParams{}
 	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data, ", err.Error()))
+		return nil, types.ErrUnknownRequest()
 	}
 
 	var products []string

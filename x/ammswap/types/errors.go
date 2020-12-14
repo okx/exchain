@@ -80,7 +80,7 @@ func ErrInvalidCoins () sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with pool token")
 }
 
-func ErrInternalError() sdk.Error {
+func ErrInternal() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
 }
 

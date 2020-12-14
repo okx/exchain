@@ -101,8 +101,7 @@ func ErrInvalidWebsiteURL(msg string) sdk.Error {
 
 // ErrTokenPairExisted returns an error when the token pair is existing during the process of listing
 func ErrTokenPairExisted(baseAsset string, quoteAsset string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTokenPairAlreadyExist,
-		fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))
+	return sdkerrors.New(DefaultCodespace, CodeTokenPairAlreadyExist, fmt.Sprintf("failed. the token pair exists with %s and %s", baseAsset, quoteAsset))
 }
 
 // ErrInvalidTokenPair returns invalid product error
@@ -137,7 +136,7 @@ func ErrMustOperatorOwnerOwner(addr string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMustOperatorOwner, fmt.Sprintf("failed because %s is not the owner of operator", addr))
 }
 func ErrInvalidProduct() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMustOperatorOwner, "invalid product")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidProduct, "invalid product")
 }
 
 func ErrInvalidAddress(message string) sdk.Error {

@@ -13,17 +13,16 @@ const (
 	CodeSetWithdrawAddrDisabled							uint32          = 67802
 	CodeInvalideData									uint32		  = 67803
 	CodeInvalideRoute									uint32		  = 67804
-	CodeUnmarshalJSONFailed								uint32		  = 67805
-	CodeInvalideBasic									uint32		  = 67806
-	CodeWithdrawValidatorRewardsAndCommissionFailed		uint32		  = 67807
-	CodeAccAddressFromBech32Failed						uint32		  = 67808
-	CodeValAddressFromBech32							uint32		  = 67809
-	CodeReadRESTReqFailed								uint32		  = 67810
-	CodeSendCoinsFromModuleToAccountFailed				uint32		  = 67811
-	CodeUnknownRequest									uint32		  = 67812
-	CodeUnauthorized									uint32		  = 67813
-	CodeSetWithdrawAddrFailed							uint32		  = 67814
-	CodeWithdrawValidatorCommissionFailed				uint32		  = 67815
+	CodeInvalideBasic									uint32		  = 67805
+	CodeWithdrawValidatorRewardsAndCommissionFailed		uint32		  = 67806
+	CodeAccAddressFromBech32Failed						uint32		  = 67807
+	CodeValAddressFromBech32							uint32		  = 67808
+	CodeReadRESTReqFailed								uint32		  = 67809
+	CodeSendCoinsFromModuleToAccountFailed				uint32		  = 67810
+	CodeUnknownRequest									uint32		  = 67811
+	CodeUnauthorized									uint32		  = 67812
+	CodeSetWithdrawAddrFailed							uint32		  = 67813
+	CodeWithdrawValidatorCommissionFailed				uint32		  = 67814
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -57,10 +56,10 @@ func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "incorrectly formatted request data")
 }
 func ErrUnauthorized() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "blacklisted from receiving external funds")
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 func ErrSetWithdrawAddrFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSetWithdrawAddrFailed, "delegators addr or withdraw addr is invalid")
+	return sdkerrors.New(DefaultCodespace, CodeSetWithdrawAddrFailed, "set withdraw addr is failed")
 }
 func ERRWithdrawValidatorCommissionFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeWithdrawValidatorCommissionFailed, "withdraw validator commission failed")

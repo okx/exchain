@@ -102,7 +102,7 @@ func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.Han
 
 		var result sdk.SysCoins
 		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
-			comm.HandleErrorMsg(w, cliCtx, types.CodeUnmarshalJSONFailed, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
 		}
 

@@ -29,6 +29,8 @@ const (
 	CodeParamNotCorrect				  uint32 = 62016
 	CodeNoKlinesFunctionFound		  uint32 = 62017
 	CodeMarketkeeperNotInitialized	  uint32 = 62018
+	CodeInternalError			 	  uint32 = 62019
+	CodeUnknownRequest				  uint32 = 62020
 )
 
 // invalid param side, must be buy or sell
@@ -64,4 +66,12 @@ func ErrMarketkeeperNotInitialized() sdk.Error {
 
 func ErrUnknownBackendEndpoint() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownBackendEndpoint, "unknown backend endpoint")
+}
+
+func ErrInternal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
+}
+
+func ErrUnknownRequest() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "internal error")
 }
