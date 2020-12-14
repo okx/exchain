@@ -16,7 +16,7 @@ func parseSubmitProposalFlags() (*proposal, error) {
 	if file == "" {
 		proposal.Title = viper.GetString(flagTitle)
 		proposal.Description = viper.GetString(flagDescription)
-		proposal.ProposalType = govutils.NormalizeProposalType(viper.GetString(flagProposalType))
+		proposal.Type = govutils.NormalizeProposalType(viper.GetString(flagProposalType))
 		proposal.Deposit = viper.GetString(flagDeposit)
 		return proposal, nil
 	}
