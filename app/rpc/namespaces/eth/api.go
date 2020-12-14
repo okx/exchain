@@ -19,7 +19,6 @@ import (
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/app/utils"
-	"github.com/okex/okexchain/app/version"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -125,7 +124,7 @@ func (api *PublicEthereumAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (api *PublicEthereumAPI) ProtocolVersion() hexutil.Uint {
 	api.logger.Debug("eth_protocolVersion")
-	return hexutil.Uint(version.ProtocolVersion)
+	return hexutil.Uint(ethermint.ProtocolVersion)
 }
 
 // ChainId returns the chain's identifier in hex format
