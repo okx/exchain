@@ -3,7 +3,6 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -60,7 +59,6 @@ func cosmosAddressFromArg(addr string) (sdk.AccAddress, error) {
 	return sdk.AccAddressFromHex(addr)
 }
 
-
 // GetCmdSendTx generates an Ethermint transaction (excludes create operations)
 func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
@@ -79,7 +77,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// Ambiguously decode amount from any base
-			amount, err := strconv.ParseInt(args[1], 0, 64)
+			amount, err := sdk.NewDecFromStr(args[1])
 			if err != nil {
 				return err
 			}
@@ -105,7 +103,7 @@ func GetCmdSendTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewInt(amount), txBldr.Gas(),
+			msg := types.NewMsgEthermint(seq, &toAddr, sdk.NewIntFromBigInt(amount.Int), txBldr.Gas(),
 				sdk.NewInt(emint.DefaultGasPrice), data, from)
 
 			err = msg.ValidateBasic()
@@ -140,10 +138,10 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var amount int64
+			amount := sdk.ZeroDec()
 			if len(args) > 1 {
 				// Ambiguously decode amount from any base
-				amount, err = strconv.ParseInt(args[1], 0, 64)
+				amount, err = sdk.NewDecFromStr(args[1])
 				if err != nil {
 					return errors.Wrap(err, "invalid amount")
 				}
@@ -157,7 +155,7 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// TODO: Potentially allow overriding of gas price and gas limit
-			msg := types.NewMsgEthermint(seq, nil, sdk.NewInt(amount), txBldr.Gas(),
+			msg := types.NewMsgEthermint(seq, nil, sdk.NewIntFromBigInt(amount.Int), txBldr.Gas(),
 				sdk.NewInt(emint.DefaultGasPrice), data, from)
 
 			err = msg.ValidateBasic()
