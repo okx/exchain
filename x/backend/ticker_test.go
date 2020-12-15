@@ -463,21 +463,33 @@ func TestTicker_C1(t *testing.T) {
 	for _, k := range kline1s {
 		fmt.Println(k.(types.IKline).PrettyTimeString())
 	}
+
+	latestTickers["not_exist"].Timestamp = timeMap["now"]
 	err := simpleCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+1, kline15s, kline1s, matches,
 		aTicker(product, 100.0, 220.0, 220.0, 99.0, 220.0, 100.0), &latestTickers)
 	assert.True(t, err == nil)
+	// old ticker
+	oldTicker := latestTickers["not_exist"]
+	assert.True(t, oldTicker.Open == 100.0)
+	assert.True(t, oldTicker.Close == 230.0)
+	assert.True(t, oldTicker.High == 220.0)
+	assert.True(t, oldTicker.Low == 99.0)
+	assert.True(t, oldTicker.Price == 230.0)
+	assert.True(t, oldTicker.Volume == 100.0)
 
+	latestTickers["not_exist"].Timestamp = timeMap["-24h"]
 	err = simpleCaseRunner(t, product, nil, timeMap["-24h"], timeMap["now"]+15*60, kline15s, kline1s, matches,
 		aTicker(product, 220.0, 220.0, 220.0, 220.0, 220.0, 0), &latestTickers)
 	assert.True(t, err == nil)
-
-	oldTicker := latestTickers["not_exist"]
+	// old ticker: No deals produced in last 24 hours.
+	oldTicker = latestTickers["not_exist"]
 	assert.True(t, oldTicker.Open == 230.0)
 	assert.True(t, oldTicker.Close == 230.0)
 	assert.True(t, oldTicker.High == 230.0)
 	assert.True(t, oldTicker.Low == 230.0)
 	assert.True(t, oldTicker.Price == 230.0)
 	assert.True(t, oldTicker.Volume == 0)
+
 }
 
 func TestTicker_C3(t *testing.T) {
