@@ -44,7 +44,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			response := common.GetErrorResponse(types.CodeInternalError, "", err.Error())
 			res, errJSON := json.Marshal(response)
 			if errJSON != nil {
-				return nil, types.ErrInternalError()
+				return nil, common.ErrMarshalJSONFailed(errJSON.Error())
 			}
 			return res, err
 		}
@@ -69,7 +69,7 @@ func querySwapTokenPair(
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -97,25 +97,25 @@ func queryBuyAmount(
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
 	if errTokenPair == nil {
 		if tokenPair.BasePooledCoin.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternalError()
+			return nil, types.ErrIsZeroValue()
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
 		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrGetSwapTokenPair()
 		}
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternalError()
+			return nil, types.ErrIsZeroValue()
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrGetSwapTokenPair()
 		}
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, types.ErrInternalError()
+			return nil, types.ErrIsZeroValue()
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
@@ -141,7 +141,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	tokenPairName := path[0]
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrGetSwapTokenPair()
 	}
 
 	liquidity, errDec := sdk.NewDecFromStr(path[1])
@@ -152,7 +152,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	var tokenList sdk.SysCoins
 	baseToken, quoteToken, err := keeper.GetRedeemableAssets(ctx, swapTokenPair.BasePooledCoin.Denom, swapTokenPair.QuotePooledCoin.Denom, liquidity)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrGetRedeemableAssetsFailed()
 	}
 	tokenList = append(tokenList, baseToken, quoteToken)
 	bz := keeper.cdc.MustMarshalJSON(tokenList)
@@ -164,11 +164,11 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	var queryParams types.QuerySwapTokensParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	if queryParams.BusinessType == "" {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrIsZeroValue()
 	}
 
 	// coins in account

@@ -35,7 +35,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
 		default:
-			return sdk.ErrUnknownRequest("").Result()
+			return sdk.ErrUnknownRequest(msg.Type()).Result()
 		}
 	}
 }
