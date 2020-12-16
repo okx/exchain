@@ -198,14 +198,11 @@ func (k Keeper) Flush() {
 }
 
 // SyncTx generate transaction and add it to cache, called at DeliverTx
-func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64, isOK bool) {
+func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
 	if k.Config.EnableBackend && k.Config.EnableMktCompute {
 		k.Logger.Debug(fmt.Sprintf("[backend] get new tx, txHash: %s", txHash))
-		k.Cache.AddNumTxs(1)
-		if isOK { // successful tx
-			txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
-			k.Cache.AddTransaction(txs)
-		}
+		txs := types.GenerateTx(tx, txHash, ctx, k.OrderKeeper, timestamp)
+		k.Cache.AddTransaction(txs)
 	}
 }
 
@@ -346,8 +343,8 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 
 	defer types.PrintStackIfPanic()
 
-	k.Orm.Debug(fmt.Sprintf("[backend] entering UpdateTickersBuffer, latestTickers: %+v, TickerTimeRange: [%d, %d)=[%s, %s)",
-		k.Cache.LatestTicker, startTS, endTS, types.TimeString(startTS), types.TimeString(endTS)))
+	k.Orm.Debug(fmt.Sprintf("[backend] entering UpdateTickersBuffer, latestTickers: %+v, TickerTimeRange: [%d, %d)=[%s, %s), productList: %v",
+		k.Cache.LatestTicker, startTS, endTS, types.TimeString(startTS), types.TimeString(endTS), productList))
 
 	latestProducts := []string{}
 	for p := range k.Cache.LatestTicker {
@@ -376,7 +373,7 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 		refreshedTicker := tickerMap[p]
 		if refreshedTicker == nil {
 			previousTicker := k.Cache.LatestTicker[p]
-			if previousTicker != nil {
+			if previousTicker != nil && (endTS > previousTicker.Timestamp+types.SecondsInADay) {
 				previousTicker.Open = previousTicker.Close
 				previousTicker.High = previousTicker.Close
 				previousTicker.Low = previousTicker.Close

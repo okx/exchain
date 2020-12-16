@@ -37,15 +37,12 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 }
 
 // nolint
-func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64, isOK bool) {
+func (k Keeper) SyncTx(ctx sdk.Context, tx *auth.StdTx, txHash string, timestamp int64) {
 	if k.stream.engines[EngineAnalysisKind] != nil {
 		k.stream.logger.Debug(fmt.Sprintf("[stream engine] get new tx, txHash: %s", txHash))
-		k.stream.Cache.AddNumTxs(1)
-		if isOK { // successful tx
-			txs := backend.GenerateTx(tx, txHash, ctx, k.stream.orderKeeper, timestamp)
-			for _, tx := range txs {
-				k.stream.Cache.AddTransaction(tx)
-			}
+		txs := backend.GenerateTx(tx, txHash, ctx, k.stream.orderKeeper, timestamp)
+		for _, tx := range txs {
+			k.stream.Cache.AddTransaction(tx)
 		}
 	}
 }

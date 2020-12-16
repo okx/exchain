@@ -5,23 +5,34 @@ import (
 	"io"
 	"os"
 
-	"github.com/okex/okexchain/x/debug"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-
-	"github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/okex/okexchain/app/ante"
+	okexchaincodec "github.com/okex/okexchain/app/codec"
+	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
+	commonversion "github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/debug"
 	"github.com/okex/okexchain/x/dex"
 	dexclient "github.com/okex/okexchain/x/dex/client"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/evidence"
+	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/farm"
 	farmclient "github.com/okex/okexchain/x/farm/client"
+	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/okexchain/x/gov"
 	"github.com/okex/okexchain/x/gov/keeper"
 	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/params"
+	paramsclient "github.com/okex/okexchain/x/params/client"
+	"github.com/okex/okexchain/x/slashing"
+	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/stream"
 	"github.com/okex/okexchain/x/token"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -32,23 +43,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-	distr "github.com/okex/okexchain/x/distribution"
-	"github.com/okex/okexchain/x/evidence"
-	"github.com/okex/okexchain/x/genutil"
-	"github.com/okex/okexchain/x/gov"
-	"github.com/okex/okexchain/x/params"
-	paramsclient "github.com/okex/okexchain/x/params/client"
-	"github.com/okex/okexchain/x/slashing"
-	"github.com/okex/okexchain/x/staking"
 
-	"github.com/okex/okexchain/app/ante"
-	okexchaincodec "github.com/okex/okexchain/app/codec"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/evm"
-	"github.com/okex/okexchain/x/faucet"
-
-	commonversion "github.com/okex/okexchain/x/common/version"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
@@ -91,7 +88,6 @@ var (
 		evidence.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
-		faucet.AppModuleBasic{},
 
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
@@ -111,7 +107,6 @@ var (
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		gov.ModuleName:            nil,
-		faucet.ModuleName:         {supply.Minter},
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		dex.ModuleName:            nil,
 		order.ModuleName:          nil,
@@ -160,7 +155,6 @@ type OKExChainApp struct {
 	ParamsKeeper   params.Keeper
 	EvidenceKeeper evidence.Keeper
 	EvmKeeper      evm.Keeper
-	FaucetKeeper   faucet.Keeper
 	TokenKeeper    token.Keeper
 	DexKeeper      dex.Keeper
 	OrderKeeper    order.Keeper
@@ -204,7 +198,7 @@ func NewOKExChainApp(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, faucet.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
 	)
 
@@ -269,9 +263,6 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
 		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper,
-	)
-	app.FaucetKeeper = faucet.NewKeeper(
-		app.cdc, keys[faucet.StoreKey], app.SupplyKeeper,
 	)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -346,7 +337,6 @@ func NewOKExChainApp(
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
-		faucet.NewAppModule(app.FaucetKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
 		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
@@ -389,7 +379,7 @@ func NewOKExChainApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName, slashing.ModuleName,
 		gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName, dex.ModuleName,
-		order.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName, faucet.ModuleName,
+		order.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		ammswap.ModuleName, farm.ModuleName, evm.ModuleName,
 	)
 
@@ -449,14 +439,14 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 	resp := app.BaseApp.DeliverTx(req)
-	if app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable() {
-		app.syncTx(req.Tx, resp.IsOK())
+	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
+		app.syncTx(req.Tx)
 	}
 
 	return resp
 }
 
-func (app *OKExChainApp) syncTx(txBytes []byte, isOK bool) {
+func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
@@ -464,9 +454,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte, isOK bool) {
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			ctx := app.GetDeliverStateCtx()
 			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix(), isOK)
+				ctx.BlockHeader().Time.Unix())
 			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix(), isOK)
+				ctx.BlockHeader().Time.Unix())
 		}
 	}
 }

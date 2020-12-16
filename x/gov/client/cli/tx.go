@@ -39,10 +39,10 @@ const (
 )
 
 type proposal struct {
-	Title        string
-	Description  string
-	ProposalType string
-	Deposit      string
+	Title       string
+	Description string
+	Type        string
+	Deposit     string
 }
 
 // proposalFlags defines the core required fields of a proposal. It is used to
@@ -127,7 +127,7 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 				return err
 			}
 
-			content := types.ContentFromProposalType(proposal.Title, proposal.Description, proposal.ProposalType)
+			content := types.ContentFromProposalType(proposal.Title, proposal.Description, proposal.Type)
 
 			msg := types.NewMsgSubmitProposal(content, amount, cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
