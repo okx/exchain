@@ -111,7 +111,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	}
 
 	if _, err := msg.Description.EnsureLength(); err != nil {
-		return nil, types.ErrCodeInternalError()
+		return nil, types.ErrDescriptionLengthBiggerThanLimit()
 	}
 	if ctx.ConsensusParams() != nil {
 		tmPubKey := tmtypes.TM2PB.PubKey(msg.PubKey)
@@ -134,7 +134,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	// add shares of equal value of msd for validator itself
 	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
 	if err = k.AddSharesAsMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
-		return nil, types.ErrCodeInternalError()
+		return nil, types.ErrAddSharesAsMinSelfDelegationFailed(err.Error())
 	}
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -158,7 +158,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	// replace all editable fields (clients should autofill existing values)
 	description, err := validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
-		return nil, types.ErrCodeInternalError()
+		return nil, types.ErrValidatorUpdateDescriptionFailed()
 	}
 
 	validator.Description = description

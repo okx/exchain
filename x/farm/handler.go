@@ -50,7 +50,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
-			return types.ErrUnknownRequest("unrecognized message").Result()
+			return types.ErrUnknownMsgType("unrecognized message").Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
@@ -58,7 +58,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		res, err := handlerFun()
 		common.SanityCheckHandler(res, err)
-		return res, types.ErrInternal(err.Error())
+		return res, types.ErrFarmMsgOccurError(err.Error())
 	}
 }
 
@@ -104,7 +104,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins(),
 	); err != nil {
-		return types.ErrInternal(err.Error()).Result()
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
 	}
 
 	// 5. init a new yielded_token_info struct, then set it into store

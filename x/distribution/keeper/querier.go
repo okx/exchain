@@ -26,7 +26,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryCommunityPool(ctx, path[1:], req, k)
 
 		default:
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrUnknownDistributionQueryType()
 		}
 	}
 }
@@ -47,7 +47,7 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 		return bz, nil
 
 	default:
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrUnknownDistributionParamType()
 	}
 }
 

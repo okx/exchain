@@ -2,9 +2,8 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // const CodeType
@@ -37,6 +36,17 @@ const (
 	CodeUnauthorized						uint32 = 64025
 	CodeInsufficientCoins					uint32 = 64026
 	CodeInvalidCoins						uint32 = 64027
+	CodeBlockTimeAfterFailed				uint32 = 64028
+	CodeDepositFailed						uint32 = 64029
+	CodeWithdrawFailed						uint32 = 64030
+	CodeGetConfirmOwnershipNotExist			uint32 = 64031
+	CodeIsNil								uint32 = 64032
+	CodeIsTokenPairLocked					uint32 = 64033
+	CodeUnknownMsgType						uint32 = 64034
+	CodeUnknownQueryType					uint32 = 64035
+	CodeUnknownProposalType					uint32 = 64036
+	CodeInitPriceIsNotPositive					uint32 = 64037
+	CodeProductIsEmpty								uint32 = 64038
 )
 
 // CodeType to Message
@@ -161,4 +171,48 @@ func ErrInsufficientCoins(feeCoin string) sdk.Error {
 
 func ErrInvalidCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalid coins")
+}
+
+func ErrBlockTimeAfterFailed(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBlockTimeAfterFailed, fmt.Sprintf("block time after failed: %s", message))
+}
+
+func ErrDepositFailed(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeDepositFailed, fmt.Sprintf("deposit occur error: %s", message))
+}
+
+func ErrWithdrawFailed(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeWithdrawFailed, fmt.Sprintf("withdraw occur error: %s", message))
+}
+
+func ErrGetConfirmOwnershipNotExist(address string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeGetConfirmOwnershipNotExist, fmt.Sprintf("no transfer-ownership of list (%s) to confirm", address))
+}
+
+func ErrIsNil() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsNil, "param is nil")
+}
+
+func ErrIsTokenPairLocked(tokenPairName string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsTokenPairLocked, fmt.Sprintf("unexpected state, the trading pair (%s) is locked", tokenPairName))
+}
+
+func ErrUnknownMsgType(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, fmt.Sprintf("unrecognized dex message type: %T", msg))
+}
+
+func ErrUnknownQueryType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownQueryType, "unknown dex query endpoint")
+}
+
+func ErrUnknownProposalType(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownProposalType, fmt.Sprintf("unknown proposal content type: %s", msg))
+}
+
+func ErrInitPriceIsNotPositive() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInitPriceIsNotPositive, "invalid init price number")
+}
+
+func ErrProductIsEmpty() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeProductIsEmpty, "product param is empty")
 }

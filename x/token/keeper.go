@@ -236,7 +236,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysC
 
 	// update account
 	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
-		return types.ErrInternal()
+		return types.ErrSendCoinsFromModuleToAccountFailed()
 	}
 
 	return nil
@@ -295,7 +295,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins
 
 	if !outputCoins.IsZero() {
 		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
-			return types.ErrUnknownRequest()
+			return types.ErrUpdateLockedCoins()
 		}
 	}
 

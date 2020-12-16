@@ -21,7 +21,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		default:
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrUnknownMsgType()
 		}
 	}
 }
@@ -67,7 +67,7 @@ func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 
 		default:
-			return types.ErrUnknownRequest()
+			return types.ErrUnknownCommunityPoolProposaType()
 		}
 	}
 }

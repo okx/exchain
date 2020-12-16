@@ -59,8 +59,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 				return handleMsgUpdateOperator(ctx, k, msg, logger)
 			}
 		default:
-			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
-			return nil, types.ErrUnknownRequest(errMsg)
+			return nil, types.ErrUnknownMsgType(msg.Type())
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
@@ -138,10 +137,10 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return nil, types.ErrInternal(msg.Product)
+		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
 	}
 	if sdkErr := keeper.Deposit(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return nil, types.ErrInternal(sdkErr.Error())
+		return nil, types.ErrDepositFailed(sdkErr.Error())
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgDeposit: "+
@@ -160,7 +159,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger lo
 
 func handleMsgWithDraw(ctx sdk.Context, keeper IKeeper, msg MsgWithdraw, logger log.Logger) (*sdk.Result, error) {
 	if sdkErr := keeper.Withdraw(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return nil, types.ErrInternal(sdkErr.Error())
+		return nil, types.ErrWithdrawFailed(sdkErr.Error())
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgWithDraw: "+
@@ -180,7 +179,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	logger log.Logger) (*sdk.Result, error) {
 	// validate
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
-	if tokenPair == nil {
+	if tokenPair == nil  {
 		return nil, types.ErrTokenPairNotFound()
 	}
 	if !tokenPair.Owner.Equals(msg.FromAddress) {
@@ -191,13 +190,13 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	}
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return nil, types.ErrInternal(msg.Product)
+		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
 	}
 
 	// withdraw
 	if tokenPair.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, msg.Product, msg.FromAddress, tokenPair.Deposits); err != nil {
-			return nil, types.ErrInternal(err.Error())
+			return nil, types.ErrWithdrawFailed(err.Error())
 		}
 	}
 
@@ -234,12 +233,12 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOwnership, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if !exist {
-		return nil, types.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of list (%s) to confirm", msg.Address.String()))
+		return nil, types.ErrGetConfirmOwnershipNotExist(msg.Address.String())
 	}
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
 		// delete ownership confirming information
 		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Product)
-		return nil, types.ErrInternal(confirmOwnership.Expire.String())
+		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
 	}
 	if !confirmOwnership.ToAddress.Equals(msg.Address) {
 		return nil, types.ErrUnauthorized(confirmOwnership.ToAddress.String())

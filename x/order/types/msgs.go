@@ -99,27 +99,27 @@ func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if msg.OrderItems == nil || len(msg.OrderItems) == 0 {
-		return ErrUnknownRequest()
+		return ErrOrderItemCountsIsEmpty()
 	}
 	if len(msg.OrderItems) > OrderItemLimit {
-		return ErrUnknownRequest()
+		return ErrOrderItemCountsBiggerThanLimit()
 	}
 	for _, item := range msg.OrderItems {
 		if len(item.Product) == 0 {
-			return ErrUnknownRequest()
+			return ErrOrderItemProductCountsIsEmpty()
 		}
 		symbols := strings.Split(item.Product, "_")
 		if len(symbols) != 2 {
-			return ErrUnknownRequest()
+			return ErrOrderItemProductSymbolError()
 		}
 		if symbols[0] == symbols[1] {
-			return ErrUnknownRequest()
+			return ErrOrderItemProductSymbolIsEqual()
 		}
 		if item.Side != BuyOrder && item.Side != SellOrder {
-			return ErrUnknownRequest()
+			return ErrOrderItemSideIsNotBuyAndSell()
 		}
 		if !(item.Price.IsPositive() && item.Quantity.IsPositive()) {
-			return ErrUnknownRequest()
+			return ErrOrderItemPriceOrQuantityIsNotPositive()
 		}
 	}
 
@@ -169,13 +169,13 @@ func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if msg.OrderIDs == nil || len(msg.OrderIDs) == 0 {
-		return ErrUnknownRequest()
+		return ErrOrderIDsIsEmpty()
 	}
 	if len(msg.OrderIDs) > MultiCancelOrderItemLimit {
-		return ErrUnknownRequest()
+		return ErrOrderIDCountsBiggerThanMultiCancelOrderItemLimit()
 	}
 	if hasDuplicatedID(msg.OrderIDs) {
-		return ErrUnknownRequest()
+		return ErrOrderIDsHasDuplicatedID()
 	}
 	for _, item := range msg.OrderIDs {
 		if item == "" {

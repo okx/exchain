@@ -48,28 +48,28 @@ func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 
 	// check original symbol
 	if len(msg.OriginalSymbol) == 0 {
-		return ErrUnknownRequest()
+		return ErrUserInputSymbolIsEmpty()
 	}
 	if !ValidOriginalSymbol(msg.OriginalSymbol) {
-		return ErrUnknownRequest()
+		return ErrNotAllowedOriginalSymbol()
 	}
 
 	// check wholeName
 	isValid := wholeNameValid(msg.WholeName)
 	if !isValid {
-		return ErrUnknownRequest()
+		return ErrWholeNameIsNotValidl()
 	}
 	// check desc
 	if len(msg.Description) > DescLenLimit {
-		return ErrUnknownRequest()
+		return ErrDescLenBiggerThanLimit()
 	}
 	// check totalSupply
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
-		return err
+		return ErrNewDecFromStrFailed()
 	}
 	if totalSupply.GT(sdk.NewDec(TotalSupplyUpperbound)) || totalSupply.LTE(sdk.ZeroDec()) {
-		return ErrUnknownRequest()
+		return ErrTotalSupplyOutOfRange()
 	}
 	return nil
 }
@@ -143,10 +143,10 @@ func (msg MsgTokenMint) ValidateBasic() sdk.Error {
 
 	amount := msg.Amount.Amount
 	if amount.GT(sdk.NewDec(TotalSupplyUpperbound)) {
-		return ErrUnknownRequest()
+		return ErrAmountBiggerThanTotalSupplyUpperbound()
 	}
 	if !msg.Amount.IsValid() {
-		return ErrInsufficientCoins(msg.Amount.String())
+		return ErrAmountIsNotValid(msg.Amount.String())
 	}
 	return nil
 }
@@ -278,11 +278,11 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress()
 	}
 	if len(msg.Symbol) == 0 {
-		return ErrUnknownRequest()
+		return ErrMsgSymbolIsEmpty()
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrUnknownRequest()
+		return ErrConfirmOwnershipNotExistOrBlockTimeAfter()
 	}
 	return nil
 }
@@ -327,16 +327,16 @@ func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 	}
 	// check symbol
 	if len(msg.Symbol) == 0 {
-		return ErrUnknownRequest()
+		return ErrMsgSymbolIsEmpty()
 	}
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrUnknownRequest()
+		return ErrNotAllowedOriginalSymbol()
 	}
 	// check wholeName
 	if msg.IsWholeNameModified {
 		isValid := wholeNameValid(msg.WholeName)
 		if !isValid {
-			return ErrUnknownRequest()
+			return ErrWholeNameIsNotValidl()
 		}
 	}
 	// check desc
@@ -380,11 +380,11 @@ func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	}
 
 	if len(msg.Symbol) == 0 {
-		return ErrUnknownRequest()
+		return ErrMsgSymbolIsEmpty()
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrUnknownRequest()
+		return ErrNotAllowedOriginalSymbol()
 	}
 	return nil
 }

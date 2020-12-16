@@ -29,7 +29,7 @@ const (
 	CodeInsufficientCoins		uint32 = BaseGovError+15
 	CodeUnknownRequest			uint32 = BaseGovError+16
 	CodeInvalidCoins			uint32 = BaseGovError+17
-
+	CodeUnknownParamType		uint32 = BaseGovError+18
 )
 
 func ErrInvalidAddress(address string) sdk.Error {
@@ -105,4 +105,8 @@ func ErrUnknownRequest() sdk.Error {
 
 func ErrInvalidCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalide coins")
+}
+
+func ErrUnknownParamType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownParamType, "unkonwn param type")
 }

@@ -31,7 +31,6 @@ const (
 	CodeBlockTimeBigThanDeadline			uint32 = 65019
 	CodeGetPoolTokenInfoFailed				uint32 = 65020
 	CodeTokenGreaterThanBaseAccount			uint32 = 65021
-	CodeLiquidityLessThanMsg				uint32 = 65022
 	CodeIsTokenExist						uint32 = 65022
 	CodeMintPoolCoinsToUserFailed			uint32 = 65023
 	CodeSendCoinsFromPoolToAccountFailed	uint32 = 65024
@@ -49,7 +48,7 @@ func ErrUnexistPoolToken() sdk.Error {
 }
 
 func ErrCodeMinCoinsFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMintCoinsFailed, "min coins failed")
+	return sdkerrors.New(DefaultCodespace, CodeMintCoinsFailed, "mint coins failed")
 }
 
 func ErrSendCoinsFromAccountToModule() sdk.Error {

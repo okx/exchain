@@ -43,7 +43,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
 		default:
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrUnknownStakingQueryType()
 		}
 	}
 }
@@ -130,7 +130,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
-		return nil, types.ErrCodeInternalError()
+		return nil, types.ErrBondedPoolOrNotBondedIsNotExist()
 	}
 
 	pool := types.NewPool(

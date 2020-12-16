@@ -47,7 +47,7 @@ func (msg MsgList) ValidateBasic() sdk.Error {
 	}
 
 	if !msg.InitPrice.IsPositive() {
-		return ErrUnknownRequest("invalid init price")
+		return ErrInitPriceIsNotPositive()
 	}
 
 	if msg.Owner.Empty() {
@@ -183,7 +183,7 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	}
 
 	if msg.Product == "" {
-		return ErrUnknownRequest("product cannot be empty")
+		return ErrProductIsEmpty()
 	}
 	return nil
 }
@@ -221,7 +221,7 @@ func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress("failed to check MsgConfirmOwnership msg because miss sender address")
 	}
 	if len(msg.Product) == 0 {
-		return ErrUnknownRequest("failed to check MsgConfirmOwnership msg because product cannot be empty")
+		return ErrProductIsEmpty()
 	}
 	return nil
 }

@@ -25,6 +25,10 @@ const (
 	CodeUnknownRequest         uint32 = 66009
 	CodeInternal			   uint32 = 66010
 	CodeGetEarningsFailed	   uint32 = 66011
+	CodeSendCoinsFromAccountToModuleFailed			uint32 = 66012
+	CodeUnknownMsgType		  						uint32 = 66013
+	CodeUnknownQueryType							uint32 = 66014
+	CodeFarmMsgOccurError							uint32 = 66015
 )
 
 var (
@@ -40,6 +44,10 @@ var (
 	errUnknownRequest         = sdkerrors.Register(DefaultCodespace, CodeUnknownRequest, "unknown request")
 	errInternal			  	  = sdkerrors.Register(DefaultCodespace, CodeInternal, "error occur internal")
 	errGetEarningsFailed	  = sdkerrors.Register(DefaultCodespace, CodeGetEarningsFailed, "get earning failed")
+	errSendCoinsFromAccountToModuleFailed = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send coins from account to module failed")
+	errUnknownMsgType         = sdkerrors.Register(DefaultCodespace, CodeUnknownMsgType, "unknown msg type")
+	errUnknownQueryType       = sdkerrors.Register(DefaultCodespace, CodeUnknownQueryType, "unknown query type")
+	errFarmMsgOccurError	  = sdkerrors.Register(DefaultCodespace, CodeFarmMsgOccurError, "farm module exec msg occure err")
 )
 
 // ErrInvalidInput returns an error when an input parameter is invalid
@@ -146,4 +154,20 @@ func ErrInternal(content string) sdk.EnvelopedErr {
 
 func ErrGetEarningsFailed(content string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errGetEarningsFailed, content)}
+}
+
+func ErrSendCoinsFromAccountToModuleFailed(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendCoinsFromAccountToModuleFailed, content)}
+}
+
+func ErrUnknownMsgType(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownMsgType, content)}
+}
+
+func ErrUnknownQueryType(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownQueryType, content)}
+}
+
+func ErrFarmMsgOccurError(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errFarmMsgOccurError, content)}
 }

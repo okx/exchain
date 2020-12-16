@@ -60,7 +60,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // SetWithdrawAddr sets a new address that will receive the rewards upon withdrawal
 func (k Keeper) SetWithdrawAddr(ctx sdk.Context, delegatorAddr sdk.AccAddress, withdrawAddr sdk.AccAddress) error {
 	if k.blacklistedAddrs[withdrawAddr.String()] {
-		return types.ErrUnauthorized()
+		return types.ErrWithdrawAddrInblacklist()
 	}
 
 	if !k.GetWithdrawAddrEnabled(ctx) {

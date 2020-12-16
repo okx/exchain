@@ -87,7 +87,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	// check if the order is involved with the tokenpair in dex Delist
 	isDelisting, err := keeper.GetDexKeeper().CheckTokenPairUnderDexDelist(ctx, msg.Product)
 	if err != nil {
-		return types.ErrInternal()
+		return types.ErrCheckTokenPairUnderDexDelistFailed()
 	}
 	if isDelisting {
 		return types.ErrTradingPairIsdelisting(msg.Product)
@@ -224,10 +224,10 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 		}
 		err := checkOrderNewMsg(ctx, k, msg)
 		if err != nil {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrCheckOrderNewMsgFailed()
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
-			return nil, types.ErrInternal()
+			return nil, types.ErrIsProductLocked()
 		}
 
 		order := getOrderFromMsg(ctx, k, msg, ratio)
@@ -300,7 +300,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return nil, types.ErrInternal()
+		return nil, types.ErrNoOrdersIsCanceled()
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)
@@ -314,16 +314,16 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 
 	// Check order
 	if order == nil {
-		return types.ErrUnknownRequest()
+		return types.ErrOrderIsNotExist()
 	}
 	if order.Status != types.OrderStatusOpen {
-		return types.ErrInternal()
+		return types.ErrOrderStatusIsNotOpen()
 	}
 	if !order.Sender.Equals(msg.Sender) {
 		return types.ErrUnauthorized()
 	}
 	if keeper.IsProductLocked(ctx, order.Product) {
-		return types.ErrInternal()
+		return types.ErrIsProductLocked()
 	}
 	return nil
 }

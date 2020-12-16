@@ -12,20 +12,25 @@ import (
 const (
 	DefaultCodespace string = ModuleName
 
-	CodeInvalidValidator  		uint32 = 67000
-	CodeInvalidDelegation 		uint32 = 67001
-	CodeInvalidInput      		uint32 = 67002
+	CodeInvalidValidator  						uint32 = 67000
+	CodeInvalidDelegation 						uint32 = 67001
+	CodeInvalidInput      						uint32 = 67002
 
-	CodeInvalidAddress          uint32 = 67003
-	CodeUnknownRequest          uint32 = 67004
-	CodeInvalidMinSelfDelegation uint32 = 67005
-	CodeInvalidProxy             uint32 = 67006
-	CodeInvalidShareAdding       uint32 = 67007
-	CodeParseHTTPArgsWithLimit	 uint32 = 67008
-	CodeInvalidValidateBasic	 uint32 = 67009
-	CodeAddressNotEqual			 uint32 = 67010
-	CodeInternalError			 uint32 = 67011
-	CodeGetConsPubKeyBech32Failed uint32 = 67012
+	CodeInvalidAddress          				uint32 = 67003
+	CodeUnknownRequest           				uint32 = 67004
+	CodeInvalidMinSelfDelegation 				uint32 = 67005
+	CodeInvalidProxy             				uint32 = 67006
+	CodeInvalidShareAdding       				uint32 = 67007
+	CodeParseHTTPArgsWithLimit					uint32 = 67008
+	CodeInvalidValidateBasic	 				uint32 = 67009
+	CodeAddressNotEqual			 				uint32 = 67010
+	CodeInternalError			 				uint32 = 67011
+	CodeGetConsPubKeyBech32Failed 				uint32 = 67012
+	CodeUnknownStakingQueryType		 			uint32 = 67013
+	CodeDescriptionLengthBiggerThanLimit 		uint32 = 67014
+	CodeAddSharesAsMinSelfDelegationFailed		uint32 = 67015
+	CodeValidatorUpdateDescriptionFailed		uint32 = 67016
+	CodeBondedPoolOrNotBondedIsNotExist			uint32 = 67017
 )
 
 // ErrNilValidatorAddr returns an error when an empty validator address appears
@@ -293,4 +298,24 @@ func ErrGetConsPubKeyBech32() sdk.Error {
 
 func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
+}
+
+func ErrUnknownStakingQueryType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownStakingQueryType, "unknown staking query type")
+}
+
+func ErrDescriptionLengthBiggerThanLimit() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeDescriptionLengthBiggerThanLimit, "description's length is bigger than limit")
+}
+
+func ErrAddSharesAsMinSelfDelegationFailed(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeAddSharesAsMinSelfDelegationFailed, fmt.Sprintf("transfer or add shares failed: ", message))
+}
+
+func ErrValidatorUpdateDescriptionFailed() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeValidatorUpdateDescriptionFailed, "validator update description failed")
+}
+
+func ErrBondedPoolOrNotBondedIsNotExist() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBondedPoolOrNotBondedIsNotExist, "bonded pool or not bonded pool is empty")
 }

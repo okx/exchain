@@ -23,6 +23,11 @@ const (
 	CodeUnauthorized									uint32		  = 67812
 	CodeSetWithdrawAddrFailed							uint32		  = 67813
 	CodeWithdrawValidatorCommissionFailed				uint32		  = 67814
+	CodeUnknownMsgType									uint32		  = 67815
+	CodeUnknownCommunityPoolProposaType					uint32		  = 67816
+	CodeUnknownDistributionQueryType					uint32		  = 67817
+	CodeUnknownDistributionParamType					uint32		  = 67818
+	CodeWithdrawAddrInblacklist							uint32		  = 67819
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -56,11 +61,27 @@ func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "incorrectly formatted request data")
 }
 func ErrUnauthorized() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
+	return sdkerrors.New(DefaultCodespace, CodeUnauthorized, "unauthorized")
 }
 func ErrSetWithdrawAddrFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSetWithdrawAddrFailed, "set withdraw addr is failed")
 }
 func ERRWithdrawValidatorCommissionFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeWithdrawValidatorCommissionFailed, "withdraw validator commission failed")
+}
+func ErrUnknownMsgType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, "unknown message type")
+}
+func ErrUnknownCommunityPoolProposaType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownCommunityPoolProposaType, "unknown community pool proposal type")
+}
+func ErrUnknownDistributionQueryType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownDistributionQueryType, "unknown distribution query type")
+}
+func ErrUnknownDistributionParamType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownDistributionParamType, "unknown distribution param type")
+}
+
+func ErrWithdrawAddrInblacklist() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeWithdrawAddrInblacklist, "withdraw address in black list")
 }

@@ -33,7 +33,7 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 		case types.QueryOperators:
 			return queryOperators(ctx, keeper)
 		default:
-			return nil, types.ErrUnknownRequest("unknown dex query endpoint")
+			return nil, types.ErrUnknownQueryType()
 		}
 	}
 }
@@ -122,7 +122,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var deposits []depositsData
 	for i, tokenPair := range tokenPairs {
 		if tokenPair == nil {
-			return nil, types.ErrInternal("tokenPair is nil")
+			return nil, types.ErrIsNil()
 		}
 		// filter address
 		if params.Address != "" && tokenPair.Owner.String() != params.Address {
@@ -162,7 +162,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
-		return nil, types.ErrInternal(errMarshal.Error())
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 
 	return res, nil

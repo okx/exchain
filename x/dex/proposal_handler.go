@@ -15,8 +15,7 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 		case types.DelistProposal:
 			return handleDelistProposal(ctx, k, proposal)
 		default:
-			errMsg := fmt.Sprintf("unrecognized param proposal content type: %s", c)
-			return types.ErrUnknownRequest(errMsg)
+			return types.ErrUnknownProposalType(c.String())
 		}
 	}
 }
@@ -32,13 +31,12 @@ func handleDelistProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Pr
 		return ErrTokenPairNotFound()
 	}
 	if keeper.IsTokenPairLocked(ctx, tokenPairName) {
-		errContent := fmt.Sprintf("unexpected state, the trading pair (%s) is locked", tokenPairName)
-		return types.ErrInternal(errContent)
+		return types.ErrIsTokenPairLocked(tokenPairName)
 	}
 	// withdraw
 	if tokenPair.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, tokenPair.Name(), tokenPair.Owner, tokenPair.Deposits); err != nil {
-			return types.ErrInternal(err.Error())
+			return types.ErrWithdrawFailed(err.Error())
 		}
 	}
 

@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -37,7 +37,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryPoolNum:
 			return queryPoolNum(ctx, k)
 		default:
-			return nil, types.ErrUnknownRequest("failed. unknown farm query endpoint")
+			return nil, types.ErrUnknownQueryType("failed. unknown farm query endpoint")
 		}
 	}
 }
@@ -193,9 +193,9 @@ func queryPoolNum(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 }
 
 func defaultQueryErrJSONMarshal(err error) sdk.Error {
-	return types.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+	return common.ErrMarshalJSONFailed(err.Error())
 }
 
 func defaultQueryErrParseParams(err error) sdk.Error {
-	return types.ErrInternal(fmt.Sprintf("failed to parse params. %s", err))
+	return common.ErrUnMarshalJSONFailed(err.Error())
 }
