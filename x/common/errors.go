@@ -22,9 +22,9 @@ const (
 )
 
 type SDKError struct {
-	Codespace string       `json:"codespace"`
+	Codespace string `json:"codespace"`
 	Code      uint32 `json:"code"`
-	Message   string       `json:"message"`
+	Message   string `json:"message"`
 }
 
 func ParseSDKError(errMsg string) SDKError {
@@ -63,5 +63,4 @@ func ErrUnMarshalJSONFailed(msg string) sdk.Error {
 
 func ErrStrconvFailed(msg string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion "))
-
 }
