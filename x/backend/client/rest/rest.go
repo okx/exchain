@@ -29,7 +29,6 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/swap/watchlist", swapWatchlistHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/blocks/{height}/total_txs", blockTotalTxsHandler(cliCtx)).Methods("GET")
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -480,25 +479,6 @@ func swapWatchlistHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QuerySwapWatchlist), bz)
-		if err != nil {
-			sdkErr := common.ParseSDKError(err.Error())
-			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			return
-		}
-
-		rest.PostProcessResponse(w, cliCtx, res)
-	}
-}
-
-func blockTotalTxsHandler(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		height, err := strconv.ParseInt(vars["height"], 10, 64)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
-			return
-		}
-		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%d", types.QueryBlocksTotalTxs, height), nil)
 		if err != nil {
 			sdkErr := common.ParseSDKError(err.Error())
 			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
