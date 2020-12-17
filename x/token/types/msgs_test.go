@@ -121,10 +121,10 @@ func TestNewMsgTokenMint(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenMint(decCoin, addr), nil},
-		{NewMsgTokenMint(decCoin0, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.000000000000000000")},
-		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), sdk.ErrInvalidAddress(sdk.AccAddress{}.String())},
-		{NewMsgTokenMint(decCoin1, addr), sdk.ErrInsufficientCoins("failed to check mint msg because invalid Coins: 1000.00000000000000000011234")},
-		{NewMsgTokenMint(decCoin2, addr), sdk.ErrUnknownRequest("failed to check mint msg because invalid amount")},
+		{NewMsgTokenMint(decCoin0, addr), ErrAmountIsNotValid("1000.000000000000000000")},
+		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), ErrInvalidAddress()},
+		{NewMsgTokenMint(decCoin1, addr), ErrAmountIsNotValid("1000.00000000000000000011234")},
+		{NewMsgTokenMint(decCoin2, addr), ErrAmountBiggerThanTotalSupplyUpperbound()},
 	}
 
 	for _, msgCase := range testCase {
