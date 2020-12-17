@@ -159,11 +159,11 @@ func (msg MsgEditValidator) GetSignBytes() []byte {
 // ValidateBasic gives a quick validity check
 func (msg MsgEditValidator) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
-		ErrNilValidatorAddr()
+		return ErrNilValidatorAddr()
 	}
 
 	if msg.Description == (Description{}) {
-		ErrNilValidatorAddr()
+		return ErrNilValidatorAddr()
 	}
 
 	return nil

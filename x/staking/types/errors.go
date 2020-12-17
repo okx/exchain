@@ -309,7 +309,7 @@ func ErrDescriptionLengthBiggerThanLimit() sdk.Error {
 }
 
 func ErrAddSharesAsMinSelfDelegationFailed(message string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeAddSharesAsMinSelfDelegationFailed, fmt.Sprintf("transfer or add shares failed: ", message))
+	return sdkerrors.New(DefaultCodespace, CodeAddSharesAsMinSelfDelegationFailed, fmt.Sprintf("transfer or add shares failed: %s", message))
 }
 
 func ErrValidatorUpdateDescriptionFailed() sdk.Error {
