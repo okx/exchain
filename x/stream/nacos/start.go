@@ -43,7 +43,7 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 		Port:        uint64(port),
 		ServiceName: name,
 		Weight:      10,
-		ClusterName: "a",
+		ClusterName: "DEFAULT",
 		Enable:      true,
 		Healthy:     true,
 		Ephemeral:   true,
