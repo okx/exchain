@@ -2,12 +2,6 @@ package token
 
 import (
 	"fmt"
-	"github.com/tendermint/tendermint/crypto"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -20,7 +14,11 @@ import (
 	"github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"strconv"
+	"strings"
+	"testing"
 )
 
 var mockBlockHeight int64 = -1
@@ -1078,7 +1076,7 @@ func TestHandleTransferOwnership(t *testing.T) {
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("unauthorized: %s is not the owner of token(%s)",testAccounts[1], tokenName),
+			expectedMsg:  fmt.Sprintf("code unauthorized: input address is not ownership address"),
 		},
 		// case 2. transfer ownership to testAccounts[1] successfully
 		{
@@ -1090,19 +1088,19 @@ func TestHandleTransferOwnership(t *testing.T) {
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
-			expectedMsg:  fmt.Sprintf("unknown request: no transfer-ownership of token (%s) to confirm",testAccounts[1]),
+			expectedMsg:  fmt.Sprintf("get confirm ownership failed: get confirm ownership info failed"),
 		},
 		//// case 4. sender is not the owner of ConfirmOwnership
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("unauthorized: %s is expected as the new owner",testAccounts[1]),
+			expectedMsg:  fmt.Sprintf("code unauthorized: input address is not ownership address"),
 		},
 		// case 5. confirm ownership expired
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedMsg:  fmt.Sprintf("internal: transfer-ownership is expired, expire time (%s)", time.Time{}.Add(types.DefaultOwnershipConfirmWindow).String()),
+			expectedMsg:  fmt.Sprintf("confirm ownership not exist or blocktime after: confirm ownership not exist or blocktime after"),
 		},
 		// case 6. confirm ownership successfully
 		{

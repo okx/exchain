@@ -139,7 +139,7 @@ func ErrInsufficientCoins(coins string) sdk.Error {
 }
 
 func ErrUnauthorized() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, "code unauthorized")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, "input address is not ownership address")}
 }
 
 func ErrInvalidAddress() sdk.Error {
@@ -147,7 +147,7 @@ func ErrInvalidAddress() sdk.Error {
 }
 
 func ErrGetConfirmOwnership() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetConfirmOwnership, "get confirm ownership failed")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetConfirmOwnership, "get confirm ownership info failed")}
 }
 
 func ErrUpdateLockedCoins() sdk.Error {
