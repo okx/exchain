@@ -44,6 +44,7 @@ const (
 	CodeBurnCoinsFailed							uint32 = 61033
 	CodeConfirmOwnershipNotExistOrBlockTimeAfter	uint32 = 61034
 	CodeWholeNameAndDescriptionIsNotModified 	uint32 = 61035
+	CodeTokenIsNotMintable						uint32 = 61036
 )
 
 var (
@@ -82,6 +83,7 @@ var (
 	errCodeBurnCoinsFailed						= sdkerrors.Register(DefaultCodespace, CodeBurnCoinsFailed	, "burn coins failed")
 	errCodeConfirmOwnershipNotExistOrBlockTimeAfter	= sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipNotExistOrBlockTimeAfter	, "confirm ownership not exist or blocktime after")
 	errCodeWholeNameAndDescriptionIsNotModified = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified	, "whole name and description is not modified")
+	errCodeTokenIsNotMintable					= sdkerrors.Register(DefaultCodespace, CodeTokenIsNotMintable	, "token is not mintable")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -123,7 +125,7 @@ func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
 }
 
 func ErrUnknownRequest() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownRequest, "unknown request: %s")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownRequest, "unknown request")}
 }
 
 func ErrInternal() sdk.Error {
@@ -212,4 +214,8 @@ func ErrConfirmOwnershipNotExistOrBlockTimeAfter() sdk.Error {
 
 func ErrWholeNameAndDescriptionIsNotModified() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeWholeNameAndDescriptionIsNotModified, "whole name and description is not modified")}
+}
+
+func ErrTokenIsNotMintable() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTokenIsNotMintable, "token is not mintable")}
 }

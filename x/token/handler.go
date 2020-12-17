@@ -210,7 +210,7 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 
 	// check whether token is mintable
 	if !token.Mintable {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrTokenIsNotMintable()
 	}
 
 	// check upper bound
