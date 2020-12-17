@@ -45,6 +45,7 @@ const (
 	CodeConfirmOwnershipNotExistOrBlockTimeAfter	uint32 = 61034
 	CodeWholeNameAndDescriptionIsNotModified 	uint32 = 61035
 	CodeTokenIsNotMintable						uint32 = 61036
+	CodeMsgTransfersAmountBiggerThanSendLimit	uint32 = 61037
 )
 
 var (
@@ -84,6 +85,7 @@ var (
 	errCodeConfirmOwnershipNotExistOrBlockTimeAfter	= sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipNotExistOrBlockTimeAfter	, "confirm ownership not exist or blocktime after")
 	errCodeWholeNameAndDescriptionIsNotModified = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified	, "whole name and description is not modified")
 	errCodeTokenIsNotMintable					= sdkerrors.Register(DefaultCodespace, CodeTokenIsNotMintable	, "token is not mintable")
+	errCodeMsgTransfersAmountBiggerThanSendLimit= sdkerrors.Register(DefaultCodespace, CodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -218,4 +220,8 @@ func ErrWholeNameAndDescriptionIsNotModified() sdk.Error {
 
 func ErrTokenIsNotMintable() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTokenIsNotMintable, "token is not mintable")}
+}
+
+func ErrMsgTransfersAmountBiggerThanSendLimit() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")}
 }

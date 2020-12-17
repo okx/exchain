@@ -184,11 +184,11 @@ func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 
 	// check transfers
 	if len(msg.Transfers) > MultiSendLimit {
-		return sdk.ErrUnknownRequest("failed to check multisend msg because restrictions on the number of transfers")
+		return ErrMsgTransfersAmountBiggerThanSendLimit()
 	}
 	for _, transfer := range msg.Transfers {
 		if !transfer.Coins.IsAllPositive() || !transfer.Coins.IsValid() {
-			return sdk.ErrInvalidCoins("failed to check multisend msg because send amount must be positive")
+			return ErrInvalidCoins()
 		}
 
 		if transfer.To.Empty() {
@@ -342,7 +342,7 @@ func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 	// check desc
 	if msg.IsDescriptionModified {
 		if len(msg.Description) > DescLenLimit {
-			return sdk.ErrUnknownRequest("failed to check modify msg because invalid desc")
+			return ErrDescLenBiggerThanLimit()
 		}
 	}
 	return nil
