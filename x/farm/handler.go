@@ -58,7 +58,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		res, err := handlerFun()
 		common.SanityCheckHandler(res, err)
-		return res, types.ErrFarmMsgOccurError(err.Error())
+		if err != nil {
+			return res, types.ErrFarmMsgOccurError(err.Error())
+		}
+		return res, nil
 	}
 }
 
