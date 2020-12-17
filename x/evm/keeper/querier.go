@@ -198,12 +198,8 @@ func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, 
 		return nil, err
 	}
 
-	balanceInt := keeper.GetBalance(ctx, addr)
-	balance := sdk.NewDecFromBigIntWithPrec(balanceInt, sdk.Precision)
-
 	res := types.GenesisAccount{
 		Address: hexAddress,
-		Balance: balance,
 		Code:    keeper.GetCode(ctx, addr),
 		Storage: storage,
 	}

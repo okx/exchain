@@ -2,6 +2,7 @@ package evm
 
 import (
 	"fmt"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -37,16 +38,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		if !evmBalance.Equal(account.Balance) {
-			panic(
-				fmt.Errorf(
-					"balance mismatch for account %s, expected %s%s, got %s%s",
-					account.Address, evmBalance, evmDenom, account.Balance, evmDenom,
-				),
-			)
-		}
-
-		k.SetBalance(ctx, address, account.Balance.BigInt())
+		k.SetNonce(ctx, address, acc.GetSequence())
+		k.SetBalance(ctx, address, evmBalance.BigInt())
 		k.SetCode(ctx, address, account.Code)
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
@@ -83,12 +76,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	accounts := ak.GetAllAccounts(ctx)
-
-	for _, account := range accounts {
+	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
-			continue
+			// ignore non EthAccounts
+			return false
 		}
 
 		addr := ethAccount.EthAddress()
@@ -98,18 +90,15 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			panic(err)
 		}
 
-		balanceInt := k.GetBalance(ctx, addr)
-		balance := sdk.NewDecFromBigIntWithPrec(balanceInt, sdk.Precision)
-
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Balance: balance,
 			Code:    k.GetCode(ctx, addr),
 			Storage: storage,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
-	}
+		return false
+	})
 
 	config, _ := k.GetChainConfig(ctx)
 
