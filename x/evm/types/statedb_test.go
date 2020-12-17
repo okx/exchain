@@ -56,11 +56,18 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 	suite.stateObject = suite.stateDB.GetOrNewStateObject(suite.address)
+	params := types.DefaultParams()
+	params.EnableCreate = true
+	params.EnableCall = true
+	suite.stateDB.SetParams(params)
 }
 
 func (suite *StateDBTestSuite) TestParams() {
+	defaultParams := types.DefaultParams()
+	defaultParams.EnableCreate = true
+	defaultParams.EnableCall = true
 	params := suite.stateDB.GetParams()
-	suite.Require().Equal(types.DefaultParams(), params)
+	suite.Require().Equal(defaultParams, params)
 	params.EvmDenom = "ara"
 	suite.stateDB.SetParams(params)
 	newParams := suite.stateDB.GetParams()
