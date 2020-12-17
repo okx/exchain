@@ -29,24 +29,24 @@ const (
 	CodeInsufficientWithdrawCoins           uint32 = 64018
 	CodeWithdrawDepositsError               uint32 = 64019
 	CodeMustOperatorOwner                   uint32 = 64020
-	CodeInvalidProduct 						uint32 = 64021
-	CodeInvalidAddress						uint32 = 64022
-	CodeUnknownRequest						uint32 = 64023
-	CodeInternal							uint32 = 64024
-	CodeUnauthorized						uint32 = 64025
-	CodeInsufficientCoins					uint32 = 64026
-	CodeInvalidCoins						uint32 = 64027
-	CodeBlockTimeAfterFailed				uint32 = 64028
-	CodeDepositFailed						uint32 = 64029
-	CodeWithdrawFailed						uint32 = 64030
-	CodeGetConfirmOwnershipNotExist			uint32 = 64031
-	CodeIsNil								uint32 = 64032
-	CodeIsTokenPairLocked					uint32 = 64033
-	CodeUnknownMsgType						uint32 = 64034
-	CodeUnknownQueryType					uint32 = 64035
-	CodeUnknownProposalType					uint32 = 64036
-	CodeInitPriceIsNotPositive					uint32 = 64037
-	CodeProductIsEmpty								uint32 = 64038
+	CodeInvalidProduct                      uint32 = 64021
+	CodeInvalidAddress                      uint32 = 64022
+	CodeUnknownRequest                      uint32 = 64023
+	CodeInternal                            uint32 = 64024
+	CodeUnauthorized                        uint32 = 64025
+	CodeInsufficientCoins                   uint32 = 64026
+	CodeInvalidCoins                        uint32 = 64027
+	CodeBlockTimeAfterFailed                uint32 = 64028
+	CodeDepositFailed                       uint32 = 64029
+	CodeWithdrawFailed                      uint32 = 64030
+	CodeGetConfirmOwnershipNotExist         uint32 = 64031
+	CodeIsNil                               uint32 = 64032
+	CodeIsTokenPairLocked                   uint32 = 64033
+	CodeUnknownMsgType                      uint32 = 64034
+	CodeUnknownQueryType                    uint32 = 64035
+
+	CodeInitPriceIsNotPositive uint32 = 64037
+	CodeProductIsEmpty         uint32 = 64038
 )
 
 // CodeType to Message
@@ -203,10 +203,6 @@ func ErrUnknownMsgType(msg string) sdk.Error {
 
 func ErrUnknownQueryType() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownQueryType, "unknown dex query endpoint")
-}
-
-func ErrUnknownProposalType(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownProposalType, fmt.Sprintf("unknown proposal content type: %s", msg))
 }
 
 func ErrInitPriceIsNotPositive() sdk.Error {

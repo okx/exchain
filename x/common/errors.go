@@ -19,6 +19,7 @@ const (
 	CodeUnMarshalJSONFailed        uint32 = 60105 //"incorrectly formatted request data", err.Error()
 	CodeStrconvFailed              uint32 = 60106
 	CodeParseDecCoinFailed         uint32 = 60107
+	CodeUnknownProposalType        uint32 = 60108
 )
 
 type SDKError struct {
@@ -63,4 +64,8 @@ func ErrUnMarshalJSONFailed(msg string) sdk.Error {
 
 func ErrStrconvFailed(msg string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion "))
+}
+
+func ErrUnknownProposalType(codespace string, msg string) sdk.Error {
+	return sdkerrors.New(codespace, CodeUnknownProposalType, fmt.Sprintf("unknown proposal content type: %s", msg))
 }

@@ -2,6 +2,7 @@ package dex
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/dex/types"
@@ -15,7 +16,7 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 		case types.DelistProposal:
 			return handleDelistProposal(ctx, k, proposal)
 		default:
-			return types.ErrUnknownProposalType(c.String())
+			return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", c))
 		}
 	}
 }

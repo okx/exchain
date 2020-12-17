@@ -20,10 +20,8 @@ func NewParamChangeProposalHandler(k *Keeper) govtypes.Handler {
 		switch c := proposal.Content.(type) {
 		case types.ParameterChangeProposal:
 			return handleParameterChangeProposal(ctx, k, proposal)
-
 		default:
-			errMsg := fmt.Sprintf("unrecognized param proposal content type: %T", c)
-			return sdk.ErrUnknownRequest(errMsg)
+			return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", c))
 		}
 	}
 }

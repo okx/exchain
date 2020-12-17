@@ -1,7 +1,9 @@
 package farm
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/farm/types"
 	govTypes "github.com/okex/okexchain/x/gov/types"
 )
@@ -13,7 +15,7 @@ func NewManageWhiteListProposalHandler(k *Keeper) govTypes.Handler {
 		case types.ManageWhiteListProposal:
 			return handleManageWhiteListProposal(ctx, k, proposal)
 		default:
-			return types.ErrUnexpectedProposalType(content.ProposalType())
+			return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", content.ProposalType()))
 		}
 	}
 }
