@@ -379,8 +379,8 @@ func NewOKExChainApp(
 	app.mm.SetOrderInitGenesis(
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName, slashing.ModuleName,
 		gov.ModuleName, mint.ModuleName, supply.ModuleName, token.ModuleName, dex.ModuleName,
-		order.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
-		ammswap.ModuleName, farm.ModuleName, evm.ModuleName,
+		order.ModuleName, evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
+		ammswap.ModuleName, farm.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
