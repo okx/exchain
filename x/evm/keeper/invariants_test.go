@@ -45,7 +45,7 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 				suite.Require().NoError(err)
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-				suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(1))
+				suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(1000000000000000000))
 			},
 			false,
 		},
