@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"math/big"
 
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
@@ -15,6 +16,7 @@ import (
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -188,4 +190,27 @@ func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *
 		}
 	}
 	return nil, false
+}
+
+// GetBlockCumulativeGas returns the cumulative gas used on a block up to a given
+// transaction index. The returned gas used includes the gas from both the SDK and
+// EVM module transactions.
+func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint64 {
+	var gasUsed uint64
+	txDecoder := evmtypes.TxDecoder(cdc)
+
+	for i := 0; i < idx && i < len(block.Txs); i++ {
+		txi, err := txDecoder(block.Txs[i])
+		if err != nil {
+			continue
+		}
+
+		switch tx := txi.(type) {
+		case authtypes.StdTx:
+			gasUsed += tx.GetGas()
+		case evmtypes.MsgEthereumTx:
+			gasUsed += tx.GetGas()
+		}
+	}
+	return gasUsed
 }
