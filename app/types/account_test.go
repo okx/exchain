@@ -113,13 +113,13 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   address: %s
   eth_address: %s
   coins:
-  - denom: tokt
+  - denom: %s
     amount: "1.000000000000000000"
   public_key: %s
   account_number: 10
   sequence: 50
   code_hash: "0102"
-`, suite.account.Address, suite.account.EthAddress().String(), bech32pubkey)
+`, suite.account.Address, suite.account.EthAddress().String(), sdk.DefaultBondDenom, bech32pubkey)
 
 	suite.Require().Equal(accountStr, suite.account.String())
 
