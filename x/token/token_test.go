@@ -1076,7 +1076,7 @@ func TestHandleTransferOwnership(t *testing.T) {
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("code unauthorized: input address is not ownership address"),
+			expectedMsg:  fmt.Sprintf("input from address is not equal token owner: input from address is not equal token owner"),
 		},
 		// case 2. transfer ownership to testAccounts[1] successfully
 		{
@@ -1094,7 +1094,7 @@ func TestHandleTransferOwnership(t *testing.T) {
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("code unauthorized: input address is not ownership address"),
+			expectedMsg:  fmt.Sprintf("input address is not equal confirm ownership address: input address is not equal confirm ownership address"),
 		},
 		// case 5. confirm ownership expired
 		{

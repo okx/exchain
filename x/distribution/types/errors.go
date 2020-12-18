@@ -20,7 +20,6 @@ const (
 	CodeReadRESTReqFailed								uint32		  = 67809
 	CodeSendCoinsFromModuleToAccountFailed				uint32		  = 67810
 	CodeUnknownRequest									uint32		  = 67811
-	CodeUnauthorized									uint32		  = 67812
 	CodeSetWithdrawAddrFailed							uint32		  = 67813
 	CodeWithdrawValidatorCommissionFailed				uint32		  = 67814
 	CodeUnknownMsgType									uint32		  = 67815
@@ -59,9 +58,6 @@ func ErrSendCoinsFromModuleToAccountFailed() sdk.Error {
 }
 func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "incorrectly formatted request data")
-}
-func ErrUnauthorized() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnauthorized, "unauthorized")
 }
 func ErrSetWithdrawAddrFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSetWithdrawAddrFailed, "set withdraw addr is failed")

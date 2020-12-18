@@ -320,7 +320,7 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 		return types.ErrOrderStatusIsNotOpen()
 	}
 	if !order.Sender.Equals(msg.Sender) {
-		return types.ErrUnauthorized()
+		return types.ErrInputSenderNotEqualOrderSender()
 	}
 	if keeper.IsProductLocked(ctx, order.Product) {
 		return types.ErrIsProductLocked()

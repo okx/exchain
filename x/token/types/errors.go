@@ -18,10 +18,7 @@ const (
 	CodeSendCoinsFromAccountToModuleFailed		uint32 = 61008
 	CodeUnrecognizedLockCoinsType				uint32 = 61009
 	CodeFailedToUnlockAddress					uint32 = 61010
-	CodeUnknownRequest							uint32 = 61011
-	CodeInternal								uint32 = 61012
 	CodeInvalidCoins							uint32 = 61013
-	CodeUnauthorized							uint32 = 61015
 	CodeInvalidPriceDigit   	    			uint32 = 61016
 	CodeInvalidMinTradeSize     				uint32 = 61017
 	CodeInvalidAddress							uint32 = 61018
@@ -45,6 +42,9 @@ const (
 	CodeWholeNameAndDescriptionIsNotModified 	uint32 = 61035
 	CodeTokenIsNotMintable						uint32 = 61036
 	CodeMsgTransfersAmountBiggerThanSendLimit	uint32 = 61037
+	CodeInputOwnerIsNotEqualTokenOwner			uint32 = 61038
+	CodeinputFromAddressIsNotEqualTokenInfoOwner	uint32 = 61039
+	CodeConfirmOwnershipAddressNotEqualsMsgAddress	uint32 = 61040
 )
 
 var (
@@ -58,10 +58,7 @@ var (
 	errCodeSendCoinsFromAccountToModuleFailed	= sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send to module account failed")
 	errCodeUnrecognizedLockCoinsType			= sdkerrors.Register(DefaultCodespace, CodeUnrecognizedLockCoinsType, "unrecognized lock coins")
 	errCodeFailedToUnlockAddress				= sdkerrors.Register(DefaultCodespace, CodeFailedToUnlockAddress, "unlock address failed")
-	errCodeUnknownRequest						= sdkerrors.Register(DefaultCodespace, CodeUnknownRequest, "unlock address failed")
-	errCodeInternal								= sdkerrors.Register(DefaultCodespace, CodeInternal, "err occur internal")
 	errCodeInvalidCoins						 	= sdkerrors.Register(DefaultCodespace, CodeInvalidCoins, "invalid coins")
-	errCodeUnauthorized							= sdkerrors.Register(DefaultCodespace, CodeUnauthorized	, "code unauthorized")
 	errCodeInvalidPriceDigit       				= sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
 	errCodeInvalidMinTradeSize     				= sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
 	errCodeInvalidAddress						= sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "invalid address")
@@ -84,6 +81,9 @@ var (
 	errCodeWholeNameAndDescriptionIsNotModified = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified	, "whole name and description is not modified")
 	errCodeTokenIsNotMintable					= sdkerrors.Register(DefaultCodespace, CodeTokenIsNotMintable	, "token is not mintable")
 	errCodeMsgTransfersAmountBiggerThanSendLimit= sdkerrors.Register(DefaultCodespace, CodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")
+	errCodeInputOwnerIsNotEqualTokenOwner		= sdkerrors.Register(DefaultCodespace, CodeInputOwnerIsNotEqualTokenOwner	, "input owner is not equal token owner")
+	errCodeinputFromAddressIsNotEqualTokenInfoOwner		= sdkerrors.Register(DefaultCodespace, CodeinputFromAddressIsNotEqualTokenInfoOwner	, "input from address is not equal token owner")
+	errCodeConfirmOwnershipAddressNotEqualsMsgAddress	= sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipAddressNotEqualsMsgAddress	, "input address is not equal confirm ownership address")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -124,20 +124,8 @@ func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeFailedToUnlockAddress, fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr))}
 }
 
-func ErrUnknownRequest() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownRequest, "unknown request")}
-}
-
-func ErrInternal() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInternal, "occur error internal")}
-}
-
 func ErrInvalidCoins() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "unknown token")}
-}
-
-func ErrUnauthorized() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnauthorized, "input address is not ownership address")}
 }
 
 func ErrInvalidAddress() sdk.Error {
@@ -218,4 +206,16 @@ func ErrTokenIsNotMintable() sdk.Error {
 
 func ErrMsgTransfersAmountBiggerThanSendLimit() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")}
+}
+
+func ErrInputOwnerIsNotEqualTokenOwner() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInputOwnerIsNotEqualTokenOwner, "input owner is not equal token owner")}
+}
+
+func ErrCodeinputFromAddressIsNotEqualTokenInfoOwner() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeinputFromAddressIsNotEqualTokenInfoOwner, "input from address is not equal token owner")}
+}
+
+func ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")}
 }

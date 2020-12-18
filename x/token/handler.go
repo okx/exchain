@@ -159,7 +159,7 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
 	}
 
 	subCoins := msg.Amount.ToCoins()
@@ -205,7 +205,7 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
 	}
 
 	// check whether token is mintable
@@ -323,7 +323,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
 
 	if !tokenInfo.Owner.Equals(msg.FromAddress) {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrCodeinputFromAddressIsNotEqualTokenInfoOwner()
 	}
 
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
@@ -384,7 +384,7 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 		return nil, types.ErrConfirmOwnershipNotExistOrBlockTimeAfter()
 	}
 	if !confirmOwnership.Address.Equals(msg.Address) {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress()
 	}
 
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
@@ -416,7 +416,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 	token := keeper.GetTokenInfo(ctx, msg.Symbol)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrUnauthorized()
+		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
 	}
 	if !msg.IsWholeNameModified && !msg.IsDescriptionModified {
 		return nil, types.ErrWholeNameAndDescriptionIsNotModified()

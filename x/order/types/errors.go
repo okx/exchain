@@ -18,9 +18,6 @@ const (
 	CodeRoundedPriceEqual						uint32 = 63006
 	CodeRoundedQuantityEqual					uint32 = 63007
 	CodeMsgQuantityLessThan						uint32 = 63008
-	CodeUnknownRequest							uint32 = 63009
-	CodeInternal								uint32 = 63010
-	CodeUnauthorized							uint32 = 63012
 	CodeGetOrderFailed							uint32 = 63013
 	CodeTokenPairNotFound						uint32 = 63014
 	CodeCheckTokenPairUnderDexDelistFailed		uint32 = 63015
@@ -28,7 +25,7 @@ const (
 	CodeNoOrdersIsCanceled						uint32 = 63017
 	CodeOrderStatusIsNotOpen					uint32 = 63018
 	CodeOrderIsNotExist							uint32 = 63020
-	CodeUnknownOrderQueryType						uint32 = 63021
+	CodeUnknownOrderQueryType					uint32 = 63021
 	CodeOrderItemCountsBiggerThanLimit			uint32 = 63022
 	CodeOrderItemCountsIsEmpty					uint32 = 63023
 	CodeOrderItemProductCountsIsEmpty			uint32 = 63024
@@ -39,7 +36,9 @@ const (
 	CodeOrderIDsIsEmpty							uint32 = 63029
 	CodeOrderIDCountsBiggerThanMultiCancelOrderItemLimit	uint32 = 63030
 	CodeOrderIDsHasDuplicatedID					uint32 = 63031
-	)
+	CodeUserinputOrderIDIsEmpty					uint32 = 63032
+	CodeInputSenderNotEqualOrderSender			uint32 = 63033
+)
 
 func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
@@ -73,24 +72,8 @@ func ErrMsgQuantityLessThan(minQuantity string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMsgQuantityLessThan, fmt.Sprintf("quantity should be greater than %s", minQuantity))
 }
 
-func ErrInternal() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInternal, "occur error internal")
-}
-
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
-}
-
 func ErrGetOrderFailed(order string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeGetOrderFailed, fmt.Sprintf("order(%v) does not exist", order))
-}
-
-func ErrTokenPairNotFound(product string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, fmt.Sprintf("token pair not found %s", product))
-}
-
-func ErrUnauthorized() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotFound, "unauthorized")
 }
 
 func ErrCheckTokenPairUnderDexDelistFailed() sdk.Error {
@@ -155,4 +138,12 @@ func ErrOrderIDCountsBiggerThanMultiCancelOrderItemLimit() sdk.Error {
 
 func ErrOrderIDsHasDuplicatedID() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeOrderIDsHasDuplicatedID, "order Ids has duplicated ID")
+}
+
+func ErrUserinputOrderIDIsEmpty() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUserinputOrderIDIsEmpty, "user input order id is empty")
+}
+
+func ErrInputSenderNotEqualOrderSender() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInputSenderNotEqualOrderSender, "user input sender address is not equal order's sender")
 }
