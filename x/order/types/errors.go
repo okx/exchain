@@ -27,7 +27,6 @@ const (
 	CodeIsProductLocked							uint32 = 63016
 	CodeNoOrdersIsCanceled						uint32 = 63017
 	CodeOrderStatusIsNotOpen					uint32 = 63018
-	CodeCheckOrderNewMsgFailed					uint32 = 63019
 	CodeOrderIsNotExist							uint32 = 63020
 	CodeUnknownOrderQueryType						uint32 = 63021
 	CodeOrderItemCountsBiggerThanLimit			uint32 = 63022
@@ -108,10 +107,6 @@ func ErrNoOrdersIsCanceled() sdk.Error {
 
 func ErrOrderStatusIsNotOpen() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeOrderStatusIsNotOpen, "order status is not open")
-}
-
-func ErrCheckOrderNewMsgFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeCheckOrderNewMsgFailed, "check order new message failed")
 }
 
 func ErrOrderIsNotExist() sdk.Error {
