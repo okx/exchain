@@ -1,9 +1,8 @@
 package farm
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 )
@@ -27,8 +26,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInsufficientFee(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeAmount.String())).Result()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	// deposit
@@ -36,8 +34,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Owner, ModuleName, depositAmount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient deposit coins(need %s)",
-			depositAmount.String())).Result()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	// create pool
@@ -92,8 +89,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 			ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards,
 		)
 		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
-				updatedPool.TotalAccumulatedRewards.String())).Result()
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 		}
 	}
 
@@ -102,8 +98,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	if withdrawAmount.IsPositive() {
 		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
 		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-				withdrawAmount.String())).Result()
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 		}
 	}
 

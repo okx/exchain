@@ -3,6 +3,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 )
 
 const (
@@ -105,7 +106,7 @@ func (msg MsgTokenBurn) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress()
 	}
 	if !msg.Amount.IsValid() {
-		return ErrInsufficientCoins(msg.Amount.String())
+		return common.ErrInsufficientCoins(DefaultParamspace, msg.Amount.String())
 	}
 
 	return nil
@@ -237,7 +238,7 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 		return ErrInvalidCoins()
 	}
 	if !msg.Amount.IsAllPositive() {
-		return ErrInsufficientCoins(msg.Amount.String())
+		return common.ErrInsufficientCoins(DefaultParamspace, msg.Amount.String())
 	}
 	return nil
 }

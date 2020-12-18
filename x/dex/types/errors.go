@@ -34,7 +34,6 @@ const (
 	CodeUnknownRequest                      uint32 = 64023
 	CodeInternal                            uint32 = 64024
 	CodeUnauthorized                        uint32 = 64025
-	CodeInsufficientCoins                   uint32 = 64026
 	CodeInvalidCoins                        uint32 = 64027
 	CodeBlockTimeAfterFailed                uint32 = 64028
 	CodeDepositFailed                       uint32 = 64029
@@ -163,10 +162,6 @@ func ErrInternal(message string) sdk.Error {
 
 func ErrUnauthorized(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnauthorized, fmt.Sprintf("%s is not the owner of product", address))
-}
-
-func ErrInsufficientCoins(feeCoin string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, fmt.Sprintf("insufficient fee coins(need %s)", feeCoin))
 }
 
 func ErrInvalidCoins() sdk.Error {

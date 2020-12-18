@@ -21,7 +21,6 @@ const (
 	CodeUnknownRequest							uint32 = 61011
 	CodeInternal								uint32 = 61012
 	CodeInvalidCoins							uint32 = 61013
-	CodeInsufficientCoins						uint32 = 61014
 	CodeUnauthorized							uint32 = 61015
 	CodeInvalidPriceDigit   	    			uint32 = 61016
 	CodeInvalidMinTradeSize     				uint32 = 61017
@@ -60,9 +59,8 @@ var (
 	errCodeUnrecognizedLockCoinsType			= sdkerrors.Register(DefaultCodespace, CodeUnrecognizedLockCoinsType, "unrecognized lock coins")
 	errCodeFailedToUnlockAddress				= sdkerrors.Register(DefaultCodespace, CodeFailedToUnlockAddress, "unlock address failed")
 	errCodeUnknownRequest						= sdkerrors.Register(DefaultCodespace, CodeUnknownRequest, "unlock address failed")
-	errCodeInternal							= sdkerrors.Register(DefaultCodespace, CodeInternal, "err occur internal")
+	errCodeInternal								= sdkerrors.Register(DefaultCodespace, CodeInternal, "err occur internal")
 	errCodeInvalidCoins						 	= sdkerrors.Register(DefaultCodespace, CodeInvalidCoins, "invalid coins")
-	errCodeInsufficientCoins					= sdkerrors.Register(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 	errCodeUnauthorized							= sdkerrors.Register(DefaultCodespace, CodeUnauthorized	, "code unauthorized")
 	errCodeInvalidPriceDigit       				= sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
 	errCodeInvalidMinTradeSize     				= sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
@@ -136,10 +134,6 @@ func ErrInternal() sdk.Error {
 
 func ErrInvalidCoins() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "unknown token")}
-}
-
-func ErrInsufficientCoins(coins string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInsufficientCoins, fmt.Sprintf("insufficient coins(need %s)", coins))}
 }
 
 func ErrUnauthorized() sdk.Error {

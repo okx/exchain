@@ -224,7 +224,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 		}
 		err := checkOrderNewMsg(ctx, k, msg)
 		if err != nil {
-			return nil, types.ErrCheckOrderNewMsgFailed()
+			return nil, err
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
 			return nil, types.ErrIsProductLocked()
@@ -233,7 +233,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 		order := getOrderFromMsg(ctx, k, msg, ratio)
 		_, err = k.TryPlaceOrder(ctx, order)
 		if err != nil {
-			return nil, types.ErrInsufficientCoins()
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 		}
 	}
 

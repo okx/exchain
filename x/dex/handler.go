@@ -204,7 +204,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	feeCoins := keeper.GetParams(ctx).TransferOwnershipFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(feeCoins.String())
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	// set ConfirmOwnership
@@ -287,7 +287,7 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 	feeCoins := keeper.GetParams(ctx).RegisterOperatorFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(feeCoins.String())
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	ctx.EventManager().EmitEvent(

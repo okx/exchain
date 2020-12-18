@@ -20,7 +20,6 @@ const (
 	CodeMsgQuantityLessThan						uint32 = 63008
 	CodeUnknownRequest							uint32 = 63009
 	CodeInternal								uint32 = 63010
-	CodeInsufficientCoins						uint32 = 63011
 	CodeUnauthorized							uint32 = 63012
 	CodeGetOrderFailed							uint32 = 63013
 	CodeTokenPairNotFound						uint32 = 63014
@@ -77,10 +76,6 @@ func ErrMsgQuantityLessThan(minQuantity string) sdk.Error {
 
 func ErrInternal() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInternal, "occur error internal")
-}
-
-func ErrInsufficientCoins() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }
 
 func ErrUnknownRequest() sdk.Error {

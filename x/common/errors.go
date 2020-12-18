@@ -20,6 +20,7 @@ const (
 	CodeStrconvFailed              uint32 = 60106
 	CodeParseDecCoinFailed         uint32 = 60107
 	CodeUnknownProposalType        uint32 = 60108
+	CodeInsufficientCoins		   uint32 = 60109
 )
 
 type SDKError struct {
@@ -68,4 +69,8 @@ func ErrStrconvFailed(msg string) sdk.Error {
 
 func ErrUnknownProposalType(codespace string, msg string) sdk.Error {
 	return sdkerrors.New(codespace, CodeUnknownProposalType, fmt.Sprintf("unknown proposal content type: %s", msg))
+}
+
+func ErrInsufficientCoins(codespace string, msg string) sdk.Error {
+	return sdkerrors.New(codespace, CodeInsufficientCoins, fmt.Sprintf("insufficient coins: %s", msg))
 }

@@ -235,7 +235,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*sdk.Resul
 
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
 		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
-		return nil, types.ErrInsufficientCoins()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 	if msg.Deadline < ctx.BlockTime().Unix() {
 		return nil, types.ErrBlockTimeBigThanDeadline()
@@ -274,7 +274,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	}
 	if err := common.HasSufficientCoins(msg.Sender, k.GetTokenKeeper().GetCoins(ctx, msg.Sender),
 		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
-		return nil, types.ErrInsufficientCoins()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)

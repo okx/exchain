@@ -20,7 +20,6 @@ const (
 	CodeNotAllowedOriginSymbol				uint32 = 65008
 	CodeInsufficientPoolToken				uint32 = 65009
 	CodeUnknownRequest						uint32 = 65010
-	CodeInsufficientCoins					uint32 = 65011
 	CodeTokenNotExist						uint32 = 65012
 	CodeInvalidCoins						uint32 = 65013
 	CodeInternalError						uint32 = 65014
@@ -93,10 +92,6 @@ func ErrInvalidCoins () sdk.Error {
 
 func ErrInternalError() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
-}
-
-func ErrInsufficientCoins() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }
 
 func ErrGetSwapTokenPair() sdk.Error {

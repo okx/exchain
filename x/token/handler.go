@@ -129,7 +129,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, token.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(feeDecCoins.String())
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
 	}
 
 	var name = "handleMsgTokenIssue"
@@ -237,7 +237,7 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	feeDecCoins := keeper.GetParams(ctx).FeeMint.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(feeDecCoins.String())
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
 	}
 
 	name := "handleMsgTokenMint"
@@ -271,7 +271,7 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
-			return nil, types.ErrInsufficientCoins(transferUnit.Coins.String())
+			return nil, types.ErrSendCoinsFromModuleToAccountFailed()
 		}
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
@@ -300,7 +300,7 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(msg.Amount.String())
+		return nil, types.ErrSendCoinsFromModuleToAccountFailed()
 	}
 
 	var name = "handleMsgSend"
@@ -435,7 +435,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 	feeDecCoins := keeper.GetParams(ctx).FeeModify.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientCoins(feeDecCoins.String())
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
 	}
 
 	name := "handleMsgTokenModify"
