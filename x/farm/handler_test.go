@@ -304,7 +304,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient fee: insufficient fee coins(need 1.000000000000000000fff)"),
+			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000tokt < 1.000000000000000000fff"),
 		},
 		{
 			caseName: "failed. insufficient coins",
@@ -316,7 +316,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient funds: insufficient deposit coins(need 1.000000000000000000fff)"),
+			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000tokt < 1.000000000000000000fff"),
 		},
 	}
 	testCaseTest(t, tests)
@@ -372,7 +372,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient funds: insufficient fee coins(need 1.000000000000000000fff)"),
+			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000tokt < 1.000000000000000000fff"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -451,7 +451,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient funds: insufficient rewards coins(need 10.000000000000000000aab)"),
+			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
