@@ -160,7 +160,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	// not-exist product
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, "unknown request: trading pair 'nobb_tokt' does not exist", err.Error())
+	require.EqualValues(t, fmt.Sprintf("unknown request: trading pair 'nobb_%s' does not exist", sdk.DefaultBondDenom), err.Error())
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -249,7 +249,7 @@ func TestHandleMsgCancelOrder2(t *testing.T) {
 	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 	expectCoins0 = sdk.SysCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.259199000000000000")), // no change
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),          // 100 - 0.000001
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),                    // 100 - 0.000001
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 	// check fee pool
@@ -435,7 +435,7 @@ func TestHandleMsgMultiNewOrder(t *testing.T) {
 	require.Equal(t, "", result.Log)
 	// Test order when locked
 	keeper.SetProductLock(ctx, types.TestTokenPair, &types.ProductLock{})
-	result1, err:= handler(ctx, msg)
+	result1, err := handler(ctx, msg)
 	res1 := parseOrderResult(result1)
 	require.Nil(t, res1)
 	require.NotNil(t, err)
