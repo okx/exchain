@@ -7,40 +7,40 @@ import (
 )
 
 const (
-	DefaultCodespace 						string = "ammswap"
+	DefaultCodespace string = "ammswap"
 
-	CodeUnexistwapTokenPair       			uint32 = 65000
-	CodeUnexistPoolToken					uint32 = 65001
-	CodeMintCoinsFailed						uint32 = 65002
-	CodeSendCoinsFromAccountToModule 		uint32 = 65003
-	CodeBaseAmountNameBigerQuoteAmountName	uint32 = 65004
-	CodeValidateSwapAmountName				uint32 = 65005
-	CodeBaseAmountNameEqualQuoteAmountName	uint32 = 65006
-	CodeValidateDenom						uint32 = 65007
-	CodeNotAllowedOriginSymbol				uint32 = 65008
-	CodeInsufficientPoolToken				uint32 = 65009
-	CodeUnknownRequest						uint32 = 65010
-	CodeInsufficientCoins					uint32 = 65011
-	CodeTokenNotExist						uint32 = 65012
-	CodeInvalidCoins						uint32 = 65013
-	CodeInternalError						uint32 = 65014
-	CodeGetSwapTokenPairFailed				uint32 = 65015
-	CodeInvalidAddress						uint32 = 65016
-	CodeIsZeroValue							uint32 = 65017
-	CodeGetRedeemableAssetsFailed			uint32 = 65018
-	CodeBlockTimeBigThanDeadline			uint32 = 65019
-	CodeGetPoolTokenInfoFailed				uint32 = 65020
-	CodeTokenGreaterThanBaseAccount			uint32 = 65021
-	CodeIsTokenExist						uint32 = 65022
-	CodeMintPoolCoinsToUserFailed			uint32 = 65023
-	CodeSendCoinsFromPoolToAccountFailed	uint32 = 65024
-	CodeBurnPoolCoinsFromUserFailed			uint32 = 65025
-	CodeCalculateTokenToBuyFailed			uint32 = 65026
-	CodeSendCoinsToPoolFailed				uint32 = 65027
+	CodeUnexistwapTokenPair                uint32 = 65000
+	CodeUnexistPoolToken                   uint32 = 65001
+	CodeMintCoinsFailed                    uint32 = 65002
+	CodeSendCoinsFromAccountToModule       uint32 = 65003
+	CodeBaseAmountNameBigerQuoteAmountName uint32 = 65004
+	CodeValidateSwapAmountName             uint32 = 65005
+	CodeBaseAmountNameEqualQuoteAmountName uint32 = 65006
+	CodeValidateDenom                      uint32 = 65007
+	CodeNotAllowedOriginSymbol             uint32 = 65008
+	CodeInsufficientPoolToken              uint32 = 65009
+	CodeUnknownRequest                     uint32 = 65010
+	CodeInsufficientCoins                  uint32 = 65011
+	CodeTokenNotExist                      uint32 = 65012
+	CodeInvalidCoins                       uint32 = 65013
+	CodeInternalError                      uint32 = 65014
+	CodeGetSwapTokenPairFailed             uint32 = 65015
+	CodeInvalidAddress                     uint32 = 65016
+	CodeIsZeroValue                        uint32 = 65017
+	CodeGetRedeemableAssetsFailed          uint32 = 65018
+	CodeBlockTimeBigThanDeadline           uint32 = 65019
+	CodeGetPoolTokenInfoFailed             uint32 = 65020
+	CodeTokenGreaterThanBaseAccount        uint32 = 65021
+	CodeIsTokenExist                       uint32 = 65022
+	CodeMintPoolCoinsToUserFailed          uint32 = 65023
+	CodeSendCoinsFromPoolToAccountFailed   uint32 = 65024
+	CodeBurnPoolCoinsFromUserFailed        uint32 = 65025
+	CodeCalculateTokenToBuyFailed          uint32 = 65026
+	CodeSendCoinsToPoolFailed              uint32 = 65027
 )
 
-func ErrUnexistswapTokenPair () sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "validator address is nil")
+func ErrUnexistswapTokenPair() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "token pair is not exist")
 }
 
 func ErrUnexistPoolToken() sdk.Error {
@@ -75,19 +75,19 @@ func ErrNotAllowedOriginSymbol() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeNotAllowedOriginSymbol, "liquidity-pool-token is not allowed to be a base or quote token")
 }
 
-func ErrInsufficientPoolToken () sdk.Error {
+func ErrInsufficientPoolToken() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")
 }
 
-func ErrUnknownRequest () sdk.Error {
+func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 
-func ErrTokenNotExist () sdk.Error {
+func ErrTokenNotExist() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
 }
 
-func ErrInvalidCoins () sdk.Error {
+func ErrInvalidCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with pool token")
 }
 
@@ -122,7 +122,6 @@ func ErrBlockTimeBigThanDeadline() sdk.Error {
 func ErrGetPoolTokenInfoFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeGetPoolTokenInfoFailed, fmt.Sprintf("get pool token info failed"))
 }
-
 
 func ErrTokenGreaterThanBaseAccount() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenGreaterThanBaseAccount, fmt.Sprintf("token greater than base account"))
