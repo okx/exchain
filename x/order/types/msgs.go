@@ -179,7 +179,7 @@ func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 	}
 	for _, item := range msg.OrderIDs {
 		if item == "" {
-			return ErrUnauthorized()
+			return ErrUserinputOrderIDIsEmpty()
 		}
 	}
 

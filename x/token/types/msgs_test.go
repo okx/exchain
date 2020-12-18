@@ -73,9 +73,9 @@ func TestNewMsgTokenBurn(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenBurn(decCoin, addr), nil},
-		{NewMsgTokenBurn(decCoin0, addr), ErrInsufficientCoins("100.000000000000000000")},
+		{NewMsgTokenBurn(decCoin0, addr), common.ErrInsufficientCoins(DefaultParamspace, "100.000000000000000000")},
 		{NewMsgTokenBurn(decCoin, sdk.AccAddress{}), ErrInvalidAddress()},
-		{NewMsgTokenBurn(decCoin1, addr), ErrInsufficientCoins("100.0000000000000000001okb-ads")},
+		{NewMsgTokenBurn(decCoin1, addr), common.ErrInsufficientCoins(DefaultParamspace, "100.0000000000000000001okb-ads")},
 	}
 
 	for _, msgCase := range testCase {
@@ -184,7 +184,7 @@ func TestNewTokenMsgSend(t *testing.T) {
 		err     sdk.Error
 	}{
 		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
-		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), ErrInsufficientCoins("")},
+		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), common.ErrInsufficientCoins(DefaultParamspace, "")},
 		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), ErrInvalidCoins()},
 		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), ErrInvalidAddress()},
 		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), ErrInvalidAddress()},

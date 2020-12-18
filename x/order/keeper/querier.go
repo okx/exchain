@@ -88,7 +88,7 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
-		return nil, types.ErrTokenPairNotFound(params.Product)
+		return nil, types.ErrGetTokenPairFailed(params.Product)
 	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 

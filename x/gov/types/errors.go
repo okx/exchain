@@ -26,7 +26,6 @@ const (
 	CodeInitialDepositNotEnough uint32 = BaseGovError+12
 	CodeInvalidProposer         uint32 = BaseGovError+13
 	CodeInvalidHeight           uint32 = BaseGovError+14
-	CodeInsufficientCoins		uint32 = BaseGovError+15
 	CodeUnknownRequest			uint32 = BaseGovError+16
 	CodeInvalidCoins			uint32 = BaseGovError+17
 	CodeUnknownParamType		uint32 = BaseGovError+18
@@ -93,10 +92,6 @@ func ErrInvalidHeight(h, ch, max uint64) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidHeight,
 		fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.",
 			h, ch, ch, max))
-}
-
-func ErrInsufficientCoins() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientCoins, "insufficient coins")
 }
 
 func ErrUnknownRequest() sdk.Error {
