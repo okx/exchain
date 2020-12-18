@@ -929,6 +929,7 @@ func TestFeesTable(t *testing.T) {
 }
 
 func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*types.Order, blockheight int64) sdk.SysCoins {
+	common.InitConfig()
 	TestTokenPairOwner := "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)

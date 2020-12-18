@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -9,6 +10,7 @@ import (
 )
 
 func TestDelistProposal_ValidateBasic(t *testing.T) {
+	common.InitConfig()
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)
 

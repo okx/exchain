@@ -15,6 +15,7 @@ import (
 
 func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	addr, err := sdk.AccAddressFromBech32(types.TestTokenPairOwner)

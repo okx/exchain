@@ -50,6 +50,7 @@ func TestHasSufCoins(t *testing.T) {
 }
 
 func TestBlackHoleAddress(t *testing.T) {
+	InitConfig()
 	addr := BlackHoleAddress()
 	a := addr.String()
 	fmt.Println(a)
