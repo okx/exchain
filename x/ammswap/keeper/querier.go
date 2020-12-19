@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -37,7 +36,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			res, err = querySwapAddLiquidityQuote(ctx, req, k)
 
 		default:
-			return nil, types.ErrUnknownQueryType()
+			return nil, types.ErrSwapUnknownQueryType()
 		}
 
 		if err != nil {
@@ -97,7 +96,7 @@ func queryBuyAmount(
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
 	if errTokenPair == nil {
 		if tokenPair.BasePooledCoin.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
@@ -107,7 +106,7 @@ func queryBuyAmount(
 			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
@@ -115,7 +114,7 @@ func queryBuyAmount(
 			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
@@ -168,7 +167,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	}
 
 	if queryParams.BusinessType == "" {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("input business type param")
 	}
 
 	// coins in account
@@ -176,7 +175,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	if queryParams.Address != "" {
 		addr, err := sdk.AccAddressFromBech32(queryParams.Address)
 		if err != nil {
-			return nil, types.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", queryParams.Address))
+			return nil, types.ErrInvalidAddress(queryParams.Address)
 		}
 		accountCoins = keeper.tokenKeeper.GetCoins(ctx, addr)
 	}
@@ -299,7 +298,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 	sellAmount, err := sdk.ParseDecCoin(queryParams.SellTokenAmount)
 	if err != nil {
-		return nil, types.ErrParseDecCoinQueryParamsSellTokenAmount()
+		return nil, types.ErrConvertSellTokenAmountToDecimal()
 	}
 
 	if sellAmount.Denom == queryParams.BuyToken {
@@ -316,7 +315,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		if tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, sellAmount, queryParams.BuyToken, swapParams).Amount
 		// calculate market price
@@ -334,7 +333,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.Amount.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.BuyToken, common.NativeToken)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
@@ -342,7 +341,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.Amount.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, sellAmount, common.NativeToken, swapParams)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.BuyToken, swapParams).Amount
@@ -483,7 +482,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	}
 	queryTokenAmount, err := sdk.ParseDecCoin(queryParams.QuoteTokenAmount)
 	if err != nil {
-		return nil, types.ErrParseDecCoinQueryParamsQuoteTokenAmount()
+		return nil, types.ErrConvertQuoteTokenAmountToDecimal(err.Error())
 	}
 
 	tokenPairName := types.GetSwapTokenPairName(queryParams.BaseToken, queryTokenAmount.Denom)
@@ -492,12 +491,12 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 		return nil, err
 	}
 	if swapTokenPair.BasePooledCoin.Amount.IsZero() && swapTokenPair.QuotePooledCoin.Amount.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 	}
 
 	totalSupply := keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if totalSupply.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("total supply")
 	}
 
 	var addAmount sdk.Dec

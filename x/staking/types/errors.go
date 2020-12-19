@@ -17,7 +17,6 @@ const (
 	CodeInvalidInput      						uint32 = 67002
 
 	CodeInvalidAddress          				uint32 = 67003
-	CodeUnknownRequest           				uint32 = 67004
 	CodeInvalidMinSelfDelegation 				uint32 = 67005
 	CodeInvalidProxy             				uint32 = 67006
 	CodeInvalidShareAdding       				uint32 = 67007
@@ -294,10 +293,6 @@ func ErrCodeInternalError() sdk.Error {
 
 func ErrGetConsPubKeyBech32() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeGetConsPubKeyBech32Failed, "get cons public key bech32 failed")
-}
-
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 
 func ErrUnknownStakingQueryType() sdk.Error {

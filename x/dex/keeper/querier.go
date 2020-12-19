@@ -33,7 +33,7 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 		case types.QueryOperators:
 			return queryOperators(ctx, keeper)
 		default:
-			return nil, types.ErrUnknownQueryType()
+			return nil, types.ErrDexUnknownQueryType()
 		}
 	}
 }
@@ -122,7 +122,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var deposits []depositsData
 	for i, tokenPair := range tokenPairs {
 		if tokenPair == nil {
-			return nil, types.ErrIsNil()
+			return nil, types.ErrTokenPairIsRequired()
 		}
 		// filter address
 		if params.Address != "" && tokenPair.Owner.String() != params.Address {

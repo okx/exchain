@@ -21,7 +21,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		default:
-			return nil, types.ErrUnknownMsgType()
+			return nil, types.ErrUnknownDistributionMsgType()
 		}
 	}
 }
@@ -30,7 +30,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAddress, k keeper.Keeper) (*sdk.Result, error) {
 	err := k.SetWithdrawAddr(ctx, msg.DelegatorAddress, msg.WithdrawAddress)
 	if err != nil {
-		return nil, types.ErrSetWithdrawAddrFailed()
+		return nil, err
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -67,7 +67,7 @@ func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 
 		default:
-			return types.ErrUnknownCommunityPoolProposaType()
+			return types.ErrUnknownDistributionCommunityPoolProposaType()
 		}
 	}
 }

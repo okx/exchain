@@ -56,7 +56,7 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 		}
 		return bz, nil
 	default:
-		return nil, types.ErrUnknownParamType()
+		return nil, types.ErrUnknownGovParamType()
 	}
 }
 

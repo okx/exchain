@@ -58,13 +58,13 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	err := common.HasSufficientCoins(proposer, initialDeposit, localMinDeposit)
 
 	if err != nil {
-		return types.ErrInvalidAsset(fmt.Sprintf("failed to submit proposal because initial deposit should be more than %s", localMinDeposit.String()))
+		return types.ErrInvalidAsset(fmt.Sprintf(localMinDeposit.String()))
 	}
 
 	// check whether the proposer can afford the initial deposit
 	err = common.HasSufficientCoins(proposer, k.bankKeeper.GetCoins(ctx, proposer), initialDeposit)
 	if err != nil {
-		return types.ErrInvalidBalanceNotEnough(fmt.Sprintf("failed to submit proposal because proposer %s didn't have enough coins to pay for the initial deposit %s", proposer, initialDeposit))
+		return types.ErrBalanceNotEnough(proposer.String(), initialDeposit.String())
 	}
 	return nil
 }

@@ -33,7 +33,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, types.ErrUnknownQueryType()
+			return nil, types.ErrUnknownTokenQueryType()
 		}
 	}
 }

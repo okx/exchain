@@ -26,7 +26,6 @@ const (
 	CodeInitialDepositNotEnough uint32 = BaseGovError+12
 	CodeInvalidProposer         uint32 = BaseGovError+13
 	CodeInvalidHeight           uint32 = BaseGovError+14
-	CodeUnknownRequest			uint32 = BaseGovError+16
 	CodeInvalidCoins			uint32 = BaseGovError+17
 	CodeUnknownParamType		uint32 = BaseGovError+18
 )
@@ -94,14 +93,10 @@ func ErrInvalidHeight(h, ch, max uint64) sdk.Error {
 			h, ch, ch, max))
 }
 
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unkonwn request")
-}
-
 func ErrInvalidCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalide coins")
 }
 
-func ErrUnknownParamType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownParamType, "unkonwn param type")
+func ErrUnknownGovParamType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownParamType, "unkonwn gov param type")
 }

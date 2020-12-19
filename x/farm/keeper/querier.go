@@ -37,7 +37,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryPoolNum:
 			return queryPoolNum(ctx, k)
 		default:
-			return nil, types.ErrUnknownQueryType("failed. unknown farm query endpoint")
+			return nil, types.ErrUnknownFarmQueryType("failed. unknown farm query endpoint")
 		}
 	}
 }

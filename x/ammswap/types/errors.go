@@ -31,7 +31,6 @@ const (
 	CodeGetPoolTokenInfoFailed				uint32 = 65020
 	CodeTokenGreaterThanBaseAccount			uint32 = 65021
 	CodeLiquidityLessThanMsg				uint32 = 65022
-	CodeIsTokenExist						uint32 = 65023
 	CodeMintPoolCoinsToUserFailed			uint32 = 65024
 	CodeSendCoinsFromPoolToAccountFailed	uint32 = 65025
 	CodeBurnPoolCoinsFromUserFailed			uint32 = 65026
@@ -54,10 +53,11 @@ const (
 	CodeToken0NameEqualToken1Name						uint32 = 65043
 	CodeSoldTokenAmountIsNegativeOrNotValidateDenom		uint32 = 65044
 	CodeMinBoughtTokenAmountIsNegativeOrNotValidateDenom	uint32 = 65045
-	CodeParseDecCoinQueryParamsSellTokenAmount				uint32 = 65046
-	CodeParseDecCoinQueryParamsQuoteTokenAmount				uint32 = 65047
+	CodeConvertSellTokenAmountToDecimal						uint32 = 65046
+	CodeConvertQuoteTokenAmountToDecimal					uint32 = 65047
 	CodeSendCoinsFromAccountToModuleFailed					uint32 = 65048
 	CodeMsgDeadlineLessThanBlockTime						uint32 = 65049
+	CodeBaseTokensAmountBiggerThanMaxBaseAmount				uint32 = 65050
 )
 
 func ErrUnexistswapTokenPair() sdk.Error {
@@ -124,8 +124,8 @@ func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
 }
 
-func ErrIsZeroValue() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsZeroValue, fmt.Sprintf("is zero value"))
+func ErrIsZeroValue(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsZeroValue, fmt.Sprintf("%s is zero value", msg))
 }
 
 func ErrGetRedeemableAssetsFailed() sdk.Error {
@@ -144,40 +144,32 @@ func ErrTokenGreaterThanBaseAccount() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenGreaterThanBaseAccount, fmt.Sprintf("token greater than base account"))
 }
 
-func ErrLiquidityLessThanMsg() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeLiquidityLessThanMsg, fmt.Sprintf("value less than msg"))
-}
-
-func ErrIsTokenExist(tokenName string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsTokenExist, fmt.Sprintf("%s is token exist", tokenName))
+func ErrLessThan(param1 string, param2 string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeLiquidityLessThanMsg, fmt.Sprintf("%s value less than %s value"))
 }
 
 func ErrMintPoolCoinsToUserFailed(tokenName string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMintPoolCoinsToUserFailed, "mint pool coins to user failed")
 }
 
-func ErrSendCoinsFromPoolToAccountFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromPoolToAccountFailed, "send coins from pool to account failed")
+func ErrSendCoinsFromPoolToAccountFailed(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromPoolToAccountFailed, fmt.Sprintf("send coins from pool to account failed: %s", msg))
 }
 
-func ErrBurnPoolCoinsFromUserFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBurnPoolCoinsFromUserFailed, "burn pool coins fro user failed")
+func ErrBurnPoolCoinsFromUserFailed(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBurnPoolCoinsFromUserFailed, fmt.Sprintf("burn pool coins fro user failed: %s", msg))
 }
 
-func ErrCalculateTokenToBuyFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeCalculateTokenToBuyFailed, "calculate token to buy failed")
+func ErrSendCoinsToPoolFailed(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsToPoolFailed, fmt.Sprintf("send coins to pool failed: %s", msg))
 }
 
-func ErrSendCoinsToPoolFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsToPoolFailed, "send coins to pool failed")
+func ErrSwapUnknownMsgType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, "swap unknown msg type")
 }
 
-func ErrUnknownMsgType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, "unknown msg type")
-}
-
-func ErrUnknownQueryType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknowQueryTypes, "unknown query type")
+func ErrSwapUnknownQueryType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknowQueryTypes, "swap unknown query type")
 }
 
 func ErrSellAmountOrBuyTokenIsEmpty() sdk.Error {
@@ -240,12 +232,12 @@ func ErrMinBoughtTokenAmountIsNegativeOrNotValidateDenom() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMinBoughtTokenAmountIsNegativeOrNotValidateDenom, "min bought token amount is negative or not validate denom")
 }
 
-func ErrParseDecCoinQueryParamsSellTokenAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeParseDecCoinQueryParamsSellTokenAmount, "parse dec coin query params' sell token amount")
+func ErrConvertSellTokenAmountToDecimal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeConvertSellTokenAmountToDecimal, "parse dec coin query params' sell token amount")
 }
 
-func ErrParseDecCoinQueryParamsQuoteTokenAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeParseDecCoinQueryParamsQuoteTokenAmount, "parse dec coin query params' quote token amount")
+func ErrConvertQuoteTokenAmountToDecimal(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeConvertQuoteTokenAmountToDecimal, "parse dec coin query params' quote token amount")
 }
 
 func ErrSendCoinsFromAccountToModuleFailed() sdk.Error {
@@ -254,4 +246,8 @@ func ErrSendCoinsFromAccountToModuleFailed() sdk.Error {
 
 func ErrMsgDeadlineLessThanBlockTime() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMsgDeadlineLessThanBlockTime, "input deadline less than block time")
+}
+
+func ErrBaseTokensAmountBiggerThanMaxBaseAmountAmount() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBaseTokensAmountBiggerThanMaxBaseAmount, "base token amount bigger than max base amount")
 }

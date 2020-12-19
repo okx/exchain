@@ -59,7 +59,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 				return handleMsgUpdateOperator(ctx, k, msg, logger)
 			}
 		default:
-			return nil, types.ErrUnknownMsgType(msg.Type())
+			return nil, types.ErrDexUnknownMsgType(msg.Type())
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
@@ -106,7 +106,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 	feeCoins := keeper.GetParams(ctx).ListFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientFeeCoins(feeCoins.String())
+		return nil, types.ErrInsufficientFeeCoins(err.Error())
 	}
 
 	err2 := keeper.SaveTokenPair(ctx, tokenPair)

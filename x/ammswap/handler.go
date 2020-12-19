@@ -37,7 +37,7 @@ func NewHandler(k Keeper) sdk.Handler {
 				return handleMsgTokenToToken(ctx, k, msg)
 			}
 		default:
-			return nil, types.ErrUnknownMsgType()
+			return nil, types.ErrSwapUnknownMsgType()
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
@@ -126,20 +126,20 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			baseTokens.Amount = sdk.NewDecWithPrec(1, sdk.Precision)
 		}
 		if totalSupply.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("totalSupply")
 		}
 		liquidity = common.MulAndQuo(msg.QuoteAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
 		if liquidity.IsZero() {
-			return nil, types.ErrIsZeroValue()
+			return nil, types.ErrIsZeroValue("liquidity")
 		}
 	} else {
 		return nil, types.ErrInternalError()
 	}
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
-		return nil, types.ErrTokenGreaterThanBaseAccount()
+		return nil, types.ErrBaseTokensAmountBiggerThanMaxBaseAmountAmount()
 	}
 	if liquidity.LT(msg.MinLiquidity) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("liquidity", "min liquidity")
 	}
 
 	// transfer coins
@@ -186,7 +186,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	liquidity := msg.Liquidity
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("pool token amount", "liquidity")
 	}
 
 	baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, liquidity, poolTokenAmount)
@@ -196,10 +196,10 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
 
 	if baseAmount.IsLT(msg.MinBaseAmount) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("base amount", "min base amount")
 	}
 	if quoteAmount.IsLT(msg.MinQuoteAmount) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("quote amount", "min quote amount")
 	}
 
 	// transfer coins
@@ -210,7 +210,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	coins = coinSort(coins)
 	err = k.SendCoinsFromPoolToAccount(ctx, coins, msg.Sender)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromPoolToAccountFailed()
+		return nil, types.ErrSendCoinsFromPoolToAccountFailed(err.Error())
 	}
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Sub(quoteAmount)
@@ -221,7 +221,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	poolCoins := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, liquidity)
 	err = k.BurnPoolCoinsFromUser(ctx, sdk.SysCoins{poolCoins}, msg.Sender)
 	if err != nil {
-		return nil, types.ErrBurnPoolCoinsFromUserFailed()
+		return nil, types.ErrBurnPoolCoinsFromUserFailed(err.Error())
 	}
 
 	event.AppendAttributes(sdk.NewAttribute("quoteAmount", quoteAmount.String()))
@@ -245,15 +245,15 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*sdk.Resul
 		return nil, err
 	}
 	if swapTokenPair.BasePooledCoin.IsZero() || swapTokenPair.QuotePooledCoin.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 	}
 	params := k.GetParams(ctx)
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
 	if tokenBuy.IsZero() {
-		return nil, types.ErrCalculateTokenToBuyFailed()
+		return nil, types.ErrIsZeroValue("token bug")
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("token buy amount", "min bought token amount")
 	}
 
 	res, err := swapTokenNativeToken(ctx, k, swapTokenPair, tokenBuy, msg)
@@ -282,7 +282,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 		return nil, err
 	}
 	if swapTokenPairOne.BasePooledCoin.IsZero() || swapTokenPairOne.QuotePooledCoin.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 	}
 	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
@@ -290,7 +290,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 		return nil, err
 	}
 	if swapTokenPairTwo.BasePooledCoin.IsZero() || swapTokenPairTwo.QuotePooledCoin.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 	}
 
 	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
@@ -299,7 +299,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	msgOne.MinBoughtTokenAmount = nativeAmount
 	tokenNative := keeper.CalculateTokenToBuy(swapTokenPairOne, msgOne.SoldTokenAmount, msgOne.MinBoughtTokenAmount.Denom, params)
 	if tokenNative.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("token native")
 	}
 	msgTwo := msg
 	msgTwo.SoldTokenAmount = tokenNative
@@ -307,10 +307,10 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	// sanity check. user may set MinBoughtTokenAmount to zero on front end.
 	// if set zero,this will not return err
 	if tokenBuy.IsZero() {
-		return nil, types.ErrIsZeroValue()
+		return nil, types.ErrIsZeroValue("token to buy amount")
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
-		return nil, types.ErrLiquidityLessThanMsg()
+		return nil, types.ErrLessThan("token buy amount", "min bought token amount")
 	}
 
 	res, err := swapTokenNativeToken(ctx, k, swapTokenPairOne, tokenNative, msgOne)
@@ -335,12 +335,12 @@ func swapTokenNativeToken(
 	// transfer coins
 	err := k.SendCoinsToPool(ctx, sdk.SysCoins{msg.SoldTokenAmount}, msg.Sender)
 	if err != nil {
-		return nil, types.ErrSendCoinsToPoolFailed()
+		return nil, types.ErrSendCoinsToPoolFailed(err.Error())
 	}
 
 	err = k.SendCoinsFromPoolToAccount(ctx, sdk.SysCoins{tokenBuy}, msg.Recipient)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromPoolToAccountFailed()
+		return nil, types.ErrSendCoinsFromPoolToAccountFailed(err.Error())
 	}
 
 	// update swapTokenPair

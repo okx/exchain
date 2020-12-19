@@ -11,7 +11,6 @@ const (
 	CodeInvalidInput									uint32          = 67800
 	CodeNoValidatorCommission							uint32          = 67801
 	CodeSetWithdrawAddrDisabled							uint32          = 67802
-	CodeInvalideData									uint32		  = 67803
 	CodeInvalideRoute									uint32		  = 67804
 	CodeInvalideBasic									uint32		  = 67805
 	CodeWithdrawValidatorRewardsAndCommissionFailed		uint32		  = 67806
@@ -19,24 +18,22 @@ const (
 	CodeValAddressFromBech32							uint32		  = 67808
 	CodeReadRESTReqFailed								uint32		  = 67809
 	CodeSendCoinsFromModuleToAccountFailed				uint32		  = 67810
-	CodeUnknownRequest									uint32		  = 67811
-	CodeSetWithdrawAddrFailed							uint32		  = 67813
 	CodeWithdrawValidatorCommissionFailed				uint32		  = 67814
-	CodeUnknownMsgType									uint32		  = 67815
-	CodeUnknownCommunityPoolProposaType					uint32		  = 67816
+	CodeUnknownDistributionMsgType						uint32		  = 67815
+	CodeUnknownDistributionCommunityPoolProposaType		uint32		  = 67816
 	CodeUnknownDistributionQueryType					uint32		  = 67817
 	CodeUnknownDistributionParamType					uint32		  = 67818
 	CodeWithdrawAddrInblacklist							uint32		  = 67819
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "delegator address is nil")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "delegator address is required")
 }
 func ErrNilWithdrawAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "withdraw address is nil")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "withdraw address is required")
 }
 func ErrNilValidatorAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "validator address is nil")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidInput, "validator address is required")
 }
 func ErrNoValidatorCommission() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeNoValidatorCommission, "no validator commission to withdraw")
@@ -56,20 +53,14 @@ func ErrEmptyProposalRecipient() sdk.Error {
 func ErrSendCoinsFromModuleToAccountFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "invalid withdrawAddr or commission")
 }
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "incorrectly formatted request data")
-}
-func ErrSetWithdrawAddrFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSetWithdrawAddrFailed, "set withdraw addr is failed")
-}
 func ERRWithdrawValidatorCommissionFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeWithdrawValidatorCommissionFailed, "withdraw validator commission failed")
 }
-func ErrUnknownMsgType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, "unknown message type")
+func ErrUnknownDistributionMsgType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownDistributionMsgType, "unknown distribution message type")
 }
-func ErrUnknownCommunityPoolProposaType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownCommunityPoolProposaType, "unknown community pool proposal type")
+func ErrUnknownDistributionCommunityPoolProposaType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownDistributionCommunityPoolProposaType, "unknown community pool proposal type")
 }
 func ErrUnknownDistributionQueryType() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownDistributionQueryType, "unknown distribution query type")

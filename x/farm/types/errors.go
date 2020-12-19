@@ -22,12 +22,10 @@ const (
 	CodePoolNotFinished        uint32 = 66006
 	CodeUnexpectedProposalType uint32 = 66007
 	CodeInvalidAddress         uint32 = 66008
-	CodeUnknownRequest         uint32 = 66009
-	CodeInternal			   uint32 = 66010
 	CodeGetEarningsFailed	   uint32 = 66011
 	CodeSendCoinsFromAccountToModuleFailed			uint32 = 66012
-	CodeUnknownMsgType		  						uint32 = 66013
-	CodeUnknownQueryType							uint32 = 66014
+	CodeUnknownFarmMsgType		  					uint32 = 66013
+	CodeUnknownFarmQueryType						uint32 = 66014
 	CodeFarmMsgOccurError							uint32 = 66015
 )
 
@@ -40,13 +38,11 @@ var (
 	errTokenNotExist          = sdkerrors.Register(DefaultCodespace, CodeTokenNotExist, "token not exist")
 	errPoolNotFinished        = sdkerrors.Register(DefaultCodespace, CodePoolNotFinished, "pool not finished")
 	errUnexpectedProposalType = sdkerrors.Register(DefaultCodespace, CodeUnexpectedProposalType, "unexpected proposal type")
-	errInvalidAddress         = sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "invalid address")
-	errUnknownRequest         = sdkerrors.Register(DefaultCodespace, CodeUnknownRequest, "unknown request")
-	errInternal			  	  = sdkerrors.Register(DefaultCodespace, CodeInternal, "error occur internal")
+	errInvalidAddress         = sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "address is required")
 	errGetEarningsFailed	  = sdkerrors.Register(DefaultCodespace, CodeGetEarningsFailed, "get earning failed")
 	errSendCoinsFromAccountToModuleFailed = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send coins from account to module failed")
-	errUnknownMsgType         = sdkerrors.Register(DefaultCodespace, CodeUnknownMsgType, "unknown msg type")
-	errUnknownQueryType       = sdkerrors.Register(DefaultCodespace, CodeUnknownQueryType, "unknown query type")
+	errUnknownFarmMsgType         = sdkerrors.Register(DefaultCodespace, CodeUnknownFarmMsgType, "unknown farm msg type")
+	errUnknownFarmQueryType       = sdkerrors.Register(DefaultCodespace, CodeUnknownFarmQueryType, "unknown farm query type")
 	errFarmMsgOccurError	  = sdkerrors.Register(DefaultCodespace, CodeFarmMsgOccurError, "farm module exec msg occure err")
 )
 
@@ -111,7 +107,7 @@ func ErrInvalidStartHeight() sdk.EnvelopedErr {
 
 // ErrNilAddress returns an error when an empty address appears
 func ErrNilAddress() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidAddress, "failed. address is nil")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidAddress, "failed. address is required")}
 }
 
 // ErrPoolNotFinished returns an error when the pool is not finished and can not be destroyed
@@ -144,14 +140,6 @@ func ErrLockAmountBelowMinimum(minLockAmount, amount sdk.Dec) sdk.EnvelopedErr {
 		amount.String(), minLockAmount.String())}
 }
 
-func ErrUnknownRequest(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownRequest, content)}
-}
-
-func ErrInternal(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInternal, content)}
-}
-
 func ErrGetEarningsFailed(content string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errGetEarningsFailed, content)}
 }
@@ -160,12 +148,12 @@ func ErrSendCoinsFromAccountToModuleFailed(content string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendCoinsFromAccountToModuleFailed, content)}
 }
 
-func ErrUnknownMsgType(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownMsgType, content)}
+func ErrUnknownFarmMsgType(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownFarmMsgType, content)}
 }
 
-func ErrUnknownQueryType(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownQueryType, content)}
+func ErrUnknownFarmQueryType(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errUnknownFarmQueryType, content)}
 }
 
 func ErrFarmMsgOccurError(content string) sdk.EnvelopedErr {

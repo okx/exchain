@@ -103,11 +103,11 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTxListV2:
 			res, err = queryTxListV2(ctx, path[1:], req, keeper)
 		default:
-			res, err = nil, types.ErrBackendModuleUnknownRequest()
+			res, err = nil, types.ErrBackendModuleUnknownQueryType()
 		}
 
 		if err != nil {
-			response := common.GetErrorResponse(types.CodeBackendModuleUnknownRequest, "backend module unknown request", err.Error())
+			response := common.GetErrorResponse(types.CodeBackendModuleUnknownQueryType, "backend module unknown query type", err.Error())
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
 				return nil, common.ErrMarshalJSONFailed(eJSON.Error())

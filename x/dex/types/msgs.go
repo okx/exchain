@@ -183,7 +183,7 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	}
 
 	if msg.Product == "" {
-		return ErrProductIsEmpty()
+		return ErrTokenPairIsRequired()
 	}
 	return nil
 }
@@ -221,7 +221,7 @@ func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress("failed to check MsgConfirmOwnership msg because miss sender address")
 	}
 	if len(msg.Product) == 0 {
-		return ErrProductIsEmpty()
+		return ErrTokenPairIsRequired()
 	}
 	return nil
 }

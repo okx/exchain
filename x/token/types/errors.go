@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	CodeParamTokenUnknown						uint32 = 61000
 	CodeInvalidDexList          				uint32 = 61001
 	CodeInvalidBalanceNotEnough 				uint32 = 61002
 	CodeInvalidHeight          					uint32 = 61003
@@ -24,9 +23,8 @@ const (
 	CodeInvalidAddress							uint32 = 61018
 	CodeGetConfirmOwnership						uint32 = 61019
 	CodeUpdateLockedCoins						uint32 = 61020
-	CodeUnknownQueryType						uint32 = 61021
+	CodeUnknownTokenQueryType						uint32 = 61021
 	CodeUserInputSymbolIsEmpty					uint32 = 61022
-	CodeInvalidOriginalSymbol					uint32 = 61023
 	CodeNotAllowedOriginalSymbol				uint32 = 61023
 	CodeWholeNameIsNotValid						uint32 = 61024
 	CodeDescLenBiggerThanLimit					uint32 = 61025
@@ -64,7 +62,7 @@ var (
 	errCodeInvalidAddress						= sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "invalid address")
 	errCodeGetConfirmOwnership					= sdkerrors.Register(DefaultCodespace, CodeGetConfirmOwnership, "get confirm ownership failed")
 	errCodeUpdateLockedCoins					= sdkerrors.Register(DefaultCodespace, CodeUpdateLockedCoins, "update locked coins failed")
-	errCodeUnknownQueryType						= sdkerrors.Register(DefaultCodespace, CodeUnknownQueryType, "unknown query type")
+	errCodeUnknownTokenQueryType						= sdkerrors.Register(DefaultCodespace, CodeUnknownTokenQueryType, "unknown token query type")
 	errCodeOriginalSymbolIsEmpty				= sdkerrors.Register(DefaultCodespace, CodeUserInputSymbolIsEmpty, "user input symbol is empty")
 	errCodeNotAllowedOriginalSymbol				= sdkerrors.Register(DefaultCodespace, CodeNotAllowedOriginalSymbol, "not allowed original symbol")
 	errCodeWholeNameIsNotValid					= sdkerrors.Register(DefaultCodespace, CodeWholeNameIsNotValid, "whole name is not valid")
@@ -140,8 +138,8 @@ func ErrUpdateLockedCoins() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUpdateLockedCoins, "get confirm ownership failed")}
 }
 
-func ErrUnknownQueryType() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownQueryType, "unknown query type")}
+func ErrUnknownTokenQueryType() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownTokenQueryType, "unknown token query type")}
 }
 
 func ErrUserInputSymbolIsEmpty() sdk.Error {

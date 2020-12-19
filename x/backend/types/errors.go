@@ -21,15 +21,13 @@ const (
 	CodeProductDoesNotExist           uint32 = 62009
 	CodeBackendPluginNotEnabled       uint32 = 62010
 	CodeGoroutinePanic                uint32 = 62011
-	CodeBackendModuleUnknownRequest   uint32 = 62012
+	CodeBackendModuleUnknownQueryType   uint32 = 62012
 	CodeGetCandlesFailed              uint32 = 62013
 	CodeGetCandlesByMarketFailed      uint32 = 62014
 	CodeGetTickerByProductsFailed     uint32 = 62015
 	CodeParamNotCorrect               uint32 = 62016
 	CodeNoKlinesFunctionFound         uint32 = 62017
 	CodeMarketkeeperNotInitialized    uint32 = 62018
-	CodeInternalError                 uint32 = 62019
-	CodeUnknownRequest                uint32 = 62020
 )
 
 // invalid param side, must be buy or sell
@@ -63,14 +61,6 @@ func ErrMarketkeeperNotInitialized() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")
 }
 
-func ErrBackendModuleUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownRequest, "backend module unknown request")
-}
-
-func ErrInternal() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInternalError, "internal error")
-}
-
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "internal error")
+func ErrBackendModuleUnknownQueryType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownQueryType, "backend module unknown query type")
 }

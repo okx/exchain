@@ -50,7 +50,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
-			return types.ErrUnknownMsgType("unrecognized message").Result()
+			return types.ErrUnknownFarmMsgType("unrecognized message").Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
