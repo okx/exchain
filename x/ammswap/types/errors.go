@@ -60,8 +60,8 @@ const (
 	CodeMsgDeadlineLessThanBlockTime						uint32 = 65049
 )
 
-func ErrUnexistswapTokenPair () sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "validator address is nil")
+func ErrUnexistswapTokenPair() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "token pair is not exist")
 }
 
 func ErrUnexistPoolToken() sdk.Error {
@@ -96,15 +96,15 @@ func ErrNotAllowedOriginSymbol() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeNotAllowedOriginSymbol, "liquidity-pool-token is not allowed to be a base or quote token")
 }
 
-func ErrInsufficientPoolToken () sdk.Error {
+func ErrInsufficientPoolToken() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")
 }
 
-func ErrUnknownRequest () sdk.Error {
+func ErrUnknownRequest() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
 }
 
-func ErrTokenNotExist () sdk.Error {
+func ErrTokenNotExist() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
 }
 
@@ -139,7 +139,6 @@ func ErrBlockTimeBigThanDeadline() sdk.Error {
 func ErrGetPoolTokenInfoFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeGetPoolTokenInfoFailed, fmt.Sprintf("get pool token info failed"))
 }
-
 
 func ErrTokenGreaterThanBaseAccount() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenGreaterThanBaseAccount, fmt.Sprintf("token greater than base account"))
