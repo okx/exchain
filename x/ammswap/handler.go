@@ -37,7 +37,7 @@ func NewHandler(k Keeper) sdk.Handler {
 				return handleMsgTokenToToken(ctx, k, msg)
 			}
 		default:
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrUnknownMsgType()
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
@@ -63,26 +63,26 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	// 0. check if 2 tokens exist
 	err := k.IsTokenExist(ctx, msg.Token0Name)
 	if err != nil {
-		return nil, types.ErrIsTokenExist(msg.Token0Name)
+		return nil, err
 	}
 
 	err = k.IsTokenExist(ctx, msg.Token1Name)
 	if err != nil {
-		return nil, types.ErrIsTokenExist(msg.Token1Name)
+		return nil, err
 	}
 
 	// 1. check if the token pair exists
 	tokenPairName := msg.GetSwapTokenPairName()
 	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 
 	// 2. check if the pool token exists
 	poolTokenName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
 	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
 	if err == nil {
-		return nil, types.ErrGetPoolTokenInfoFailed()
+		return nil, err
 	}
 
 	// 3. create the pool token
@@ -108,13 +108,13 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 	baseTokens := sdk.NewDecCoinFromDec(msg.MaxBaseAmount.Denom, sdk.ZeroDec())
 	var liquidity sdk.Dec
 	poolToken, err := k.GetPoolTokenInfo(ctx, swapTokenPair.PoolTokenName)
 	if err != nil {
-		return nil, types.ErrGetPoolTokenInfoFailed()
+		return nil, err
 	}
 	if swapTokenPair.QuotePooledCoin.Amount.IsZero() && swapTokenPair.BasePooledCoin.Amount.IsZero() {
 		baseTokens.Amount = msg.MaxBaseAmount.Amount
@@ -152,7 +152,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed()
 	}
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
@@ -176,11 +176,11 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	if msg.Deadline < ctx.BlockTime().Unix() {
-		return nil, types.ErrInternalError()
+		return nil, types.ErrMsgDeadlineLessThanBlockTime()
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 
 	liquidity := msg.Liquidity
@@ -242,7 +242,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*sdk.Resul
 	}
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, msg.GetSwapTokenPairName())
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 	if swapTokenPair.BasePooledCoin.IsZero() || swapTokenPair.QuotePooledCoin.IsZero() {
 		return nil, types.ErrIsZeroValue()
@@ -279,7 +279,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 	if swapTokenPairOne.BasePooledCoin.IsZero() || swapTokenPairOne.QuotePooledCoin.IsZero() {
 		return nil, types.ErrIsZeroValue()
@@ -287,7 +287,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 	if swapTokenPairTwo.BasePooledCoin.IsZero() || swapTokenPairTwo.QuotePooledCoin.IsZero() {
 		return nil, types.ErrIsZeroValue()

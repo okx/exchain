@@ -160,7 +160,7 @@ func (k Keeper) GetRedeemableAssets(ctx sdk.Context, baseAmountName, quoteAmount
 	swapTokenPairName := types.GetSwapTokenPairName(baseAmountName, quoteAmountName)
 	swapTokenPair, err := k.GetSwapTokenPair(ctx, swapTokenPairName)
 	if err != nil {
-		return baseAmount, quoteAmount, types.ErrGetSwapTokenPair()
+		return baseAmount, quoteAmount, err
 	}
 	poolTokenAmount := k.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if poolTokenAmount.LT(liquidity) {

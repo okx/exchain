@@ -37,7 +37,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 			res, err = querySwapAddLiquidityQuote(ctx, req, k)
 
 		default:
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrUnknownQueryType()
 		}
 
 		if err != nil {
@@ -81,15 +81,15 @@ func queryBuyAmount(
 	var queryParams types.QueryBuyAmountParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
 	if errToken != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, errToken
 	}
 	errToken = types.ValidateSwapAmountName(queryParams.SoldToken.Denom)
 	if errToken != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, errToken
 	}
 	params := keeper.GetParams(ctx)
 	var buyAmount sdk.Dec
@@ -104,7 +104,7 @@ func queryBuyAmount(
 		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
-			return nil, types.ErrGetSwapTokenPair()
+			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue()
@@ -112,7 +112,7 @@ func queryBuyAmount(
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
-			return nil, types.ErrGetSwapTokenPair()
+			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue()
@@ -141,7 +141,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	tokenPairName := path[0]
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err != nil {
-		return nil, types.ErrGetSwapTokenPair()
+		return nil, err
 	}
 
 	liquidity, errDec := sdk.NewDecFromStr(path[1])
@@ -152,7 +152,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	var tokenList sdk.SysCoins
 	baseToken, quoteToken, err := keeper.GetRedeemableAssets(ctx, swapTokenPair.BasePooledCoin.Denom, swapTokenPair.QuotePooledCoin.Denom, liquidity)
 	if err != nil {
-		return nil, types.ErrGetRedeemableAssetsFailed()
+		return nil, err
 	}
 	tokenList = append(tokenList, baseToken, quoteToken)
 	bz := keeper.cdc.MustMarshalJSON(tokenList)
@@ -218,7 +218,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	response := common.GetBaseResponse(swapTokensResp)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -291,19 +291,19 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	var queryParams types.QuerySwapBuyInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if queryParams.SellTokenAmount == "" || queryParams.BuyToken == "" {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrSellAmountOrBuyTokenIsEmpty()
 	}
 
 	sellAmount, err := sdk.ParseDecCoin(queryParams.SellTokenAmount)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrParseDecCoinQueryParamsSellTokenAmount()
 	}
 
 	if sellAmount.Denom == queryParams.BuyToken {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrSellAmountEqualBuyToken()
 	}
 
 	var route string
@@ -316,7 +316,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		if tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrIsZeroValue()
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, sellAmount, queryParams.BuyToken, swapParams).Amount
 		// calculate market price
@@ -331,18 +331,18 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		tokenPairName1 := types.GetSwapTokenPairName(sellAmount.Denom, common.NativeToken)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
-			return nil, types.ErrUnknownRequest()
+			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.Amount.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrIsZeroValue()
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.BuyToken, common.NativeToken)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
-			return nil, types.ErrUnknownRequest()
+			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.Amount.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, types.ErrUnknownRequest()
+			return nil, types.ErrIsZeroValue()
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, sellAmount, common.NativeToken, swapParams)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.BuyToken, swapParams).Amount
@@ -401,7 +401,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	response := common.GetBaseResponse(swapBuyInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 
@@ -412,11 +412,11 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	var queryParams types.QuerySwapLiquidityInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	// check params
 	if queryParams.Address == "" {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrQueryParamsAddressIsEmpty()
 	}
 
 	// coins in account
@@ -461,7 +461,7 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	response := common.GetBaseResponse(liquidityInfoList)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 
@@ -472,32 +472,32 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	var queryParams types.QuerySwapAddInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	// check params
 	if queryParams.QuoteTokenAmount == "" {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrQueryParamsQuoteTokenAmountIsEmpty()
 	}
 	if queryParams.BaseToken == "" {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrQueryParamsBaseTokenIsEmpty()
 	}
 	queryTokenAmount, err := sdk.ParseDecCoin(queryParams.QuoteTokenAmount)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrParseDecCoinQueryParamsQuoteTokenAmount()
 	}
 
 	tokenPairName := types.GetSwapTokenPairName(queryParams.BaseToken, queryTokenAmount.Denom)
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err != nil {
-		return nil, types.ErrUnknownRequest()
+		return nil, err
 	}
 	if swapTokenPair.BasePooledCoin.Amount.IsZero() && swapTokenPair.QuotePooledCoin.Amount.IsZero() {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrIsZeroValue()
 	}
 
 	totalSupply := keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if totalSupply.IsZero() {
-		return nil, types.ErrUnknownRequest()
+		return nil, types.ErrIsZeroValue()
 	}
 
 	var addAmount sdk.Dec
@@ -516,7 +516,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	response := common.GetBaseResponse(addInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, types.ErrInternalError()
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 

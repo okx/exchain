@@ -42,20 +42,20 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if msg.MinLiquidity.IsNegative() {
-		return ErrUnknownRequest()
+		return ErrMinLiquidityIsNegative()
 	}
 	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
-		return ErrUnknownRequest()
+		return ErrMaxBaseAmountOrMsgQuoteAmountIsNegative()
 	}
 	if !msg.MaxBaseAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrMaxBaseAmountIsNegativeOrNotValidateDenom()
 	}
 	if !msg.QuoteAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrQuoteAmountIsNegativeOrNotValidateDenom()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 	if err != nil {
-		return ErrUnknownRequest()
+		return err
 	}
 
 	return nil
@@ -108,17 +108,17 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if !(msg.Liquidity.IsPositive()) {
-		return ErrUnknownRequest()
+		return ErrMinLiquidityIsNegative()
 	}
 	if !msg.MinBaseAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrMinBaseAmountIsNegativeOrNotValidateDenom()
 	}
 	if !msg.MinQuoteAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrMinQuoteAmountIsNegativeOrNotValidateDenom()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
-		return ErrUnknownRequest()
+		return err
 	}
 	return nil
 }
@@ -166,15 +166,15 @@ func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 		return ErrInvalidAddress(msg.Sender.String())
 	}
 	if err := ValidateSwapAmountName(msg.Token0Name); err != nil {
-		return ErrInvalidCoins()
+		return err
 	}
 
 	if err := ValidateSwapAmountName(msg.Token1Name); err != nil {
-		return ErrInvalidCoins()
+		return err
 	}
 
 	if msg.Token0Name == msg.Token1Name {
-		return ErrInvalidCoins()
+		return ErrToken0NameEqualToken1Name()
 	}
 	return nil
 }
@@ -233,20 +233,20 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	}
 
 	if !(msg.SoldTokenAmount.IsPositive()) {
-		return ErrUnknownRequest()
+		return ErrSoldTokenAmountIsNegative()
 	}
 	if !msg.SoldTokenAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrSoldTokenAmountIsNegativeOrNotValidateDenom()
 	}
 
 	if !msg.MinBoughtTokenAmount.IsValid() {
-		return ErrUnknownRequest()
+		return ErrMinBoughtTokenAmountIsNegativeOrNotValidateDenom()
 	}
 
 	baseAmountName, quoteAmountName := GetBaseQuoteTokenName(msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)
 	err := ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName)
 	if err != nil {
-		return ErrUnknownRequest()
+		return err
 	}
 	return nil
 }

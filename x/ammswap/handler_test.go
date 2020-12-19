@@ -51,7 +51,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:       testToken.Symbol,
 			token1:       types.TestBasePooledToken3,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: sdk.CodeInternal},
+			expectedCode: types.CodeTokenNotExist},
 		{
 			testCase:     "success",
 			token0:       testToken.Symbol,
