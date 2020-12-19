@@ -18,7 +18,7 @@ import (
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err sdk.Error) {
 		if !keeper.Config.EnableBackend {
-			response := common.GetErrorResponse(types.CodeBackendPluginNotEnabled, "", "Backend Plugin's Not Enabled")
+			response := common.GetErrorResponse(types.CodeBackendPluginNotEnabled, "Backend Plugin's Not Enabled", "Backend Plugin's Not Enabled")
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
 				return nil, common.ErrMarshalJSONFailed(eJSON.Error())
@@ -29,7 +29,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		defer func() {
 			if e := recover(); e != nil {
 				errMsg := fmt.Sprintf("%+v", e)
-				response := common.GetErrorResponse(types.CodeRecoverPanicGoroutineFailed, "", errMsg)
+				response := common.GetErrorResponse(types.CodeGoroutinePanic, errMsg, errMsg)
 				resJSON, eJSON := json.Marshal(response)
 				if eJSON != nil {
 					res = nil
@@ -103,11 +103,11 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTxListV2:
 			res, err = queryTxListV2(ctx, path[1:], req, keeper)
 		default:
-			res, err = nil, types.ErrUnknownBackendEndpoint()
+			res, err = nil, types.ErrBackendModuleUnknownRequest()
 		}
 
 		if err != nil {
-			response := common.GetErrorResponse(types.CodeUnknownBackendEndpoint, "unknown backend endpoint", err.Error())
+			response := common.GetErrorResponse(types.CodeBackendModuleUnknownRequest, "backend module unknown request", err.Error())
 			res, eJSON := json.Marshal(response)
 			if eJSON != nil {
 				return nil, common.ErrMarshalJSONFailed(eJSON.Error())

@@ -11,9 +11,8 @@ import (
 const (
 	DefaultCodespace = "backend"
 
-	CodeNewErrorsMergedFailed         uint32 = 62001
 	CodeProductIsRequired             uint32 = 62002
-	CodeAddressIsEmpty                uint32 = 62003
+	CodeAddressIsRequired             uint32 = 62003
 	CodeOrderStatusMustBeOpenOrClosed uint32 = 62004
 	CodeAddressAndProductRequired     uint32 = 62005
 	CodeGetChainHeightFailed          uint32 = 62006
@@ -21,16 +20,16 @@ const (
 	CodeOrderSideMustBuyOrSell        uint32 = 62008
 	CodeProductDoesNotExist           uint32 = 62009
 	CodeBackendPluginNotEnabled       uint32 = 62010
-	CodeRecoverPanicGoroutineFailed   uint32 = 62011
-	CodeUnknownBackendEndpoint        uint32 = 62012
+	CodeGoroutinePanic                uint32 = 62011
+	CodeBackendModuleUnknownRequest   uint32 = 62012
 	CodeGetCandlesFailed              uint32 = 62013
 	CodeGetCandlesByMarketFailed      uint32 = 62014
 	CodeGetTickerByProductsFailed     uint32 = 62015
-	CodeParamNotCorrect				  uint32 = 62016
-	CodeNoKlinesFunctionFound		  uint32 = 62017
-	CodeMarketkeeperNotInitialized	  uint32 = 62018
-	CodeInternalError			 	  uint32 = 62019
-	CodeUnknownRequest				  uint32 = 62020
+	CodeParamNotCorrect               uint32 = 62016
+	CodeNoKlinesFunctionFound         uint32 = 62017
+	CodeMarketkeeperNotInitialized    uint32 = 62018
+	CodeInternalError                 uint32 = 62019
+	CodeUnknownRequest                uint32 = 62020
 )
 
 // invalid param side, must be buy or sell
@@ -49,7 +48,7 @@ func ErrProductDoesNotExist(product string) sdk.Error {
 }
 
 func ErrBackendPluginNotEnabled() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled, no candle found, maintian.conf")
+	return sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled")
 }
 
 func ErrParamNotCorrect(size int, granularity int) sdk.Error {
@@ -64,8 +63,8 @@ func ErrMarketkeeperNotInitialized() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")
 }
 
-func ErrUnknownBackendEndpoint() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownBackendEndpoint, "unknown backend endpoint")
+func ErrBackendModuleUnknownRequest() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownRequest, "backend module unknown request")
 }
 
 func ErrInternal() sdk.Error {

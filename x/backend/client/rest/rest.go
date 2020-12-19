@@ -96,7 +96,7 @@ func tickerHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		count, errCnt := strconv.Atoi(strCount)
 		mErr := types.NewErrorsMerged(errSort, errCnt)
 		if mErr != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeNewErrorsMergedFailed, mErr.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, mErr.Error())
 			return
 		}
 
@@ -188,7 +188,7 @@ func dealHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsEmpty, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var start, end int64
@@ -238,7 +238,7 @@ func feeDetailListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsEmpty, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
@@ -283,7 +283,7 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsEmpty, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var start, end int64
@@ -298,7 +298,7 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		end, errEnd := strconv.ParseInt(endStr, 10, 64)
 		mErr := types.NewErrorsMerged(errStart, errEnd)
 		if mErr != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeNewErrorsMergedFailed, mErr.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, mErr.Error())
 			return
 		}
 
@@ -341,7 +341,7 @@ func txListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsEmpty, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var txType, start, end int64
