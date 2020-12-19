@@ -48,6 +48,11 @@ func (suite *EvmTestSuite) SetupTest() {
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(suite.app.EvmKeeper)
 	suite.codec = codec.New()
+
+	params := types.DefaultParams()
+	params.EnableCreate = true
+	params.EnableCall = true
+	suite.app.EvmKeeper.SetParams(suite.ctx, params)
 }
 
 func TestEvmTestSuite(t *testing.T) {
