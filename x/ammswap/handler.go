@@ -74,14 +74,14 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	// 1. check if the token pair exists
 	tokenPairName := msg.GetSwapTokenPairName()
 	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 
 	// 2. check if the pool token exists
 	poolTokenName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
 	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 

@@ -48,7 +48,7 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
 	if rawItem == nil {
-		return types.SwapTokenPair{}, types.ErrUnexistswapTokenPair()
+		return types.SwapTokenPair{}, types.ErrUnexistSwapTokenPair()
 	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {

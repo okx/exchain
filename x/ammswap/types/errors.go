@@ -9,7 +9,7 @@ import (
 const (
 	DefaultCodespace 						string = "ammswap"
 
-	CodeUnexistwapTokenPair       			uint32 = 65000
+	CodeUnexistSwapTokenPair       			uint32 = 65000
 	CodeUnexistPoolToken					uint32 = 65001
 	CodeMintCoinsFailed						uint32 = 65002
 	CodeSendCoinsFromAccountToModule 		uint32 = 65003
@@ -59,8 +59,8 @@ const (
 	CodeBaseTokensAmountBiggerThanMaxBaseAmount				uint32 = 65050
 )
 
-func ErrUnexistswapTokenPair() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistwapTokenPair, "token pair is not exist")
+func ErrUnexistSwapTokenPair() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, "token pair is not exist")
 }
 
 func ErrUnexistPoolToken() sdk.Error {

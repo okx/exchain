@@ -57,13 +57,13 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:       testToken.Symbol,
 			token1:       testQuoteToken.Symbol,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: sdk.CodeOK},
+			expectedCode: types.CodeUnexistSwapTokenPair},
 		{
 			testCase:     "success(The lexicographic order of BaseTokenName must be less than QuoteTokenName)",
 			token0:       testToken2.Symbol,
 			token1:       testToken.Symbol,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: sdk.CodeOK},
+			expectedCode: types.CodeUnexistSwapTokenPair},
 		{
 			testCase:     "swapTokenPair already exists",
 			token0:       testToken.Symbol,
