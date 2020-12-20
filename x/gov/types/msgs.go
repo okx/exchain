@@ -33,7 +33,7 @@ func (msg MsgSubmitProposal) Type() string  { return TypeMsgSubmitProposal }
 // Implements Msg.
 func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 	if msg.Content == nil {
-		return ErrInvalidProposalContent()
+		return ErrInvalidProposalContent("content is required")
 	}
 	if msg.Content.ProposalType() == ProposalTypeSoftwareUpgrade {
 		// Disable software upgrade proposals as they are currently equivalent

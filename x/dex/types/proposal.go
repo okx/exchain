@@ -64,18 +64,18 @@ func (DelistProposal) ProposalType() string {
 // ValidateBasic validates delist proposal
 func (drp DelistProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(drp.Title)) == 0 {
-		return govtypes.ErrInvalidProposalContent()
+		return govtypes.ErrInvalidProposalContent("title is required")
 	}
 	if len(drp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent()
+		return govtypes.ErrInvalidProposalContent("title length bigger than max title length")
 	}
 
 	if len(drp.Description) == 0 {
-		return govtypes.ErrInvalidProposalContent()
+		return govtypes.ErrInvalidProposalContent("description is required")
 	}
 
 	if len(drp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent()
+		return govtypes.ErrInvalidProposalContent("description length bigger than max description length")
 	}
 
 	if drp.ProposalType() != proposalTypeDelist {

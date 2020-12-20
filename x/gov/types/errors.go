@@ -30,8 +30,8 @@ func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address %s", address))
 }
 
-func ErrInvalidProposalContent() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidContent, fmt.Sprintf("invalid proposal content"))
+func ErrInvalidProposalContent(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidContent, fmt.Sprintf("invalid proposal content: %s", msg))
 }
 
 func ErrInvalidProposalType(proposalType string) sdk.Error {
