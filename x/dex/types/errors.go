@@ -36,10 +36,10 @@ const (
 	CodeGetConfirmOwnershipNotExist         uint32 = 64031
 	CodeTokenPairIsRequired                 uint32 = 64032
 	CodeIsTokenPairLocked                   uint32 = 64033
-	CodeDexUnknownMsgType                      uint32 = 64034
-	CodeDexUnknownQueryType                    uint32 = 64035
-
+	CodeDexUnknownMsgType                   uint32 = 64034
+	CodeDexUnknownQueryType                 uint32 = 64035
 	CodeInitPriceIsNotPositive 				uint32 = 64037
+	CodeAddressIsRequired					uint32 = 64038
 )
 
 // CodeType to Message
@@ -177,4 +177,8 @@ func ErrDexUnknownQueryType() sdk.Error {
 
 func ErrInitPriceIsNotPositive() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInitPriceIsNotPositive, "invalid init price number")
+}
+
+func ErrAddressIsRequired(message string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeAddressIsRequired, fmt.Sprintf("%s: address is required", message))
 }

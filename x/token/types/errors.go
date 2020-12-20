@@ -17,7 +17,7 @@ const (
 	CodeInvalidCoins							uint32 = 61013
 	CodeInvalidPriceDigit   	    			uint32 = 61016
 	CodeInvalidMinTradeSize     				uint32 = 61017
-	CodeInvalidAddress							uint32 = 61018
+	CodeAddressIsRequired						uint32 = 61018
 	CodeGetConfirmOwnership						uint32 = 61019
 	CodeUpdateLockedCoins						uint32 = 61020
 	CodeUnknownTokenQueryType					uint32 = 61021
@@ -51,7 +51,7 @@ var (
 	errCodeInvalidCoins						 	= sdkerrors.Register(DefaultCodespace, CodeInvalidCoins, "invalid coins")
 	errCodeInvalidPriceDigit       				= sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
 	errCodeInvalidMinTradeSize     				= sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
-	errCodeInvalidAddress						= sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "invalid address")
+	errCodeAddressIsRequired						= sdkerrors.Register(DefaultCodespace, CodeAddressIsRequired, "address is required")
 	errCodeGetConfirmOwnership					= sdkerrors.Register(DefaultCodespace, CodeGetConfirmOwnership, "get confirm ownership failed")
 	errCodeUpdateLockedCoins					= sdkerrors.Register(DefaultCodespace, CodeUpdateLockedCoins, "update locked coins failed")
 	errCodeUnknownTokenQueryType						= sdkerrors.Register(DefaultCodespace, CodeUnknownTokenQueryType, "unknown token query type")
@@ -99,10 +99,6 @@ func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
 
 func ErrInvalidCoins() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "unknown token")}
-}
-
-func ErrInvalidAddress() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidAddress, "invalid address")}
 }
 
 func ErrGetConfirmOwnership() sdk.Error {
@@ -187,4 +183,8 @@ func ErrCodeinputFromAddressIsNotEqualTokenInfoOwner() sdk.Error {
 
 func ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")}
+}
+
+func ErrAddressIsRequired() sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAddressIsRequired, "address is required")}
 }

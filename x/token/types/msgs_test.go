@@ -31,7 +31,7 @@ func TestNewMsgTokenIssue(t *testing.T) {
 		{NewMsgTokenIssue("bnb", "bnb", "bnb", "binance coin", strconv.FormatInt(int64(99*1e10), 10), addr, true),
 			ErrTotalSupplyOutOfRange()},
 		{NewMsgTokenIssue("", "", "", "binance coin", totalSupply, sdk.AccAddress{}, true),
-			ErrInvalidAddress()},
+			ErrAddressIsRequired()},
 		{NewMsgTokenIssue("", "", "bnb-asd", "binance coin", totalSupply, addr, true),
 			ErrNotAllowedOriginalSymbol()},
 	}
@@ -74,7 +74,7 @@ func TestNewMsgTokenBurn(t *testing.T) {
 	}{
 		{NewMsgTokenBurn(decCoin, addr), nil},
 		{NewMsgTokenBurn(decCoin0, addr), common.ErrInsufficientCoins(DefaultParamspace, "100.000000000000000000")},
-		{NewMsgTokenBurn(decCoin, sdk.AccAddress{}), ErrInvalidAddress()},
+		{NewMsgTokenBurn(decCoin, sdk.AccAddress{}), ErrAddressIsRequired()},
 		{NewMsgTokenBurn(decCoin1, addr), common.ErrInsufficientCoins(DefaultParamspace, "100.0000000000000000001okb-ads")},
 	}
 
@@ -122,7 +122,7 @@ func TestNewMsgTokenMint(t *testing.T) {
 	}{
 		{NewMsgTokenMint(decCoin, addr), nil},
 		{NewMsgTokenMint(decCoin0, addr), ErrAmountIsNotValid("1000.000000000000000000")},
-		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), ErrInvalidAddress()},
+		{NewMsgTokenMint(decCoin, sdk.AccAddress{}), ErrAddressIsRequired()},
 		{NewMsgTokenMint(decCoin1, addr), ErrAmountIsNotValid("1000.00000000000000000011234")},
 		{NewMsgTokenMint(decCoin2, addr), ErrAmountBiggerThanTotalSupplyUpperbound()},
 	}
@@ -186,8 +186,8 @@ func TestNewTokenMsgSend(t *testing.T) {
 		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
 		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), common.ErrInsufficientCoins(DefaultParamspace, "")},
 		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), ErrInvalidCoins()},
-		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), ErrInvalidAddress()},
-		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), ErrInvalidAddress()},
+		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), ErrAddressIsRequired()},
+		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), ErrAddressIsRequired()},
 		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), ErrInvalidCoins()},
 	}
 	for _, msgCase := range testCase {
@@ -251,10 +251,10 @@ func TestNewTokenMultiSend(t *testing.T) {
 		err          sdk.Error
 	}{
 		{NewMsgMultiSend(fromAddr, transfers), nil},
-		{NewMsgMultiSend(sdk.AccAddress{}, transfers), ErrInvalidAddress()},
+		{NewMsgMultiSend(sdk.AccAddress{}, transfers), ErrAddressIsRequired()},
 		{NewMsgMultiSend(fromAddr, make([]TransferUnit, MultiSendLimit+1)),ErrMsgTransfersAmountBiggerThanSendLimit()},
 		{NewMsgMultiSend(fromAddr, transfers0), ErrInvalidCoins()},
-		{NewMsgMultiSend(fromAddr, transfers1), ErrInvalidAddress()},
+		{NewMsgMultiSend(fromAddr, transfers1), ErrAddressIsRequired()},
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.multiSendMsg.ValidateBasic()
@@ -296,8 +296,8 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 		transferOwnershipMsg MsgTransferOwnership
 		err                  sdk.Error
 	}{
-		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken), ErrInvalidAddress()},
-		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), ErrInvalidAddress()},
+		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken), ErrAddressIsRequired()},
+		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), ErrAddressIsRequired()},
 		{NewMsgTransferOwnership(fromAddr, toAddr, ""), ErrMsgSymbolIsEmpty()},
 		{NewMsgTransferOwnership(fromAddr, toAddr, "1okb-ads"), ErrConfirmOwnershipNotExistOrBlockTimeAfter()},
 	}
@@ -333,7 +333,7 @@ func TestNewMsgTokenModify(t *testing.T) {
 		{NewMsgTokenModify("", "bnb", "bnb bnb", true, true, addr),
 			ErrMsgSymbolIsEmpty()},
 		{NewMsgTokenModify("bnb", "bnb", "bnb bnb", true, true, sdk.AccAddress{}),
-			ErrInvalidAddress()},
+			ErrAddressIsRequired()},
 		{NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, true, addr),
 			ErrWholeNameIsNotValidl()},
 		{NewMsgTokenModify("bnb", "bnb", "bnbbbbbbbbbb bnbbbbbbbbbbbbbbbbb", true, false, addr),

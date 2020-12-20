@@ -23,7 +23,7 @@ const (
 	CodeInvalidCoins						uint32 = 65013
 	CodeInternalError						uint32 = 65014
 	CodeGetSwapTokenPairFailed				uint32 = 65015
-	CodeInvalidAddress						uint32 = 65016
+	AddressIsRequire						uint32 = 65016
 	CodeIsZeroValue							uint32 = 65017
 	CodeGetRedeemableAssetsFailed			uint32 = 65018
 	CodeBlockTimeBigThanDeadline			uint32 = 65019
@@ -35,8 +35,8 @@ const (
 	CodeBurnPoolCoinsFromUserFailed			uint32 = 65026
 	CodeCalculateTokenToBuyFailed			uint32 = 65027
 	CodeSendCoinsToPoolFailed				uint32 = 65028
-	CodeUnknownMsgType						uint32 = 65029
-	CodeUnknowQueryTypes					uint32 = 65030
+	CodeSwapUnknownMsgType					uint32 = 65029
+	CodeSwapUnknowQueryTypes				uint32 = 65030
 	CodeSellAmountOrBuyTokenIsEmpty			uint32 = 65031
 	CodeSellAmountEqualBuyToken				uint32 = 65032
 	CodeQueryParamsAddressIsEmpty			uint32 = 65033
@@ -116,7 +116,7 @@ func ErrGetSwapTokenPair() sdk.Error {
 }
 
 func ErrAddressIsRequire(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("%s address Is require", msg))
+	return sdkerrors.New(DefaultCodespace, AddressIsRequire, fmt.Sprintf("%s address Is require", msg))
 }
 
 func ErrIsZeroValue(msg string) sdk.Error {
@@ -160,11 +160,11 @@ func ErrSendCoinsToPoolFailed(msg string) sdk.Error {
 }
 
 func ErrSwapUnknownMsgType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownMsgType, "swap unknown msg type")
+	return sdkerrors.New(DefaultCodespace, CodeSwapUnknownMsgType, "swap unknown msg type")
 }
 
 func ErrSwapUnknownQueryType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknowQueryTypes, "swap unknown query type")
+	return sdkerrors.New(DefaultCodespace, CodeSwapUnknowQueryTypes, "swap unknown query type")
 }
 
 func ErrSellAmountOrBuyTokenIsEmpty() sdk.Error {

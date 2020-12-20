@@ -44,7 +44,7 @@ func (msg MsgTokenIssue) Type() string { return "issue" }
 func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 
 	// check original symbol
@@ -103,7 +103,7 @@ func (msg MsgTokenBurn) Type() string { return "burn" }
 func (msg MsgTokenBurn) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	if !msg.Amount.IsValid() {
 		return common.ErrInsufficientCoins(DefaultParamspace, msg.Amount.String())
@@ -139,7 +139,7 @@ func (msg MsgTokenMint) Type() string { return "mint" }
 
 func (msg MsgTokenMint) ValidateBasic() sdk.Error {
 	if msg.Owner.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 
 	amount := msg.Amount.Amount
@@ -180,7 +180,7 @@ func (msg MsgMultiSend) Type() string { return "multi-send" }
 
 func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 	if msg.From.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 
 	// check transfers
@@ -193,7 +193,7 @@ func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 		}
 
 		if transfer.To.Empty() {
-			return ErrInvalidAddress()
+			return ErrAddressIsRequired()
 		}
 	}
 	return nil
@@ -229,10 +229,10 @@ func (msg MsgSend) Type() string { return "send" }
 
 func (msg MsgSend) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	if msg.ToAddress.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	if !msg.Amount.IsValid() {
 		return ErrInvalidCoins()
@@ -273,10 +273,10 @@ func (msg MsgTransferOwnership) Type() string { return "transfer" }
 
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	if msg.ToAddress.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	if len(msg.Symbol) == 0 {
 		return ErrMsgSymbolIsEmpty()
@@ -324,7 +324,7 @@ func (msg MsgTokenModify) Type() string { return "edit" }
 func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 	// check owner
 	if msg.Owner.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 	// check symbol
 	if len(msg.Symbol) == 0 {
@@ -377,7 +377,7 @@ func (msg MsgConfirmOwnership) Type() string { return "confirm" }
 
 func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	if msg.Address.Empty() {
-		return ErrInvalidAddress()
+		return ErrAddressIsRequired()
 	}
 
 	if len(msg.Symbol) == 0 {
