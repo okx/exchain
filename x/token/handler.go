@@ -86,7 +86,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// check upper bound
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
-		return nil, types.ErrNewDecFromStrFailed()
+		return nil, err
 	}
 	if totalSupply.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
 		return nil, types.ErrAmountBiggerThanTotalSupplyUpperbound()
@@ -113,13 +113,13 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// set supply
 	err = keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return nil, types.ErrMintCoinsFailed()
+		return nil, types.ErrMintCoinsFailed(err.Error())
 	}
 
 	// send coins to owner
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, token.Owner, coins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed()
+		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	// set token info
@@ -129,7 +129,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, token.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 
 	var name = "handleMsgTokenIssue"
@@ -172,7 +172,7 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 	// set supply
 	err = keeper.supplyKeeper.BurnCoins(ctx, types.ModuleName, subCoins)
 	if err != nil {
-		return nil, types.ErrBurnCoinsFailed()
+		return nil, types.ErrBurnCoinsFailed(err.Error())
 	}
 
 	// deduction fee
@@ -224,13 +224,13 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	// set supply
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, mintCoins)
 	if err != nil {
-		return nil, types.ErrMintCoinsFailed()
+		return nil, types.ErrMintCoinsFailed(err.Error())
 	}
 
 	// send coins to acc
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Owner, mintCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed()
+		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	// deduction fee
@@ -271,7 +271,7 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
-			return nil, types.ErrSendCoinsFromModuleToAccountFailed()
+			return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 		}
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
@@ -300,7 +300,7 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed()
+		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	var name = "handleMsgSend"

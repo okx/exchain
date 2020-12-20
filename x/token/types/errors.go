@@ -7,11 +7,8 @@ import (
 )
 
 const (
-	CodeInvalidDexList          				uint32 = 61001
-	CodeInvalidBalanceNotEnough 				uint32 = 61002
 	CodeInvalidHeight          					uint32 = 61003
 	CodeInvalidAsset           					uint32 = 61004
-	CodeInvalidCommon           				uint32 = 61005
 	CodeBlockedRecipient        				uint32 = 61006
 	CodeSendDisabled            				uint32 = 61007
 	CodeSendCoinsFromAccountToModuleFailed		uint32 = 61008
@@ -23,12 +20,11 @@ const (
 	CodeInvalidAddress							uint32 = 61018
 	CodeGetConfirmOwnership						uint32 = 61019
 	CodeUpdateLockedCoins						uint32 = 61020
-	CodeUnknownTokenQueryType						uint32 = 61021
+	CodeUnknownTokenQueryType					uint32 = 61021
 	CodeUserInputSymbolIsEmpty					uint32 = 61022
 	CodeNotAllowedOriginalSymbol				uint32 = 61023
 	CodeWholeNameIsNotValid						uint32 = 61024
 	CodeDescLenBiggerThanLimit					uint32 = 61025
-	CodeNewDecFromStrFailed						uint32 = 61026
 	CodeTotalSupplyOutOfRange					uint32 = 61027
 	CodeAmountBiggerThanTotalSupplyUpperbound	uint32 = 61028
 	CodeAmountIsNotValid						uint32 = 61029
@@ -46,11 +42,7 @@ const (
 )
 
 var (
-	errInvalidDexList          = sdkerrors.Register(DefaultCodespace, CodeInvalidDexList, "invalid dex list")
-	errInvalidBalanceNotEnough = sdkerrors.Register(DefaultCodespace, CodeInvalidBalanceNotEnough, "invalid balance not enough")
-	errInvalidHeight           = sdkerrors.Register(DefaultCodespace, CodeInvalidHeight, "invalid height")
 	errInvalidAsset            = sdkerrors.Register(DefaultCodespace, CodeInvalidAsset, "invalid asset")
-	errInvalidCommon           = sdkerrors.Register(DefaultCodespace, CodeInvalidCommon, "invalid common")
 	errBlockedRecipient        = sdkerrors.Register(DefaultCodespace, CodeBlockedRecipient, "blocked recipient")
 	errSendDisabled            = sdkerrors.Register(DefaultCodespace, CodeSendDisabled, "send disabled")
 	errCodeSendCoinsFromAccountToModuleFailed	= sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send to module account failed")
@@ -67,7 +59,6 @@ var (
 	errCodeNotAllowedOriginalSymbol				= sdkerrors.Register(DefaultCodespace, CodeNotAllowedOriginalSymbol, "not allowed original symbol")
 	errCodeWholeNameIsNotValid					= sdkerrors.Register(DefaultCodespace, CodeWholeNameIsNotValid, "whole name is not valid")
 	errCodeDescLenBiggerThanLimit				= sdkerrors.Register(DefaultCodespace, CodeDescLenBiggerThanLimit, "description len bigger than limit")
-	errCodeNewDecFromStrFailed					= sdkerrors.Register(DefaultCodespace, CodeNewDecFromStrFailed, "new dec from string")
 	errCodeTotalSupplyOutOfRange				= sdkerrors.Register(DefaultCodespace, CodeTotalSupplyOutOfRange, "total supply out of range")
 	errCodeAmountBiggerThanTotalSupplyUpperbound= sdkerrors.Register(DefaultCodespace, CodeAmountBiggerThanTotalSupplyUpperbound, "amount bigger than total supply upperbound")
 	errCodeAmountIsNotValid						= sdkerrors.Register(DefaultCodespace, CodeAmountIsNotValid, "amount is not valid")
@@ -92,22 +83,6 @@ func ErrBlockedRecipient(blockedAddr string) sdk.EnvelopedErr {
 // ErrSendDisabled returns an error when the transaction sending is disabled in bank module
 func ErrSendDisabled() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendDisabled, "failed. send transactions are currently disabled")}
-}
-
-func ErrInvalidDexList(message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidDexList, message)}
-}
-
-func ErrInvalidBalanceNotEnough(message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidBalanceNotEnough, message)}
-}
-
-func ErrInvalidHeight(h, ch, max int64) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidHeight, fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.", h, ch, ch, max))}
-}
-
-func ErrInvalidCommon(message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidCommon, message)}
 }
 
 func ErrSendCoinsFromAccountToModuleFailed(message string) sdk.Error {
@@ -158,10 +133,6 @@ func ErrDescLenBiggerThanLimit() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeDescLenBiggerThanLimit, "description len bigger than limit")}
 }
 
-func ErrNewDecFromStrFailed() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeNewDecFromStrFailed, "total supply convert to decimal failed")}
-}
-
 func ErrTotalSupplyOutOfRange() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalSupplyOutOfRange, "new dec from string")}
 }
@@ -178,16 +149,16 @@ func ErrMsgSymbolIsEmpty() sdk.Error {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMsgSymbolIsEmpty, "msg symbol is empty")}
 }
 
-func ErrMintCoinsFailed() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMintCoinsFailed, "mint coins failed")}
+func ErrMintCoinsFailed(msg string) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMintCoinsFailed, fmt.Sprintf("mint coins failed: %s", msg))}
 }
 
-func ErrSendCoinsFromModuleToAccountFailed() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromModuleToAccountFailed, "send coins from module to account failed")}
+func ErrSendCoinsFromModuleToAccountFailed(msg string) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromModuleToAccountFailed, fmt.Sprintf("send coins from module to account failed: %s", msg))}
 }
 
-func ErrBurnCoinsFailed() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeBurnCoinsFailed, "burn coins failed")}
+func ErrBurnCoinsFailed(msg string) sdk.Error {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeBurnCoinsFailed, fmt.Sprintf("burn coins failed: %s", msg))}
 }
 
 func ErrConfirmOwnershipNotExistOrBlockTimeAfter() sdk.Error {

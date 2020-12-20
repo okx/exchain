@@ -67,7 +67,7 @@ func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 	// check totalSupply
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
-		return ErrNewDecFromStrFailed()
+		return err
 	}
 	if totalSupply.GT(sdk.NewDec(TotalSupplyUpperbound)) || totalSupply.LTE(sdk.ZeroDec()) {
 		return ErrTotalSupplyOutOfRange()

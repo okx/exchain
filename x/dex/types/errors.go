@@ -56,7 +56,7 @@ func codeToDefaultMsg(code uint32) string {
 
 // Addr and Product All Required
 func ErrAddrAndProductAllRequired() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeAddrAndProductAllRequired, "bad request: address、base_asset and quote_asset could not be empty at the same time")
+	return sdkerrors.New(DefaultCodespace, CodeAddrAndProductAllRequired, "bad request: address、base_asset and quote_asset could not be " +" at the same time")
 }
 
 // invalid tokenpair

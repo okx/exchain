@@ -158,7 +158,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	// replace all editable fields (clients should autofill existing values)
 	description, err := validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
-		return nil, types.ErrValidatorUpdateDescriptionFailed()
+		return nil, err
 	}
 
 	validator.Description = description

@@ -236,7 +236,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysC
 
 	// update account
 	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
-		return types.ErrSendCoinsFromModuleToAccountFailed()
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	return nil

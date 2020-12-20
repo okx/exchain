@@ -175,7 +175,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	if queryParams.Address != "" {
 		addr, err := sdk.AccAddressFromBech32(queryParams.Address)
 		if err != nil {
-			return nil, types.ErrInvalidAddress(queryParams.Address)
+			return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address)
 		}
 		accountCoins = keeper.tokenKeeper.GetCoins(ctx, addr)
 	}
@@ -421,7 +421,7 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	// coins in account
 	addr, err := sdk.AccAddressFromBech32(queryParams.Address)
 	if err != nil {
-		return nil, types.ErrInvalidAddress(queryParams.Address)
+		return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address)
 	}
 
 	var liquidityInfoList []types.SwapLiquidityInfo

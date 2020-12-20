@@ -22,7 +22,6 @@ const (
 	CodePoolNotFinished        uint32 = 66006
 	CodeUnexpectedProposalType uint32 = 66007
 	CodeInvalidAddress         uint32 = 66008
-	CodeGetEarningsFailed	   uint32 = 66011
 	CodeSendCoinsFromAccountToModuleFailed			uint32 = 66012
 	CodeUnknownFarmMsgType		  					uint32 = 66013
 	CodeUnknownFarmQueryType						uint32 = 66014
@@ -39,7 +38,6 @@ var (
 	errPoolNotFinished        = sdkerrors.Register(DefaultCodespace, CodePoolNotFinished, "pool not finished")
 	errUnexpectedProposalType = sdkerrors.Register(DefaultCodespace, CodeUnexpectedProposalType, "unexpected proposal type")
 	errInvalidAddress         = sdkerrors.Register(DefaultCodespace, CodeInvalidAddress, "address is required")
-	errGetEarningsFailed	  = sdkerrors.Register(DefaultCodespace, CodeGetEarningsFailed, "get earning failed")
 	errSendCoinsFromAccountToModuleFailed = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send coins from account to module failed")
 	errUnknownFarmMsgType         = sdkerrors.Register(DefaultCodespace, CodeUnknownFarmMsgType, "unknown farm msg type")
 	errUnknownFarmQueryType       = sdkerrors.Register(DefaultCodespace, CodeUnknownFarmQueryType, "unknown farm query type")
@@ -138,10 +136,6 @@ func ErrPoolNameLength(poolName string, got, max int) sdk.EnvelopedErr {
 func ErrLockAmountBelowMinimum(minLockAmount, amount sdk.Dec) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidInput, "lock amount %s must be greater than the pool`s min lock amount %s",
 		amount.String(), minLockAmount.String())}
-}
-
-func ErrGetEarningsFailed(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errGetEarningsFailed, content)}
 }
 
 func ErrSendCoinsFromAccountToModuleFailed(content string) sdk.EnvelopedErr {

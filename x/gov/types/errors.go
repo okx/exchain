@@ -13,10 +13,6 @@ const (
 
 	CodeInvalidAddress			 uint32 = BaseGovError
 	CodeUnknownProposal          uint32 = BaseGovError+1
-	CodeInactiveProposal         uint32 = BaseGovError+2
-	CodeAlreadyActiveProposal    uint32 = BaseGovError+3
-	CodeAlreadyFinishedProposal  uint32 = BaseGovError+4
-	CodeAddressNotStaked         uint32 = BaseGovError+5
 	CodeInvalidContent           uint32 = BaseGovError+6
 	CodeInvalidProposalType      uint32 = BaseGovError+7
 	CodeInvalidVote              uint32 = BaseGovError+8
@@ -32,22 +28,6 @@ const (
 
 func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address %s", address))
-}
-
-func ErrInactiveProposal(proposalID uint64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInactiveProposal, fmt.Sprintf("inactive proposal with id %d", proposalID))
-}
-
-func ErrAlreadyActiveProposal(proposalID uint64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeAlreadyActiveProposal, fmt.Sprintf("proposal %d has been already active", proposalID))
-}
-
-func ErrAlreadyFinishedProposal(proposalID uint64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeAlreadyFinishedProposal, fmt.Sprintf("proposal %d has already passed its voting period", proposalID))
-}
-
-func ErrAddressNotStaked(address sdk.AccAddress) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeAddressNotStaked, fmt.Sprintf("address %s is not staked and is thus ineligible to vote", address))
 }
 
 func ErrInvalidProposalContent() sdk.Error {

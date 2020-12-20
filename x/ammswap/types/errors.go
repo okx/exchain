@@ -19,7 +19,6 @@ const (
 	CodeValidateDenom						uint32 = 65007
 	CodeNotAllowedOriginSymbol				uint32 = 65008
 	CodeInsufficientPoolToken				uint32 = 65009
-	CodeUnknownRequest						uint32 = 65010
 	CodeTokenNotExist						uint32 = 65012
 	CodeInvalidCoins						uint32 = 65013
 	CodeInternalError						uint32 = 65014
@@ -30,7 +29,7 @@ const (
 	CodeBlockTimeBigThanDeadline			uint32 = 65019
 	CodeGetPoolTokenInfoFailed				uint32 = 65020
 	CodeTokenGreaterThanBaseAccount			uint32 = 65021
-	CodeLiquidityLessThanMsg				uint32 = 65022
+	CodeLessThan							uint32 = 65022
 	CodeMintPoolCoinsToUserFailed			uint32 = 65024
 	CodeSendCoinsFromPoolToAccountFailed	uint32 = 65025
 	CodeBurnPoolCoinsFromUserFailed			uint32 = 65026
@@ -100,10 +99,6 @@ func ErrInsufficientPoolToken() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")
 }
 
-func ErrUnknownRequest() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownRequest, "unknown request")
-}
-
 func ErrTokenNotExist() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
 }
@@ -120,8 +115,8 @@ func ErrGetSwapTokenPair() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeGetSwapTokenPairFailed, "get swap token pair failed")
 }
 
-func ErrInvalidAddress(address string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
+func ErrAddressIsRequire(msg string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("%s address Is require", msg))
 }
 
 func ErrIsZeroValue(msg string) sdk.Error {
@@ -145,7 +140,7 @@ func ErrTokenGreaterThanBaseAccount() sdk.Error {
 }
 
 func ErrLessThan(param1 string, param2 string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeLiquidityLessThanMsg, fmt.Sprintf("%s value less than %s value"))
+	return sdkerrors.New(DefaultCodespace, CodeLessThan, fmt.Sprintf("%s value less than %s value", param1, param2))
 }
 
 func ErrMintPoolCoinsToUserFailed(tokenName string) sdk.Error {

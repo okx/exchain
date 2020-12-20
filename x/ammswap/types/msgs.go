@@ -39,7 +39,7 @@ func (msg MsgAddLiquidity) Type() string { return "add_liquidity" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return ErrInvalidAddress(msg.Sender.String())
+		return ErrAddressIsRequire("sender")
 	}
 	if msg.MinLiquidity.IsNegative() {
 		return ErrMinLiquidityIsNegative()
@@ -105,7 +105,7 @@ func (msg MsgRemoveLiquidity) Type() string { return "remove_liquidity" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return ErrInvalidAddress(msg.Sender.String())
+		return ErrAddressIsRequire("sender")
 	}
 	if !(msg.Liquidity.IsPositive()) {
 		return ErrMinLiquidityIsNegative()
@@ -163,7 +163,7 @@ func (msg MsgCreateExchange) Type() string { return "create_exchange" }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCreateExchange) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return ErrInvalidAddress(msg.Sender.String())
+		return ErrAddressIsRequire("sender")
 	}
 	if err := ValidateSwapAmountName(msg.Token0Name); err != nil {
 		return err
@@ -225,11 +225,11 @@ func (msg MsgTokenToToken) Type() string { return TypeMsgTokenSwap }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 	if msg.Sender.Empty() {
-		return ErrInvalidAddress(msg.Sender.String())
+		return ErrAddressIsRequire("sender")
 	}
 
 	if msg.Recipient.Empty() {
-		return ErrInvalidAddress(msg.Recipient.String())
+		return ErrAddressIsRequire("recipient")
 	}
 
 	if !(msg.SoldTokenAmount.IsPositive()) {

@@ -102,7 +102,7 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 
 	earnings, sdkErr := k.getEarnings(ctx, params.PoolName, params.AccAddress)
 	if sdkErr != nil {
-		return nil, types.ErrGetEarningsFailed(sdkErr.Error())
+		return nil, sdkErr
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, earnings)
