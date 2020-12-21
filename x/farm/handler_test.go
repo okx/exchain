@@ -1,6 +1,7 @@
 package farm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -46,7 +47,7 @@ type testCaseItem struct {
 	preExec      preExecFunc      // function "preExec" executes the code before executing the specific handler to be tested
 	getMsg       getMsgFunc       // function "getMsg" returns a sdk.Msg for testing, this msg will be tested by executing the function "handler"
 	verification verificationFunc // function "verification" Verifies that the test results are the same as expected
-	expectedErr sdk.Error     // expectedCode represents the expected code in the test result
+	expectedErr  sdk.Error        // expectedCode represents the expected code in the test result
 }
 
 func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
@@ -546,7 +547,9 @@ func TestHandlerMsgProvide(t *testing.T) {
 				return provideMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("send coins from account to module failed: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,990.000000000000000000tokt < 1000000000.000000000000000000aab"),
+			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account funds; "+
+				"89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
+				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000000.000000000000000000aab", sdk.DefaultBondDenom)),
 		},
 	}
 
@@ -659,7 +662,9 @@ func TestHandlerMsgLock(t *testing.T) {
 				return lockMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("internal: insufficient funds: insufficient account funds; 89890.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,990.000000000000000000tokt < 1000000.000000000000000000ammswap_aab_ccb"),
+			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account funds; "+
+				"89890.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
+				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 	}
 
@@ -800,7 +805,8 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("internal: insufficient funds: insufficient account funds; 10.000000000000000000tokt < 1.000000000000000000ammswap_aab_ccb"),
+			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account "+
+				"funds; 10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "success. lock and unlock without provide before",
@@ -868,7 +874,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 				actualDec := diffCoins.AmountOf(createPoolMsg.YieldedSymbol)
 				require.Equal(t, sdk.NewDec(1), actualDec)
 			},
-			expectedErr:  nil,
+			expectedErr: nil,
 		},
 		{
 			caseName: "failed. Farm pool %s does not exist",
@@ -1265,7 +1271,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 				require.Equal(t, expectedTotalAccumulatedRewards.String(), pool.TotalAccumulatedRewards.String())
 
 			},
-			expectedErr:  nil,
+			expectedErr: nil,
 		},
 	}
 
