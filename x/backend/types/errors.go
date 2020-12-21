@@ -9,7 +9,7 @@ import (
 
 // const uint32
 const (
-	DefaultCodespace = "backend"
+	DefaultCodespace = ModuleName
 
 	CodeProductIsRequired             uint32 = 62002
 	CodeAddressIsRequired             uint32 = 62003
@@ -21,7 +21,7 @@ const (
 	CodeProductDoesNotExist           uint32 = 62009
 	CodeBackendPluginNotEnabled       uint32 = 62010
 	CodeGoroutinePanic                uint32 = 62011
-	CodeBackendModuleUnknownQueryType   uint32 = 62012
+	CodeBackendModuleUnknownQueryType uint32 = 62012
 	CodeGetCandlesFailed              uint32 = 62013
 	CodeGetCandlesByMarketFailed      uint32 = 62014
 	CodeGetTickerByProductsFailed     uint32 = 62015
