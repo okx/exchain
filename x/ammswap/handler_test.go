@@ -18,7 +18,7 @@ import (
 func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
 	if expectedCode != 0 {
 		require.NotNil(t, err)
-	}else {
+	} else {
 		require.Nil(t, err)
 	}
 }
@@ -57,13 +57,13 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:       testToken.Symbol,
 			token1:       testQuoteToken.Symbol,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: types.CodeUnexistSwapTokenPair},
+			expectedCode: sdk.CodeOK},
 		{
 			testCase:     "success(The lexicographic order of BaseTokenName must be less than QuoteTokenName)",
 			token0:       testToken2.Symbol,
 			token1:       testToken.Symbol,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: types.CodeUnexistSwapTokenPair},
+			expectedCode: sdk.CodeOK},
 		{
 			testCase:     "swapTokenPair already exists",
 			token0:       testToken.Symbol,

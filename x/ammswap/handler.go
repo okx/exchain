@@ -74,15 +74,15 @@ func handleMsgCreateExchange(ctx sdk.Context, k Keeper, msg types.MsgCreateExcha
 	// 1. check if the token pair exists
 	tokenPairName := msg.GetSwapTokenPairName()
 	_, err = k.GetSwapTokenPair(ctx, tokenPairName)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return nil, types.ErrSwapTokenPairExist()
 	}
 
 	// 2. check if the pool token exists
 	poolTokenName := types.GetPoolTokenName(msg.Token0Name, msg.Token1Name)
 	_, err = k.GetPoolTokenInfo(ctx, poolTokenName)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return nil, types.ErrPoolTokenPairExist()
 	}
 
 	// 3. create the pool token
@@ -366,4 +366,3 @@ func coinSort(coins sdk.SysCoins) sdk.SysCoins {
 	newCoins = newCoins.Sort()
 	return newCoins
 }
-

@@ -7,60 +7,70 @@ import (
 )
 
 const (
-	DefaultCodespace 						string = "ammswap"
+	DefaultCodespace = ModuleName
 
-	CodeUnexistSwapTokenPair       			uint32 = 65000
-	CodeUnexistPoolToken					uint32 = 65001
-	CodeMintCoinsFailed						uint32 = 65002
-	CodeSendCoinsFromAccountToModule 		uint32 = 65003
-	CodeBaseAmountNameBigerQuoteAmountName	uint32 = 65004
-	CodeValidateSwapAmountName				uint32 = 65005
-	CodeBaseAmountNameEqualQuoteAmountName	uint32 = 65006
-	CodeValidateDenom						uint32 = 65007
-	CodeNotAllowedOriginSymbol				uint32 = 65008
-	CodeInsufficientPoolToken				uint32 = 65009
-	CodeTokenNotExist						uint32 = 65012
-	CodeInvalidCoins						uint32 = 65013
-	CodeInternalError						uint32 = 65014
-	CodeGetSwapTokenPairFailed				uint32 = 65015
-	AddressIsRequire						uint32 = 65016
-	CodeIsZeroValue							uint32 = 65017
-	CodeGetRedeemableAssetsFailed			uint32 = 65018
-	CodeBlockTimeBigThanDeadline			uint32 = 65019
-	CodeGetPoolTokenInfoFailed				uint32 = 65020
-	CodeTokenGreaterThanBaseAccount			uint32 = 65021
-	CodeLessThan							uint32 = 65022
-	CodeMintPoolCoinsToUserFailed			uint32 = 65024
-	CodeSendCoinsFromPoolToAccountFailed	uint32 = 65025
-	CodeBurnPoolCoinsFromUserFailed			uint32 = 65026
-	CodeCalculateTokenToBuyFailed			uint32 = 65027
-	CodeSendCoinsToPoolFailed				uint32 = 65028
-	CodeSwapUnknownMsgType					uint32 = 65029
-	CodeSwapUnknowQueryTypes				uint32 = 65030
-	CodeSellAmountOrBuyTokenIsEmpty			uint32 = 65031
-	CodeSellAmountEqualBuyToken				uint32 = 65032
-	CodeQueryParamsAddressIsEmpty			uint32 = 65033
-	CodeQueryParamsQuoteTokenAmountIsEmpty	uint32 = 65034
-	CodeQueryParamsBaseTokenIsEmpty			uint32 = 65035
-	CodeMinLiquidityIsNegative				uint32 = 65036
-	CodeMaxBaseAmountOrMsgQuoteAmountIsNegative			uint32 = 65037
-	CodeMaxBaseAmountIsNegativeOrNotValidateDenom		uint32 = 65038
-	CodeQuoteAmountIsNegativeOrNotValidateDenom			uint32 = 65039
-	CodeMinBaseAmountIsNegativeOrNotValidateDenom		uint32 = 65040
-	CodeMinQuoteAmountIsNegativeOrNotValidateDenom		uint32 = 65041
-	CodeSoldTokenAmountIsNegative						uint32 = 65042
-	CodeToken0NameEqualToken1Name						uint32 = 65043
-	CodeSoldTokenAmountIsNegativeOrNotValidateDenom		uint32 = 65044
-	CodeMinBoughtTokenAmountIsNegativeOrNotValidateDenom	uint32 = 65045
-	CodeConvertSellTokenAmountToDecimal						uint32 = 65046
-	CodeConvertQuoteTokenAmountToDecimal					uint32 = 65047
-	CodeSendCoinsFromAccountToModuleFailed					uint32 = 65048
-	CodeMsgDeadlineLessThanBlockTime						uint32 = 65049
-	CodeBaseTokensAmountBiggerThanMaxBaseAmount				uint32 = 65050
+	CodeUnexistSwapTokenPair                             uint32 = 65000
+	CodeUnexistPoolToken                                 uint32 = 65001
+	CodeMintCoinsFailed                                  uint32 = 65002
+	CodeSendCoinsFromAccountToModule                     uint32 = 65003
+	CodeBaseAmountNameBigerQuoteAmountName               uint32 = 65004
+	CodeValidateSwapAmountName                           uint32 = 65005
+	CodeBaseAmountNameEqualQuoteAmountName               uint32 = 65006
+	CodeValidateDenom                                    uint32 = 65007
+	CodeNotAllowedOriginSymbol                           uint32 = 65008
+	CodeInsufficientPoolToken                            uint32 = 65009
+	CodeTokenNotExist                                    uint32 = 65012
+	CodeInvalidCoins                                     uint32 = 65013
+	CodeInternalError                                    uint32 = 65014
+	CodeGetSwapTokenPairFailed                           uint32 = 65015
+	AddressIsRequire                                     uint32 = 65016
+	CodeIsZeroValue                                      uint32 = 65017
+	CodeGetRedeemableAssetsFailed                        uint32 = 65018
+	CodeBlockTimeBigThanDeadline                         uint32 = 65019
+	CodeGetPoolTokenInfoFailed                           uint32 = 65020
+	CodeTokenGreaterThanBaseAccount                      uint32 = 65021
+	CodeLessThan                                         uint32 = 65022
+	CodeMintPoolCoinsToUserFailed                        uint32 = 65024
+	CodeSendCoinsFromPoolToAccountFailed                 uint32 = 65025
+	CodeBurnPoolCoinsFromUserFailed                      uint32 = 65026
+	CodeCalculateTokenToBuyFailed                        uint32 = 65027
+	CodeSendCoinsToPoolFailed                            uint32 = 65028
+	CodeSwapUnknownMsgType                               uint32 = 65029
+	CodeSwapUnknowQueryTypes                             uint32 = 65030
+	CodeSellAmountOrBuyTokenIsEmpty                      uint32 = 65031
+	CodeSellAmountEqualBuyToken                          uint32 = 65032
+	CodeQueryParamsAddressIsEmpty                        uint32 = 65033
+	CodeQueryParamsQuoteTokenAmountIsEmpty               uint32 = 65034
+	CodeQueryParamsBaseTokenIsEmpty                      uint32 = 65035
+	CodeMinLiquidityIsNegative                           uint32 = 65036
+	CodeMaxBaseAmountOrMsgQuoteAmountIsNegative          uint32 = 65037
+	CodeMaxBaseAmountIsNegativeOrNotValidateDenom        uint32 = 65038
+	CodeQuoteAmountIsNegativeOrNotValidateDenom          uint32 = 65039
+	CodeMinBaseAmountIsNegativeOrNotValidateDenom        uint32 = 65040
+	CodeMinQuoteAmountIsNegativeOrNotValidateDenom       uint32 = 65041
+	CodeSoldTokenAmountIsNegative                        uint32 = 65042
+	CodeToken0NameEqualToken1Name                        uint32 = 65043
+	CodeSoldTokenAmountIsNegativeOrNotValidateDenom      uint32 = 65044
+	CodeMinBoughtTokenAmountIsNegativeOrNotValidateDenom uint32 = 65045
+	CodeConvertSellTokenAmountToDecimal                  uint32 = 65046
+	CodeConvertQuoteTokenAmountToDecimal                 uint32 = 65047
+	CodeSendCoinsFromAccountToModuleFailed               uint32 = 65048
+	CodeMsgDeadlineLessThanBlockTime                     uint32 = 65049
+	CodeBaseTokensAmountBiggerThanMaxBaseAmount          uint32 = 65050
+	CodeIsSwapTokenPairExist                             uint32 = 65051
+	CodeIsPoolTokenPairExist                             uint32 = 65052
 )
 
-func ErrUnexistSwapTokenPair() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, "token pair is not exist")
+func ErrSwapTokenPairExist() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsSwapTokenPairExist, "the swap token pair already exists")
+}
+
+func ErrPoolTokenPairExist() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsPoolTokenPairExist, "the pool token pair already exists")
+}
+
+func ErrUnexistSwapTokenPair(tokenPairName string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, fmt.Sprintf("swap token pair is not exist: %s", tokenPairName))
 }
 
 func ErrUnexistPoolToken() sdk.Error {
@@ -103,7 +113,7 @@ func ErrTokenNotExist() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
 }
 
-func ErrInvalidCoins () sdk.Error {
+func ErrInvalidCoins() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with equal token name")
 }
 
