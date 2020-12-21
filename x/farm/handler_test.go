@@ -52,7 +52,6 @@ type testCaseItem struct {
 
 func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
 	for _, testCase := range testCaseList {
-		fmt.Println(testCase.caseName)
 		tCtx := initEnvironment(t)
 		preData := testCase.preExec(t, tCtx)
 		msg := testCase.getMsg(tCtx, preData)
@@ -68,7 +67,6 @@ func testCaseTest(t *testing.T, testCaseList []testCaseItem) {
 func testCaseCombinationTest(t *testing.T, testCaseList []testCaseItem) {
 	tCtx := initEnvironment(t)
 	for _, testCase := range testCaseList {
-		fmt.Println(testCase.caseName)
 		preData := testCase.preExec(t, tCtx)
 		msg := testCase.getMsg(tCtx, preData)
 		addrList := msg.GetSigners()
@@ -206,9 +204,6 @@ func provide(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool)
 func lock(t *testing.T, tCtx *testContext, createPoolMsg types.MsgCreatePool) types.MsgLock {
 	lockMsg := normalGetLockMsg(tCtx, createPoolMsg)
 	_, err := tCtx.handler(tCtx.ctx, lockMsg)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
 	require.Nil(t, err)
 	return lockMsg.(types.MsgLock)
 }
@@ -305,7 +300,9 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000tokt < 1.000000000000000000fff"),
+			expectedErr: types.ErrFarmMsgOccurError(
+				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000%s < 1.000000000000000000fff",
+					sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "failed. insufficient coins",
@@ -317,7 +314,9 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000tokt < 1.000000000000000000fff"),
+			expectedErr: types.ErrFarmMsgOccurError(
+				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000%s < 1.000000000000000000fff",
+					sdk.DefaultBondDenom)),
 		},
 	}
 	testCaseTest(t, tests)
@@ -373,7 +372,9 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000tokt < 1.000000000000000000fff"),
+			expectedErr: types.ErrFarmMsgOccurError(
+				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000%s < 1.000000000000000000fff",
+					sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -547,7 +548,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 				return provideMsg
 			},
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account funds; "+
+			expectedErr: errors.New(fmt.Sprintf("farm module exec msg occure err: send coins from account to module failed: insufficient funds: insufficient account funds; "+
 				"89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
 				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000000.000000000000000000aab", sdk.DefaultBondDenom)),
 		},
@@ -662,7 +663,7 @@ func TestHandlerMsgLock(t *testing.T) {
 				return lockMsg
 			},
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account funds; "+
+			expectedErr: errors.New(fmt.Sprintf("farm module exec msg occure err: internal: insufficient funds: insufficient account funds; "+
 				"89890.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
 				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
@@ -805,7 +806,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account "+
+			expectedErr: errors.New(fmt.Sprintf("farm module exec msg occure err: internal: insufficient funds: insufficient account "+
 				"funds; 10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 		{
@@ -975,8 +976,7 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[1]
 	lock(t, tCtx, createPoolMsg)
 
-	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
-	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	//curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
 	//var period uint64
 	//for period = 0;period < curPeriodRewards.Period;period++ {
 	//	historyPeriodRewards := tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, period)
@@ -984,8 +984,6 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	//	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(historyPeriodRewards)))
 	//}
 	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
-
-		fmt.Println(lockInfo.String())
 		return false
 	})
 
@@ -1045,8 +1043,7 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[0]
 	lock(t, tCtx, createPoolMsg)
 
-	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
-	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	//curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
 	//var period uint64
 	//for period = 0;period < curPeriodRewards.Period;period++ {
 	//	historyPeriodRewards := tCtx.k.GetPoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName, period)
@@ -1054,8 +1051,6 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	//	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(historyPeriodRewards)))
 	//}
 	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
-
-		fmt.Println(lockInfo.String())
 		return false
 	})
 
@@ -1104,14 +1099,12 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[4]
 	unlock(t, tCtx, createPoolMsg)
 
-	curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
-	fmt.Println(string(types.ModuleCdc.MustMarshalJSON(curPeriodRewards)))
+	//curPeriodRewards := tCtx.k.GetPoolCurrentRewards(tCtx.ctx, createPoolMsg.PoolName)
 	numHistoricalRewards := 0
 	tCtx.k.IteratePoolHistoricalRewards(tCtx.ctx, createPoolMsg.PoolName,
 		func(store sdk.KVStore, key []byte, value []byte) (stop bool) {
 			var rewards types.PoolHistoricalRewards
 			types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(value, &rewards)
-			fmt.Println(string(key), rewards)
 			numHistoricalRewards++
 			return false
 		})
@@ -1119,7 +1112,6 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	numLockInfo := 0
 	tCtx.k.IterateAllLockInfos(tCtx.ctx, func(lockInfo types.LockInfo) (stop bool) {
 		numLockInfo++
-		fmt.Println(lockInfo.String())
 		return false
 	})
 	require.Equal(t, 0, numLockInfo)
@@ -1150,7 +1142,7 @@ func TestHandlerRandom(t *testing.T) {
 		ctx, writeCache := tCtx.ctx.CacheContext()
 		_, err := tCtx.handler(ctx, msg)
 		if err != nil {
-			fmt.Println(err.Error())
+			//fmt.Println(err.Error())
 		} else {
 			writeCache()
 		}
