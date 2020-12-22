@@ -102,19 +102,19 @@ func ErrInvalidDenom(symbolLocked string, token string) sdk.EnvelopedErr {
 }
 
 func ErrSendCoinsFromAccountToModuleFailed(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeSendCoinsFromAccountToModuleFailed, content)}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeSendCoinsFromAccountToModuleFailed, fmt.Sprintf("failed. send coins from account to module failed %s", content))}
 }
 
 func ErrUnknownFarmMsgType(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeUnknownFarmMsgType, content)}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeUnknownFarmMsgType, fmt.Sprintf("failed. unknown farm msg type %s", content))}
 }
 
 func ErrUnknownFarmQueryType(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeUnknownFarmQueryType, content)}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeUnknownFarmQueryType, fmt.Sprintf("failed. unknown farm query type %s", content))}
 }
 
 func ErrFarmMsgOccurError(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeFarmMsgOccurError, content)}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeFarmMsgOccurError, fmt.Sprintf("failed. farm module exec msg occure err %s", content))}
 }
 
 // ErrInvalidInputAmount returns an error when an input amount is invaild
