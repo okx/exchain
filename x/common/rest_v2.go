@@ -23,20 +23,20 @@ const (
 	ErrorArgsWithLimit        errorCodeV2 = 60006
 
 	// account error
-	ErrorInvalidAddress errorCodeV2 = 61000
+	ErrorInvalidAddress errorCodeV2 = 60007
 
 	// order error
-	ErrorOrderNotExist        errorCodeV2 = 62000
-	ErrorInvalidCurrency      errorCodeV2 = 62001
-	ErrorEmptyInstrumentID    errorCodeV2 = 62002
-	ErrorInstrumentIDNotExist errorCodeV2 = 62003
+	ErrorOrderNotExist        errorCodeV2 = 60300
+	ErrorInvalidCurrency      errorCodeV2 = 60301
+	ErrorEmptyInstrumentID    errorCodeV2 = 60302
+	ErrorInstrumentIDNotExist errorCodeV2 = 60303
 
 	// staking error
-	ErrorInvalidValidatorAddress errorCodeV2 = 63000
-	ErrorInvalidDelegatorAddress errorCodeV2 = 63001
+	ErrorInvalidValidatorAddress errorCodeV2 = 60700
+	ErrorInvalidDelegatorAddress errorCodeV2 = 60701
 
 	// farm error
-	ErrorInvalidAccountAddress errorCodeV2 = 64000
+	ErrorInvalidAccountAddress errorCodeV2 = 60600
 )
 
 func defaultErrorMessageV2(code errorCodeV2) (message string) {
