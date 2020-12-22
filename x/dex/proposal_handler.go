@@ -29,7 +29,7 @@ func handleDelistProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Pr
 	tokenPairName := fmt.Sprintf("%s_%s", p.BaseAsset, p.QuoteAsset)
 	tokenPair := keeper.GetTokenPair(ctx, tokenPairName)
 	if tokenPair == nil {
-		return ErrTokenPairNotFound()
+		return ErrTokenPairNotFound(tokenPairName)
 	}
 	if keeper.IsTokenPairLocked(ctx, tokenPairName) {
 		return types.ErrIsTokenPairLocked(tokenPairName)

@@ -16,10 +16,10 @@ type Keeper struct {
 	supplyKeeper      SupplyKeeper
 	feeCollectorName  string // name of the FeeCollector ModuleAccount
 	tokenKeeper       TokenKeeper
-	stakingKeeper     StakingKeeper         // The reference to the staking keeper to check whether proposer is  validator
-	bankKeeper        BankKeeper            // The reference to the bank keeper to check whether proposer can afford  proposal deposit
-	govKeeper         GovKeeper             // The reference to the gov keeper to handle proposal
-	observerKeeper    StreamKeeper // The reference to the stream keeper
+	stakingKeeper     StakingKeeper // The reference to the staking keeper to check whether proposer is  validator
+	bankKeeper        BankKeeper    // The reference to the bank keeper to check whether proposer can afford  proposal deposit
+	govKeeper         GovKeeper     // The reference to the gov keeper to handle proposal
+	observerKeeper    StreamKeeper  // The reference to the stream keeper
 	storeKey          sdk.StoreKey
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
@@ -208,7 +208,7 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 		isDelisting = tp.Delisting
 	} else {
 		isDelisting = true
-		err = types.ErrTokenPairNotFound()
+		err = types.ErrTokenPairNotFound(product)
 	}
 	return isDelisting, err
 }
@@ -225,13 +225,13 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return types.ErrDepositOnlySupportDefaultBondDenom(sdk.DefaultBondDenom)
+		return types.ErrDepositOnlySupportDenom(sdk.DefaultBondDenom)
 	}
 
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return types.ErrInsufficientDepositCoins(err.Error(), depositCoins.String())
+		return types.ErrInsufficientDepositCoins(depositCoins.String())
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -251,7 +251,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amo
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return types.ErrWithdrawOnlySupportDefaultBondDenom(sdk.DefaultBondDenom)
+		return types.ErrWithdrawOnlySupportDenom(sdk.DefaultBondDenom)
 	}
 
 	if tokenPair.Deposits.IsLT(amount) {
@@ -403,7 +403,7 @@ func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
 	if err != nil {
-		return types.ErrInsufficientDepositCoins(err.Error(), withdrawCoins.String())
+		return types.ErrInsufficientDepositCoins(withdrawCoins.String())
 	}
 	k.deleteWithdrawInfo(ctx, addr)
 	return nil

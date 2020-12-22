@@ -75,7 +75,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 
 	if !keeper.GetTokenKeeper().TokenExist(ctx, msg.ListAsset) ||
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
-		return nil, types.ErrTokenPairExisted(msg.ListAsset, msg.QuoteAsset)
+		return nil, types.ErrTokenOfPairNotExist(msg.ListAsset, msg.QuoteAsset)
 	}
 
 	if _, exists := keeper.GetOperator(ctx, msg.Owner); !exists {
@@ -106,7 +106,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 	feeCoins := keeper.GetParams(ctx).ListFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return nil, types.ErrInsufficientFeeCoins(err.Error())
+		return nil, types.ErrInsufficientFeeCoins(feeCoins)
 	}
 
 	err2 := keeper.SaveTokenPair(ctx, tokenPair)
@@ -137,7 +137,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
+		return nil, types.ErrIsTransferringOwner(msg.Product)
 	}
 	if sdkErr := keeper.Deposit(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
 		return nil, types.ErrDepositFailed(sdkErr.Error())
@@ -179,18 +179,18 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	logger log.Logger) (*sdk.Result, error) {
 	// validate
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
-	if tokenPair == nil  {
-		return nil, types.ErrTokenPairNotFound()
+	if tokenPair == nil {
+		return nil, types.ErrTokenPairNotFound(msg.Product)
 	}
 	if !tokenPair.Owner.Equals(msg.FromAddress) {
-		return nil, types.ErrUnauthorized(msg.FromAddress.String())
+		return nil, types.ErrUnauthorized(msg.FromAddress.String(), msg.Product)
 	}
 	if _, exist := keeper.GetOperator(ctx, msg.ToAddress); !exist {
 		return nil, types.ErrUnknownOperator(msg.ToAddress)
 	}
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
+		return nil, types.ErrRepeatedTransferOwner(msg.Product)
 	}
 
 	// withdraw
@@ -204,7 +204,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	feeCoins := keeper.GetParams(ctx).TransferOwnershipFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
+		return nil, types.ErrInsufficientFeeCoins(feeCoins)
 	}
 
 	// set ConfirmOwnership
@@ -238,15 +238,15 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOw
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
 		// delete ownership confirming information
 		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Product)
-		return nil, types.ErrBlockTimeAfterFailed(msg.Product)
+		return nil, types.ErrIsTransferOwnerExpired(confirmOwnership.Expire.String())
 	}
 	if !confirmOwnership.ToAddress.Equals(msg.Address) {
-		return nil, types.ErrUnauthorized(confirmOwnership.ToAddress.String())
+		return nil, types.ErrUnauthorized(confirmOwnership.ToAddress.String(), msg.Product)
 	}
 
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return nil, types.ErrTokenPairNotFound()
+		return nil, types.ErrTokenPairNotFound(msg.Product)
 	}
 	// transfer ownership
 	tokenPair.Owner = msg.Address
@@ -310,7 +310,7 @@ func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOpera
 		return nil, types.ErrUnknownOperator(msg.Owner)
 	}
 	if !operator.Address.Equals(msg.Owner) {
-		return nil, types.ErrUnauthorized(operator.Address.String())
+		return nil, types.ErrUnauthorizedOperator(operator.Address.String(), msg.Owner.String())
 	}
 
 	operator.HandlingFeeAddress = msg.HandlingFeeAddress

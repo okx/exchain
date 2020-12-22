@@ -51,7 +51,7 @@ func (msg MsgList) ValidateBasic() sdk.Error {
 	}
 
 	if msg.Owner.Empty() {
-		return ErrAddressIsRequired(msg.Owner.String())
+		return ErrAddressIsRequired("owner")
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func (msg MsgDeposit) Type() string { return typeMsgDeposit }
 // ValidateBasic Implements Msg
 func (msg MsgDeposit) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return ErrAddressIsRequired(msg.Depositor.String())
+		return ErrAddressIsRequired("depositor")
 	}
 	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return ErrInvalidCoins()
@@ -129,7 +129,7 @@ func (msg MsgWithdraw) Type() string { return typeMsgWithdraw }
 // ValidateBasic Implements Msg
 func (msg MsgWithdraw) ValidateBasic() sdk.Error {
 	if msg.Depositor.Empty() {
-		return ErrAddressIsRequired(msg.Depositor.String())
+		return ErrAddressIsRequired("depositor")
 	}
 	if !msg.Amount.IsValid() || !msg.Amount.IsPositive() {
 		return ErrInvalidCoins()
@@ -175,11 +175,11 @@ func (msg MsgTransferOwnership) Type() string { return typeMsgTransferOwnership 
 // ValidateBasic Implements Msg
 func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.FromAddress.Empty() {
-		return ErrAddressIsRequired("missing sender address")
+		return ErrAddressIsRequired("sender")
 	}
 
 	if msg.ToAddress.Empty() {
-		return ErrAddressIsRequired("missing recipient address")
+		return ErrAddressIsRequired("recipient")
 	}
 
 	if msg.Product == "" {
@@ -218,7 +218,7 @@ func (msg MsgConfirmOwnership) Type() string { return "confirm" }
 
 func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	if msg.Address.Empty() {
-		return ErrAddressIsRequired("failed to check MsgConfirmOwnership msg because miss sender address")
+		return ErrAddressIsRequired("sender")
 	}
 	if len(msg.Product) == 0 {
 		return ErrTokenPairIsRequired()
@@ -262,10 +262,10 @@ func (msg MsgCreateOperator) Type() string { return typeMsgCreateOperator }
 // ValidateBasic Implements Msg
 func (msg MsgCreateOperator) ValidateBasic() sdk.Error {
 	if msg.Owner.Empty() {
-		return ErrAddressIsRequired("missing owner address")
+		return ErrAddressIsRequired("owner")
 	}
 	if msg.HandlingFeeAddress.Empty() {
-		return ErrAddressIsRequired("missing handling fee address")
+		return ErrAddressIsRequired("handling fee")
 	}
 	return checkWebsite(msg.Website)
 }
@@ -308,7 +308,7 @@ func (msg MsgUpdateOperator) Type() string { return typeMsgUpdateOperator }
 // ValidateBasic Implements Msg
 func (msg MsgUpdateOperator) ValidateBasic() sdk.Error {
 	if msg.HandlingFeeAddress.Empty() {
-		return ErrAddressIsRequired("missing handling fee address")
+		return ErrAddressIsRequired("handling fee")
 	}
 	return checkWebsite(msg.Website)
 }

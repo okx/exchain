@@ -225,7 +225,7 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 	tokenPairLen := len(tokenPairs)
 	for i := 0; i < tokenPairLen; i++ {
 		if tokenPairs[i] == nil {
-			return nil, types.ErrTokenPairIsInvalid()
+			panic("the nil pointer is not expected")
 		}
 		if tokenPairs[i].Delisting {
 			tokenPairNames = append(tokenPairNames, fmt.Sprintf("%s_%s", tokenPairs[i].BaseAssetSymbol, tokenPairs[i].QuoteAssetSymbol))

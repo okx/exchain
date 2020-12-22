@@ -50,7 +50,7 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	// check whether the baseAsset is in the Dex list
 	queryTokenPair := k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	if queryTokenPair == nil {
-		return types.ErrTokenPairNotFound()
+		return types.ErrTokenPairNotFound(fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	}
 
 	// check the initial deposit
