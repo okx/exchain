@@ -40,7 +40,7 @@ func queryOrder(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	err sdk.Error) {
 	order := keeper.GetOrder(ctx, path[0])
 	if order == nil {
-		return nil, types.ErrGetOrderFailed(path[0])
+		return nil, types.ErrOrderIsNotExist(path[0])
 	}
 	bz := keeper.cdc.MustMarshalJSON(order)
 	return bz, nil
@@ -88,7 +88,7 @@ func queryDepthBook(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, params.Product)
 	if tokenPair == nil {
-		return nil, types.ErrGetTokenPairFailed(params.Product)
+		return nil, types.ErrOrderIsNotExist(params.Product)
 	}
 	depthBook := keeper.GetDepthBookFromDB(ctx, params.Product)
 
