@@ -82,21 +82,21 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
 		return ErrBaseAmountNameBigerQuoteAmountName()
 	} else if baseAmountName == quoteAmountName {
-		return ErrBaseAmountNameEqualQuoteAmountName()
+		return ErrBaseNameEqualQuoteName()
 	}
 	if err := ValidateSwapAmountName(baseAmountName); err != nil {
-		return ErrValidateSwapAmountName()
+		return err
 	}
 
 	if err := ValidateSwapAmountName(quoteAmountName); err != nil {
-		return ErrValidateSwapAmountName()
+		return err
 	}
 	return nil
 }
 
 func ValidateSwapAmountName(amountName string) error {
 	if sdk.ValidateDenom(amountName) != nil {
-		return ErrValidateDenom()
+		return ErrValidateDenom(amountName)
 	}
 	if token.NotAllowedOriginSymbol(amountName) {
 		return ErrNotAllowedOriginSymbol()

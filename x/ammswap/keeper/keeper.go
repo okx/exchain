@@ -98,7 +98,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		return poolToken, types.ErrUnexistPoolToken()
+		return poolToken, types.ErrUnexistPoolToken(symbol)
 	}
 	return poolToken, nil
 }
@@ -112,7 +112,7 @@ func (k Keeper) GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.De
 func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return types.ErrCodeMinCoinsFailed()
+		return types.ErrCodeMinCoinsFailed(err)
 	}
 	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
@@ -121,7 +121,7 @@ func (k Keeper) MintPoolCoinsToUser(ctx sdk.Context, coins sdk.SysCoins, addr sd
 func (k Keeper) BurnPoolCoinsFromUser(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
 	err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins)
 	if err != nil {
-		return types.ErrSendCoinsFromAccountToModule()
+		return types.ErrSendCoinsFromAccountToModule(err)
 	}
 	return k.supplyKeeper.BurnCoins(ctx, types.ModuleName, coins)
 }

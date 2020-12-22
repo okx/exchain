@@ -45,13 +45,13 @@ func (msg MsgAddLiquidity) ValidateBasic() sdk.Error {
 		return ErrMinLiquidityIsNegative()
 	}
 	if !(msg.MaxBaseAmount.IsPositive() && msg.QuoteAmount.IsPositive()) {
-		return ErrMaxBaseAmountOrMsgQuoteAmountIsNegative()
+		return ErrMaxBaseAmountOrQuoteAmountIsNegative()
 	}
 	if !msg.MaxBaseAmount.IsValid() {
-		return ErrMaxBaseAmountIsNegativeOrNotValidateDenom()
+		return ErrMaxBaseAmount()
 	}
 	if !msg.QuoteAmount.IsValid() {
-		return ErrQuoteAmountIsNegativeOrNotValidateDenom()
+		return ErrQuoteAmount()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MaxBaseAmount.Denom, msg.QuoteAmount.Denom)
 	if err != nil {
@@ -111,10 +111,10 @@ func (msg MsgRemoveLiquidity) ValidateBasic() sdk.Error {
 		return ErrMinLiquidityIsNegative()
 	}
 	if !msg.MinBaseAmount.IsValid() {
-		return ErrMinBaseAmountIsNegativeOrNotValidateDenom()
+		return ErrMinBaseAmount()
 	}
 	if !msg.MinQuoteAmount.IsValid() {
-		return ErrMinQuoteAmountIsNegativeOrNotValidateDenom()
+		return ErrMinQuoteAmount()
 	}
 	err := ValidateBaseAndQuoteAmount(msg.MinBaseAmount.Denom, msg.MinQuoteAmount.Denom)
 	if err != nil {
@@ -140,17 +140,17 @@ func (msg MsgRemoveLiquidity) GetSwapTokenPairName() string {
 
 // MsgCreateExchange creates a new exchange with token
 type MsgCreateExchange struct {
-	Token0Name string          `json:"token0_name"`
-	Token1Name string          `json:"token1_name"`
-	Sender          sdk.AccAddress `json:"sender"` // Sender
+	Token0Name string         `json:"token0_name"`
+	Token1Name string         `json:"token1_name"`
+	Sender     sdk.AccAddress `json:"sender"` // Sender
 }
 
 // NewMsgCreateExchange create a new exchange with token
 func NewMsgCreateExchange(token0Name string, token1Name string, sender sdk.AccAddress) MsgCreateExchange {
 	return MsgCreateExchange{
-		Token0Name:  token0Name,
-		Token1Name:  token1Name,
-		Sender:         sender,
+		Token0Name: token0Name,
+		Token1Name: token1Name,
+		Sender:     sender,
 	}
 }
 
@@ -236,11 +236,11 @@ func (msg MsgTokenToToken) ValidateBasic() sdk.Error {
 		return ErrSoldTokenAmountIsNegative()
 	}
 	if !msg.SoldTokenAmount.IsValid() {
-		return ErrSoldTokenAmountIsNegativeOrNotValidateDenom()
+		return ErrSoldTokenAmount()
 	}
 
 	if !msg.MinBoughtTokenAmount.IsValid() {
-		return ErrMinBoughtTokenAmountIsNegativeOrNotValidateDenom()
+		return ErrMinBoughtTokenAmount()
 	}
 
 	baseAmountName, quoteAmountName := GetBaseQuoteTokenName(msg.SoldTokenAmount.Denom, msg.MinBoughtTokenAmount.Denom)

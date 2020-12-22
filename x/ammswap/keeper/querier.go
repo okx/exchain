@@ -298,7 +298,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 	sellAmount, err := sdk.ParseDecCoin(queryParams.SellTokenAmount)
 	if err != nil {
-		return nil, types.ErrConvertSellTokenAmountToDecimal()
+		return nil, types.ErrConvertSellTokenAmount(queryParams.SellTokenAmount, err)
 	}
 
 	if sellAmount.Denom == queryParams.BuyToken {
@@ -482,7 +482,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	}
 	queryTokenAmount, err := sdk.ParseDecCoin(queryParams.QuoteTokenAmount)
 	if err != nil {
-		return nil, types.ErrConvertQuoteTokenAmountToDecimal(err.Error())
+		return nil, types.ErrConvertQuoteTokenAmount(queryParams.QuoteTokenAmount, err)
 	}
 
 	tokenPairName := types.GetSwapTokenPairName(queryParams.BaseToken, queryTokenAmount.Denom)

@@ -133,10 +133,10 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 			return nil, types.ErrIsZeroValue("liquidity")
 		}
 	} else {
-		return nil, types.ErrInternalError()
+		return nil, types.ErrInvalidTokenPair(swapTokenPair.String())
 	}
 	if baseTokens.Amount.GT(msg.MaxBaseAmount.Amount) {
-		return nil, types.ErrBaseTokensAmountBiggerThanMaxBaseAmountAmount()
+		return nil, types.ErrBaseTokensAmountBiggerThanMax()
 	}
 	if liquidity.LT(msg.MinLiquidity) {
 		return nil, types.ErrLessThan("liquidity", "min liquidity")
@@ -152,7 +152,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 
 	err = k.SendCoinsToPool(ctx, coins, msg.Sender)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed()
+		return nil, types.ErrSendCoinsFailed(err)
 	}
 	// update swapTokenPair
 	swapTokenPair.QuotePooledCoin = swapTokenPair.QuotePooledCoin.Add(msg.QuoteAmount)
@@ -163,7 +163,7 @@ func handleMsgAddLiquidity(ctx sdk.Context, k Keeper, msg types.MsgAddLiquidity)
 	poolCoins := sdk.NewDecCoinFromDec(poolToken.Symbol, liquidity)
 	err = k.MintPoolCoinsToUser(ctx, sdk.SysCoins{poolCoins}, msg.Sender)
 	if err != nil {
-		return nil, types.ErrMintPoolCoinsToUserFailed(msg.Sender.String())
+		return nil, types.ErrMintPoolTokenFailed(err)
 	}
 
 	event.AppendAttributes(sdk.NewAttribute("liquidity", liquidity.String()))
@@ -221,7 +221,7 @@ func handleMsgRemoveLiquidity(ctx sdk.Context, k Keeper, msg types.MsgRemoveLiqu
 	poolCoins := sdk.NewDecCoinFromDec(swapTokenPair.PoolTokenName, liquidity)
 	err = k.BurnPoolCoinsFromUser(ctx, sdk.SysCoins{poolCoins}, msg.Sender)
 	if err != nil {
-		return nil, types.ErrBurnPoolCoinsFromUserFailed(err.Error())
+		return nil, types.ErrBurnPoolTokenFailed(err)
 	}
 
 	event.AppendAttributes(sdk.NewAttribute("quoteAmount", quoteAmount.String()))
@@ -250,7 +250,7 @@ func swapToken(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*sdk.Resul
 	params := k.GetParams(ctx)
 	tokenBuy := keeper.CalculateTokenToBuy(swapTokenPair, msg.SoldTokenAmount, msg.MinBoughtTokenAmount.Denom, params)
 	if tokenBuy.IsZero() {
-		return nil, types.ErrIsZeroValue("token bug")
+		return nil, types.ErrIsZeroValue("token buy")
 	}
 	if tokenBuy.Amount.LT(msg.MinBoughtTokenAmount.Amount) {
 		return nil, types.ErrLessThan("token buy amount", "min bought token amount")
