@@ -160,7 +160,7 @@ func TestValidateMsgNewOrder(t *testing.T) {
 	// not-exist product
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
-	require.EqualValues(t, fmt.Sprintf("failed. token pair nobb_%s doesn't exist", sdk.DefaultBondDenom), err.Error())
+	require.EqualValues(t, fmt.Sprintf("token pair nobb_%s doesn't exist", sdk.DefaultBondDenom), err.Error())
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")

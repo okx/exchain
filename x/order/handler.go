@@ -76,12 +76,11 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	}
 }
 
-
 // checkOrderNewMsg: check msg product, price & quantity fields
 func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return types.ErrGetTokenPairFailed(msg.Product)
+		return types.ErrTokenPairNotExist(msg.Product)
 	}
 
 	// check if the order is involved with the tokenpair in dex Delist
@@ -90,7 +89,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 		return types.ErrCheckTokenPairUnderDexDelistFailed()
 	}
 	if isDelisting {
-		return types.ErrTradingPairIsdelisting(msg.Product)
+		return types.ErrTradingPairIsDelisting(msg.Product)
 	}
 
 	priceDigit := tokenPair.MaxPriceDigit
@@ -98,10 +97,10 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	roundedPrice := msg.Price.RoundDecimal(priceDigit)
 	roundedQuantity := msg.Quantity.RoundDecimal(quantityDigit)
 	if !roundedPrice.Equal(msg.Price) {
-		return types.ErrRoundedPriceEqual(priceDigit)
+		return types.ErrPriceOverAccuracy(msg.Price, priceDigit)
 	}
 	if !roundedQuantity.Equal(msg.Quantity) {
-		return types.ErrRoundedQuantityEqual(quantityDigit)
+		return types.ErrQuantityOverAccuracy(msg.Quantity, quantityDigit)
 	}
 
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
@@ -151,7 +150,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 	}
 
 	res := types.OrderResult{
-		Error:    err,
+		Error:   err,
 		OrderID: order.OrderID,
 	}
 
@@ -227,7 +226,7 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 			return nil, err
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
-			return nil, types.ErrIsProductLocked()
+			return nil, types.ErrIsProductLocked(msg.Product)
 		}
 
 		order := getOrderFromMsg(ctx, k, msg, ratio)
@@ -314,16 +313,16 @@ func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCan
 
 	// Check order
 	if order == nil {
-		return types.ErrOrderIsNotExist()
+		return types.ErrOrderIsNotExistOrClosed(msg.OrderID)
 	}
 	if order.Status != types.OrderStatusOpen {
 		return types.ErrOrderStatusIsNotOpen()
 	}
 	if !order.Sender.Equals(msg.Sender) {
-		return types.ErrInputSenderNotEqualOrderSender()
+		return types.ErrNotOrderOwner(msg.OrderID)
 	}
 	if keeper.IsProductLocked(ctx, order.Product) {
-		return types.ErrIsProductLocked()
+		return types.ErrIsProductLocked(order.Product)
 	}
 	return nil
 }

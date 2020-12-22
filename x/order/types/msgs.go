@@ -102,7 +102,7 @@ func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 		return ErrOrderItemCountsIsEmpty()
 	}
 	if len(msg.OrderItems) > OrderItemLimit {
-		return ErrOrderItemCountsBiggerThanLimit()
+		return ErrOrderItemCountsBiggerThanLimit(OrderItemLimit)
 	}
 	for _, item := range msg.OrderItems {
 		if len(item.Product) == 0 {
@@ -110,7 +110,7 @@ func (msg MsgNewOrders) ValidateBasic() sdk.Error {
 		}
 		symbols := strings.Split(item.Product, "_")
 		if len(symbols) != 2 {
-			return ErrOrderItemProductSymbolError()
+			return ErrOrderItemProductFormat()
 		}
 		if symbols[0] == symbols[1] {
 			return ErrOrderItemProductSymbolIsEqual()
@@ -172,7 +172,7 @@ func (msg MsgCancelOrders) ValidateBasic() sdk.Error {
 		return ErrOrderIDsIsEmpty()
 	}
 	if len(msg.OrderIDs) > MultiCancelOrderItemLimit {
-		return ErrOrderIDCountsBiggerThanMultiCancelOrderItemLimit()
+		return ErrCancelOrderBiggerThanLimit(MultiCancelOrderItemLimit)
 	}
 	if hasDuplicatedID(msg.OrderIDs) {
 		return ErrOrderIDsHasDuplicatedID()
