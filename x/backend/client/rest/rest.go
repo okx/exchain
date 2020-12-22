@@ -399,7 +399,8 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		res, err := cli.GetBlockTxHashes(cliCtx, blockHeight)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeGetBlockTxHashesFailed, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeGetBlockTxHashesFailed,
+				fmt.Sprintf("failed to get block tx hash: %s", err.Error()))
 			return
 		}
 
@@ -411,7 +412,8 @@ func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h, err := rpc.GetChainHeight(cliCtx)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeGetChainHeightFailed, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeGetChainHeightFailed,
+				fmt.Sprintf("failed to get chain height: %s", err.Error()))
 			return
 		}
 		res := common.GetBaseResponse(h)
