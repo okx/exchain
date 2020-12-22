@@ -7,72 +7,71 @@ import (
 )
 
 const (
-	CodeInvalidHeight          					uint32 = 61003
-	CodeInvalidAsset           					uint32 = 61004
-	CodeBlockedRecipient        				uint32 = 61006
-	CodeSendDisabled            				uint32 = 61007
-	CodeSendCoinsFromAccountToModuleFailed		uint32 = 61008
-	CodeUnrecognizedLockCoinsType				uint32 = 61009
-	CodeFailedToUnlockAddress					uint32 = 61010
-	CodeInvalidCoins							uint32 = 61013
-	CodeInvalidPriceDigit   	    			uint32 = 61016
-	CodeInvalidMinTradeSize     				uint32 = 61017
-	CodeAddressIsRequired						uint32 = 61018
-	CodeGetConfirmOwnership						uint32 = 61019
-	CodeUpdateLockedCoins						uint32 = 61020
-	CodeUnknownTokenQueryType					uint32 = 61021
-	CodeUserInputSymbolIsEmpty					uint32 = 61022
-	CodeNotAllowedOriginalSymbol				uint32 = 61023
-	CodeWholeNameIsNotValid						uint32 = 61024
-	CodeDescLenBiggerThanLimit					uint32 = 61025
-	CodeTotalSupplyOutOfRange					uint32 = 61027
-	CodeAmountBiggerThanTotalSupplyUpperbound	uint32 = 61028
-	CodeAmountIsNotValid						uint32 = 61029
-	CodeMsgSymbolIsEmpty						uint32 = 61030
-	CodeMintCoinsFailed							uint32 = 61031
-	CodeSendCoinsFromModuleToAccountFailed		uint32 = 61032
-	CodeBurnCoinsFailed							uint32 = 61033
-	CodeConfirmOwnershipNotExistOrBlockTimeAfter	uint32 = 61034
-	CodeWholeNameAndDescriptionIsNotModified 	uint32 = 61035
-	CodeTokenIsNotMintable						uint32 = 61036
-	CodeMsgTransfersAmountBiggerThanSendLimit	uint32 = 61037
-	CodeInputOwnerIsNotEqualTokenOwner			uint32 = 61038
-	CodeinputFromAddressIsNotEqualTokenInfoOwner	uint32 = 61039
-	CodeConfirmOwnershipAddressNotEqualsMsgAddress	uint32 = 61040
+	CodeInvalidAsset                               uint32 = 61000
+	CodeBlockedRecipient                           uint32 = 61001
+	CodeSendDisabled                               uint32 = 61002
+	CodeSendCoinsFromAccountToModuleFailed         uint32 = 61003
+	CodeUnrecognizedLockCoinsType                  uint32 = 61004
+	CodeFailedToUnlockAddress                      uint32 = 61005
+	CodeInvalidCoins                               uint32 = 61006
+	CodeInvalidPriceDigit                          uint32 = 61007
+	CodeInvalidMinTradeSize                        uint32 = 61008
+	CodeAddressIsRequired                          uint32 = 61009
+	CodeGetConfirmOwnership                        uint32 = 61010
+	CodeUpdateLockedCoins                          uint32 = 61011
+	CodeUnknownTokenQueryType                      uint32 = 61012
+	CodeUserInputSymbolIsEmpty                     uint32 = 61013
+	CodeNotAllowedOriginalSymbol                   uint32 = 61014
+	CodeWholeNameIsNotValid                        uint32 = 61015
+	CodeDescLenBiggerThanLimit                     uint32 = 61016
+	CodeTotalSupplyOutOfRange                      uint32 = 61017
+	CodeAmountBiggerThanTotalSupplyUpperbound      uint32 = 61018
+	CodeAmountIsNotValid                           uint32 = 61019
+	CodeMsgSymbolIsEmpty                           uint32 = 61020
+	CodeMintCoinsFailed                            uint32 = 61021
+	CodeSendCoinsFromModuleToAccountFailed         uint32 = 61022
+	CodeBurnCoinsFailed                            uint32 = 61023
+	CodeConfirmOwnershipNotExistOrBlockTimeAfter   uint32 = 61024
+	CodeWholeNameAndDescriptionIsNotModified       uint32 = 61025
+	CodeTokenIsNotMintable                         uint32 = 61026
+	CodeMsgTransfersAmountBiggerThanSendLimit      uint32 = 61027
+	CodeInputOwnerIsNotEqualTokenOwner             uint32 = 61028
+	CodeinputFromAddressIsNotEqualTokenInfoOwner   uint32 = 61029
+	CodeConfirmOwnershipAddressNotEqualsMsgAddress uint32 = 61030
 )
 
 var (
-	errInvalidAsset            = sdkerrors.Register(DefaultCodespace, CodeInvalidAsset, "invalid asset")
-	errBlockedRecipient        = sdkerrors.Register(DefaultCodespace, CodeBlockedRecipient, "blocked recipient")
-	errSendDisabled            = sdkerrors.Register(DefaultCodespace, CodeSendDisabled, "send disabled")
-	errCodeSendCoinsFromAccountToModuleFailed	= sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send to module account failed")
-	errCodeUnrecognizedLockCoinsType			= sdkerrors.Register(DefaultCodespace, CodeUnrecognizedLockCoinsType, "unrecognized lock coins")
-	errCodeFailedToUnlockAddress				= sdkerrors.Register(DefaultCodespace, CodeFailedToUnlockAddress, "unlock address failed")
-	errCodeInvalidCoins						 	= sdkerrors.Register(DefaultCodespace, CodeInvalidCoins, "invalid coins")
-	errCodeInvalidPriceDigit       				= sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
-	errCodeInvalidMinTradeSize     				= sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
-	errCodeAddressIsRequired						= sdkerrors.Register(DefaultCodespace, CodeAddressIsRequired, "address is required")
-	errCodeGetConfirmOwnership					= sdkerrors.Register(DefaultCodespace, CodeGetConfirmOwnership, "get confirm ownership failed")
-	errCodeUpdateLockedCoins					= sdkerrors.Register(DefaultCodespace, CodeUpdateLockedCoins, "update locked coins failed")
-	errCodeUnknownTokenQueryType						= sdkerrors.Register(DefaultCodespace, CodeUnknownTokenQueryType, "unknown token query type")
-	errCodeOriginalSymbolIsEmpty				= sdkerrors.Register(DefaultCodespace, CodeUserInputSymbolIsEmpty, "user input symbol is empty")
-	errCodeNotAllowedOriginalSymbol				= sdkerrors.Register(DefaultCodespace, CodeNotAllowedOriginalSymbol, "not allowed original symbol")
-	errCodeWholeNameIsNotValid					= sdkerrors.Register(DefaultCodespace, CodeWholeNameIsNotValid, "whole name is not valid")
-	errCodeDescLenBiggerThanLimit				= sdkerrors.Register(DefaultCodespace, CodeDescLenBiggerThanLimit, "description len bigger than limit")
-	errCodeTotalSupplyOutOfRange				= sdkerrors.Register(DefaultCodespace, CodeTotalSupplyOutOfRange, "total supply out of range")
-	errCodeAmountBiggerThanTotalSupplyUpperbound= sdkerrors.Register(DefaultCodespace, CodeAmountBiggerThanTotalSupplyUpperbound, "amount bigger than total supply upperbound")
-	errCodeAmountIsNotValid						= sdkerrors.Register(DefaultCodespace, CodeAmountIsNotValid, "amount is not valid")
-	errCodeMsgSymbolIsEmpty						= sdkerrors.Register(DefaultCodespace, CodeMsgSymbolIsEmpty, "msg symbol is empty")
-	errCodeMintCoinsFailed						= sdkerrors.Register(DefaultCodespace, CodeMintCoinsFailed, "mint coins failed")
-	errCodeSendCoinsFromModuleToAccountFailed	= sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "send coins from module to account failed")
-	errCodeBurnCoinsFailed						= sdkerrors.Register(DefaultCodespace, CodeBurnCoinsFailed	, "burn coins failed")
-	errCodeConfirmOwnershipNotExistOrBlockTimeAfter	= sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipNotExistOrBlockTimeAfter	, "confirm ownership not exist or blocktime after")
-	errCodeWholeNameAndDescriptionIsNotModified = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified	, "whole name and description is not modified")
-	errCodeTokenIsNotMintable					= sdkerrors.Register(DefaultCodespace, CodeTokenIsNotMintable	, "token is not mintable")
-	errCodeMsgTransfersAmountBiggerThanSendLimit= sdkerrors.Register(DefaultCodespace, CodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")
-	errCodeInputOwnerIsNotEqualTokenOwner		= sdkerrors.Register(DefaultCodespace, CodeInputOwnerIsNotEqualTokenOwner	, "input owner is not equal token owner")
-	errCodeinputFromAddressIsNotEqualTokenInfoOwner		= sdkerrors.Register(DefaultCodespace, CodeinputFromAddressIsNotEqualTokenInfoOwner	, "input from address is not equal token owner")
-	errCodeConfirmOwnershipAddressNotEqualsMsgAddress	= sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipAddressNotEqualsMsgAddress	, "input address is not equal confirm ownership address")
+	errInvalidAsset                                   = sdkerrors.Register(DefaultCodespace, CodeInvalidAsset, "invalid asset")
+	errBlockedRecipient                               = sdkerrors.Register(DefaultCodespace, CodeBlockedRecipient, "blocked recipient")
+	errSendDisabled                                   = sdkerrors.Register(DefaultCodespace, CodeSendDisabled, "send disabled")
+	errCodeSendCoinsFromAccountToModuleFailed         = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send to module account failed")
+	errCodeUnrecognizedLockCoinsType                  = sdkerrors.Register(DefaultCodespace, CodeUnrecognizedLockCoinsType, "unrecognized lock coins")
+	errCodeFailedToUnlockAddress                      = sdkerrors.Register(DefaultCodespace, CodeFailedToUnlockAddress, "unlock address failed")
+	errCodeInvalidCoins                               = sdkerrors.Register(DefaultCodespace, CodeInvalidCoins, "invalid coins")
+	errCodeInvalidPriceDigit                          = sdkerrors.Register(DefaultCodespace, CodeInvalidPriceDigit, "invalid price digit")
+	errCodeInvalidMinTradeSize                        = sdkerrors.Register(DefaultCodespace, CodeInvalidMinTradeSize, "invalid min trade size")
+	errCodeAddressIsRequired                          = sdkerrors.Register(DefaultCodespace, CodeAddressIsRequired, "address is required")
+	errCodeGetConfirmOwnership                        = sdkerrors.Register(DefaultCodespace, CodeGetConfirmOwnership, "get confirm ownership failed")
+	errCodeUpdateLockedCoins                          = sdkerrors.Register(DefaultCodespace, CodeUpdateLockedCoins, "update locked coins failed")
+	errCodeUnknownTokenQueryType                      = sdkerrors.Register(DefaultCodespace, CodeUnknownTokenQueryType, "unknown token query type")
+	errCodeOriginalSymbolIsEmpty                      = sdkerrors.Register(DefaultCodespace, CodeUserInputSymbolIsEmpty, "user input symbol is empty")
+	errCodeNotAllowedOriginalSymbol                   = sdkerrors.Register(DefaultCodespace, CodeNotAllowedOriginalSymbol, "not allowed original symbol")
+	errCodeWholeNameIsNotValid                        = sdkerrors.Register(DefaultCodespace, CodeWholeNameIsNotValid, "whole name is not valid")
+	errCodeDescLenBiggerThanLimit                     = sdkerrors.Register(DefaultCodespace, CodeDescLenBiggerThanLimit, "description len bigger than limit")
+	errCodeTotalSupplyOutOfRange                      = sdkerrors.Register(DefaultCodespace, CodeTotalSupplyOutOfRange, "total supply out of range")
+	errCodeAmountBiggerThanTotalSupplyUpperbound      = sdkerrors.Register(DefaultCodespace, CodeAmountBiggerThanTotalSupplyUpperbound, "amount bigger than total supply upperbound")
+	errCodeAmountIsNotValid                           = sdkerrors.Register(DefaultCodespace, CodeAmountIsNotValid, "amount is not valid")
+	errCodeMsgSymbolIsEmpty                           = sdkerrors.Register(DefaultCodespace, CodeMsgSymbolIsEmpty, "msg symbol is empty")
+	errCodeMintCoinsFailed                            = sdkerrors.Register(DefaultCodespace, CodeMintCoinsFailed, "mint coins failed")
+	errCodeSendCoinsFromModuleToAccountFailed         = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "send coins from module to account failed")
+	errCodeBurnCoinsFailed                            = sdkerrors.Register(DefaultCodespace, CodeBurnCoinsFailed, "burn coins failed")
+	errCodeConfirmOwnershipNotExistOrBlockTimeAfter   = sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after")
+	errCodeWholeNameAndDescriptionIsNotModified       = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified, "whole name and description is not modified")
+	errCodeTokenIsNotMintable                         = sdkerrors.Register(DefaultCodespace, CodeTokenIsNotMintable, "token is not mintable")
+	errCodeMsgTransfersAmountBiggerThanSendLimit      = sdkerrors.Register(DefaultCodespace, CodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")
+	errCodeInputOwnerIsNotEqualTokenOwner             = sdkerrors.Register(DefaultCodespace, CodeInputOwnerIsNotEqualTokenOwner, "input owner is not equal token owner")
+	errCodeinputFromAddressIsNotEqualTokenInfoOwner   = sdkerrors.Register(DefaultCodespace, CodeinputFromAddressIsNotEqualTokenInfoOwner, "input from address is not equal token owner")
+	errCodeConfirmOwnershipAddressNotEqualsMsgAddress = sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -86,7 +85,7 @@ func ErrSendDisabled() sdk.EnvelopedErr {
 }
 
 func ErrSendCoinsFromAccountToModuleFailed(message string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToModuleFailed, message)}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToModuleFailed, "failed to send to module account: %s", message)}
 }
 
 func ErrUnrecognizedLockCoinsType(lockCoinsType int) sdk.Error {
@@ -98,7 +97,7 @@ func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
 }
 
 func ErrInvalidCoins() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "unknown token")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "invalid coins")}
 }
 
 func ErrGetConfirmOwnership() sdk.Error {
@@ -106,7 +105,7 @@ func ErrGetConfirmOwnership() sdk.Error {
 }
 
 func ErrUpdateLockedCoins() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUpdateLockedCoins, "get confirm ownership failed")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUpdateLockedCoins, "update locked coins failed")}
 }
 
 func ErrUnknownTokenQueryType() sdk.Error {
@@ -130,7 +129,7 @@ func ErrDescLenBiggerThanLimit() sdk.Error {
 }
 
 func ErrTotalSupplyOutOfRange() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalSupplyOutOfRange, "new dec from string")}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalSupplyOutOfRange, "total supply out of range")}
 }
 
 func ErrAmountBiggerThanTotalSupplyUpperbound() sdk.Error {
@@ -138,7 +137,7 @@ func ErrAmountBiggerThanTotalSupplyUpperbound() sdk.Error {
 }
 
 func ErrAmountIsNotValid(amount string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAmountIsNotValid, fmt.Sprintf("amount is not valid amount is %s", amount))}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAmountIsNotValid, fmt.Sprintf("amount %s is not valid", amount))}
 }
 
 func ErrMsgSymbolIsEmpty() sdk.Error {
