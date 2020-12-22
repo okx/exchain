@@ -14,29 +14,29 @@ import (
 // const
 const (
 	// common error
-	ErrorMissingRequiredParam errorCodeV2 = 60001
-	ErrorInvalidParam         errorCodeV2 = 60002
-	ErrorServerException      errorCodeV2 = 60003
-	ErrorDataNotExist         errorCodeV2 = 60004
-	ErrorCodecFails           errorCodeV2 = 60005
-	ErrorABCIQueryFails       errorCodeV2 = 60006
-	ErrorArgsWithLimit        errorCodeV2 = 60007
+	ErrorMissingRequiredParam errorCodeV2 = 60000
+	ErrorInvalidParam         errorCodeV2 = 60001
+	ErrorServerException      errorCodeV2 = 60002
+	ErrorDataNotExist         errorCodeV2 = 60003
+	ErrorCodecFails           errorCodeV2 = 60004
+	ErrorABCIQueryFails       errorCodeV2 = 60005
+	ErrorArgsWithLimit        errorCodeV2 = 60006
 
 	// account error
-	ErrorInvalidAddress errorCodeV2 = 61001
+	ErrorInvalidAddress errorCodeV2 = 61000
 
 	// order error
-	ErrorOrderNotExist        errorCodeV2 = 62001
-	ErrorInvalidCurrency      errorCodeV2 = 62002
-	ErrorEmptyInstrumentID    errorCodeV2 = 62003
-	ErrorInstrumentIDNotExist errorCodeV2 = 62004
+	ErrorOrderNotExist        errorCodeV2 = 62000
+	ErrorInvalidCurrency      errorCodeV2 = 62001
+	ErrorEmptyInstrumentID    errorCodeV2 = 62002
+	ErrorInstrumentIDNotExist errorCodeV2 = 62003
 
 	// staking error
-	ErrorInvalidValidatorAddress errorCodeV2 = 63001
-	ErrorInvalidDelegatorAddress errorCodeV2 = 63002
+	ErrorInvalidValidatorAddress errorCodeV2 = 63000
+	ErrorInvalidDelegatorAddress errorCodeV2 = 63001
 
 	// farm error
-	ErrorInvalidAccountAddress errorCodeV2 = 64001
+	ErrorInvalidAccountAddress errorCodeV2 = 64000
 )
 
 func defaultErrorMessageV2(code errorCodeV2) (message string) {

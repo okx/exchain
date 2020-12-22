@@ -12,15 +12,13 @@ import (
 const (
 	DefaultCodespace = "common"
 
-	CodeInternalError              uint32 = 60101
-	CodeInvalidPaginateParam       uint32 = 60102
-	CodeCreateAddrFromBech32Failed uint32 = 60103
-	CodeMarshalJSONFailed          uint32 = 60104
-	CodeUnMarshalJSONFailed        uint32 = 60105 //"incorrectly formatted request data", err.Error()
-	CodeStrconvFailed              uint32 = 60106
-	CodeParseDecCoinFailed         uint32 = 60107
-	CodeUnknownProposalType        uint32 = 60108
-	CodeInsufficientCoins		   uint32 = 60109
+	CodeInternalError              uint32 = 60100
+	CodeInvalidPaginateParam       uint32 = 60101
+	CodeCreateAddrFromBech32Failed uint32 = 60102
+	CodeMarshalJSONFailed          uint32 = 60103
+	CodeUnMarshalJSONFailed        uint32 = 60104 //"incorrectly formatted request data", err.Error()
+	CodeUnknownProposalType        uint32 = 60105
+	CodeInsufficientCoins          uint32 = 60106
 )
 
 type SDKError struct {
@@ -61,10 +59,6 @@ func ErrMarshalJSONFailed(msg string) sdk.Error {
 // could not unmarshal result to origin
 func ErrUnMarshalJSONFailed(msg string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUnMarshalJSONFailed, fmt.Sprintf("incorrectly formatted request data, %s", msg))
-}
-
-func ErrStrconvFailed(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion "))
 }
 
 func ErrUnknownProposalType(codespace string, msg string) sdk.Error {
