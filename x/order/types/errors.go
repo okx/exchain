@@ -2,86 +2,86 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // const uint32
 const (
-	CodeInvalidAddress							uint32 = 63000
-	CodeProductIsEmpty 							uint32 = 63001
-	CodeSizeIsInvalid  							uint32 = 63002
-	CodeGetTokenPairFailed						uint32 = 63003
-	CodeSendCoinsFromAccountToAccountFaile		uint32 = 63004
-	CodeTradingPairIsdelisting					uint32 = 63005
-	CodeRoundedPriceEqual						uint32 = 63006
-	CodeRoundedQuantityEqual					uint32 = 63007
-	CodeMsgQuantityLessThan						uint32 = 63008
-	CodeGetOrderFailed							uint32 = 63013
-	CodeTokenPairNotFound						uint32 = 63014
-	CodeCheckTokenPairUnderDexDelistFailed		uint32 = 63015
-	CodeIsProductLocked							uint32 = 63016
-	CodeNoOrdersIsCanceled						uint32 = 63017
-	CodeOrderStatusIsNotOpen					uint32 = 63018
-	CodeOrderIsNotExist							uint32 = 63020
-	CodeUnknownOrderQueryType					uint32 = 63021
-	CodeOrderItemCountsBiggerThanLimit			uint32 = 63022
-	CodeOrderItemCountsIsEmpty					uint32 = 63023
-	CodeOrderItemProductCountsIsEmpty			uint32 = 63024
-	CodeOrderItemProductSymbolError				uint32 = 63025
-	CodeOrderItemProductSymbolIsEqual			uint32 = 63026
-	CodeOrderItemSideIsNotBuyAndSell			uint32 = 63027
-	CodeOrderItemPriceOrQuantityIsNotPositive	uint32 = 63028
-	CodeOrderIDsIsEmpty							uint32 = 63029
-	CodeOrderIDCountsBiggerThanMultiCancelOrderItemLimit	uint32 = 63030
-	CodeOrderIDsHasDuplicatedID					uint32 = 63031
-	CodeUserinputOrderIDIsEmpty					uint32 = 63032
-	CodeInputSenderNotEqualOrderSender			uint32 = 63033
+	CodeInvalidAddress                        uint32 = 63000
+	CodeSizeIsInvalid                         uint32 = 63001
+	CodeTokenPairNotExist                     uint32 = 63002
+	CodeSendCoinsFaile                        uint32 = 63003
+	CodeTradingPairIsDelisting                uint32 = 63004
+	CodeRoundedPriceEqual                     uint32 = 63005
+	CodeRoundedQuantityEqual                  uint32 = 63006
+	CodeMsgQuantityLessThan                   uint32 = 63007
+	CodeOrderIsNotExist                       uint32 = 63008
+	CodeCheckTokenPairUnderDexDelistFailed    uint32 = 63009
+	CodeIsProductLocked                       uint32 = 63010
+	CodeNoOrdersIsCanceled                    uint32 = 63011
+	CodeOrderStatusIsNotOpen                  uint32 = 63012
+	CodeOrderIsNotExistOrClosed               uint32 = 63013
+	CodeUnknownOrderQueryType                 uint32 = 63014
+	CodeOrderItemCountsBiggerThanLimit        uint32 = 63015
+	CodeOrderItemCountsIsEmpty                uint32 = 63016
+	CodeOrderItemProductCountsIsEmpty         uint32 = 63017
+	CodeOrderItemProductSymbolError           uint32 = 63018
+	CodeOrderItemProductSymbolIsEqual         uint32 = 63019
+	CodeOrderItemSideIsNotBuyAndSell          uint32 = 63020
+	CodeOrderItemPriceOrQuantityIsNotPositive uint32 = 63021
+	CodeOrderIDsIsEmpty                       uint32 = 63022
+	CodeCancelOrderBiggerThanLimit            uint32 = 63023
+	CodeOrderIDsHasDuplicatedID               uint32 = 63024
+	CodeUserinputOrderIDIsEmpty               uint32 = 63025
+	CodeNotOrderOwner                         uint32 = 63026
+	CodeProductIsEmpty                        uint32 = 63027
 )
 
 func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))
 }
+
 // invalid size
 func ErrInvalidSizeParam(size uint) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))
 }
 
-func ErrGetTokenPairFailed(product string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeGetTokenPairFailed, fmt.Sprintf("failed. token pair %s doesn't exist", product))
+func ErrTokenPairNotExist(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTokenPairNotExist, fmt.Sprintf("token pair %s doesn't exist", product))
 }
 
-func ErrSendCoinsFromAccountToAccountFaile(coins string, to string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToAccountFaile, fmt.Sprintf("send fee(%s) to address(%s) failed\n", coins, to))
+func ErrSendCoinsFaile(coins string, to string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFaile, fmt.Sprintf("send fee(%s) to address(%s) failed\n", coins, to))
 }
 
-func ErrTradingPairIsdelisting(product string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTradingPairIsdelisting, fmt.Sprintf("trading pair '%s' is delisting", product))
+func ErrTradingPairIsDelisting(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeTradingPairIsDelisting, fmt.Sprintf("trading pair '%s' is delisting", product))
 }
 
-func ErrRoundedPriceEqual(priceDigit int64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeRoundedPriceEqual, fmt.Sprintf("price over accuracy(%d)", priceDigit))
+func ErrPriceOverAccuracy(price sdk.Dec, priceDigit int64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeRoundedPriceEqual, fmt.Sprintf("price(%v) over accuracy(%d)", price, priceDigit))
 }
 
-func ErrRoundedQuantityEqual(quantityDigit int64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeRoundedQuantityEqual, fmt.Sprintf("quantity over accuracy(%d)", quantityDigit))
+func ErrQuantityOverAccuracy(quantity sdk.Dec, quantityDigit int64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeRoundedQuantityEqual, fmt.Sprintf("quantity(%v) over accuracy(%d)", quantity, quantityDigit))
 }
 
 func ErrMsgQuantityLessThan(minQuantity string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeMsgQuantityLessThan, fmt.Sprintf("quantity should be greater than %s", minQuantity))
 }
 
-func ErrGetOrderFailed(order string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeGetOrderFailed, fmt.Sprintf("order(%v) does not exist", order))
+func ErrOrderIsNotExist(order string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeOrderIsNotExist, fmt.Sprintf("order(%v) does not exist", order))
 }
 
 func ErrCheckTokenPairUnderDexDelistFailed() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeCheckTokenPairUnderDexDelistFailed, "check token pair under dex delist failed")
 }
 
-func ErrIsProductLocked() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsProductLocked, "current product is locked")
+func ErrIsProductLocked(product string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeIsProductLocked, fmt.Sprintf("the trading pair (%s) is locked", product))
 }
 
 func ErrNoOrdersIsCanceled() sdk.Error {
@@ -92,16 +92,16 @@ func ErrOrderStatusIsNotOpen() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeOrderStatusIsNotOpen, "order status is not open")
 }
 
-func ErrOrderIsNotExist() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderIsNotExist, "order is not exist")
+func ErrOrderIsNotExistOrClosed(orderID string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeOrderIsNotExistOrClosed, fmt.Sprintf("order(%s) does not exist or already closed", orderID))
 }
 
 func ErrUnknowOrdernQueryType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownOrderQueryType, "unknown order query type")
+	return sdkerrors.New(DefaultCodespace, CodeUnknownOrderQueryType, "unknown order query endpoint")
 }
 
-func ErrOrderItemCountsBiggerThanLimit() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderItemCountsBiggerThanLimit, "order item counts bigger than limit")
+func ErrOrderItemCountsBiggerThanLimit(limit int) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeOrderItemCountsBiggerThanLimit, fmt.Sprintf("order item counts bigger than limit %d", limit))
 }
 
 func ErrOrderItemCountsIsEmpty() sdk.Error {
@@ -112,8 +112,8 @@ func ErrOrderItemProductCountsIsEmpty() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeOrderItemProductCountsIsEmpty, "order item's product counts is empty")
 }
 
-func ErrOrderItemProductSymbolError() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderItemProductSymbolError, "order item's product symbol is error")
+func ErrOrderItemProductFormat() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeOrderItemProductSymbolError, "order item's product format is error")
 }
 
 func ErrOrderItemProductSymbolIsEqual() sdk.Error {
@@ -121,7 +121,7 @@ func ErrOrderItemProductSymbolIsEqual() sdk.Error {
 }
 
 func ErrOrderItemSideIsNotBuyAndSell() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderItemSideIsNotBuyAndSell, "order item's side is not buy and sell")
+	return sdkerrors.New(DefaultCodespace, CodeOrderItemSideIsNotBuyAndSell, "order item's side is not \"BUY\" or \"SELL\"")
 }
 
 func ErrOrderItemPriceOrQuantityIsNotPositive() sdk.Error {
@@ -129,21 +129,21 @@ func ErrOrderItemPriceOrQuantityIsNotPositive() sdk.Error {
 }
 
 func ErrOrderIDsIsEmpty() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderIDsIsEmpty, "order Ids is empty")
+	return sdkerrors.New(DefaultCodespace, CodeOrderIDsIsEmpty, "order IDs is empty")
 }
 
-func ErrOrderIDCountsBiggerThanMultiCancelOrderItemLimit() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderIDCountsBiggerThanMultiCancelOrderItemLimit, "order Id counts bigger than multi cancel order item limits")
+func ErrCancelOrderBiggerThanLimit(limit int) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeCancelOrderBiggerThanLimit, fmt.Sprintf("Numbers of CancelOrderItem should not be bigger than limit %d", limit))
 }
 
 func ErrOrderIDsHasDuplicatedID() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderIDsHasDuplicatedID, "order Ids has duplicated ID")
+	return sdkerrors.New(DefaultCodespace, CodeOrderIDsHasDuplicatedID, "order IDs has duplicated ID")
 }
 
 func ErrUserinputOrderIDIsEmpty() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeUserinputOrderIDIsEmpty, "user input order id is empty")
 }
 
-func ErrInputSenderNotEqualOrderSender() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInputSenderNotEqualOrderSender, "user input sender address is not equal order's sender")
+func ErrNotOrderOwner(orderID string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotOrderOwner, fmt.Sprintf("not the owner of order(%v)", orderID))
 }
