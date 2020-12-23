@@ -60,7 +60,7 @@ func queryAccountHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(mux.Vars(r)["accAddr"])
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+			common.HandleErrorMsg(w, cliCtx, common.ErrorInvalidAccountAddress, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryAccountParams(accAddr))
@@ -91,7 +91,7 @@ func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(varsMap["accAddr"])
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+			common.HandleErrorMsg(w, cliCtx, common.ErrorInvalidAccountAddress, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryPoolAccountParams(varsMap["poolName"], accAddr))

@@ -34,9 +34,6 @@ const (
 	// staking error
 	ErrorInvalidValidatorAddress errorCodeV2 = 60700
 	ErrorInvalidDelegatorAddress errorCodeV2 = 60701
-
-	// farm error
-	ErrorInvalidAccountAddress errorCodeV2 = 60600
 )
 
 func defaultErrorMessageV2(code errorCodeV2) (message string) {

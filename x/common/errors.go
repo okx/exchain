@@ -20,6 +20,7 @@ const (
 	CodeStrconvFailed              uint32 = 60105
 	CodeUnknownProposalType        uint32 = 60106
 	CodeInsufficientCoins          uint32 = 60107
+	ErrorInvalidAccountAddress     uint32 = 60108
 )
 
 type SDKError struct {
@@ -44,7 +45,7 @@ func ParseSDKError(errMsg string) SDKError {
 
 // invalid paginate param
 func ErrInvalidPaginateParam(page int, perPage int) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidPaginateParam, fmt.Sprintf("invalid params: page=%d or per_page=%d", page, perPage))
+	return sdkerrors.New(DefaultCodespace, CodeInvalidPaginateParam, fmt.Sprintf("negative page %d or per_page %d is invalid", page, perPage))
 }
 
 // invalid address
