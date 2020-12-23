@@ -20,7 +20,9 @@ const (
 	CodeStrconvFailed              uint32 = 60105
 	CodeUnknownProposalType        uint32 = 60106
 	CodeInsufficientCoins          uint32 = 60107
-	ErrorInvalidAccountAddress     uint32 = 60108
+	CodeInvalidAccountAddress      uint32 = 60108
+	CodeABCIQueryFails             uint32 = 60109
+	CodeArgsWithLimit              uint32 = 60110
 )
 
 type SDKError struct {

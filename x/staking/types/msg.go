@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"github.com/okex/okexchain/x/common"
-
 	"github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"

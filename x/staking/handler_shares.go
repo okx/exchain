@@ -22,12 +22,12 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 	// proxy must delegated
 	proxyDelegator, found := k.GetDelegator(ctx, msg.ProxyAddress)
 	if !found || proxyDelegator.Tokens.IsZero() {
-		return types.ErrNotFoundProxy(msg.ProxyAddress.String()).Result()
+		return types.ErrProxyNotFound(msg.ProxyAddress.String()).Result()
 	}
 
 	// target delegator must reg as a proxy
 	if !proxyDelegator.IsProxy {
-		return types.ErrDelegatorNotAProxy(msg.ProxyAddress.String()).Result()
+		return types.ErrProxyNotFound(msg.ProxyAddress.String()).Result()
 	}
 
 	// double proxy is denied on okexchain
@@ -78,7 +78,7 @@ func unbindProxy(ctx sdk.Context, delAddr sdk.AccAddress, k keeper.Keeper) error
 
 	proxyDelegator, found := k.GetDelegator(ctx, delegator.ProxyAddress)
 	if !found {
-		return types.ErrNotFoundProxy(delAddr.String())
+		return types.ErrProxyNotFound(delAddr.String())
 	}
 
 	// update proxy's shares weight
@@ -108,7 +108,7 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sdk.
 		return types.ErrNoDelegationToAddShares(proxyAddr.String()).Result()
 	}
 	if proxy.IsProxy {
-		return types.ErrAlreadyProxied(proxyAddr.String()).Result()
+		return types.ErrProxyAlreadyExist(proxyAddr.String()).Result()
 	}
 	if len(proxy.ProxyAddress) != 0 {
 		return types.ErrAlreadyBound(proxyAddr.String()).Result()
@@ -129,11 +129,11 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sd
 	// check status
 	proxy, found := k.GetDelegator(ctx, proxyAddr)
 	if !found {
-		return types.ErrNotFoundProxy(proxyAddr.String()).Result()
+		return types.ErrProxyNotFound(proxyAddr.String()).Result()
 	}
 
 	if !proxy.IsProxy {
-		return types.ErrNeverProxied(proxyAddr.String()).Result()
+		return types.ErrProxyNotFound(proxyAddr.String()).Result()
 	}
 
 	proxy.RegProxy(false)
@@ -161,7 +161,7 @@ func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) (*s
 func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) (*sdk.Result, error) {
 	maxValsToAddShares := int(k.ParamsMaxValsToAddShares(ctx))
 	if len(msg.ValAddrs) == 0 {
-		return types.ErrNilValidatorAddrs().Result()
+		return nil, types.ErrEmptyValidators()
 	} else if len(msg.ValAddrs) > maxValsToAddShares {
 		return types.ErrExceedValidatorAddrs(maxValsToAddShares).Result()
 	}
@@ -212,7 +212,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 // validateSharesAdding gives a quick validity of target validators before shares adding
 func validateSharesAdding(vals types.Validators) error {
 	if len(vals) == 0 {
-		return types.ErrNoAvailableValsToAddShares()
+		return types.ErrEmptyValidators()
 	}
 
 	if valAddr, ok := isDismissed(vals); ok {
