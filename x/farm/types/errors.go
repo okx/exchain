@@ -28,12 +28,11 @@ const (
 	CodeSendCoinsFromAccountToModuleFailed uint32 = 66012
 	CodeUnknownFarmMsgType                 uint32 = 66013
 	CodeUnknownFarmQueryType               uint32 = 66014
-	CodeFarmMsgOccurError                  uint32 = 66015
-	CodeInvalidInputAmount				   uint32 = 66016
-	CodeInsufficientAmount                 uint32 = 66017
-	CodeInvalidStartHeight                 uint32 = 66018
-	CodePoolNameLength                     uint32 = 66019
-	CodeLockAmountBelowMinimum             uint32 = 66020
+	CodeInvalidInputAmount				   uint32 = 66015
+	CodeInsufficientAmount                 uint32 = 66016
+	CodeInvalidStartHeight                 uint32 = 66017
+	CodePoolNameLength                     uint32 = 66018
+	CodeLockAmountBelowMinimum             uint32 = 66019
 )
 
 // ErrInvalidInput returns an error when an input parameter is invalid
@@ -111,10 +110,6 @@ func ErrUnknownFarmMsgType(content string) sdk.EnvelopedErr {
 
 func ErrUnknownFarmQueryType(content string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeUnknownFarmQueryType, fmt.Sprintf("failed. unknown farm query type %s", content))}
-}
-
-func ErrFarmMsgOccurError(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeFarmMsgOccurError, fmt.Sprintf("failed. farm module exec msg occur err %s", content))}
 }
 
 // ErrInvalidInputAmount returns an error when an input amount is invaild
