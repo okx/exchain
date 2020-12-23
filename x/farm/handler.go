@@ -50,7 +50,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
-			return types.ErrUnknownFarmMsgType("unrecognized message").Result()
+                        errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
+			return types.ErrUnknownFarmMsgType(errMsg).Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
@@ -58,10 +59,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		res, err := handlerFun()
 		common.SanityCheckHandler(res, err)
-		if err != nil {
-			return res, types.ErrFarmMsgOccurError(err.Error())
-		}
-		return res, nil
+		return res, err
 	}
 }
 

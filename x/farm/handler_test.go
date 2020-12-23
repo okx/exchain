@@ -267,7 +267,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 				return createPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc already exists"),
+			expectedErr:  types.ErrPoolAlreadyExist("abc"),
 		},
 		{
 			caseName: "failed. lock token does not exists",
@@ -278,7 +278,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 				return createPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. token fff does not exist"),
+			expectedErr:  types.ErrTokenNotExist("fff"),
 		},
 		{
 			caseName: "failed. yield token does not exists",
@@ -289,7 +289,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 				return createPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. token fff does not exist"),
+			expectedErr:  types.ErrTokenNotExist("fff"),
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -301,9 +301,9 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr: types.ErrFarmMsgOccurError(
-				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000%s < 1.000000000000000000fff",
-					sdk.DefaultBondDenom)),
+			expectedErr: errors.New(
+				"insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000okt < 1.000000000000000000fff",
+			),
 		},
 		{
 			caseName: "failed. insufficient coins",
@@ -315,9 +315,9 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 			},
 			getMsg:       normalGetCreatePoolMsg,
 			verification: verification,
-			expectedErr: types.ErrFarmMsgOccurError(
-				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000%s < 1.000000000000000000fff",
-					sdk.DefaultBondDenom)),
+			expectedErr: errors.New(
+				"insufficient coins: insufficient funds: insufficient account funds; 89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,100000.000000000000000000ddb,1000.000000000000000000okt < 1.000000000000000000fff",
+			),
 		},
 	}
 	testCaseTest(t, tests)
@@ -346,7 +346,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc does not exist"),
+			expectedErr:  types.ErrNoFarmPoolFound("abc"),
 		},
 		{
 			caseName: "failed. the address isn't the owner of pool",
@@ -357,7 +357,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				return destroyPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgpq6kh8f isn't the owner of pool abc"),
+			expectedErr:  types.ErrInvalidPoolOwner("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgpq6kh8f", "abc"),
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -374,9 +374,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr: types.ErrFarmMsgOccurError(
-				fmt.Sprintf("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000%s < 1.000000000000000000fff",
-					sdk.DefaultBondDenom)),
+			expectedErr: errors.New("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000okt < 1.000000000000000000fff"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -391,7 +389,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the pool abc that is with unclaimed rewards or locked coins can not be destroyed"),
+			expectedErr:  types.ErrPoolNotFinished("abc"),
 		},
 		{
 			caseName: "success. destroy after providing",
@@ -455,7 +453,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("insufficient coins: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("insufficient coins: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -475,7 +473,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the pool abc that is with unclaimed rewards or locked coins can not be destroyed"),
+			expectedErr:  types.ErrPoolNotFinished("abc"),
 		},
 	}
 	testCaseTest(t, tests)
@@ -504,7 +502,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 				return provideMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the start height to yield is less than current height"),
+			expectedErr:  types.ErrInvalidStartHeight(),
 		},
 		{
 			caseName: "failed. Farm pool does not exist",
@@ -514,7 +512,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 			},
 			getMsg:       normalGetProvideMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc does not exist"),
+			expectedErr:  types.ErrNoFarmPoolFound("abc"),
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -525,7 +523,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 				return provideMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the coin name should be aab, not fff"),
+			expectedErr:  types.ErrInvalidDenom("aab", "fff"),
 		},
 		{
 			caseName: "failed. The remaining amount is %s, so it's not enable to provide token repeatedly util amount become zero",
@@ -539,7 +537,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 			},
 			getMsg:       normalGetProvideMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the remaining amount is 10.000000000000000000aab, so it's not enable to provide token repeatedly util amount become zero"),
+			expectedErr:  types.ErrRemainingAmountNotZero("10.000000000000000000aab"),
 		},
 		{
 			caseName: "insufficient amount",
@@ -550,7 +548,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 				return provideMsg
 			},
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("insufficient funds: insufficient account funds; "+
+			expectedErr: errors.New(fmt.Sprintf("failed. send coins from account to module failed insufficient funds: insufficient account funds; "+
 				"89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
 				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000000.000000000000000000aab", sdk.DefaultBondDenom)),
 		},
@@ -585,7 +583,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc does not exist"),
+			expectedErr:  types.ErrNoFarmPoolFound("abc"),
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -596,7 +594,7 @@ func TestHandlerMsgLock(t *testing.T) {
 				return lockMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the coin name should be ammswap_aab_ccb, not fff"),
+			expectedErr:  types.ErrInvalidDenom("ammswap_aab_ccb", "fff"),
 		},
 		{
 			caseName: "failed. lock amount %s must be greater than the pool`s min lock amount %s",
@@ -614,7 +612,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("lock amount 1.000000000000000000 must be greater than the pool's min lock amount 9223372036854775807.000000000000000000"),
+			expectedErr:  types.ErrLockAmountBelowMinimum(sdk.MustNewDecFromStr("9223372036854775807.000000000000000000"), sdk.MustNewDecFromStr("1.000000000000000000")),
 		},
 		{
 			caseName: "success. has lockInfo",
@@ -654,7 +652,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. insufficient coins",
@@ -708,7 +706,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgqavzz6m hasn't locked in pool abc"),
+			expectedErr:  types.ErrNoLockInfoFound("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgqavzz6m", "abc"),
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -719,7 +717,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				return unlockMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the coin name should be ammswap_aab_ccb, not fff"),
+			expectedErr:  types.ErrInvalidDenom("ammswap_aab_ccb", "fff"),
 		},
 		{
 			caseName: "failed. The actual amount %s is less than %s",
@@ -730,7 +728,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				return unlockMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. the actual amount 1.000000000000000000ammswap_aab_ccb is less than 2.000000000000000000ammswap_aab_ccb"),
+			expectedErr:  types.ErrInsufficientAmount("1.000000000000000000ammswap_aab_ccb", "2.000000000000000000ammswap_aab_ccb"),
 		},
 		{
 			caseName: "failed. remain lock amount %s is less than pool`s min lock amount %s",
@@ -754,7 +752,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("lock amount 1.000000000000000000 must be greater than the pool's min lock amount 2.000000000000000000"),
+			expectedErr:  types.ErrLockAmountBelowMinimum(sdk.MustNewDecFromStr("2.000000000000000000"), sdk.MustNewDecFromStr("1.000000000000000000")),
 		},
 		{
 			caseName: "failed. Farm pool %s does not exist",
@@ -765,7 +763,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc does not exist"),
+			expectedErr:  types.ErrNoFarmPoolFound("abc"),
 		},
 		{
 			caseName: "failed. withdraw failed",
@@ -787,7 +785,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. insufficient coins from module account",
@@ -888,7 +886,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			},
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("failed. farm pool abc does not exist"),
+			expectedErr:  types.ErrNoFarmPoolFound("abc"),
 		},
 		{
 			caseName: "failed. withdraw failed",
@@ -910,7 +908,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			},
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
-			expectedErr:  types.ErrFarmMsgOccurError("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 	}
 

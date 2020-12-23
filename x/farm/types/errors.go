@@ -114,7 +114,7 @@ func ErrUnknownFarmQueryType(content string) sdk.EnvelopedErr {
 }
 
 func ErrFarmMsgOccurError(content string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeFarmMsgOccurError, fmt.Sprintf("failed. farm module exec msg occure err %s", content))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeFarmMsgOccurError, fmt.Sprintf("failed. farm module exec msg occur err %s", content))}
 }
 
 // ErrInvalidInputAmount returns an error when an input amount is invaild
