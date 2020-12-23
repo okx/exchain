@@ -72,8 +72,8 @@ func defaultErrorMessageV2(code errorCodeV2) (message string) {
 		message = "invalid delegator address"
 
 	// farm
-	case ErrorInvalidAccountAddress:
-		message = "invalid account address"
+	//case ErrorInvalidAccountAddress:
+	//	message = "invalid account address"
 
 	default:
 		message = "unknown error"
