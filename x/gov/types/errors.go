@@ -11,23 +11,27 @@ const (
 	DefaultCodespace string = "gov"
 	BaseGovError     uint32 = 68000
 
-	CodeInvalidAddress			 uint32 = BaseGovError
-	CodeUnknownProposal          uint32 = BaseGovError+1
-	CodeInvalidContent           uint32 = BaseGovError+6
-	CodeInvalidProposalType      uint32 = BaseGovError+7
-	CodeInvalidVote              uint32 = BaseGovError+8
-	CodeInvalidGenesis           uint32 = BaseGovError+9
-	CodeProposalHandlerNotExists uint32 = BaseGovError+10
-	CodeInvalidProposalStatus   uint32 = BaseGovError+11
-	CodeInitialDepositNotEnough uint32 = BaseGovError+12
-	CodeInvalidProposer         uint32 = BaseGovError+13
-	CodeInvalidHeight           uint32 = BaseGovError+14
-	CodeInvalidCoins			uint32 = BaseGovError+17
-	CodeUnknownParamType		uint32 = BaseGovError+18
+	CodeInvalidAddress           uint32 = BaseGovError
+	CodeUnknownProposal          uint32 = BaseGovError + 1
+	CodeInvalidContent           uint32 = BaseGovError + 2
+	CodeInvalidProposalType      uint32 = BaseGovError + 3
+	CodeInvalidVote              uint32 = BaseGovError + 4
+	CodeInvalidGenesis           uint32 = BaseGovError + 5
+	CodeProposalHandlerNotExists uint32 = BaseGovError + 6
+	CodeInvalidProposalStatus    uint32 = BaseGovError + 7
+	CodeInitialDepositNotEnough  uint32 = BaseGovError + 8
+	CodeInvalidProposer          uint32 = BaseGovError + 9
+	CodeInvalidHeight            uint32 = BaseGovError + 10
+	CodeInvalidCoins             uint32 = BaseGovError + 11
+	CodeUnknownParamType         uint32 = BaseGovError + 12
 )
 
 func ErrInvalidAddress(address string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address %s", address))
+}
+
+func ErrUnknownProposal(proposalID uint64) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeUnknownProposal, fmt.Sprintf("unknown proposal with id %d", proposalID))
 }
 
 func ErrInvalidProposalContent(msg string) sdk.Error {
@@ -43,19 +47,15 @@ func ErrInvalidVote(voteOption VoteOption) sdk.Error {
 }
 
 func ErrInvalidGenesis() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidVote, "initial proposal ID hasn't been set")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidGenesis, "initial proposal ID hasn't been set")
 }
 
 func ErrNoProposalHandlerExists(content interface{}) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeProposalHandlerNotExists, fmt.Sprintf("'%T' does not have a corresponding handler", content))
 }
 
-func ErrUnknownProposal(proposalID uint64) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnknownProposal, fmt.Sprintf("unknown proposal with id %d", proposalID))
-}
-
 func ErrInvalidateProposalStatus() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidProposalStatus, "The status of proposal is can not be voted.")
+	return sdkerrors.New(DefaultCodespace, CodeInvalidProposalStatus, "the status of proposal is not for this operation")
 }
 
 func ErrInitialDepositNotEnough(initDeposit string) sdk.Error {
