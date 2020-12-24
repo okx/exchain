@@ -46,143 +46,143 @@ const (
 )
 
 // Addr and Product All Required
-func ErrAddrAndProductAllRequired() sdk.Error {
+func ErrAddrAndProductAllRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAddrAndProductAllRequired, "bad request: address、base_asset and quote_asset could not be "+" at the same time")}
 }
 
 // ErrInvalidTokenPair returns invalid product error
-func ErrInvalidTokenPair(tokenPair string) sdk.Error {
+func ErrInvalidTokenPair(tokenPair string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeInvalidTokenPair, fmt.Sprintf("invalid tokenpair: %s", tokenPair))}
 }
 
 // ErrTokenPairNotFound returns token pair not found error
-func ErrTokenPairNotFound(product string) sdk.Error {
+func ErrTokenPairNotFound(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeTokenPairNotFound, fmt.Sprintf("tokenpair not found: %s", product))}
 }
 
 // ErrInvalidBalanceNotEnough returns invalid balance not enough error
-func ErrBalanceNotEnough(proposer string, initialDeposit string) sdk.Error {
+func ErrBalanceNotEnough(proposer string, initialDeposit string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeBalanceNotEnough, fmt.Sprintf("failed to submit proposal because proposer %s didn't have enough coins to pay for the initial deposit %s", proposer, initialDeposit))}
 }
 
 // ErrInvalidAsset returns invalid asset error
-func ErrInvalidAsset(localMinDeposit string) sdk.Error {
+func ErrInvalidAsset(localMinDeposit string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeInvalidAsset, fmt.Sprintf("failed to submit proposal because initial deposit should be more than %s", localMinDeposit))}
 }
 
-func ErrUnknownOperator(addr sdk.AccAddress) sdk.Error {
+func ErrUnknownOperator(addr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeUnknownOperator, fmt.Sprintf("unknown dex operator with address %s", addr.String()))}
 }
 
-func ErrExistOperator(addr sdk.AccAddress) sdk.Error {
+func ErrExistOperator(addr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeExistOperator, fmt.Sprintf("dex operator already exists with address %s", addr.String()))}
 }
 
-func ErrInvalidWebsiteLength(got, max int) sdk.Error {
+func ErrInvalidWebsiteLength(got, max int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeInvalidWebsiteLength, fmt.Sprintf("invalid website length, got length %v, max is %v", got, max))}
 }
 
-func ErrInvalidWebsiteURL(msg string) sdk.Error {
+func ErrInvalidWebsiteURL(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, codeInvalidWebsiteURL, fmt.Sprintf("invalid website URL: %s", msg))}
 }
 
-func ErrTokenPairSaveFailed(err string) sdk.Error {
+func ErrTokenPairSaveFailed(err string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenPairSaveFailed, fmt.Sprintf("failed to SaveTokenPair: %s", err))}
 }
 
-func ErrInsufficientFeeCoins(fee sdk.Coins) sdk.Error {
+func ErrInsufficientFeeCoins(fee sdk.Coins) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInsufficientFeeCoins, fmt.Sprintf("insufficient fee coins(need %s)", fee.String()))}
 }
 
 // ErrTokenPairExisted returns an error when the token pair is existing during the process of listing
-func ErrTokenPairExisted(baseAsset string, quoteAsset string) sdk.Error {
+func ErrTokenPairExisted(baseAsset string, quoteAsset string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenPairAlreadyExist, fmt.Sprintf("the token pair exists with %s and %s", baseAsset, quoteAsset))}
 }
 
-func ErrMustTokenPairOwner(addr string, tokenPair string) sdk.Error {
+func ErrMustTokenPairOwner(addr string, tokenPair string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMustTokenPairOwner, fmt.Sprintf("%s is not the owner of product: %s", addr, tokenPair))}
 }
 
-func ErrDepositOnlySupportDenom(denom string) sdk.Error {
+func ErrDepositOnlySupportDenom(denom string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDepositOnlySupportDenom, fmt.Sprintf("deposits only support %s token", denom))}
 }
 
-func ErrInsufficientDepositCoins(depositCoins string) sdk.Error {
+func ErrInsufficientDepositCoins(depositCoins string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInsufficientDepositCoins, fmt.Sprintf("insufficient deposit coins(need %s)", depositCoins))}
 }
 
-func ErrWithdrawOnlySupportDenom(denom string) sdk.Error {
+func ErrWithdrawOnlySupportDenom(denom string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeWithdrawOnlySupportDenom, fmt.Sprintf("failed to withdraws because deposits only support %s token", denom))}
 }
 
-func ErrInsufficientWithdrawCoins(depositCoins string, amount string) sdk.Error {
+func ErrInsufficientWithdrawCoins(depositCoins string, amount string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInsufficientWithdrawCoins, fmt.Sprintf("failed to withdraws because deposits:%s is less than withdraw:%s", depositCoins, amount))}
 }
 
-func ErrInvalidAddress(msg string) sdk.Error {
+func ErrInvalidAddress(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("there is no withdrawing for address: %s", msg))}
 }
 
-func ErrUnauthorized(address, product string) sdk.Error {
+func ErrUnauthorized(address, product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnauthorized, fmt.Sprintf("%s is not the owner of product(%s)", address, product))}
 }
 
-func ErrInvalidCoins() sdk.Error {
+func ErrInvalidCoins() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "invalid coins")}
 }
 
-func ErrRepeatedTransferOwner(product string) sdk.Error {
+func ErrRepeatedTransferOwner(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeRepeatedTransferOwner, fmt.Sprintf("repeated transfer-ownership of product(%s)", product))}
 }
 
-func ErrDepositFailed(msg string) sdk.Error {
+func ErrDepositFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDepositFailed, fmt.Sprintf("deposit occur error: %s", msg))}
 }
 
-func ErrWithdrawFailed(msg string) sdk.Error {
+func ErrWithdrawFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeWithdrawFailed, fmt.Sprintf("withdraw occur error: %s", msg))}
 }
 
-func ErrGetConfirmOwnershipNotExist(address string) sdk.Error {
+func ErrGetConfirmOwnershipNotExist(address string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeGetConfirmOwnershipNotExist, fmt.Sprintf("no transfer-ownership of list (%s) to confirm", address))}
 }
 
-func ErrTokenPairIsRequired() sdk.Error {
+func ErrTokenPairIsRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenPairIsRequired, "token pair is required")}
 }
 
-func ErrIsTokenPairLocked(tokenPairName string) sdk.Error {
+func ErrIsTokenPairLocked(tokenPairName string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsTokenPairLocked, fmt.Sprintf("unexpected state, the trading pair (%s) is locked", tokenPairName))}
 }
 
-func ErrDexUnknownMsgType(msg string) sdk.Error {
+func ErrDexUnknownMsgType(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDexUnknownMsgType, fmt.Sprintf("unrecognized dex message type: %T", msg))}
 }
 
-func ErrDexUnknownQueryType() sdk.Error {
+func ErrDexUnknownQueryType() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDexUnknownQueryType, "unknown dex query endpoint")}
 }
 
-func ErrInitPriceIsNotPositive() sdk.Error {
+func ErrInitPriceIsNotPositive() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInitPriceIsNotPositive, "invalid init price number")}
 }
 
-func ErrAddressIsRequired(addrType string) sdk.Error {
+func ErrAddressIsRequired(addrType string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAddressIsRequired, fmt.Sprintf("missing %s address", addrType))}
 }
 
-func ErrTokenOfPairNotExist(baseAsset string, quoteAsset string) sdk.Error {
+func ErrTokenOfPairNotExist(baseAsset string, quoteAsset string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenOfPairNotExist, fmt.Sprintf("the token of pair is not exists with %s and %s", baseAsset, quoteAsset))}
 }
 
-func ErrIsTransferringOwner(product string) sdk.Error {
+func ErrIsTransferringOwner(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsTransferringOwner, fmt.Sprintf("the product(%s) is transferring ownership, not allowed to be deposited", product))}
 }
 
-func ErrIsTransferOwnerExpired(time string) sdk.Error {
+func ErrIsTransferOwnerExpired(time string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTransferOwnerExpired, fmt.Sprintf("transfer-ownership is expired, expire time (%s)", time))}
 }
 
-func ErrUnauthorizedOperator(operator, owner string) sdk.Error {
+func ErrUnauthorizedOperator(operator, owner string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnauthorizedOperator, fmt.Sprintf("%s is not the owner of operator(%s)", owner, operator))}
 }

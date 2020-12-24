@@ -86,10 +86,10 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// check upper bound
 	totalSupply, err := sdk.NewDecFromStr(msg.TotalSupply)
 	if err != nil {
-		return nil, err
+		return types.ErrGetDecimalFromDecimalStringFailed(err.Error()).Result()
 	}
 	if totalSupply.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
-		return nil, types.ErrAmountBiggerThanTotalSupplyUpperbound()
+		return types.ErrAmountBiggerThanTotalSupplyUpperbound().Result()
 	}
 
 	token := types.Token{
@@ -104,7 +104,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// generate a random symbol
 	newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
 	if !valid {
-		return nil, types.ErrInvalidCoins()
+		return types.ErrInvalidCoins().Result()
 	}
 
 	token.Symbol = newName
@@ -113,13 +113,13 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// set supply
 	err = keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, coins)
 	if err != nil {
-		return nil, types.ErrMintCoinsFailed(err.Error())
+		return types.ErrMintCoinsFailed(err.Error()).Result()
 	}
 
 	// send coins to owner
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, token.Owner, coins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
 	}
 
 	// set token info
@@ -129,7 +129,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	feeDecCoins := keeper.GetParams(ctx).FeeIssue.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, token.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
 	}
 
 	var name = "handleMsgTokenIssue"
@@ -159,27 +159,27 @@ func handleMsgTokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn, 
 
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
+		return types.ErrInputOwnerIsNotEqualTokenOwner(msg.Owner).Result()
 	}
 
 	subCoins := msg.Amount.ToCoins()
 	// send coins to moduleAcc
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, types.ModuleName, subCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
 	}
 
 	// set supply
 	err = keeper.supplyKeeper.BurnCoins(ctx, types.ModuleName, subCoins)
 	if err != nil {
-		return nil, types.ErrBurnCoinsFailed(err.Error())
+		return types.ErrBurnCoinsFailed(err.Error()).Result()
 	}
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeBurn.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
+		return types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String()).Result()
 	}
 
 	var name = "handleMsgTokenBurn"
@@ -205,39 +205,38 @@ func handleMsgTokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint, 
 	token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
+		return types.ErrInputOwnerIsNotEqualTokenOwner(msg.Owner).Result()
 	}
 
 	// check whether token is mintable
 	if !token.Mintable {
-		return nil, types.ErrTokenIsNotMintable()
+		return types.ErrTokenIsNotMintable().Result()
 	}
 
 	// check upper bound
 	totalSupplyAfterMint := keeper.supplyKeeper.GetSupplyByDenom(ctx, msg.Amount.Denom).Add(msg.Amount.Amount)
 	if totalSupplyAfterMint.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
-		return sdk.ErrInternal(fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)",
-			totalSupplyAfterMint, types.TotalSupplyUpperbound)).Result()
+		return types.ErrCodeTotalsupplyExceedsTheUpperLimit(totalSupplyAfterMint, types.TotalSupplyUpperbound).Result()
 	}
 
 	mintCoins := msg.Amount.ToCoins()
 	// set supply
 	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, mintCoins)
 	if err != nil {
-		return nil, types.ErrMintCoinsFailed(err.Error())
+		return types.ErrMintCoinsFailed(err.Error()).Result()
 	}
 
 	// send coins to acc
 	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Owner, mintCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
 	}
 
 	// deduction fee
 	feeDecCoins := keeper.GetParams(ctx).FeeMint.ToCoins()
 	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
+		return types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String()).Result()
 	}
 
 	name := "handleMsgTokenMint"
@@ -271,7 +270,7 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
-			return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
+			return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
 		}
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
@@ -300,7 +299,7 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
 	}
 
 	var name = "handleMsgSend"
@@ -323,12 +322,12 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
 
 	if !tokenInfo.Owner.Equals(msg.FromAddress) {
-		return nil, types.ErrCodeinputFromAddressIsNotEqualTokenInfoOwner()
+		return types.ErrCodeinputFromAddressIsNotEqualTokenInfoOwner(msg.FromAddress).Result()
 	}
 
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return nil, types.ErrConfirmOwnershipNotExistOrBlockTimeAfter()
+		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter(confirmOwnership.Expire).Result()
 	}
 
 	if msg.ToAddress.Equals(common.BlackHoleAddress()) { // transfer ownership to black hole
@@ -350,7 +349,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 	feeDecCoins := keeper.GetParams(ctx).FeeChown.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
 	}
 
 	var name = "handleMsgTransferOwnership"
@@ -376,15 +375,15 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConfirmOwnership, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if !exist {
-		return nil, types.ErrGetConfirmOwnership()
+		return types.ErrGetConfirmOwnership().Result()
 	}
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
 		// delete ownership confirming information
 		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Symbol)
-		return nil, types.ErrConfirmOwnershipNotExistOrBlockTimeAfter()
+		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter(confirmOwnership.Expire).Result()
 	}
 	if !confirmOwnership.Address.Equals(msg.Address) {
-		return nil, types.ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress()
+		return types.ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress(msg.Address).Result()
 	}
 
 	tokenInfo := keeper.GetTokenInfo(ctx, msg.Symbol)
@@ -416,10 +415,10 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 	token := keeper.GetTokenInfo(ctx, msg.Symbol)
 	// check owner
 	if !token.Owner.Equals(msg.Owner) {
-		return nil, types.ErrInputOwnerIsNotEqualTokenOwner()
+		return types.ErrInputOwnerIsNotEqualTokenOwner(msg.Owner).Result()
 	}
 	if !msg.IsWholeNameModified && !msg.IsDescriptionModified {
-		return nil, types.ErrWholeNameAndDescriptionIsNotModified()
+		return types.ErrWholeNameAndDescriptionIsNotModified().Result()
 	}
 	// modify
 	if msg.IsWholeNameModified {
@@ -435,7 +434,7 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 	feeDecCoins := keeper.GetParams(ctx).FeeModify.ToCoins()
 	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
 	if err != nil {
-		return nil, types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String())
+		return types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String()).Result()
 	}
 
 	name := "handleMsgTokenModify"

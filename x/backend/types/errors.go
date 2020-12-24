@@ -31,36 +31,36 @@ const (
 )
 
 // invalid param side, must be buy or sell
-func ErrOrderSideParamMustBuyOrSell(side string) sdk.Error {
+func ErrOrderSideParamMustBuyOrSell(side string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderSideMustBuyOrSell, fmt.Sprintf("Side should not be %s", side))}
 }
 
 // product is required
-func ErrProductIsRequired() sdk.Error {
+func ErrProductIsRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductIsRequired, "invalid params: product is required")}
 }
 
 // product does not exist
-func ErrProductDoesNotExist(product string) sdk.Error {
+func ErrProductDoesNotExist(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductDoesNotExist, fmt.Sprintf("product %s does not exist", product))}
 }
 
-func ErrBackendPluginNotEnabled() sdk.Error {
+func ErrBackendPluginNotEnabled() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled")}
 }
 
-func ErrParamNotCorrect(size int, granularity int) sdk.Error {
+func ErrParamNotCorrect(size int, granularity int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity))}
 }
 
-func ErrNoKlinesFunctionFound() sdk.Error {
+func ErrNoKlinesFunctionFound() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoKlinesFunctionFound, "no klines constructor function found")}
 }
 
-func ErrMarketkeeperNotInitialized() sdk.Error {
+func ErrMarketkeeperNotInitialized() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")}
 }
 
-func ErrBackendModuleUnknownQueryType() sdk.Error {
+func ErrBackendModuleUnknownQueryType() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownQueryType, "backend module unknown query type")}
 }

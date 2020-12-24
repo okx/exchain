@@ -86,7 +86,7 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	// check if the order is involved with the tokenpair in dex Delist
 	isDelisting, err := keeper.GetDexKeeper().CheckTokenPairUnderDexDelist(ctx, msg.Product)
 	if err != nil {
-		return types.ErrCheckTokenPairUnderDexDelistFailed()
+		return err
 	}
 	if isDelisting {
 		return types.ErrTradingPairIsDelisting(msg.Product)
@@ -143,7 +143,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 
 	if err == nil {
 		if k.IsProductLocked(ctx, msg.Product) {
-			err = sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product))
+			err = types.ErrIsProductLocked(order.Product)
 		} else {
 			err = k.PlaceOrder(ctxItem, order)
 		}
@@ -197,7 +197,7 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return sdk.ErrInternal("all order items failed to execute").Result()
+		return types.ErrAllOrderFailedToExecute().Result()
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)
@@ -226,13 +226,13 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 			return nil, err
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
-			return nil, types.ErrIsProductLocked(msg.Product)
+			return types.ErrIsProductLocked(msg.Product).Result()
 		}
 
 		order := getOrderFromMsg(ctx, k, msg, ratio)
 		_, err = k.TryPlaceOrder(ctx, order)
 		if err != nil {
-			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
+			return common.ErrInsufficientCoins(DefaultParamspace, err.Error()).Result()
 		}
 	}
 
@@ -299,7 +299,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return nil, types.ErrNoOrdersIsCanceled()
+		return types.ErrNoOrdersIsCanceled().Result()
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)

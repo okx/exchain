@@ -47,33 +47,33 @@ func ParseSDKError(errMsg string) SDKError {
 }
 
 // invalid paginate param
-func ErrInvalidPaginateParam(page int, perPage int) sdk.Error {
+func ErrInvalidPaginateParam(page int, perPage int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidPaginateParam, fmt.Sprintf("negative page %d or per_page %d is invalid", page, perPage))}
 }
 
 // invalid address
-func ErrCreateAddrFromBech32Failed(addr string, msg string) sdk.Error {
+func ErrCreateAddrFromBech32Failed(addr string, msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeCreateAddrFromBech32Failed, fmt.Sprintf("invalid address：%s, reason: %s", addr, msg))}
 }
 
 // could not marshal result to JSON
-func ErrMarshalJSONFailed(msg string) sdk.Error {
+func ErrMarshalJSONFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMarshalJSONFailed, fmt.Sprintf("could not marshal result to JSON, %s", msg))}
 }
 
 // could not unmarshal result to origin
-func ErrUnMarshalJSONFailed(msg string) sdk.Error {
+func ErrUnMarshalJSONFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnMarshalJSONFailed, fmt.Sprintf("incorrectly formatted request data, %s", msg))}
 }
 
-func ErrStrconvFailed(msg string) sdk.Error {
+func ErrStrconvFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion"))}
 }
 
-func ErrUnknownProposalType(codespace string, msg string) sdk.Error {
+func ErrUnknownProposalType(codespace string, msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(codespace, CodeUnknownProposalType, fmt.Sprintf("unknown proposal content type: %s", msg))}
 }
 
-func ErrInsufficientCoins(codespace string, msg string) sdk.Error {
+func ErrInsufficientCoins(codespace string, msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{sdkerrors.New(codespace, CodeInsufficientCoins, fmt.Sprintf("insufficient coins: %s", msg))}
 }

@@ -37,113 +37,118 @@ const (
 	CodeUserinputOrderIDIsEmpty               uint32 = 63025
 	CodeNotOrderOwner                         uint32 = 63026
 	CodeProductIsEmpty                        uint32 = 63027
+	CodeAllOrderFailedToExecute               uint32 = 63028
 )
 
-func ErrInvalidAddress(address string) sdk.Error {
+func ErrInvalidAddress(address string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidAddress, fmt.Sprintf("invalid address: %s", address))}
 }
 
 // invalid size
-func ErrInvalidSizeParam(size uint) sdk.Error {
+func ErrInvalidSizeParam(size uint) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))}
 }
 
-func ErrTokenPairNotExist(product string) sdk.Error {
+func ErrTokenPairNotExist(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenPairNotExist, fmt.Sprintf("token pair %s doesn't exist", product))}
 }
 
-func ErrSendCoinsFaile(coins string, to string) sdk.Error {
+func ErrSendCoinsFaile(coins string, to string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsFaile, fmt.Sprintf("send fee(%s) to address(%s) failed\n", coins, to))}
 }
 
-func ErrTradingPairIsDelisting(product string) sdk.Error {
+func ErrTradingPairIsDelisting(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTradingPairIsDelisting, fmt.Sprintf("trading pair '%s' is delisting", product))}
 }
 
-func ErrPriceOverAccuracy(price sdk.Dec, priceDigit int64) sdk.Error {
+func ErrPriceOverAccuracy(price sdk.Dec, priceDigit int64) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeRoundedPriceEqual, fmt.Sprintf("price(%v) over accuracy(%d)", price, priceDigit))}
 }
 
-func ErrQuantityOverAccuracy(quantity sdk.Dec, quantityDigit int64) sdk.Error {
+func ErrQuantityOverAccuracy(quantity sdk.Dec, quantityDigit int64) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeRoundedQuantityEqual, fmt.Sprintf("quantity(%v) over accuracy(%d)", quantity, quantityDigit))}
 }
 
-func ErrMsgQuantityLessThan(minQuantity string) sdk.Error {
+func ErrMsgQuantityLessThan(minQuantity string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMsgQuantityLessThan, fmt.Sprintf("quantity should be greater than %s", minQuantity))}
 }
 
-func ErrOrderIsNotExist(order string) sdk.Error {
+func ErrOrderIsNotExist(order string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderIsNotExist, fmt.Sprintf("order(%v) does not exist", order))}
 }
 
-func ErrCheckTokenPairUnderDexDelistFailed() sdk.Error {
+func ErrCheckTokenPairUnderDexDelistFailed() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeCheckTokenPairUnderDexDelistFailed, "check token pair under dex delist failed")}
 }
 
-func ErrIsProductLocked(product string) sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsProductLocked, fmt.Sprintf("the trading pair (%s) is locked", product))}
+func ErrIsProductLocked(product string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsProductLocked, fmt.Sprintf("the trading pair (%s) is locked, please retry later", product))}
 }
 
-func ErrNoOrdersIsCanceled() sdk.Error {
+func ErrNoOrdersIsCanceled() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoOrdersIsCanceled, "no order is cancled")}
 }
 
-func ErrOrderStatusIsNotOpen() sdk.Error {
+func ErrOrderStatusIsNotOpen() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderStatusIsNotOpen, "order status is not open")}
 }
 
-func ErrOrderIsNotExistOrClosed(orderID string) sdk.Error {
+func ErrOrderIsNotExistOrClosed(orderID string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderIsNotExistOrClosed, fmt.Sprintf("order(%s) does not exist or already closed", orderID))}
 }
 
-func ErrUnknowOrdernQueryType() sdk.Error {
+func ErrUnknowOrdernQueryType() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnknownOrderQueryType, "unknown order query endpoint")}
 }
 
-func ErrOrderItemCountsBiggerThanLimit(limit int) sdk.Error {
+func ErrOrderItemCountsBiggerThanLimit(limit int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemCountsBiggerThanLimit, fmt.Sprintf("order item counts bigger than limit %d", limit))}
 }
 
-func ErrOrderItemCountsIsEmpty() sdk.Error {
+func ErrOrderItemCountsIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemCountsIsEmpty, "order item counts is empty")}
 }
 
-func ErrOrderItemProductCountsIsEmpty() sdk.Error {
+func ErrOrderItemProductCountsIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemProductCountsIsEmpty, "order item's product counts is empty")}
 }
 
-func ErrOrderItemProductFormat() sdk.Error {
+func ErrOrderItemProductFormat() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemProductSymbolError, "order item's product format is error")}
 }
 
-func ErrOrderItemProductSymbolIsEqual() sdk.Error {
+func ErrOrderItemProductSymbolIsEqual() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemProductSymbolIsEqual, "order item's product two symbols is equal")}
 }
 
-func ErrOrderItemSideIsNotBuyAndSell() sdk.Error {
+func ErrOrderItemSideIsNotBuyAndSell() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemSideIsNotBuyAndSell, "order item's side is not \"BUY\" or \"SELL\"")}
 }
 
-func ErrOrderItemPriceOrQuantityIsNotPositive() sdk.Error {
+func ErrOrderItemPriceOrQuantityIsNotPositive() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderItemPriceOrQuantityIsNotPositive, "order item's price or quantity is not positive")}
 }
 
-func ErrOrderIDsIsEmpty() sdk.Error {
+func ErrOrderIDsIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderIDsIsEmpty, "order IDs is empty")}
 }
 
-func ErrCancelOrderBiggerThanLimit(limit int) sdk.Error {
+func ErrCancelOrderBiggerThanLimit(limit int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeCancelOrderBiggerThanLimit, fmt.Sprintf("Numbers of CancelOrderItem should not be bigger than limit %d", limit))}
 }
 
-func ErrOrderIDsHasDuplicatedID() sdk.Error {
+func ErrOrderIDsHasDuplicatedID() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderIDsHasDuplicatedID, "order IDs has duplicated ID")}
 }
 
-func ErrUserinputOrderIDIsEmpty() sdk.Error {
+func ErrUserinputOrderIDIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUserinputOrderIDIsEmpty, "user input order id is empty")}
 }
 
-func ErrNotOrderOwner(orderID string) sdk.Error {
+func ErrNotOrderOwner(orderID string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNotOrderOwner, fmt.Sprintf("not the owner of order(%v)", orderID))}
+}
+
+func ErrAllOrderFailedToExecute() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAllOrderFailedToExecute, "all order items failed to execute")}
 }

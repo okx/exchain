@@ -4,6 +4,7 @@ import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"time"
 )
 
 const (
@@ -38,6 +39,8 @@ const (
 	CodeInputOwnerIsNotEqualTokenOwner             uint32 = 61028
 	CodeinputFromAddressIsNotEqualTokenInfoOwner   uint32 = 61029
 	CodeConfirmOwnershipAddressNotEqualsMsgAddress uint32 = 61030
+	CodeGetDecimalFromDecimalStringFailed          uint32 = 61031
+	CodeTotalsupplyExceedsTheUpperLimit            uint32 = 61032
 )
 
 var (
@@ -72,6 +75,8 @@ var (
 	errCodeInputOwnerIsNotEqualTokenOwner             = sdkerrors.Register(DefaultCodespace, CodeInputOwnerIsNotEqualTokenOwner, "input owner is not equal token owner")
 	errCodeinputFromAddressIsNotEqualTokenInfoOwner   = sdkerrors.Register(DefaultCodespace, CodeinputFromAddressIsNotEqualTokenInfoOwner, "input from address is not equal token owner")
 	errCodeConfirmOwnershipAddressNotEqualsMsgAddress = sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")
+	errCodeGetDecimalFromDecimalStringFailed          = sdkerrors.Register(DefaultCodespace, CodeGetDecimalFromDecimalStringFailed, "create a decimal from an input decimal string failed")
+	errCodeTotalsupplyExceedsTheUpperLimit            = sdkerrors.Register(DefaultCodespace, CodeTotalsupplyExceedsTheUpperLimit, "total-supply exceeds the upper limit")
 )
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
@@ -84,106 +89,114 @@ func ErrSendDisabled() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendDisabled, "failed. send transactions are currently disabled")}
 }
 
-func ErrSendCoinsFromAccountToModuleFailed(message string) sdk.Error {
+func ErrSendCoinsFromAccountToModuleFailed(message string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToModuleFailed, "failed to send to module account: %s", message)}
 }
 
-func ErrUnrecognizedLockCoinsType(lockCoinsType int) sdk.Error {
+func ErrUnrecognizedLockCoinsType(lockCoinsType int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnrecognizedLockCoinsType, fmt.Sprintf("unrecognized lock coins type: %d", lockCoinsType))}
 }
 
-func ErrFailedToUnlockAddress(coins string, addr string) sdk.Error {
+func ErrFailedToUnlockAddress(coins string, addr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeFailedToUnlockAddress, fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr))}
 }
 
-func ErrInvalidCoins() sdk.Error {
+func ErrInvalidCoins() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "invalid coins")}
 }
 
-func ErrGetConfirmOwnership() sdk.Error {
+func ErrGetConfirmOwnership() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetConfirmOwnership, "get confirm ownership info failed")}
 }
 
-func ErrUpdateLockedCoins() sdk.Error {
+func ErrUpdateLockedCoins() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUpdateLockedCoins, "update locked coins failed")}
 }
 
-func ErrUnknownTokenQueryType() sdk.Error {
+func ErrUnknownTokenQueryType() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownTokenQueryType, "unknown token query type")}
 }
 
-func ErrUserInputSymbolIsEmpty() sdk.Error {
+func ErrUserInputSymbolIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeOriginalSymbolIsEmpty, "user intput symbol is empty")}
 }
 
-func ErrNotAllowedOriginalSymbol() sdk.Error {
+func ErrNotAllowedOriginalSymbol() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeNotAllowedOriginalSymbol, "not allowed original symbol")}
 }
 
-func ErrWholeNameIsNotValidl() sdk.Error {
+func ErrWholeNameIsNotValidl() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeWholeNameIsNotValid, "whole name is not valid")}
 }
 
-func ErrDescLenBiggerThanLimit() sdk.Error {
+func ErrDescLenBiggerThanLimit() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeDescLenBiggerThanLimit, "description len bigger than limit")}
 }
 
-func ErrTotalSupplyOutOfRange() sdk.Error {
+func ErrTotalSupplyOutOfRange() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalSupplyOutOfRange, "total supply out of range")}
 }
 
-func ErrAmountBiggerThanTotalSupplyUpperbound() sdk.Error {
+func ErrAmountBiggerThanTotalSupplyUpperbound() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAmountBiggerThanTotalSupplyUpperbound, "amount bigger than total supply upperbound")}
 }
 
-func ErrAmountIsNotValid(amount string) sdk.Error {
+func ErrAmountIsNotValid(amount string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAmountIsNotValid, fmt.Sprintf("amount %s is not valid", amount))}
 }
 
-func ErrMsgSymbolIsEmpty() sdk.Error {
+func ErrMsgSymbolIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMsgSymbolIsEmpty, "msg symbol is empty")}
 }
 
-func ErrMintCoinsFailed(msg string) sdk.Error {
+func ErrMintCoinsFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMintCoinsFailed, fmt.Sprintf("mint coins failed: %s", msg))}
 }
 
-func ErrSendCoinsFromModuleToAccountFailed(msg string) sdk.Error {
+func ErrSendCoinsFromModuleToAccountFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromModuleToAccountFailed, fmt.Sprintf("send coins from module to account failed: %s", msg))}
 }
 
-func ErrBurnCoinsFailed(msg string) sdk.Error {
+func ErrBurnCoinsFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeBurnCoinsFailed, fmt.Sprintf("burn coins failed: %s", msg))}
 }
 
-func ErrConfirmOwnershipNotExistOrBlockTimeAfter() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after")}
+func ErrConfirmOwnershipNotExistOrBlockTimeAfter(expire time.Time) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after %s", expire)}
 }
 
-func ErrWholeNameAndDescriptionIsNotModified() sdk.Error {
+func ErrWholeNameAndDescriptionIsNotModified() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeWholeNameAndDescriptionIsNotModified, "whole name and description is not modified")}
 }
 
-func ErrTokenIsNotMintable() sdk.Error {
+func ErrTokenIsNotMintable() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTokenIsNotMintable, "token is not mintable")}
 }
 
-func ErrMsgTransfersAmountBiggerThanSendLimit() sdk.Error {
+func ErrMsgTransfersAmountBiggerThanSendLimit() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeMsgTransfersAmountBiggerThanSendLimit, "use transfer amount bigger than send limit")}
 }
 
-func ErrInputOwnerIsNotEqualTokenOwner() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInputOwnerIsNotEqualTokenOwner, "input owner is not equal token owner")}
+func ErrInputOwnerIsNotEqualTokenOwner(address sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInputOwnerIsNotEqualTokenOwner, fmt.Sprintf("input owner(%s) is not equal token owner", address))}
 }
 
-func ErrCodeinputFromAddressIsNotEqualTokenInfoOwner() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeinputFromAddressIsNotEqualTokenInfoOwner, "input from address is not equal token owner")}
+func ErrCodeinputFromAddressIsNotEqualTokenInfoOwner(address sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeinputFromAddressIsNotEqualTokenInfoOwner, fmt.Sprintf("input from address is not equal token owner: %s", address))}
 }
 
-func ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress() sdk.Error {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")}
+func ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress(address sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipAddressNotEqualsMsgAddress, fmt.Sprintf("input address (%s) is not equal confirm ownership address", address))}
 }
 
-func ErrAddressIsRequired() sdk.Error {
+func ErrAddressIsRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeAddressIsRequired, "address is required")}
+}
+
+func ErrGetDecimalFromDecimalStringFailed(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetDecimalFromDecimalStringFailed, fmt.Sprintf("create a decimal from an input decimal string failed: %", msg))}
+}
+
+func ErrCodeTotalsupplyExceedsTheUpperLimit(totalSupplyAfterMint sdk.Dec, TotalSupplyUpperbound int64) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalsupplyExceedsTheUpperLimit, fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)", totalSupplyAfterMint, TotalSupplyUpperbound))}
 }
