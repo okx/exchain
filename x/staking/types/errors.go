@@ -20,7 +20,6 @@ const (
 	CodeProxyNotFound                   uint32 = 67005
 	CodeEmptyValidators                 uint32 = 67006
 	CodeProxyAlreadyExist               uint32 = 67007
-	CodeValidateBasicFailed             uint32 = 67008
 	CodeAddressNotEqual                 uint32 = 67009
 	CodeDescriptionIsEmpty              uint32 = 67010
 	CodeGetConsPubKeyBech32Failed       uint32 = 67011

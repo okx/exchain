@@ -46,7 +46,7 @@ func postProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if err := msg.ValidateBasic(); err != nil {
-			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalideBasic, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeValidateBasicFailed, err.Error())
 			return
 		}
 

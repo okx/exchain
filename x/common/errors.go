@@ -23,6 +23,7 @@ const (
 	CodeInvalidAccountAddress      uint32 = 60108
 	CodeABCIQueryFails             uint32 = 60109
 	CodeArgsWithLimit              uint32 = 60110
+	CodeValidateBasicFailed        uint32 = 60111
 )
 
 type SDKError struct {
