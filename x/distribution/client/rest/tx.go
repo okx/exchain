@@ -64,7 +64,7 @@ func setDelegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext) http.Handler
 
 		msg := types.NewMsgSetWithdrawAddress(delAddr, req.WithdrawAddress)
 		if err := msg.ValidateBasic(); err != nil {
-			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalideBasic, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeValidateBasicFailed, err.Error())
 			return
 		}
 

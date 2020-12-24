@@ -141,7 +141,7 @@ func (msg MsgBindProxy) ValidateBasic() error {
 	}
 
 	if msg.DelAddr.Equals(msg.ProxyAddress) {
-		return ErrWrongOperationAddr()
+		return ErrDelegatorEqualToProxyAddr()
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func (msg MsgAddShares) ValidateBasic() error {
 	}
 
 	if msg.ValAddrs == nil || len(msg.ValAddrs) == 0 {
-		return ErrWrongOperationAddr()
+		return ErrBadValidatorAddr()
 	}
 
 	if isValsDuplicate(msg.ValAddrs) {

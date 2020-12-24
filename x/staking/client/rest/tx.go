@@ -57,7 +57,7 @@ func postDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		msg := types.NewMsgDeposit(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeInvalidValidateBasic, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeValidateBasicFailed, err.Error())
 			return
 		}
 
@@ -68,7 +68,7 @@ func postDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		if !bytes.Equal(fromAddr, req.DelegatorAddress) {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressNotEqual, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressNotEqual, "must use own delegator address")
 			return
 		}
 
@@ -91,7 +91,7 @@ func postUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 
 		msg := types.NewMsgWithdraw(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeInvalidValidateBasic, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeValidateBasicFailed, err.Error())
 			return
 		}
 
@@ -102,7 +102,7 @@ func postUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 		}
 
 		if !bytes.Equal(fromAddr, req.DelegatorAddress) {
-			common.HandleErrorMsg(w, cliCtx, types.CodeAddressNotEqual, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressNotEqual, "must use own delegator address")
 			return
 		}
 

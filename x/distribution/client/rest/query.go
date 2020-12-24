@@ -77,7 +77,7 @@ func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerF
 
 		params, err := common.QueryParams(cliCtx, queryRoute)
 		if err != nil {
-			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalideRoute, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalidRoute, err.Error())
 			return
 		}
 

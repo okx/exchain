@@ -81,7 +81,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	// proxy has to unreg before withdrawing total tokens
 	leftTokens := delegator.Tokens.Sub(quantity)
 	if delegator.IsProxy && leftTokens.IsZero() {
-		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(delegator.DelegatorAddress.String())
+		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(delAddr.String())
 	}
 
 	// 1.some okt transfer bondPool into unbondPool

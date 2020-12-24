@@ -47,7 +47,7 @@ func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAdd
 func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdrawValidatorCommission, k keeper.Keeper) (*sdk.Result, error) {
 	_, err := k.WithdrawValidatorCommission(ctx, msg.ValidatorAddress)
 	if err != nil {
-		return nil, types.ERRWithdrawValidatorCommissionFailed()
+		return nil, types.ErrWithdrawValidatorCommissionFailed()
 	}
 
 	ctx.EventManager().EmitEvent(

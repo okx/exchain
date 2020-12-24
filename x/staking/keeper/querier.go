@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/okex/okexchain/x/common"
 	"github.com/tendermint/tendermint/crypto"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okexchain/x/staking/types"
 )
 
@@ -160,7 +158,7 @@ func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryDelegatorParams
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	delAddrs := k.GetDelegatorsByProxy(ctx, params.DelegatorAddr)
@@ -250,12 +248,4 @@ func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err
 		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
-}
-
-func defaultQueryErrJSONMarshal(err error) error {
-	return sdkerrors.New(types.ModuleName, types.CodeInternalError, "failed to marshal result to JSON"+err.Error())
-}
-
-func defaultQueryErrParseParams(err error) error {
-	return sdkerrors.New(types.ModuleName, types.CodeInternalError, fmt.Sprintf("failed to parse params. %s", err))
 }

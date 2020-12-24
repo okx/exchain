@@ -107,7 +107,7 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorArgsWithLimit)
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
 			return
 		}
 
@@ -124,7 +124,7 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQueryValidatorsParams(page, limit, status)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
