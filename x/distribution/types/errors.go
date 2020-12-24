@@ -12,7 +12,7 @@ const (
 	CodeNilDelegatorAddr                            uint32 = 67800
 	CodeNoValidatorCommission                       uint32 = 67801
 	CodeSetWithdrawAddrDisabled                     uint32 = 67802
-	CodeInvalideRoute                               uint32 = 67803
+	CodeInvalidRoute                                uint32 = 67803
 	CodeWithdrawValidatorRewardsAndCommissionFailed uint32 = 67804
 	CodeAccAddressFromBech32Failed                  uint32 = 67805
 	CodeValAddressFromBech32                        uint32 = 67806
@@ -43,7 +43,7 @@ func ErrSetWithdrawAddrDisabled() sdk.Error {
 }
 
 func ErrSendCoinsFromModuleToAccountFailed() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "invalid withdrawAddr or commission")
+	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "send coins from module to account failed")
 }
 
 func ErrWithdrawValidatorCommissionFailed() sdk.Error {
