@@ -32,35 +32,35 @@ const (
 
 // invalid param side, must be buy or sell
 func ErrOrderSideParamMustBuyOrSell(side string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeOrderSideMustBuyOrSell, fmt.Sprintf("Side should not be %s", side))
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeOrderSideMustBuyOrSell, fmt.Sprintf("Side should not be %s", side))}
 }
 
 // product is required
 func ErrProductIsRequired() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeProductIsRequired, "invalid params: product is required")
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductIsRequired, "invalid params: product is required")}
 }
 
 // product does not exist
 func ErrProductDoesNotExist(product string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeProductDoesNotExist, fmt.Sprintf("product %s does not exist", product))
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductDoesNotExist, fmt.Sprintf("product %s does not exist", product))}
 }
 
 func ErrBackendPluginNotEnabled() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled")
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBackendPluginNotEnabled, "backend is not enabled")}
 }
 
 func ErrParamNotCorrect(size int, granularity int) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity))
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity))}
 }
 
 func ErrNoKlinesFunctionFound() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNoKlinesFunctionFound, "no klines constructor function found")
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoKlinesFunctionFound, "no klines constructor function found")}
 }
 
 func ErrMarketkeeperNotInitialized() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMarketkeeperNotInitialized, "market keeper is not initialized properly")}
 }
 
 func ErrBackendModuleUnknownQueryType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownQueryType, "backend module unknown query type")
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownQueryType, "backend module unknown query type")}
 }

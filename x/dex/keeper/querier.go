@@ -55,7 +55,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
 		if err != nil {
-			return nil, common.ErrCreateAddrFromBech32Failed(params.Owner)
+			return nil, common.ErrCreateAddrFromBech32Failed(params.Owner, err.Error())
 		}
 
 		tokenPairs = keeper.GetUserTokenPairs(ctx, ownerAddr)

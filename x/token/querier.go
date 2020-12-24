@@ -62,7 +62,7 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	if len(path) > 0 && path[0] != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(path[0])
 		if err != nil {
-			return nil, common.ErrCreateAddrFromBech32Failed(path[0])
+			return nil, common.ErrCreateAddrFromBech32Failed(path[0], err.Error())
 		}
 		tokens = keeper.GetUserTokensInfo(ctx, ownerAddr)
 	} else {
@@ -95,7 +95,7 @@ func queryCurrency(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 func queryAccount(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	addr, err := sdk.AccAddressFromBech32(path[0])
 	if err != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(path[0])
+		return nil, common.ErrCreateAddrFromBech32Failed(path[0], err.Error())
 	}
 
 	//var queryPage QueryPage

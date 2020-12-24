@@ -129,7 +129,7 @@ func queryDeals(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	if params.Address != "" {
 		_, err := sdk.AccAddressFromBech32(params.Address)
 		if err != nil {
-			return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
+			return nil, common.ErrCreateAddrFromBech32Failed(params.Address, err.Error())
 		}
 	}
 	if params.Side != "" && params.Side != orderTypes.BuyOrder && params.Side != orderTypes.SellOrder {
@@ -188,7 +188,7 @@ func queryFeeDetails(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address, err.Error())
 	}
 	if params.Page < 0 || params.PerPage < 0 {
 		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
@@ -228,7 +228,7 @@ func queryCandleList(ctx sdk.Context, path []string, req abci.RequestQuery, keep
 
 	var response *common.BaseResponse
 	if err != nil {
-		response = common.GetErrorResponse(types.CodeGetCandlesFailed, "", err.Error())
+		response = common.GetErrorResponse(types.CodeGetCandlesFailed, err.Error(), err.Error())
 	} else {
 		response = common.GetBaseResponse(restData)
 	}
@@ -420,7 +420,7 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address, err.Error())
 	}
 	if params.Page < 0 || params.PerPage < 0 {
 		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
@@ -451,7 +451,7 @@ func queryTxList(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	}
 	_, err = sdk.AccAddressFromBech32(params.Address)
 	if err != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(params.Address)
+		return nil, common.ErrCreateAddrFromBech32Failed(params.Address, err.Error())
 	}
 	if params.Page < 0 || params.PerPage < 0 {
 		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
