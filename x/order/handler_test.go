@@ -111,7 +111,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
 	res, err := handler(ctx, msg)
 	require.Nil(t, res)
-	require.EqualValues(t, "internal: all order items failed to execute", err.Error())
+	require.EqualValues(t, "all order items failed to execute", err.Error())
 
 	// invalid price precision
 	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -131,7 +131,7 @@ func TestHandleMsgNewOrderInvalid(t *testing.T) {
 	// insufficient coins
 	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.0", "10.1")
 	_, err = handler(ctx, msg)
-	require.EqualValues(t, "internal: all order items failed to execute", err.Error())
+	require.EqualValues(t, "all order items failed to execute", err.Error())
 
 	// check depth book
 	depthBook := mapp.orderKeeper.GetDepthBookCopy(types.TestTokenPair)
