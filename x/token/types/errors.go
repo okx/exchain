@@ -193,7 +193,7 @@ func ErrAddressIsRequired() sdk.EnvelopedErr {
 }
 
 func ErrGetDecimalFromDecimalStringFailed(msg string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetDecimalFromDecimalStringFailed, fmt.Sprintf("create a decimal from an input decimal string failed: %", msg))}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeGetDecimalFromDecimalStringFailed, fmt.Sprintf("create a decimal from an input decimal string failed: %s", msg))}
 }
 
 func ErrCodeTotalsupplyExceedsTheUpperLimit(totalSupplyAfterMint sdk.Dec, TotalSupplyUpperbound int64) sdk.EnvelopedErr {
