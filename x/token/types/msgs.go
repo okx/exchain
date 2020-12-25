@@ -283,7 +283,7 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrInvalidCoins()
+		return ErrConfirmOwnershipNotExistOrBlockTimeAfter()
 	}
 	return nil
 }
