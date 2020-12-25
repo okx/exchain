@@ -26,13 +26,13 @@ var mockBlockHeight int64 = -1
 type MockDexApp struct {
 	*mock.App
 
-	keyToken   *sdk.KVStoreKey
-	keyLock    *sdk.KVStoreKey
-	keySupply  *sdk.KVStoreKey
+	keyToken  *sdk.KVStoreKey
+	keyLock   *sdk.KVStoreKey
+	keySupply *sdk.KVStoreKey
 
-	bankKeeper    bank.Keeper
-	tokenKeeper   Keeper
-	supplyKeeper  supply.Keeper
+	bankKeeper   bank.Keeper
+	tokenKeeper  Keeper
+	supplyKeeper supply.Keeper
 }
 
 func registerCodec(cdc *codec.Codec) {
@@ -56,9 +56,9 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp = &MockDexApp{
 		App: mapp,
 
-		keyToken:   sdk.NewKVStoreKey("token"),
-		keyLock:    sdk.NewKVStoreKey("lock"),
-		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
+		keyToken:  sdk.NewKVStoreKey("token"),
+		keyLock:   sdk.NewKVStoreKey("lock"),
+		keySupply: sdk.NewKVStoreKey(supply.StoreKey),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -134,9 +134,9 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	mockDexApp = &MockDexApp{
 		App: mapp,
 
-		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
-		keyToken:   sdk.NewKVStoreKey("token"),
-		keyLock:    sdk.NewKVStoreKey("lock"),
+		keySupply: sdk.NewKVStoreKey(supply.StoreKey),
+		keyToken:  sdk.NewKVStoreKey("token"),
+		keyLock:   sdk.NewKVStoreKey("lock"),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -150,8 +150,8 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	)
 
 	maccPerms := map[string][]string{
-		auth.FeeCollectorName:     nil,
-		types.ModuleName:          nil,
+		auth.FeeCollectorName: nil,
+		types.ModuleName:      nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(
 		mockDexApp.Cdc,
@@ -170,13 +170,11 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.Cdc,
 		true)
 
-
-		// for staking/distr rollback to cosmos-sdk
-		//store.NewKVStoreKey(staking.DelegatorPoolKey),
-		//store.NewKVStoreKey(staking.RedelegationKeyM),
-		//store.NewKVStoreKey(staking.RedelegationActonKey),
-		//store.NewKVStoreKey(staking.UnbondingKey),
-
+	// for staking/distr rollback to cosmos-sdk
+	//store.NewKVStoreKey(staking.DelegatorPoolKey),
+	//store.NewKVStoreKey(staking.RedelegationKeyM),
+	//store.NewKVStoreKey(staking.RedelegationActonKey),
+	//store.NewKVStoreKey(staking.UnbondingKey),
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -1068,63 +1066,63 @@ func TestHandleTransferOwnership(t *testing.T) {
 
 	// test case
 	tests := []struct {
-		ctx          sdk.Context
-		msg          sdk.Msg
-		expectedMsg  string
+		ctx         sdk.Context
+		msg         sdk.Msg
+		expectedMsg string
 	}{
 		// case 1. sender is not the owner of token
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("input from address is not equal token owner: input from address is not equal token owner"),
+			ctx:         ctx,
+			msg:         types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedMsg: fmt.Sprintf("input from address is not equal token owner: input from address is not equal token owner: %s", testAccounts[1]),
 		},
 		// case 2. transfer ownership to testAccounts[1] successfully
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedMsg:  "",
+			ctx:         ctx,
+			msg:         types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedMsg: "",
 		},
 		// case 3. confirm ownership not exists
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
-			expectedMsg:  fmt.Sprintf("get confirm ownership failed: get confirm ownership info failed"),
+			ctx:         ctx,
+			msg:         types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
+			expectedMsg: fmt.Sprintf("get confirm ownership failed: get confirm ownership info failed"),
 		},
 		//// case 4. sender is not the owner of ConfirmOwnership
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("input address is not equal confirm ownership address: input address is not equal confirm ownership address"),
+			ctx:         ctx,
+			msg:         types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
+			expectedMsg: fmt.Sprintf("input address is not equal confirm ownership address: input address (%s) is not equal confirm ownership address", testAccounts[0]),
 		},
 		// case 5. confirm ownership expired
 		{
-			ctx:          ctxPassedOwnershipConfirmWindow,
-			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedMsg:  fmt.Sprintf("confirm ownership not exist or blocktime after: confirm ownership not exist or blocktime after"),
+			ctx:         ctxPassedOwnershipConfirmWindow,
+			msg:         types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedMsg: fmt.Sprintf("confirm ownership not exist or blocktime after: confirm ownership not exist or blocktime after"),
 		},
 		// case 6. confirm ownership successfully
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedMsg:  "",
+			ctx:         ctx,
+			msg:         types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
+			expectedMsg: "",
 		},
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedMsg:  "",
+			ctx:         ctx,
+			msg:         types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
+			expectedMsg: "",
 		},
 
 		// case 7. transfer ownership to testAccounts[0] successfully
 		{
-			ctx:          ctx,
-			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  "",
+			ctx:         ctx,
+			msg:         types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
+			expectedMsg: "",
 		},
 		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
 		{
-			ctx:          ctxPassedOwnershipConfirmWindow,
-			msg:          types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
-			expectedMsg:  "",
+			ctx:         ctxPassedOwnershipConfirmWindow,
+			msg:         types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
+			expectedMsg: "",
 		},
 	}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"time"
 )
 
 const (
@@ -161,8 +160,8 @@ func ErrBurnCoinsFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeBurnCoinsFailed, fmt.Sprintf("burn coins failed: %s", msg))}
 }
 
-func ErrConfirmOwnershipNotExistOrBlockTimeAfter(expire time.Time) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after %s", expire)}
+func ErrConfirmOwnershipNotExistOrBlockTimeAfter() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after")}
 }
 
 func ErrWholeNameAndDescriptionIsNotModified() sdk.EnvelopedErr {

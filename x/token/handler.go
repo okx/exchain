@@ -327,7 +327,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgTra
 
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Symbol)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter(confirmOwnership.Expire).Result()
+		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter().Result()
 	}
 
 	if msg.ToAddress.Equals(common.BlackHoleAddress()) { // transfer ownership to black hole
@@ -380,7 +380,7 @@ func handleMsgConfirmOwnership(ctx sdk.Context, keeper Keeper, msg types.MsgConf
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
 		// delete ownership confirming information
 		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Symbol)
-		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter(confirmOwnership.Expire).Result()
+		return types.ErrConfirmOwnershipNotExistOrBlockTimeAfter().Result()
 	}
 	if !confirmOwnership.Address.Equals(msg.Address) {
 		return types.ErrCodeConfirmOwnershipAddressNotEqualsMsgAddress(msg.Address).Result()
