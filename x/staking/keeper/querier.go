@@ -238,7 +238,7 @@ func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err
 
 	valAddr, errBech32 := sdk.ValAddressFromBech32(string(req.Data))
 	if errBech32 != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(errBech32.Error(), err.Error())
+		return nil, common.ErrCreateAddrFromBech32Failed(errBech32.Error(), errBech32.Error())
 	}
 
 	accAddr := sdk.AccAddress(valAddr)
