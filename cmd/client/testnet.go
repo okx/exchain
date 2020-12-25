@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okexchain/x/common"
+	"github.com/spf13/viper"
 	"net"
 	"os"
 	"path/filepath"
@@ -30,11 +32,11 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/mint"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/okex/okexchain/x/genutil"
+	stakingtypes "github.com/okex/okexchain/x/staking/types"
 
 	"github.com/okex/okexchain/app/crypto/hd"
 	ethermint "github.com/okex/okexchain/app/types"
@@ -51,6 +53,8 @@ var (
 	flagCoinDenom         = "coin-denom"
 	flagKeyAlgo           = "algo"
 	flagIPAddrs           = "ip-addrs"
+	flagBaseport          = "base-port"
+	flagLocal             = "local"
 )
 
 const nodeDirPerm = 0755
@@ -61,7 +65,7 @@ func TestnetCmd(ctx *server.Context, cdc *codec.Codec,
 ) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "testnet",
-		Short: "Initialize files for a Ethermint testnet",
+		Short: "Initialize files for an OKExChain testnet",
 		Long: `testnet will create "v" number of directories and populate each with
 necessary files (private validator, genesis, config, etc.).
 
@@ -83,10 +87,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
+			isLocal := viper.GetBool(flagLocal)
 
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators,
+				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend, algo, numValidators, isLocal,
 			)
 		},
 	}
@@ -103,6 +108,8 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.NativeToken), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
+	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
+	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
 	return cmd
 }
 
@@ -125,10 +132,11 @@ func InitTestnet(
 	keyringBackend,
 	algo string,
 	numValidators int,
+	isLocal bool,
 ) error {
 
 	if chainID == "" {
-		chainID = fmt.Sprintf("ethermint-%d", tmrand.Int63n(9999999999999)+1)
+		chainID = fmt.Sprintf("okexchain-%d", tmrand.Int63n(9999999999999)+1)
 	}
 
 	if !ethermint.IsValidChainID(chainID) {
@@ -179,14 +187,21 @@ func InitTestnet(
 
 		var ip string
 		var err error
-		if len(ipAddresses) == 0 {
-			ip, err = getIP(i, startingIPAddress)
-			if err != nil {
-				_ = os.RemoveAll(outputDir)
-				return err
-			}
+		port := viper.GetInt(flagBaseport)
+
+		if isLocal {
+			ip, err = getIP(0, startingIPAddress)
+			port += i * 100
 		} else {
-			ip = ipAddresses[i]
+			if len(ipAddresses) == 0 {
+				ip, err = getIP(i, startingIPAddress)
+				if err != nil {
+					_ = os.RemoveAll(outputDir)
+					return err
+				}
+			} else {
+				ip = ipAddresses[i]
+			}
 		}
 
 		nodeIDs[i], valPubKeys[i], err = genutil.InitializeNodeValidatorFiles(config)
@@ -195,7 +210,7 @@ func InitTestnet(
 			return err
 		}
 
-		memo := fmt.Sprintf("%s@%s:26656", nodeIDs[i], ip)
+		memo := fmt.Sprintf("%s@%s:%d", nodeIDs[i], ip, port)
 		genFiles = append(genFiles, config.GenesisFile())
 
 		kb, err := keys.NewKeyring(
@@ -220,6 +235,8 @@ func InitTestnet(
 			return err
 		}
 
+		fmt.Printf("nodeDir: %s\nnodeDirName: %s\naddr: %s\nmnenonics: %s\n--------------------------------------\n",
+			clientDir, nodeDirName, addr, secret)
 		info := map[string]string{"secret": secret}
 
 		cliPrint, err := json.Marshal(info)
@@ -232,9 +249,8 @@ func InitTestnet(
 			return err
 		}
 
-		accStakingTokens := sdk.TokensFromConsensusPower(5000)
 		coins := sdk.NewCoins(
-			sdk.NewCoin(coinDenom, accStakingTokens),
+			sdk.NewCoin(coinDenom, sdk.NewDec(9000000)),
 		)
 
 		genAccounts = append(genAccounts, ethermint.EthAccount{
@@ -242,14 +258,11 @@ func InitTestnet(
 			CodeHash:    ethcrypto.Keccak256(nil),
 		})
 
-		valTokens := sdk.TokensFromConsensusPower(100)
 		msg := stakingtypes.NewMsgCreateValidator(
 			sdk.ValAddress(addr),
 			valPubKeys[i],
-			sdk.NewCoin(coinDenom, valTokens),
-			stakingtypes.NewDescription(nodeDirName, "", "", "", ""),
-			stakingtypes.NewCommissionRates(sdk.OneDec(), sdk.OneDec(), sdk.OneDec()),
-			sdk.OneInt(),
+			stakingtypes.NewDescription(nodeDirName, "", "", ""),
+			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
 		)
 
 		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
