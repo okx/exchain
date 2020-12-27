@@ -82,7 +82,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
+		return common.ErrInsufficientCoins(DefaultParamspace, err.Error()).Result()
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,

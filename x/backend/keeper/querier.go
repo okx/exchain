@@ -260,7 +260,7 @@ func queryCandleListFromMarketKeeper(ctx sdk.Context, path []string, req abci.Re
 
 	var response *common.BaseResponse
 	if err != nil {
-		response = common.GetErrorResponse(types.CodeGetCandlesByMarketFailed, "", err.Error())
+		response = common.GetErrorResponse(types.CodeGetCandlesByMarketFailed, err.Error(), err.Error())
 	} else {
 		response = common.GetBaseResponse(restData)
 	}

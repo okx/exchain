@@ -23,7 +23,7 @@ const (
 	CodeTokenNotExist                        uint32 = 65010
 	CodeInvalidCoins                         uint32 = 65011
 	CodeInvalidTokenPair                     uint32 = 65012
-	AddressIsRequire                         uint32 = 65013
+	CodeAddressIsRequire                     uint32 = 65013
 	CodeIsZeroValue                          uint32 = 65014
 	CodeBlockTimeBigThanDeadline             uint32 = 65015
 	CodeLessThan                             uint32 = 65016
@@ -58,184 +58,184 @@ const (
 	CodeInternalError                        uint32 = 65045
 )
 
-func ErrUnexistSwapTokenPair(tokenPairName string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, fmt.Sprintf("swap token pair is not exist: %s", tokenPairName))
+func ErrUnexistSwapTokenPair(tokenPairName string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, fmt.Sprintf("swap token pair is not exist: %s", tokenPairName))}
 }
 
-func ErrUnexistPoolToken(token string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeUnexistPoolToken, fmt.Sprintf("pool token %s does not exist", token))
+func ErrUnexistPoolToken(token string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnexistPoolToken, fmt.Sprintf("pool token %s does not exist", token))}
 }
 
-func ErrCodeMinCoinsFailed(err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMintCoinsFailed, fmt.Sprintf("mint coins failed: %s", err))
+func ErrCodeMinCoinsFailed(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMintCoinsFailed, fmt.Sprintf("mint coins failed: %s", err))}
 }
 
-func ErrSendCoinsFromAccountToModule(err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToModule, fmt.Sprintf("send coins from account to module failed: %s", err))
+func ErrSendCoinsFromAccountToModule(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToModule, fmt.Sprintf("send coins from account to module failed: %s", err))}
 }
 
-func ErrBaseAmountNameBigerQuoteAmountName() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBaseAmountNameBigerQuoteAmountName, "the lexicographic order of BaseTokenName must be less than QuoteTokenName")
+func ErrBaseAmountNameBigerQuoteAmountName() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBaseAmountNameBigerQuoteAmountName, "the lexicographic order of BaseTokenName must be less than QuoteTokenName")}
 }
 
-func ErrValidateSwapAmountName() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeValidateSwapAmountName, "validate swap amount name failed")
+func ErrValidateSwapAmountName() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeValidateSwapAmountName, "validate swap amount name failed")}
 }
 
-func ErrBaseNameEqualQuoteName() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBaseNameEqualQuoteName, "base token name equal token name")
+func ErrBaseNameEqualQuoteName() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBaseNameEqualQuoteName, "base token name equal token name")}
 }
 
-func ErrValidateDenom(tokenName string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeValidateDenom, fmt.Sprintf("invalid token name: %s", tokenName))
+func ErrValidateDenom(tokenName string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeValidateDenom, fmt.Sprintf("invalid token name: %s", tokenName))}
 }
 
-func ErrNotAllowedOriginSymbol() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNotAllowedOriginSymbol, fmt.Sprintf("liquidity-pool-token(with prefix \"%s\") is not allowed to be a base or quote token", PoolTokenPrefix))
+func ErrNotAllowedOriginSymbol() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNotAllowedOriginSymbol, fmt.Sprintf("liquidity-pool-token(with prefix %s is not allowed to be a base or quote token", PoolTokenPrefix))}
 }
 
-func ErrInsufficientPoolToken() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")
+func ErrInsufficientPoolToken() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInsufficientPoolToken, "insufficient pool token")}
 }
 
-func ErrTokenNotExist() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")
+func ErrTokenNotExist() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenNotExist, "token does not exist")}
 }
 
-func ErrInvalidCoins() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with equal token name")
+func ErrInvalidCoins() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidCoins, "failed to create exchange with equal token name")}
 }
 
-func ErrInvalidTokenPair(swapTokenPair string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidTokenPair, fmt.Sprintf("invalid token pair %s", swapTokenPair))
+func ErrInvalidTokenPair(swapTokenPair string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidTokenPair, fmt.Sprintf("invalid token pair %s", swapTokenPair))}
 }
 
-func ErrAddressIsRequire(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, AddressIsRequire, fmt.Sprintf("%s address is require", msg))
+func ErrAddressIsRequire(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAddressIsRequire, fmt.Sprintf("%s address is require", msg))}
 }
 
-func ErrIsZeroValue(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsZeroValue, fmt.Sprintf("%s is zero value", msg))
+func ErrIsZeroValue(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsZeroValue, fmt.Sprintf("%s is zero value", msg))}
 }
 
-func ErrBlockTimeBigThanDeadline() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBlockTimeBigThanDeadline, fmt.Sprintf("block time big than deadline"))
+func ErrBlockTimeBigThanDeadline() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBlockTimeBigThanDeadline, fmt.Sprintf("block time big than deadline"))}
 }
 
-func ErrLessThan(param1 string, param2 string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeLessThan, fmt.Sprintf("%s value less than %s value", param1, param2))
+func ErrLessThan(param1 string, param2 string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeLessThan, fmt.Sprintf("%s value less than %s value", param1, param2))}
 }
 
-func ErrMintPoolTokenFailed(err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMintPoolTokenFailed, fmt.Sprintf("mint pool token failed: %s", err))
+func ErrMintPoolTokenFailed(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMintPoolTokenFailed, fmt.Sprintf("mint pool token failed: %s", err))}
 }
 
-func ErrSendCoinsFromPoolToAccountFailed(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFromPoolToAccountFailed, fmt.Sprintf("send coins from pool to account failed: %s", msg))
+func ErrSendCoinsFromPoolToAccountFailed(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsFromPoolToAccountFailed, fmt.Sprintf("send coins from pool to account failed: %s", msg))}
 }
 
-func ErrBurnPoolTokenFailed(err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBurnPoolTokenFailed, fmt.Sprintf("burn pool token failed: %s", err))
+func ErrBurnPoolTokenFailed(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBurnPoolTokenFailed, fmt.Sprintf("burn pool token failed: %s", err))}
 }
 
-func ErrSendCoinsToPoolFailed(msg string) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsToPoolFailed, fmt.Sprintf("send coins to pool failed: %s", msg))
+func ErrSendCoinsToPoolFailed(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsToPoolFailed, fmt.Sprintf("send coins to pool failed: %s", msg))}
 }
 
-func ErrSwapUnknownMsgType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSwapUnknownMsgType, "swap unknown msg type")
+func ErrSwapUnknownMsgType() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSwapUnknownMsgType, "swap unknown msg type")}
 }
 
-func ErrSwapUnknownQueryType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSwapUnknowQueryTypes, "unknown swap query endpoint")
+func ErrSwapUnknownQueryType() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSwapUnknowQueryTypes, "unknown swap query endpoint")}
 }
 
-func ErrSellAmountOrBuyTokenIsEmpty() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSellAmountOrBuyTokenIsEmpty, "sell token amount or buy token is empty")
+func ErrSellAmountOrBuyTokenIsEmpty() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSellAmountOrBuyTokenIsEmpty, "sell token amount or buy token is empty")}
 }
 
-func ErrSellAmountEqualBuyToken() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSellAmountEqualBuyToken, "sell token name should not be equal to buy token name")
+func ErrSellAmountEqualBuyToken() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSellAmountEqualBuyToken, "sell token name should not be equal to buy token name")}
 }
 
-func ErrQueryParamsAddressIsEmpty() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeQueryParamsAddressIsEmpty, "query param address is empty")
+func ErrQueryParamsAddressIsEmpty() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeQueryParamsAddressIsEmpty, "query param address is empty")}
 }
 
-func ErrQueryParamsQuoteTokenAmountIsEmpty() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeQueryParamsQuoteTokenAmountIsEmpty, "query param quote token amount is empty")
+func ErrQueryParamsQuoteTokenAmountIsEmpty() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeQueryParamsQuoteTokenAmountIsEmpty, "query param quote token amount is empty")}
 }
 
-func ErrQueryParamsBaseTokenIsEmpty() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeQueryParamsBaseTokenIsEmpty, "query param base token is empty")
+func ErrQueryParamsBaseTokenIsEmpty() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeQueryParamsBaseTokenIsEmpty, "query param base token is empty")}
 }
 
-func ErrMinLiquidityIsNegative() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinLiquidityIsNegative, "min liquidity is negative")
+func ErrMinLiquidityIsNegative() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMinLiquidityIsNegative, "min liquidity is negative")}
 }
 
-func ErrMaxBaseAmountOrQuoteAmountIsNegative() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMaxBaseAmountOrQuoteAmountIsNegative, "max base amount or quote amount is negative")
+func ErrMaxBaseAmountOrQuoteAmountIsNegative() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMaxBaseAmountOrQuoteAmountIsNegative, "max base amount or quote amount is negative")}
 }
 
-func ErrMaxBaseAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMaxBaseAmount, "max base amount is negative or not validate denom")
+func ErrMaxBaseAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMaxBaseAmount, "max base amount is negative or not validate denom")}
 }
 
-func ErrQuoteAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeQuoteAmount, "quote amount is negative or not validate denom")
+func ErrQuoteAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeQuoteAmount, "quote amount is negative or not validate denom")}
 }
 
-func ErrMinBaseAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinBaseAmount, "min base amount is negative or not validate denom")
+func ErrMinBaseAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMinBaseAmount, "min base amount is negative or not validate denom")}
 }
 
-func ErrMinQuoteAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinQuoteAmount, "min quote amount is negative or not validate denom")
+func ErrMinQuoteAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMinQuoteAmount, "min quote amount is negative or not validate denom")}
 }
 
-func ErrSoldTokenAmountIsNegative() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSoldTokenAmountIsNegative, "sold token amount is negative")
+func ErrSoldTokenAmountIsNegative() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSoldTokenAmountIsNegative, "sold token amount is negative")}
 }
 
-func ErrToken0NameEqualToken1Name() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeToken0NameEqualToken1Name, "token0 name is equal token1 name")
+func ErrToken0NameEqualToken1Name() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeToken0NameEqualToken1Name, "token0 name is equal token1 name")}
 }
 
-func ErrSoldTokenAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSoldTokenAmount, "sold token amount is negative or not validate denom")
+func ErrSoldTokenAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSoldTokenAmount, "sold token amount is negative or not validate denom")}
 }
 
-func ErrMinBoughtTokenAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinBoughtTokenAmount, "min bought token amount is negative or not validate denom")
+func ErrMinBoughtTokenAmount() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMinBoughtTokenAmount, "min bought token amount is negative or not validate denom")}
 }
 
-func ErrConvertSellTokenAmount(sellTokenAmount string, err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeConvertSellTokenAmount, fmt.Sprintf("invalid params, parse sell_token_amount:%s error:%s",
-		sellTokenAmount, err))
+func ErrConvertSellTokenAmount(sellTokenAmount string, err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeConvertSellTokenAmount, fmt.Sprintf("invalid params, parse sell_token_amount:%s error:%s",
+		sellTokenAmount, err))}
 }
 
-func ErrConvertQuoteTokenAmount(quoteTokenAmount string, err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeConvertQuoteTokenAmount, fmt.Sprintf("invalid params, parse quote_token_amount:%s error:%s",
-		quoteTokenAmount, err))
+func ErrConvertQuoteTokenAmount(quoteTokenAmount string, err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeConvertQuoteTokenAmount, fmt.Sprintf("invalid params, parse quote_token_amount:%s error:%s",
+		quoteTokenAmount, err))}
 }
 
-func ErrSendCoinsFailed(err error) sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeSendCoinsFailed, fmt.Sprintf("send coin failed: %s", err))
+func ErrSendCoinsFailed(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsFailed, fmt.Sprintf("send coin failed: %s", err))}
 }
 
-func ErrMsgDeadlineLessThanBlockTime() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMsgDeadlineLessThanBlockTime, "input deadline less than block time")
+func ErrMsgDeadlineLessThanBlockTime() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeMsgDeadlineLessThanBlockTime, "input deadline less than block time")}
 }
 
-func ErrBaseTokensAmountBiggerThanMax() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBaseTokensAmountBiggerThanMax, "base token amount bigger than max base amount")
+func ErrBaseTokensAmountBiggerThanMax() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBaseTokensAmountBiggerThanMax, "base token amount bigger than max base amount")}
 }
 
-func ErrSwapTokenPairExist() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsSwapTokenPairExist, "the swap token pair already exists")
+func ErrSwapTokenPairExist() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsSwapTokenPairExist, "the swap token pair already exists")}
 }
 
-func ErrPoolTokenPairExist() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeIsPoolTokenPairExist, "the pool token pair already exists")
+func ErrPoolTokenPairExist() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeIsPoolTokenPairExist, "the pool token pair already exists")}
 }
