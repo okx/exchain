@@ -60,10 +60,6 @@ var (
 
 const nodeDirPerm = 0755
 
-func init() {
-
-}
-
 // TestnetCmd initializes all files for tendermint testnet and application
 func TestnetCmd(ctx *server.Context, cdc *codec.Codec,
 	mbm module.BasicManager, genAccIterator authtypes.GenesisAccountIterator,
