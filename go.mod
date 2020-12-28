@@ -6,6 +6,7 @@ require (
 	github.com/Comcast/pulsar-client-go v0.1.1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
+	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v1.1.1 // indirect

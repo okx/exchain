@@ -38,6 +38,7 @@ import (
 	"github.com/okex/okexchain/x/genutil"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
 
+	"github.com/bartekn/go-bip39"
 	"github.com/okex/okexchain/app/crypto/hd"
 	ethermint "github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
@@ -58,6 +59,10 @@ var (
 )
 
 const nodeDirPerm = 0755
+
+func init() {
+
+}
 
 // TestnetCmd initializes all files for tendermint testnet and application
 func TestnetCmd(ctx *server.Context, cdc *codec.Codec,
@@ -384,12 +389,29 @@ func GenerateSaveCoinKey(keybase keys.Keybase, keyName, keyPass string, overwrit
 	}
 
 	// generate a private key, with recovery phrase
-	info, secret, err := keybase.CreateMnemonic(keyName, keys.English, keyPass, algo, "")
+	info, secret, err := createMnemonic(keybase, keyName, keyPass, algo)
 	if err != nil {
 		return sdk.AccAddress([]byte{}), "", err
 	}
 
 	return sdk.AccAddress(info.GetPubKey().Address()), secret, nil
+}
+
+func createMnemonic(keybase keys.Keybase, keyName, keyPass string, algo keys.SigningAlgo) (info keys.Info, mnemo string, err error) {
+	const mnemonicEntropySize = 128
+	entropySeed, err := bip39.NewEntropy(mnemonicEntropySize)
+	if err != nil {
+		return info, mnemo, fmt.Errorf("failed. bip39.NewEntropy err : %s", err.Error())
+	}
+
+	mnemo, err = bip39.NewMnemonic(entropySeed[:])
+	if err != nil {
+		return info, mnemo, fmt.Errorf("failed. bip39.NewMnemonic err : %s", err.Error())
+	}
+
+	hdPath := keys.CreateHDPath(0, 0).String()
+	info, err = keybase.CreateAccount(keyName, mnemo, "", keyPass, hdPath, algo)
+	return
 }
 
 func collectGenFiles(
