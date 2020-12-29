@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -29,8 +30,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.SetBlockHash(ctx, hash, height)
 
 	// reset counters that are used on CommitStateDB.Prepare
-	k.Bloom = big.NewInt(0)
-	k.TxCount = 0
+	k.Bloom.Set(big.NewInt(0))
+	*k.TxCount = 0
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -43,15 +44,15 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 
 	// Update account balances before committing other parts of state
 	k.UpdateAccounts(ctx)
-
+	root, err := k.Commit(ctx, true)
 	// Commit state objects to KV store
-	if _, err := k.Commit(ctx, true); err != nil {
+	if err != nil {
 		k.Logger(ctx).Error("failed to commit state objects", "error", err, "height", ctx.BlockHeight())
 		panic(err)
 	}
 
 	// Clear accounts cache after account data has been committed
-	k.ClearStateObjects(ctx)
+	k.Reset(ctx, root)
 
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())

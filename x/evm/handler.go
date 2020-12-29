@@ -64,8 +64,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k Keeper, msg types.MsgEthereumTx) (*s
 	if !st.Simulate {
 		// Prepare db for logs
 		blockHash := types.HashFromContext(ctx)
-		k.CommitStateDB.Prepare(ethHash, blockHash, k.TxCount)
-		k.TxCount++
+		k.CommitStateDB.Prepare(ethHash, blockHash, *k.TxCount)
+		*k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)
@@ -150,8 +150,8 @@ func handleMsgEthermint(ctx sdk.Context, k Keeper, msg types.MsgEthermint) (*sdk
 	if !st.Simulate {
 		// Prepare db for logs
 		blockHash := types.HashFromContext(ctx)
-		k.CommitStateDB.Prepare(ethHash, blockHash, k.TxCount)
-		k.TxCount++
+		k.CommitStateDB.Prepare(ethHash, blockHash, *k.TxCount)
+		*k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)

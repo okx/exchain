@@ -37,7 +37,7 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
-	TxCount int
+	TxCount *int
 	Bloom   *big.Int
 }
 
@@ -56,7 +56,7 @@ func NewKeeper(
 		storeKey:      storeKey,
 		accountKeeper: ak,
 		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
-		TxCount:       0,
+		TxCount:       new(int),
 		Bloom:         big.NewInt(0),
 	}
 }
