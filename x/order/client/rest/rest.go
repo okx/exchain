@@ -65,7 +65,7 @@ func orderBookHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			}
 		}
 		if size < 0 {
-			common.HandleErrorMsg(w, cliCtx, types.CodeSizeIsInvalid, "Bad request: size is invalid")
+			common.HandleErrorMsg(w, cliCtx, types.CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))
 			return
 		}
 		params := keeper.NewQueryDepthBookParams(product, uint(size))
