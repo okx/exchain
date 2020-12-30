@@ -33,6 +33,7 @@ const (
 	CodeInvalidStartHeight                 uint32 = 66017
 	CodePoolNameLength                     uint32 = 66018
 	CodeLockAmountBelowMinimum             uint32 = 66019
+	CodeSendCoinsFromModuleToAccountFailed uint32 = 66020
 )
 
 // ErrInvalidInput returns an error when an input parameter is invalid
@@ -137,4 +138,8 @@ func ErrPoolNameLength(poolName string, got, max int) sdk.EnvelopedErr {
 // ErrLockAmountBelowMinimum returns an error when lock amount belows minimum
 func ErrLockAmountBelowMinimum(minLockAmount, amount sdk.Dec) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeLockAmountBelowMinimum, fmt.Sprintf("lock amount %s must be greater than the pool's min lock amount %s", amount.String(), minLockAmount.String()))}
+}
+
+func ErrSendCoinsFromModuleToAccountFailed(content string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeSendCoinsFromModuleToAccountFailed, fmt.Sprintf("failed. send coins from module to account failed %s", content))}
 }

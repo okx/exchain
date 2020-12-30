@@ -30,7 +30,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
-			return sdk.ErrInternal(err.Error()).Result()
+			return nil, err
 		}
 		if updatedPool.TotalAccumulatedRewards.IsAllLT(rewards) {
 			panic("should not happen")
@@ -56,7 +56,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Address, ModuleName, msg.Amount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return nil, types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 
 	// 6. Update farm pool
@@ -106,7 +106,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) (*sd
 	// 3. Withdraw money
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 
 	// 4. Update the lock info
@@ -114,7 +114,7 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) (*sd
 
 	// 5. Send the locked-tokens from farm module account to its own account
 	if err = k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Address, msg.Amount.ToCoins()); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return nil, types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	// 6. Update farm pool

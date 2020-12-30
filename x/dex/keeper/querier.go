@@ -203,7 +203,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, products)
 
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
 

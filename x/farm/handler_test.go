@@ -652,7 +652,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			},
 			getMsg:       normalGetLockMsg,
 			verification: verification,
-			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. insufficient coins",
@@ -663,7 +663,7 @@ func TestHandlerMsgLock(t *testing.T) {
 				return lockMsg
 			},
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account funds; "+
+			expectedErr: errors.New(fmt.Sprintf("failed. send coins from account to module failed insufficient funds: insufficient account funds; "+
 				"89890.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
 				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
@@ -785,7 +785,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 		{
 			caseName: "failed. insufficient coins from module account",
@@ -807,8 +807,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("internal: insufficient funds: insufficient account "+
-				"funds; 10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
+			expectedErr: errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; " + "10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "success. lock and unlock without provide before",
@@ -908,7 +907,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 			},
 			getMsg:       normalGetClaimMsg,
 			verification: verification,
-			expectedErr:  errors.New("internal: insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
+			expectedErr:  errors.New("insufficient funds: insufficient account funds;  < 10.000000000000000000aab"),
 		},
 	}
 
