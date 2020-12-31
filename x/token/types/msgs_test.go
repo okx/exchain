@@ -33,7 +33,7 @@ func TestNewMsgTokenIssue(t *testing.T) {
 		{NewMsgTokenIssue("", "", "", "binance coin", totalSupply, sdk.AccAddress{}, true),
 			ErrAddressIsRequired()},
 		{NewMsgTokenIssue("", "", "bnb-asd", "binance coin", totalSupply, addr, true),
-			ErrNotAllowedOriginalSymbol()},
+			ErrNotAllowedOriginalSymbol("bnb-asd")},
 	}
 
 	for _, msgCase := range testCase {
@@ -185,10 +185,10 @@ func TestNewTokenMsgSend(t *testing.T) {
 	}{
 		{NewMsgTokenSend(fromAddr, toAddr, coins), nil},
 		{NewMsgTokenSend(fromAddr, toAddr, sdk.SysCoins{}), common.ErrInsufficientCoins(DefaultParamspace, "")},
-		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), ErrInvalidCoins()},
+		{NewMsgTokenSend(fromAddr, toAddr, Errorcoins), ErrInvalidCoins("100.000000000000000000okc,100.000000000000000000okc,100.000000000000000000oke")},
 		{NewMsgTokenSend(sdk.AccAddress{}, toAddr, coins), ErrAddressIsRequired()},
 		{NewMsgTokenSend(fromAddr, sdk.AccAddress{}, coins), ErrAddressIsRequired()},
-		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), ErrInvalidCoins()},
+		{NewMsgTokenSend(fromAddr, toAddr, notValidCoins), ErrInvalidCoins("100.000000000000000000")},
 	}
 	for _, msgCase := range testCase {
 		err := msgCase.sendMsg.ValidateBasic()
@@ -253,7 +253,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 		{NewMsgMultiSend(fromAddr, transfers), nil},
 		{NewMsgMultiSend(sdk.AccAddress{}, transfers), ErrAddressIsRequired()},
 		{NewMsgMultiSend(fromAddr, make([]TransferUnit, MultiSendLimit+1)),ErrMsgTransfersAmountBiggerThanSendLimit()},
-		{NewMsgMultiSend(fromAddr, transfers0), ErrInvalidCoins()},
+		{NewMsgMultiSend(fromAddr, transfers0), ErrInvalidCoins("0.000000000000000000okt")},
 		{NewMsgMultiSend(fromAddr, transfers1), ErrAddressIsRequired()},
 	}
 	for _, msgCase := range testCase {

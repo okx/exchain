@@ -189,7 +189,7 @@ func (msg MsgMultiSend) ValidateBasic() sdk.Error {
 	}
 	for _, transfer := range msg.Transfers {
 		if !transfer.Coins.IsAllPositive() || !transfer.Coins.IsValid() {
-			return ErrInvalidCoins()
+			return ErrInvalidCoins(transfer.Coins.String())
 		}
 
 		if transfer.To.Empty() {
@@ -235,7 +235,7 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 		return ErrAddressIsRequired()
 	}
 	if !msg.Amount.IsValid() {
-		return ErrInvalidCoins()
+		return ErrInvalidCoins(msg.Amount.String())
 	}
 	if !msg.Amount.IsAllPositive() {
 		return common.ErrInsufficientCoins(DefaultParamspace, msg.Amount.String())
