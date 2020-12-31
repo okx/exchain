@@ -136,11 +136,11 @@ func ErrRepeatedTransferOwner(product string) sdk.EnvelopedErr {
 }
 
 func ErrDepositFailed(msg string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDepositFailed, fmt.Sprintf("deposit occur error: %s", msg))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeDepositFailed, fmt.Sprintf("error occurs in deposit: %s", msg))}
 }
 
 func ErrWithdrawFailed(msg string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeWithdrawFailed, fmt.Sprintf("withdraw occur error: %s", msg))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeWithdrawFailed, fmt.Sprintf("error occurs in withdraw: %s", msg))}
 }
 
 func ErrGetConfirmOwnershipNotExist(address string) sdk.EnvelopedErr {
@@ -172,7 +172,7 @@ func ErrAddressIsRequired(addrType string) sdk.EnvelopedErr {
 }
 
 func ErrTokenOfPairNotExist(baseAsset string, quoteAsset string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenOfPairNotExist, fmt.Sprintf("the token of pair is not exists with %s and %s", baseAsset, quoteAsset))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenOfPairNotExist, fmt.Sprintf("the token of pair does not exists with %s and %s", baseAsset, quoteAsset))}
 }
 
 func ErrIsTransferringOwner(product string) sdk.EnvelopedErr {
