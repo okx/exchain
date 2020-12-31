@@ -51,7 +51,7 @@ func ErrBackendPluginNotEnabled() sdk.EnvelopedErr {
 }
 
 func ErrParamNotCorrect(size int, granularity int) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeParamNotCorrect, fmt.Sprintf("parameter is not correct, size: %d, granularity: %d", size, granularity))}
 }
 
 func ErrNoKlinesFunctionFound() sdk.EnvelopedErr {

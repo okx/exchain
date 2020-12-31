@@ -71,7 +71,7 @@ func ErrUnMarshalJSONFailed(msg string) sdk.EnvelopedErr {
 }
 
 func ErrStrconvFailed(msg string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrectly string conversion"))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeStrconvFailed, fmt.Sprintf("incorrect string conversion"))}
 }
 
 func ErrUnknownProposalType(codespace string, msg string) sdk.EnvelopedErr {
