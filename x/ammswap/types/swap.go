@@ -80,7 +80,7 @@ func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
 
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
-		return ErrBaseAmountNameBigerQuoteAmountName()
+		return ErrBaseAmountNameBiggerThanQuoteAmountName()
 	} else if baseAmountName == quoteAmountName {
 		return ErrBaseNameEqualQuoteName()
 	}

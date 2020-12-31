@@ -48,7 +48,7 @@ func (k Keeper) GetSwapTokenPair(ctx sdk.Context, tokenPairName string) (types.S
 	byteKey := types.GetTokenPairKey(tokenPairName)
 	rawItem := store.Get(byteKey)
 	if rawItem == nil {
-		return types.SwapTokenPair{}, types.ErrUnexistSwapTokenPair(tokenPairName)
+		return types.SwapTokenPair{}, types.ErrNonExistSwapTokenPair(tokenPairName)
 	}
 	err := k.cdc.UnmarshalBinaryLengthPrefixed(rawItem, &item)
 	if err != nil {
@@ -98,7 +98,7 @@ func (k Keeper) NewPoolToken(ctx sdk.Context, symbol string) {
 func (k Keeper) GetPoolTokenInfo(ctx sdk.Context, symbol string) (tokentypes.Token, error) {
 	poolToken := k.tokenKeeper.GetTokenInfo(ctx, symbol)
 	if poolToken.Owner == nil {
-		return poolToken, types.ErrUnexistPoolToken(symbol)
+		return poolToken, types.ErrNonExistPoolToken(symbol)
 	}
 	return poolToken, nil
 }

@@ -10,18 +10,18 @@ import (
 const (
 	DefaultCodespace = ModuleName
 
-	CodeUnexistSwapTokenPair                 uint32 = 65000
-	CodeUnexistPoolToken                     uint32 = 65001
-	CodeMintCoinsFailed                      uint32 = 65002
-	CodeSendCoinsFromAccountToModule         uint32 = 65003
-	CodeBaseAmountNameBigerQuoteAmountName   uint32 = 65004
-	CodeValidateSwapAmountName               uint32 = 65005
-	CodeBaseNameEqualQuoteName               uint32 = 65006
-	CodeValidateDenom                        uint32 = 65007
-	CodeNotAllowedOriginSymbol               uint32 = 65008
-	CodeInsufficientPoolToken                uint32 = 65009
-	CodeTokenNotExist                        uint32 = 65010
-	CodeInvalidCoins                         uint32 = 65011
+	CodeNonExistSwapTokenPair                   uint32 = 65000
+	CodeNonExistPoolToken                       uint32 = 65001
+	CodeMintCoinsFailed                         uint32 = 65002
+	CodeSendCoinsFromAccountToModule            uint32 = 65003
+	CodeBaseAmountNameBiggerThanQuoteAmountName uint32 = 65004
+	CodeValidateSwapAmountName                  uint32 = 65005
+	CodeBaseNameEqualQuoteName                  uint32 = 65006
+	CodeValidateDenom                           uint32 = 65007
+	CodeNotAllowedOriginSymbol                  uint32 = 65008
+	CodeInsufficientPoolToken                   uint32 = 65009
+	CodeTokenNotExist                           uint32 = 65010
+	CodeInvalidCoins                            uint32 = 65011
 	CodeInvalidTokenPair                     uint32 = 65012
 	CodeAddressIsRequire                     uint32 = 65013
 	CodeIsZeroValue                          uint32 = 65014
@@ -32,7 +32,7 @@ const (
 	CodeBurnPoolTokenFailed                  uint32 = 65019
 	CodeSendCoinsToPoolFailed                uint32 = 65020
 	CodeSwapUnknownMsgType                   uint32 = 65021
-	CodeSwapUnknowQueryTypes                 uint32 = 65022
+	CodeSwapUnknownQueryTypes                uint32 = 65022
 	CodeSellAmountOrBuyTokenIsEmpty          uint32 = 65023
 	CodeSellAmountEqualBuyToken              uint32 = 65024
 	CodeQueryParamsAddressIsEmpty            uint32 = 65025
@@ -58,12 +58,12 @@ const (
 	CodeInternalError                        uint32 = 65045
 )
 
-func ErrUnexistSwapTokenPair(tokenPairName string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnexistSwapTokenPair, fmt.Sprintf("swap token pair is not exist: %s", tokenPairName))}
+func ErrNonExistSwapTokenPair(tokenPairName string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNonExistSwapTokenPair, fmt.Sprintf("swap token pair is not exist: %s", tokenPairName))}
 }
 
-func ErrUnexistPoolToken(token string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeUnexistPoolToken, fmt.Sprintf("pool token %s does not exist", token))}
+func ErrNonExistPoolToken(token string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNonExistPoolToken, fmt.Sprintf("pool token %s does not exist", token))}
 }
 
 func ErrCodeMinCoinsFailed(err error) sdk.EnvelopedErr {
@@ -74,8 +74,8 @@ func ErrSendCoinsFromAccountToModule(err error) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSendCoinsFromAccountToModule, fmt.Sprintf("send coins from account to module failed: %s", err))}
 }
 
-func ErrBaseAmountNameBigerQuoteAmountName() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBaseAmountNameBigerQuoteAmountName, "the lexicographic order of BaseTokenName must be less than QuoteTokenName")}
+func ErrBaseAmountNameBiggerThanQuoteAmountName() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBaseAmountNameBiggerThanQuoteAmountName, "the lexicographic order of BaseTokenName must be less than QuoteTokenName")}
 }
 
 func ErrValidateSwapAmountName() sdk.EnvelopedErr {
@@ -147,7 +147,7 @@ func ErrSwapUnknownMsgType() sdk.EnvelopedErr {
 }
 
 func ErrSwapUnknownQueryType() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSwapUnknowQueryTypes, "unknown swap query endpoint")}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeSwapUnknownQueryTypes, "unknown swap query endpoint")}
 }
 
 func ErrSellAmountOrBuyTokenIsEmpty() sdk.EnvelopedErr {
