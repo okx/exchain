@@ -109,7 +109,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager,
 
 	cmd.Flags().String(cli.HomeFlag, defaultNodeHome, "node's home directory")
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
-	cmd.Flags().String(flags.FlagChainID, "testchain-1", "genesis file chain-id, it's necessary to be provided in the format like \"[chainName]-[integer]\"")
+	cmd.Flags().String(flags.FlagChainID, "testchain-1", "genesis file chain-id, it's necessary to be provided in the format like \"[chain name]-[positive integer]\"")
 
 	return cmd
 }
