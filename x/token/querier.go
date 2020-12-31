@@ -44,7 +44,7 @@ func queryInfo(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Kee
 
 	token := keeper.GetTokenInfo(ctx, name)
 	if token.Symbol == "" {
-		return nil, types.ErrInvalidCoins()
+		return nil, types.ErrInvalidCoins(token.Symbol)
 
 	}
 

@@ -2,9 +2,8 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // const uint32
@@ -28,6 +27,8 @@ const (
 	CodeParamNotCorrect               uint32 = 62014
 	CodeNoKlinesFunctionFound         uint32 = 62015
 	CodeMarketkeeperNotInitialized    uint32 = 62016
+	CodeGetInvalidateGranularity      uint32 = 62017
+	CodeGetInvalidTickerByProducts    uint32 = 62018
 )
 
 // invalid param side, must be buy or sell
@@ -63,4 +64,12 @@ func ErrMarketkeeperNotInitialized() sdk.EnvelopedErr {
 
 func ErrBackendModuleUnknownQueryType() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeBackendModuleUnknownQueryType, "backend module unknown query type")}
+}
+
+func ErrGetInvalidateGranularity(msg string, key string, field string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeGetInvalidateGranularity, fmt.Sprintf("server error: %s, key=%s, can not convert timestamp %s", msg, key, field))}
+}
+
+func ErrGetInvalidTickerByProducts(key string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeGetInvalidTickerByProducts, fmt.Sprintf("No value found for key: %s", key))}
 }

@@ -52,7 +52,7 @@ func (msg MsgTokenIssue) ValidateBasic() sdk.Error {
 		return ErrUserInputSymbolIsEmpty()
 	}
 	if !ValidOriginalSymbol(msg.OriginalSymbol) {
-		return ErrNotAllowedOriginalSymbol()
+		return ErrNotAllowedOriginalSymbol(msg.OriginalSymbol)
 	}
 
 	// check wholeName
@@ -331,7 +331,7 @@ func (msg MsgTokenModify) ValidateBasic() sdk.Error {
 		return ErrMsgSymbolIsEmpty()
 	}
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrNotAllowedOriginalSymbol()
+		return ErrNotAllowedOriginalSymbol(msg.Symbol)
 	}
 	// check wholeName
 	if msg.IsWholeNameModified {
@@ -385,7 +385,7 @@ func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
 	}
 
 	if sdk.ValidateDenom(msg.Symbol) != nil {
-		return ErrNotAllowedOriginalSymbol()
+		return ErrNotAllowedOriginalSymbol(msg.Symbol)
 	}
 	return nil
 }

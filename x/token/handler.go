@@ -104,7 +104,7 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 	// generate a random symbol
 	newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
 	if !valid {
-		return types.ErrInvalidCoins().Result()
+		return types.ErrInvalidCoins(msg.OriginalSymbol).Result()
 	}
 
 	token.Symbol = newName

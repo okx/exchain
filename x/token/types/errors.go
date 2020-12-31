@@ -100,8 +100,8 @@ func ErrFailedToUnlockAddress(coins string, addr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeFailedToUnlockAddress, fmt.Sprintf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr))}
 }
 
-func ErrInvalidCoins() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, "invalid coins")}
+func ErrInvalidCoins(symbol string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeInvalidCoins, fmt.Sprintf("invalid coins: %s", symbol))}
 }
 
 func ErrGetConfirmOwnership() sdk.EnvelopedErr {
@@ -120,8 +120,8 @@ func ErrUserInputSymbolIsEmpty() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeOriginalSymbolIsEmpty, "user intput symbol is empty")}
 }
 
-func ErrNotAllowedOriginalSymbol() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeNotAllowedOriginalSymbol, "not allowed original symbol")}
+func ErrNotAllowedOriginalSymbol(symbol string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeNotAllowedOriginalSymbol, fmt.Sprintf("not allowed original symbol: %s", symbol))}
 }
 
 func ErrWholeNameIsNotValidl() sdk.EnvelopedErr {

@@ -87,7 +87,7 @@ func ErrMoreMinSelfDelegation(valAddr string) sdk.Error {
 		fmt.Sprintf("failed. min self delegation of %s is more than its shares", valAddr))
 }
 
-// ErrProxyNotFound returns an error when a delegator who's not a proxy trys to unreg
+// ErrProxyNotFound returns an error when a delegator who's not a proxy tries to unreg
 func ErrProxyNotFound(delegator string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProxyNotFound,
 		fmt.Sprintf("failed. proxy %s not found", delegator))}
@@ -99,7 +99,7 @@ func ErrEmptyValidators() sdk.Error {
 		"failed. empty validators")
 }
 
-// ErrProxyAlreadyExist returns an error when a proxy trys to reg the second time
+// ErrProxyAlreadyExist returns an error when a proxy tries to reg the second time
 func ErrProxyAlreadyExist(delegator string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProxyAlreadyExist,
 		fmt.Sprintf("failed. delegator %s has already registered as a proxy", delegator))}
@@ -197,7 +197,7 @@ func ErrNilDelegatorAddr() sdk.Error {
 
 // ErrDelegatorEqualToProxyAddr returns an error when the address is not expected
 func ErrDelegatorEqualToProxyAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeDelegatorEqualToProxyAddr, "delegator address can not eqauls to proxy address")
+	return sdkerrors.New(DefaultCodespace, CodeDelegatorEqualToProxyAddr, "delegator address can not equals to proxy address")
 }
 
 // ErrBadDenom returns an error when the coin denomination is invalid
@@ -207,7 +207,7 @@ func ErrBadDenom() sdk.EnvelopedErr {
 
 // ErrBadDelegationAmount returns an error when the amount of delegation isn't positive
 func ErrBadDelegationAmount() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeBadDelegationAmount, "amount must more than 0")
+	return sdkerrors.New(DefaultCodespace, CodeBadDelegationAmount, "amount must be more than 0")
 }
 
 // ErrNoUnbondingDelegation returns an error when the unbonding delegation doesn't exist

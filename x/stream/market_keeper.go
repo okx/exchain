@@ -3,6 +3,7 @@ package stream
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/okexchain/x/backend/types"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/okex/okexchain/x/backend"
 	"github.com/okex/okexchain/x/stream/pushservice/conn"
-	"github.com/pkg/errors"
 )
 
 type MarketKeeper backend.MarketKeeper
@@ -54,7 +54,7 @@ func (k *RedisMarketKeeper) GetKlineByProductID(productID uint64, granularity, s
 	for _, field := range fieldList {
 		timeInt, err := strconv.ParseInt(field, 10, 64)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("server error: %s, key=%s, can not convert timestamp %s", err.Error(), key, field))
+			return nil, types.ErrGetInvalidateGranularity(err.Error(), key, field)
 		}
 
 		values := strings.Split(r[field], "|")
@@ -88,7 +88,7 @@ func (k *RedisMarketKeeper) GetTickerByProducts(products []string) ([]map[string
 			if err == nil {
 				tickers = append(tickers, ticker)
 			} else {
-				return tickers, errors.New(fmt.Sprintf("No value found for key: %s", key))
+				return tickers, types.ErrGetInvalidTickerByProducts(key)
 			}
 		}
 	}
