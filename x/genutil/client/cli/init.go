@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tendermint/iavl/common"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -64,15 +63,12 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager,
 	cmd := &cobra.Command{
 		Use:   "init [moniker]",
 		Short: "Initialize private validator, p2p, genesis, and application configuration files",
-		Long:  `Initialize validators's and node's configuration files.`,
+		Long:  `Initialize validators' and node's configuration files.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(cli.HomeFlag))
 			chainID := viper.GetString(flags.FlagChainID)
-			if chainID == "" {
-				chainID = fmt.Sprintf("test-chain-%v", common.RandStr(6))
-			}
 
 			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
 			if err != nil {
@@ -113,7 +109,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager,
 
 	cmd.Flags().String(cli.HomeFlag, defaultNodeHome, "node's home directory")
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
-	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
+	cmd.Flags().String(flags.FlagChainID, "testchain-1", "genesis file chain-id, it's necessary to be provided in the format like \"[chainName]-[integer]\"")
 
 	return cmd
 }
