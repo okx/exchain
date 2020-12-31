@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -33,17 +34,20 @@ type SDKError struct {
 }
 
 func ParseSDKError(errMsg string) SDKError {
-	var sdkErr SDKError
-	err := json.Unmarshal([]byte(errMsg), &sdkErr)
+	var res abci.ResponseQuery
+	err := json.Unmarshal([]byte(errMsg), &res)
 	if err != nil {
-		sdkErr = SDKError{
+		return SDKError{
 			Codespace: DefaultCodespace,
 			Code:      CodeInternalError,
-			Message:   "internal error",
+			Message:   "query response unmarshal failed" + err.Error(),
 		}
-		return sdkErr
 	}
-	return sdkErr
+	return SDKError{
+		Codespace: res.Codespace,
+		Code:      res.Code,
+		Message:   res.Log,
+	}
 }
 
 // invalid paginate param
