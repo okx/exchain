@@ -2,7 +2,6 @@ package token
 
 import (
 	"github.com/okex/okexchain/x/common"
-
 	"github.com/okex/okexchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
