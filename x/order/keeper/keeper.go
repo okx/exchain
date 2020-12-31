@@ -431,7 +431,7 @@ func (k Keeper) SendFeesToProductOwner(ctx sdk.Context, coins sdk.SysCoins, from
 	k.tokenKeeper.AddFeeDetail(ctx, from.String(), coins, feeType, "")
 	if err := k.tokenKeeper.SendCoinsFromAccountToAccount(ctx, from, to, coins); err != nil {
 		log.Printf("Send fee(%s) to address(%s) failed\n", coins.String(), to.String())
-		return "", types.ErrSendCoinsFaile(coins.String(), to.String())
+		return "", types.ErrSendCoinsFailed(coins.String(), to.String())
 	}
 	return to.String(), nil
 }

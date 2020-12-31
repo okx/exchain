@@ -46,7 +46,7 @@ func ErrInvalidVote(voteOption VoteOption) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidVote, fmt.Sprintf("'%v' is not a valid voting option", voteOption.String()))
 }
 
-func ErrCodeInvalidGenesis() sdk.Error {
+func ErrInvalidGenesis() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidGenesis, "initial proposal ID hasn't been set")
 }
 
