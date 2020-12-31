@@ -31,7 +31,7 @@ const (
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNilDelegatorAddr, "delegator address is required")
+	return sdkerrors.New(DefaultCodespace, CodeNilDelegatorAddr, "delegator address is empty")
 }
 
 func ErrNoValidatorCommission() sdk.Error {
@@ -71,11 +71,11 @@ func ErrWithdrawAddrInblacklist() sdk.Error {
 }
 
 func ErrNilWithdrawAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNilWithdrawAddr, "withdraw address is required")
+	return sdkerrors.New(DefaultCodespace, CodeNilWithdrawAddr, "withdraw address is empty")
 }
 
 func ErrNilValidatorAddr() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNilValidatorAddr, "validator address is required")
+	return sdkerrors.New(DefaultCodespace, CodeNilValidatorAddr, "validator address is empty")
 }
 
 func ErrBadDistribution() sdk.Error {
