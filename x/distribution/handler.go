@@ -2,7 +2,6 @@ package distribution
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/okex/okexchain/x/distribution/keeper"
 	"github.com/okex/okexchain/x/distribution/types"
@@ -22,7 +21,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized distribution message type: %T", msg)
+			return nil, types.ErrUnknownDistributionMsgType()
 		}
 	}
 }
@@ -68,7 +67,7 @@ func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 
 		default:
-			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized distr proposal content type: %T", c)
+			return types.ErrUnknownDistributionCommunityPoolProposaType()
 		}
 	}
 }

@@ -68,7 +68,5 @@ var (
 	NewMsgDeposit  = types.NewMsgDeposit
 	NewMsgWithdraw = types.NewMsgWithdraw
 
-	ErrInvalidProduct      = types.ErrInvalidProduct
 	ErrTokenPairNotFound   = types.ErrTokenPairNotFound
-	ErrDelistOwnerNotMatch = types.ErrDelistOwnerNotMatch
 )

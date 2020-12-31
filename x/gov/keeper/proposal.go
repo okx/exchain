@@ -11,7 +11,7 @@ import (
 // SubmitProposal creates new proposal given a content
 func (keeper Keeper) SubmitProposal(ctx sdk.Context, content types.Content) (types.Proposal, sdk.Error) {
 	if !keeper.router.HasRoute(content.ProposalRoute()) {
-		return types.Proposal{}, types.ErrNoProposalHandlerExists(keeper.codespace, content)
+		return types.Proposal{}, types.ErrNoProposalHandlerExists(content)
 	}
 
 	proposalID, err := keeper.GetProposalID(ctx)
@@ -144,7 +144,7 @@ func (keeper Keeper) GetProposalID(ctx sdk.Context) (proposalID uint64, err sdk.
 	store := ctx.KVStore(keeper.storeKey)
 	bz := store.Get(types.ProposalIDKey)
 	if bz == nil {
-		return 0, types.ErrInvalidGenesis(keeper.codespace, "initial proposal ID hasn't been set")
+		return 0, types.ErrInvalidGenesis()
 	}
 	keeper.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &proposalID)
 	return proposalID, nil

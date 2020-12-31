@@ -8,8 +8,6 @@ import (
 
 	"github.com/okex/okexchain/x/ammswap"
 
-	"github.com/pkg/errors"
-
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -250,13 +248,13 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 // nolint
 func (k Keeper) getCandlesWithTimeFromORM(product string, granularity, size int, ts int64) (r []types.IKline, err error) {
 	if !k.Config.EnableBackend {
-		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		return nil, types.ErrBackendPluginNotEnabled()
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		return nil, types.ErrParamNotCorrect(size, granularity)
 	}
 
 	klines, err := types.NewKlinesFactory(candleType)
@@ -282,17 +280,17 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 
 func (k Keeper) getCandlesByMarketKeeper(productID uint64, granularity, size int) (r [][]string, err error) {
 	if !k.Config.EnableBackend {
-		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		return nil, types.ErrBackendPluginNotEnabled()
 	}
 
 	if k.marketKeeper == nil {
-		return nil, errors.New("Market keeper is not initialized properly")
+		return nil, types.ErrMarketkeeperNotInitialized()
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		return nil, types.ErrParamNotCorrect(size, granularity)
 	}
 
 	klines, err := k.marketKeeper.GetKlineByProductID(productID, granularity, size)

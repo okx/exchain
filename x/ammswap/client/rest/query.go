@@ -31,7 +31,8 @@ func querySwapTokenPairHandler(cliContext context.CLIContext) func(http.Response
 		tokenPairName := vars["name"]
 		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", types.QuerierRoute, types.QuerySwapTokenPair, tokenPairName), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliContext, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliContext, sdkErr.Code, sdkErr.Message)
 			return
 		}
 		rest.PostProcessResponse(w, cliContext, res)
@@ -44,7 +45,8 @@ func querySwapTokenPairsHandler(cliContext context.CLIContext) func(http.Respons
 
 		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySwapTokenPairs), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliContext, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliContext, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -58,7 +60,8 @@ func queryParamsHandler(cliContext context.CLIContext) func(http.ResponseWriter,
 
 		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/params", types.QuerierRoute), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliContext, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliContext, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -74,7 +77,8 @@ func queryRedeemableAssetsHandler(cliContext context.CLIContext) func(http.Respo
 		liquidity := r.URL.Query().Get("liquidity")
 		res, _, err := cliContext.QueryWithData(fmt.Sprintf("custom/%s/%s/%s/%s", types.QuerierRoute, types.QueryRedeemableAssets, tokenPair, liquidity), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliContext, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliContext, sdkErr.Code, sdkErr.Message)
 			return
 		}
 		formatAndReturnResult(w, cliContext, res)
@@ -87,7 +91,7 @@ func formatAndReturnResult(w http.ResponseWriter, cliContext context.CLIContext,
 	result := common.GetBaseResponse(replaceStr)
 	resultJson, err := json.Marshal(result)
 	if err != nil {
-		common.HandleErrorMsg(w, cliContext, err.Error())
+		common.HandleErrorMsg(w, cliContext, common.CodeMarshalJSONFailed, err.Error())
 		return
 	}
 	resultJson = []byte(strings.Replace(string(resultJson), "\""+replaceStr+"\"", string(data), 1))
@@ -104,13 +108,14 @@ func swapTokensHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQuerySwapTokensParams(businessType, address, baseTokenName)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySwapTokens), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -127,13 +132,14 @@ func swapQuoteHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQuerySwapBuyInfoParams(sellTokenAmount, buyToken)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySwapQuoteInfo), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -149,13 +155,14 @@ func swapLiquidityHistoriesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQuerySwapLiquidityInfoParams(address, tokenPairName)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySwapLiquidityHistories), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -172,13 +179,14 @@ func swapAddQuoteHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		params := types.NewQuerySwapAddInfoParams(quoteTokenAmount, baseToken)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySwapAddLiquidityQuote), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 

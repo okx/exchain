@@ -50,8 +50,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
-			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
-			return sdk.ErrUnknownRequest(errMsg).Result()
+                        errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
+			return types.ErrUnknownFarmMsgType(errMsg).Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
@@ -66,18 +66,18 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*sdk.Result, error) {
 	// 0. Check if the start_height_to_yield is more than current height
 	if msg.StartHeightToYield <= ctx.BlockHeight() {
-		return types.ErrInvalidStartHeight(DefaultCodespace).Result()
+		return types.ErrInvalidStartHeight().Result()
 	}
 
 	// 1.1 Check farm pool
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
-		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+		return types.ErrNoFarmPoolFound(msg.PoolName).Result()
 	}
 
 	// 1.2 Check owner
 	if !pool.Owner.Equals(msg.Address) {
-		return types.ErrInvalidPoolOwner(DefaultParamspace, msg.Address.String(), msg.PoolName).Result()
+		return types.ErrInvalidPoolOwner(msg.Address.String(), msg.PoolName).Result()
 	}
 
 	// 1.3 Check if the provided coin denom is the same as the locked coin name
@@ -86,8 +86,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*
 			len(pool.YieldedTokenInfos)))
 	}
 	if pool.YieldedTokenInfos[0].RemainingAmount.Denom != msg.Amount.Denom {
-		return types.ErrInvalidDenom(
-			DefaultCodespace, pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
+		return types.ErrInvalidDenom(pool.YieldedTokenInfos[0].RemainingAmount.Denom, msg.Amount.Denom).Result()
 	}
 
 	// 2.1 Calculate how many provided token & native token could be yielded in current period
@@ -96,7 +95,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*
 	// 2.2 Check if remaining amount is already zero
 	remainingAmount := updatedPool.YieldedTokenInfos[0].RemainingAmount
 	if !remainingAmount.IsZero() {
-		return types.ErrRemainingAmountNotZero(DefaultCodespace, remainingAmount.String()).Result()
+		return types.ErrRemainingAmountNotZero(remainingAmount.String()).Result()
 	}
 
 	// 3. Terminate pool current period
@@ -106,7 +105,7 @@ func handleMsgProvide(ctx sdk.Context, k keeper.Keeper, msg types.MsgProvide) (*
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Address, YieldFarmingAccount, msg.Amount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
 	}
 
 	// 5. init a new yielded_token_info struct, then set it into store
@@ -130,7 +129,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) (*sdk.
 	// 1. Get the pool info
 	pool, poolFound := k.GetFarmPool(ctx, msg.PoolName)
 	if !poolFound {
-		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+		return types.ErrNoFarmPoolFound(msg.PoolName).Result()
 	}
 
 	// 2. Calculate how many provided token & native token could be yielded in current period
@@ -139,7 +138,7 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) (*sdk.
 	// 3. Withdraw rewards
 	rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 	if err != nil {
-		return sdk.ErrInternal(err.Error()).Result()
+		return nil, err
 	}
 
 	// 4. Update the lock_info data

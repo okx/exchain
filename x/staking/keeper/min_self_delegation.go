@@ -12,13 +12,13 @@ func (k Keeper) WithdrawMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddres
 ) (completionTime time.Time, err error) {
 	// 0.check the msd on validator
 	if validator.MinSelfDelegation.IsZero() {
-		return completionTime, types.ErrNoMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
+		return completionTime, types.ErrNoMinSelfDelegation(validator.OperatorAddress.String())
 	}
 
 	// 1.check the remained shares on the validator
 	remainShares := validator.GetDelegatorShares().Sub(k.getSharesFromDefaultMinSelfDelegation())
 	if remainShares.LT(sdk.ZeroDec()) {
-		return completionTime, types.ErrMoreMinSelfDelegation(types.DefaultCodespace, validator.OperatorAddress.String())
+		return completionTime, types.ErrMoreMinSelfDelegation(validator.OperatorAddress.String())
 	}
 
 	// 2.unbond msd

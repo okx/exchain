@@ -54,10 +54,10 @@ func (csp CommunityPoolSpendProposal) ValidateBasic() error {
 		return err
 	}
 	if !csp.Amount.IsValid() {
-		return ErrInvalidProposalAmount(DefaultCodespace)
+		return ErrInvalidProposalAmount()
 	}
 	if csp.Recipient.Empty() {
-		return ErrEmptyProposalRecipient(DefaultCodespace)
+		return ErrEmptyProposalRecipient()
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package dex
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/dex/types"
@@ -15,8 +16,7 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 		case types.DelistProposal:
 			return handleDelistProposal(ctx, k, proposal)
 		default:
-			errMsg := fmt.Sprintf("unrecognized param proposal content type: %s", c)
-			return sdk.ErrUnknownRequest(errMsg)
+			return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", c))
 		}
 	}
 }
@@ -29,17 +29,15 @@ func handleDelistProposal(ctx sdk.Context, keeper *Keeper, proposal *govTypes.Pr
 	tokenPairName := fmt.Sprintf("%s_%s", p.BaseAsset, p.QuoteAsset)
 	tokenPair := keeper.GetTokenPair(ctx, tokenPairName)
 	if tokenPair == nil {
-		return ErrTokenPairNotFound(fmt.Sprintf("%+v", p))
+		return ErrTokenPairNotFound(tokenPairName)
 	}
 	if keeper.IsTokenPairLocked(ctx, tokenPairName) {
-		errContent := fmt.Sprintf("unexpected state, the trading pair (%s) is locked", tokenPairName)
-		return sdk.ErrInternal(errContent)
+		return types.ErrIsTokenPairLocked(tokenPairName)
 	}
 	// withdraw
 	if tokenPair.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, tokenPair.Name(), tokenPair.Owner, tokenPair.Deposits); err != nil {
-			return sdk.ErrInternal(fmt.Sprintf("failed to withdraw deposits:%s error:%s",
-				tokenPair.Deposits.String(), err.Error()))
+			return types.ErrWithdrawFailed(err.Error())
 		}
 	}
 

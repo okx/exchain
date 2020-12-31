@@ -42,7 +42,7 @@ func queryDelegator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 
 		delegatorAddr, err := sdk.AccAddressFromBech32(bech32DelAddr)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidDelegatorAddress)
+			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
 			return
 		}
 
@@ -55,13 +55,13 @@ func queryDelegator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, height, err := cliCtx.QueryWithData(endpoint, bz)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			common.HandleErrorMsg(w, cliCtx, common.CodeABCIQueryFails, err.Error())
 			return
 		}
 
@@ -76,7 +76,7 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 
 		validatorAddr, err := sdk.ValAddressFromBech32(bech32ValAddr)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidValidatorAddress)
+			common.HandleErrorMsg(w, cliCtx, types.CodeBadValidatorAddr, "validator address is invalid")
 			return
 		}
 
@@ -89,7 +89,7 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorCodecFails)
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 

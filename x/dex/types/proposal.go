@@ -64,22 +64,22 @@ func (DelistProposal) ProposalType() string {
 // ValidateBasic validates delist proposal
 func (drp DelistProposal) ValidateBasic() sdk.Error {
 	if len(strings.TrimSpace(drp.Title)) == 0 {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "failed to submit delist proposal because title is blank")
+		return govtypes.ErrInvalidProposalContent("title is required")
 	}
 	if len(drp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, fmt.Sprintf("failed to submit delist proposal because title is longer than max length of %d", govtypes.MaxTitleLength))
+		return govtypes.ErrInvalidProposalContent("title length is longer than the max")
 	}
 
 	if len(drp.Description) == 0 {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, "failed to submit delist proposal because  description is blank")
+		return govtypes.ErrInvalidProposalContent("description is required")
 	}
 
 	if len(drp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent(DefaultCodespace, fmt.Sprintf("failed to submit delist proposal because  description is longer than max length of %d", govtypes.MaxDescriptionLength))
+		return govtypes.ErrInvalidProposalContent("description length is longer than the max")
 	}
 
 	if drp.ProposalType() != proposalTypeDelist {
-		return govtypes.ErrInvalidProposalType(DefaultCodespace, drp.ProposalType())
+		return govtypes.ErrInvalidProposalType(drp.ProposalType())
 	}
 
 	if drp.Proposer.Empty() {

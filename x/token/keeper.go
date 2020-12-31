@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/okex/okexchain/x/params"
 	"github.com/okex/okexchain/x/token/types"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 
@@ -164,7 +163,7 @@ func (k Keeper) UpdateToken(ctx sdk.Context, token types.Token) {
 // SendCoinsFromAccountToAccount - send token from one account to another account
 func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.SysCoins) error {
 	if k.bankKeeper.BlacklistedAddr(to) {
-		return types.ErrBlockedRecipient(DefaultCodespace, to.String())
+		return types.ErrBlockedRecipient(to.String())
 	}
 
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
@@ -173,7 +172,7 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 // nolint
 func (k Keeper) LockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysCoins, lockCoinsType int) error {
 	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, addr, types.ModuleName, coins); err != nil {
-		return err
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 	// update lock coins
 	return k.updateLockedCoins(ctx, addr, coins, true, lockCoinsType)
@@ -188,7 +187,7 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	case types.LockCoinsTypeFee:
 		key = types.GetLockFeeAddress(addr.Bytes())
 	default:
-		return fmt.Errorf("unrecognized lock coins type: %d", lockCoinsType)
+		return types.ErrUnrecognizedLockCoinsType(lockCoinsType)
 	}
 
 	var newCoins sdk.SysCoins
@@ -208,13 +207,13 @@ func (k Keeper) updateLockedCoins(ctx sdk.Context, addr sdk.AccAddress, coins sd
 	} else {
 		// unlock coins
 		if coinsBytes == nil {
-			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins locked <0>", coins, addr)
+			return types.ErrFailedToUnlockAddress(coins.String(), addr.String())
 		}
 		k.cdc.MustUnmarshalBinaryBare(coinsBytes, &oldCoins)
 		var isNegative bool
 		newCoins, isNegative = oldCoins.SafeSub(coins)
 		if isNegative {
-			return fmt.Errorf("failed to unlock <%s>. Address <%s>, coins available <%s>", coins, addr, oldCoins)
+			return types.ErrFailedToUnlockAddress(coins.String(), addr.String())
 		}
 	}
 
@@ -237,7 +236,7 @@ func (k Keeper) UnlockCoins(ctx sdk.Context, addr sdk.AccAddress, coins sdk.SysC
 
 	// update account
 	if err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
-		return errors.New(err.Error())
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error())
 	}
 
 	return nil
@@ -296,7 +295,7 @@ func (k Keeper) BalanceAccount(ctx sdk.Context, addr sdk.AccAddress, outputCoins
 
 	if !outputCoins.IsZero() {
 		if err = k.updateLockedCoins(ctx, addr, outputCoins, false, types.LockCoinsTypeQuantity); err != nil {
-			return err
+			return types.ErrUpdateLockedCoins()
 		}
 	}
 

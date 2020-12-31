@@ -78,14 +78,12 @@ func (keeper Keeper) AddDeposit(
 	// Checks to see if proposal exists
 	proposal, ok := keeper.GetProposal(ctx, proposalID)
 	if !ok {
-		return types.ErrUnknownProposal(keeper.codespace, proposalID)
+		return types.ErrUnknownProposal(proposalID)
 	}
 
 	// Check if proposal is still depositable
 	if proposal.Status != types.StatusDepositPeriod {
-		return types.ErrInvalidateProposalStatus(keeper.codespace,
-			fmt.Sprintf("The status of proposal %d is in %s can not be deposited.",
-				proposal.ProposalID, proposal.Status))
+		return types.ErrInvalidateProposalStatus()
 	}
 	depositCoinsAmount := depositAmount
 	// update the governance module's account coins pool

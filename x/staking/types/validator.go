@@ -328,16 +328,16 @@ func (d Description) UpdateDescription(d2 Description) (Description, error) {
 // EnsureLength ensures the length of a validator's description.
 func (d Description) EnsureLength() (Description, error) {
 	if len(d.Moniker) > MaxMonikerLength {
-		return d, ErrDescriptionLength(DefaultCodespace, "moniker", len(d.Moniker), MaxMonikerLength)
+		return d, ErrDescriptionLength("moniker", len(d.Moniker), MaxMonikerLength)
 	}
 	if len(d.Identity) > MaxIdentityLength {
-		return d, ErrDescriptionLength(DefaultCodespace, "identity", len(d.Identity), MaxIdentityLength)
+		return d, ErrDescriptionLength("identity", len(d.Identity), MaxIdentityLength)
 	}
 	if len(d.Website) > MaxWebsiteLength {
-		return d, ErrDescriptionLength(DefaultCodespace, "website", len(d.Website), MaxWebsiteLength)
+		return d, ErrDescriptionLength("website", len(d.Website), MaxWebsiteLength)
 	}
 	if len(d.Details) > MaxDetailsLength {
-		return d, ErrDescriptionLength(DefaultCodespace, "details", len(d.Details), MaxDetailsLength)
+		return d, ErrDescriptionLength("details", len(d.Details), MaxDetailsLength)
 	}
 
 	return d, nil

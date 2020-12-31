@@ -67,7 +67,7 @@ func accountsHandlerV2(cliCtx context.CLIContext, storeName string) http.Handler
 		req, err := cliCtx.Codec.MarshalJSON(accountParam)
 
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 

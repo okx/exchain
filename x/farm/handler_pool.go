@@ -1,24 +1,23 @@
 package farm
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/farm/keeper"
 	"github.com/okex/okexchain/x/farm/types"
 )
 
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool) (*sdk.Result, error) {
 	if _, found := k.GetFarmPool(ctx, msg.PoolName); found {
-		return types.ErrPoolAlreadyExist(DefaultCodespace, msg.PoolName).Result()
+		return types.ErrPoolAlreadyExist(msg.PoolName).Result()
 	}
 
 	if ok := k.TokenKeeper().TokenExist(ctx, msg.MinLockAmount.Denom); !ok {
-		return types.ErrTokenNotExist(DefaultCodespace, msg.MinLockAmount.Denom).Result()
+		return types.ErrTokenNotExist(msg.MinLockAmount.Denom).Result()
 	}
 
 	if ok := k.TokenKeeper().TokenExist(ctx, msg.YieldedSymbol); !ok {
-		return types.ErrTokenNotExist(DefaultParamspace, msg.YieldedSymbol).Result()
+		return types.ErrTokenNotExist(msg.YieldedSymbol).Result()
 	}
 
 	// fee
@@ -27,8 +26,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Owner, k.GetFeeCollector(), feeAmount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInsufficientFee(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeAmount.String())).Result()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	// deposit
@@ -36,8 +34,7 @@ func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePo
 	if err := k.SupplyKeeper().SendCoinsFromAccountToModule(
 		ctx, msg.Owner, ModuleName, depositAmount.ToCoins(),
 	); err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient deposit coins(need %s)",
-			depositAmount.String())).Result()
+		return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 	}
 
 	// create pool
@@ -71,11 +68,11 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	// 0. check pool and owner
 	pool, found := k.GetFarmPool(ctx, msg.PoolName)
 	if !found {
-		return types.ErrNoFarmPoolFound(DefaultCodespace, msg.PoolName).Result()
+		return types.ErrNoFarmPoolFound(msg.PoolName).Result()
 	}
 
 	if !pool.Owner.Equals(msg.Owner) {
-		return types.ErrInvalidPoolOwner(DefaultCodespace, msg.Owner.String(), msg.PoolName).Result()
+		return types.ErrInvalidPoolOwner(msg.Owner.String(), msg.PoolName).Result()
 	}
 
 	// 1. calculate how many provided token & native token could be yielded in current period
@@ -83,7 +80,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 
 	// 2. check pool status
 	if !updatedPool.Finished() {
-		return types.ErrPoolNotFinished(DefaultCodespace, msg.PoolName).Result()
+		return types.ErrPoolNotFinished(msg.PoolName).Result()
 	}
 
 	// 3. give remaining rewards to the owner of pool
@@ -92,8 +89,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 			ctx, YieldFarmingAccount, msg.Owner, updatedPool.TotalAccumulatedRewards,
 		)
 		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient rewards coins(need %s)",
-				updatedPool.TotalAccumulatedRewards.String())).Result()
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 		}
 	}
 
@@ -102,8 +98,7 @@ func handleMsgDestroyPool(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestroy
 	if withdrawAmount.IsPositive() {
 		err := k.SupplyKeeper().SendCoinsFromModuleToAccount(ctx, ModuleName, msg.Owner, withdrawAmount.ToCoins())
 		if err != nil {
-			return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-				withdrawAmount.String())).Result()
+			return nil, common.ErrInsufficientCoins(DefaultParamspace, err.Error())
 		}
 	}
 

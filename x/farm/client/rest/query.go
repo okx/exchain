@@ -60,7 +60,7 @@ func queryAccountHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(mux.Vars(r)["accAddr"])
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidAccountAddress, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryAccountParams(accAddr))
@@ -91,7 +91,7 @@ func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(varsMap["accAddr"])
 		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidAccountAddress)
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidAccountAddress, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryPoolAccountParams(varsMap["poolName"], accAddr))
@@ -182,7 +182,8 @@ func queryWhitelistHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryWhitelist)
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -201,7 +202,8 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
 		res, height, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 

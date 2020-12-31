@@ -29,7 +29,8 @@ func orderDetailHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/order/detail/%s", orderID), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -38,7 +39,7 @@ func orderDetailHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		response := common.GetBaseResponse(order2)
 		resBytes, err2 := json.Marshal(response)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		rest.PostProcessResponse(w, cliCtx, resBytes)
@@ -51,7 +52,7 @@ func orderBookHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		sizeStr := r.URL.Query().Get("size")
 		// validate request
 		if product == "" {
-			common.HandleErrorMsg(w, cliCtx, "Bad request: product is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeProductIsEmpty, "invalid params: product is required")
 			return
 		}
 		var size int
@@ -59,24 +60,25 @@ func orderBookHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		if sizeStr != "" {
 			size, err = strconv.Atoi(sizeStr)
 			if err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 		if size < 0 {
-			common.HandleErrorMsg(w, cliCtx, "Bad request: size is invalid")
+			common.HandleErrorMsg(w, cliCtx, types.CodeSizeIsInvalid, fmt.Sprintf("invalid param: size= %d", size))
 			return
 		}
 		params := keeper.NewQueryDepthBookParams(product, uint(size))
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData("custom/order/depthbook", bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -85,7 +87,7 @@ func orderBookHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		response := common.GetBaseResponse(bookRes)
 		resBytes, err2 := json.Marshal(response)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		rest.PostProcessResponse(w, cliCtx, resBytes)

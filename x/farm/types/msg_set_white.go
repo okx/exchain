@@ -28,7 +28,7 @@ func (m MsgSetWhite) Type() string {
 
 func (m MsgSetWhite) ValidateBasic() sdk.Error {
 	if m.PoolName == "" {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	return nil
 }

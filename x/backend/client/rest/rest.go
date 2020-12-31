@@ -49,12 +49,12 @@ func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		size, err0 := strconv.Atoi(strSize)
 		if err0 != nil {
-			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("parameter size %s not correct", strSize))
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, fmt.Sprintf("parameter size %s not correct", strSize))
 			return
 		}
 		granularity, err1 := strconv.Atoi(strGranularity)
 		if err1 != nil {
-			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("parameter granularity %s not correct", strGranularity))
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, fmt.Sprintf("parameter granularity %s not correct", strGranularity))
 			return
 		}
 
@@ -62,12 +62,13 @@ func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryCandleList), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -95,7 +96,7 @@ func tickerHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		count, errCnt := strconv.Atoi(strCount)
 		mErr := types.NewErrorsMerged(errSort, errCnt)
 		if mErr != nil {
-			common.HandleErrorMsg(w, cliCtx, mErr.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, mErr.Error())
 			return
 		}
 
@@ -107,13 +108,14 @@ func tickerHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryTickerList), bz)
 
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -132,40 +134,41 @@ func matchHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if product == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: product is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeProductIsRequired, "invalid params: product is required")
 			return
 		}
 		var start, end int64
 		var err error
 		if startStr != "" {
 			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 		if endStr != "" {
 			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 
 		params := types.NewQueryMatchParams(product, start, end, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryMatchResults), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -185,40 +188,41 @@ func dealHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var start, end int64
 		var err error
 		if startStr != "" {
 			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 		if endStr != "" {
 			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 			return
 		}
 
 		params := types.NewQueryDealsParams(addr, product, start, end, page, perPage, sideStr)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDealList), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -234,24 +238,25 @@ func feeDetailListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 		params := types.NewQueryFeeDetailsParams(addr, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryFeeDetails), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -264,7 +269,7 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		vars := mux.Vars(r)
 		openOrClosed := vars["openOrClosed"]
 		if openOrClosed != "open" && openOrClosed != "closed" {
-			common.HandleErrorMsg(w, cliCtx, fmt.Sprintf("order status should be open/closed"))
+			common.HandleErrorMsg(w, cliCtx, types.CodeOrderStatusMustBeOpenOrClosed, fmt.Sprintf("order status should be open/closed"))
 			return
 		}
 		addr := r.URL.Query().Get("address")
@@ -278,7 +283,7 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var start, end int64
@@ -293,13 +298,13 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		end, errEnd := strconv.ParseInt(endStr, 10, 64)
 		mErr := types.NewErrorsMerged(errStart, errEnd)
 		if mErr != nil {
-			common.HandleErrorMsg(w, cliCtx, mErr.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, mErr.Error())
 			return
 		}
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 
@@ -310,13 +315,14 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%s", types.QueryOrderList, openOrClosed), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -335,45 +341,46 @@ func txListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		// validate request
 		if addr == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address is empty")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
 			return
 		}
 		var txType, start, end int64
 		var err error
 		if txTypeStr != "" {
 			if txType, err = strconv.ParseInt(txTypeStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 		if startStr != "" {
 			if start, err = strconv.ParseInt(startStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 		if endStr != "" {
 			if end, err = strconv.ParseInt(endStr, 10, 64); err != nil {
-				common.HandleErrorMsg(w, cliCtx, err.Error())
+				common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 				return
 			}
 		}
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 		params := types.NewQueryTxListParams(addr, txType, start, end, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryTxList), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -387,12 +394,13 @@ func blockTxHashesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		blockHeightStr := vars["blockHeight"]
 		blockHeight, err := strconv.ParseInt(blockHeightStr, 10, 64)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
 			return
 		}
 		res, err := cli.GetBlockTxHashes(cliCtx, blockHeight)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeGetBlockTxHashesFailed,
+				fmt.Sprintf("failed to get block tx hash: %s", err.Error()))
 			return
 		}
 
@@ -404,13 +412,14 @@ func latestHeightHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h, err := rpc.GetChainHeight(cliCtx)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, types.CodeGetChainHeightFailed,
+				fmt.Sprintf("failed to get chain height: %s", err.Error()))
 			return
 		}
 		res := common.GetBaseResponse(h)
 		bz, err := json.Marshal(res)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 		}
 		rest.PostProcessResponse(w, cliCtx, bz)
 	}
@@ -424,26 +433,27 @@ func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 		if address == "" && baseAsset == "" && quoteAsset == "" {
-			common.HandleErrorMsg(w, cliCtx, "bad request: address、base_asset and quote_asset could not be empty at the same time")
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressAndProductRequired, "bad request: address、base_asset and quote_asset could not be empty at the same time")
 			return
 		}
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 
 		params := types.NewQueryDexFeesParams(address, baseAsset, quoteAsset, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDexFeesList), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -460,19 +470,20 @@ func swapWatchlistHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 		page, perPage, err := common.Paginate(pageStr, perPageStr)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
 		params := types.NewQuerySwapWatchlistParams(sortColumn, sortDirection, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QuerySwapWatchlist), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
