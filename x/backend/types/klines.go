@@ -695,7 +695,8 @@ func NewKlinesFactory(name string) (r interface{}, err error) {
 		return &[]KlineM525600{}, nil
 	}
 
-	return nil, errors.New("No klines constructor function found.")
+	return nil, ErrNoKlinesFunctionFound("No klines constructor function found.")
+
 }
 
 // ToIKlinesArray Convert kline data to array for restful interface

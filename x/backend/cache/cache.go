@@ -9,9 +9,6 @@ type Cache struct {
 
 	// persist in memory
 	LatestTicker map[string]*types.Ticker
-
-	// swap infos, flush at EndBlocker
-	swapInfos []*types.SwapInfo
 }
 
 // NewCache return  cache pointer address, called at NewKeeper
@@ -19,14 +16,12 @@ func NewCache() *Cache {
 	return &Cache{
 		Transactions: make([]*types.Transaction, 0, 2000),
 		LatestTicker: make(map[string]*types.Ticker),
-		swapInfos:    make([]*types.SwapInfo, 0, 2000),
 	}
 }
 
 // Flush temporary cache, called at EndBlock
 func (c *Cache) Flush() {
 	c.Transactions = make([]*types.Transaction, 0, 2000)
-	c.swapInfos = make([]*types.SwapInfo, 0, 2000)
 }
 
 // AddTransaction append transaction to cache Transactions
@@ -37,14 +32,4 @@ func (c *Cache) AddTransaction(transaction []*types.Transaction) {
 // nolint
 func (c *Cache) GetTransactions() []*types.Transaction {
 	return c.Transactions
-}
-
-// AddSwapInfo appends swapInfo to cache SwapInfos
-func (c *Cache) AddSwapInfo(swapInfo *types.SwapInfo) {
-	c.swapInfos = append(c.swapInfos, swapInfo)
-}
-
-// nolint
-func (c *Cache) GetSwapInfos() []*types.SwapInfo {
-	return c.swapInfos
 }

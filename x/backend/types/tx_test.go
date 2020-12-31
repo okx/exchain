@@ -2,11 +2,10 @@ package types
 
 import (
 	"fmt"
+	"github.com/willf/bitset"
 	"sort"
 	"testing"
 	"time"
-
-	"github.com/willf/bitset"
 
 	"github.com/okex/okexchain/x/common"
 
@@ -84,7 +83,7 @@ func TestGenerateTx(t *testing.T) {
 		Side:    SellOrder,
 	}
 	keeper.SetOrder(ctx, or.OrderID, or)
-	fee := sdk.SysCoins{sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1))}
+	fee := sdk.DecCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("1")}}
 	or.RecordOrderCancelFee(fee)
 	tmpBitset.Set(1)
 	keeper.AddTxHandlerMsgResult(tmpBitset)

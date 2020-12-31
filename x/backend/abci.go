@@ -15,31 +15,16 @@ import (
 func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	if keeper.Config.EnableBackend && keeper.Config.EnableMktCompute {
 		keeper.Logger.Debug(fmt.Sprintf("begin backend endblocker: block---%d", ctx.BlockHeight()))
-
-		// store data to db
 		storeNewOrders(ctx, keeper)
 		updateOrders(ctx, keeper)
 		storeDealAndMatchResult(ctx, keeper)
 		storeFeeDetails(keeper)
 		storeTransactions(keeper)
-		storeSwapInfos(keeper)
-		keeper.EmitAllWsItems(ctx)
-		// refresh cache
 		keeper.Flush()
 		keeper.Logger.Debug(fmt.Sprintf("end backend endblocker: block---%d", ctx.BlockHeight()))
+		keeper.EmitAllWsItems(ctx)
 	}
-}
 
-func storeSwapInfos(keeper Keeper) {
-	defer types.PrintStackIfPanic()
-	swapInfos := keeper.Cache.GetSwapInfos()
-	total := len(swapInfos)
-	count, err := keeper.Orm.AddSwapInfo(swapInfos)
-	if err != nil {
-		keeper.Logger.Error(fmt.Sprintf("[backend] Expect to insert %d swapInfos, inserted Count %d, err: %+v", total, count, err))
-	} else {
-		keeper.Logger.Debug(fmt.Sprintf("[backend] Expect to insert %d swapInfos, inserted Count %d", total, count))
-	}
 }
 
 func storeTransactions(keeper Keeper) {

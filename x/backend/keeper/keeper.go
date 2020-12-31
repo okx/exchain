@@ -6,10 +6,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/okex/okexchain/x/ammswap"
-
-	"github.com/pkg/errors"
-
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -28,8 +24,7 @@ type Keeper struct {
 	TokenKeeper  types.TokenKeeper  // The reference to the TokenKeeper to get fee details
 	marketKeeper types.MarketKeeper // The reference to the MarketKeeper to get fee details
 	dexKeeper    types.DexKeeper    // The reference to the DexKeeper to get tokenpair
-	swapKeeper   types.SwapKeeper
-	cdc          *codec.Codec // The wire codec for binary encoding/decoding.
+	cdc          *codec.Codec       // The wire codec for binary encoding/decoding.
 	Orm          *orm.ORM
 	stopChan     chan struct{}
 	Config       *config.Config
@@ -40,13 +35,12 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
+func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
 	k := Keeper{
 		OrderKeeper:  orderKeeper,
 		TokenKeeper:  tokenKeeper,
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
-		swapKeeper:   swapKeeper,
 		cdc:          cdc,
 		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
@@ -56,28 +50,23 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 	if k.Config.EnableBackend {
 		k.Cache = cache.NewCache()
 		orm, err := orm.New(k.Config.LogSQL, &k.Config.OrmEngine, &k.Logger)
-		if err != nil {
-			panic(fmt.Sprintf("backend new orm error:%s", err.Error()))
+		if err == nil {
+			k.Orm = orm
+			k.stopChan = make(chan struct{})
+
+			if k.Config.EnableMktCompute {
+				// websocket channel
+				k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+				k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
+				go generateKline1M(k)
+				// init ticker buffer
+				ts := time.Now().Unix()
+
+				k.UpdateTickersBuffer(ts-types.SecondsInADay*14, ts, nil)
+
+				go k.mergeTicker3SecondEvents()
+			}
 		}
-		k.Orm = orm
-		k.stopChan = make(chan struct{})
-
-		if k.Config.EnableMktCompute {
-			// websocket channel
-			k.wsChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-			k.ticker3sChan = make(chan types.IWebsocket, types.WebsocketChanCapacity)
-			go generateKline1M(k)
-			// init ticker buffer
-			ts := time.Now().Unix()
-
-			k.UpdateTickersBuffer(ts-types.SecondsInADay*14, ts, nil)
-
-			go k.mergeTicker3SecondEvents()
-
-			// set observer keeper
-			k.swapKeeper.SetObserverKeeper(k)
-		}
-
 	}
 	logger.Debug(fmt.Sprintf("%+v", k.Config))
 	return k
@@ -250,13 +239,15 @@ func (k Keeper) getAllProducts(ctx sdk.Context) []string {
 // nolint
 func (k Keeper) getCandlesWithTimeFromORM(product string, granularity, size int, ts int64) (r []types.IKline, err error) {
 	if !k.Config.EnableBackend {
-		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		msg := fmt.Sprintf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		return nil, types.ErrBackendPluginNotEnabled(msg)
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		msg := fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		return nil, types.ErrParamNotCorrect(msg)
 	}
 
 	klines, err := types.NewKlinesFactory(candleType)
@@ -282,17 +273,20 @@ func (k Keeper) GetCandlesWithTime(product string, granularity, size int, ts int
 
 func (k Keeper) getCandlesByMarketKeeper(productID uint64, granularity, size int) (r [][]string, err error) {
 	if !k.Config.EnableBackend {
-		return nil, fmt.Errorf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		msg := fmt.Sprintf("backend is not enabled, no candle found, maintian.conf: %+v", k.Config)
+		return nil, types.ErrBackendPluginNotEnabled(msg)
 	}
 
 	if k.marketKeeper == nil {
-		return nil, errors.New("Market keeper is not initialized properly")
+		msg := "Market keeper is not initialized properly"
+		return nil, types.ErrMarketkeeperNotInitialized(msg)
 	}
 
 	m := types.GetAllKlineMap()
 	candleType := m[granularity]
 	if candleType == "" || len(candleType) == 0 || (size < 0 || size > 1000) {
-		return nil, fmt.Errorf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		msg := fmt.Sprintf("parameter's not correct, size: %d, granularity: %d", size, granularity)
+		return nil, types.ErrParamNotCorrect(msg)
 	}
 
 	klines, err := k.marketKeeper.GetKlineByProductID(productID, granularity, size)
@@ -345,8 +339,8 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 
 	defer types.PrintStackIfPanic()
 
-	k.Orm.Debug(fmt.Sprintf("[backend] entering UpdateTickersBuffer, latestTickers: %+v, TickerTimeRange: [%d, %d)=[%s, %s), productList: %v",
-		k.Cache.LatestTicker, startTS, endTS, types.TimeString(startTS), types.TimeString(endTS), productList))
+	k.Orm.Debug(fmt.Sprintf("[backend] entering UpdateTickersBuffer, latestTickers: %+v, TickerTimeRange: [%d, %d)=[%s, %s)",
+		k.Cache.LatestTicker, startTS, endTS, types.TimeString(startTS), types.TimeString(endTS)))
 
 	latestProducts := []string{}
 	for p := range k.Cache.LatestTicker {
@@ -375,7 +369,7 @@ func (k Keeper) UpdateTickersBuffer(startTS, endTS int64, productList []string) 
 		refreshedTicker := tickerMap[p]
 		if refreshedTicker == nil {
 			previousTicker := k.Cache.LatestTicker[p]
-			if previousTicker != nil && (endTS > previousTicker.Timestamp+types.SecondsInADay) {
+			if previousTicker != nil {
 				previousTicker.Open = previousTicker.Close
 				previousTicker.High = previousTicker.Close
 				previousTicker.Low = previousTicker.Close
@@ -465,21 +459,4 @@ func (k Keeper) mergeTicker3SecondEvents() (err error) {
 			break
 		}
 	}
-}
-
-func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair ammswap.SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin) {
-	swapInfo := &types.SwapInfo{
-		Address:          address.String(),
-		TokenPairName:    swapTokenPair.TokenPairName(),
-		BaseTokenAmount:  swapTokenPair.BasePooledCoin.String(),
-		QuoteTokenAmount: swapTokenPair.QuotePooledCoin.String(),
-		SellAmount:       sellAmount.String(),
-		BuysAmount:       buyAmount.String(),
-		Price:            swapTokenPair.BasePooledCoin.Amount.Quo(swapTokenPair.QuotePooledCoin.Amount).String(),
-		Timestamp:        ctx.BlockTime().Unix(),
-	}
-	k.Cache.AddSwapInfo(swapInfo)
-}
-
-func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
 }

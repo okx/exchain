@@ -2,13 +2,10 @@ package backend
 
 import (
 	"fmt"
+	types2 "github.com/okex/okexchain/x/dex/types"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/okex/okexchain/x/ammswap"
-
-	types2 "github.com/okex/okexchain/x/dex/types"
 
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -60,8 +57,6 @@ type MockApp struct {
 	tokenKeeper   token.Keeper
 	backendKeeper Keeper
 	supplyKeeper  supply.Keeper
-	swapKeeper    ammswap.Keeper
-	keySwap       *sdk.KVStoreKey
 }
 
 func registerCdc(cdc *codec.Codec) {
@@ -80,8 +75,8 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		keyLock:      sdk.NewKVStoreKey(tokentypes.KeyLock),
 		keyDex:       sdk.NewKVStoreKey(dex.StoreKey),
 		keyTokenPair: sdk.NewKVStoreKey(dex.TokenPairStoreKey),
-		keySupply:    sdk.NewKVStoreKey(supply.StoreKey),
-		keySwap:      sdk.NewKVStoreKey(ammswap.StoreKey),
+
+		keySupply: sdk.NewKVStoreKey(supply.StoreKey),
 	}
 
 	feeCollector := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -89,7 +84,8 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	blacklistedAddrs[feeCollector.String()] = true
 
 	mockApp.bankKeeper = bank.NewBaseKeeper(mockApp.AccountKeeper,
-		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace), blacklistedAddrs)
+		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
+		bank.DefaultCodespace, blacklistedAddrs)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
@@ -132,13 +128,6 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		true,
 		monitor.NopOrderMetrics())
 
-	mockApp.swapKeeper = ammswap.NewKeeper(
-		mockApp.supplyKeeper,
-		mockApp.tokenKeeper,
-		mockApp.Cdc,
-		mockApp.keySwap,
-		mockApp.ParamsKeeper.Subspace(ammswap.DefaultParamspace),
-	)
 	// CleanUp data
 	cfg, err := config.SafeLoadMaintainConfig(config.DefaultTestConfig)
 	require.Nil(t, err)
@@ -160,7 +149,6 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.orderKeeper,
 		mockApp.tokenKeeper,
 		&mockApp.dexKeeper,
-		&mockApp.swapKeeper,
 		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
@@ -194,14 +182,13 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		app.keyLock,
 		app.keySupply,
 		app.keyDex,
-		app.keySwap,
 	)
 
 	require.NoError(t, mockApp.CompleteSetup(mockApp.keyOrder))
 	mock.SetGenesis(mockApp.App, genAccs)
 	for i := 0; i < numGenAccs; i++ {
 		mock.CheckBalance(t, app.App, keysSlice[i].Address, coins)
-		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add(coins...)
+		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add(coins)
 	}
 	return
 }
@@ -234,8 +221,8 @@ func buildTx(app *MockApp, ctx sdk.Context, addrKeys mock.AddrKeys, msg []sdk.Ms
 	seqNum := accs.GetSequence()
 
 	tx := mock.GenTx(msg, []uint64{uint64(accNum)}, []uint64{uint64(seqNum)}, addrKeys.PrivKey)
-	_, _, err := app.Check(tx)
-	if err != nil {
+	res := app.Check(tx)
+	if !res.IsOK() {
 		panic("something wrong in checking transaction")
 	}
 	return tx
@@ -249,14 +236,14 @@ func mockApplyBlock(app *MockApp, ctx sdk.Context, txs []auth.StdTx) {
 	tokenParam := tokentypes.DefaultParams()
 	app.tokenKeeper.SetParams(ctx, tokenParam)
 	for i, tx := range txs {
-		_, _, err := app.Deliver(tx)
-		if err == nil {
+		response := app.Deliver(tx)
+		if response.IsOK() {
 			txBytes, _ := auth.DefaultTxEncoder(app.Cdc)(tx)
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Info(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
 			app.backendKeeper.SyncTx(ctx, &txs[i], txHash, ctx.BlockHeader().Time.Unix()) // do not use tx
 		} else {
-			app.Logger().Error(fmt.Sprintf("DeliverTx failed: %v", err))
+			app.Logger().Error(fmt.Sprintf("DeliverTx failed: %v", response))
 		}
 	}
 
@@ -305,7 +292,7 @@ func FireEndBlockerPeriodicMatch(t *testing.T, enableBackend bool) (mockDexApp *
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
 	tokenPair := dex.GetBuiltInTokenPair()
 
-	mapp.dexKeeper.SetOperator(ctx, types2.DEXOperator{Address: tokenPair.Owner, HandlingFeeAddress: tokenPair.Owner})
+	mapp.dexKeeper.SetOperator(ctx, types2.DEXOperator{Address:tokenPair.Owner, HandlingFeeAddress:tokenPair.Owner})
 	err := mapp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, err)
 	// mock orders

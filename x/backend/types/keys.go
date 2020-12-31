@@ -10,15 +10,14 @@ const (
 	RouterKey = ""
 
 	// query endpoints supported by the backend querier
-	QueryMatchResults  = "matches"
-	QueryDealList      = "deals"
-	QueryFeeDetails    = "fees"
-	QueryOrderList     = "orders"
-	QueryTxList        = "txs"
-	QueryCandleList    = "candles"
-	QueryTickerList    = "tickers"
-	QueryDexFeesList   = "dexFees"
-	QuerySwapWatchlist = "swapWatchlist"
+	QueryMatchResults = "matches"
+	QueryDealList     = "deals"
+	QueryFeeDetails   = "fees"
+	QueryOrderList    = "orders"
+	QueryTxList       = "txs"
+	QueryCandleList   = "candles"
+	QueryTickerList   = "tickers"
+	QueryDexFeesList  = "dexFees"
 
 	// v2
 	QueryTickerListV2   = "tickerListV2"
