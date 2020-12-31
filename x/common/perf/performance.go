@@ -24,7 +24,6 @@ const (
 	stakingModule      = "staking"
 	govModule          = "gov"
 	distributionModule = "distribution"
-	farmModule         = "farm"
 	summaryFormat      = "BlockHeight<%d>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
@@ -149,7 +148,6 @@ func newPerf() *performance {
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
-	p.moduleInfoMap[farmModule] = newHanlderMetrics()
 
 	return p
 }
@@ -319,7 +317,6 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
-	p.moduleInfoMap[farmModule] = newHanlderMetrics()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

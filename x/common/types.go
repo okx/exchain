@@ -2,18 +2,19 @@ package common
 
 import (
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // BaseResponse is the main frame of response
 type BaseResponse struct {
-	Code      int         `json:"code"`
-	Msg       string      `json:"msg"`
-	DetailMsg string      `json:"detail_msg"`
-	Data      interface{} `json:"data"`
+	Code      sdk.CodeType `json:"code"`
+	Msg       string       `json:"msg"`
+	DetailMsg string       `json:"detail_msg"`
+	Data      interface{}  `json:"data"`
 }
 
 // GetErrorResponse creates an error base response
-func GetErrorResponse(code int, msg, detailMsg string) *BaseResponse {
+func GetErrorResponse(code sdk.CodeType, msg, detailMsg string) *BaseResponse {
 	return &BaseResponse{
 		Code:      code,
 		DetailMsg: detailMsg,
@@ -23,7 +24,7 @@ func GetErrorResponse(code int, msg, detailMsg string) *BaseResponse {
 }
 
 // GetErrorResponseJSON marshals the base response into JSON bytes
-func GetErrorResponseJSON(code int, msg, detailMsg string) []byte {
+func GetErrorResponseJSON(code sdk.CodeType, msg, detailMsg string) []byte {
 	res, err := json.Marshal(BaseResponse{
 		Code:      code,
 		DetailMsg: detailMsg,

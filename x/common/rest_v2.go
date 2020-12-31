@@ -3,12 +3,12 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tendermint/tendermint/libs/log"
 	"net/http"
 	"os"
 	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // const
@@ -34,9 +34,6 @@ const (
 	// staking error
 	ErrorInvalidValidatorAddress errorCodeV2 = 63001
 	ErrorInvalidDelegatorAddress errorCodeV2 = 63002
-
-	// farm error
-	ErrorInvalidAccountAddress errorCodeV2 = 64001
 )
 
 func defaultErrorMessageV2(code errorCodeV2) (message string) {
@@ -73,10 +70,6 @@ func defaultErrorMessageV2(code errorCodeV2) (message string) {
 		message = "invalid validator address"
 	case ErrorInvalidDelegatorAddress:
 		message = "invalid delegator address"
-
-	// farm
-	case ErrorInvalidAccountAddress:
-		message = "invalid account address"
 
 	default:
 		message = "unknown error"
