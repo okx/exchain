@@ -348,6 +348,65 @@ func TestSortProducts(t *testing.T) {
 	require.Equal(t, expectedSortedProducts, unsoreProducts)
 }
 
+func TestTransferOwnership(t *testing.T) {
+	testInput := createTestInputWithBalance(t, 2, 30)
+	ctx := testInput.Ctx
+	keeper := testInput.DexKeeper
+	tokenPair := getTestTokenPair()
+	owner := testInput.TestAddrs[0]
+	to := testInput.TestAddrs[1]
+	tokenPair.Owner = owner
+	initDeposit := tokenPair.Deposits
+	keeper.SetParams(ctx, *types.DefaultParams())
+
+	// SaveTokenPair
+	err := keeper.SaveTokenPair(ctx, tokenPair)
+	require.Nil(t, err)
+
+	userTokenPairs := keeper.GetUserTokenPairs(ctx, tokenPair.Owner)
+	require.EqualValues(t, 1, len(userTokenPairs))
+
+	// Deposit successful
+	product := tokenPair.Name()
+	depositAmount, err := sdk.ParseDecCoin("30" + sdk.DefaultBondDenom)
+	require.Nil(t, err)
+	err = keeper.Deposit(ctx, product, owner, depositAmount)
+	require.Nil(t, err)
+
+	getTokenPair := keeper.GetTokenPair(ctx, product)
+	require.Equal(t, getTokenPair.Deposits, initDeposit.Add(depositAmount))
+
+	// TransferOwnership failed - product not exist
+	err = keeper.TransferOwnership(ctx, TestProductNotExist, owner, to)
+	require.NotNil(t, err)
+
+	// TransferOwnership failed - invalid owner
+	err = keeper.TransferOwnership(ctx, product, to, owner)
+	require.NotNil(t, err)
+
+	// TransferOwnership successful
+	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom)
+	require.Nil(t, err)
+	withdrawInfo := types.WithdrawInfo{
+		Owner:    owner,
+		Deposits: withdrawAmount,
+	}
+	keeper.SetWithdrawInfo(ctx, withdrawInfo)
+	err = keeper.CompleteWithdraw(ctx, withdrawInfo.Owner)
+	require.Nil(t, err)
+	err = keeper.TransferOwnership(ctx, product, owner, to)
+	require.Nil(t, err)
+	tokenPair = keeper.GetTokenPair(ctx, product)
+	require.Equal(t, to, tokenPair.Owner)
+	require.Equal(t, types.DefaultTokenPairDeposit, tokenPair.Deposits)
+
+	userTokenPairs = keeper.GetUserTokenPairs(ctx, owner)
+	require.EqualValues(t, 0, len(userTokenPairs))
+
+	userTokenPairs = keeper.GetUserTokenPairs(ctx, to)
+	require.EqualValues(t, 1, len(userTokenPairs))
+}
+
 func Test_IterateWithdrawInfo(t *testing.T) {
 	testInput := createTestInputWithBalance(t, 2, 30)
 	ctx := testInput.Ctx

@@ -30,7 +30,7 @@ func TestParamSetPairs(t *testing.T) {
 			case string(KeyMaxDealsPerBlock):
 				require.EqualValues(t, test.MaxDealsPerBlock, *(v.Value.(*int64)))
 			case string(KeyFeePerBlock):
-				if !v.Value.(*sdk.SysCoin).IsEqual(test.FeePerBlock) {
+				if !v.Value.(*sdk.DecCoin).IsEqual(test.FeePerBlock) {
 					t.Errorf("key(%s) -> %x, want %x", v.Key, test.FeePerBlock, v.Value)
 				}
 			case string(KeyTradeFeeRate):
@@ -51,8 +51,8 @@ func TestParamsString(t *testing.T) {
 	expectString := `Order Params:
   OrderExpireBlocks: 259200
   MaxDealsPerBlock: 1000
-  FeePerBlock: 0.000000000000000000` + common.NativeToken + `
-  TradeFeeRate: 0.001000000000000000
+  FeePerBlock: 0.00000000` + common.NativeToken + `
+  TradeFeeRate: 0.00100000
   NewOrderMsgGasUnit: 40000
   CancelOrderMsgGasUnit: 30000`
 	require.EqualValues(t, expectString, param.String())

@@ -34,8 +34,8 @@ type IKeeper interface {
 	GetTokenPairsOrdered(ctx sdk.Context) types.TokenPairs
 	SaveTokenPair(ctx sdk.Context, tokenPair *types.TokenPair) error
 	DeleteTokenPairByName(ctx sdk.Context, owner sdk.AccAddress, tokenPairName string)
-	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error
-	Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.SysCoin) sdk.Error
+	Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.DecCoin) sdk.Error
+	Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.DecCoin) sdk.Error
 	GetSupplyKeeper() SupplyKeeper
 	GetTokenKeeper() TokenKeeper
 	GetBankKeeper() BankKeeper
@@ -43,6 +43,7 @@ type IKeeper interface {
 	GetParams(ctx sdk.Context) (params types.Params)
 	SetParams(ctx sdk.Context, params types.Params)
 	GetFeeCollector() string
+	TransferOwnership(ctx sdk.Context, product string, from sdk.AccAddress, to sdk.AccAddress) sdk.Error
 	LockTokenPair(ctx sdk.Context, product string, lock *ordertypes.ProductLock)
 	LoadProductLocks(ctx sdk.Context) *ordertypes.ProductLockMap
 	SetWithdrawInfo(ctx sdk.Context, withdrawInfo types.WithdrawInfo)
@@ -56,11 +57,6 @@ type IKeeper interface {
 	IterateOperators(ctx sdk.Context, cb func(operator types.DEXOperator) (stop bool))
 	GetMaxTokenPairID(ctx sdk.Context) (tokenPairMaxID uint64)
 	SetMaxTokenPairID(ctx sdk.Context, tokenPairMaxID uint64)
-	GetConfirmOwnership(ctx sdk.Context, product string) (confirmOwnership *types.ConfirmOwnership, exist bool)
-	SetConfirmOwnership(ctx sdk.Context, confirmOwnership *types.ConfirmOwnership)
-	DeleteConfirmOwnership(ctx sdk.Context, product string)
-	UpdateUserTokenPair(ctx sdk.Context, product string, owner, to sdk.AccAddress)
-	UpdateTokenPair(ctx sdk.Context, product string, tokenPair *types.TokenPair)
 }
 
 // StakingKeeper defines the expected staking Keeper (noalias)
@@ -76,9 +72,4 @@ type BankKeeper interface {
 // GovKeeper defines the expected gov Keeper
 type GovKeeper interface {
 	RemoveFromActiveProposalQueue(ctx sdk.Context, proposalID uint64, endTime time.Time)
-}
-
-type StreamKeeper interface {
-	OnAddNewTokenPair(ctx sdk.Context, tokenPair *types.TokenPair)
-	OnTokenPairUpdated(ctx sdk.Context)
 }

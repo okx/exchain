@@ -14,7 +14,7 @@ type DelistProposalJSON struct {
 	Description string       `json:"description" yaml:"description"`
 	BaseAsset   string       `json:"base_asset" yaml:"base_asset"`
 	QuoteAsset  string       `json:"quote_asset" yaml:"quote_asset"`
-	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+	Deposit     sdk.DecCoins `json:"deposit" yaml:"deposit"`
 }
 
 // ParseDelistProposalJSON parse json from proposal file to DelistProposalJSON struct

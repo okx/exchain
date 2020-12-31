@@ -215,7 +215,7 @@ func TestQueryStore(t *testing.T) {
 
 	path = []string{types.QueryDepthBookV2}
 	_, sdkErr := querier(ctx, path, abci.RequestQuery{})
-	require.NotNil(t, sdkErr)
+	require.EqualValues(t, sdk.CodeUnknownRequest, sdkErr.Code())
 }
 
 func TestQueryParameters(t *testing.T) {
@@ -225,12 +225,10 @@ func TestQueryParameters(t *testing.T) {
 	querier := NewQuerier(keeper)
 
 	params := &types.Params{
-		OrderExpireBlocks:     1000,
-		MaxDealsPerBlock:      10000,
-		FeePerBlock:           sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)),
-		TradeFeeRate:          sdk.MustNewDecFromStr("0.001"),
-		NewOrderMsgGasUnit:    1,
-		CancelOrderMsgGasUnit: 1,
+		OrderExpireBlocks: 1000,
+		MaxDealsPerBlock:  10000,
+		FeePerBlock:       sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)),
+		TradeFeeRate:      sdk.MustNewDecFromStr("0.001"),
 	}
 	keeper.SetParams(ctx, params)
 	path := []string{types.QueryParameters}
@@ -251,4 +249,5 @@ func TestQueryInvalidPath(t *testing.T) {
 	path := []string{"invalid-path"}
 	_, err := querier(ctx, path, abci.RequestQuery{})
 	require.NotNil(t, err)
+	require.EqualValues(t, sdk.CodeUnknownRequest, err.Code())
 }

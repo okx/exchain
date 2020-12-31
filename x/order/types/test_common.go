@@ -8,12 +8,10 @@ var DefaultTestFeePerBlock = sdk.NewDecCoinFromDec(DefaultFeeDenomPerBlock, sdk.
 
 func DefaultTestParams() Params {
 	return Params{
-		OrderExpireBlocks:     DefaultOrderExpireBlocks,
-		MaxDealsPerBlock:      DefaultMaxDealsPerBlock,
-		FeePerBlock:           DefaultTestFeePerBlock,
-		TradeFeeRate:          sdk.MustNewDecFromStr(DefaultFeeRateTrade),
-		NewOrderMsgGasUnit:    1,
-		CancelOrderMsgGasUnit: 1,
+		OrderExpireBlocks: DefaultOrderExpireBlocks,
+		MaxDealsPerBlock:  DefaultMaxDealsPerBlock,
+		FeePerBlock:       DefaultTestFeePerBlock,
+		TradeFeeRate:      sdk.MustNewDecFromStr(DefaultFeeRateTrade),
 	}
 }
 

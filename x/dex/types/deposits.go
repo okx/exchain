@@ -12,7 +12,7 @@ const DefaultWithdrawPeriod = time.Hour * 24 * 3
 // WithdrawInfo represents infos for withdrawing
 type WithdrawInfo struct {
 	Owner        sdk.AccAddress `json:"owner"`
-	Deposits     sdk.SysCoin    `json:"deposits"`
+	Deposits     sdk.DecCoin    `json:"deposits"`
 	CompleteTime time.Time      `json:"complete_time"`
 }
 

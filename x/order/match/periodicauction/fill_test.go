@@ -15,7 +15,6 @@ import (
 var mockOrder = types.MockOrder
 
 func TestFillDepthBook(t *testing.T) {
-	common.InitConfig()
 	testInput := orderkeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 	ctx := testInput.Ctx
@@ -49,11 +48,11 @@ func TestFillDepthBook(t *testing.T) {
 	// check account balance
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 := sdk.SysCoins{
+	expectCoins0 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.5816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.SysCoins{
+	expectCoins1 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.8")),
 	}
@@ -109,11 +108,11 @@ func TestFillDepthBook(t *testing.T) {
 	// check account balance
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 = sdk.SysCoins{
+	expectCoins0 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.8408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")), // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 = sdk.SysCoins{
+	expectCoins1 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.4716")), // 100 + 10 * (1 - 0.001) - 0.004
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.8")),       // no change
 	}
@@ -156,11 +155,11 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	// check account balance
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 := sdk.SysCoins{
+	expectCoins0 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.5816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.SysCoins{
+	expectCoins1 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.9")),
 	}
@@ -215,11 +214,11 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	// check account balance
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 = sdk.SysCoins{
+	expectCoins0 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.9408")), // 80.1 + 0.1 - 0.004
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),   // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 = sdk.SysCoins{
+	expectCoins1 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.7308")), // 100 + 10 * (1 - 0.001) - 0.004
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.9")),       // no change
 	}
@@ -262,11 +261,11 @@ func TestPartialFillDepthBook(t *testing.T) {
 	// check account balance
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 := sdk.SysCoins{
+	expectCoins0 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.1816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
-	expectCoins1 := sdk.SysCoins{
+	expectCoins1 := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),
 	}
@@ -317,11 +316,11 @@ func TestPartialFillDepthBook(t *testing.T) {
 	// check account balance
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 = sdk.SysCoins{
+	expectCoins0 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.5408")), // 69.7 + 0.1 - 0.004
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),   // 100 + 1 * (1 - 0.001)
 	}
-	expectCoins1 = sdk.SysCoins{
+	expectCoins1 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")), // no change
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),        // no change
 	}
@@ -342,11 +341,11 @@ func TestPartialFillDepthBook(t *testing.T) {
 	// check account balance
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
-	expectCoins0 = sdk.SysCoins{
+	expectCoins0 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("70")),    // 69.7 + (0.1 - 0.004) * 3
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("102.997")), // 100.999 + 2 * (1 - 0.001)
 	}
-	expectCoins1 = sdk.SysCoins{
+	expectCoins1 = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("129.7108")), // 99.4816 + 0.2592 + 30 * (1 - 0.001)
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),         // no change
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 const (
@@ -70,12 +71,12 @@ func (msg MsgList) GetSigners() []sdk.AccAddress {
 // MsgDeposit - high level transaction of the dex module
 type MsgDeposit struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
-	Amount    sdk.SysCoin    `json:"amount"`    // Coins to add to the deposit
+	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
 // NewMsgDeposit creates a new MsgDeposit
-func NewMsgDeposit(product string, amount sdk.SysCoin, depositor sdk.AccAddress) MsgDeposit {
+func NewMsgDeposit(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgDeposit {
 	return MsgDeposit{product, amount, depositor}
 }
 
@@ -111,12 +112,12 @@ func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
 // MsgWithdraw - high level transaction of the dex module
 type MsgWithdraw struct {
 	Product   string         `json:"product"`   // product for trading pair in full name of the tokens
-	Amount    sdk.SysCoin    `json:"amount"`    // Coins to add to the deposit
+	Amount    sdk.DecCoin    `json:"amount"`    // Coins to add to the deposit
 	Depositor sdk.AccAddress `json:"depositor"` // Address of the depositor
 }
 
 // NewMsgWithdraw creates a new MsgWithdraw
-func NewMsgWithdraw(product string, amount sdk.SysCoin, depositor sdk.AccAddress) MsgWithdraw {
+func NewMsgWithdraw(product string, amount sdk.DecCoin, depositor sdk.AccAddress) MsgWithdraw {
 	return MsgWithdraw{product, amount, depositor}
 }
 
@@ -151,10 +152,10 @@ func (msg MsgWithdraw) GetSigners() []sdk.AccAddress {
 
 // MsgTransferOwnership - high level transaction of the dex module
 type MsgTransferOwnership struct {
-	FromAddress sdk.AccAddress `json:"from_address"`
-	ToAddress   sdk.AccAddress `json:"to_address"`
-	Product     string         `json:"product"`
-	//ToSignature auth.StdSignature `json:"to_signature"`
+	FromAddress sdk.AccAddress    `json:"from_address"`
+	ToAddress   sdk.AccAddress    `json:"to_address"`
+	Product     string            `json:"product"`
+	ToSignature auth.StdSignature `json:"to_signature"`
 }
 
 // NewMsgTransferOwnership create a new MsgTransferOwnership
@@ -163,6 +164,7 @@ func NewMsgTransferOwnership(from, to sdk.AccAddress, product string) MsgTransfe
 		FromAddress: from,
 		ToAddress:   to,
 		Product:     product,
+		ToSignature: auth.StdSignature{},
 	}
 }
 
@@ -185,6 +187,10 @@ func (msg MsgTransferOwnership) ValidateBasic() sdk.Error {
 	if msg.Product == "" {
 		return sdk.ErrUnknownRequest("product cannot be empty")
 	}
+
+	if !msg.checkMultiSign() {
+		return sdk.ErrUnauthorized("invalid multi signature")
+	}
 	return nil
 }
 
@@ -199,40 +205,21 @@ func (msg MsgTransferOwnership) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
 }
 
-//MsgConfirmOwnership - high level transaction of the coin module
-type MsgConfirmOwnership struct {
-	Product string         `json:"product"`
-	Address sdk.AccAddress `json:"new_owner"`
-}
-
-func NewMsgConfirmOwnership(newOwner sdk.AccAddress, product string) MsgConfirmOwnership {
-	return MsgConfirmOwnership{
-		Product: product,
-		Address: newOwner,
+func (msg MsgTransferOwnership) checkMultiSign() bool {
+	// check pubkey
+	if msg.ToSignature.PubKey == nil {
+		return false
 	}
-}
 
-func (msg MsgConfirmOwnership) Route() string { return RouterKey }
-
-func (msg MsgConfirmOwnership) Type() string { return "confirm" }
-
-func (msg MsgConfirmOwnership) ValidateBasic() sdk.Error {
-	if msg.Address.Empty() {
-		return sdk.ErrInvalidAddress("failed to check MsgConfirmOwnership msg because miss sender address")
+	if !sdk.AccAddress(msg.ToSignature.PubKey.Address()).Equals(msg.ToAddress) {
+		return false
 	}
-	if len(msg.Product) == 0 {
-		return sdk.ErrUnknownRequest("failed to check MsgConfirmOwnership msg because product cannot be empty")
-	}
-	return nil
-}
 
-func (msg MsgConfirmOwnership) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
-func (msg MsgConfirmOwnership) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Address}
+	// check multisign
+	toSignature := msg.ToSignature
+	msg.ToSignature = auth.StdSignature{}
+	toValid := toSignature.VerifyBytes(msg.GetSignBytes(), toSignature.Signature)
+	return toValid
 }
 
 // MsgCreateOperator register a new DEXOperator or update it

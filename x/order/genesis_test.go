@@ -85,7 +85,7 @@ func TestExportGenesis(t *testing.T) {
 
 	params.MaxDealsPerBlock = 1
 	params.FeePerBlock = sdk.NewDecCoinFromDec(common.NativeToken, sdk.OneDec())
-	params.TradeFeeRate = sdk.NewDecWithPrec(5, 2)
+	params.TradeFeeRate = sdk.NewDec(1000)
 	params.OrderExpireBlocks = 3333
 	orderKeeper.SetParams(ctx, &params)
 

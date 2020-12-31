@@ -35,14 +35,12 @@ type (
 	StakingKeeper       = keeper.StakingKeeper
 	BankKeeper          = keeper.BankKeeper
 	ProtocolVersionType = version.ProtocolVersionType
-	StreamKeeper        = keeper.StreamKeeper
 
 	// Messages
 	MsgList              = types.MsgList
 	MsgDeposit           = types.MsgDeposit
 	MsgWithdraw          = types.MsgWithdraw
 	MsgTransferOwnership = types.MsgTransferOwnership
-	MsgConfirmOwnership  = types.MsgConfirmOwnership
 	MsgUpdateOperator    = types.MsgUpdateOperator
 	MsgCreateOperator    = types.MsgCreateOperator
 
@@ -68,7 +66,8 @@ var (
 	NewMsgDeposit  = types.NewMsgDeposit
 	NewMsgWithdraw = types.NewMsgWithdraw
 
-	ErrInvalidProduct      = types.ErrInvalidProduct
+	ErrTokenPairIsInvalid  = types.ErrTokenPairIsInvalid
+	ErrInvalidTokenPair    = types.ErrInvalidTokenPair
 	ErrTokenPairNotFound   = types.ErrTokenPairNotFound
 	ErrDelistOwnerNotMatch = types.ErrDelistOwnerNotMatch
 )

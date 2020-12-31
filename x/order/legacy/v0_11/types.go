@@ -22,7 +22,7 @@ type (
 	Params struct {
 		OrderExpireBlocks     int64       `json:"order_expire_blocks"`
 		MaxDealsPerBlock      int64       `json:"max_deals_per_block"`
-		FeePerBlock           sdk.SysCoin `json:"fee_per_block"`
+		FeePerBlock           sdk.DecCoin `json:"fee_per_block"`
 		TradeFeeRate          sdk.Dec     `json:"trade_fee_rate"`
 		NewOrderMsgGasUnit    uint64      `json:"new_order_msg_gas_unit"`
 		CancelOrderMsgGasUnit uint64      `json:"cancel_order_msg_gas_unit"`

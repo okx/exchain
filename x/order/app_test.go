@@ -75,7 +75,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 
 	mockApp.bankKeeper = bank.NewBaseKeeper(mockApp.AccountKeeper,
 		mockApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
-		blacklistedAddrs)
+		bank.DefaultCodespace, blacklistedAddrs)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
@@ -148,7 +148,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 
 	for i := 0; i < numGenAccs; i++ {
 		mock.CheckBalance(t, app.App, keysSlice[i].Address, coins)
-		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add2(coins)
+		mockApp.TotalCoinsSupply = mockApp.TotalCoinsSupply.Add(coins)
 	}
 
 	return mockApp, addrKeysSlice

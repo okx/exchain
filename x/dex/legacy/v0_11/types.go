@@ -25,14 +25,14 @@ type (
 
 	// Params defines param object
 	Params struct {
-		ListFee              sdk.SysCoin `json:"list_fee"`
-		TransferOwnershipFee sdk.SysCoin `json:"transfer_ownership_fee"`
-		RegisterOperatorFee  sdk.SysCoin `json:"register_operator_fee"`
+		ListFee              sdk.DecCoin `json:"list_fee"`
+		TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
+		RegisterOperatorFee  sdk.DecCoin `json:"register_operator_fee"`
 
 		//  maximum period for okt holders to deposit on a dex delist proposal
 		DelistMaxDepositPeriod time.Duration `json:"delist_max_deposit_period"`
 		//  minimum deposit for a critical dex delist proposal to enter voting period
-		DelistMinDeposit sdk.SysCoins `json:"delist_min_deposit"`
+		DelistMinDeposit sdk.DecCoins `json:"delist_min_deposit"`
 		//  length of the critical voting period for dex delist proposal
 		DelistVotingPeriod time.Duration `json:"delist_voting_period"`
 

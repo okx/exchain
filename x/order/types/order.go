@@ -76,13 +76,13 @@ type Order struct {
 	RemainLocked      sdk.Dec        `json:"remain_locked"`    // Remaining locked quantity of token
 	Timestamp         int64          `json:"timestamp"`        // created timestamp
 	OrderExpireBlocks int64          `json:"order_expire_blocks"`
-	FeePerBlock       sdk.SysCoin    `json:"fee_per_block"`
+	FeePerBlock       sdk.DecCoin    `json:"fee_per_block"`
 	ExtraInfo         string         `json:"extra_info"` // extra info of order in json format
 }
 
 // nolint
 func NewOrder(txHash string, sender sdk.AccAddress, product, side string, price, quantity sdk.Dec,
-	timestamp int64, orderExpireBlocks int64, feePerBlock sdk.SysCoin) *Order {
+	timestamp int64, orderExpireBlocks int64, feePerBlock sdk.DecCoin) *Order {
 	order := &Order{
 		TxHash:            txHash,
 		Sender:            sender,
@@ -148,26 +148,26 @@ func (order *Order) GetExtraInfoWithKey(key string) string {
 }
 
 // nolint
-func (order *Order) RecordOrderNewFee(fee sdk.SysCoins) {
+func (order *Order) RecordOrderNewFee(fee sdk.DecCoins) {
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyNewFee, fee.String())
 }
 
 // nolint
-func (order *Order) RecordOrderCancelFee(fee sdk.SysCoins) {
+func (order *Order) RecordOrderCancelFee(fee sdk.DecCoins) {
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, fee.String())
 }
 
-func (order *Order) recordOrderExpireFee(fee sdk.SysCoins) {
+func (order *Order) recordOrderExpireFee(fee sdk.DecCoins) {
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyExpireFee, fee.String())
 }
 
 // nolint
-func (order *Order) RecordOrderReceiveFee(fee sdk.SysCoins) {
+func (order *Order) RecordOrderReceiveFee(fee sdk.DecCoins) {
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyReceiveFee, fee.String())
 }
 
 // RecordOrderDealFee : An order may have several deals
-func (order *Order) RecordOrderDealFee(fee sdk.SysCoins) {
+func (order *Order) RecordOrderDealFee(fee sdk.DecCoins) {
 	oldValue := order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee)
 	if oldValue == "" {
 		order.setExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, fee.String())
@@ -178,7 +178,7 @@ func (order *Order) RecordOrderDealFee(fee sdk.SysCoins) {
 		log.Println(err)
 		return
 	}
-	newFee := oldFee.Add2(fee)
+	newFee := oldFee.Add(fee)
 	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyDealFee, newFee.String())
 }
 
@@ -217,26 +217,26 @@ func (order *Order) Expire() {
 }
 
 // NeedLockCoins : when place a new order, we should lock the coins of sender
-func (order *Order) NeedLockCoins() sdk.SysCoins {
+func (order *Order) NeedLockCoins() sdk.DecCoins {
 	if order.Side == BuyOrder {
 		token := strings.Split(order.Product, "_")[1]
 		amount := order.Price.Mul(order.Quantity)
-		return sdk.SysCoins{{Denom: token, Amount: amount}}
+		return sdk.DecCoins{{Denom: token, Amount: amount}}
 	}
 	token := strings.Split(order.Product, "_")[0]
 	amount := order.Quantity
-	return sdk.SysCoins{{Denom: token, Amount: amount}}
+	return sdk.DecCoins{{Denom: token, Amount: amount}}
 
 }
 
 // NeedUnlockCoins : when order be cancelled/expired, we should unlock the coins of sender
-func (order *Order) NeedUnlockCoins() sdk.SysCoins {
+func (order *Order) NeedUnlockCoins() sdk.DecCoins {
 	if order.Side == BuyOrder {
 		token := strings.Split(order.Product, "_")[1]
-		return sdk.SysCoins{{Denom: token, Amount: order.RemainLocked}}
+		return sdk.DecCoins{{Denom: token, Amount: order.RemainLocked}}
 	}
 	token := strings.Split(order.Product, "_")[0]
-	return sdk.SysCoins{{Denom: token, Amount: order.RemainLocked}}
+	return sdk.DecCoins{{Denom: token, Amount: order.RemainLocked}}
 
 }
 

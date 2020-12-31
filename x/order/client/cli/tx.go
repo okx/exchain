@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
-	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -53,7 +52,7 @@ func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
 				return errors.New("invalid param counts")
 			}
 
-			err := handleNewOrder(cmd, cdc, product, side, price, quantity)
+			err := handleNewOrder(cdc, product, side, price, quantity)
 			return err
 
 		},
@@ -66,7 +65,7 @@ func getCmdNewOrder(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-func handleNewOrder(cmd *cobra.Command, cdc *codec.Codec, product string, side string, price string, quantity string) error {
+func handleNewOrder(cdc *codec.Codec, product string, side string, price string, quantity string) error {
 	var items []types.OrderItem
 	productArr := strings.Split(product, ",")
 	sideArr := strings.Split(side, ",")
@@ -102,8 +101,8 @@ func handleNewOrder(cmd *cobra.Command, cdc *codec.Codec, product string, side s
 			Quantity: quantity,
 		})
 	}
-	inBuf := bufio.NewReader(cmd.InOrStdin())
-	txBldr := authtxb.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+
+	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 	msg := types.NewMsgNewOrders(cliCtx.GetFromAddress(), items)
@@ -118,8 +117,8 @@ func getCmdCancelOrder(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			orderIDs := strings.Split(args[0], ",")
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := authtxb.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+
+			txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			msg := types.NewMsgCancelOrders(cliCtx.GetFromAddress(), orderIDs)

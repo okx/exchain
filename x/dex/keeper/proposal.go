@@ -12,7 +12,7 @@ import (
 )
 
 // GetMinDeposit returns min deposit
-func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.SysCoins) {
+func (k Keeper) GetMinDeposit(ctx sdk.Context, content gov.Content) (minDeposit sdk.DecCoins) {
 	if _, ok := content.(types.DelistProposal); ok {
 		minDeposit = k.GetParams(ctx).DelistMinDeposit
 	}
@@ -36,7 +36,7 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPer
 }
 
 // check msg Delist proposal
-func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.DelistProposal, proposer sdk.AccAddress, initialDeposit sdk.SysCoins) sdk.Error {
+func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.DelistProposal, proposer sdk.AccAddress, initialDeposit sdk.DecCoins) sdk.Error {
 	// check the proposer of the msg is a validator
 	if !k.stakingKeeper.IsValidator(ctx, proposer) {
 		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of delist proposal should be a validator")

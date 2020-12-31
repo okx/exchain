@@ -19,13 +19,13 @@ type (
 
 	// Params defines param object
 	Params struct {
-		ListFee              sdk.SysCoin `json:"list_fee"`
-		TransferOwnershipFee sdk.SysCoin `json:"transfer_ownership_fee"`
+		ListFee              sdk.DecCoin `json:"list_fee"`
+		TransferOwnershipFee sdk.DecCoin `json:"transfer_ownership_fee"`
 
 		//  maximum period for okt holders to deposit on a dex delist proposal
 		DelistMaxDepositPeriod time.Duration `json:"delist_max_deposit_period"`
 		//  minimum deposit for a critical dex delist proposal to enter voting period
-		DelistMinDeposit sdk.SysCoins `json:"delist_min_deposit"`
+		DelistMinDeposit sdk.DecCoins `json:"delist_min_deposit"`
 		//  length of the critical voting period for dex delist proposal
 		DelistVotingPeriod time.Duration `json:"delist_voting_period"`
 
@@ -43,14 +43,14 @@ type (
 		ID               uint64         `json:"token_pair_id"`
 		Delisting        bool           `json:"delisting"`
 		Owner            sdk.AccAddress `json:"owner"`
-		Deposits         sdk.SysCoin    `json:"deposits"`
+		Deposits         sdk.DecCoin    `json:"deposits"`
 		BlockHeight      int64          `json:"block_height"`
 	}
 
 	// WithdrawInfo represents infos for withdrawing
 	WithdrawInfo struct {
 		Owner        sdk.AccAddress `json:"owner"`
-		Deposits     sdk.SysCoin    `json:"deposits"`
+		Deposits     sdk.DecCoin    `json:"deposits"`
 		CompleteTime time.Time      `json:"complete_time"`
 	}
 

@@ -3,13 +3,11 @@ package order
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"math"
 
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/willf/bitset"
@@ -34,14 +32,14 @@ func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
 
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
-	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		gas := CalculateGas(msg, keeper.GetParams(ctx))
 
 		// consume gas that msg required, it will panic if gas is insufficient
 		ctx.GasMeter().ConsumeGas(gas, storetypes.GasWriteCostFlatDesc)
 
 		if ctx.IsCheckTx() {
-			return &sdk.Result{}, nil
+			return sdk.Result{}
 		} else {
 			// set an infinite gas meter and recovery it when return
 			gasMeter := ctx.GasMeter()
@@ -50,18 +48,18 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		}
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
-		var handlerFun func() (*sdk.Result, error)
+		var handlerFun func() sdk.Result
 		var name string
 		logger := ctx.Logger().With("module", "order")
 		switch msg := msg.(type) {
 		case types.MsgNewOrders:
 			name = "handleMsgNewOrders"
-			handlerFun = func() (*sdk.Result, error) {
+			handlerFun = func() sdk.Result {
 				return handleMsgNewOrders(ctx, keeper, msg, logger)
 			}
 		case types.MsgCancelOrders:
 			name = "handleMsgCancelOrders"
-			handlerFun = func() (*sdk.Result, error) {
+			handlerFun = func() sdk.Result {
 				return handleMsgCancelOrders(ctx, keeper, msg, logger)
 			}
 		default:
@@ -70,19 +68,16 @@ func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 		}
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-
-		res, err := handlerFun()
-		common.SanityCheckHandler(res, err)
-		return res, err
+		return handlerFun()
 	}
 }
-
 
 // checkOrderNewMsg: check msg product, price & quantity fields
 func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrder) error {
 	tokenPair := keeper.GetDexKeeper().GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return fmt.Errorf("trading pair '%s' does not exist", msg.Product)
+		msg := fmt.Sprintf("trading pair '%s' does not exist", msg.Product)
+		return types.ErrGetTokenPairFailed(msg)
 	}
 
 	// check if the order is involved with the tokenpair in dex Delist
@@ -91,7 +86,8 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 		return err
 	}
 	if isDelisting {
-		return errors.Errorf("trading pair '%s' is delisting", msg.Product)
+		msg := fmt.Sprintf("trading pair '%s' is delisting", msg.Product)
+		return types.ErrTradingPairIsdelisting(msg)
 	}
 
 	priceDigit := tokenPair.MaxPriceDigit
@@ -99,14 +95,18 @@ func checkOrderNewMsg(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgNewOrd
 	roundedPrice := msg.Price.RoundDecimal(priceDigit)
 	roundedQuantity := msg.Quantity.RoundDecimal(quantityDigit)
 	if !roundedPrice.Equal(msg.Price) {
-		return fmt.Errorf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
+		msg := fmt.Sprintf("price(%v) over accuracy(%d)", msg.Price, priceDigit)
+		return types.ErrRoundedPriceEqual(msg)
+
 	}
 	if !roundedQuantity.Equal(msg.Quantity) {
-		return fmt.Errorf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
+		msg := fmt.Sprintf("quantity(%v) over accuracy(%d)", msg.Quantity, quantityDigit)
+		return types.ErrRoundedQuantityEqual(msg)
 	}
 
 	if msg.Quantity.LT(tokenPair.MinQuantity) {
-		return fmt.Errorf("quantity should be greater than %s", tokenPair.MinQuantity)
+		msg := fmt.Sprintf("quantity should be greater than %s", tokenPair.MinQuantity)
+		return types.ErrMsgQuantityLessThan(msg)
 	}
 	return nil
 }
@@ -141,18 +141,23 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 		Quantity: item.Quantity,
 	}
 	order := getOrderFromMsg(ctxItem, k, msg, ratio)
+	code := sdk.CodeOK
 	err := checkOrderNewMsg(ctxItem, k, msg)
 
-	if err == nil {
+	if err != nil {
+		code = types.CodeUnknownRequest
+	} else {
 		if k.IsProductLocked(ctx, msg.Product) {
-			err = sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product))
-		} else {
-			err = k.PlaceOrder(ctxItem, order)
+			code = types.CodeInternal
+			msg := fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product)
+			err = types.ErrInternal(msg)
+		} else if err = k.PlaceOrder(ctxItem, order); err != nil {
+			code = types.CodeInsufficientCoins
 		}
 	}
 
 	res := types.OrderResult{
-		Error:    err,
+		Code:    code,
 		OrderID: order.OrderID,
 	}
 
@@ -173,7 +178,7 @@ func handleNewOrder(ctx sdk.Context, k Keeper, sender sdk.AccAddress,
 }
 
 func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
-	logger log.Logger) (*sdk.Result, error) {
+	logger log.Logger) sdk.Result {
 	event := sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName))
 
 	ratio := "1"
@@ -199,17 +204,17 @@ func handleMsgNewOrders(ctx sdk.Context, k Keeper, msg types.MsgNewOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return sdk.ErrInternal("all order items failed to execute").Result()
+		return sdk.Result{Code: sdk.CodeInternal}
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)
-	return &sdk.Result{
+	return sdk.Result{
 		Events: ctx.EventManager().Events(),
-	}, nil
+	}
 }
 
 // ValidateMsgNewOrders validates whether the msg of newOrders is valid.
-func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrders) (*sdk.Result, error) {
+func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrders) sdk.Result {
 	ratio := "1"
 	if len(msg.OrderItems) > 1 {
 		ratio = "0.8"
@@ -225,20 +230,29 @@ func ValidateMsgNewOrders(ctx sdk.Context, k keeper.Keeper, msg types.MsgNewOrde
 		}
 		err := checkOrderNewMsg(ctx, k, msg)
 		if err != nil {
-			return sdk.ErrUnknownRequest(err.Error()).Result()
+			return sdk.Result{
+				Code: sdk.CodeUnknownRequest,
+				Log:  err.Error(),
+			}
 		}
 		if k.IsProductLocked(ctx, msg.Product) {
-			return sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", msg.Product)).Result()
+			return sdk.Result{
+				Code: sdk.CodeInternal,
+				Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", msg.Product),
+			}
 		}
 
 		order := getOrderFromMsg(ctx, k, msg, ratio)
 		_, err = k.TryPlaceOrder(ctx, order)
 		if err != nil {
-			return sdk.ErrInsufficientCoins(err.Error()).Result()
+			return sdk.Result{
+				Code: sdk.CodeInsufficientCoins,
+				Log:  err.Error(),
+			}
 		}
 	}
 
-	return &sdk.Result{}, nil
+	return sdk.Result{}
 
 }
 
@@ -253,10 +267,12 @@ func handleCancelOrder(context sdk.Context, k Keeper, sender sdk.AccAddress, ord
 		Sender:  sender,
 		OrderID: orderID,
 	}
-	err := validateCancelOrder(ctx, k, msg)
+	validateResult := validateCancelOrder(ctx, k, msg)
 	var message string
 
-	if err == nil {
+	if !validateResult.IsOK() {
+		message = validateResult.Log
+	} else {
 		// cancel order
 		order := k.GetOrder(ctx, orderID)
 		fee := k.CancelOrder(ctx, order, logger)
@@ -264,7 +280,7 @@ func handleCancelOrder(context sdk.Context, k Keeper, sender sdk.AccAddress, ord
 	}
 
 	cancelRes := types.OrderResult{
-		Error:   err,
+		Code:    validateResult.Code,
 		Message: message,
 		OrderID: orderID,
 	}
@@ -272,7 +288,7 @@ func handleCancelOrder(context sdk.Context, k Keeper, sender sdk.AccAddress, ord
 	return cancelRes, cacheItem
 }
 
-func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders, logger log.Logger) (*sdk.Result, error) {
+func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders, logger log.Logger) sdk.Result {
 	cancelRes := []types.OrderResult{}
 	var handlerResult bitset.BitSet
 	for idx, orderID := range msg.OrderIDs {
@@ -280,7 +296,7 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 		res, cacheItem := handleCancelOrder(ctx, k, msg.Sender, orderID, logger)
 		cancelRes = append(cancelRes, res)
 		cacheItem.Write()
-		if res.Error == nil {
+		if res.Code == sdk.CodeOK {
 			handlerResult.Set(uint(idx))
 		}
 
@@ -301,46 +317,58 @@ func handleMsgCancelOrders(ctx sdk.Context, k Keeper, msg types.MsgCancelOrders,
 	ctx.EventManager().EmitEvent(event)
 
 	if handlerResult.None() {
-		return sdk.ErrInternal("").Result()
+		return sdk.Result{Code: types.CodeInternal}
 	}
 
 	k.AddTxHandlerMsgResult(handlerResult)
-	return &sdk.Result{
+	return sdk.Result{
 		Events: ctx.EventManager().Events(),
-	}, nil
+	}
 }
 
-func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCancelOrder) error {
+func validateCancelOrder(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCancelOrder) sdk.Result {
 	order := keeper.GetOrder(ctx, msg.OrderID)
 
 	// Check order
 	if order == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("order(%s) does not exist or already closed", msg.OrderID))
+		return sdk.Result{
+			Code: types.CodeUnknownRequest,
+			Log:  fmt.Sprintf("order(%s) does not exist or already closed", msg.OrderID),
+		}
 	}
 	if order.Status != types.OrderStatusOpen {
-		return sdk.ErrInternal(fmt.Sprintf("cannot cancel order with status(%d)", order.Status))
+		return sdk.Result{
+			Code: types.CodeInternal,
+			Log:  fmt.Sprintf("cannot cancel order with status(%d)", order.Status),
+		}
 	}
 	if !order.Sender.Equals(msg.Sender) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("not the owner of order(%v)", msg.OrderID))
+		return sdk.Result{
+			Code: types.CodeUnauthorized,
+			Log:  fmt.Sprintf("not the owner of order(%v)", msg.OrderID),
+		}
 	}
 	if keeper.IsProductLocked(ctx, order.Product) {
-		return sdk.ErrInternal(fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product))
+		return sdk.Result{
+			Code: types.CodeInternal,
+			Log:  fmt.Sprintf("the trading pair (%s) is locked, please retry later", order.Product),
+		}
 	}
-	return nil
+	return sdk.Result{}
 }
 
 // ValidateMsgCancelOrders validates whether the msg of cancelOrders is valid.
-func ValidateMsgCancelOrders(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCancelOrders) error {
+func ValidateMsgCancelOrders(ctx sdk.Context, keeper keeper.Keeper, msg types.MsgCancelOrders) sdk.Result {
 	for _, orderID := range msg.OrderIDs {
 		msg := MsgCancelOrder{
 			Sender:  msg.Sender,
 			OrderID: orderID,
 		}
-		err := validateCancelOrder(ctx, keeper, msg)
-		if err != nil {
-			return err
+		res := validateCancelOrder(ctx, keeper, msg)
+		if sdk.CodeOK != res.Code {
+			return res
 		}
 	}
 
-	return nil
+	return sdk.Result{}
 }
