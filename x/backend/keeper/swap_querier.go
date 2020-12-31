@@ -156,7 +156,7 @@ func querySwapWatchlist(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }

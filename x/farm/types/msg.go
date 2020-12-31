@@ -43,16 +43,16 @@ func (m MsgCreatePool) Type() string {
 
 func (m MsgCreatePool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
+		return ErrPoolNameLength(m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
 	if m.MinLockAmount.Amount.LT(sdk.ZeroDec()) || !m.MinLockAmount.IsValid() {
-		return ErrInvalidInputAmount(DefaultCodespace, m.MinLockAmount.String())
+		return ErrInvalidInputAmount(m.MinLockAmount.String())
 	}
 	if m.YieldedSymbol == "" {
-		return ErrInvalidInput(DefaultCodespace, "yielded symbol is empty")
+		return ErrInvalidInput("yielded symbol is empty")
 	}
 	return nil
 }
@@ -90,10 +90,10 @@ func (m MsgDestroyPool) Type() string {
 
 func (m MsgDestroyPool) ValidateBasic() sdk.Error {
 	if m.Owner.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrPoolNameLength(DefaultCodespace, m.PoolName, len(m.PoolName), MaxPoolNameLength)
+		return ErrPoolNameLength(m.PoolName, len(m.PoolName), MaxPoolNameLength)
 	}
 	return nil
 }
@@ -138,22 +138,22 @@ func (m MsgProvide) Type() string {
 
 func (m MsgProvide) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrInvalidInput(m.PoolName)
 	}
 	if m.Address.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.String())
+		return ErrInvalidInputAmount(m.Amount.String())
 	}
 	if m.AmountYieldedPerBlock.LTE(sdk.ZeroDec()) {
-		return ErrInvalidInput(DefaultCodespace, "amount yielded per block must be > 0")
+		return ErrInvalidInput("amount yielded per block must be > 0")
 	}
 	if m.Amount.Amount.LT(m.AmountYieldedPerBlock) {
-		return ErrInvalidInput(DefaultCodespace, "provided amount must be bigger than amount_yielded_per_block")
+		return ErrInvalidInput("provided amount must be bigger than amount_yielded_per_block")
 	}
 	if m.StartHeightToYield <= 0 {
-		return ErrInvalidInput(DefaultCodespace, "start height to yield must be > 0")
+		return ErrInvalidInput("start height to yield must be > 0")
 	}
 	return nil
 }
@@ -193,13 +193,13 @@ func (m MsgLock) Type() string {
 
 func (m MsgLock) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrInvalidInput(m.PoolName)
 	}
 	if m.Address.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -239,13 +239,13 @@ func (m MsgUnlock) Type() string {
 
 func (m MsgUnlock) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrInvalidInput(m.PoolName)
 	}
 	if m.Address.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	if m.Amount.Amount.LTE(sdk.ZeroDec()) || !m.Amount.IsValid() {
-		return ErrInvalidInputAmount(DefaultCodespace, m.Amount.Amount.String())
+		return ErrInvalidInputAmount(m.Amount.Amount.String())
 	}
 	return nil
 }
@@ -283,10 +283,10 @@ func (m MsgClaim) Type() string {
 
 func (m MsgClaim) ValidateBasic() sdk.Error {
 	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return ErrInvalidInput(DefaultCodespace, m.PoolName)
+		return ErrInvalidInput(m.PoolName)
 	}
 	if m.Address.Empty() {
-		return ErrNilAddress(DefaultCodespace)
+		return ErrNilAddress()
 	}
 	return nil
 }

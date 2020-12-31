@@ -1,17 +1,15 @@
 package keeper
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/okex/okexchain/x/common"
 	"github.com/tendermint/tendermint/crypto"
+	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okexchain/x/staking/types"
 )
 
@@ -43,7 +41,7 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
 		default:
-			return nil, sdkerrors.ErrUnknownRequest
+			return nil, types.ErrUnknownStakingQueryType()
 		}
 	}
 }
@@ -52,17 +50,17 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 	var params types.QueryDelegatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	delegator, found := k.GetDelegator(ctx, params.DelegatorAddr)
 	if !found {
-		return nil, types.ErrNoDelegatorExisted(types.DefaultCodespace, params.DelegatorAddr.String())
+		return nil, types.ErrNoDelegatorExisted(params.DelegatorAddr.String())
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegator)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -72,7 +70,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 	var params types.QueryValidatorsParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	validators := k.GetAllValidators(ctx)
@@ -98,7 +96,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, filteredVals)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -109,17 +107,17 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 
 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	validator, found := k.GetValidator(ctx, params.ValidatorAddr)
 	if !found {
-		return nil, types.ErrNoValidatorFound(types.DefaultCodespace, params.ValidatorAddr.String())
+		return nil, types.ErrNoValidatorFound(params.ValidatorAddr.String())
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, validator)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -130,7 +128,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
-		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, "pool accounts haven't been set")
+		return nil, types.ErrBondedPoolOrNotBondedIsNotExist()
 	}
 
 	pool := types.NewPool(
@@ -140,7 +138,7 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, pool)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -151,7 +149,7 @@ func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -160,13 +158,13 @@ func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 func queryProxy(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryDelegatorParams
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	delAddrs := k.GetDelegatorsByProxy(ctx, params.DelegatorAddr)
 	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, delAddrs)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return resp, nil
@@ -176,13 +174,13 @@ func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 	var params types.QueryValidatorParams
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
-		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, fmt.Sprintf("failed to parse validator params. %s", err))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	sharesResponses := k.GetValidatorAllShares(ctx, params.ValidatorAddr)
 	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, sharesResponses)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return resp, nil
@@ -192,17 +190,17 @@ func queryUndelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte
 	var params types.QueryDelegatorParams
 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, defaultQueryErrParseParams(err)
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	undelegation, found := k.GetUndelegating(ctx, params.DelegatorAddr)
 	if !found {
-		return nil, types.ErrNoUnbondingDelegation(types.DefaultCodespace)
+		return nil, types.ErrNoUnbondingDelegation()
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, undelegation)
 	if err != nil {
-		return nil, defaultQueryErrJSONMarshal(err)
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return res, nil
@@ -213,7 +211,7 @@ func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err error) {
 	ovPairs := k.GetOperAndValidatorAddr(ctx)
 	res, errRes := codec.MarshalJSONIndent(types.ModuleCdc, ovPairs)
 	if errRes != nil {
-		return nil, defaultQueryErrJSONMarshal(errRes)
+		return nil, common.ErrMarshalJSONFailed(errRes.Error())
 	}
 	return res, nil
 }
@@ -221,17 +219,17 @@ func queryAddress(ctx sdk.Context, k Keeper) (res []byte, err error) {
 func queryForAddress(ctx sdk.Context, req abci.RequestQuery, k Keeper) (res []byte, err error) {
 	validatorAddr := string(req.Data)
 	if len(validatorAddr) != crypto.AddressSize*2 {
-		return nil, types.ErrBadValidatorAddr(types.DefaultCodespace)
+		return nil, types.ErrBadValidatorAddr()
 	}
 
 	operAddr, found := k.GetOperAddrFromValidatorAddr(ctx, validatorAddr)
 	if !found {
-		return nil, types.ErrNoValidatorFound(types.DefaultCodespace, validatorAddr)
+		return nil, types.ErrNoValidatorFound(validatorAddr)
 	}
 
 	res, errRes := codec.MarshalJSONIndent(types.ModuleCdc, operAddr)
 	if errRes != nil {
-		return nil, defaultQueryErrJSONMarshal(errRes)
+		return nil, common.ErrMarshalJSONFailed(errRes.Error())
 	}
 	return res, nil
 }
@@ -240,22 +238,14 @@ func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err
 
 	valAddr, errBech32 := sdk.ValAddressFromBech32(string(req.Data))
 	if errBech32 != nil {
-		return nil, sdkerrors.New(types.ModuleName, types.CodeInternalError, "failed to get operator address"+errBech32.Error())
+		return nil, common.ErrCreateAddrFromBech32Failed(errBech32.Error(), errBech32.Error())
 	}
 
 	accAddr := sdk.AccAddress(valAddr)
 
 	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, accAddr)
 	if errMarshal != nil {
-		return nil, defaultQueryErrJSONMarshal(errMarshal)
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
-}
-
-func defaultQueryErrJSONMarshal(err error) error {
-	return sdkerrors.New(types.ModuleName, types.CodeInternalError, "failed to marshal result to JSON"+err.Error())
-}
-
-func defaultQueryErrParseParams(err error) error {
-	return sdkerrors.New(types.ModuleName, types.CodeInternalError, fmt.Sprintf("failed to parse params. %s", err))
 }

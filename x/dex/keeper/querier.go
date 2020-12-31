@@ -33,7 +33,7 @@ func NewQuerier(keeper IKeeper) sdk.Querier {
 		case types.QueryOperators:
 			return queryOperators(ctx, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown dex query endpoint")
+			return nil, types.ErrDexUnknownQueryType()
 		}
 	}
 }
@@ -42,20 +42,20 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 	var params types.QueryDexInfoParams
 	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(errUnmarshal.Error())
 	}
 
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
 	if offset < 0 || limit < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 
 	var tokenPairs []*types.TokenPair
 	if params.Owner != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(params.Owner)
 		if err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", params.Owner))
+			return nil, common.ErrCreateAddrFromBech32Failed(params.Owner, err.Error())
 		}
 
 		tokenPairs = keeper.GetUserTokenPairs(ctx, ownerAddr)
@@ -87,7 +87,7 @@ func queryProduct(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res [
 
 	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
 
@@ -105,16 +105,16 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var params types.QueryDepositParams
 	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(errUnmarshal.Error())
 	}
 
 	if params.Address == "" && params.BaseAsset == "" && params.QuoteAsset == "" {
-		return nil, sdk.ErrUnknownRequest("bad request: address、base_asset and quote_asset could not be empty at the same time")
+		return nil, types.ErrAddrAndProductAllRequired()
 	}
 
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 	if offset < 0 || limit < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
@@ -122,7 +122,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 	var deposits []depositsData
 	for i, tokenPair := range tokenPairs {
 		if tokenPair == nil {
-			return nil, sdk.ErrInternal("unexpected token pair")
+			return nil, types.ErrTokenPairIsRequired()
 		}
 		// filter address
 		if params.Address != "" && tokenPair.Owner.String() != params.Address {
@@ -162,7 +162,7 @@ func queryDeposits(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (res 
 
 	res, errMarshal := json.MarshalIndent(response, "", "  ")
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 
 	return res, nil
@@ -173,12 +173,12 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	var params types.QueryDexInfoParams
 	errUnmarshal := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", errUnmarshal.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(errUnmarshal.Error())
 	}
 	offset, limit := common.GetPage(int(params.Page), int(params.PerPage))
 
 	if offset < 0 || limit < 0 {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params: page=%d or per_page=%d", params.Page, params.PerPage))
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
 	}
 	tokenPairs := keeper.GetTokenPairsOrdered(ctx)
 
@@ -203,7 +203,7 @@ func queryMatchOrder(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) (re
 	res, errMarshal := codec.MarshalJSONIndent(types.ModuleCdc, products)
 
 	if errMarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errMarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
 
@@ -213,7 +213,7 @@ func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper IKeeper) (res []by
 	params := keeper.GetParams(ctx)
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, params)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errUnmarshal.Error())
 	}
 	return res, nil
 }
@@ -234,7 +234,7 @@ func queryProductsDelisting(ctx sdk.Context, keeper IKeeper) (res []byte, err sd
 
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, tokenPairNames)
 	if errUnmarshal != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to  marshal result to JSON", errUnmarshal.Error()))
+		return nil, common.ErrMarshalJSONFailed(errUnmarshal.Error())
 	}
 
 	return res, nil
@@ -245,7 +245,7 @@ func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]by
 	var params types.QueryDexOperatorParams
 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	operator, isExist := keeper.GetOperator(ctx, params.Addr)
@@ -255,7 +255,7 @@ func queryOperator(ctx sdk.Context, req abci.RequestQuery, keeper IKeeper) ([]by
 
 	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operator)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -271,7 +271,7 @@ func queryOperators(ctx sdk.Context, keeper IKeeper) ([]byte, sdk.Error) {
 
 	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, operators)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }

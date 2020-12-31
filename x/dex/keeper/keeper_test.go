@@ -32,6 +32,7 @@ func getTestTokenPair() *types.TokenPair {
 }
 
 func TestSaveTokenPair(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
@@ -66,6 +67,7 @@ func TestSaveTokenPair(t *testing.T) {
 }
 
 func TestGetTokenPair(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
@@ -102,6 +104,7 @@ func TestGetTokenPair(t *testing.T) {
 }
 
 func TestDeleteTokenPairByName(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
@@ -125,6 +128,7 @@ func TestDeleteTokenPairByName(t *testing.T) {
 }
 
 func TestUpdateTokenPair(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 1, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
@@ -145,6 +149,7 @@ func TestUpdateTokenPair(t *testing.T) {
 }
 
 func TestDeposit(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 2, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper
@@ -183,6 +188,7 @@ func TestDeposit(t *testing.T) {
 }
 
 func TestWithdraw(t *testing.T) {
+	common.InitConfig()
 	testInput := createTestInputWithBalance(t, 2, 10000)
 	ctx := testInput.Ctx
 	keeper := testInput.DexKeeper

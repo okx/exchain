@@ -5,7 +5,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/okexchain/x/params"
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -61,11 +60,11 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // SetWithdrawAddr sets a new address that will receive the rewards upon withdrawal
 func (k Keeper) SetWithdrawAddr(ctx sdk.Context, delegatorAddr sdk.AccAddress, withdrawAddr sdk.AccAddress) error {
 	if k.blacklistedAddrs[withdrawAddr.String()] {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is blacklisted from receiving external funds", withdrawAddr)
+		return types.ErrWithdrawAddrInblacklist()
 	}
 
 	if !k.GetWithdrawAddrEnabled(ctx) {
-		return types.ErrSetWithdrawAddrDisabled(types.DefaultCodespace)
+		return types.ErrSetWithdrawAddrDisabled()
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -84,7 +83,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	// fetch validator accumulated commission
 	accumCommission := k.GetValidatorAccumulatedCommission(ctx, valAddr)
 	if accumCommission.IsZero() {
-		return nil, types.ErrNoValidatorCommission(types.DefaultCodespace)
+		return nil, types.ErrNoValidatorCommission()
 	}
 
 	commission, remainder := accumCommission.TruncateDecimal()
@@ -95,7 +94,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, accAddr)
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, commission)
 		if err != nil {
-			return nil, err
+			return nil, types.ErrSendCoinsFromModuleToAccountFailed()
 		}
 	}
 

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	token "github.com/okex/okexchain/x/token/types"
@@ -81,9 +80,9 @@ func GetBaseQuoteTokenName(token0, token1 string) (string, string) {
 
 func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 	if baseAmountName > quoteAmountName {
-		return errors.New("The lexicographic order of BaseTokenName must be less than QuoteTokenName")
+		return ErrBaseAmountNameBiggerThanQuoteAmountName()
 	} else if baseAmountName == quoteAmountName {
-		return errors.New("BaseTokenName should not equal to QuoteTokenName")
+		return ErrBaseNameEqualQuoteName()
 	}
 	if err := ValidateSwapAmountName(baseAmountName); err != nil {
 		return err
@@ -97,10 +96,10 @@ func ValidateBaseAndQuoteAmount(baseAmountName, quoteAmountName string) error {
 
 func ValidateSwapAmountName(amountName string) error {
 	if sdk.ValidateDenom(amountName) != nil {
-		return errors.New(fmt.Sprintf("invalid token name: %s", amountName))
+		return ErrValidateDenom(amountName)
 	}
 	if token.NotAllowedOriginSymbol(amountName) {
-		return errors.New(fmt.Sprintf("liquidity-pool-token(with prefix \"%s\") is not allowed to be a base or quote token", PoolTokenPrefix))
+		return ErrNotAllowedOriginSymbol()
 	}
 	return nil
 }

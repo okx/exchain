@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"time"
 
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
@@ -331,13 +330,13 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg types.MsgSubmit
 	err := common.HasSufficientCoins(msg.Proposer, msg.InitialDeposit,
 		initDeposit)
 	if err != nil {
-		return types.ErrInitialDepositNotEnough(types.DefaultCodespace, initDeposit.String())
+		return types.ErrInitialDepositNotEnough(initDeposit.String())
 	}
 	// check proposer has sufficient coins
 	err = common.HasSufficientCoins(msg.Proposer, keeper.bankKeeper.GetCoins(ctx, msg.Proposer),
 		msg.InitialDeposit)
 	if err != nil {
-		return sdkerrors.New(types.DefaultCodespace, sdk.CodeInsufficientCoins, err.Error())
+		return common.ErrInsufficientCoins(types.DefaultCodespace, err.Error())
 	}
 	return nil
 }

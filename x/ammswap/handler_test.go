@@ -18,7 +18,7 @@ import (
 func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {
 	if expectedCode != 0 {
 		require.NotNil(t, err)
-	}else {
+	} else {
 		require.Nil(t, err)
 	}
 }
@@ -51,7 +51,7 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 			token0:       testToken.Symbol,
 			token1:       types.TestBasePooledToken3,
 			addr:         addrKeysSlice[0].Address,
-			expectedCode: sdk.CodeInternal},
+			expectedCode: types.CodeTokenNotExist},
 		{
 			testCase:     "success",
 			token0:       testToken.Symbol,

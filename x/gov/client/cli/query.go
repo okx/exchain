@@ -92,8 +92,8 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query for a all proposals. You can filter the returns with the following flags.
 
 Example:
-$ %s query gov proposals --depositor cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
-$ %s query gov proposals --voter cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov proposals --depositor okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov proposals --voter okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 $ %s query gov proposals --status (DepositPeriod|VotingPeriod|Passed|Rejected)
 `,
 				version.ClientName, version.ClientName, version.ClientName,

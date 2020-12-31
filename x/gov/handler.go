@@ -2,7 +2,6 @@ package gov
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -83,7 +82,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 	err := common.HasSufficientCoins(msg.Depositor, keeper.BankKeeper().GetCoins(ctx, msg.Depositor),
 		msg.Amount)
 	if err != nil {
-		sdk.EnvelopedErr{sdkerrors.New(types.DefaultCodespace, sdk.CodeInsufficientCoins, err.Error())}.Result()
+		return common.ErrInsufficientCoins(DefaultParamspace, err.Error()).Result()
 	}
 
 	sdkErr := keeper.AddDeposit(ctx, msg.ProposalID, msg.Depositor,
@@ -106,7 +105,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg MsgDeposit) (*s
 func handleMsgVote(ctx sdk.Context, k keeper.Keeper, msg MsgVote) (*sdk.Result, error) {
 	proposal, ok := k.GetProposal(ctx, msg.ProposalID)
 	if !ok {
-		return sdk.EnvelopedErr{types.ErrUnknownProposal(types.DefaultCodespace, msg.ProposalID)}.Result()
+		return sdk.EnvelopedErr{types.ErrUnknownProposal(msg.ProposalID)}.Result()
 	}
 
 	err, _ := k.AddVote(ctx, msg.ProposalID, msg.Voter, msg.Option)
@@ -178,7 +177,7 @@ func handleProposalAfterTally(
 
 func hasOnlyDefaultBondDenom(decCoins sdk.SysCoins) sdk.Error {
 	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom || !decCoins.IsValid() {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom, decCoins.String()))
+		return types.ErrInvalidCoins()
 	}
 	return nil
 }

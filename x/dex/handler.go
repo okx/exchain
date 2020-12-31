@@ -59,8 +59,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 				return handleMsgUpdateOperator(ctx, k, msg, logger)
 			}
 		default:
-			errMsg := fmt.Sprintf("unrecognized dex message type: %T", msg)
-			return sdk.ErrUnknownRequest(errMsg).Result()
+			return types.ErrDexUnknownMsgType(msg.Type()).Result()
 		}
 
 		seq := perf.GetPerf().OnDeliverTxEnter(ctx, ModuleName, name)
@@ -76,8 +75,7 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 
 	if !keeper.GetTokenKeeper().TokenExist(ctx, msg.ListAsset) ||
 		!keeper.GetTokenKeeper().TokenExist(ctx, msg.QuoteAsset) {
-		return sdk.ErrInvalidCoins(
-			fmt.Sprintf("%s or %s is not valid", msg.ListAsset, msg.QuoteAsset)).Result()
+		return types.ErrTokenOfPairNotExist(msg.ListAsset, msg.QuoteAsset).Result()
 	}
 
 	if _, exists := keeper.GetOperator(ctx, msg.Owner); !exists {
@@ -108,13 +106,12 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 	feeCoins := keeper.GetParams(ctx).ListFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+		return types.ErrInsufficientFeeCoins(feeCoins).Result()
 	}
 
 	err2 := keeper.SaveTokenPair(ctx, tokenPair)
 	if err2 != nil {
-		return sdk.ErrInternal(fmt.Sprintf("failed to SaveTokenPair: %s", err2.Error())).Result()
+		return types.ErrTokenPairSaveFailed(err2.Error()).Result()
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgList: "+
@@ -140,10 +137,10 @@ func handleMsgList(ctx sdk.Context, keeper IKeeper, msg MsgList, logger log.Logg
 func handleMsgDeposit(ctx sdk.Context, keeper IKeeper, msg MsgDeposit, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return sdk.ErrInternal(fmt.Sprintf("the product(%s) is transferring ownership, not allowed to be deposited", msg.Product)).Result()
+		return types.ErrIsTransferringOwner(msg.Product).Result()
 	}
 	if sdkErr := keeper.Deposit(ctx, msg.Product, msg.Depositor, msg.Amount); sdkErr != nil {
-		return nil, sdkErr
+		return types.ErrDepositFailed(sdkErr.Error()).Result()
 	}
 
 	logger.Debug(fmt.Sprintf("successfully handleMsgDeposit: "+
@@ -183,23 +180,23 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	// validate
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", msg.Product)).Result()
+		return types.ErrTokenPairNotFound(msg.Product).Result()
 	}
 	if !tokenPair.Owner.Equals(msg.FromAddress) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is not the owner of product(%s)", msg.FromAddress.String(), msg.Product)).Result()
+		return types.ErrUnauthorized(msg.FromAddress.String(), msg.Product).Result()
 	}
 	if _, exist := keeper.GetOperator(ctx, msg.ToAddress); !exist {
 		return types.ErrUnknownOperator(msg.ToAddress).Result()
 	}
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if exist && !ctx.BlockTime().After(confirmOwnership.Expire) {
-		return sdk.ErrInternal(fmt.Sprintf("repeated transfer-ownership of product(%s) is not allowed", msg.Product)).Result()
+		return types.ErrRepeatedTransferOwner(msg.Product).Result()
 	}
 
 	// withdraw
 	if tokenPair.Deposits.IsPositive() {
 		if err := keeper.Withdraw(ctx, msg.Product, msg.FromAddress, tokenPair.Deposits); err != nil {
-			return sdk.ErrInternal(fmt.Sprintf("withdraw deposits:%s error:%s", tokenPair.Deposits.String(), err.Error())).Result()
+			return types.ErrWithdrawFailed(err.Error()).Result()
 		}
 	}
 
@@ -207,8 +204,7 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 	feeCoins := keeper.GetParams(ctx).TransferOwnershipFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.FromAddress, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+		return types.ErrInsufficientFeeCoins(feeCoins).Result()
 	}
 
 	// set ConfirmOwnership
@@ -237,21 +233,20 @@ func handleMsgTransferOwnership(ctx sdk.Context, keeper IKeeper, msg MsgTransfer
 func handleMsgConfirmOwnership(ctx sdk.Context, keeper IKeeper, msg MsgConfirmOwnership, logger log.Logger) (*sdk.Result, error) {
 	confirmOwnership, exist := keeper.GetConfirmOwnership(ctx, msg.Product)
 	if !exist {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("no transfer-ownership of list (%s) to confirm", msg.Address.String())).Result()
+		return types.ErrGetConfirmOwnershipNotExist(msg.Address.String()).Result()
 	}
 	if ctx.BlockTime().After(confirmOwnership.Expire) {
 		// delete ownership confirming information
 		keeper.DeleteConfirmOwnership(ctx, confirmOwnership.Product)
-		return sdk.ErrInternal(fmt.Sprintf("transfer-ownership is expired, expire time (%s)", confirmOwnership.Expire.String())).Result()
+		return types.ErrIsTransferOwnerExpired(confirmOwnership.Expire.String()).Result()
 	}
 	if !confirmOwnership.ToAddress.Equals(msg.Address) {
-		return sdk.ErrUnauthorized(fmt.Sprintf("%s is expected as the new owner",
-			confirmOwnership.ToAddress.String())).Result()
+		return types.ErrUnauthorized(confirmOwnership.ToAddress.String(), msg.Product).Result()
 	}
 
 	tokenPair := keeper.GetTokenPair(ctx, msg.Product)
 	if tokenPair == nil {
-		return types.ErrTokenPairNotFound(fmt.Sprintf("non-exist product: %s", msg.Product)).Result()
+		return types.ErrTokenPairNotFound(msg.Product).Result()
 	}
 	// transfer ownership
 	tokenPair.Owner = msg.Address
@@ -292,8 +287,7 @@ func handleMsgCreateOperator(ctx sdk.Context, keeper IKeeper, msg MsgCreateOpera
 	feeCoins := keeper.GetParams(ctx).RegisterOperatorFee.ToCoins()
 	err := keeper.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.GetFeeCollector(), feeCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("insufficient fee coins(need %s)",
-			feeCoins.String())).Result()
+		return common.ErrInsufficientCoins(DefaultParamspace, err.Error()).Result()
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -316,7 +310,7 @@ func handleMsgUpdateOperator(ctx sdk.Context, keeper IKeeper, msg MsgUpdateOpera
 		return types.ErrUnknownOperator(msg.Owner).Result()
 	}
 	if !operator.Address.Equals(msg.Owner) {
-		return sdk.ErrUnauthorized("Not the operator's owner").Result()
+		return types.ErrUnauthorizedOperator(operator.Address.String(), msg.Owner.String()).Result()
 	}
 
 	operator.HandlingFeeAddress = msg.HandlingFeeAddress

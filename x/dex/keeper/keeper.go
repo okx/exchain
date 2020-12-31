@@ -5,8 +5,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/dex/types"
@@ -18,10 +16,10 @@ type Keeper struct {
 	supplyKeeper      SupplyKeeper
 	feeCollectorName  string // name of the FeeCollector ModuleAccount
 	tokenKeeper       TokenKeeper
-	stakingKeeper     StakingKeeper         // The reference to the staking keeper to check whether proposer is  validator
-	bankKeeper        BankKeeper            // The reference to the bank keeper to check whether proposer can afford  proposal deposit
-	govKeeper         GovKeeper             // The reference to the gov keeper to handle proposal
-	observerKeeper    StreamKeeper // The reference to the stream keeper
+	stakingKeeper     StakingKeeper // The reference to the staking keeper to check whether proposer is  validator
+	bankKeeper        BankKeeper    // The reference to the bank keeper to check whether proposer can afford  proposal deposit
+	govKeeper         GovKeeper     // The reference to the gov keeper to handle proposal
+	observerKeeper    StreamKeeper  // The reference to the stream keeper
 	storeKey          sdk.StoreKey
 	tokenPairStoreKey sdk.StoreKey
 	paramSubspace     params.Subspace // The reference to the Paramstore to get and set gov modifiable params
@@ -210,7 +208,7 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 		isDelisting = tp.Delisting
 	} else {
 		isDelisting = true
-		err = errors.Errorf("product %s doesn't exist", product)
+		err = types.ErrTokenPairNotFound(product)
 	}
 	return isDelisting, err
 }
@@ -219,21 +217,21 @@ func (k Keeper) CheckTokenPairUnderDexDelist(ctx sdk.Context, product string) (i
 func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because non-exist product: %s", product))
+		return types.ErrInvalidTokenPair(product)
 	}
 
 	if !tokenPair.Owner.Equals(from) {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to deposit because %s is not the owner of product:%s", from.String(), product))
+		return types.ErrMustTokenPairOwner(from.String(), product)
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to deposit because deposits only support %s token", sdk.DefaultBondDenom))
+		return types.ErrDepositOnlySupportDenom(sdk.DefaultBondDenom)
 	}
 
 	depositCoins := amount.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromAccountToModule(ctx, from, types.ModuleName, depositCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to deposits because insufficient deposit coins(need %s)", depositCoins.String()))
+		return types.ErrInsufficientDepositCoins(depositCoins.String())
 	}
 
 	tokenPair.Deposits = tokenPair.Deposits.Add(amount)
@@ -245,19 +243,19 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amount sdk.SysCoin) sdk.Error {
 	tokenPair := k.GetTokenPair(ctx, product)
 	if tokenPair == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because non-exist product: %s", product))
+		return types.ErrInvalidTokenPair(product)
 	}
 
 	if !tokenPair.Owner.Equals(to) {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("failed to withdraws because %s is not the owner of product:%s", to.String(), product))
+		return types.ErrMustTokenPairOwner(to.String(), product)
 	}
 
 	if amount.Denom != sdk.DefaultBondDenom {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("failed to withdraws because deposits only support %s token", sdk.DefaultBondDenom))
+		return types.ErrWithdrawOnlySupportDenom(sdk.DefaultBondDenom)
 	}
 
 	if tokenPair.Deposits.IsLT(amount) {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("failed to withdraws because deposits:%s is less than withdraw:%s", tokenPair.Deposits.String(), amount.String()))
+		return types.ErrInsufficientWithdrawCoins(tokenPair.Deposits.String(), amount.String())
 	}
 
 	completeTime := ctx.BlockHeader().Time.Add(k.GetParams(ctx).WithdrawPeriod)
@@ -400,13 +398,12 @@ func (k Keeper) IterateWithdrawAddress(ctx sdk.Context, currentTime time.Time,
 func (k Keeper) CompleteWithdraw(ctx sdk.Context, addr sdk.AccAddress) error {
 	withdrawInfo, ok := k.GetWithdrawInfo(ctx, addr)
 	if !ok {
-		return sdk.ErrInvalidAddress(fmt.Sprintf("there is no withdrawing for address %s", addr.String()))
+		return types.ErrInvalidAddress(addr.String())
 	}
 	withdrawCoins := withdrawInfo.Deposits.ToCoins()
 	err := k.GetSupplyKeeper().SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawInfo.Owner, withdrawCoins)
 	if err != nil {
-		return sdk.ErrInsufficientCoins(fmt.Sprintf("withdraw error: %s, insufficient deposit coins(need %s)",
-			err.Error(), withdrawCoins.String()))
+		return types.ErrInsufficientDepositCoins(withdrawCoins.String())
 	}
 	k.deleteWithdrawInfo(ctx, addr)
 	return nil

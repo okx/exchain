@@ -39,18 +39,18 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content gov.Content) (votingPer
 func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.DelistProposal, proposer sdk.AccAddress, initialDeposit sdk.SysCoins) sdk.Error {
 	// check the proposer of the msg is a validator
 	if !k.stakingKeeper.IsValidator(ctx, proposer) {
-		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of delist proposal should be a validator")
+		return gov.ErrInvalidProposer()
 	}
 
 	// check the propose of the msg is equal the proposer in proposal content
 	if !proposer.Equals(delistProposal.Proposer) {
-		return gov.ErrInvalidProposer(types.DefaultCodespace, "failed to submit proposal because the proposer of proposal msg should be equal the proposer in proposal content")
+		return gov.ErrInvalidProposer()
 	}
 
 	// check whether the baseAsset is in the Dex list
 	queryTokenPair := k.GetTokenPair(ctx, fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	if queryTokenPair == nil {
-		return types.ErrTokenPairNotFound(fmt.Sprintf("failed to submit proposal because the asset with base asset '%s' and quote asset '%s' didn't exist on the Dex", delistProposal.BaseAsset, delistProposal.QuoteAsset))
+		return types.ErrTokenPairNotFound(fmt.Sprintf("%s_%s", delistProposal.BaseAsset, delistProposal.QuoteAsset))
 	}
 
 	// check the initial deposit
@@ -58,13 +58,13 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	err := common.HasSufficientCoins(proposer, initialDeposit, localMinDeposit)
 
 	if err != nil {
-		return types.ErrInvalidAsset(fmt.Sprintf("failed to submit proposal because initial deposit should be more than %s", localMinDeposit.String()))
+		return types.ErrInvalidAsset(localMinDeposit.String())
 	}
 
 	// check whether the proposer can afford the initial deposit
 	err = common.HasSufficientCoins(proposer, k.bankKeeper.GetCoins(ctx, proposer), initialDeposit)
 	if err != nil {
-		return types.ErrInvalidBalanceNotEnough(fmt.Sprintf("failed to submit proposal because proposer %s didn't have enough coins to pay for the initial deposit %s", proposer, initialDeposit))
+		return types.ErrBalanceNotEnough(proposer.String(), initialDeposit.String())
 	}
 	return nil
 }

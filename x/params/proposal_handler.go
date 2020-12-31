@@ -20,10 +20,8 @@ func NewParamChangeProposalHandler(k *Keeper) govtypes.Handler {
 		switch c := proposal.Content.(type) {
 		case types.ParameterChangeProposal:
 			return handleParameterChangeProposal(ctx, k, proposal)
-
 		default:
-			errMsg := fmt.Sprintf("unrecognized param proposal content type: %T", c)
-			return sdk.ErrUnknownRequest(errMsg)
+			return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", c))
 		}
 	}
 }
@@ -92,8 +90,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {
-		return govtypes.ErrInvalidProposer(DefaultCodespace,
-			fmt.Sprintf("proposer of ParamChange proposal must be validator"))
+		return govtypes.ErrInvalidProposer()
 	}
 	// check initial deposit more than or equal to ratio of MinDeposit
 	initDeposit := keeper.GetParams(ctx).MinDeposit.MulDec(sdk.NewDecWithPrec(1, 1))
@@ -111,7 +108,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 		maxHeight = math.MaxInt64 - paramsChangeProposal.Height
 	}
 	if paramsChangeProposal.Height < curHeight || paramsChangeProposal.Height > curHeight+maxHeight {
-		return govtypes.ErrInvalidHeight(DefaultCodespace, paramsChangeProposal.Height, curHeight, maxHeight)
+		return govtypes.ErrInvalidHeight(paramsChangeProposal.Height, curHeight, maxHeight)
 	}
 
 	// run simulation with cache context

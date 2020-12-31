@@ -65,7 +65,7 @@ func (k Keeper) CheckMsgManageWhiteListProposal(ctx sdk.Context, proposal types.
 		// 1. check the existence
 		pool, found := k.GetFarmPool(ctx, proposal.PoolName)
 		if !found {
-			return types.ErrNoFarmPoolFound(types.DefaultCodespace, proposal.PoolName)
+			return types.ErrNoFarmPoolFound(proposal.PoolName)
 		}
 		// 2. check the swap token pair
 		if sdkErr := k.satisfyWhiteListAdmittance(ctx, pool); sdkErr != nil {
@@ -78,7 +78,7 @@ func (k Keeper) CheckMsgManageWhiteListProposal(ctx sdk.Context, proposal types.
 	// delete the pool name from the white list
 	// 1. check the existence of the pool name in whitelist
 	if !k.isPoolNameExistedInWhiteList(ctx, proposal.PoolName) {
-		return types.ErrPoolNameNotExistedInWhiteList(types.DefaultCodespace, proposal.PoolName)
+		return types.ErrPoolNameNotExistedInWhiteList(proposal.PoolName)
 	}
 
 	return nil

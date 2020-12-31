@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -37,14 +36,14 @@ func NewQuerier(k Keeper) sdk.Querier {
 			res, err = querySwapAddLiquidityQuote(ctx, req, k)
 
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown swap query endpoint")
+			return nil, types.ErrSwapUnknownQueryType()
 		}
 
 		if err != nil {
-			response := common.GetErrorResponse(-1, "", err.Error())
+			response := common.GetErrorResponse(types.CodeInternalError, "", err.Error())
 			res, errJSON := json.Marshal(response)
 			if errJSON != nil {
-				return nil, sdk.ErrInternal(errJSON.Error())
+				return nil, common.ErrMarshalJSONFailed(errJSON.Error())
 			}
 			return res, err
 		}
@@ -69,7 +68,7 @@ func querySwapTokenPair(
 
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal response to json", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -81,15 +80,15 @@ func queryBuyAmount(
 	var queryParams types.QueryBuyAmountParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	errToken := types.ValidateSwapAmountName(queryParams.TokenToBuy)
 	if errToken != nil {
-		return nil, sdk.ErrUnknownRequest(errToken.Error())
+		return nil, errToken
 	}
 	errToken = types.ValidateSwapAmountName(queryParams.SoldToken.Denom)
 	if errToken != nil {
-		return nil, sdk.ErrUnknownRequest(errToken.Error())
+		return nil, errToken
 	}
 	params := keeper.GetParams(ctx)
 	var buyAmount sdk.Dec
@@ -97,25 +96,25 @@ func queryBuyAmount(
 	tokenPair, errTokenPair := keeper.GetSwapTokenPair(ctx, swapTokenPair)
 	if errTokenPair == nil {
 		if tokenPair.BasePooledCoin.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair.String()))
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
 		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair1.String()))
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrInternal(fmt.Sprintf("failed to query buy amount: empty pool: %s", tokenPair2.String()))
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
@@ -141,7 +140,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	tokenPairName := path[0]
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, err
 	}
 
 	liquidity, errDec := sdk.NewDecFromStr(path[1])
@@ -152,7 +151,7 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	var tokenList sdk.SysCoins
 	baseToken, quoteToken, err := keeper.GetRedeemableAssets(ctx, swapTokenPair.BasePooledCoin.Denom, swapTokenPair.QuotePooledCoin.Denom, liquidity)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, err
 	}
 	tokenList = append(tokenList, baseToken, quoteToken)
 	bz := keeper.cdc.MustMarshalJSON(tokenList)
@@ -164,11 +163,11 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	var queryParams types.QuerySwapTokensParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	if queryParams.BusinessType == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params:business_type is required")
+		return nil, types.ErrIsZeroValue("input business type param")
 	}
 
 	// coins in account
@@ -176,7 +175,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	if queryParams.Address != "" {
 		addr, err := sdk.AccAddressFromBech32(queryParams.Address)
 		if err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", queryParams.Address))
+			return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
 		}
 		accountCoins = keeper.tokenKeeper.GetCoins(ctx, addr)
 	}
@@ -218,7 +217,7 @@ func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]b
 	response := common.GetBaseResponse(swapTokensResp)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal response to json", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -291,20 +290,19 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	var queryParams types.QuerySwapBuyInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	if queryParams.SellTokenAmount == "" || queryParams.BuyToken == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: sell_token_amount is required")
+		return nil, types.ErrSellAmountOrBuyTokenIsEmpty()
 	}
 
 	sellAmount, err := sdk.ParseDecCoin(queryParams.SellTokenAmount)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params, parse sell_token_amount:%s error:%s",
-			queryParams.SellTokenAmount, err.Error()))
+		return nil, types.ErrConvertSellTokenAmount(queryParams.SellTokenAmount, err)
 	}
 
 	if sellAmount.Denom == queryParams.BuyToken {
-		return nil, sdk.ErrUnknownRequest("sell token name should not be equal to buy token name")
+		return nil, types.ErrSellAmountEqualBuyToken()
 	}
 
 	var route string
@@ -317,7 +315,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	tokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err == nil {
 		if tokenPair.BasePooledCoin.Amount.IsZero() || tokenPair.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrUnknownRequest("can not to swap token: pool is empty")
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, sellAmount, queryParams.BuyToken, swapParams).Amount
 		// calculate market price
@@ -332,20 +330,18 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		tokenPairName1 := types.GetSwapTokenPairName(sellAmount.Denom, common.NativeToken)
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data",
-				fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName)))
+			return nil, err
 		}
 		if tokenPair1.BasePooledCoin.Amount.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrUnknownRequest("can not to swap token: pool is empty")
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		tokenPairName2 := types.GetSwapTokenPairName(queryParams.BuyToken, common.NativeToken)
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
-			return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data",
-				fmt.Sprintf("non-existent swapTokenPair: %s", tokenPairName)))
+			return nil, err
 		}
 		if tokenPair2.BasePooledCoin.Amount.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
-			return nil, sdk.ErrUnknownRequest("can not to swap token: pool is empty")
+			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
 		nativeToken := CalculateTokenToBuy(tokenPair1, sellAmount, common.NativeToken, swapParams)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.BuyToken, swapParams).Amount
@@ -404,7 +400,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	response := common.GetBaseResponse(swapBuyInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal response to json", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 
@@ -415,17 +411,17 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	var queryParams types.QuerySwapLiquidityInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	// check params
 	if queryParams.Address == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params:address is required")
+		return nil, types.ErrQueryParamsAddressIsEmpty()
 	}
 
 	// coins in account
 	addr, err := sdk.AccAddressFromBech32(queryParams.Address)
 	if err != nil {
-		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", queryParams.Address))
+		return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
 	}
 
 	var liquidityInfoList []types.SwapLiquidityInfo
@@ -464,7 +460,7 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 	response := common.GetBaseResponse(liquidityInfoList)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal response to json", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 
@@ -475,33 +471,32 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	var queryParams types.QuerySwapAddInfoParams
 	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 	// check params
 	if queryParams.QuoteTokenAmount == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: quote_token_amount is required")
+		return nil, types.ErrQueryParamsQuoteTokenAmountIsEmpty()
 	}
 	if queryParams.BaseToken == "" {
-		return nil, sdk.ErrUnknownRequest("invalid params: base_token is required")
+		return nil, types.ErrQueryParamsBaseTokenIsEmpty()
 	}
 	queryTokenAmount, err := sdk.ParseDecCoin(queryParams.QuoteTokenAmount)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("invalid params, parse quote_token_amount:%s error:%s",
-			queryParams.QuoteTokenAmount, err.Error()))
+		return nil, types.ErrConvertQuoteTokenAmount(queryParams.QuoteTokenAmount, err)
 	}
 
 	tokenPairName := types.GetSwapTokenPairName(queryParams.BaseToken, queryTokenAmount.Denom)
 	swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+		return nil, err
 	}
 	if swapTokenPair.BasePooledCoin.Amount.IsZero() && swapTokenPair.QuotePooledCoin.Amount.IsZero() {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("the liquidity of token pair (%s) is empty", tokenPairName))
+		return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 	}
 
 	totalSupply := keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
 	if totalSupply.IsZero() {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("unexpected totalSupply in pool token %s", swapTokenPair.PoolTokenName))
+		return nil, types.ErrIsZeroValue("total supply")
 	}
 
 	var addAmount sdk.Dec
@@ -520,7 +515,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	response := common.GetBaseResponse(addInfo)
 	bz, err := json.Marshal(response)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal response to json", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 
