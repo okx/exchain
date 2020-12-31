@@ -32,7 +32,7 @@ var (
 	ErrInvalidHeight           = types.ErrInvalidHeight
 	ErrInvalidProposalContent  = types.ErrInvalidProposalContent
 	ErrInvalidProposalType     = types.ErrInvalidProposalType
-	ErrCodeInvalidGenesis      = types.ErrCodeInvalidGenesis
+	ErrInvalidGenesis          = types.ErrInvalidGenesis
 	ErrNoProposalHandlerExists = types.ErrNoProposalHandlerExists
 	ProposalKey                = types.ProposalKey
 	ActiveProposalByTimeKey    = types.ActiveProposalByTimeKey
