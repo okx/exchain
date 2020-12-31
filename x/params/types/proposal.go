@@ -41,7 +41,7 @@ func (pcp ParameterChangeProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("title is required")
 	}
 	if len(pcp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent("title length is bigger than max title length")
+		return govtypes.ErrInvalidProposalContent("title length is longer than max title length")
 	}
 
 	if len(pcp.Description) == 0 {
@@ -49,7 +49,7 @@ func (pcp ParameterChangeProposal) ValidateBasic() sdk.Error {
 	}
 
 	if len(pcp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent("description length is bigger than max DggescriptionLength")
+		return govtypes.ErrInvalidProposalContent("description length is longer than max DggescriptionLength")
 	}
 
 	if pcp.ProposalType() != sdkparams.ProposalTypeChange {
