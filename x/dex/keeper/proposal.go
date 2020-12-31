@@ -58,7 +58,7 @@ func (k Keeper) checkMsgDelistProposal(ctx sdk.Context, delistProposal types.Del
 	err := common.HasSufficientCoins(proposer, initialDeposit, localMinDeposit)
 
 	if err != nil {
-		return types.ErrInvalidAsset(fmt.Sprintf(localMinDeposit.String()))
+		return types.ErrInvalidAsset(localMinDeposit.String())
 	}
 
 	// check whether the proposer can afford the initial deposit
