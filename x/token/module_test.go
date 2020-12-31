@@ -1,7 +1,6 @@
 package token
 
 import (
-	"github.com/okex/okexchain/x/common"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -14,7 +13,6 @@ import (
 )
 
 func TestAppModule_InitGenesis(t *testing.T) {
-	common.InitConfig()
 	app, tokenKeeper, _ := getMockDexAppEx(t, 0)
 	module := NewAppModule(version.ProtocolVersionV0, tokenKeeper, app.supplyKeeper)
 	ctx := app.NewContext(true, abci.Header{})

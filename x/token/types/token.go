@@ -13,7 +13,7 @@ type Token struct {
 	WholeName           string         `json:"whole_name" v2:"whole_name"`                       // e.g. "OKT"
 	OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"` // e.g. 1000000000.00000000
 	Type                int            `json:"type"`                                             //e.g. 1 common token, 2 interest token
-	Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+	Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. okexchain1upyg3vl6vqaxqvzts69zpus2c027p7paw63s99
 	Mintable            bool           `json:"mintable" v2:"mintable"`                           // e.g. false
 }
 
@@ -76,7 +76,7 @@ type Transfer struct {
 
 type TransferUnit struct {
 	To    sdk.AccAddress `json:"to"`
-	Coins sdk.SysCoins   `json:"coins"`
+	Coins sdk.DecCoins   `json:"coins"`
 }
 
 type CoinsInfo []CoinInfo
@@ -123,5 +123,5 @@ type AccountParamV2 struct {
 
 type AccCoins struct {
 	Acc   sdk.AccAddress `json:"address"`
-	Coins sdk.SysCoins   `json:"coins"`
+	Coins sdk.DecCoins   `json:"coins"`
 }

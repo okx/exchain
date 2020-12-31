@@ -33,13 +33,14 @@ func tokenHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc 
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/info/%s", storeName, tokenName), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 		result := common.GetBaseResponse("hello")
 		result2, err2 := json.Marshal(result)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
@@ -56,14 +57,15 @@ func tokensHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc
 		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/tokens/%s", storeName, ownerAddress), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
 		result := common.GetBaseResponse("hello")
 		result2, err2 := json.Marshal(result)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
@@ -75,14 +77,15 @@ func currencyDescribeHandler(cliCtx context.CLIContext, storeName string) http.H
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/currency/describe", storeName), nil)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
 		result := common.GetBaseResponse("hello")
 		result2, err2 := json.Marshal(result)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
@@ -118,19 +121,20 @@ func spotAccountsHandler(cliCtx context.CLIContext, storeName string) http.Handl
 
 		bz, err := cliCtx.Codec.MarshalJSON(accountParam)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/accounts/%s", storeName, address), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, err.Error())
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
 		result := common.GetBaseResponse("hello")
 		result2, err2 := json.Marshal(result)
 		if err2 != nil {
-			common.HandleErrorMsg(w, cliCtx, err2.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
 			return
 		}
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))

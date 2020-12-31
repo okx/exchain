@@ -84,11 +84,11 @@ func (msg MsgTokenIssue) GetSigners() []sdk.AccAddress {
 }
 
 type MsgTokenBurn struct {
-	Amount sdk.SysCoin    `json:"amount"`
+	Amount sdk.DecCoin    `json:"amount"`
 	Owner  sdk.AccAddress `json:"owner"`
 }
 
-func NewMsgTokenBurn(amount sdk.SysCoin, owner sdk.AccAddress) MsgTokenBurn {
+func NewMsgTokenBurn(amount sdk.DecCoin, owner sdk.AccAddress) MsgTokenBurn {
 	return MsgTokenBurn{
 		Amount: amount,
 		Owner:  owner,
@@ -121,11 +121,11 @@ func (msg MsgTokenBurn) GetSigners() []sdk.AccAddress {
 }
 
 type MsgTokenMint struct {
-	Amount sdk.SysCoin    `json:"amount"`
+	Amount sdk.DecCoin    `json:"amount"`
 	Owner  sdk.AccAddress `json:"owner"`
 }
 
-func NewMsgTokenMint(amount sdk.SysCoin, owner sdk.AccAddress) MsgTokenMint {
+func NewMsgTokenMint(amount sdk.DecCoin, owner sdk.AccAddress) MsgTokenMint {
 	return MsgTokenMint{
 		Amount: amount,
 		Owner:  owner,
@@ -211,10 +211,10 @@ func (msg MsgMultiSend) GetSigners() []sdk.AccAddress {
 type MsgSend struct {
 	FromAddress sdk.AccAddress `json:"from_address"`
 	ToAddress   sdk.AccAddress `json:"to_address"`
-	Amount      sdk.SysCoins   `json:"amount"`
+	Amount      sdk.DecCoins   `json:"amount"`
 }
 
-func NewMsgTokenSend(from, to sdk.AccAddress, coins sdk.SysCoins) MsgSend {
+func NewMsgTokenSend(from, to sdk.AccAddress, coins sdk.DecCoins) MsgSend {
 	return MsgSend{
 		FromAddress: from,
 		ToAddress:   to,

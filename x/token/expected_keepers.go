@@ -7,7 +7,7 @@ import (
 
 // SupplyKeeper defines the expected supply Keeper (noalias)
 type SupplyKeeper interface {
-	GetSupplyByDenom(ctx sdk.Context, denom string) sdk.Dec
+	GetSupply(ctx sdk.Context) (supply supplyexported.SupplyI)
 	GetModuleAccount(ctx sdk.Context, name string) supplyexported.ModuleAccountI
 
 	// TODO remove with genesis 2-phases refactor https://github.com/cosmos/cosmos-sdk/issues/2862

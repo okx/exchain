@@ -1,6 +1,8 @@
 package token
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/okex/okexchain/x/token/types"
@@ -18,7 +20,7 @@ func TestQueryOrder(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -57,7 +59,7 @@ func TestQueryTokens(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -98,8 +100,7 @@ func TestQueryTokens(t *testing.T) {
 	//no symbol
 	path = []string{types.QueryTokenV2, ""}
 	res, err = querier(ctx, path, abci.RequestQuery{})
-	//require.EqualValues(t, sdk.CodeInvalidCoins, err.Code())
-	require.NotNil(t, err)
+	require.EqualValues(t, sdk.CodeInvalidCoins, err.Code())
 	require.Equal(t, []byte(nil), res)
 
 	//tokens V2
@@ -132,8 +133,7 @@ func TestQueryTokens(t *testing.T) {
 	keeper.NewToken(ctx, token)
 	path = []string{types.QueryTokens, "abc"}
 	res, err = querier(ctx, path, abci.RequestQuery{})
-	//require.EqualValues(t, sdk.CodeInvalidAddress, err.Code())
-	require.NotNil(t, err)
+	require.EqualValues(t, sdk.CodeInvalidAddress, err.Code())
 	require.Equal(t, []byte(nil), res)
 }
 
@@ -143,7 +143,7 @@ func TestQueryUserTokens(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -182,7 +182,7 @@ func TestQueryCurrency(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	_, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 
@@ -223,7 +223,7 @@ func TestQueryAccount(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -240,7 +240,7 @@ func TestQueryAccount(t *testing.T) {
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
 			Symbol:    common.NativeToken,
-			Available: "1000000000.000000000000000000",
+			Available: "1000000000.00000000",
 			Locked:    "0",
 		},
 	}
@@ -312,7 +312,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -342,7 +342,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
 			Symbol:    common.NativeToken,
-			Available: "1000000000.000000000000000000",
+			Available: "1000000000.00000000",
 			Locked:    "0",
 		},
 		types.CoinInfo{
@@ -374,7 +374,7 @@ func TestQueryParameters(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, _ := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -402,7 +402,7 @@ func TestQueryKeysNum(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
 	genAccs, _ := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
@@ -429,4 +429,15 @@ func TestCreateParam(t *testing.T) {
 	require.NotNil(t, kepper)
 	require.NotNil(t, kv)
 	require.EqualValues(t, "testToken", string(data))
+}
+
+func TestCalculateGas(t *testing.T) {
+	ff := abci.Header{
+		ChainID: "df",
+		Height:  1,
+	}
+	bz, _ := types.ModuleCdc.MarshalJSON(ff)
+	fmt.Println(string(bz))
+	bz2, _ := json.Marshal(ff)
+	fmt.Println(string(bz2))
 }

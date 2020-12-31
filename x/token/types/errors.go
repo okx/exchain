@@ -2,54 +2,88 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
-	CodeInvalidPriceDigit       uint32 = 1
-	CodeInvalidMinTradeSize     uint32 = 2
-	CodeInvalidDexList          uint32 = 3
-	CodeInvalidBalanceNotEnough uint32 = 4
-	CodeInvalidHeight           uint32 = 5
-	CodeInvalidAsset            uint32 = 6
-	CodeInvalidCommon           uint32 = 7
-	CodeBlockedRecipient        uint32 = 8
-	CodeSendDisabled            uint32 = 9
+	CodeParamTokenUnknown					sdk.CodeType = 61000
+	CodeInvalidDexList          			sdk.CodeType = 61001
+	CodeInvalidBalanceNotEnough 			sdk.CodeType = 61002
+	CodeInvalidHeight          				sdk.CodeType = 61003
+	CodeInvalidAsset           				sdk.CodeType = 61004
+	CodeInvalidCommon           			sdk.CodeType = 61005
+	CodeBlockedRecipient        			sdk.CodeType = 61006
+	CodeSendDisabled            			sdk.CodeType = 61007
+	CodeSendCoinsFromAccountToModuleFailed	sdk.CodeType = 61008
+	CodeUnrecognizedLockCoinsType			sdk.CodeType = 61009
+	CodeFailedToUnlockAddress				sdk.CodeType = 61010
+	CodeUnknownRequest						sdk.CodeType = 61011
+	CodeInternal							sdk.CodeType = 61012
+	CodeInvalidCoins						sdk.CodeType = 61013
+	CodeInsufficientCoins					sdk.CodeType = 61014
+	CodeUnauthorized						sdk.CodeType = 61015
 )
 
-var (
-	errInvalidDexList          = sdkerrors.Register(DefaultCodespace, CodeInvalidDexList, "invalid dex list")
-	errInvalidBalanceNotEnough = sdkerrors.Register(DefaultCodespace, CodeInvalidBalanceNotEnough, "invalid balance not enough")
-	errInvalidHeight           = sdkerrors.Register(DefaultCodespace, CodeInvalidHeight, "invalid height")
-	errInvalidAsset            = sdkerrors.Register(DefaultCodespace, CodeInvalidAsset, "invalid asset")
-	errInvalidCommon           = sdkerrors.Register(DefaultCodespace, CodeInvalidCommon, "invalid common")
-	errBlockedRecipient        = sdkerrors.Register(DefaultCodespace, CodeBlockedRecipient, "blocked recipient")
-	errSendDisabled            = sdkerrors.Register(DefaultCodespace, CodeSendDisabled, "send disabled")
-)
+// ErrParamTokenUnknown returns an error when receive a unknown token
+func ErrParamTokenUnknown(codespace sdk.CodespaceType, msg string) sdk.Error {
+	return sdk.NewError(codespace, CodeParamTokenUnknown, "param token unknown %s", msg)
+}
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
-func ErrBlockedRecipient(codespace string, blockedAddr string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errBlockedRecipient, "failed. %s is not allowed to receive transactions", blockedAddr)}
+func ErrBlockedRecipient(codespace sdk.CodespaceType, blockedAddr string) sdk.Error {
+	return sdk.NewError(codespace, CodeBlockedRecipient, "failed. %s is not allowed to receive transactions", blockedAddr)
 }
 
 // ErrSendDisabled returns an error when the transaction sending is disabled in bank module
-func ErrSendDisabled(codespace string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errSendDisabled, "failed. send transactions are currently disabled")}
+func ErrSendDisabled(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeSendDisabled, "failed. send transactions are currently disabled")
 }
 
-func ErrInvalidDexList(codespace string, message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidDexList, message)}
+func ErrInvalidDexList(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidDexList, message)
 }
 
-func ErrInvalidBalanceNotEnough(codespace string, message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidBalanceNotEnough, message)}
+func ErrInvalidBalanceNotEnough(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidBalanceNotEnough, message)
 }
 
-func ErrInvalidHeight(codespace string, h, ch, max int64) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidHeight, fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.", h, ch, ch, max))}
+func ErrInvalidHeight(codespace sdk.CodespaceType, h, ch, max int64) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidHeight, fmt.Sprintf("Height %d must be greater than current block height %d and less than %d + %d.", h, ch, ch, max))
 }
 
-func ErrInvalidCommon(codespace string, message string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errInvalidCommon, message)}
+func ErrInvalidCommon(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidCommon, message)
+}
+
+func ErrSendCoinsFromAccountToModuleFailed(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeSendCoinsFromAccountToModuleFailed, message)
+}
+
+func ErrUnrecognizedLockCoinsType(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnrecognizedLockCoinsType, message)
+}
+
+func ErrFailedToUnlockAddress(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeFailedToUnlockAddress, message)
+}
+
+func ErrUnknownRequest(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnknownRequest, message)
+}
+
+func ErrInternal(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInternal, message)
+}
+
+func ErrInvalidCoins(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidCoins, message)
+}
+
+func ErrInsufficientCoins(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeInsufficientCoins, message)
+}
+
+func ErrUnauthorized(codespace sdk.CodespaceType, message string) sdk.Error {
+	return sdk.NewError(codespace, CodeUnauthorized, message)
 }

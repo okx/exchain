@@ -44,7 +44,7 @@ type BaseAccount struct {
 
 type DecAccount struct {
 	Address       sdk.AccAddress `json:"address"`
-	Coins         sdk.SysCoins   `json:"coins"`
+	Coins         sdk.DecCoins   `json:"coins"`
 	PubKey        crypto.PubKey  `json:"public_key"`
 	AccountNumber uint64         `json:"account_number"`
 	Sequence      uint64         `json:"sequence"`
@@ -102,7 +102,7 @@ func StrToTransfers(str string) (transfers []TransferUnit, err error) {
 }
 
 func BaseAccountToDecAccount(account auth.BaseAccount) DecAccount {
-	var decCoins sdk.SysCoins
+	var decCoins sdk.DecCoins
 	for _, coin := range account.Coins {
 		dec := coin.Amount
 		decCoin := sdk.NewDecCoinFromDec(coin.Denom, dec)
@@ -136,7 +136,7 @@ func DecAccountArrToBaseAccountArr(decAccounts []DecAccount) (baseAccountArr []a
 	return baseAccountArr
 }
 
-func MergeCoinInfo(availableCoins, lockedCoins sdk.SysCoins) (coinsInfo CoinsInfo) {
+func MergeCoinInfo(availableCoins, lockedCoins sdk.DecCoins) (coinsInfo CoinsInfo) {
 	m := make(map[string]CoinInfo)
 
 	for _, availableCoin := range availableCoins {

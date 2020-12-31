@@ -1,14 +1,14 @@
 package token
 
 import (
-	"fmt"
-	"github.com/tendermint/tendermint/crypto"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -17,6 +17,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/gov"
+	govKeeper "github.com/okex/okexchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/params"
+	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -31,10 +35,14 @@ type MockDexApp struct {
 	keyToken   *sdk.KVStoreKey
 	keyLock    *sdk.KVStoreKey
 	keySupply  *sdk.KVStoreKey
+	keyGov     *sdk.KVStoreKey
+	keyStaking *sdk.KVStoreKey
 
 	bankKeeper    bank.Keeper
 	tokenKeeper   Keeper
 	supplyKeeper  supply.Keeper
+	govKeeper     gov.Keeper
+	stakingKeeper staking.Keeper
 }
 
 func registerCodec(cdc *codec.Codec) {
@@ -61,6 +69,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		keyToken:   sdk.NewKVStoreKey("token"),
 		keyLock:    sdk.NewKVStoreKey("lock"),
 		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
+		keyStaking: sdk.NewKVStoreKey(staking.StoreKey),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -70,12 +79,14 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mockDexApp.bankKeeper = bank.NewBaseKeeper(
 		mockDexApp.AccountKeeper,
 		mockDexApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
+		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Minter, supply.Burner},
+		gov.ModuleName:        nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc, mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
 	mockDexApp.tokenKeeper = NewKeeper(
@@ -98,7 +109,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 
 	intQuantity := int64(100000)
 	valTokens := sdk.NewDec(intQuantity)
-	coins := sdk.SysCoins{
+	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, valTokens),
 		sdk.NewDecCoinFromDec(common.TestToken, valTokens),
 	}
@@ -120,7 +131,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 
 	for i := 0; i < numGenAccs; i++ {
 		mock.CheckBalance(t, app.App, addrs[i], coins)
-		mockDexApp.TotalCoinsSupply = mockDexApp.TotalCoinsSupply.Add2(coins)
+		mockDexApp.TotalCoinsSupply = mockDexApp.TotalCoinsSupply.Add(coins)
 	}
 
 	return mockDexApp, mockDexApp.tokenKeeper, addrs
@@ -139,6 +150,8 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		keySupply:  sdk.NewKVStoreKey(supply.StoreKey),
 		keyToken:   sdk.NewKVStoreKey("token"),
 		keyLock:    sdk.NewKVStoreKey("lock"),
+		keyGov:     sdk.NewKVStoreKey(gov.ModuleName),
+		keyStaking: sdk.NewKVStoreKey(staking.StoreKey),
 	}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -148,12 +161,16 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 	mockDexApp.bankKeeper = bank.NewBaseKeeper(
 		mockDexApp.AccountKeeper,
 		mockDexApp.ParamsKeeper.Subspace(bank.DefaultParamspace),
+		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName:     nil,
 		types.ModuleName:          nil,
+		gov.ModuleName:            nil,
+		staking.BondedPoolName:    nil,
+		staking.NotBondedPoolName: nil,
 	}
 	mockDexApp.supplyKeeper = supply.NewKeeper(
 		mockDexApp.Cdc,
@@ -172,6 +189,9 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.Cdc,
 		true)
 
+	stakingKeeper := staking.NewKeeper(
+		mockDexApp.Cdc,
+		mockDexApp.keyStaking,
 
 		// for staking/distr rollback to cosmos-sdk
 		//store.NewKVStoreKey(staking.DelegatorPoolKey),
@@ -179,6 +199,23 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		//store.NewKVStoreKey(staking.RedelegationActonKey),
 		//store.NewKVStoreKey(staking.UnbondingKey),
 
+		store.NewKVStoreKey(staking.TStoreKey),
+		mockDexApp.supplyKeeper,
+		mockDexApp.ParamsKeeper.Subspace(staking.DefaultParamspace),
+		staking.DefaultCodespace,
+	)
+	mockDexApp.stakingKeeper = stakingKeeper
+
+	govKp := gov.NewKeeper(
+		mockDexApp.Cdc, mockDexApp.keyGov,
+		params.Keeper{Keeper: mockDexApp.ParamsKeeper},
+		mockDexApp.ParamsKeeper.Subspace(gov.DefaultParamspace),
+		mockDexApp.supplyKeeper, stakingKeeper, gov.DefaultCodespace,
+		gov.NewRouter(), mockDexApp.bankKeeper, govKeeper.NewProposalHandlerRouter(),
+		auth.FeeCollectorName,
+	)
+	//mockDexApp.tokenKeeper.SetGovKeeper(govKp)
+	mockDexApp.govKeeper = govKp
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -190,7 +227,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 
 	intQuantity := int64(10000000)
 	valTokens := sdk.NewDec(intQuantity)
-	coins := sdk.SysCoins{
+	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(common.NativeToken, valTokens),
 		sdk.NewDecCoinFromDec(common.TestToken, valTokens),
 	}
@@ -205,11 +242,14 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		app.keyToken,
 		app.keyLock,
 		app.keySupply,
+		app.keyGov,
+		app.keyStaking,
 	)
 
 	require.NoError(t, mockDexApp.CompleteSetup())
 	mock.SetGenesis(mockDexApp.App, genAccs)
 	//app.BaseApp.NewContext(true, abci.Header{})
+	mockDexApp.stakingKeeper.SetParams(app.BaseApp.NewContext(true, abci.Header{}), staking.DefaultParams())
 	return mockDexApp, mockDexApp.tokenKeeper, handler
 }
 
@@ -264,7 +304,7 @@ func mockApplyBlock(t *testing.T, app *MockDexApp, txs []auth.StdTx, height int6
 	return ctx
 }
 
-func CreateGenAccounts(numAccs int, genCoins sdk.SysCoins) (genAccs []types.DecAccount, atList TestAccounts) {
+func CreateGenAccounts(numAccs int, genCoins sdk.DecCoins) (genAccs []types.DecAccount, atList TestAccounts) {
 
 	for i := 0; i < numAccs; i++ {
 		privKey := secp256k1.GenPrivKey()
@@ -363,7 +403,7 @@ func TestMsgTokenChown(t *testing.T) {
 	toAddr := sdk.AccAddress(toPubKey.Address())
 	//init accounts
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		},
 	)
@@ -401,8 +441,8 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	TokenIssue = append(TokenIssue, createTokenMsg(t, app, ctx, testAccounts[0], MsgErrorName))
 
 	ctx = mockApplyBlock(t, app, TokenIssue, 3)
-	_, err := handleMsgTokenIssue(ctx, keeper, MsgErrorSupply, nil)
-	require.NotNil(t, err)
+
+	require.NotNil(t, handleMsgTokenIssue(ctx, keeper, MsgErrorSupply, nil))
 	//require.NotNil(t, handleMsgTokenIssue(ctx, keeper, MsgErrorName, nil))
 
 	//test if zzb is not exist
@@ -424,7 +464,7 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 func TestUpdateUserTokenRelationship(t *testing.T) {
 	intQuantity := int64(30000)
 	genAccs, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -472,7 +512,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 func TestCreateTokenIssue(t *testing.T) {
 	intQuantity := int64(3000)
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -507,7 +547,7 @@ func TestCreateTokenIssue(t *testing.T) {
 	//feeIssue, err := sdk.NewDecFromStr(DefaultFeeIssue)
 	//require.EqualValues(t, nil, err)
 	feeIssue := keeper.GetParams(ctx).FeeIssue.Amount
-	coins := sdk.SysCoins{
+	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(tokenName, sdk.NewDec(totalSupply)),
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity).Sub(feeIssue)),
 	}
@@ -524,12 +564,12 @@ func TestCreateTokenBurn(t *testing.T) {
 	intQuantity := int64(2511)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
 	_, testAccounts2 := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -582,7 +622,7 @@ func TestCreateTokenBurn(t *testing.T) {
 	fee, err := sdk.NewDecFromStr("0.0")
 	require.Nil(t, err)
 	validTxNum := sdk.NewDec(2)
-	coins := sdk.SysCoins{
+	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(tokenSymbol, sdk.NewDec(900)),
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1).Add(fee.Mul(validTxNum))),
 	}
@@ -594,12 +634,12 @@ func TestCreateTokenMint(t *testing.T) {
 	intQuantity := int64(5011)
 
 	genAccs, testAccounts := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
 	_, testAccounts2 := CreateGenAccounts(1,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -664,7 +704,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	intQuantity := int64(100000)
 
 	genAccs, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -680,13 +720,13 @@ func TestCreateMsgTokenSend(t *testing.T) {
 	tokenMsgs = tokenMsgs[:0]
 
 	tokenName := getTokenSymbol(ctx, keeper, "btc")
-	coins := sdk.SysCoins{
+	coins := sdk.DecCoins{
 		sdk.NewDecCoinFromDec(tokenName, sdk.NewDec(100)),
 	}
 	tokenSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, testAccounts[1].baseAccount.Address, coins)
 	tokenMsgs = append(tokenMsgs, createTokenMsg(t, app, ctx, testAccounts[0], tokenSendMsg))
 
-	coins = sdk.SysCoins{
+	coins = sdk.DecCoins{
 		sdk.NewDecCoinFromDec("btc", sdk.NewDec(10000)),
 	}
 	// not enough coins
@@ -710,7 +750,7 @@ func TestCreateMsgTokenSend(t *testing.T) {
 
 	// len(MsgTokenSend.Amount) > 1
 	tokenMsgs = tokenMsgs[:0]
-	coins = sdk.SysCoins{
+	coins = sdk.DecCoins{
 		sdk.NewDecCoinFromDec(tokenName, sdk.NewDec(100)),
 		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
 	}
@@ -737,7 +777,7 @@ func TestCreateMsgMultiSend(t *testing.T) {
 	intQuantity := int64(100000)
 
 	genAccs, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -748,6 +788,13 @@ func TestCreateMsgMultiSend(t *testing.T) {
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
+		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
+			return sdk.Result{}
+
+		},
+		func(ctx sdk.Context, msgs []sdk.Msg) bool {
+			return false
+		},
 	))
 
 	ctx := app.NewContext(true, abci.Header{})
@@ -792,7 +839,7 @@ func TestCreateMsgTokenModify(t *testing.T) {
 	intQuantity := int64(100000)
 
 	genAccs, testAccounts := CreateGenAccounts(2,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -875,7 +922,7 @@ bnbbbbbbbbbbbnbbbbbbbbbbnbbbbbbbbbbbnbbbbbbbbb1234`, "whole name7", true, true, 
 func getMockAppToHandleFee(t *testing.T, initBalance int64, numAcc int) (app *MockDexApp, testAccounts TestAccounts) {
 	intQuantity := int64(initBalance)
 	genAccs, testAccounts := CreateGenAccounts(numAcc,
-		sdk.SysCoins{
+		sdk.DecCoins{
 			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(intQuantity)),
 		})
 
@@ -885,6 +932,13 @@ func getMockAppToHandleFee(t *testing.T, initBalance int64, numAcc int) (app *Mo
 		app.AccountKeeper,
 		app.supplyKeeper,
 		auth.DefaultSigVerificationGasConsumer,
+		func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result {
+			return sdk.Result{}
+
+		},
+		func(ctx sdk.Context, msgs []sdk.Msg) bool {
+			return false
+		},
 	))
 
 	return app, testAccounts
@@ -911,7 +965,7 @@ func TestTxFailedFeeTable(t *testing.T) {
 	// failed edit msg : no such token
 	failedEditMsg := types.NewMsgTokenModify("nob", "desc0", "whole name0", true, true, testAccounts[0].baseAccount.Address)
 	// failed send msg: no such token
-	fialedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.SysCoins{decCoin})
+	fialedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
 
 	// failed MultiSend msg: no such token
 	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":"1` + common.NativeToken + `,2` + "nob" + `"}]`
@@ -928,13 +982,13 @@ func TestTxFailedFeeTable(t *testing.T) {
 		msg     auth.StdTx
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"fail to issue : 0.01", "9.990000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
-		{"fail to mint  : 0.01", "9.980000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
-		{"fail to burn  : 0.01", "9.970000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
-		{"fail to modify: 0.01", "9.960000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
-		{"fail to send  : 0.01", "9.950000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
-		{"fail to multi : 0.01", "9.940000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
-		{"fail to chown : 0.01", "9.930000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
+		{"fail to issue : 0.01", "9.99000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
+		{"fail to mint  : 0.01", "9.98000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
+		{"fail to burn  : 0.01", "9.97000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
+		{"fail to modify: 0.01", "9.96000000", createTokenMsg(t, app, ctx, testAccounts[0], failedEditMsg)},
+		{"fail to send  : 0.01", "9.95000000", createTokenMsg(t, app, ctx, testAccounts[0], fialedSendMsg)},
+		{"fail to multi : 0.01", "9.94000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMultiSendMsg)},
+		{"fail to chown : 0.01", "9.93000000", createTokenMsg(t, app, ctx, testAccounts[0], failedChownMsg)},
 	}
 	for i, tt := range failTestSets {
 		t.Run(tt.name, func(t *testing.T) {
@@ -964,7 +1018,7 @@ func TestTxSuccessFeeTable(t *testing.T) {
 
 	successfulBurnMsg := types.NewMsgTokenBurn(decCoin, testAccounts[0].baseAccount.Address)
 
-	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.SysCoins{decCoin})
+	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, toAddr, sdk.DecCoins{decCoin})
 
 	// multi send
 	multiSendStr := `[{"to":"` + toAddr.String() + `","amount":" 10` + common.NativeToken + `,20` + symbolAfterIssue + `"}]`
@@ -983,13 +1037,13 @@ func TestTxSuccessFeeTable(t *testing.T) {
 		account     *testAccount
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"success to issue : 2500+0.01", "27499.990000000000000000", successfulIssueMsg, testAccounts[0]},
-		{"success to mint  : 10+0.01", "27489.980000000000000000", successfulMintMsg, testAccounts[0]},
-		{"success to burn  : 10+0.01", "27479.970000000000000000", successfulBurnMsg, testAccounts[0]},
-		{"success to send  : 0.01", "27479.960000000000000000", successfulSendMsg, testAccounts[0]},
-		{"success to multi : 10(amount of transfer) +0.01", "27469.950000000000000000", successfulMultiSendMsg, testAccounts[0]},
-		{"success to modify: 0.01", "27469.940000000000000000", successfulEditMsg, testAccounts[0]},
-		{"success to chown : 10+0.01", "27459.930000000000000000", successfulChownMsg, testAccounts[0]},
+		{"success to issue : 2500+0.01", "27499.99000000", successfulIssueMsg, testAccounts[0]},
+		{"success to mint  : 10+0.01", "27489.98000000", successfulMintMsg, testAccounts[0]},
+		{"success to burn  : 10+0.01", "27479.97000000", successfulBurnMsg, testAccounts[0]},
+		{"success to send  : 0.01", "27479.96000000", successfulSendMsg, testAccounts[0]},
+		{"success to multi : 10(amount of transfer) +0.01", "27469.95000000", successfulMultiSendMsg, testAccounts[0]},
+		{"success to modify: 0.01", "27469.94000000", successfulEditMsg, testAccounts[0]},
+		{"success to chown : 10+0.01", "27459.93000000", successfulChownMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.description, func(t *testing.T) {
@@ -1012,8 +1066,8 @@ func TestBlockedAddrSend(t *testing.T) {
 
 	// build send msg
 	decCoin := sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(50))
-	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, validAddr, sdk.SysCoins{decCoin})
-	failedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, blockedAddr, sdk.SysCoins{decCoin})
+	successfulSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, validAddr, sdk.DecCoins{decCoin})
+	failedSendMsg := types.NewMsgTokenSend(testAccounts[0].baseAccount.Address, blockedAddr, sdk.DecCoins{decCoin})
 
 	// build multi-send msg
 	multiSendStr := `[{"to":"` + validAddr.String() + `","amount":" 100` + common.NativeToken + `"}]`
@@ -1033,10 +1087,10 @@ func TestBlockedAddrSend(t *testing.T) {
 		account     *testAccount
 	}{
 		// 0.01okt as fixed fee in each stdTx
-		{"success to send  : 50+0.01", "29949.990000000000000000", successfulSendMsg, testAccounts[0]},
-		{"fail to send  : 0.01", "29949.980000000000000000", failedSendMsg, testAccounts[0]},
-		{"success to multi-send  : 100+0.01", "29849.970000000000000000", successfulMultiSendMsg, testAccounts[0]},
-		{"fail to multi-send  : 0.01", "29849.960000000000000000", failedMultiSendMsg, testAccounts[0]},
+		{"success to send  : 50+0.01", "29949.99000000", successfulSendMsg, testAccounts[0]},
+		{"fail to send  : 0.01", "29949.98000000", failedSendMsg, testAccounts[0]},
+		{"success to multi-send  : 100+0.01", "29849.97000000", successfulMultiSendMsg, testAccounts[0]},
+		{"fail to multi-send  : 0.01", "29849.96000000", failedMultiSendMsg, testAccounts[0]},
 	}
 	for i, tt := range successfulTestSets {
 		t.Run(tt.description, func(t *testing.T) {
@@ -1049,7 +1103,6 @@ func TestBlockedAddrSend(t *testing.T) {
 }
 
 func TestHandleTransferOwnership(t *testing.T) {
-	common.InitConfig()
 	app, keeper, testAccounts := getMockDexApp(t, 2)
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
@@ -1063,8 +1116,8 @@ func TestHandleTransferOwnership(t *testing.T) {
 	symbol := "xxb"
 	msgNewIssue := types.NewMsgTokenIssue("xxb desc", symbol, symbol, symbol,
 		"1000000", testAccounts[0], true)
-	_, err := handler(ctx, msgNewIssue)
-	require.Nil(t, err)
+	result := handler(ctx, msgNewIssue)
+	require.True(t, result.IsOK())
 
 	tokenName := getTokenSymbol(ctx, keeper, symbol)
 
@@ -1072,72 +1125,67 @@ func TestHandleTransferOwnership(t *testing.T) {
 	tests := []struct {
 		ctx          sdk.Context
 		msg          sdk.Msg
-		expectedMsg  string
+		expectedCode sdk.CodeType
 	}{
 		// case 1. sender is not the owner of token
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("unauthorized: %s is not the owner of token(%s)",testAccounts[1], tokenName),
+			expectedCode: sdk.CodeUnauthorized,
 		},
 		// case 2. transfer ownership to testAccounts[1] successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedMsg:  "",
+			expectedCode: sdk.CodeOK,
 		},
 		// case 3. confirm ownership not exists
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], "not-exist-token"),
-			expectedMsg:  fmt.Sprintf("unknown request: no transfer-ownership of token (%s) to confirm",testAccounts[1]),
+			expectedCode: sdk.CodeUnknownRequest,
 		},
-		//// case 4. sender is not the owner of ConfirmOwnership
+		// case 4. sender is not the owner of ConfirmOwnership
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[0], tokenName),
-			expectedMsg:  fmt.Sprintf("unauthorized: %s is expected as the new owner",testAccounts[1]),
+			expectedCode: sdk.CodeUnauthorized,
 		},
 		// case 5. confirm ownership expired
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedMsg:  fmt.Sprintf("internal: transfer-ownership is expired, expire time (%s)", time.Time{}.Add(types.DefaultOwnershipConfirmWindow).String()),
+			expectedCode: sdk.CodeInternal,
 		},
 		// case 6. confirm ownership successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[0], testAccounts[1], tokenName),
-			expectedMsg:  "",
+			expectedCode: sdk.CodeOK,
 		},
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgConfirmOwnership(testAccounts[1], tokenName),
-			expectedMsg:  "",
+			expectedCode: sdk.CodeOK,
 		},
 
 		// case 7. transfer ownership to testAccounts[0] successfully
 		{
 			ctx:          ctx,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], testAccounts[0], tokenName),
-			expectedMsg:  "",
+			expectedCode: sdk.CodeOK,
 		},
 		// case 8. confirm ownership exists but expired, and transfer to black hole successfully
 		{
 			ctx:          ctxPassedOwnershipConfirmWindow,
 			msg:          types.NewMsgTransferOwnership(testAccounts[1], common.BlackHoleAddress(), tokenName),
-			expectedMsg:  "",
+			expectedCode: sdk.CodeOK,
 		},
 	}
 
 	for _, testCase := range tests {
-		_, err := handler(testCase.ctx, testCase.msg)
-
-		if err != nil {
-			require.EqualValues(t, testCase.expectedMsg, err.Error())
-		} else {
-			require.EqualValues(t, testCase.expectedMsg, "")
-		}
+		result := handler(testCase.ctx, testCase.msg)
+		require.Equal(t, testCase.expectedCode, result.Code)
 	}
 
 	token := keeper.GetTokenInfo(ctx, tokenName)

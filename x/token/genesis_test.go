@@ -1,7 +1,6 @@
 package token
 
 import (
-	"github.com/okex/okexchain/x/common"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,7 +10,6 @@ import (
 )
 
 func TestDefault(t *testing.T) {
-	common.InitConfig()
 	genesisState := defaultGenesisState()
 	err := validateGenesis(genesisState)
 	require.NoError(t, err)
@@ -19,7 +17,6 @@ func TestDefault(t *testing.T) {
 }
 
 func TestInitGenesis(t *testing.T) {
-	common.InitConfig()
 	mapp, keeper, _ := getMockDexApp(t, 0)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
@@ -35,13 +32,13 @@ func TestInitGenesis(t *testing.T) {
 	decCoin := sdk.NewDecCoinFromDec(tokens[0].Symbol, sdk.NewDec(1234))
 	lockedCoins = append(lockedCoins, types.AccCoins{
 		Acc:   tokens[0].Owner,
-		Coins: sdk.SysCoins{decCoin},
+		Coins: sdk.DecCoins{decCoin},
 	})
 
 	var lockedFees []types.AccCoins
 	lockedFees = append(lockedFees, types.AccCoins{
 		Acc:   tokens[0].Owner,
-		Coins: sdk.SysCoins{decCoin},
+		Coins: sdk.DecCoins{decCoin},
 	})
 
 	initedGenesis := GenesisState{
@@ -63,7 +60,7 @@ func TestInitGenesis(t *testing.T) {
 	require.Equal(t, uint64(len(initedGenesis.Tokens)), keeper.getTokenNum(ctx))
 	require.Equal(t, initedGenesis.Tokens[0], keeper.GetUserTokensInfo(ctx, initedGenesis.Tokens[0].Owner)[0])
 	var actualLockeedFees []types.AccCoins
-	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
+	keeper.IterateLockedFees(ctx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
 		actualLockeedFees = append(actualLockeedFees,
 			types.AccCoins{
 				Acc:   acc,
@@ -86,8 +83,8 @@ func TestInitGenesis(t *testing.T) {
 	exportGenesis.Tokens[0].OriginalTotalSupply = sdk.NewDec(66666)
 	decCoin.Denom = tokens[0].Symbol
 	decCoin.Amount = sdk.NewDec(7777)
-	exportGenesis.LockedAssets[0].Coins = sdk.SysCoins{decCoin}
-	exportGenesis.LockedFees[0].Coins = sdk.SysCoins{decCoin}
+	exportGenesis.LockedAssets[0].Coins = sdk.DecCoins{decCoin}
+	exportGenesis.LockedFees[0].Coins = sdk.DecCoins{decCoin}
 
 	coins = sdk.NewCoins(sdk.NewDecCoinFromDec(exportGenesis.Tokens[0].Symbol, exportGenesis.Tokens[0].OriginalTotalSupply))
 	err = newKeeper.supplyKeeper.MintCoins(newCtx, types.ModuleName, coins)
@@ -100,7 +97,7 @@ func TestInitGenesis(t *testing.T) {
 	require.Equal(t, uint64(len(exportGenesis.Tokens)), newKeeper.getTokenNum(newCtx))
 	require.Equal(t, exportGenesis.Tokens[0], newKeeper.GetUserTokensInfo(newCtx, exportGenesis.Tokens[0].Owner)[0])
 	actualLockeedFees = []types.AccCoins{}
-	newKeeper.IterateLockedFees(newCtx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
+	newKeeper.IterateLockedFees(newCtx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
 		actualLockeedFees = append(actualLockeedFees,
 			types.AccCoins{
 				Acc:   acc,
@@ -115,7 +112,7 @@ func TestInitGenesis(t *testing.T) {
 	require.Equal(t, newExportGenesis.Tokens, newKeeper.GetTokensInfo(newCtx))
 	require.Equal(t, newExportGenesis.LockedAssets, newKeeper.GetAllLockedCoins(newCtx))
 	actualLockeedFees = []types.AccCoins{}
-	newKeeper.IterateLockedFees(newCtx, func(acc sdk.AccAddress, coins sdk.SysCoins) bool {
+	newKeeper.IterateLockedFees(newCtx, func(acc sdk.AccAddress, coins sdk.DecCoins) bool {
 		actualLockeedFees = append(actualLockeedFees,
 			types.AccCoins{
 				Acc:   acc,

@@ -1,7 +1,7 @@
 package token
 
 import (
-	"fmt"
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/okex/okexchain/x/token/types"
 
@@ -33,7 +33,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
 		default:
-			return nil, sdk.ErrUnknownRequest("unknown token query endpoint")
+			return nil, types.ErrUnknownRequest(types.DefaultCodespace, "unknown token query endpoint")
 		}
 	}
 }
@@ -44,14 +44,14 @@ func queryInfo(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Kee
 
 	token := keeper.GetTokenInfo(ctx, name)
 	if token.Symbol == "" {
-		return nil, sdk.ErrInvalidCoins("unknown token")
+		return nil, types.ErrParamTokenUnknown(types.DefaultCodespace, "")
 	}
 
 	tokenResp := types.GenTokenResp(token)
 	tokenResp.TotalSupply = keeper.GetTokenTotalSupply(ctx, name)
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokenResp)
 	if err != nil {
-		panic("could not marshal result to JSON")
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -61,7 +61,7 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	if len(path) > 0 && path[0] != "" {
 		ownerAddr, err := sdk.AccAddressFromBech32(path[0])
 		if err != nil {
-			return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[0]))
+			return nil, common.ErrCreateAddrFromBech32Failed(path[0])
 		}
 		tokens = keeper.GetUserTokensInfo(ctx, ownerAddr)
 	} else {
@@ -76,7 +76,7 @@ func queryTokens(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 	}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokensResp)
 	if err != nil {
-		panic("could not marshal result to JSON")
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -86,7 +86,7 @@ func queryCurrency(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, tokens)
 	if err != nil {
-		panic("could not marshal result to JSON")
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -94,7 +94,7 @@ func queryCurrency(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 func queryAccount(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	addr, err := sdk.AccAddressFromBech32(path[0])
 	if err != nil {
-		return nil, sdk.ErrInvalidAddress(fmt.Sprintf("invalid address：%s", path[0]))
+		return nil, common.ErrCreateAddrFromBech32Failed(path[0])
 	}
 
 	//var queryPage QueryPage
@@ -102,7 +102,7 @@ func queryAccount(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 	//var symbol string
 	err = codec.Cdc.UnmarshalJSON(req.Data, &accountParam)
 	if err != nil {
-		return nil, sdk.ErrUnknownRequest(err.Error())
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	coinsInfo := keeper.GetCoinsInfo(ctx, addr)
@@ -143,7 +143,7 @@ func queryAccount(ctx sdk.Context, path []string, req abci.RequestQuery, keeper 
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, accountResponse)
 	if err != nil {
-		panic("could not marshal result to JSON")
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return bz, nil
 }
@@ -152,7 +152,7 @@ func queryParameters(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	params := keeper.GetParams(ctx)
 	res, err := codec.MarshalJSONIndent(keeper.cdc, params)
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return res, nil
 }
@@ -163,7 +163,7 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 		map[string]int64{"token": tokenStoreKeyNum,
 			"lock": lockStoreKeyNum})
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
+		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return res, nil
 }

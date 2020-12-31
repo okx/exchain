@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/params"
+	"github.com/okex/okexchain/x/staking"
 	"github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -18,6 +19,8 @@ import (
 
 // CreateParam create okexchain parm for test
 func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStoreKey, []byte) {
+	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
+	tkeyStaking := sdk.NewTransientStoreKey(staking.TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -28,6 +31,8 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
+	ms.MountStoreWithDB(tkeyStaking, sdk.StoreTypeTransient, nil)
+	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -44,7 +49,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 	RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams, params.DefaultCodespace)
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
@@ -52,11 +57,14 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)
+	//feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	blacklistedAddrs := make(map[string]bool)
+	//blacklistedAddrs[feeCollectorAcc.String()] = true
 
 	bk := bank.NewBaseKeeper(
 		accountKeeper,
 		pk.Subspace(bank.DefaultParamspace),
+		bank.DefaultCodespace,
 		blacklistedAddrs,
 	)
 	maccPerms := map[string][]string{
@@ -75,35 +83,4 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 	tk.SetParams(ctx, types.DefaultParams())
 
 	return ctx, tk, keyParams, []byte("testToken")
-}
-
-func NewTestToken(t *testing.T, ctx sdk.Context, keeper Keeper, bankKeeper bank.Keeper, tokenName string, addrList []sdk.AccAddress) {
-	require.NotEqual(t, 0 ,len(addrList))
-	tokenObject := InitTestTokenWithOwner(tokenName, addrList[0])
-	keeper.NewToken(ctx, tokenObject)
-
-	initCoins := sdk.NewCoins(sdk.NewCoin(tokenName, sdk.NewInt(100000)))
-	for _, addr := range addrList {
-		_, err := bankKeeper.AddCoins(ctx, addr, initCoins)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func InitTestToken(name string) types.Token {
-	return InitTestTokenWithOwner(name, supply.NewModuleAddress(ModuleName))
-}
-
-func InitTestTokenWithOwner(name string, owner sdk.AccAddress) types.Token {
-	return types.Token{
-		Description:         name,
-		Symbol:              name,
-		OriginalSymbol:      name,
-		WholeName:           name,
-		OriginalTotalSupply: sdk.NewDec(0),
-		Owner:               owner,
-		Type:                1,
-		Mintable:            true,
-	}
 }

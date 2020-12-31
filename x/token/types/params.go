@@ -31,11 +31,11 @@ var _ params.ParamSet = &Params{}
 
 // mint parameters
 type Params struct {
-	FeeIssue               sdk.SysCoin   `json:"issue_fee"`
-	FeeMint                sdk.SysCoin   `json:"mint_fee"`
-	FeeBurn                sdk.SysCoin   `json:"burn_fee"`
-	FeeModify              sdk.SysCoin   `json:"modify_fee"`
-	FeeChown               sdk.SysCoin   `json:"transfer_ownership_fee"`
+	FeeIssue               sdk.DecCoin   `json:"issue_fee"`
+	FeeMint                sdk.DecCoin   `json:"mint_fee"`
+	FeeBurn                sdk.DecCoin   `json:"burn_fee"`
+	FeeModify              sdk.DecCoin   `json:"modify_fee"`
+	FeeChown               sdk.DecCoin   `json:"transfer_ownership_fee"`
 	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
 }
 
@@ -44,21 +44,17 @@ func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
 
-func validateParams(value interface{}) error {
-	return nil
-}
-
 // ParamSetPairs implements the ParamSet interface and returns all the key/value pairs
 // pairs of auth module's parameters.
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyFeeIssue, &p.FeeIssue, common.ValidateSysCoin("issue fee")},
-		{KeyFeeMint, &p.FeeMint, common.ValidateSysCoin("mint fee")},
-		{KeyFeeBurn, &p.FeeBurn, common.ValidateSysCoin("burn fee")},
-		{KeyFeeModify, &p.FeeModify, common.ValidateSysCoin("modify fee")},
-		{KeyFeeChown, &p.FeeChown, common.ValidateSysCoin("change ownership fee")},
-		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, common.ValidateDurationPositive("confirm ownership window")},
+		{KeyFeeIssue, &p.FeeIssue},
+		{KeyFeeMint, &p.FeeMint},
+		{KeyFeeBurn, &p.FeeBurn},
+		{KeyFeeModify, &p.FeeModify},
+		{KeyFeeChown, &p.FeeChown},
+		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow},
 	}
 }
 
