@@ -172,7 +172,7 @@ func ErrAddressIsRequired(addrType string) sdk.EnvelopedErr {
 }
 
 func ErrTokenOfPairNotExist(baseAsset string, quoteAsset string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenOfPairNotExist, fmt.Sprintf("the token of pair does not exists with %s and %s", baseAsset, quoteAsset))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeTokenOfPairNotExist, fmt.Sprintf("the token of pair does not exist with %s and %s", baseAsset, quoteAsset))}
 }
 
 func ErrIsTransferringOwner(product string) sdk.EnvelopedErr {
