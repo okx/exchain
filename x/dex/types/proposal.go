@@ -67,7 +67,7 @@ func (drp DelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("title is required")
 	}
 	if len(drp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent("title length bigger than max title length")
+		return govtypes.ErrInvalidProposalContent("title length is longer than the max")
 	}
 
 	if len(drp.Description) == 0 {
@@ -75,7 +75,7 @@ func (drp DelistProposal) ValidateBasic() sdk.Error {
 	}
 
 	if len(drp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent("description length bigger than max description length")
+		return govtypes.ErrInvalidProposalContent("description length is longer than the max")
 	}
 
 	if drp.ProposalType() != proposalTypeDelist {
