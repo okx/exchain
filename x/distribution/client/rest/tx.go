@@ -95,7 +95,7 @@ func withdrawValidatorRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 		// prepare multi-message transaction
 		msgs, err := common.WithdrawValidatorRewardsAndCommission(valAddr)
 		if err != nil {
-			comm.HandleErrorMsg(w, cliCtx, types.CodeWithdrawValidatorRewardsAndCommissionFailed, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeValidateBasicFailed, err.Error())
 			return
 		}
 
