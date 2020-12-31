@@ -1,13 +1,17 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/cosmos/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/cosmos/cosmos-sdk/x/supply/client/rest"
 	"github.com/okex/okexchain/app/rpc"
+	"github.com/okex/okexchain/app/types"
 	ammswaprest "github.com/okex/okexchain/x/ammswap/client/rest"
 	backendrest "github.com/okex/okexchain/x/backend/client/rest"
 	dexrest "github.com/okex/okexchain/x/dex/client/rest"
@@ -18,6 +22,7 @@ import (
 	stakingrest "github.com/okex/okexchain/x/staking/client/rest"
 	"github.com/okex/okexchain/x/token"
 	tokensrest "github.com/okex/okexchain/x/token/client/rest"
+	"github.com/spf13/viper"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -25,12 +30,16 @@ import (
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
 func registerRoutes(rs *lcd.RestServer) {
 	rpc.RegisterRoutes(rs)
-	registerRoutesV1(rs)
-	registerRoutesV2(rs)
+	pathPrefix := viper.GetString(server.FlagRestPathPrefix)
+	if pathPrefix == "" {
+		pathPrefix = types.EthBech32Prefix
+	}
+	registerRoutesV1(rs, pathPrefix)
+	registerRoutesV2(rs, pathPrefix)
 }
 
-func registerRoutesV1(rs *lcd.RestServer) {
-	v1Router := rs.Mux.PathPrefix("/okexchain/v1").Name("v1").Subrouter()
+func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
+	v1Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v1", pathPrefix)).Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	authrest.RegisterTxRoutes(rs.CliCtx, v1Router)
@@ -47,8 +56,8 @@ func registerRoutesV1(rs *lcd.RestServer) {
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 }
 
-func registerRoutesV2(rs *lcd.RestServer) {
-	v2Router := rs.Mux.PathPrefix("/okexchain/v2").Name("v1").Subrouter()
+func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
+	v2Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v2", pathPrefix)).Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v2Router)
 	authrest.RegisterRoutes(rs.CliCtx, v2Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)

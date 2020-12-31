@@ -11,7 +11,7 @@ require (
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/deckarep/golang-set v1.7.1 // indirect
-	github.com/ethereum/go-ethereum v1.9.24
+	github.com/ethereum/go-ethereum v1.9.25
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/garyburd/redigo v1.6.2
 	github.com/go-kit/kit v0.10.0
@@ -51,7 +51,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-okexchain1.0.20201218075917-8f19aa848649
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20201230153641-0b0f50527905
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.1
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain1
 )
