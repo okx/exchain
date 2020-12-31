@@ -2,9 +2,10 @@ package types
 
 import (
 	"fmt"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/okex/okexchain/x/gov/types"
-	"strings"
 )
 
 const (
@@ -63,7 +64,7 @@ func (mp ManageWhiteListProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("title is required")
 	}
 	if len(mp.Title) > govtypes.MaxTitleLength {
-		return govtypes.ErrInvalidProposalContent("title length is bigger than max title length")
+		return govtypes.ErrInvalidProposalContent("title length is longer than the maximum title length")
 	}
 
 	if len(mp.Description) == 0 {
@@ -71,7 +72,7 @@ func (mp ManageWhiteListProposal) ValidateBasic() sdk.Error {
 	}
 
 	if len(mp.Description) > govtypes.MaxDescriptionLength {
-		return govtypes.ErrInvalidProposalContent("description is bigger than max description length")
+		return govtypes.ErrInvalidProposalContent("description length is longer than the maximum description length")
 	}
 
 	if mp.ProposalType() != proposalTypeManageWhiteList {
