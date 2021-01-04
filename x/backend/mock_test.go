@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/okexchain/x/farm"
+
 	"github.com/okex/okexchain/x/ammswap"
 
 	types2 "github.com/okex/okexchain/x/dex/types"
@@ -62,6 +64,8 @@ type MockApp struct {
 	supplyKeeper  supply.Keeper
 	swapKeeper    ammswap.Keeper
 	keySwap       *sdk.KVStoreKey
+	farmKeeper    farm.Keeper
+	keyFarm       *sdk.KVStoreKey
 }
 
 func registerCdc(cdc *codec.Codec) {
@@ -82,6 +86,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		keyTokenPair: sdk.NewKVStoreKey(dex.TokenPairStoreKey),
 		keySupply:    sdk.NewKVStoreKey(supply.StoreKey),
 		keySwap:      sdk.NewKVStoreKey(ammswap.StoreKey),
+		keyFarm:      sdk.NewKVStoreKey(farm.StoreKey),
 	}
 
 	feeCollector := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -139,6 +144,9 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(ammswap.DefaultParamspace),
 	)
+	mockApp.farmKeeper = farm.NewKeeper(auth.FeeCollectorName, mockApp.supplyKeeper, mockApp.tokenKeeper,
+		mockApp.swapKeeper, mockApp.ParamsKeeper.Subspace(farm.DefaultParamspace), mockApp.keyFarm, mockApp.Cdc,
+	)
 	// CleanUp data
 	cfg, err := config.SafeLoadMaintainConfig(config.DefaultTestConfig)
 	require.Nil(t, err)
@@ -161,6 +169,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.tokenKeeper,
 		&mockApp.dexKeeper,
 		&mockApp.swapKeeper,
+		mockApp.farmKeeper,
 		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
@@ -195,6 +204,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		app.keySupply,
 		app.keyDex,
 		app.keySwap,
+		app.keyFarm,
 	)
 
 	require.NoError(t, mockApp.CompleteSetup(mockApp.keyOrder))

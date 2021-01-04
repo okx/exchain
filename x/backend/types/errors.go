@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -39,6 +40,11 @@ func ErrOrderSideParamMustBuyOrSell(side string) sdk.EnvelopedErr {
 // product is required
 func ErrProductIsRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductIsRequired, "invalid params: product is required")}
+}
+
+// address is required
+func ErrAddressIsRequired() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAddressIsRequired, "bad request: address is required")}
 }
 
 // product does not exist

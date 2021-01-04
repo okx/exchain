@@ -70,6 +70,14 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 
 		case types.QuerySwapWatchlist:
 			res, err = querySwapWatchlist(ctx, req, keeper)
+		case types.QueryFarmPools:
+			res, err = queryFarmPools(ctx, req, keeper)
+		case types.QueryFarmDashboard:
+			res, err = queryFarmDashboard(ctx, req, keeper)
+		case types.QueryFarmMaxApy:
+			res, err = queryFarmMaxApy(ctx, keeper)
+		case types.QueryFarmStakedInfo:
+			res, err = queryFarmStakedInfo(ctx, req, keeper)
 		case types.QueryTickerListV2:
 			if keeper.Config.EnableMktCompute {
 				res, err = queryTickerListV2(ctx, path[1:], req, keeper)

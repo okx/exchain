@@ -2,10 +2,12 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap"
 	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/dex"
 	dextypes "github.com/okex/okexchain/x/dex/types"
+	farmtypes "github.com/okex/okexchain/x/farm/types"
 	"github.com/okex/okexchain/x/order"
 	ordertypes "github.com/okex/okexchain/x/order/types"
 	"github.com/okex/okexchain/x/token"
@@ -51,4 +53,18 @@ type SwapKeeper interface {
 	GetParams(ctx sdk.Context) (params ammswap.Params)
 	GetPoolTokenAmount(ctx sdk.Context, poolTokenName string) sdk.Dec
 	SetObserverKeeper(k ammswaptypes.BackendKeeper)
+}
+
+// FarmKeeper expected farm keeper
+type FarmKeeper interface {
+	GetFarmPools(ctx sdk.Context) (pools farmtypes.FarmPools)
+	GetWhitelist(ctx sdk.Context) (whitelist farmtypes.PoolNameList)
+	GetParams(ctx sdk.Context) (params farmtypes.Params)
+	GetPoolLockedValue(ctx sdk.Context, pool farmtypes.FarmPool) sdk.Dec
+	CalculateAmountYieldedBetween(ctx sdk.Context, pool farmtypes.FarmPool) (farmtypes.FarmPool, sdk.SysCoins)
+	SupplyKeeper() supply.Keeper
+	GetFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddress) (poolNames farmtypes.PoolNameList)
+	GetFarmPool(ctx sdk.Context, poolName string) (pool farmtypes.FarmPool, found bool)
+	GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) (info farmtypes.LockInfo, found bool)
+	GetEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAddress) (farmtypes.Earnings, sdk.Error)
 }

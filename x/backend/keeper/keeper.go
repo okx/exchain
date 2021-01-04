@@ -27,6 +27,7 @@ type Keeper struct {
 	marketKeeper types.MarketKeeper // The reference to the MarketKeeper to get fee details
 	dexKeeper    types.DexKeeper    // The reference to the DexKeeper to get tokenpair
 	swapKeeper   types.SwapKeeper
+	farmKeeper   types.FarmKeeper
 	cdc          *codec.Codec // The wire codec for binary encoding/decoding.
 	Orm          *orm.ORM
 	stopChan     chan struct{}
@@ -38,13 +39,15 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
+func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper,
+	farmKeeper types.FarmKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
 	k := Keeper{
 		OrderKeeper:  orderKeeper,
 		TokenKeeper:  tokenKeeper,
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
 		swapKeeper:   swapKeeper,
+		farmKeeper:   farmKeeper,
 		cdc:          cdc,
 		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
