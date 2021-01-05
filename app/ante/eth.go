@@ -98,7 +98,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	evmDenom := emfd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := emfd.evmKeeper.GetParams(ctx).EvmDenom()
 
 	// fee = gas price * gas limit
 	fee := sdk.NewInt64DecCoin(evmDenom, msgEthTx.Fee().Int64())
@@ -204,7 +204,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		)
 	}
 
-	evmDenom := avd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := avd.evmKeeper.GetParams(ctx).EvmDenom()
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)
@@ -332,7 +332,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
 
-		evmDenom := egcd.evmKeeper.GetParams(ctx).EvmDenom
+		evmDenom := egcd.evmKeeper.GetParams(ctx).EvmDenom()
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec

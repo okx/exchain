@@ -561,9 +561,9 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
-	evmDenom := csdb.GetParams().EvmDenom
+	evmDenom := csdb.GetParams().EvmDenom()
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -668,7 +668,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	csdb.journal.append(suicideChange{
 		account:     &addr,
 		prev:        so.suicided,
-		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision), // int2dec
+		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision), // int2dec
 	})
 
 	so.markSuicided()
@@ -704,7 +704,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
-		evmDenom := csdb.GetParams().EvmDenom
+		evmDenom := csdb.GetParams().EvmDenom()
 		balance := sdk.Coin{
 			Denom:  evmDenom,
 			Amount: ethermintAcc.GetCoins().AmountOf(evmDenom),
@@ -751,8 +751,8 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(),sdk.Precision)) // int2dec
+		evmDenom := csdb.GetParams().EvmDenom()
+		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
 

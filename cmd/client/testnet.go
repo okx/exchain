@@ -6,11 +6,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
-	"github.com/spf13/viper"
 	"net"
 	"os"
 	"path/filepath"
+
+	"github.com/okex/okexchain/x/common"
+	"github.com/spf13/viper"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
@@ -348,7 +349,6 @@ func initGenFiles(
 	var evmGenState evmtypes.GenesisState
 	cdc.MustUnmarshalJSON(appGenState[evmtypes.ModuleName], &evmGenState)
 
-	evmGenState.Params.EvmDenom = coinDenom
 	appGenState[evmtypes.ModuleName] = cdc.MustMarshalJSON(evmGenState)
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)

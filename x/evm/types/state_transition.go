@@ -142,7 +142,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	params := csdb.GetParams()
 
-	gasPrice := ctx.MinGasPrices().AmountOf(params.EvmDenom)
+	gasPrice := ctx.MinGasPrices().AmountOf(params.EvmDenom())
 	if gasPrice.IsNil() {
 		return nil, errors.New("gas price cannot be nil")
 	}

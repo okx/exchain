@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	"gopkg.in/yaml.v2"
@@ -19,7 +20,6 @@ const (
 
 // Parameter keys
 var (
-	ParamStoreKeyEVMDenom     = []byte("EVMDenom")
 	ParamStoreKeyEnableCreate = []byte("EnableCreate")
 	ParamStoreKeyEnableCall   = []byte("EnableCall")
 	ParamStoreKeyExtraEIPs    = []byte("EnableExtraEIPs")
@@ -32,9 +32,6 @@ func ParamKeyTable() params.KeyTable {
 
 // Params defines the EVM module parameters
 type Params struct {
-	// EVMDenom defines the token denomination used for state transitions on the
-	// EVM module.
-	EvmDenom string `json:"evm_denom" yaml:"evm_denom"`
 	// EnableCreate toggles state transitions that use the vm.Create function
 	EnableCreate bool `json:"enable_create" yaml:"enable_create"`
 	// EnableCall toggles state transitions that use the vm.Call function
@@ -44,9 +41,8 @@ type Params struct {
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int) Params {
+func NewParams(enableCreate, enableCall bool, extraEIPs ...int) Params {
 	return Params{
-		EvmDenom:     evmDenom,
 		EnableCreate: enableCreate,
 		EnableCall:   enableCall,
 		ExtraEIPs:    extraEIPs,
@@ -56,11 +52,16 @@ func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int)
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EvmDenom: ethermint.NativeToken,
 		EnableCreate: false,
 		EnableCall:   false,
 		ExtraEIPs:    []int(nil), // TODO: define default values
 	}
+}
+
+// EVMDenom defines the token denomination used for state transitions on the
+// EVM module.
+func (p Params) EvmDenom() string {
+	return ethermint.NativeToken
 }
 
 // String implements the fmt.Stringer interface
@@ -72,7 +73,6 @@ func (p Params) String() string {
 // ParamSetPairs returns the parameter set pairs.
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		params.NewParamSetPair(ParamStoreKeyEVMDenom, &p.EvmDenom, validateEVMDenom),
 		params.NewParamSetPair(ParamStoreKeyEnableCreate, &p.EnableCreate, validateBool),
 		params.NewParamSetPair(ParamStoreKeyEnableCall, &p.EnableCall, validateBool),
 		params.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
@@ -81,7 +81,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 
 // Validate performs basic validation on evm parameters.
 func (p Params) Validate() error {
-	if err := sdk.ValidateDenom(p.EvmDenom); err != nil {
+	if err := sdk.ValidateDenom(p.EvmDenom()); err != nil {
 		return err
 	}
 
@@ -104,7 +104,6 @@ func validateBool(i interface{}) error {
 	}
 	return nil
 }
-
 
 func validateEIPs(i interface{}) error {
 	eips, ok := i.([]int)

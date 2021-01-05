@@ -15,28 +15,13 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams("ara", true, true, 2929, 1884, 1344),
+			NewParams(true, true, 2929, 1884, 1344),
 			false,
 		},
 		{
 			"empty",
 			Params{},
-			true,
-		},
-		{
-			"invalid evm denom",
-			Params{
-				EvmDenom: "@!#!@$!@5^32",
-			},
-			true,
-		},
-		{
-			"invalid eip",
-			Params{
-				EvmDenom:  "stake",
-				ExtraEIPs: []int{1},
-			},
-			true,
+			false, //because of EvmDenom() return a static string `okt`, no `empty` error returned
 		},
 	}
 
@@ -59,4 +44,3 @@ func TestParamsValidatePriv(t *testing.T) {
 	require.Error(t, validateEIPs(""))
 	require.NoError(t, validateEIPs([]int{1884}))
 }
-

@@ -37,7 +37,7 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 				return false
 			}
 
-			evmDenom := k.GetParams(ctx).EvmDenom
+			evmDenom := k.GetParams(ctx).EvmDenom()
 			accountBalance := ethAccount.GetCoins().AmountOf(evmDenom)
 			evmBalance := k.GetBalance(ctx, ethAccount.EthAddress())
 

@@ -2,6 +2,7 @@ package evm
 
 import (
 	"fmt"
+
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,7 +19,7 @@ import (
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	k.SetParams(ctx, data.Params)
 
-	evmDenom := data.Params.EvmDenom
+	evmDenom := data.Params.EvmDenom()
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)

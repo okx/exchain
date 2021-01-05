@@ -218,7 +218,7 @@ func TestValidateGenesis(t *testing.T) {
 				ChainConfig: DefaultChainConfig(),
 				Params:      Params{},
 			},
-			expPass: false,
+			expPass: true, //empty params was accepted by evm
 		},
 		{
 			name: "invalid chain config",
