@@ -23,6 +23,13 @@ func TestParamsValidate(t *testing.T) {
 			Params{},
 			false, //because of EvmDenom() return a static string `okt`, no `empty` error returned
 		},
+		{
+			"invalid eip",
+			Params{
+				ExtraEIPs: []int{1},
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCases {
