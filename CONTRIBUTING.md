@@ -14,7 +14,7 @@
     - [Release Procedure](#release-procedure)
     - [Point Release Procedure](#point-release-procedure)
 
-Thank you for considering making contributions to OKChain and related
+Thank you for considering making contributions to OKExChain and related
 repositories!
 
 Contributing to this repo can mean many things such as participated in
@@ -33,7 +33,7 @@ contributors, the general procedure for contributing has been established:
       to begin work
    4. Follow standard Github best practices: fork the repo, branch from the
       HEAD of `master`, make some commits, and submit a PR to `master`
-      - For core developers working within the OKChain repo, to ensure a clear
+      - For core developers working within the OKExChain repo, to ensure a clear
       ownership of branches, branches must be named with the convention
       `{moniker}/{issue#}-branch-name`
    5. Be sure to submit the PR in `Draft` mode submit your PR early, even if
@@ -92,8 +92,8 @@ If you open a PR on the Cosmos SDK, it is mandatory to update the relevant docum
 ## Forking
 
 Please note that Go requires code to live under absolute paths, which complicates forking.
-While my fork lives at `https://github.com/rigeyrigerige/OKChain`,
-the code should never exist at  `$GOPATH/src/github.com/rigeyrigerige/OKChain`.
+While my fork lives at `https://github.com/rigeyrigerige/okexchain`,
+the code should never exist at  `$GOPATH/src/github.com/rigeyrigerige/okexchain`.
 Instead, we use `git remote` to add the fork as a new remote for the original repo,
 `$GOPATH/src/github.com/okex/okexchain `, and do all the work there.
 
@@ -102,10 +102,10 @@ For instance, to create a fork and work on a branch of it, I would:
   - Create the fork on github, using the fork button.
   - Go to the original repo checked out locally (i.e. `$GOPATH/src/github.com/okex/okexchain`)
   - `git remote rename origin upstream`
-  - `git remote add origin git@github.com:rigeyrigerige/OKChain.git`
+  - `git remote add origin git@github.com:rigeyrigerige/okexchain.git`
 
-Now `origin` refers to my fork and `upstream` refers to the OKChain version.
-So I can `git push -u origin master` to update my fork, and make pull requests to OKChain from there.
+Now `origin` refers to my fork and `upstream` refers to the OKExChain version.
+So I can `git push -u origin master` to update my fork, and make pull requests to OKExChain from there.
 Of course, replace `rigeyrigerige` with your git handle.
 
 To pull in updates from the origin repo, run
