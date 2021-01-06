@@ -47,8 +47,8 @@ func GetCmdCreatePool(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Create a farm pool.
 
 Example:
-$ %s tx farm create-pool pool-airtoken1-eth 10eth xxb --from mykey
-$ %s tx farm create-pool pool-airtoken1-eth_usdk 10ammswap_eth_usdk xxb --from mykey
+$ %s tx farm create-pool pool-eth-xxb 10eth xxb --from mykey
+$ %s tx farm create-pool pool-ammswap_eth_usdk-xxb 10ammswap_eth_usdk xxb --from mykey
 `, version.ClientName, version.ClientName),
 		),
 		Args: cobra.ExactArgs(3),
@@ -79,7 +79,7 @@ func GetCmdDestroyPool(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Destroy a farm pool.
 
 Example:
-$ %s tx farm destroy-pool pool-airtoken1-eth --from mykey
+$ %s tx farm destroy-pool pool-eth-xxb --from mykey
 `, version.ClientName),
 		),
 		Args: cobra.ExactArgs(1),
@@ -103,7 +103,7 @@ func GetCmdProvide(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Provide a number of yield tokens into a pool.
 
 Example:
-$ %s tx farm provide pool-airtoken1-eth 1000xxb 5 10000 --from mykey
+$ %s tx farm provide pool-eth-xxb 1000xxb 5 10000 --from mykey
 `, version.ClientName),
 		),
 		Args: cobra.ExactArgs(4),
@@ -143,7 +143,7 @@ func GetCmdLock(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Lock a number of tokens for yield farming.
 
 Example:
-$ %s tx farm lock pool-airtoken1-eth 5eth --from mykey
+$ %s tx farm lock pool-eth-xxb 5eth --from mykey
 `, version.ClientName),
 		),
 		Args: cobra.ExactArgs(2),
@@ -173,7 +173,7 @@ func GetCmdUnlock(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Unlock a number of tokens.
 
 Example:
-$ %s tx farm unlock pool-airtoken1-eth 1eth --from mykey
+$ %s tx farm unlock pool-eth-xxb 1eth --from mykey
 `, version.ClientName),
 		),
 		Args: cobra.ExactArgs(2),
@@ -238,7 +238,7 @@ Where proposal.json contains:
 {
  "title": "manage white list with a pool name",
  "description": "add a pool name into the white list",
- "pool_name": "pool-airtoken1-eth",
+ "pool_name": "pool-eth-xxb",
  "is_added": true,
  "deposit": [
    {
