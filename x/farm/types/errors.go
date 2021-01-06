@@ -22,18 +22,19 @@ const (
 	CodePoolNotFinished                    uint32 = 66006
 	CodeUnexpectedProposalType             uint32 = 66007
 	CodeInvalidAddress                     uint32 = 66008
-	CodeRemainingAmountNotZero			   uint32 = 66009
+	CodeRemainingAmountNotZero             uint32 = 66009
 	CodeInvalidPoolOwner                   uint32 = 66010
 	CodeInvalidDenom                       uint32 = 66011
 	CodeSendCoinsFromAccountToModuleFailed uint32 = 66012
 	CodeUnknownFarmMsgType                 uint32 = 66013
 	CodeUnknownFarmQueryType               uint32 = 66014
-	CodeInvalidInputAmount				   uint32 = 66015
+	CodeInvalidInputAmount                 uint32 = 66015
 	CodeInsufficientAmount                 uint32 = 66016
 	CodeInvalidStartHeight                 uint32 = 66017
 	CodePoolNameLength                     uint32 = 66018
 	CodeLockAmountBelowMinimum             uint32 = 66019
 	CodeSendCoinsFromModuleToAccountFailed uint32 = 66020
+	CodeSwapTokenPairNotExist              uint32 = 66021
 )
 
 // ErrInvalidInput returns an error when an input parameter is invalid
@@ -81,7 +82,7 @@ func ErrUnexpectedProposalType(proposalType string) sdk.EnvelopedErr {
 
 // ErrNilAddress returns an error when an empty address appears
 func ErrNilAddress() sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeInvalidAddress,  fmt.Sprintf("failed. address is required"))}
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeInvalidAddress, fmt.Sprintf("failed. address is required"))}
 }
 
 // ErrRemainingAmountNotZero returns an error when the remaining amount in yieldedTokenInfo is not zero
@@ -142,4 +143,9 @@ func ErrLockAmountBelowMinimum(minLockAmount, amount sdk.Dec) sdk.EnvelopedErr {
 
 func ErrSendCoinsFromModuleToAccountFailed(content string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeSendCoinsFromModuleToAccountFailed, fmt.Sprintf("failed. send coins from module to account failed %s", content))}
+}
+
+// ErrSwapTokenPairNotExist returns an error when a swap token pair not exists
+func ErrSwapTokenPairNotExist(tokenName string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultParamspace, CodeSwapTokenPairNotExist, fmt.Sprintf("failed. swap token pair %s does not exist", tokenName))}
 }

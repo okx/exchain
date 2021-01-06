@@ -125,13 +125,13 @@ Where proposal.json contains:
   "recipient": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
   "amount": [
     {
-      "denom": %s,
+      "denom": "%s",
       "amount": "10000"
     }
   ],
   "deposit": [
     {
-      "denom": %s,
+      "denom": "%s",
       "amount": "10000"
     }
   ]
