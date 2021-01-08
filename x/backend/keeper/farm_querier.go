@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"math"
 	"sort"
 	"time"
 
@@ -449,7 +450,7 @@ func calculateFarmPoolFinishAt(ctx sdk.Context, keeper Keeper, farmPool farm.Far
 	updatedPool, _ := keeper.farmKeeper.CalculateAmountYieldedBetween(ctx, farmPool)
 	if updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.IsPositive() && updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock.IsPositive() {
 		finishAt = time.Now().Unix() + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.QuoTruncate(
-			updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).Int64()/types.BlockInterval
+			updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).Int64()/int64(math.Pow10(sdk.Precision))/types.BlockInterval
 	}
 	return finishAt
 }
