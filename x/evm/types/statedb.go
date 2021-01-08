@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"sort"
@@ -563,7 +564,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -595,7 +596,7 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 
 // Snapshot returns an identifier for the current revision of the state.
 func (csdb *CommitStateDB) Snapshot() int {
-	id := csdb.nextRevisionID
+	id := csdb.nextRevisionID + csdb.GetRevisionID()
 	csdb.nextRevisionID++
 
 	csdb.validRevisions = append(
@@ -607,6 +608,25 @@ func (csdb *CommitStateDB) Snapshot() int {
 	)
 
 	return id
+}
+
+//GetRevisionID return the revision id from store, return value will be zero if revision id not exists in store
+func (csdb *CommitStateDB) GetRevisionID() int {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixRevisionID)
+	bz := store.Get(RevisionKey()) //if not exist, that means RevisionId was never used, return 0
+	if len(bz) == 0 {
+		return 0
+	}
+
+	revision := binary.BigEndian.Uint64(bz)
+	return int(revision)
+}
+
+//set newest revision id to store
+func (csdb *CommitStateDB) SetRevisionID() {
+	revisionID := csdb.GetRevisionID() + csdb.nextRevisionID
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixRevisionID)
+	store.Set(RevisionKey(), sdk.Uint64ToBigEndian(uint64(revisionID)))
 }
 
 // RevertToSnapshot reverts all state changes made since the given revision.
@@ -668,7 +688,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	csdb.journal.append(suicideChange{
 		account:     &addr,
 		prev:        so.suicided,
-		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision), // int2dec
+		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision), // int2dec
 	})
 
 	so.markSuicided()
@@ -690,6 +710,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	csdb.logSize = 0
 	csdb.preimages = []preimageEntry{}
 	csdb.hashToPreimageIndex = make(map[ethcmn.Hash]int)
+	csdb.nextRevisionID = 0
 
 	csdb.clearJournalAndRefund()
 	return nil
@@ -752,7 +773,7 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
 		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(),sdk.Precision)) // int2dec
+		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
 

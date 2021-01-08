@@ -52,6 +52,9 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		panic(err)
 	}
 
+	//set the `next revision id` to store
+	k.CommitStateDB.SetRevisionID()
+
 	// reset all cache after account data has been committed, that make sure node state consistent
 	if err = k.Reset(ctx, root); err != nil {
 		panic(err)

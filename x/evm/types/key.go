@@ -28,6 +28,7 @@ var (
 	KeyPrefixStorage     = []byte{0x05}
 	KeyPrefixChainConfig = []byte{0x06}
 	KeyPrefixHeightHash  = []byte{0x07}
+	KeyPrefixRevisionID  = []byte{0x08}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -42,6 +43,10 @@ func HeightHashKey(height uint64) []byte {
 // BloomKey defines the store key for a block Bloom
 func BloomKey(height int64) []byte {
 	return sdk.Uint64ToBigEndian(uint64(height))
+}
+
+func RevisionKey() []byte {
+	return []byte(ModuleName + "_RevisionID")
 }
 
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
