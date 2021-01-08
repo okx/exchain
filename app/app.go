@@ -154,7 +154,7 @@ type OKExChainApp struct {
 	UpgradeKeeper  upgrade.Keeper
 	ParamsKeeper   params.Keeper
 	EvidenceKeeper evidence.Keeper
-	EvmKeeper      evm.Keeper
+	EvmKeeper      *evm.Keeper
 	TokenKeeper    token.Keeper
 	DexKeeper      dex.Keeper
 	OrderKeeper    order.Keeper
