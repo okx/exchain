@@ -61,7 +61,7 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 		totalStakedDollars := keeper.farmKeeper.GetPoolLockedValue(ctx, farmPool)
 		// calculate start at and finish at
 		startAt := calculateFarmPoolStartAt(ctx, farmPool)
-		finishAt := calculateFarmPoolFinishAt(ctx, keeper, farmPool)
+		finishAt := calculateFarmPoolFinishAt(ctx, keeper, farmPool, startAt)
 		// calculate pool rate and farm apy
 		yieldedInDay := farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
 		poolRate := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay)
@@ -439,18 +439,24 @@ func calculateAmountToDollars(ctx sdk.Context, keeper Keeper, amount sdk.SysCoin
 }
 
 func calculateFarmPoolStartAt(ctx sdk.Context, farmPool farm.FarmPool) int64 {
-	if farmPool.YieldedTokenInfos[0].StartBlockHeightToYield <= ctx.BlockHeight() {
+	if farmPool.YieldedTokenInfos[0].StartBlockHeightToYield == 0 {
 		return 0
 	}
-	return time.Now().Unix() + (farmPool.YieldedTokenInfos[0].StartBlockHeightToYield-ctx.BlockHeight())/types.BlockInterval
+	return time.Now().Unix() + (farmPool.YieldedTokenInfos[0].StartBlockHeightToYield-ctx.BlockHeight())*types.BlockInterval
 }
 
-func calculateFarmPoolFinishAt(ctx sdk.Context, keeper Keeper, farmPool farm.FarmPool) int64 {
+func calculateFarmPoolFinishAt(ctx sdk.Context, keeper Keeper, farmPool farm.FarmPool, startAt int64) int64 {
 	var finishAt int64
 	updatedPool, _ := keeper.farmKeeper.CalculateAmountYieldedBetween(ctx, farmPool)
 	if updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.IsPositive() && updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock.IsPositive() {
-		finishAt = time.Now().Unix() + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.QuoTruncate(
-			updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).Int64()/int64(math.Pow10(sdk.Precision))/types.BlockInterval
+		if startAt > time.Now().Unix() {
+			finishAt = startAt + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.Quo(
+				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()/int64(math.Pow10(sdk.Precision))*types.BlockInterval
+
+		} else {
+			finishAt = time.Now().Unix() + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.Quo(
+				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()/int64(math.Pow10(sdk.Precision))*types.BlockInterval
+		}
 	}
 	return finishAt
 }
