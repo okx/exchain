@@ -138,6 +138,26 @@ func NewQueryOrderListParams(addr, product, side string, page, perPage int, star
 }
 
 // nolint
+type QueryAccountOrdersParams struct {
+	Address string
+	Page    int
+	PerPage int
+}
+
+// NewQueryAccountOrdersParams creates a new instance of QueryAccountOrdersParams
+func NewQueryAccountOrdersParams(address string, page, perPage int) QueryAccountOrdersParams {
+	if page == 0 && perPage == 0 {
+		page = DefaultPage
+		perPage = DefaultPerPage
+	}
+	return QueryAccountOrdersParams{
+		Address: address,
+		Page:    page,
+		PerPage: perPage,
+	}
+}
+
+// nolint
 type QueryTxListParams struct {
 	Address   string
 	TxType    int64

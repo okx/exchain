@@ -51,6 +51,10 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			res, err = queryFeeDetails(ctx, path[1:], req, keeper)
 		case types.QueryOrderList:
 			res, err = queryOrderList(ctx, path[1:], req, keeper)
+		case types.QueryOrderByID:
+			res, err = queryOrderByID(ctx, path[1:], req, keeper)
+		case types.QueryAccountOrders:
+			res, err = queryAccountOrders(ctx, path[1:], req, keeper)
 		case types.QueryTxList:
 			res, err = queryTxList(ctx, path[1:], req, keeper)
 		case types.QueryCandleList:
@@ -440,6 +444,51 @@ func queryOrderList(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 
+	return bz, nil
+}
+
+func queryOrderByID(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	if len(path) == 0 {
+		return nil, types.ErrOrderIdIsRequired()
+	}
+	orderID := path[0]
+	order := keeper.Orm.GetOrderByID(orderID)
+	response := common.GetBaseResponse(order)
+	bz, err := json.Marshal(response)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+	return bz, nil
+}
+
+func queryAccountOrders(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	var params types.QueryAccountOrdersParams
+	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+	if params.Address != "" {
+		_, err := sdk.AccAddressFromBech32(params.Address)
+		if err != nil {
+			return nil, common.ErrCreateAddrFromBech32Failed(params.Address, err.Error())
+		}
+	}
+	if params.Page < 0 || params.PerPage < 0 {
+		return nil, common.ErrInvalidPaginateParam(params.Page, params.PerPage)
+	}
+
+	offset, limit := common.GetPage(params.Page, params.PerPage)
+	orders, total := keeper.Orm.GetAccountOrders(params.Address, offset, limit)
+	var response *common.ListResponse
+	if len(orders) > 0 {
+		response = common.GetListResponse(total, params.Page, params.PerPage, orders)
+	} else {
+		response = common.GetEmptyListResponse(total, params.Page, params.PerPage)
+	}
+	bz, err := json.Marshal(response)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
 	return bz, nil
 }
 

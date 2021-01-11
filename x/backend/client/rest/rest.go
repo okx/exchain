@@ -24,6 +24,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/deals", dealHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/fees", feeDetailListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/order/list/{openOrClosed}", orderListHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/orders/{orderID}", orderHandler(cliCtx)).Methods("GET")
+	r.HandleFunc("/accounts/{address}/orders", accountOrdersHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
@@ -320,6 +322,58 @@ func orderListHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%s", types.QueryOrderList, openOrClosed), bz)
+		if err != nil {
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func orderHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		orderID := vars["orderID"]
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s/%s", types.QueryOrderByID, orderID), nil)
+		if err != nil {
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func accountOrdersHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		address := vars["address"]
+		pageStr := r.URL.Query().Get("page")
+		perPageStr := r.URL.Query().Get("per_page")
+
+		// validate request
+		if address == "" {
+			common.HandleErrorMsg(w, cliCtx, types.CodeAddressIsRequired, "bad request: address is required")
+			return
+		}
+
+		page, perPage, err := common.Paginate(pageStr, perPageStr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, err.Error())
+			return
+		}
+
+		params := types.NewQueryAccountOrdersParams(address, page, perPage)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryAccountOrders), bz)
 		if err != nil {
 			sdkErr := common.ParseSDKError(err.Error())
 			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
