@@ -138,12 +138,23 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().True(found)
 	suite.Require().Equal(height, int64(8))
 
+	suite.app.EvmKeeper.SetHeightHash(suite.ctx, uint64(8), ethcmn.HexToHash("0x5"))
+	heightHash := suite.app.EvmKeeper.GetHeightHash(suite.ctx, uint64(8))
+	suite.Require().Equal(heightHash, ethcmn.HexToHash("0x5"))
+
 	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().True(found)
 	suite.Require().Equal(bloom, testBloom)
 
+	err := suite.app.EvmKeeper.Finalise(suite.ctx, false)
+	suite.Require().NoError(err, "failed to finalise evm state")
+
+	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
+	suite.Require().NoError(err, "failed to get account storage")
+	suite.Require().Equal(stg[0].Value, ethcmn.HexToHash("0x3"))
+
 	// commit stateDB
-	_, err := suite.app.EvmKeeper.Commit(suite.ctx, false)
+	_, err = suite.app.EvmKeeper.Commit(suite.ctx, false)
 	suite.Require().NoError(err, "failed to commit StateDB")
 
 	// simulate BaseApp EndBlocker commitment
