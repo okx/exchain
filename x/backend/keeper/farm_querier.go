@@ -72,7 +72,7 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 			apy = yieldedDollarsInDay.Quo(totalStakedDollars).MulInt64(types.DaysInYear)
 		}
 		farmApy := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, apy)
-
+		status := getFarmPoolStatus(startAt, finishAt, farmPool)
 		responseList[i] = types.FarmPoolResponse{
 			PoolName:    farmPool.Name,
 			LockSymbol:  farmPool.MinLockAmount.Denom,
@@ -83,6 +83,7 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 			PoolRate:    poolRate,
 			FarmApy:     farmApy,
 			InWhitelist: whitelistMap[farmPool.Name],
+			Status:      status,
 		}
 
 		// update allPoolStaked
@@ -184,7 +185,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 		// calculate start at and finish at
 		startAt := calculateFarmPoolStartAt(ctx, farmPool)
-		finishAt := calculateFarmPoolFinishAt(ctx, keeper, farmPool)
+		finishAt := calculateFarmPoolFinishAt(ctx, keeper, farmPool, startAt)
 		// calculate pool rate and farm apy
 		yieldedInDay := farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
 		poolRate := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay)
@@ -208,6 +209,8 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		}
 		farmDetails := generateFarmDetails(claimed, earning.AmountYielded)
 		totalFarmed := calculateTotalFarmed(claimedInDollars, unclaimedInDollars)
+
+		status := getFarmPoolStatus(startAt, finishAt, farmPool)
 		responseList = append(responseList, types.FarmPoolResponse{
 			PoolName:      farmPool.Name,
 			LockSymbol:    farmPool.MinLockAmount.Denom,
@@ -221,6 +224,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 			InWhitelist:   whitelistMap[poolName],
 			FarmedDetails: farmDetails,
 			TotalFarmed:   totalFarmed,
+			Status:        status,
 		})
 	}
 
@@ -483,4 +487,17 @@ func calculateTotalFarmed(claimed sdk.SysCoins, uncalimed sdk.SysCoins) sdk.Dec 
 		sum = sum.Add(coin.Amount)
 	}
 	return sum
+}
+
+func getFarmPoolStatus(startAt int64, finishAt int64, farmPool farm.FarmPool) types.FarmPoolStatus {
+	if startAt == 0 {
+		return types.FarmPoolCreated
+	}
+	if startAt > time.Now().Unix() && farmPool.YieldedTokenInfos[0].RemainingAmount.IsPositive() {
+		return types.FarmPoolProvided
+	}
+	if time.Now().Unix() > startAt && time.Now().Unix() < finishAt {
+		return types.FarmPoolYielded
+	}
+	return types.FarmPoolFinished
 }

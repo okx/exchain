@@ -4,6 +4,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+type FarmPoolStatus int
+
 const (
 	WhitelistFarmPool = "whitelist"
 	NormalFarmPool    = "normal"
@@ -11,6 +13,12 @@ const (
 	BlockInterval = 3
 	BlocksPerDay  = 24 * 60 * 60 / BlockInterval
 	DaysInYear    = 365
+
+	// farm pool status
+	FarmPoolCreated  FarmPoolStatus = 1
+	FarmPoolProvided FarmPoolStatus = 2
+	FarmPoolYielded  FarmPoolStatus = 3
+	FarmPoolFinished FarmPoolStatus = 4
 )
 
 // nolint
@@ -54,18 +62,19 @@ func NewQueryFarmDashboardParams(address string, page int, perPage int) QueryFar
 }
 
 type FarmPoolResponse struct {
-	PoolName      string       `json:"pool_name"`
-	LockSymbol    string       `json:"lock_symbol"`
-	YieldSymbol   string       `json:"yield_symbol"`
-	TotalStaked   sdk.Dec      `json:"total_staked"`
-	StartAt       int64        `json:"start_at"`
-	FinishAt      int64        `json:"finish_at"`
-	PoolRate      sdk.SysCoins `json:"pool_rate"`
-	FarmApy       sdk.SysCoins `json:"farm_apy"`
-	PoolRatio     sdk.Dec      `json:"pool_ratio"`
-	InWhitelist   bool         `json:"in_whitelist"`
-	TotalFarmed   sdk.Dec      `json:"total_farmed"`
-	FarmedDetails []FarmInfo   `json:"farmed_details"`
+	PoolName      string         `json:"pool_name"`
+	LockSymbol    string         `json:"lock_symbol"`
+	YieldSymbol   string         `json:"yield_symbol"`
+	TotalStaked   sdk.Dec        `json:"total_staked"`
+	StartAt       int64          `json:"start_at"`
+	FinishAt      int64          `json:"finish_at"`
+	PoolRate      sdk.SysCoins   `json:"pool_rate"`
+	FarmApy       sdk.SysCoins   `json:"farm_apy"`
+	PoolRatio     sdk.Dec        `json:"pool_ratio"`
+	InWhitelist   bool           `json:"in_whitelist"`
+	TotalFarmed   sdk.Dec        `json:"total_farmed"`
+	FarmedDetails []FarmInfo     `json:"farmed_details"`
+	Status        FarmPoolStatus `json:"status"`
 }
 
 type FarmInfo struct {
