@@ -353,6 +353,8 @@ func accountOrdersHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		address := vars["address"]
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
+		startStr := r.URL.Query().Get("start")
+		endStr := r.URL.Query().Get("end")
 
 		// validate request
 		if address == "" {
@@ -366,7 +368,22 @@ func accountOrdersHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		params := types.NewQueryAccountOrdersParams(address, page, perPage)
+		var start, end int64
+		if startStr == "" {
+			startStr = "0"
+		}
+		if endStr == "" {
+			endStr = "0"
+		}
+		start, errStart := strconv.ParseInt(startStr, 10, 64)
+		end, errEnd := strconv.ParseInt(endStr, 10, 64)
+		mErr := types.NewErrorsMerged(errStart, errEnd)
+		if mErr != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeStrconvFailed, mErr.Error())
+			return
+		}
+
+		params := types.NewQueryAccountOrdersParams(address, start, end, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())

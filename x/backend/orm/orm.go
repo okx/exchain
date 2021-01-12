@@ -1169,9 +1169,14 @@ func (orm *ORM) GetOrderList(address, product, side string, open bool, offset, l
 	return orders, total
 }
 
-func (orm *ORM) GetAccountOrders(address string, offset, limit int) ([]types.Order, int) {
+func (orm *ORM) GetAccountOrders(address string, startTS, endTS int64, offset, limit int) ([]types.Order, int) {
 	var orders []types.Order
-	query := orm.db.Model(types.Order{}).Where("sender = ? ", address)
+
+	if endTS == 0 {
+		endTS = time.Now().Unix()
+	}
+
+	query := orm.db.Model(types.Order{}).Where("sender = ? AND timestamp >= ? AND timestamp < ?", address, startTS, endTS)
 	var total int
 	query.Count(&total)
 	if offset >= total {

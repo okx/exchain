@@ -478,7 +478,7 @@ func queryAccountOrders(ctx sdk.Context, path []string, req abci.RequestQuery, k
 	}
 
 	offset, limit := common.GetPage(params.Page, params.PerPage)
-	orders, total := keeper.Orm.GetAccountOrders(params.Address, offset, limit)
+	orders, total := keeper.Orm.GetAccountOrders(params.Address, params.Start, params.End, offset, limit)
 	var response *common.ListResponse
 	if len(orders) > 0 {
 		response = common.GetListResponse(total, params.Page, params.PerPage, orders)
