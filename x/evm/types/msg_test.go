@@ -28,9 +28,15 @@ func TestMsgEthermint(t *testing.T) {
 	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 	require.NotNil(t, msg)
 	require.Equal(t, msg.Recipient, &addr)
-
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthermint)
+	require.True(t, bytes.Equal(msg.GetSignBytes(), sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))))
+	require.True(t, msg.GetSigners()[0].Equals(fromAddr))
+	require.Equal(t, *msg.To(), ethcmn.BytesToAddress(addr.Bytes()))
+
+	// clear recipient
+	msg.Recipient = nil
+	require.Nil(t, msg.To())
 }
 
 func TestMsgEthermintValidation(t *testing.T) {
