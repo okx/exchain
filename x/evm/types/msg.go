@@ -65,7 +65,7 @@ func NewMsgEthermint(
 }
 
 func (msg MsgEthermint) String() string {
-	return fmt.Sprintf("nonce=%d gasPrice=%d gasLimit=%d recipient=%s amount=%d data=0x%x from=%s",
+	return fmt.Sprintf("nonce=%d gasPrice=%s gasLimit=%d recipient=%s amount=%s data=0x%x from=%s",
 		msg.AccountNonce, msg.Price, msg.GasLimit, msg.Recipient, msg.Amount, msg.Payload, msg.From)
 }
 
