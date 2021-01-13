@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"math"
 	"sort"
 	"time"
 
@@ -446,20 +445,22 @@ func calculateFarmPoolStartAt(ctx sdk.Context, farmPool farm.FarmPool) int64 {
 	if farmPool.YieldedTokenInfos[0].StartBlockHeightToYield == 0 {
 		return 0
 	}
-	return time.Now().Unix() + (farmPool.YieldedTokenInfos[0].StartBlockHeightToYield-ctx.BlockHeight())*types.BlockInterval
+	blockTime := ctx.BlockTime().Unix()
+	return blockTime + (farmPool.YieldedTokenInfos[0].StartBlockHeightToYield-ctx.BlockHeight())*types.BlockInterval
 }
 
 func calculateFarmPoolFinishAt(ctx sdk.Context, keeper Keeper, farmPool farm.FarmPool, startAt int64) int64 {
 	var finishAt int64
 	updatedPool, _ := keeper.farmKeeper.CalculateAmountYieldedBetween(ctx, farmPool)
 	if updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.IsPositive() && updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock.IsPositive() {
-		if startAt > time.Now().Unix() {
+		blockTime := ctx.BlockTime().Unix()
+		if startAt > blockTime {
 			finishAt = startAt + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.Quo(
-				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()/int64(math.Pow10(sdk.Precision))*types.BlockInterval
+				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()*types.BlockInterval
 
 		} else {
-			finishAt = time.Now().Unix() + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.Quo(
-				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()/int64(math.Pow10(sdk.Precision))*types.BlockInterval
+			finishAt = blockTime + updatedPool.YieldedTokenInfos[0].RemainingAmount.Amount.Quo(
+				updatedPool.YieldedTokenInfos[0].AmountYieldedPerBlock).TruncateInt64()*types.BlockInterval
 		}
 	}
 	return finishAt
