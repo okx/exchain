@@ -3,6 +3,7 @@ package evm_test
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
@@ -114,4 +115,53 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			}
 		})
 	}
+}
+
+func (suite *EvmTestSuite) TestExport() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+
+	initGenesis := types.GenesisState{
+		Params: types.DefaultParams(),
+		Accounts: []types.GenesisAccount{
+			{
+				Address: address.String(),
+				Storage: types.Storage{
+					{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
+				},
+			},
+		},
+		TxsLogs: []types.TransactionLogs{
+			{
+				Hash: common.BytesToHash([]byte("tx_hash")),
+				Logs: []*ethtypes.Log{
+					{
+						Address:     address,
+						Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+						Data:        []byte("data"),
+						BlockNumber: 1,
+						TxHash:      ethcmn.BytesToHash([]byte("tx_hash")),
+						TxIndex:     1,
+						BlockHash:   ethcmn.BytesToHash([]byte("block_hash")),
+						Index:       1,
+						Removed:     false,
+					},
+				},
+			},
+		},
+	}
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
+	suite.app.EvmKeeper.Finalise(suite.ctx, false)
+
+	suite.Require().NotPanics(func() {
+		evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper)
+	})
 }
