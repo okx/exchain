@@ -14,6 +14,8 @@ const (
 	QueryDealList      = "deals"
 	QueryFeeDetails    = "fees"
 	QueryOrderList     = "orders"
+	QueryOrderByID     = "orderByID"
+	QueryAccountOrders = "accountOrders"
 	QueryTxList        = "txs"
 	QueryCandleList    = "candles"
 	QueryTickerList    = "tickers"
