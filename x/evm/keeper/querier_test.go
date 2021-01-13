@@ -2,11 +2,12 @@ package keeper_test
 
 import (
 	"fmt"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"math/big"
 
-	"github.com/okex/okexchain/x/evm/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
