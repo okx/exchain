@@ -161,18 +161,21 @@ func (suite *KeeperTestSuite) TestStateDB_Code() {
 		name     string
 		address  ethcmn.Address
 		code     []byte
+		codeHash ethcmn.Hash
 		malleate func()
 	}{
 		{
 			"no stored code for state object",
 			suite.address,
 			nil,
+			ethcmn.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
 			func() {},
 		},
 		{
 			"existing address",
 			suite.address,
 			[]byte("code"),
+			ethcmn.HexToHash("0x2dc081a8d6d4714c79b5abd2e9b08c3a33b4ef1dcf946ef8b8cf6c495014f47b"),
 			func() {
 				suite.app.EvmKeeper.SetCode(suite.ctx, suite.address, []byte("code"))
 			},
@@ -181,6 +184,7 @@ func (suite *KeeperTestSuite) TestStateDB_Code() {
 			"state object not found",
 			ethcmn.Address{},
 			nil,
+			ethcmn.HexToHash("0"),
 			func() {},
 		},
 	}
@@ -190,6 +194,7 @@ func (suite *KeeperTestSuite) TestStateDB_Code() {
 
 		suite.Require().Equal(tc.code, suite.app.EvmKeeper.GetCode(suite.ctx, tc.address), tc.name)
 		suite.Require().Equal(len(tc.code), suite.app.EvmKeeper.GetCodeSize(suite.ctx, tc.address), tc.name)
+		suite.Require().Equal(tc.codeHash, suite.app.EvmKeeper.GetCodeHash(suite.ctx, tc.address), tc.name)
 	}
 }
 
@@ -558,7 +563,11 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 
 		suite.Require().NotNil(acc, tc.name)
 	}
+
+	err := suite.app.EvmKeeper.IntermediateRoot(suite.ctx, false)
+	suite.Require().Nil(err, "successful get the root hash of the state")
 }
+
 func (suite *KeeperTestSuite) TestCommitStateDB_GetCommittedState() {
 	hash := suite.app.EvmKeeper.GetCommittedState(suite.ctx, ethcmn.Address{}, ethcmn.BytesToHash([]byte("key")))
 	suite.Require().Equal(ethcmn.Hash{}, hash)
@@ -641,4 +650,13 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 		})
 		storage = types.Storage{}
 	}
+}
+
+func (suite *KeeperTestSuite) TestStorageTrie() {
+	for i := 0; i < 5; i++ {
+		suite.app.EvmKeeper.SetState(suite.ctx, suite.address, ethcmn.BytesToHash([]byte(fmt.Sprintf("key%d", i))), ethcmn.BytesToHash([]byte(fmt.Sprintf("value%d", i))))
+	}
+
+	trie := suite.app.EvmKeeper.StorageTrie(suite.ctx, suite.address)
+	suite.Require().Equal(nil, trie, "Ethermint does not use a direct storage trie.")
 }

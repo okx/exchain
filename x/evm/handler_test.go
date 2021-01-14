@@ -530,3 +530,9 @@ func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	suite.Require().Nil(err)
 	suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
 }
+
+func (suite *EvmTestSuite) TestDefaultMsgHandler() {
+	tx := sdk.NewTestMsg()
+	_, sdkErr := suite.handler(suite.ctx, tx)
+	suite.Require().NotNil(sdkErr)
+}

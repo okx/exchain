@@ -52,5 +52,4 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 100)
 	suite.Require().True(found)
 	suite.Require().Equal(int64(10), bloom.Big().Int64())
-
 }
