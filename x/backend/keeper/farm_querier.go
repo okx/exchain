@@ -376,6 +376,12 @@ func queryFarmStakedInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) 
 		poolRatio = accountStaked.Quo(farmPool.TotalValueLocked.Amount)
 	}
 
+	// min lock amount
+	minLockAmount := sdk.ZeroDec()
+	if accountStaked.IsZero() {
+		minLockAmount = farmPool.MinLockAmount.Amount
+	}
+
 	// staked info
 	stakedInfo := types.FarmStakedInfo{
 		PoolName:        farmPool.Name,
@@ -383,6 +389,7 @@ func queryFarmStakedInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) 
 		AccountStaked:   accountStaked,
 		PoolTotalStaked: farmPool.TotalValueLocked.Amount,
 		PoolRatio:       poolRatio,
+		MinLockAmount:   minLockAmount,
 	}
 	// response
 	response := common.GetBaseResponse(stakedInfo)

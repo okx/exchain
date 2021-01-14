@@ -111,4 +111,5 @@ type FarmStakedInfo struct {
 	AccountStaked   sdk.Dec `json:"account_staked"`
 	PoolTotalStaked sdk.Dec `json:"pool_total_staked"`
 	PoolRatio       sdk.Dec `json:"pool_ratio"`
+	MinLockAmount   sdk.Dec `json:"min_lock_amount"`
 }
