@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
 	"strings"
 	"testing"
@@ -213,6 +214,24 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	require.Equal(t, ethcmn.Address{}, signer)
 }
 
+func TestMsgEthereumTx_ChainID(t *testing.T) {
+	chainID := big.NewInt(3)
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
+	err := msg.Sign(chainID, priv.ToECDSA())
+	require.Nil(t, err)
+
+	require.True(t, chainID.Cmp(msg.ChainID()) == 0)
+
+	msg.Data.V = big.NewInt(27)
+	require.NotNil(t, msg.ChainID())
+
+	msg.Data.V = math.MaxBig256
+	expectedChainID := new(big.Int).Div(new(big.Int).Sub(math.MaxBig256, big.NewInt(35)), big.NewInt(2))
+	require.True(t, expectedChainID.Cmp(msg.ChainID()) == 0)
+}
+
 func TestMsgEthereumTxGetter(t *testing.T) {
 	priv, _ := ethsecp256k1.GenerateKey()
 	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
@@ -224,6 +243,13 @@ func TestMsgEthereumTxGetter(t *testing.T) {
 	require.Equal(t, gasLimit, msg.GetGas())
 	require.True(t, big.NewInt(expectedFee).Cmp(msg.Fee()) == 0)
 	require.True(t, big.NewInt(expectCost).Cmp(msg.Cost()) == 0)
+
+	expectedV, expectedR, expectedS := big.NewInt(1), big.NewInt(2), big.NewInt(3)
+	msg.Data.V, msg.Data.R, msg.Data.S = expectedV, expectedR, expectedS
+	v, r, s := msg.RawSignatureValues()
+	require.True(t, expectedV.Cmp(v) == 0)
+	require.True(t, expectedR.Cmp(r) == 0)
+	require.True(t, expectedS.Cmp(s) == 0)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {
