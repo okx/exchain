@@ -113,3 +113,11 @@ type FarmStakedInfo struct {
 	PoolRatio       sdk.Dec `json:"pool_ratio"`
 	MinLockAmount   sdk.Dec `json:"min_lock_amount"`
 }
+
+type ClaimInfo struct {
+	Id        uint64 `gorm:"primaryKey`
+	PoolName  string `grom:"index;"`
+	Address   string `grom:"index;"`
+	Claimed   string `gorm:"type:varchar(256)"`
+	Timestamp int64  `gorm:"index;"`
+}

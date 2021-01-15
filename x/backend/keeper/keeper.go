@@ -77,6 +77,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 
 			// set observer keeper
 			k.swapKeeper.SetObserverKeeper(k)
+			k.farmKeeper.SetObserverKeeper(k)
 		}
 
 	}
@@ -483,4 +484,17 @@ func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPa
 }
 
 func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
+}
+
+func (k Keeper) OnFarmClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins) {
+	if claimedCoins.IsZero() {
+		return
+	}
+	claimInfo := &types.ClaimInfo{
+		Address:   address.String(),
+		PoolName:  poolName,
+		Claimed:   claimedCoins.String(),
+		Timestamp: ctx.BlockTime().Unix(),
+	}
+	k.Cache.AddClaimInfo(claimInfo)
 }

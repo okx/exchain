@@ -788,7 +788,11 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 			SellAmount: "10xxb", BuysAmount: "9.8yyb", Price: "1", Timestamp: 100},
 	}
 
-	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
+	claimInfos := []*types.ClaimInfo{
+		{Address: "addr1", PoolName: "test-pool-name", Claimed: "10xxb", Timestamp: 100},
+	}
+
+	resultMap, e := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos, claimInfos)
 	require.True(t, resultMap != nil && e == nil)
 
 	require.True(t, resultMap != nil && resultMap["newOrders"] == 2000)
@@ -798,7 +802,7 @@ func testORMBatchInsert(t *testing.T, orm *ORM) {
 	require.True(t, resultMap != nil && resultMap["feeDetails"] == 4)
 	require.True(t, resultMap != nil && resultMap["swapInfos"] == 1)
 
-	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos)
+	resultMap2, e2 := orm.BatchInsertOrUpdate(newOrders, updatedOrders, addDeals, mrs, feeDetails, txs, swapInfos, claimInfos)
 	fmt.Printf("%+v\n", e2)
 	require.True(t, resultMap2 != nil, resultMap2)
 	require.True(t, e2 != nil, e2)

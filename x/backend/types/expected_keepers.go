@@ -57,6 +57,7 @@ type SwapKeeper interface {
 
 // FarmKeeper expected farm keeper
 type FarmKeeper interface {
+	SetObserverKeeper(k farmtypes.BackendKeeper)
 	GetFarmPools(ctx sdk.Context) (pools farmtypes.FarmPools)
 	GetWhitelist(ctx sdk.Context) (whitelist farmtypes.PoolNameList)
 	GetParams(ctx sdk.Context) (params farmtypes.Params)

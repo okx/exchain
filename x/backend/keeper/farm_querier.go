@@ -64,12 +64,7 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 		// calculate pool rate and farm apy
 		yieldedInDay := farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
 		poolRate := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay)
-		yieldedDollarsInDay := calculateAmountToDollars(ctx, keeper,
-			sdk.NewDecCoinFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay))
-		apy := sdk.ZeroDec()
-		if !totalStakedDollars.IsZero() {
-			apy = yieldedDollarsInDay.Quo(totalStakedDollars).MulInt64(types.DaysInYear)
-		}
+		apy := calculateFarmApy(ctx, keeper, farmPool, totalStakedDollars)
 		farmApy := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, apy)
 		status := getFarmPoolStatus(startAt, finishAt, farmPool)
 		responseList[i] = types.FarmPoolResponse{
@@ -160,6 +155,19 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	for _, name := range whitelist {
 		whitelistMap[name] = true
 	}
+	claimedMap := make(map[string]sdk.SysCoins)
+	claimInfos := keeper.Orm.GetAccountClaimInfos(queryParams.Address)
+	for _, claimInfo := range claimInfos {
+		claimed, err := sdk.ParseDecCoins(claimInfo.Claimed)
+		if err != nil {
+			continue
+		}
+		if _, ok := claimedMap[claimInfo.PoolName]; ok {
+			claimedMap[claimInfo.PoolName] = claimedMap[claimInfo.PoolName].Add2(claimed)
+		} else {
+			claimedMap[claimInfo.PoolName] = claimed
+		}
+	}
 	// response
 	var responseList types.FarmResponseList
 	hasWhiteList := false
@@ -188,18 +196,13 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		// calculate pool rate and farm apy
 		yieldedInDay := farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
 		poolRate := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay)
-		yieldedDollarsInDay := calculateAmountToDollars(ctx, keeper,
-			sdk.NewDecCoinFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay))
-		apy := sdk.ZeroDec()
-		if !totalStakedDollars.IsZero() {
-			apy = yieldedDollarsInDay.Quo(totalStakedDollars).MulInt64(types.DaysInYear)
-		}
+		apy := calculateFarmApy(ctx, keeper, farmPool, totalStakedDollars)
 		farmApy := sdk.NewDecCoinsFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, apy)
 
 		// calculate total farmed and claim infos
 		var unclaimed sdk.SysCoins
 		var unclaimedInDollars sdk.SysCoins
-		var claimed sdk.SysCoins
+		claimed := claimedMap[poolName]
 		var claimedInDollars sdk.SysCoins
 		earning, err := keeper.farmKeeper.GetEarnings(ctx, farmPool.Name, address)
 		if err == nil {
@@ -291,13 +294,7 @@ func queryFarmMaxApy(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 			continue
 		}
 		totalStakedDollars := keeper.farmKeeper.GetPoolLockedValue(ctx, pool)
-		yieldedInDay := pool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
-		yieldedDollarsInDay := calculateAmountToDollars(ctx, keeper,
-			sdk.NewDecCoinFromDec(pool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay))
-		apy := sdk.ZeroDec()
-		if !totalStakedDollars.IsZero() {
-			apy = yieldedDollarsInDay.Quo(totalStakedDollars).MulInt64(types.DaysInYear)
-		}
+		apy := calculateFarmApy(ctx, keeper, pool, totalStakedDollars)
 		apyMap[poolName] = apy
 		allPoolStaked = allPoolStaked.Add(totalStakedDollars)
 		responseList = append(responseList, types.FarmPoolResponse{
@@ -508,4 +505,33 @@ func getFarmPoolStatus(startAt int64, finishAt int64, farmPool farm.FarmPool) ty
 		return types.FarmPoolYielded
 	}
 	return types.FarmPoolFinished
+}
+
+func calculateFarmApy(ctx sdk.Context, keeper Keeper, farmPool farm.FarmPool, totalStakedDollars sdk.Dec) sdk.Dec {
+	if farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.IsZero() || farmPool.TotalValueLocked.Amount.IsZero() {
+		return sdk.ZeroDec()
+	}
+
+	yieldedInDay := farmPool.YieldedTokenInfos[0].AmountYieldedPerBlock.MulInt64(int64(types.BlocksPerDay))
+	yieldedDollarsInDay := calculateAmountToDollars(ctx, keeper,
+		sdk.NewDecCoinFromDec(farmPool.YieldedTokenInfos[0].RemainingAmount.Denom, yieldedInDay))
+	if !totalStakedDollars.IsZero() && !yieldedDollarsInDay.IsZero() {
+		return yieldedDollarsInDay.Quo(totalStakedDollars).MulInt64(types.DaysInYear)
+	}
+
+	apy := sdk.ZeroDec()
+	tokenPairName := ammswap.GetSwapTokenPairName(farmPool.TotalValueLocked.Denom, farmPool.YieldedTokenInfos[0].RemainingAmount.Denom)
+	swapTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, tokenPairName)
+	if err == nil {
+		if swapTokenPair.QuotePooledCoin.Denom == farmPool.TotalValueLocked.Denom && swapTokenPair.BasePooledCoin.Amount.IsPositive() {
+			yieldedInDay.Mul(swapTokenPair.QuotePooledCoin.Amount.Quo(swapTokenPair.BasePooledCoin.Amount))
+			apy = common.MulAndQuo(yieldedInDay, swapTokenPair.QuotePooledCoin.Amount,
+				swapTokenPair.BasePooledCoin.Amount).Quo(farmPool.TotalValueLocked.Amount).MulInt64(types.DaysInYear)
+		} else if swapTokenPair.QuotePooledCoin.Amount.IsPositive() {
+			apy = common.MulAndQuo(yieldedInDay, swapTokenPair.BasePooledCoin.Amount,
+				swapTokenPair.QuotePooledCoin.Amount).Quo(farmPool.TotalValueLocked.Amount).MulInt64(types.DaysInYear)
+		}
+	}
+
+	return apy
 }
