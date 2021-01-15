@@ -167,6 +167,10 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 	err := rlp.Decode(bytes.NewReader(raw), &msg)
 	require.NoError(t, err)
 	require.Equal(t, expectedMsg.Data, msg.Data)
+
+	// value size exceeds available input length of stream
+	mockStream := rlp.NewStream(bytes.NewReader(raw), 1)
+	require.Error(t, msg.DecodeRLP(mockStream))
 }
 
 func TestMsgEthereumTxSig(t *testing.T) {
