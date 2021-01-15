@@ -112,7 +112,6 @@ func TestMsgEthereumTx(t *testing.T) {
 	require.NotNil(t, msg)
 	require.Nil(t, msg.Data.Recipient)
 	require.Nil(t, msg.To())
-
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {
@@ -175,11 +174,13 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	priv1, _ := ethsecp256k1.GenerateKey()
 	priv2, _ := ethsecp256k1.GenerateKey()
 	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
+	addrSDKAddr1, err := sdk.AccAddressFromHex(strings.Trim(addr1.Hex(), "0x"))
+	require.NoError(t, err)
 	addr2 := ethcmn.BytesToAddress(priv2.PubKey().Address().Bytes())
 
 	// require valid signature passes validation
 	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
-	err := msg.Sign(chainID, priv1.ToECDSA())
+	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
 	signer, err := msg.VerifySig(chainID)
@@ -191,6 +192,10 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(chainID)
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
+
+	signers := msg.GetSigners()
+	require.Equal(t, 1, len(signers))
+	require.True(t, addrSDKAddr1.Equals(signers[0]))
 
 	// zero chainID
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
@@ -206,6 +211,19 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
+}
+
+func TestMsgEthereumTxGetter(t *testing.T) {
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
+	expectedFee := gasPrice * int64(gasLimit)
+	expectCost := expectedFee + amount
+	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
+
+	require.Equal(t, gasLimit, msg.GetGas())
+	require.True(t, big.NewInt(expectedFee).Cmp(msg.Fee()) == 0)
+	require.True(t, big.NewInt(expectCost).Cmp(msg.Cost()) == 0)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {
