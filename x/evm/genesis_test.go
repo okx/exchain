@@ -38,16 +38,104 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 
 	testCases := []struct {
 		name     string
-		malleate func(genesisState *simapp.GenesisState)
+		malleate func()
 		genState types.GenesisState
 		expPanic bool
 	}{
 		{
 			"default",
-			func(genesisState *simapp.GenesisState) {},
+			func() {},
 			types.DefaultGenesisState(),
 			false,
 		},
+		{
+			"valid account",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+						Storage: types.Storage{
+							{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"account not found",
+			func() {},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+			},
+			true,
+		},
+		{
+			"invalid account type",
+			func() {
+				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
+				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset values
+
+			tc.malleate()
+
+			if tc.expPanic {
+				suite.Require().Panics(
+					func() {
+						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
+					},
+				)
+			} else {
+				suite.Require().NotPanics(
+					func() {
+						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
+					},
+				)
+			}
+		})
+	}
+}
+
+func (suite *EvmTestSuite) TestInit() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+
+	testCases := []struct {
+		name     string
+		malleate func(genesisState *simapp.GenesisState)
+		genState types.GenesisState
+		expPanic bool
+	}{
 		{
 			"valid account",
 			func(genesisState *simapp.GenesisState) {
@@ -65,46 +153,12 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
-						//Storage: types.Storage{
-						//	{Key: common.BytesToHash([]byte("key")), Value: common.BytesToHash([]byte("value"))},
-						//},
 					},
 				},
 				TxsLogs:     []types.TransactionLogs{},
 				ChainConfig: types.DefaultChainConfig(),
 			},
 			false,
-		},
-		{
-			"account not found",
-			func(genesisState *simapp.GenesisState) {},
-			types.GenesisState{
-				Params: types.DefaultParams(),
-				Accounts: []types.GenesisAccount{
-					{
-						Address: address.String(),
-					},
-				},
-				TxsLogs:     []types.TransactionLogs{},
-				ChainConfig: types.DefaultChainConfig(),
-			},
-			true,
-		},
-		{
-			"invalid account type",
-			func(genesisState *simapp.GenesisState) {
-				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
-			},
-			types.GenesisState{
-				Params: types.DefaultParams(),
-				Accounts: []types.GenesisAccount{
-					{
-						Address: address.String(),
-					},
-				},
-			},
-			true,
 		},
 	}
 
