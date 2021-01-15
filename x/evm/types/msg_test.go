@@ -112,6 +112,7 @@ func TestMsgEthereumTx(t *testing.T) {
 	require.NotNil(t, msg)
 	require.Nil(t, msg.Data.Recipient)
 	require.Nil(t, msg.To())
+
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {
@@ -169,7 +170,7 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 }
 
 func TestMsgEthereumTxSig(t *testing.T) {
-	chainID := big.NewInt(3)
+	chainID, zeroChainID := big.NewInt(3), big.NewInt(0)
 
 	priv1, _ := ethsecp256k1.GenerateKey()
 	priv2, _ := ethsecp256k1.GenerateKey()
@@ -185,6 +186,17 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
 	require.NotEqual(t, addr2, signer)
+
+	// msg atomic load
+	signer, err = msg.VerifySig(chainID)
+	require.NoError(t, err)
+	require.Equal(t, addr1, signer)
+
+	// zero chainID
+	err = msg.Sign(zeroChainID, priv1.ToECDSA())
+	require.Nil(t, err)
+	_, err = msg.VerifySig(zeroChainID)
+	require.Error(t, err)
 
 	// require invalid chain ID fail validation
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
