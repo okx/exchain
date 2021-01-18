@@ -1,9 +1,15 @@
 package evm_test
 
 import (
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/app"
+	abci "github.com/tendermint/tendermint/abci/types"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
@@ -12,6 +18,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 func (suite *EvmTestSuite) TestExportImport() {
@@ -110,6 +117,87 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.Require().NotPanics(
 					func() {
 						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
+					},
+				)
+			}
+		})
+	}
+}
+
+func (suite *EvmTestSuite) TestInit() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+
+	testCases := []struct {
+		name     string
+		malleate func(genesisState *simapp.GenesisState)
+		genState types.GenesisState
+		expPanic bool
+	}{
+		{
+			"valid account",
+			func(genesisState *simapp.GenesisState) {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				authGenesisState := auth.ExportGenesis(suite.ctx, suite.app.AccountKeeper)
+				(*genesisState)["auth"] = authtypes.ModuleCdc.MustMarshalJSON(authGenesisState)
+
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+				TxsLogs:     []types.TransactionLogs{},
+				ChainConfig: types.DefaultChainConfig(),
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest() // reset values
+
+			db := dbm.NewMemDB()
+			chain := app.NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
+			genesisState := app.NewDefaultGenesisState()
+
+			tc.malleate(&genesisState)
+
+			genesisState["evm"] = types.ModuleCdc.MustMarshalJSON(tc.genState)
+ 			stateBytes, err := codec.MarshalJSONIndent(chain.Codec(), genesisState)
+			if err != nil {
+				panic(err)
+			}
+
+			if tc.expPanic {
+				suite.Require().Panics(
+					func() {
+						chain.InitChain(
+							abci.RequestInitChain{
+								Validators:    []abci.ValidatorUpdate{},
+								AppStateBytes: stateBytes,
+							},
+						)
+					},
+				)
+			} else {
+				suite.Require().NotPanics(
+					func() {
+						chain.InitChain(
+							abci.RequestInitChain{
+								Validators:    []abci.ValidatorUpdate{},
+								AppStateBytes: stateBytes,
+							},
+						)
 					},
 				)
 			}
