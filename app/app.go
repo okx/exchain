@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"io"
 	"os"
 
@@ -154,7 +155,7 @@ type OKExChainApp struct {
 	UpgradeKeeper  upgrade.Keeper
 	ParamsKeeper   params.Keeper
 	EvidenceKeeper evidence.Keeper
-	EvmKeeper      evm.Keeper
+	EvmKeeper      *evm.Keeper
 	TokenKeeper    token.Keeper
 	DexKeeper      dex.Keeper
 	OrderKeeper    order.Keeper
@@ -534,7 +535,7 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	return func(newCtx sdk.Context, msgs []sdk.Msg) error {
 
 		wrongMsgErr := sdk.ErrUnknownRequest(
-			"It is not allowed that a transaction with more than one message contains placeOrder or cancelOrder message")
+			"It is not allowed that a transaction with more than one message contains order or evm message")
 		var err error
 
 		for _, msg := range msgs {
@@ -549,6 +550,14 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 					return wrongMsgErr
 				}
 				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			case evmtypes.MsgEthereumTx:
+				if len(msgs) > 1 {
+					return wrongMsgErr
+				}
+			case evmtypes.MsgEthermint:
+				if len(msgs) > 1 {
+					return wrongMsgErr
+				}
 			}
 
 			if err != nil {
