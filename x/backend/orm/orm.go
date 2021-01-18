@@ -101,6 +101,7 @@ func New(enableLog bool, engineInfo *OrmEngineInfo, logger *log.Logger) (m *ORM,
 	orm.db.AutoMigrate(&types.Order{})
 	orm.db.AutoMigrate(&types.Transaction{})
 	orm.db.AutoMigrate(&types.SwapInfo{})
+	orm.db.AutoMigrate(&types.SwapWhitelist{})
 
 	allKlinesMap := types.GetAllKlineMap()
 	for _, v := range allKlinesMap {
