@@ -169,7 +169,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.tokenKeeper,
 		&mockApp.dexKeeper,
 		&mockApp.swapKeeper,
-		mockApp.farmKeeper,
+		&mockApp.farmKeeper,
 		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
