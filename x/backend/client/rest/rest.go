@@ -29,10 +29,9 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/swap/watchlist", swapWatchlistHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/farm/pools/{whitelistOrNormal}", farmPoolsHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/farm/dashboard/{address}", farmDashboardHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/farm/whitelist/max_apy", farmWhitelistMaxApyHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/farm/pools/{poolName}/staked_info", farmStakedInfoHandler(cliCtx)).Methods("GET")
+
+	// register farm rest
+	registerFarmQueryRoutes(cliCtx, r)
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {

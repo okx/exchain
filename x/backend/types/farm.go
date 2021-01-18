@@ -19,6 +19,12 @@ const (
 	FarmPoolProvided FarmPoolStatus = 2
 	FarmPoolYielded  FarmPoolStatus = 3
 	FarmPoolFinished FarmPoolStatus = 4
+
+	// query key
+	QueryFarmPools      = "farmPools"
+	QueryFarmDashboard  = "farmDashboard"
+	QueryFarmMaxApy     = "farmMaxApy"
+	QueryFarmStakedInfo = "farmStakedInfo"
 )
 
 // nolint
