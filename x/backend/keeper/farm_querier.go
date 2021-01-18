@@ -236,18 +236,20 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		yieldedNativeTokenPerBlock := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
 		whitelistTotalStaked := calculateWhitelistTotalStaked(ctx, keeper, whitelist)
-		for _, poolResponse := range responseList {
-			if !whitelistMap[poolResponse.PoolName] {
-				continue
-			}
-			nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(whitelistTotalStaked)))
-			poolResponse.PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
-			nativeTokenToDollarsPerDay := calculateAmountToDollars(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenRate.Amount))
-			if !poolResponse.TotalStaked.IsZero() {
-				nativeTokenApy := nativeTokenToDollarsPerDay.Quo(poolResponse.TotalStaked).MulInt64(types.DaysInYear)
-				poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
-			} else {
-				poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
+		if whitelistTotalStaked.IsPositive() {
+			for _, poolResponse := range responseList {
+				if !whitelistMap[poolResponse.PoolName] {
+					continue
+				}
+				nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(whitelistTotalStaked)))
+				poolResponse.PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
+				nativeTokenToDollarsPerDay := calculateAmountToDollars(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenRate.Amount))
+				if !poolResponse.TotalStaked.IsZero() {
+					nativeTokenApy := nativeTokenToDollarsPerDay.Quo(poolResponse.TotalStaked).MulInt64(types.DaysInYear)
+					poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
+				} else {
+					poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
+				}
 			}
 		}
 	}
