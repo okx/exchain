@@ -86,8 +86,7 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 
 	// calculate pool rate and apy in whitelist
 	if queryParams.PoolType == types.WhitelistFarmPool && allPoolStaked.IsPositive() && keeper.farmKeeper.GetParams(ctx).YieldNativeToken {
-		moduleAcc := keeper.farmKeeper.SupplyKeeper().GetModuleAccount(ctx, farm.MintFarmingAccount)
-		yieldedNativeTokenPerBlock := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		yieldedNativeTokenPerBlock := keeper.mintKeeper.GetParams(ctx).FarmProportion
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
 		for _, poolResponse := range responseList {
 			nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(allPoolStaked)))
@@ -232,8 +231,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 	// calculate whitelist apy
 	if hasWhiteList && keeper.farmKeeper.GetParams(ctx).YieldNativeToken {
-		moduleAcc := keeper.farmKeeper.SupplyKeeper().GetModuleAccount(ctx, farm.MintFarmingAccount)
-		yieldedNativeTokenPerBlock := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		yieldedNativeTokenPerBlock := keeper.mintKeeper.GetParams(ctx).FarmProportion
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
 		whitelistTotalStaked := calculateWhitelistTotalStaked(ctx, keeper, whitelist)
 		if whitelistTotalStaked.IsPositive() {
@@ -307,8 +305,7 @@ func queryFarmMaxApy(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 
 	// calculate native token farmed apy
 	if allPoolStaked.IsPositive() && keeper.farmKeeper.GetParams(ctx).YieldNativeToken {
-		moduleAcc := keeper.farmKeeper.SupplyKeeper().GetModuleAccount(ctx, farm.MintFarmingAccount)
-		yieldedNativeTokenPerBlock := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		yieldedNativeTokenPerBlock := keeper.mintKeeper.GetParams(ctx).FarmProportion
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
 		for _, poolResponse := range responseList {
 			nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(allPoolStaked)))

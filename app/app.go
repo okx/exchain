@@ -284,9 +284,8 @@ func NewOKExChainApp(
 
 	app.StreamKeeper = stream.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.AccountKeeper, &app.SwapKeeper,
 		&app.FarmKeeper, app.cdc, logger, appConfig, streamMetrics)
-
 	app.BackendKeeper = backend.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.SwapKeeper, &app.FarmKeeper,
-		app.StreamKeeper.GetMarketKeeper(), app.cdc, logger, appConfig.BackendConfig)
+		app.MintKeeper, app.StreamKeeper.GetMarketKeeper(), app.cdc, logger, appConfig.BackendConfig)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(

@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap"
 	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
@@ -68,4 +69,9 @@ type FarmKeeper interface {
 	GetFarmPool(ctx sdk.Context, poolName string) (pool farmtypes.FarmPool, found bool)
 	GetLockInfo(ctx sdk.Context, addr sdk.AccAddress, poolName string) (info farmtypes.LockInfo, found bool)
 	GetEarnings(ctx sdk.Context, poolName string, accAddr sdk.AccAddress) (farmtypes.Earnings, sdk.Error)
+}
+
+// MintKeeper expected mint keeper
+type MintKeeper interface {
+	GetParams(ctx sdk.Context) (params mint.Params)
 }

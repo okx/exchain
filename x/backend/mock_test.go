@@ -171,6 +171,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		&mockApp.swapKeeper,
 		&mockApp.farmKeeper,
 		nil,
+		nil,
 		mockApp.Cdc,
 		mockApp.Logger(),
 		cfg)
