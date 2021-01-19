@@ -403,9 +403,6 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 		return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
 	}
 
-	// whitelist map
-	whitelistMap := getSwapWhitelistMap(keeper)
-
 	var liquidityInfoList []types.SwapLiquidityInfo
 	// coins in account
 	accountCoins := keeper.TokenKeeper.GetCoins(ctx, addr)
@@ -419,10 +416,7 @@ func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper 
 		if queryParams.TokenPairName != "" && queryParams.TokenPairName != tokenPairName {
 			continue
 		}
-		// check if in whitelist
-		if _, found := whitelistMap[tokenPairName]; !found {
-			continue
-		}
+
 		// get swap token pair
 		swapTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, tokenPairName)
 		if err != nil {
