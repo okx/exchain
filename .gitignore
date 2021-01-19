@@ -9,8 +9,8 @@
 .idea
 
 # Build
-okchaind
-okchaincli
+okexchaind
+okexchaincli
 vendor
 build
 tools/

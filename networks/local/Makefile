@@ -1,6 +1,6 @@
-# Makefile for the "gaiadnode" docker image.
+# Makefile for the "okexchainnode" docker image.
 
 all:
-	docker build --tag okchain/node node
+	docker build --tag okexchain/node -f node/Dockerfile ../../../okexchain
 
 .PHONY: all
