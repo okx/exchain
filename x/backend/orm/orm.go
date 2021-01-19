@@ -1170,6 +1170,24 @@ func (orm *ORM) GetOrderList(address, product, side string, open bool, offset, l
 	return orders, total
 }
 
+func (orm *ORM) GetAccountOrders(address string, startTS, endTS int64, offset, limit int) ([]types.Order, int) {
+	var orders []types.Order
+
+	if endTS == 0 {
+		endTS = time.Now().Unix()
+	}
+
+	query := orm.db.Model(types.Order{}).Where("sender = ? AND timestamp >= ? AND timestamp < ?", address, startTS, endTS)
+	var total int
+	query.Count(&total)
+	if offset >= total {
+		return orders, total
+	}
+
+	query.Order("timestamp desc").Offset(offset).Limit(limit).Find(&orders)
+	return orders, total
+}
+
 // AddTransactions insert into transactions, return count
 func (orm *ORM) AddTransactions(transactions []*types.Transaction) (addedCnt int, err error) {
 	orm.singleEntryLock.Lock()

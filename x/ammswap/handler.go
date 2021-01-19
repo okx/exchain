@@ -279,7 +279,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
 	if err != nil {
-		return nil, err
+		return nil, types.ErrNonExistSwapTokenPair(msg.GetSwapTokenPairName())
 	}
 	if swapTokenPairOne.BasePooledCoin.IsZero() || swapTokenPairOne.QuotePooledCoin.IsZero() {
 		return types.ErrIsZeroValue("base pooled coin or quote pooled coin").Result()
@@ -287,7 +287,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
-		return nil, err
+		return nil, types.ErrNonExistSwapTokenPair(msg.GetSwapTokenPairName())
 	}
 	if swapTokenPairTwo.BasePooledCoin.IsZero() || swapTokenPairTwo.QuotePooledCoin.IsZero() {
 		return types.ErrIsZeroValue("base pooled coin or quote pooled coin").Result()

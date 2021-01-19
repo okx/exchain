@@ -7,7 +7,7 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-Version=v0.16.0
+Version=v0.16.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.1
@@ -120,8 +120,8 @@ build-docker-okexchainnode:
 	$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
-localnet-start: build-linux localnet-stop
-	@if ! [ -f build/node0/okexchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okexchaind:Z okexchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 ; fi
+localnet-start: localnet-stop
+	@if ! [ -f build/node0/okexchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okexchaind:Z okexchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
 # Stop testnet

@@ -54,14 +54,14 @@ Where proposal.json contains:
   ],
   "deposit": [
     {
-      "denom": common.NativeToken,
+      "denom": "%s",
       "amount": "10000"
     }
   ],
   "height": "1000"
 }
 `,
-				version.ClientName,
+				version.ClientName, sdk.DefaultBondDenom,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {

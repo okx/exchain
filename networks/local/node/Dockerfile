@@ -1,24 +1,28 @@
-#FROM alpine:3.10.2
-#
-#RUN apk update && \
-#    apk upgrade && \
-#    apk --no-cache add curl jq file
+FROM golang:stretch as build-env
 
-# Changed from Alpine to Ubuntu because the keyring PR is linking to libc
-# Alpine uses muslc instead of libc
+# Install minimum necessary dependencies
+ENV PACKAGES curl make git libc-dev bash gcc
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y $PACKAGES
 
-FROM ubuntu:18.04
+WORKDIR /okexchain
+# Add source files
+COPY . .
 
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get -y install curl jq file
+# build OKExChain
+RUN make build-linux
 
-VOLUME ["/okchaind"]
-WORKDIR /okchaind
+# Final image
+FROM golang:1.14 as final
+
+WORKDIR /okexchaind
+# Copy over binaries from the build-env
+COPY --from=build-env /okexchain/build/okexchaind /usr/bin/okexchaind
+COPY --from=build-env /okexchain/build/okexchaincli /usr/bin/okexchaincli
+COPY --from=build-env /okexchain/networks/local/node/wrapper.sh /usr/bin/wrapper.sh
+
 EXPOSE 26656 26657
 ENTRYPOINT ["/usr/bin/wrapper.sh"]
 CMD ["start"]
 STOPSIGNAL SIGTERM
-
-COPY wrapper.sh /usr/bin/wrapper.sh
 

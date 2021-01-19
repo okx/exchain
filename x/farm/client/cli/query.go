@@ -49,7 +49,7 @@ func GetCmdQueryPool(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details about the kind of coins as reward, the balance and the amount to farm in one block.
 
 Example:
-$ %s query farm pool pool-airtoken1-eth
+$ %s query farm pool pool-eth-xxb
 `,
 				version.ClientName,
 			),
@@ -122,7 +122,7 @@ func GetCmdQueryEarnings(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query available rewards for an address.
 
 Example:
-$ %s query farm rewards pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query farm rewards pool-eth-xxb okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
 `,
 				version.ClientName,
 			),
@@ -293,7 +293,7 @@ func GetCmdQueryAccountsLockedTo(storeName string, cdc *codec.Codec) *cobra.Comm
 			fmt.Sprintf(`Query all the addresses of accounts that have locked coins in a specific pool.
 
 Example:
-$ %s query farm accounts-locked-to pool-airtoken1-eth
+$ %s query farm accounts-locked-to pool-eth-xxb
 `,
 				version.ClientName,
 			),
@@ -329,7 +329,7 @@ func GetCmdQueryLockInfo(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query the lock info of an account's token locking on a specific pool.
 
 Example:
-$ %s query farm lock-info pool-airtoken1-eth okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 
+$ %s query farm lock-info pool-eth-xxb okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 
 `,
 				version.ClientName,
 			),
