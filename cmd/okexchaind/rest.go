@@ -14,12 +14,17 @@ import (
 	"github.com/okex/okexchain/app/types"
 	ammswaprest "github.com/okex/okexchain/x/ammswap/client/rest"
 	backendrest "github.com/okex/okexchain/x/backend/client/rest"
+	dexclient "github.com/okex/okexchain/x/dex/client"
 	dexrest "github.com/okex/okexchain/x/dex/client/rest"
 	dist "github.com/okex/okexchain/x/distribution"
+	distr "github.com/okex/okexchain/x/distribution"
 	distrest "github.com/okex/okexchain/x/distribution/client/rest"
 	evmrest "github.com/okex/okexchain/x/evm/client/rest"
+	farmclient "github.com/okex/okexchain/x/farm/client"
 	farmrest "github.com/okex/okexchain/x/farm/client/rest"
+	govrest "github.com/okex/okexchain/x/gov/client/rest"
 	orderrest "github.com/okex/okexchain/x/order/client/rest"
+	paramsclient "github.com/okex/okexchain/x/params/client"
 	stakingrest "github.com/okex/okexchain/x/staking/client/rest"
 	"github.com/okex/okexchain/x/token"
 	tokensrest "github.com/okex/okexchain/x/token/client/rest"
@@ -55,7 +60,14 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
-
+	govrest.RegisterRoutes(rs.CliCtx, v1Router,
+		[]govrest.ProposalRESTHandler{
+			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
+			distr.ProposalHandler.RESTHandler(rs.CliCtx),
+			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
+			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
+		},
+	)
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
