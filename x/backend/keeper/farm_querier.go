@@ -88,15 +88,16 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 	if queryParams.PoolType == types.WhitelistFarmPool && allPoolStaked.IsPositive() && keeper.farmKeeper.GetParams(ctx).YieldNativeToken {
 		yieldedNativeTokenPerBlock := keeper.mintKeeper.GetParams(ctx).FarmProportion
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
-		for _, poolResponse := range responseList {
+		for i, poolResponse := range responseList {
 			nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(allPoolStaked)))
-			poolResponse.PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
+			responseList[i].PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
+			responseList[i].PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
 			nativeTokenToDollarsPerDay := calculateAmountToDollars(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenRate.Amount))
 			if !poolResponse.TotalStaked.IsZero() {
 				nativeTokenApy := nativeTokenToDollarsPerDay.Quo(poolResponse.TotalStaked).MulInt64(types.DaysInYear)
-				poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
+				responseList[i].FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
 			} else {
-				poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
+				responseList[i].FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
 			}
 		}
 	}
@@ -202,7 +203,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		var unclaimed sdk.SysCoins
 		var unclaimedInDollars sdk.SysCoins
 		claimed := claimedMap[poolName]
-		var claimedInDollars sdk.SysCoins
+		claimedInDollars := calculateSysCoinsInDollars(ctx, keeper, claimed)
 		earning, err := keeper.farmKeeper.GetEarnings(ctx, farmPool.Name, address)
 		if err == nil {
 			unclaimed = earning.AmountYielded
@@ -235,18 +236,18 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		yieldedNativeTokenPerDay := yieldedNativeTokenPerBlock.MulInt64(types.BlocksPerDay)
 		whitelistTotalStaked := calculateWhitelistTotalStaked(ctx, keeper, whitelist)
 		if whitelistTotalStaked.IsPositive() {
-			for _, poolResponse := range responseList {
+			for i, poolResponse := range responseList {
 				if !whitelistMap[poolResponse.PoolName] {
 					continue
 				}
 				nativeTokenRate := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, yieldedNativeTokenPerDay.Mul(poolResponse.TotalStaked.Quo(whitelistTotalStaked)))
-				poolResponse.PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
+				responseList[i].PoolRate = poolResponse.PoolRate.Add(nativeTokenRate)
 				nativeTokenToDollarsPerDay := calculateAmountToDollars(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenRate.Amount))
 				if !poolResponse.TotalStaked.IsZero() {
 					nativeTokenApy := nativeTokenToDollarsPerDay.Quo(poolResponse.TotalStaked).MulInt64(types.DaysInYear)
-					poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
+					responseList[i].FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, nativeTokenApy))
 				} else {
-					poolResponse.FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
+					responseList[i].FarmApy = poolResponse.FarmApy.Add(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec()))
 				}
 			}
 		}
