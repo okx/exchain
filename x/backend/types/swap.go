@@ -14,6 +14,17 @@ const (
 
 	// sort direction
 	SwapWatchlistSortAsc = "asc"
+
+	// query key
+	QuerySwapWatchlist          = "swapWatchlist"
+	QuerySwapTokens             = "swapTokens"
+	QuerySwapTokenPairs         = "swapTokenPairs"
+	QuerySwapLiquidityHistories = "swapLiquidityHistories"
+
+	// swap business type
+	SwapBusinessTypeCreate = "create"
+	SwapBusinessTypeAdd    = "add"
+	SwapBusinessTypeSwap   = "swap"
 )
 
 // nolint
@@ -114,4 +125,77 @@ type SwapInfo struct {
 	BuysAmount       string `gorm:"type:varchar(40)"`
 	Price            string `gorm:"type:varchar(40)"`
 	Timestamp        int64  `gorm:"index;"`
+}
+
+type SwapWhitelist struct {
+	Id            uint64 `gorm:"primaryKey`
+	TokenPairName string `gorm:"index;type:varchar(128)"`
+	Deleted       bool   `gorm:"type:bool"`
+	Timestamp     int64  `gorm:""`
+}
+
+// nolint
+type QuerySwapTokensParams struct {
+	BusinessType  string `json:"business_type"`
+	Address       string `json:"address"`
+	BaseTokenName string `json:"base_token_name"`
+}
+
+// NewQuerySwapTokensParams creates a new instance of QueryDexFeesParams
+func NewQuerySwapTokensParams(businessType string, address string, baseTokenName string) QuerySwapTokensParams {
+	return QuerySwapTokensParams{
+		BusinessType:  businessType,
+		Address:       address,
+		BaseTokenName: baseTokenName,
+	}
+}
+
+type SwapToken struct {
+	Symbol    string  `json:"symbol"`
+	Available sdk.Dec `json:"available"`
+}
+
+func NewSwapToken(symbol string, available sdk.Dec) SwapToken {
+	return SwapToken{
+		Symbol:    symbol,
+		Available: available,
+	}
+}
+
+type SwapTokens []SwapToken
+
+type SwapTokensResponse struct {
+	NativeToken string     `json:"native_token"`
+	Tokens      SwapTokens `json:"tokens"`
+}
+
+func (swapTokens SwapTokens) Len() int { return len(swapTokens) }
+
+func (swapTokens SwapTokens) Less(i, j int) bool {
+	return swapTokens[i].Available.GT(swapTokens[j].Available)
+}
+
+func (swapTokens SwapTokens) Swap(i, j int) {
+	swapTokens[i], swapTokens[j] = swapTokens[j], swapTokens[i]
+}
+
+// nolint
+type QuerySwapLiquidityInfoParams struct {
+	Address       string `json:"address"`
+	TokenPairName string `json:"token_pair_name"`
+}
+
+// NewQuerySwapBuyInfoParams creates a new instance of QuerySwapLiquidityInfoParams
+func NewQuerySwapLiquidityInfoParams(address string, tokenPairName string) QuerySwapLiquidityInfoParams {
+	return QuerySwapLiquidityInfoParams{
+		Address:       address,
+		TokenPairName: tokenPairName,
+	}
+}
+
+type SwapLiquidityInfo struct {
+	BasePooledCoin  sdk.SysCoin `json:"base_pooled_coin"`
+	QuotePooledCoin sdk.SysCoin `json:"quote_pooled_coin"`
+	PoolTokenCoin   sdk.SysCoin `json:"pool_token_coin"`
+	PoolTokenRatio  sdk.Dec     `json:"pool_token_ratio"`
 }
