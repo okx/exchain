@@ -20,6 +20,7 @@ type Keeper struct {
 	tokenKeeper      token.Keeper
 	swapKeeper       swap.Keeper
 	govKeeper        GovKeeper
+	ObserverKeeper   []types.BackendKeeper
 }
 
 // NewKeeper creates a farm keeper
@@ -67,4 +68,14 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // SetGovKeeper sets keeper of gov
 func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
+}
+
+func (k *Keeper) SetObserverKeeper(bk types.BackendKeeper) {
+	k.ObserverKeeper = append(k.ObserverKeeper, bk)
+}
+
+func (k Keeper) OnClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins) {
+	for _, observer := range k.ObserverKeeper {
+		observer.OnFarmClaim(ctx, address, poolName, claimedCoins)
+	}
 }

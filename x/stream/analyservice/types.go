@@ -21,13 +21,14 @@ type DataAnalysis struct {
 	DepthBook     keeper.BookRes          `json:"depth_book"`
 	AccStates     []token.AccountResponse `json:"account_states"`
 	SwapInfos     []*backend.SwapInfo     `json:"swap_infos"`
+	ClaimInfos    []*backend.ClaimInfo    `json:"swap_infos"`
 }
 
 func (d *DataAnalysis) Empty() bool {
 	if len(d.Deals) == 0 && len(d.FeeDetails) == 0 && len(d.NewOrders) == 0 &&
 		len(d.UpdatedOrders) == 0 && len(d.Trans) == 0 && len(d.MatchResults) == 0 &&
 		len(d.DepthBook.Asks) == 0 && len(d.DepthBook.Bids) == 0 && len(d.AccStates) == 0 &&
-		len(d.SwapInfos) == 0 {
+		len(d.SwapInfos) == 0 && len(d.ClaimInfos) == 0 {
 		return true
 	}
 	return false
@@ -59,4 +60,5 @@ func (d *DataAnalysis) SetData(ctx sdk.Context, orderKeeper types.OrderKeeper,
 	d.FeeDetails = tokenKeeper.GetFeeDetailList()
 	d.Trans = cache.GetTransactions()
 	d.SwapInfos = cache.GetSwapInfos()
+	d.ClaimInfos = cache.GetClaimInfos()
 }

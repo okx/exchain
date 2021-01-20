@@ -30,7 +30,12 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
+
+	// register swap rest
 	registerSwapQueryRoutes(cliCtx, r)
+
+	// register farm rest
+	registerFarmQueryRoutes(cliCtx, r)
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {

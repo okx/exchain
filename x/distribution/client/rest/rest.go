@@ -10,10 +10,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
+	comm "github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/distribution/types"
 	"github.com/okex/okexchain/x/gov"
 	govrest "github.com/okex/okexchain/x/gov/client/rest"
-	comm "github.com/okex/okexchain/x/common"
 )
 
 // RegisterRoutes register distribution REST routes.
@@ -46,7 +46,7 @@ func postProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if err := msg.ValidateBasic(); err != nil {
-			comm.HandleErrorMsg(w, cliCtx, comm.CodeValidateBasicFailed, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeInvalidParam, err.Error())
 			return
 		}
 

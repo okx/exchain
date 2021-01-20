@@ -24,15 +24,16 @@ type Keeper struct {
 
 // nolint
 func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, accountKeeper types.AccountKeeper,
-	swapKeeper types.SwapKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
+	swapKeeper types.SwapKeeper, farmKeeper types.FarmKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config, metrics *monitor.StreamMetrics) Keeper {
 	logger = logger.With("module", "stream")
 	k := Keeper{
 		metric: metrics,
-		stream: NewStream(orderKeeper, tokenKeeper, dexKeeper, swapKeeper, cdc, logger, cfg),
+		stream: NewStream(orderKeeper, tokenKeeper, dexKeeper, swapKeeper, farmKeeper, cdc, logger, cfg),
 	}
 	dexKeeper.SetObserverKeeper(k)
 	accountKeeper.SetObserverKeeper(k)
 	swapKeeper.SetObserverKeeper(k)
+	farmKeeper.SetObserverKeeper(k)
 	return k
 }
 
@@ -93,4 +94,17 @@ func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPa
 
 func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
 	k.stream.Cache.AddNewSwapTokenPair(&swapTokenPair)
+}
+
+func (k Keeper) OnFarmClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins) {
+	if claimedCoins.IsZero() {
+		return
+	}
+	claimInfo := &backend.ClaimInfo{
+		Address:   address.String(),
+		PoolName:  poolName,
+		Claimed:   claimedCoins.String(),
+		Timestamp: ctx.BlockTime().Unix(),
+	}
+	k.stream.Cache.AddClaimInfo(claimInfo)
 }
