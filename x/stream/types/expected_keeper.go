@@ -6,6 +6,7 @@ import (
 	"github.com/okex/okexchain/x/ammswap"
 	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
 	"github.com/okex/okexchain/x/dex"
+	farmtypes "github.com/okex/okexchain/x/farm/types"
 	"github.com/okex/okexchain/x/order"
 	"github.com/okex/okexchain/x/token"
 	"github.com/willf/bitset"
@@ -42,4 +43,9 @@ type DexKeeper interface {
 type SwapKeeper interface {
 	SetObserverKeeper(k ammswaptypes.BackendKeeper)
 	GetSwapTokenPairs(ctx sdk.Context) []ammswap.SwapTokenPair
+}
+
+// FarmKeeper expected farm keeper
+type FarmKeeper interface {
+	SetObserverKeeper(k farmtypes.BackendKeeper)
 }

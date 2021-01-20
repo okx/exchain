@@ -27,6 +27,8 @@ type Keeper struct {
 	marketKeeper types.MarketKeeper // The reference to the MarketKeeper to get fee details
 	dexKeeper    types.DexKeeper    // The reference to the DexKeeper to get tokenpair
 	swapKeeper   types.SwapKeeper
+	farmKeeper   types.FarmKeeper
+	mintKeeper   types.MintKeeper
 	cdc          *codec.Codec // The wire codec for binary encoding/decoding.
 	Orm          *orm.ORM
 	stopChan     chan struct{}
@@ -38,13 +40,16 @@ type Keeper struct {
 }
 
 // NewKeeper creates new instances of the nameservice Keeper
-func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
+func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper,
+	farmKeeper types.FarmKeeper, mintKeeper types.MintKeeper, marketKeeper types.MarketKeeper, cdc *codec.Codec, logger log.Logger, cfg *config.Config) Keeper {
 	k := Keeper{
 		OrderKeeper:  orderKeeper,
 		TokenKeeper:  tokenKeeper,
 		marketKeeper: marketKeeper,
 		dexKeeper:    dexKeeper,
 		swapKeeper:   swapKeeper,
+		farmKeeper:   farmKeeper,
+		mintKeeper:   mintKeeper,
 		cdc:          cdc,
 		Logger:       logger.With("module", "backend"),
 		Config:       cfg,
@@ -74,6 +79,7 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 
 			// set observer keeper
 			k.swapKeeper.SetObserverKeeper(k)
+			k.farmKeeper.SetObserverKeeper(k)
 		}
 
 	}
@@ -480,4 +486,17 @@ func (k Keeper) OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPa
 }
 
 func (k Keeper) OnSwapCreateExchange(ctx sdk.Context, swapTokenPair ammswap.SwapTokenPair) {
+}
+
+func (k Keeper) OnFarmClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins) {
+	if claimedCoins.IsZero() {
+		return
+	}
+	claimInfo := &types.ClaimInfo{
+		Address:   address.String(),
+		PoolName:  poolName,
+		Claimed:   claimedCoins.String(),
+		Timestamp: ctx.BlockTime().Unix(),
+	}
+	k.Cache.AddClaimInfo(claimInfo)
 }

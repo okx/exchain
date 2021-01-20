@@ -2,8 +2,9 @@ package rest
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"net/http"
+
+	"github.com/okex/okexchain/x/common"
 
 	"github.com/gorilla/mux"
 
@@ -61,7 +62,7 @@ func queryDelegator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 
 		res, height, err := cliCtx.QueryWithData(endpoint, bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeABCIQueryFails, err.Error())
+			common.HandleErrorMsg(w, cliCtx, uint32(common.ErrorABCIQueryFails), err.Error())
 			return
 		}
 

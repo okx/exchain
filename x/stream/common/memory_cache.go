@@ -16,6 +16,7 @@ type Cache struct {
 	updatedAccAddress map[string]struct{}
 	swapInfos         []*backend.SwapInfo
 	newSwapTokenPairs []*ammswap.SwapTokenPair
+	claimInfos        []*backend.ClaimInfo
 }
 
 func NewCache() *Cache {
@@ -26,6 +27,7 @@ func NewCache() *Cache {
 		updatedAccAddress: make(map[string]struct{}),
 		swapInfos:         make([]*backend.SwapInfo, 0, 2000),
 		newSwapTokenPairs: make([]*ammswap.SwapTokenPair, 0, 2000),
+		claimInfos:        make([]*backend.ClaimInfo, 0, 2000),
 	}
 }
 
@@ -37,6 +39,7 @@ func (c *Cache) Reset() {
 	c.updatedAccAddress = make(map[string]struct{})
 	c.swapInfos = make([]*backend.SwapInfo, 0, 2000)
 	c.newSwapTokenPairs = make([]*ammswap.SwapTokenPair, 0, 2000)
+	c.claimInfos = make([]*backend.ClaimInfo, 0, 2000)
 }
 
 func (c *Cache) AddTransaction(transaction *backend.Transaction) {
@@ -99,4 +102,14 @@ func (c *Cache) AddNewSwapTokenPair(swapTokenPair *ammswap.SwapTokenPair) {
 // nolint
 func (c *Cache) GetNewSwapTokenPairs() []*ammswap.SwapTokenPair {
 	return c.newSwapTokenPairs
+}
+
+// AddClaimInfo appends claimInfo to cache ClaimInfos
+func (c *Cache) AddClaimInfo(claimInfo *backend.ClaimInfo) {
+	c.claimInfos = append(c.claimInfos, claimInfo)
+}
+
+// nolint
+func (c *Cache) GetClaimInfos() []*backend.ClaimInfo {
+	return c.claimInfos
 }

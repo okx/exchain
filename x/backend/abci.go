@@ -23,6 +23,7 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		storeFeeDetails(keeper)
 		storeTransactions(keeper)
 		storeSwapInfos(keeper)
+		storeClaimInfos(keeper)
 		keeper.EmitAllWsItems(ctx)
 		// refresh cache
 		keeper.Flush()
@@ -242,4 +243,16 @@ func GetUpdatedOrdersAtEndBlock(ctx sdk.Context, orderKeeper types.OrderKeeper) 
 		}
 	}
 	return orders
+}
+
+func storeClaimInfos(keeper Keeper) {
+	defer types.PrintStackIfPanic()
+	claimInfos := keeper.Cache.GetClaimInfos()
+	total := len(claimInfos)
+	count, err := keeper.Orm.AddClaimInfo(claimInfos)
+	if err != nil {
+		keeper.Logger.Error(fmt.Sprintf("[backend] Expect to insert %d claimInfos, inserted Count %d, err: %+v", total, count, err))
+	} else {
+		keeper.Logger.Debug(fmt.Sprintf("[backend] Expect to insert %d claimInfos, inserted Count %d", total, count))
+	}
 }
