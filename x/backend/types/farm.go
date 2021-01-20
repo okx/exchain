@@ -27,25 +27,42 @@ const (
 	QueryFarmMaxApy     = "farmMaxApy"
 	QueryFarmStakedInfo = "farmStakedInfo"
 	QueryFarmFirstPool  = "farmFirstPool"
+
+	// farm sort column
+	FarmPoolTotalStaked = "total_staked"
+	FarmPoolApy         = "farm_apy"
+	FarmPoolStartAt     = "start_at"
+	FarmPoolFinishAt    = "finish_at"
+
+	// sort direction
+	FarmSortAsc = "asc"
 )
 
 // nolint
 type QueryFarmPoolsParams struct {
-	PoolType string `json:"pool_type"`
-	Page     int    `json:"page"`
-	PerPage  int    `json:"per_page"`
+	PoolType      string `json:"pool_type"`
+	SortColumn    string `json:"sort_column"`
+	SortDirection string `json:"sort_direction"`
+	Page          int    `json:"page"`
+	PerPage       int    `json:"per_page"`
 }
 
 // NewQueryFarmPoolsParams creates a new instance of QueryFarmPoolsParams
-func NewQueryFarmPoolsParams(poolType string, page int, perPage int) QueryFarmPoolsParams {
+func NewQueryFarmPoolsParams(poolType string, sortColumn string, sortDirection string, page int, perPage int) QueryFarmPoolsParams {
 	if page == 0 && perPage == 0 {
 		page = DefaultPage
 		perPage = DefaultPerPage
 	}
+	// default sort by FarmPoolTotalStaked
+	if sortColumn == "" {
+		sortColumn = FarmPoolTotalStaked
+	}
 	return QueryFarmPoolsParams{
-		PoolType: poolType,
-		Page:     page,
-		PerPage:  perPage,
+		PoolType:      poolType,
+		SortColumn:    sortColumn,
+		SortDirection: sortDirection,
+		Page:          page,
+		PerPage:       perPage,
 	}
 }
 
@@ -85,6 +102,14 @@ type FarmPoolResponse struct {
 	Status        FarmPoolStatus `json:"status"`
 }
 
+func (farmPool FarmPoolResponse) TotalApy() sdk.Dec {
+	sum := sdk.ZeroDec()
+	for _, coin := range farmPool.FarmApy {
+		sum = sum.Add(coin.Amount)
+	}
+	return sum
+}
+
 type FarmInfo struct {
 	Symbol    string  `json:"symbol"`
 	Claimed   sdk.Dec `json:"claimed"`
@@ -92,6 +117,52 @@ type FarmInfo struct {
 }
 
 type FarmResponseList []FarmPoolResponse
+
+type FarmResponseListSorter struct {
+	FarmPoolList  FarmResponseList
+	SortField     string
+	SortDirectory string
+}
+
+func (s *FarmResponseListSorter) Len() int { return len(s.FarmPoolList) }
+
+func (s *FarmResponseListSorter) Less(i, j int) bool {
+	isSortAsc := false
+	if s.SortDirectory == FarmSortAsc {
+		isSortAsc = true
+	}
+
+	switch s.SortField {
+	case FarmPoolTotalStaked:
+		if isSortAsc {
+			return s.FarmPoolList[i].TotalStaked.LT(s.FarmPoolList[j].TotalStaked)
+		} else {
+			return s.FarmPoolList[i].TotalStaked.GT(s.FarmPoolList[j].TotalStaked)
+		}
+	case FarmPoolApy:
+		if isSortAsc {
+			return s.FarmPoolList[i].TotalApy().LT(s.FarmPoolList[j].TotalApy())
+		} else {
+			return s.FarmPoolList[i].TotalApy().GT(s.FarmPoolList[j].TotalApy())
+		}
+	case FarmPoolStartAt:
+		if isSortAsc {
+			return s.FarmPoolList[i].StartAt < s.FarmPoolList[j].StartAt
+		} else {
+			return s.FarmPoolList[i].StartAt > s.FarmPoolList[j].StartAt
+		}
+	case FarmPoolFinishAt:
+		if isSortAsc {
+			return s.FarmPoolList[i].FinishAt < s.FarmPoolList[j].FinishAt
+		} else {
+			return s.FarmPoolList[i].FinishAt > s.FarmPoolList[j].FinishAt
+		}
+	}
+	return false
+}
+func (s *FarmResponseListSorter) Swap(i, j int) {
+	s.FarmPoolList[i], s.FarmPoolList[j] = s.FarmPoolList[j], s.FarmPoolList[i]
+}
 
 func (list FarmResponseList) Len() int { return len(list) }
 func (list FarmResponseList) Less(i, j int) bool {

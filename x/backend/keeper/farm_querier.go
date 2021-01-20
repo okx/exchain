@@ -102,8 +102,16 @@ func queryFarmPools(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]by
 			}
 		}
 	}
-	// sort
-	sort.Sort(responseList)
+	// sort watchlist
+	if queryParams.SortColumn != "" {
+		responseListSorter := &types.FarmResponseListSorter{
+			FarmPoolList:  responseList,
+			SortField:     queryParams.SortColumn,
+			SortDirectory: queryParams.SortDirection,
+		}
+		sort.Sort(responseListSorter)
+		responseList = responseListSorter.FarmPoolList
+	}
 
 	// paginate
 	total := len(responseList)

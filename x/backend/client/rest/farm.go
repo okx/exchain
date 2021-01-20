@@ -29,6 +29,8 @@ func farmPoolsHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		sortColumn := r.URL.Query().Get("sort_column")
+		sortDirection := r.URL.Query().Get("sort_direction")
 		pageStr := r.URL.Query().Get("page")
 		perPageStr := r.URL.Query().Get("per_page")
 
@@ -37,7 +39,7 @@ func farmPoolsHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
 			return
 		}
-		params := types.NewQueryFarmPoolsParams(whitelistOrNormal, page, perPage)
+		params := types.NewQueryFarmPoolsParams(whitelistOrNormal, sortColumn, sortDirection, page, perPage)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
