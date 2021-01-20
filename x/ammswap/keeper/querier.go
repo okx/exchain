@@ -2,8 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"sort"
-	"strings"
 
 	"github.com/okex/okexchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -26,12 +24,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			res, err = querySwapTokenPairs(ctx, path[1:], req, k)
 		case types.QueryRedeemableAssets:
 			res, err = queryRedeemableAssets(ctx, path[1:], req, k)
-		case types.QuerySwapTokens:
-			res, err = querySwapTokens(ctx, req, k)
 		case types.QuerySwapQuoteInfo:
 			res, err = querySwapQuoteInfo(ctx, req, k)
-		case types.QuerySwapLiquidityHistories:
-			res, err = querySwapLiquidityHistories(ctx, req, k)
 		case types.QuerySwapAddLiquidityQuote:
 			res, err = querySwapAddLiquidityQuote(ctx, req, k)
 
@@ -158,133 +152,6 @@ func queryRedeemableAssets(ctx sdk.Context, path []string, req abci.RequestQuery
 	return bz, nil
 }
 
-// querySwapTokens returns tokens which are supported to swap in ammswap module
-func querySwapTokens(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	var queryParams types.QuerySwapTokensParams
-	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
-	if err != nil {
-		return nil, common.ErrUnMarshalJSONFailed(err.Error())
-	}
-
-	if queryParams.BusinessType == "" {
-		return nil, types.ErrIsZeroValue("input business type param")
-	}
-
-	// coins in account
-	var accountCoins sdk.SysCoins
-	if queryParams.Address != "" {
-		addr, err := sdk.AccAddressFromBech32(queryParams.Address)
-		if err != nil {
-			return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
-		}
-		accountCoins = keeper.tokenKeeper.GetCoins(ctx, addr)
-	}
-
-	var tokens []string
-	switch queryParams.BusinessType {
-	case types.SwapBusinessTypeCreate:
-		tokens = getSwapCreateLiquidityTokens(ctx, keeper)
-	case types.SwapBusinessTypeAdd:
-		tokens = getSwapAddLiquidityTokens(ctx, keeper, queryParams.BaseTokenName)
-	case types.SwapBusinessTypeSwap:
-		tokens = getSwapTokens(ctx, keeper, queryParams.BaseTokenName)
-	}
-
-	swapTokensMap := make(map[string]sdk.Dec, len(tokens))
-	for _, token := range tokens {
-		swapTokensMap[token] = sdk.ZeroDec()
-	}
-
-	// update amount by coins in account
-	for _, coin := range accountCoins {
-		if _, ok := swapTokensMap[coin.Denom]; ok {
-			swapTokensMap[coin.Denom] = coin.Amount
-		}
-	}
-
-	// sort token list by account balance
-	var swapTokens types.SwapTokens
-	for symbol, available := range swapTokensMap {
-		swapTokens = append(swapTokens, types.NewSwapToken(symbol, available))
-	}
-	sort.Sort(swapTokens)
-
-	swapTokensResp := types.SwapTokensResponse{
-		NativeToken: common.NativeToken,
-		Tokens:      swapTokens,
-	}
-
-	response := common.GetBaseResponse(swapTokensResp)
-	bz, err := json.Marshal(response)
-	if err != nil {
-		return nil, common.ErrMarshalJSONFailed(err.Error())
-	}
-	return bz, nil
-}
-
-func getSwapCreateLiquidityTokens(ctx sdk.Context, keeper Keeper) []string {
-	var tokens []string
-	allTokens := keeper.tokenKeeper.GetTokensInfo(ctx)
-	for _, token := range allTokens {
-		if !strings.HasPrefix(token.Symbol, types.PoolTokenPrefix) {
-			tokens = append(tokens, token.Symbol)
-		}
-	}
-	return tokens
-}
-
-func getSwapAddLiquidityTokens(ctx sdk.Context, keeper Keeper, baseTokenName string) []string {
-	var tokens []string
-
-	// all swap token pairs
-	swapTokenPairs := keeper.GetSwapTokenPairs(ctx)
-	for _, swapTokenPair := range swapTokenPairs {
-		if baseTokenName == "" {
-			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
-			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
-		} else if baseTokenName == swapTokenPair.BasePooledCoin.Denom {
-			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
-		} else if baseTokenName == swapTokenPair.QuotePooledCoin.Denom {
-			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
-		}
-	}
-	return tokens
-}
-
-func getSwapTokens(ctx sdk.Context, keeper Keeper, baseTokenName string) []string {
-	var tokens []string
-	// swap by route
-	hasSwapRoute := false
-	if baseTokenName != "" {
-		nativePairName := types.GetSwapTokenPairName(baseTokenName, common.NativeToken)
-		if _, err := keeper.GetSwapTokenPair(ctx, nativePairName); err == nil {
-			hasSwapRoute = true
-		}
-	}
-	// all swap token pairs
-	swapTokenPairs := keeper.GetSwapTokenPairs(ctx)
-	for _, swapTokenPair := range swapTokenPairs {
-		if baseTokenName == "" {
-			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
-			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
-		} else if baseTokenName == swapTokenPair.BasePooledCoin.Denom {
-			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
-		} else if baseTokenName == swapTokenPair.QuotePooledCoin.Denom {
-			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
-		}
-
-		// swap by route
-		if hasSwapRoute {
-			if swapTokenPair.BasePooledCoin.Denom == common.NativeToken && swapTokenPair.QuotePooledCoin.Denom != baseTokenName {
-				tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
-			} else if swapTokenPair.QuotePooledCoin.Denom == common.NativeToken && swapTokenPair.BasePooledCoin.Denom != baseTokenName {
-				tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
-			}
-		}
-	}
-	return tokens
-}
-
 // querySwapQuoteInfo returns infos when swap token
 func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	var queryParams types.QuerySwapBuyInfoParams
@@ -398,66 +265,6 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	}
 
 	response := common.GetBaseResponse(swapBuyInfo)
-	bz, err := json.Marshal(response)
-	if err != nil {
-		return nil, common.ErrMarshalJSONFailed(err.Error())
-	}
-	return bz, nil
-
-}
-
-// querySwapLiquidityHistories returns liquidity info of the address
-func querySwapLiquidityHistories(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
-	var queryParams types.QuerySwapLiquidityInfoParams
-	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
-	if err != nil {
-		return nil, common.ErrUnMarshalJSONFailed(err.Error())
-	}
-	// check params
-	if queryParams.Address == "" {
-		return nil, types.ErrQueryParamsAddressIsEmpty()
-	}
-
-	// coins in account
-	addr, err := sdk.AccAddressFromBech32(queryParams.Address)
-	if err != nil {
-		return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
-	}
-
-	var liquidityInfoList []types.SwapLiquidityInfo
-	// coins in account
-	accountCoins := keeper.tokenKeeper.GetCoins(ctx, addr)
-	for _, coin := range accountCoins {
-		// check if the token is pool token
-		if !strings.HasPrefix(coin.Denom, types.PoolTokenPrefix) {
-			continue
-		}
-		// check token pair name
-		tokenPairName := coin.Denom[len(types.PoolTokenPrefix):]
-		if queryParams.TokenPairName != "" && queryParams.TokenPairName != tokenPairName {
-			continue
-		}
-		// get swap token pair
-		swapTokenPair, err := keeper.GetSwapTokenPair(ctx, tokenPairName)
-		if err != nil {
-			continue
-		}
-		poolTokenAmount := keeper.GetPoolTokenAmount(ctx, swapTokenPair.PoolTokenName)
-		baseDec := common.MulAndQuo(swapTokenPair.BasePooledCoin.Amount, coin.Amount, poolTokenAmount)
-		quoteDec := common.MulAndQuo(swapTokenPair.QuotePooledCoin.Amount, coin.Amount, poolTokenAmount)
-		baseAmount := sdk.NewDecCoinFromDec(swapTokenPair.BasePooledCoin.Denom, baseDec)
-		quoteAmount := sdk.NewDecCoinFromDec(swapTokenPair.QuotePooledCoin.Denom, quoteDec)
-
-		liquidityInfo := types.SwapLiquidityInfo{
-			BasePooledCoin:  baseAmount,
-			QuotePooledCoin: quoteAmount,
-			PoolTokenCoin:   coin,
-			PoolTokenRatio:  coin.Amount.Quo(poolTokenAmount),
-		}
-		liquidityInfoList = append(liquidityInfoList, liquidityInfo)
-	}
-
-	response := common.GetBaseResponse(liquidityInfoList)
 	bz, err := json.Marshal(response)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
