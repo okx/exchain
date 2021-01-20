@@ -212,6 +212,25 @@ func TestChainConfigValidate(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"invalid hash",
+			ChainConfig{
+				HomesteadBlock:      sdk.OneInt(),
+				DAOForkBlock:        sdk.OneInt(),
+				EIP150Block:         sdk.OneInt(),
+				EIP150Hash:          "0x1234567890abcdef",
+				EIP155Block:         sdk.OneInt(),
+				EIP158Block:         sdk.OneInt(),
+				ByzantiumBlock:      sdk.OneInt(),
+				ConstantinopleBlock: sdk.OneInt(),
+				PetersburgBlock:     sdk.OneInt(),
+				IstanbulBlock:       sdk.OneInt(),
+				MuirGlacierBlock:    sdk.OneInt(),
+				YoloV2Block:         sdk.OneInt(),
+				EWASMBlock:          sdk.OneInt(),
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCases {
