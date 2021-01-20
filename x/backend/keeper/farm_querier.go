@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"time"
 
@@ -534,4 +535,76 @@ func calculateFarmApy(ctx sdk.Context, keeper Keeper, farmPool farm.FarmPool, to
 	}
 
 	return apy
+}
+
+// queryFarmFirstPool returns farm first pool info
+func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	var queryParams types.QueryFarmFirstPoolParams
+	err := keeper.cdc.UnmarshalJSON(req.Data, &queryParams)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	// invalid params
+	if queryParams.ClaimHeight < ctx.BlockHeight() {
+		return nil, common.ErrInvalidParam(fmt.Sprintf("claim_height %d is less than current height %d",
+			queryParams.ClaimHeight, ctx.BlockHeight()))
+	}
+	timeNow := ctx.BlockTime().Unix()
+	if timeNow < queryParams.StakeAt {
+		return nil, common.ErrInvalidParam(fmt.Sprintf("time now %d is less than state_at %d",
+			timeNow, queryParams.StakeAt))
+	}
+
+	// query farm pool
+	farmPool, found := keeper.farmKeeper.GetFarmPool(ctx, queryParams.PoolName)
+	if !found {
+		return nil, farm.ErrNoFarmPoolFound(queryParams.PoolName)
+	}
+
+	moduleAcc := keeper.farmKeeper.SupplyKeeper().GetModuleAccount(ctx, farm.MintFarmingAccount)
+	farmAmount := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+	farmAmountDollars := calculateAmountToDollars(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, farmAmount))
+	totalStaked := keeper.farmKeeper.GetPoolLockedValue(ctx, farmPool)
+	farmApy := sdk.ZeroDec()
+	if !totalStaked.IsZero() {
+		farmApy = farmAmountDollars.Quo(totalStaked).QuoInt64(timeNow - queryParams.StakeAt).MulInt64(types.SecondsInADay).MulInt64(types.DaysInYear)
+	}
+
+	claimAt := ctx.BlockTime().Unix() + (queryParams.ClaimHeight-ctx.BlockHeight())*types.BlockInterval
+
+	firstPool := types.FarmFirstPool{
+		FarmApy:     farmApy,
+		FarmAmount:  farmAmount,
+		TotalStaked: totalStaked,
+		ClaimAt:     claimAt,
+	}
+
+	if queryParams.Address != "" {
+		address, err := sdk.AccAddressFromBech32(queryParams.Address)
+		if err != nil {
+			return nil, common.ErrCreateAddrFromBech32Failed(queryParams.Address, err.Error())
+		}
+		// query balance
+		accountCoins := keeper.TokenKeeper.GetCoins(ctx, address)
+		firstPool.Balance = accountCoins.AmountOf(farmPool.MinLockAmount.Denom)
+
+		// locked info
+		if lockedInfo, found := keeper.farmKeeper.GetLockInfo(ctx, address, farmPool.Name); found {
+			firstPool.AccountStaked = lockedInfo.Amount.Amount
+		}
+
+		// estimated farm
+		if !farmPool.TotalValueLocked.IsZero() {
+			firstPool.EstimatedFarm = farmAmount.Mul(firstPool.AccountStaked.Quo(farmPool.TotalValueLocked.Amount))
+		}
+	}
+
+	// response
+	response := common.GetBaseResponse(firstPool)
+	bz, err := json.Marshal(response)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+	return bz, nil
 }

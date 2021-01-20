@@ -54,6 +54,10 @@ func ParseSDKError(errMsg string) SDKError {
 	}
 }
 
+func ErrInvalidParam(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidParam, msg)}
+}
+
 // invalid paginate param
 func ErrInvalidPaginateParam(page int, perPage int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidPaginateParam, fmt.Sprintf("negative page %d or per_page %d is invalid", page, perPage))}

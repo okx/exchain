@@ -10,9 +10,10 @@ const (
 	WhitelistFarmPool = "whitelist"
 	NormalFarmPool    = "normal"
 
-	BlockInterval = 3
-	BlocksPerDay  = 24 * 60 * 60 / BlockInterval
+	SecondsInDay  = 24 * 60 * 60
 	DaysInYear    = 365
+	BlockInterval = 3
+	BlocksPerDay  = SecondsInADay / BlockInterval
 
 	// farm pool status
 	FarmPoolCreated  FarmPoolStatus = 1
@@ -25,6 +26,7 @@ const (
 	QueryFarmDashboard  = "farmDashboard"
 	QueryFarmMaxApy     = "farmMaxApy"
 	QueryFarmStakedInfo = "farmStakedInfo"
+	QueryFarmFirstPool  = "farmFirstPool"
 )
 
 // nolint
@@ -126,4 +128,32 @@ type ClaimInfo struct {
 	Address   string `grom:"index;"`
 	Claimed   string `gorm:"type:varchar(256)"`
 	Timestamp int64  `gorm:"index;"`
+}
+
+// nolint
+type QueryFarmFirstPoolParams struct {
+	PoolName    string `json:"pool_name"`
+	Address     string `json:"address"`
+	StakeAt     int64  `json:"stake_at"`
+	ClaimHeight int64  `json:"claim_height"`
+}
+
+// NewQueryFarmFirstPoolParams creates a new instance of QueryFarmFirstPoolParams
+func NewQueryFarmFirstPoolParams(poolName string, address string, stakeAt int64, claimHeight int64) QueryFarmFirstPoolParams {
+	return QueryFarmFirstPoolParams{
+		PoolName:    poolName,
+		Address:     address,
+		StakeAt:     stakeAt,
+		ClaimHeight: claimHeight,
+	}
+}
+
+type FarmFirstPool struct {
+	FarmApy       sdk.Dec `json:"farm_apy"`
+	FarmAmount    sdk.Dec `json:"farm_amount"`
+	TotalStaked   sdk.Dec `json:"total_staked"`
+	ClaimAt       int64   `json:"claim_at"`
+	AccountStaked sdk.Dec `json:"account_staked"`
+	EstimatedFarm sdk.Dec `json:"estimated_farm"`
+	Balance       sdk.Dec `json:"balance"`
 }
