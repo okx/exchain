@@ -195,7 +195,8 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		if lockInfo, found := keeper.farmKeeper.GetLockInfo(ctx, address, poolName); found {
 			if !farmPool.TotalValueLocked.Amount.IsZero() {
 				poolRatio = lockInfo.Amount.Amount.Quo(farmPool.TotalValueLocked.Amount)
-				userStaked = poolRatio.Mul(totalStakedDollars)
+				//userStaked = poolRatio.Mul(totalStakedDollars)
+				userStaked = lockInfo.Amount.Amount
 			}
 		}
 
@@ -582,10 +583,11 @@ func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	claimAt := ctx.BlockTime().Unix() + (queryParams.ClaimHeight-ctx.BlockHeight())*types.BlockInterval
 
 	firstPool := types.FarmFirstPool{
-		FarmApy:     farmApy,
-		FarmAmount:  farmAmount,
-		TotalStaked: totalStaked,
-		ClaimAt:     claimAt,
+		FarmApy:       farmApy,
+		FarmAmount:    farmAmount,
+		TotalStaked:   totalStaked,
+		ClaimAt:       claimAt,
+		AccountStaked: sdk.ZeroDec(),
 	}
 
 	if queryParams.Address != "" {

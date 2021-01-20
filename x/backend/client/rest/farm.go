@@ -134,7 +134,6 @@ func farmStakedInfoHandler(cliCtx context.CLIContext) http.HandlerFunc {
 
 func firstPoolHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("*********************")
 		address := r.URL.Query().Get("address")
 		poolName := r.URL.Query().Get("pool_name")
 		stakeAtStr := r.URL.Query().Get("stake_at")
