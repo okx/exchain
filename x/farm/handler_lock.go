@@ -17,8 +17,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 	}
 
 	// 1.2. check min lock amount
-	found = k.HasLockInfo(ctx, msg.Address, msg.PoolName)
-	if !found && msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
+	hasLocked := k.HasLockInfo(ctx, msg.Address, msg.PoolName)
+	if !hasLocked && msg.Amount.Amount.LT(pool.MinLockAmount.Amount) {
 		return types.ErrLockAmountBelowMinimum(pool.MinLockAmount.Amount, msg.Amount.Amount).Result()
 	}
 
@@ -26,7 +26,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 	updatedPool, yieldedTokens := k.CalculateAmountYieldedBetween(ctx, pool)
 
 	// 3. Lock info
-	if found {
+	var rewards sdk.SysCoins
+	if hasLocked {
 		// If it exists, withdraw money
 		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
@@ -36,6 +37,7 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 			panic("should not happen")
 		}
 		updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
+
 	} else {
 		// If it doesn't exist, only increase period
 		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens)
@@ -62,6 +64,11 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 	// 6. Update farm pool
 	updatedPool.TotalValueLocked = updatedPool.TotalValueLocked.Add(msg.Amount)
 	k.SetFarmPool(ctx, updatedPool)
+
+	// 7. notify backend
+	if hasLocked {
+		k.OnClaim(ctx, msg.Address, pool.Name, rewards)
+	}
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeLock,
@@ -124,6 +131,9 @@ func handleMsgUnlock(ctx sdk.Context, k keeper.Keeper, msg types.MsgUnlock) (*sd
 	}
 	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
 	k.SetFarmPool(ctx, updatedPool)
+
+	// 7. notify backend
+	k.OnClaim(ctx, msg.Address, pool.Name, rewards)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeUnlock,

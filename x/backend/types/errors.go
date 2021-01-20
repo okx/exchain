@@ -43,6 +43,11 @@ func ErrProductIsRequired() sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductIsRequired, "invalid params: product is required")}
 }
 
+// address is required
+func ErrAddressIsRequired() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAddressIsRequired, "bad request: address is required")}
+}
+
 // product does not exist
 func ErrProductDoesNotExist(product string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeProductDoesNotExist, fmt.Sprintf("product %s does not exist", product))}

@@ -11,7 +11,8 @@ type Cache struct {
 	LatestTicker map[string]*types.Ticker
 
 	// swap infos, flush at EndBlocker
-	swapInfos []*types.SwapInfo
+	swapInfos  []*types.SwapInfo
+	claimInfos []*types.ClaimInfo
 }
 
 // NewCache return  cache pointer address, called at NewKeeper
@@ -20,6 +21,7 @@ func NewCache() *Cache {
 		Transactions: make([]*types.Transaction, 0, 2000),
 		LatestTicker: make(map[string]*types.Ticker),
 		swapInfos:    make([]*types.SwapInfo, 0, 2000),
+		claimInfos:   make([]*types.ClaimInfo, 0, 2000),
 	}
 }
 
@@ -27,6 +29,7 @@ func NewCache() *Cache {
 func (c *Cache) Flush() {
 	c.Transactions = make([]*types.Transaction, 0, 2000)
 	c.swapInfos = make([]*types.SwapInfo, 0, 2000)
+	c.claimInfos = make([]*types.ClaimInfo, 0, 2000)
 }
 
 // AddTransaction append transaction to cache Transactions
@@ -47,4 +50,14 @@ func (c *Cache) AddSwapInfo(swapInfo *types.SwapInfo) {
 // nolint
 func (c *Cache) GetSwapInfos() []*types.SwapInfo {
 	return c.swapInfos
+}
+
+// AddClaimInfo appends claimInfo to cache ClaimInfos
+func (c *Cache) AddClaimInfo(claimInfo *types.ClaimInfo) {
+	c.claimInfos = append(c.claimInfos, claimInfo)
+}
+
+// nolint
+func (c *Cache) GetClaimInfos() []*types.ClaimInfo {
+	return c.claimInfos
 }

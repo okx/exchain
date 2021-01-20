@@ -12,3 +12,7 @@ type ParamSubspace interface {
 	GetParamSet(ctx sdk.Context, ps params.ParamSet)
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
 }
+
+type BackendKeeper interface {
+	OnFarmClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins)
+}
