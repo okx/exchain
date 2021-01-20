@@ -14,15 +14,13 @@ const (
 	QuerierRoute = ModuleName
 
 	// QuerySwapTokenPair query endpoints supported by the swap Querier
-	QuerySwapTokenPair          = "swapTokenPair"
-	QuerySwapTokenPairs         = "swapTokenPairs"
-	QueryRedeemableAssets       = "queryRedeemableAssets"
-	QueryParams                 = "params"
-	QueryBuyAmount              = "buy"
-	QuerySwapTokens             = "swapTokens"
-	QuerySwapQuoteInfo          = "swapQuoteInfo"
-	QuerySwapLiquidityHistories = "swapLiquidityHistories"
-	QuerySwapAddLiquidityQuote  = "swapAddLiquidityQuote"
+	QuerySwapTokenPair         = "swapTokenPair"
+	QuerySwapTokenPairs        = "swapTokenPairs"
+	QueryRedeemableAssets      = "queryRedeemableAssets"
+	QueryParams                = "params"
+	QueryBuyAmount             = "buy"
+	QuerySwapQuoteInfo         = "swapQuoteInfo"
+	QuerySwapAddLiquidityQuote = "swapAddLiquidityQuote"
 )
 
 var (
