@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"time"
 
@@ -178,7 +177,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		}
 	}
 	// response
-	var responseList types.FarmResponseList
+	responseList := types.FarmResponseList{}
 	hasWhiteList := false
 	for _, poolName := range stakedPools {
 		farmPool, found := keeper.farmKeeper.GetFarmPool(ctx, poolName)
@@ -191,12 +190,13 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		// calculate staked in dollars and pool ratio
 		poolRatio := sdk.ZeroDec()
 		userStaked := sdk.ZeroDec()
+		userStakedDollars := sdk.ZeroDec()
 		totalStakedDollars := keeper.farmKeeper.GetPoolLockedValue(ctx, farmPool)
 		if lockInfo, found := keeper.farmKeeper.GetLockInfo(ctx, address, poolName); found {
 			if !farmPool.TotalValueLocked.Amount.IsZero() {
 				poolRatio = lockInfo.Amount.Amount.Quo(farmPool.TotalValueLocked.Amount)
-				//userStaked = poolRatio.Mul(totalStakedDollars)
 				userStaked = lockInfo.Amount.Amount
+				userStakedDollars = poolRatio.Mul(totalStakedDollars)
 			}
 		}
 
@@ -219,7 +219,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 			unclaimed = earning.AmountYielded
 			unclaimedInDollars = calculateSysCoinsInDollars(ctx, keeper, unclaimed)
 		}
-		farmDetails := generateFarmDetails(claimed, earning.AmountYielded)
+		farmDetails := generateFarmDetails(claimed, unclaimed)
 		totalFarmed := calculateTotalFarmed(claimedInDollars, unclaimedInDollars)
 
 		status := getFarmPoolStatus(startAt, finishAt, farmPool)
@@ -227,7 +227,8 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 			PoolName:      farmPool.Name,
 			LockSymbol:    farmPool.MinLockAmount.Denom,
 			YieldSymbol:   farmPool.YieldedTokenInfos[0].RemainingAmount.Denom,
-			TotalStaked:   userStaked,
+			TotalStaked:   userStakedDollars,
+			UserStaked:    userStaked,
 			PoolRatio:     poolRatio,
 			StartAt:       startAt,
 			FinishAt:      finishAt,
@@ -408,17 +409,20 @@ func queryFarmStakedInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) 
 }
 
 func generateFarmDetails(claimed sdk.SysCoins, unClaimed sdk.SysCoins) []types.FarmInfo {
-	var farmDetails []types.FarmInfo
-	claimedMap := make(map[string]sdk.Dec, len(claimed))
+	demonMap := make(map[string]struct{})
 	for _, coin := range claimed {
-		claimedMap[coin.Denom] = coin.Amount
+		demonMap[coin.Denom] = struct{}{}
 	}
 	for _, coin := range unClaimed {
-		claimedAmount := claimedMap[coin.Denom]
+		demonMap[coin.Denom] = struct{}{}
+	}
+
+	var farmDetails []types.FarmInfo
+	for demon := range demonMap {
 		farmDetails = append(farmDetails, types.FarmInfo{
-			Symbol:    coin.Denom,
-			UnClaimed: coin.Amount,
-			Claimed:   claimedAmount,
+			Symbol:    demon,
+			UnClaimed: unClaimed.AmountOf(demon),
+			Claimed:   claimed.AmountOf(demon),
 		})
 	}
 	return farmDetails
@@ -554,17 +558,7 @@ func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
-	// invalid params
-	if queryParams.ClaimHeight < ctx.BlockHeight() {
-		return nil, common.ErrInvalidParam(fmt.Sprintf("claim_height %d is less than current height %d",
-			queryParams.ClaimHeight, ctx.BlockHeight()))
-	}
 	timeNow := ctx.BlockTime().Unix()
-	if timeNow < queryParams.StakeAt {
-		return nil, common.ErrInvalidParam(fmt.Sprintf("time now %d is less than state_at %d",
-			timeNow, queryParams.StakeAt))
-	}
-
 	// query farm pool
 	farmPool, found := keeper.farmKeeper.GetFarmPool(ctx, queryParams.PoolName)
 	if !found {
@@ -607,6 +601,24 @@ func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		// estimated farm
 		if !farmPool.TotalValueLocked.IsZero() {
 			firstPool.EstimatedFarm = farmAmount.Mul(firstPool.AccountStaked.Quo(farmPool.TotalValueLocked.Amount))
+		}
+
+		if firstPool.EstimatedFarm.IsZero() {
+			claimInfos := keeper.Orm.GetAccountClaimedByPool(queryParams.Address, queryParams.PoolName)
+			totalClaimed := sdk.ZeroDec()
+			for _, claimInfo := range claimInfos {
+				claimed, err := sdk.ParseDecCoins(claimInfo.Claimed)
+				if err != nil {
+					continue
+				}
+				totalClaimed = totalClaimed.Add(claimed.AmountOf(common.NativeToken))
+			}
+			earning, err := keeper.farmKeeper.GetEarnings(ctx, farmPool.Name, address)
+			unclaimed := sdk.ZeroDec()
+			if err == nil {
+				unclaimed = earning.AmountYielded.AmountOf(common.NativeToken)
+			}
+			firstPool.EstimatedFarm = totalClaimed.Add(unclaimed)
 		}
 	}
 
