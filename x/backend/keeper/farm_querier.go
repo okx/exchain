@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"time"
 
@@ -560,11 +559,6 @@ func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 	}
 
 	timeNow := ctx.BlockTime().Unix()
-	if timeNow < queryParams.StakeAt {
-		return nil, common.ErrInvalidParam(fmt.Sprintf("time now %d is less than state_at %d",
-			timeNow, queryParams.StakeAt))
-	}
-
 	// query farm pool
 	farmPool, found := keeper.farmKeeper.GetFarmPool(ctx, queryParams.PoolName)
 	if !found {
