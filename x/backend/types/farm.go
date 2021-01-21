@@ -91,6 +91,7 @@ type FarmPoolResponse struct {
 	LockSymbol    string         `json:"lock_symbol"`
 	YieldSymbol   string         `json:"yield_symbol"`
 	TotalStaked   sdk.Dec        `json:"total_staked"`
+	UserStaked    sdk.Dec        `json:"user_staked"`
 	StartAt       int64          `json:"start_at"`
 	FinishAt      int64          `json:"finish_at"`
 	PoolRate      sdk.SysCoins   `json:"pool_rate"`

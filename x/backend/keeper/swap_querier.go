@@ -297,15 +297,9 @@ func getSwapCreateLiquidityTokens(ctx sdk.Context, keeper Keeper) []string {
 func getSwapAddLiquidityTokens(ctx sdk.Context, keeper Keeper, baseTokenName string) []string {
 	var tokens []string
 
-	// whitelist map
-	whitelistMap := getSwapWhitelistMap(keeper)
 	// all swap token pairs
 	swapTokenPairs := keeper.swapKeeper.GetSwapTokenPairs(ctx)
 	for _, swapTokenPair := range swapTokenPairs {
-		// check if in whitelist
-		if _, found := whitelistMap[swapTokenPair.TokenPairName()]; !found {
-			continue
-		}
 		if baseTokenName == "" {
 			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
 			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)
