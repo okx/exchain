@@ -178,7 +178,7 @@ func queryFarmDashboard(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		}
 	}
 	// response
-	var responseList types.FarmResponseList
+	responseList := types.FarmResponseList{}
 	hasWhiteList := false
 	for _, poolName := range stakedPools {
 		farmPool, found := keeper.farmKeeper.GetFarmPool(ctx, poolName)
@@ -408,17 +408,20 @@ func queryFarmStakedInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) 
 }
 
 func generateFarmDetails(claimed sdk.SysCoins, unClaimed sdk.SysCoins) []types.FarmInfo {
-	var farmDetails []types.FarmInfo
-	claimedMap := make(map[string]sdk.Dec, len(claimed))
+	demonMap := make(map[string]struct{})
 	for _, coin := range claimed {
-		claimedMap[coin.Denom] = coin.Amount
+		demonMap[coin.Denom] = struct{}{}
 	}
 	for _, coin := range unClaimed {
-		claimedAmount := claimedMap[coin.Denom]
+		demonMap[coin.Denom] = struct{}{}
+	}
+
+	var farmDetails []types.FarmInfo
+	for demon := range demonMap {
 		farmDetails = append(farmDetails, types.FarmInfo{
-			Symbol:    coin.Denom,
-			UnClaimed: coin.Amount,
-			Claimed:   claimedAmount,
+			Symbol:    demon,
+			UnClaimed: unClaimed.AmountOf(demon),
+			Claimed:   claimed.AmountOf(demon),
 		})
 	}
 	return farmDetails
