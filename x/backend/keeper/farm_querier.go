@@ -557,11 +557,6 @@ func queryFarmFirstPool(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		return nil, common.ErrUnMarshalJSONFailed(err.Error())
 	}
 
-	// invalid params
-	if queryParams.ClaimHeight < ctx.BlockHeight() {
-		return nil, common.ErrInvalidParam(fmt.Sprintf("claim_height %d is less than current height %d",
-			queryParams.ClaimHeight, ctx.BlockHeight()))
-	}
 	timeNow := ctx.BlockTime().Unix()
 	if timeNow < queryParams.StakeAt {
 		return nil, common.ErrInvalidParam(fmt.Sprintf("time now %d is less than state_at %d",
