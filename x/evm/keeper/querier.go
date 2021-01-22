@@ -19,6 +19,10 @@ import (
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, _ abci.RequestQuery) ([]byte, error) {
+		if len(path) < 1 {
+			return nil, sdk.ErrInternal("Insufficient parameters, at least 1 parameter is required")
+		}
+
 		switch path[0] {
 		case types.QueryBalance:
 			return queryBalance(ctx, path, keeper)
@@ -49,6 +53,9 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
 	addr := ethcmn.HexToAddress(path[1])
 	balance := keeper.GetBalance(ctx, addr)
 	balanceStr, err := utils.MarshalBigInt(balance)
@@ -77,6 +84,10 @@ func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, error) {
 }
 
 func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 3 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 3 parameters is required")
+	}
+
 	addr := ethcmn.HexToAddress(path[1])
 	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetState(ctx, addr, key)
@@ -89,6 +100,10 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 }
 
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
 	res := types.QueryResCode{Code: code}
@@ -101,6 +116,10 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 }
 
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	blockHash := ethcmn.FromHex(path[1])
 	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
 	if !found {
@@ -117,6 +136,10 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 }
 
 func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal block height: %w", err)
@@ -137,6 +160,10 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 }
 
 func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	txHash := ethcmn.HexToHash(path[1])
 
 	logs, err := keeper.GetLogs(ctx, txHash)
@@ -165,6 +192,10 @@ func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, error) {
 }
 
 func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	addr := ethcmn.HexToAddress(path[1])
 	so := keeper.GetOrNewStateObject(ctx, addr)
 
@@ -186,6 +217,10 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 }
 
 func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdk.ErrInternal("Insufficient parameters, at least 2 parameters is required")
+	}
+
 	hexAddress := path[1]
 	addr := ethcmn.HexToAddress(hexAddress)
 
