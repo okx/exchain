@@ -2,7 +2,6 @@ package token
 
 import (
 	"fmt"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"sort"
 	"strings"
 
@@ -175,13 +174,7 @@ func (k Keeper) SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule strin
 	if k.bankKeeper.BlacklistedAddr(to) {
 		return types.ErrBlockedRecipient(to.String())
 	}
-
-	from := k.supplyKeeper.GetModuleAddress(senderModule)
-	if from == nil {
-		panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", senderModule))
-	}
-
-	return k.bankKeeper.SendCoins(ctx, from, to, amt)
+	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, senderModule, to, amt)
 }
 
 // nolint
