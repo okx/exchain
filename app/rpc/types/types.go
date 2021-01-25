@@ -1,6 +1,9 @@
 package types
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -68,6 +71,29 @@ type CallArgs struct {
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     *hexutil.Bytes  `json:"data"`
+}
+
+func (ca CallArgs) String() string {
+	var arg string
+	if ca.From != nil {
+		arg += fmt.Sprintf("From: %s, ", ca.From.String())
+	}
+	if ca.To != nil {
+		arg += fmt.Sprintf("To: %s, ", ca.To.String())
+	}
+	if ca.Gas != nil {
+		arg += fmt.Sprintf("Gas: %s, ", ca.Gas.String())
+	}
+	if ca.GasPrice != nil {
+		arg += fmt.Sprintf("GasPrice: %s, ", ca.GasPrice.String())
+	}
+	if ca.Value != nil {
+		arg += fmt.Sprintf("Value: %s, ", ca.Value.String())
+	}
+	if ca.Data != nil {
+		arg += fmt.Sprintf("Data: %s, ", ca.Data.String())
+	}
+	return strings.TrimRight(arg, ", ")
 }
 
 // Account indicates the overriding fields of account during the execution of
