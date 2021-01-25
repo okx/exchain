@@ -14,3 +14,7 @@ type AccountKeeper interface {
 	SetAccount(ctx sdk.Context, account authexported.Account)
 	RemoveAccount(ctx sdk.Context, account authexported.Account)
 }
+
+type SupplyKeeper interface {
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+}

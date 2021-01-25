@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/big"
-
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"math/big"
 
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -71,18 +69,18 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, curBlock *ctypes.ResultBlock) (map[string]interface{}, error) {
+func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (map[string]interface{}, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions, gasUsed, err := EthTransactionsFromTendermint(clientCtx, curBlock.Block.Txs)
+	transactions, gasUsed, err := EthTransactionsFromTendermint(clientCtx, block.Txs)
 	if err != nil {
 		return nil, err
 	}
 
-	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, curBlock.Block.Height))
+	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +90,7 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, curBlock *ctypes
 
 	bloom := bloomRes.Bloom
 
-	return FormatBlock(curBlock.Block.Header, curBlock.BlockID.Hash, curBlock.Block.Size(), gasLimit, gasUsed, transactions, bloom), nil
+	return FormatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -155,7 +153,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 // FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted
 // transactions.
 func FormatBlock(
-	header tmtypes.Header, curBlockIDHash tmbytes.HexBytes, size int, gasLimit int64,
+	header tmtypes.Header, size int, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	if len(header.DataHash) == 0 {
@@ -164,7 +162,7 @@ func FormatBlock(
 
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
-		"hash":             hexutil.Bytes(curBlockIDHash),
+		"hash":             hexutil.Bytes(header.Hash()),
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
 		"nonce":            hexutil.Uint64(0), // PoW specific
 		"sha3Uncles":       common.Hash{},     // No uncles in Tendermint
