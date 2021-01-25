@@ -87,7 +87,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 		return nil, err
 	}
 
-	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock)
+	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block)
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -107,7 +107,7 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 		return nil, err
 	}
 
-	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock)
+	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block)
 }
 
 // HeaderByNumber returns the block header identified by height.
