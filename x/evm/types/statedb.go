@@ -45,6 +45,7 @@ type CommitStateDB struct {
 	storeKey      sdk.StoreKey
 	paramSpace    params.Subspace
 	accountKeeper AccountKeeper
+	supplyKeeper  SupplyKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -90,13 +91,14 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
 		paramSpace:           paramSpace,
 		accountKeeper:        ak,
+		supplyKeeper:         sk,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
