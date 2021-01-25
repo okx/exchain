@@ -3,7 +3,9 @@ package types
 import (
 	"errors"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -29,6 +31,9 @@ type StateTransition struct {
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
+
+	CoinDenom string
+	GasReturn uint64
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -183,6 +188,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	gasConsumed := gasLimit - leftOverGas
+	gasReturn := gasConsumed / 2
+	if gasReturn > csdb.refund {
+		gasReturn = csdb.refund
+	}
+	st.GasReturn = gasReturn
 
 	if err != nil {
 		// Consume gas before returning
@@ -279,4 +289,30 @@ func HashFromContext(ctx sdk.Context) common.Hash {
 	}
 
 	return common.BytesToHash(tmBlockHash.Bytes())
+}
+
+func (st StateTransition) RefundGas(ctx sdk.Context) error {
+
+	gasRemaining := st.GasLimit - ctx.GasMeter().GasConsumed() + st.GasReturn
+	feeReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRemaining))
+
+	if feeReturn.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
+	if err != nil {
+		return err
+	}
+
+	if err = st.Csdb.supplyKeeper.SendCoinsFromModuleToAccount(
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter()),
+		types.FeeCollectorName,
+		senderAddress,
+		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(feeReturn))),
+	); err != nil {
+		return err
+	}
+
+	return nil
 }

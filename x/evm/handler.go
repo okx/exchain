@@ -90,6 +90,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
+		GasReturn:    uint64(0),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -104,11 +106,23 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	config, found := k.GetChainConfig(ctx)
 	if !found {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, types.ErrChainConfigNotFound
 	}
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, err
 	}
 
@@ -118,6 +132,12 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		if err != nil {
 			panic(err)
 		}
@@ -174,6 +194,8 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
+		GasReturn:    uint64(0),
 	}
 
 	if msg.Recipient != nil {
@@ -190,11 +212,23 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	config, found := k.GetChainConfig(ctx)
 	if !found {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, types.ErrChainConfigNotFound
 	}
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		return nil, err
 	}
 
@@ -204,6 +238,12 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
 		if err != nil {
 			panic(err)
 		}
