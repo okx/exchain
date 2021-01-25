@@ -2,7 +2,6 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
-
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -63,6 +62,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
+
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -94,6 +94,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		GasReturn:    uint64(0),
 	}
 
+	defer func() {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
+	}()
+
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
@@ -106,23 +115,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	config, found := k.GetChainConfig(ctx)
 	if !found {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		return nil, types.ErrChainConfigNotFound
 	}
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		return nil, err
 	}
 
@@ -132,12 +129,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		if err != nil {
 			panic(err)
 		}
@@ -198,6 +189,15 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		GasReturn:    uint64(0),
 	}
 
+	defer func() {
+		if !st.Simulate {
+			refundErr := st.RefundGas(ctx)
+			if refundErr != nil {
+				panic(refundErr)
+			}
+		}
+	}()
+
 	if msg.Recipient != nil {
 		to := common.BytesToAddress(msg.Recipient.Bytes())
 		st.Recipient = &to
@@ -212,23 +212,11 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	config, found := k.GetChainConfig(ctx)
 	if !found {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		return nil, types.ErrChainConfigNotFound
 	}
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		return nil, err
 	}
 
@@ -238,12 +226,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
 		if err != nil {
 			panic(err)
 		}

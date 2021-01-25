@@ -188,6 +188,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 
 	gasConsumed := gasLimit - leftOverGas
+
+	// The maximum refund should not be more than half of the consumption
 	gasReturn := gasConsumed / 2
 	if gasReturn > csdb.refund {
 		gasReturn = csdb.refund
