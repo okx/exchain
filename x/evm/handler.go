@@ -100,6 +100,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			if refundErr != nil {
 				panic(refundErr)
 			}
+			st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).UpdateAccounts()
 		}
 	}()
 
@@ -195,6 +196,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 			if refundErr != nil {
 				panic(refundErr)
 			}
+			st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).UpdateAccounts()
 		}
 	}()
 
