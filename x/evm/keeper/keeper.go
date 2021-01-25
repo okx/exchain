@@ -43,7 +43,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper,
 ) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -55,7 +55,7 @@ func NewKeeper(
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
