@@ -39,8 +39,8 @@ type TokenKeeper interface {
 	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.SysCoins
 	TokenExist(ctx sdk.Context, symbol string) bool
 	GetTokensInfo(ctx sdk.Context) (tokens []token.Token)
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, to sdk.AccAddress, amt sdk.SysCoins) error
 }
-
 
 type BackendKeeper interface {
 	OnSwapToken(ctx sdk.Context, address sdk.AccAddress, swapTokenPair SwapTokenPair, sellAmount sdk.SysCoin, buyAmount sdk.SysCoin)

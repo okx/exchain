@@ -133,7 +133,7 @@ func (k Keeper) SendCoinsToPool(ctx sdk.Context, coins sdk.SysCoins, addr sdk.Ac
 
 // SendCoinsFromPoolToAccount sends coins from module account to user account
 func (k Keeper) SendCoinsFromPoolToAccount(ctx sdk.Context, coins sdk.SysCoins, addr sdk.AccAddress) error {
-	return k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
+	return k.tokenKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins)
 }
 
 // nolint
