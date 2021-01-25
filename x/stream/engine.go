@@ -2,10 +2,11 @@ package stream
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/stream/common/kline"
-	"github.com/okex/okexchain/x/stream/kafkaclient"
 	"strings"
 	"time"
+
+	"github.com/okex/okexchain/x/stream/common/kline"
+	"github.com/okex/okexchain/x/stream/kafkaclient"
 
 	"github.com/okex/okexchain/x/stream/websocket"
 
@@ -86,7 +87,7 @@ func (e *MySQLEngine) Write(data types.IStreamData, success *bool) {
 	}
 
 	results, err := e.orm.BatchInsertOrUpdate(enData.NewOrders, enData.UpdatedOrders, enData.Deals, enData.MatchResults,
-		enData.FeeDetails, enData.Trans, enData.SwapInfos)
+		enData.FeeDetails, enData.Trans, enData.SwapInfos, enData.ClaimInfos)
 	if err != nil {
 		e.logger.Error(fmt.Sprintf("MySqlEngine write failed: %s, results: %v", err.Error(), results))
 		*success = false

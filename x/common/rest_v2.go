@@ -14,13 +14,13 @@ import (
 // const
 const (
 	// common error
-	ErrorMissingRequiredParam errorCodeV2 = 60000
-	ErrorInvalidParam         errorCodeV2 = 60001
-	ErrorServerException      errorCodeV2 = 60002
-	ErrorDataNotExist         errorCodeV2 = 60003
-	ErrorCodecFails           errorCodeV2 = 60004
-	ErrorABCIQueryFails       errorCodeV2 = 60005
-	ErrorArgsWithLimit        errorCodeV2 = 60006
+	ErrorMissingRequiredParam errorCodeV2 = 60108
+	ErrorInvalidParam         errorCodeV2 = 60109
+	ErrorServerException      errorCodeV2 = 60110
+	ErrorDataNotExist         errorCodeV2 = 60111
+	ErrorCodecFails           errorCodeV2 = 60112
+	ErrorABCIQueryFails       errorCodeV2 = 60113
+	ErrorArgsWithLimit        errorCodeV2 = 60114
 
 	// account error
 	ErrorInvalidAddress errorCodeV2 = 60007

@@ -179,13 +179,14 @@ func calculateDollarAmount(ctx sdk.Context, keeper Keeper, baseAmount sdk.SysCoi
 	dollarAmount := sdk.ZeroDec()
 	baseTokenDollar := sdk.ZeroDec()
 	quoteTokenDollar := sdk.ZeroDec()
+	dollarQuoteToken := keeper.farmKeeper.GetParams(ctx).QuoteSymbol
 
-	if baseAmount.Denom == types.DollarQuoteToken {
+	if baseAmount.Denom == dollarQuoteToken {
 		baseTokenDollar = baseAmount.Amount
 	} else {
-		baseTokenPairName := ammswap.GetSwapTokenPairName(baseAmount.Denom, types.DollarQuoteToken)
+		baseTokenPairName := ammswap.GetSwapTokenPairName(baseAmount.Denom, dollarQuoteToken)
 		if baseTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, baseTokenPairName); err == nil {
-			if baseTokenPair.BasePooledCoin.Denom == types.DollarQuoteToken && baseTokenPair.QuotePooledCoin.Amount.IsPositive() {
+			if baseTokenPair.BasePooledCoin.Denom == dollarQuoteToken && baseTokenPair.QuotePooledCoin.Amount.IsPositive() {
 				baseTokenDollar = common.MulAndQuo(baseTokenPair.BasePooledCoin.Amount, baseAmount.Amount, baseTokenPair.QuotePooledCoin.Amount)
 			} else if baseTokenPair.BasePooledCoin.Amount.IsPositive() {
 				baseTokenDollar = common.MulAndQuo(baseTokenPair.QuotePooledCoin.Amount, baseAmount.Amount, baseTokenPair.BasePooledCoin.Amount)
@@ -193,12 +194,12 @@ func calculateDollarAmount(ctx sdk.Context, keeper Keeper, baseAmount sdk.SysCoi
 		}
 	}
 
-	if quoteAmount.Denom == types.DollarQuoteToken {
+	if quoteAmount.Denom == dollarQuoteToken {
 		quoteTokenDollar = quoteAmount.Amount
 	} else {
-		quoteTokenPairName := ammswap.GetSwapTokenPairName(quoteAmount.Denom, types.DollarQuoteToken)
+		quoteTokenPairName := ammswap.GetSwapTokenPairName(quoteAmount.Denom, dollarQuoteToken)
 		if quoteTokenPair, err := keeper.swapKeeper.GetSwapTokenPair(ctx, quoteTokenPairName); err == nil {
-			if quoteTokenPair.BasePooledCoin.Denom == types.DollarQuoteToken && quoteTokenPair.QuotePooledCoin.Amount.IsPositive() {
+			if quoteTokenPair.BasePooledCoin.Denom == dollarQuoteToken && quoteTokenPair.QuotePooledCoin.Amount.IsPositive() {
 				quoteTokenDollar = common.MulAndQuo(quoteTokenPair.BasePooledCoin.Amount, quoteAmount.Amount, quoteTokenPair.QuotePooledCoin.Amount)
 			} else if quoteTokenPair.BasePooledCoin.Amount.IsPositive() {
 				quoteTokenDollar = common.MulAndQuo(quoteTokenPair.QuotePooledCoin.Amount, quoteAmount.Amount, quoteTokenPair.BasePooledCoin.Amount)
@@ -296,15 +297,9 @@ func getSwapCreateLiquidityTokens(ctx sdk.Context, keeper Keeper) []string {
 func getSwapAddLiquidityTokens(ctx sdk.Context, keeper Keeper, baseTokenName string) []string {
 	var tokens []string
 
-	// whitelist map
-	whitelistMap := getSwapWhitelistMap(keeper)
 	// all swap token pairs
 	swapTokenPairs := keeper.swapKeeper.GetSwapTokenPairs(ctx)
 	for _, swapTokenPair := range swapTokenPairs {
-		// check if in whitelist
-		if _, found := whitelistMap[swapTokenPair.TokenPairName()]; !found {
-			continue
-		}
 		if baseTokenName == "" {
 			tokens = append(tokens, swapTokenPair.BasePooledCoin.Denom)
 			tokens = append(tokens, swapTokenPair.QuotePooledCoin.Denom)

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -94,7 +95,7 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
+		viper.GetString(cmserver.FlagUlockKeyHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
 	)
@@ -690,9 +691,10 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 			ChainID:        api.clientCtx.ChainID,
 			Height:         height + 1,
 			Time:           time.Unix(0, 0),
-			LastBlockID:    latestBlock.BlockID,
+			LastBlockID:    latestBlock.Block.LastBlockID,
 			ValidatorsHash: latestBlock.Block.NextValidatorsHash,
 		},
+		latestBlock.BlockID.Hash,
 		0,
 		0,
 		gasUsed,

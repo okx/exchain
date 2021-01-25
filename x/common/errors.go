@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -21,10 +22,13 @@ const (
 	CodeStrconvFailed              uint32 = 60105
 	CodeUnknownProposalType        uint32 = 60106
 	CodeInsufficientCoins          uint32 = 60107
-	CodeInvalidAccountAddress      uint32 = 60108
-	CodeABCIQueryFails             uint32 = 60109
-	CodeArgsWithLimit              uint32 = 60110
-	CodeValidateBasicFailed        uint32 = 60111
+	CodeMissingRequiredParam       uint32 = 60108
+	CodeInvalidParam               uint32 = 60109
+	CodeServerException            uint32 = 60110
+	CodeDataNotExist               uint32 = 60111
+	CodeCodecFails                 uint32 = 60112
+	CodeABCIQueryFails             uint32 = 60113
+	CodeArgsWithLimit              uint32 = 60114
 )
 
 type SDKError struct {
@@ -48,6 +52,10 @@ func ParseSDKError(errMsg string) SDKError {
 		Code:      res.Code,
 		Message:   res.Log,
 	}
+}
+
+func ErrInvalidParam(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeInvalidParam, msg)}
 }
 
 // invalid paginate param

@@ -57,7 +57,7 @@ func postDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		msg := types.NewMsgDeposit(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeValidateBasicFailed, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidParam, err.Error())
 			return
 		}
 
@@ -91,7 +91,7 @@ func postUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 
 		msg := types.NewMsgWithdraw(req.DelegatorAddress, req.Amount)
 		if err := msg.ValidateBasic(); err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeValidateBasicFailed, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidParam, err.Error())
 			return
 		}
 

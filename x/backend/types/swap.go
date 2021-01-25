@@ -5,8 +5,6 @@ import (
 )
 
 const (
-	DollarQuoteToken = "usdk"
-
 	// watchlist sort column
 	SwapWatchlistLiquidity = "liquidity"
 	SwapWatchlistVolume24h = "volume24h"
