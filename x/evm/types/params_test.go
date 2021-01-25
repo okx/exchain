@@ -1,6 +1,7 @@
 package types
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -58,4 +59,13 @@ func TestParamsValidatePriv(t *testing.T) {
 	require.NoError(t, validateBool(true))
 	require.Error(t, validateEIPs(""))
 	require.NoError(t, validateEIPs([]int{1884}))
+}
+
+func TestParams_String(t *testing.T) {
+	const expectedParamsStr = `evm_denom: okt
+enable_create: false
+enable_call: false
+extra_eips: []
+`
+	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }
