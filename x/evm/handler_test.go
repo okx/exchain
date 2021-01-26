@@ -4,11 +4,12 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/status-im/keycard-go/hexutils"
 
@@ -639,7 +640,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 			balanceAfterHandler := big.NewInt(1).Sub(userBalance, tc.consumed)
 			balanceAfterRefund := suite.app.EvmKeeper.GetBalance(suite.ctx, sender)
 
-			suite.Require().Equal(big.NewInt(1).Mul(gasRefund, big.NewInt(1000000000000000000)), big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
+			suite.Require().Equal(big.NewInt(1).Mul(gasRefund, big.NewInt(1)), big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
 		})
 	}
 }
