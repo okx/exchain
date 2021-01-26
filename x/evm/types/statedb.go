@@ -576,7 +576,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 	//checking and reject tx if address in blacklist
 	if csdb.bankKeeper.BlacklistedAddr(so.account.GetAddress()) {
-		return fmt.Errorf("invalid address %s", so.account.GetAddress().String())
+		return fmt.Errorf("address <%s> in blacklist is not allowed", so.account.GetAddress().String())
 	}
 
 	coins := so.account.GetCoins()
