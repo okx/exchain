@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	"os"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 
 	"github.com/stretchr/testify/suite"
 
@@ -131,7 +132,7 @@ func (suite *JournalTestSuite) setup() {
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk).WithContext(suite.ctx)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
 
