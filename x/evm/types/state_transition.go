@@ -267,8 +267,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		},
 	}
 
-	// TODO: Refund unused gas here, if intended in future
-
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")

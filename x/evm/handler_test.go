@@ -637,8 +637,6 @@ func (suite *EvmTestSuite) TestRefundGas() {
 			gasLeft := big.NewInt(1).SetUint64(gasLimit - suite.ctx.GasMeter().GasConsumed())
 			gasRefund := big.NewInt(1).Mul(gasPrice, gasLeft)
 
-			suite.app.EvmKeeper.UpdateAccounts(suite.ctx)
-
 			balanceAfterHandler := big.NewInt(1).Sub(userBalance, tc.consumed)
 			balanceAfterRefund := suite.app.EvmKeeper.GetBalance(suite.ctx, sender)
 
