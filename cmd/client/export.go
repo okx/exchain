@@ -71,7 +71,7 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 
 			// Formats key for output
 			privB := ethcrypto.FromECDSA(emintKey.ToECDSA())
-			keyS := strings.ToUpper(hexutil.Encode(privB)[2:])
+			keyS := strings.ToLower(hexutil.Encode(privB)[2:])
 
 			fmt.Println(keyS)
 

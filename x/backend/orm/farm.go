@@ -34,3 +34,11 @@ func (orm *ORM) GetAccountClaimInfos(address string) []types.ClaimInfo {
 	query.Order("timestamp asc").Find(&claimInfos)
 	return claimInfos
 }
+
+func (orm *ORM) GetAccountClaimedByPool(address string, poolName string) []types.ClaimInfo {
+	var claimInfos []types.ClaimInfo
+	query := orm.db.Model(types.ClaimInfo{}).Where("address = ? and pool_name = ?", address, poolName)
+
+	query.Order("timestamp asc").Find(&claimInfos)
+	return claimInfos
+}

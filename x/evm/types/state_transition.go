@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
+
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -29,6 +32,9 @@ type StateTransition struct {
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
+
+	CoinDenom string
+	GasReturn uint64
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -109,7 +115,7 @@ func (st StateTransition) newEVM(
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*ExecutionResult, error) {
 	contractCreation := st.Recipient == nil
 
-	cost, err := core.IntrinsicGas(st.Payload, contractCreation, true, false)
+	cost, err := core.IntrinsicGas(st.Payload, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
@@ -184,6 +190,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	gasConsumed := gasLimit - leftOverGas
 
+	// The maximum refund should not be more than half of the consumption
+	gasReturn := gasConsumed / 2
+	if gasReturn > csdb.refund {
+		gasReturn = csdb.refund
+	}
+	st.GasReturn = gasReturn
+
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
@@ -254,8 +267,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		},
 	}
 
-	// TODO: Refund unused gas here, if intended in future
-
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
@@ -279,4 +290,30 @@ func HashFromContext(ctx sdk.Context) common.Hash {
 	}
 
 	return common.BytesToHash(tmBlockHash.Bytes())
+}
+
+func (st StateTransition) RefundGas(ctx sdk.Context) error {
+
+	gasRemaining := st.GasLimit - ctx.GasMeter().GasConsumed() + st.GasReturn
+	feeReturn := big.NewInt(1).Mul(st.Price, big.NewInt(1).SetUint64(gasRemaining))
+
+	if feeReturn.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	senderAddress, err := sdk.AccAddressFromHex(strings.TrimPrefix(st.Sender.Hex(), "0x"))
+	if err != nil {
+		return err
+	}
+
+	if err = st.Csdb.supplyKeeper.SendCoinsFromModuleToAccount(
+		ctx.WithGasMeter(sdk.NewInfiniteGasMeter()),
+		types.FeeCollectorName,
+		senderAddress,
+		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewDecFromBigIntWithPrec(feeReturn, sdk.Precision))),
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
