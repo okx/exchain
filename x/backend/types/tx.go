@@ -18,18 +18,24 @@ func GenerateTx(tx *auth.StdTx, txHash string, ctx sdk.Context, orderKeeper Orde
 	for _, msg := range tx.GetMsgs() {
 		switch msg.Type() {
 		case "send": // token/send
-			txFrom, txTo := buildTransactionsTransfer(tx, msg.(tokenTypes.MsgSend), txHash, timestamp)
-			txs = append(txs, txFrom, txTo)
+			if sendMsg, ok := msg.(tokenTypes.MsgSend); ok {
+				txFrom, txTo := buildTransactionsTransfer(tx, sendMsg, txHash, timestamp)
+				txs = append(txs, txFrom, txTo)
+			}
 		case "new": // order/new
-			transaction := buildTransactionNew(orderHandlerTxResult[idx], msg.(orderTypes.MsgNewOrders),
-				txHash, ctx, timestamp)
-			txs = append(txs, transaction...)
-			idx++
+			if orderMsg, ok := msg.(orderTypes.MsgNewOrders); ok {
+				transaction := buildTransactionNew(orderHandlerTxResult[idx], orderMsg,
+					txHash, ctx, timestamp)
+				txs = append(txs, transaction...)
+				idx++
+			}
 		case "cancel": // order/cancel
-			transaction := buildTransactionCancel(orderHandlerTxResult[idx], msg.(orderTypes.MsgCancelOrders),
-				txHash, ctx, orderKeeper, timestamp)
-			txs = append(txs, transaction...)
-			idx++
+			if cancelMsg, ok := msg.(orderTypes.MsgCancelOrders); ok {
+				transaction := buildTransactionCancel(orderHandlerTxResult[idx], cancelMsg,
+					txHash, ctx, orderKeeper, timestamp)
+				txs = append(txs, transaction...)
+				idx++
+			}
 		default: // In other cases, do nothing
 			continue
 		}
