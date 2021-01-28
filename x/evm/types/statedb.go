@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/x/bank"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/params"
@@ -46,6 +48,7 @@ type CommitStateDB struct {
 	paramSpace    params.Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
+	bankKeeper    bank.Keeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -91,7 +94,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -99,6 +102,7 @@ func NewCommitStateDB(
 		paramSpace:           paramSpace,
 		accountKeeper:        ak,
 		supplyKeeper:         sk,
+		bankKeeper:           bk,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -565,9 +569,14 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
+	}
+
+	//checking and reject tx if address in blacklist
+	if csdb.bankKeeper.BlacklistedAddr(so.account.GetAddress()) {
+		return fmt.Errorf("address <%s> in blacklist is not allowed", so.account.GetAddress().String())
 	}
 
 	coins := so.account.GetCoins()
@@ -670,7 +679,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	csdb.journal.append(suicideChange{
 		account:     &addr,
 		prev:        so.suicided,
-		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(),sdk.Precision), // int2dec
+		prevBalance: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision), // int2dec
 	})
 
 	so.markSuicided()
@@ -755,9 +764,10 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
 		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(),sdk.Precision)) // int2dec
+		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
+
 // Copy creates a deep, independent copy of the state.
 //
 // NOTE: Snapshots of the copied state cannot be applied to the copy.

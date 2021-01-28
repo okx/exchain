@@ -3,9 +3,10 @@ package types
 import (
 	"errors"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"math/big"
 	"strings"
+
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -266,8 +267,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		},
 	}
 
-	// TODO: Refund unused gas here, if intended in future
-
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
@@ -311,7 +310,7 @@ func (st StateTransition) RefundGas(ctx sdk.Context) error {
 		ctx.WithGasMeter(sdk.NewInfiniteGasMeter()),
 		types.FeeCollectorName,
 		senderAddress,
-		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewIntFromBigInt(feeReturn))),
+		sdk.NewCoins(sdk.NewCoin(st.CoinDenom, sdk.NewDecFromBigIntWithPrec(feeReturn, sdk.Precision))),
 	); err != nil {
 		return err
 	}

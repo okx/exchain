@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"io"
 	"os"
+
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 
 	"github.com/okex/okexchain/app/ante"
 	okexchaincodec "github.com/okex/okexchain/app/codec"
@@ -263,8 +264,7 @@ func NewOKExChainApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.SupplyKeeper,
-	)
+		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
