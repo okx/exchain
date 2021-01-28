@@ -105,7 +105,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
 	res, err := rpctypes.NewTransaction(&ethTx, common.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
 	if err != nil {

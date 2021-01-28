@@ -734,7 +734,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		return nil, err
 	}
 
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 
 	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
 	if err != nil {
@@ -820,7 +820,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 
 	height := uint64(block.Height)
 	txHash := common.BytesToHash(block.Txs[idx].Hash())
-	blockHash := common.BytesToHash(block.Header.Hash())
+	blockHash := common.BytesToHash(block.Hash())
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
@@ -839,7 +839,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		return nil, err
 	}
 
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 
 	// Convert tx bytes to eth transaction
 	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
