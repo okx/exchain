@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/evm/client/rest"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -25,11 +27,44 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	evmQueryCmd.AddCommand(flags.GetCommands(
+		QueryEvmTxCmd(cdc),
 		GetCmdGetStorageAt(moduleName, cdc),
 		GetCmdGetCode(moduleName, cdc),
 		GetCmdQueryParams(moduleName, cdc),
 	)...)
 	return evmQueryCmd
+}
+
+// QueryTxCmd implements the command for the query of transactions including evm
+func QueryEvmTxCmd(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tx [hash]",
+		Short: "Query for all transactions including evm by hash in a committed block",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			res, err := rest.QueryTx(cliCtx, args[0])
+			if err != nil {
+				return err
+			}
+
+			output, ok := res.(sdk.TxResponse)
+			if !ok {
+				// evm tx result
+				fmt.Println(string(res.([]byte)))
+				return nil
+			}
+
+			if output.Empty() {
+				return fmt.Errorf("no transaction found with hash %s", args[0])
+			}
+
+			return cliCtx.PrintOutput(output)
+		},
+	}
+
+	return cmd
 }
 
 // GetCmdGetStorageAt queries a key in an accounts storage
