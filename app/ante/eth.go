@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -103,7 +104,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	// fee = gas price * gas limit
 	fee := sdk.NewDecCoin(evmDenom, sdk.NewIntFromBigInt(msgEthTx.Fee()))
 
-	minGasPrices := ctx.MinGasPrices()
+	minGasPrices := ctx.MinGasPrices().MulDec(sdk.NewDecFromBigInt(math.BigPow(10, sdk.Precision)))
 	minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
 
 	// check that fee provided is greater than the minimum defined by the validator node
@@ -119,7 +120,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	if !ctx.MinGasPrices().IsZero() && !hasEnoughFees {
 		return ctx, sdkerrors.Wrap(
 			sdkerrors.ErrInsufficientFee,
-			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, ctx.MinGasPrices()),
+			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, minFees),
 		)
 	}
 
