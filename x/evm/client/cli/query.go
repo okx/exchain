@@ -35,7 +35,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	return evmQueryCmd
 }
 
-// QueryTxCmd implements the command for the query of transactions including evm
+// QueryEvmTxCmd implements the command for the query of transactions including evm
 func QueryEvmTxCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tx [hash]",
