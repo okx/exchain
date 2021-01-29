@@ -3,10 +3,11 @@ package farm
 import (
 	"errors"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	swap "github.com/okex/okexchain/x/ammswap"
@@ -21,6 +22,7 @@ import (
 type testContext struct {
 	ctx               sdk.Context
 	k                 Keeper
+	mockKeeper        keeper.MockFarmKeeper
 	swapTokenPairs    []swaptypes.SwapTokenPair
 	tokenOwner        sdk.AccAddress
 	nonPairTokenName  []string
@@ -111,6 +113,7 @@ func initEnvironment(t *testing.T) *testContext {
 	return &testContext{
 		ctx:               ctx,
 		k:                 k,
+		mockKeeper:        mk,
 		swapTokenPairs:    []swap.SwapTokenPair{testSwapTokenPair},
 		tokenOwner:        testAddr,
 		nonPairTokenName:  []string{testQuoteTokenName2},
@@ -374,7 +377,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr: errors.New("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000okt < 1.000000000000000000fff"),
+			expectedErr:  errors.New("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000okt < 1.000000000000000000fff"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -626,11 +629,20 @@ func TestHandlerMsgLock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+
 				return createPoolMsg
 			},
-			getMsg:       normalGetLockMsg,
-			verification: verification,
-			expectedErr:  nil,
+			getMsg: normalGetLockMsg,
+			verification: func(t *testing.T, tCtx *testContext, err sdk.Error, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
+				verification(t, tCtx, err, testCase, preCoins, afterCoins, preData)
+				createPoolMsg := preData.(types.MsgCreatePool)
+
+				// claimed rewards
+				rewards := tCtx.mockKeeper.ObserverKeeper.ObserverData.ClaimedCoins.AmountOf(createPoolMsg.YieldedSymbol)
+				require.Equal(t, sdk.NewDec(1), rewards)
+			},
+			expectedErr: nil,
 		},
 		{
 			caseName: "failed. withdraw failed",
@@ -807,7 +819,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; " + "10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
+			expectedErr:  errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; "+"10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "success. lock and unlock without provide before",
@@ -824,6 +836,36 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
 			expectedErr:  nil,
+		},
+		{
+			caseName: "success with rewards",
+			preExec: func(t *testing.T, tCtx *testContext) interface{} {
+				// create pool
+				createPoolMsg := createPool(t, tCtx)
+
+				// provide
+				provide(t, tCtx, createPoolMsg)
+
+				// lock
+				lock(t, tCtx, createPoolMsg)
+
+				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+
+				return createPoolMsg
+			},
+			getMsg: normalGetUnlockMsg,
+			verification: func(t *testing.T, tCtx *testContext, err sdk.Error, testCase testCaseItem, preCoins, afterCoins sdk.SysCoins, preData interface{}) {
+				verification(t, tCtx, err, testCase, preCoins, afterCoins, preData)
+				createPoolMsg := preData.(types.MsgCreatePool)
+				diffCoins := afterCoins.Sub(preCoins)
+				actualDec := diffCoins.AmountOf(createPoolMsg.YieldedSymbol)
+				require.Equal(t, sdk.NewDec(1), actualDec)
+
+				// claimed rewards
+				rewards := tCtx.mockKeeper.ObserverKeeper.ObserverData.ClaimedCoins.AmountOf(createPoolMsg.YieldedSymbol)
+				require.Equal(t, sdk.NewDec(1), rewards)
+			},
+			expectedErr: nil,
 		},
 	}
 
@@ -874,6 +916,10 @@ func TestHandlerMsgClaim(t *testing.T) {
 				diffCoins := afterCoins.Sub(preCoins)
 				actualDec := diffCoins.AmountOf(createPoolMsg.YieldedSymbol)
 				require.Equal(t, sdk.NewDec(1), actualDec)
+
+				// claimed rewards
+				rewards := tCtx.mockKeeper.ObserverKeeper.ObserverData.ClaimedCoins.AmountOf(createPoolMsg.YieldedSymbol)
+				require.Equal(t, sdk.NewDec(1), rewards)
 			},
 			expectedErr: nil,
 		},
