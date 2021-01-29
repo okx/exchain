@@ -40,19 +40,38 @@ var (
 
 type MockFarmKeeper struct {
 	Keeper
-	StoreKey     sdk.StoreKey
-	SupplyKeeper supply.Keeper
-	MountedStore store.MultiStore
-	AccKeeper    auth.AccountKeeper
-	BankKeeper   bank.Keeper
-	TokenKeeper  token.Keeper
-	SwapKeeper   swap.Keeper
+	StoreKey       sdk.StoreKey
+	SupplyKeeper   supply.Keeper
+	MountedStore   store.MultiStore
+	AccKeeper      auth.AccountKeeper
+	BankKeeper     bank.Keeper
+	TokenKeeper    token.Keeper
+	SwapKeeper     swap.Keeper
+	ObserverKeeper *MockObserverKeeper
+}
+
+type MockObserverKeeper struct {
+	ObserverData MockObserverData
+}
+
+func (ok *MockObserverKeeper) OnFarmClaim(ctx sdk.Context, address sdk.AccAddress, poolName string, claimedCoins sdk.SysCoins) {
+	ok.ObserverData = MockObserverData{
+		Address:      address,
+		PoolName:     poolName,
+		ClaimedCoins: claimedCoins,
+	}
+}
+
+type MockObserverData struct {
+	Address      sdk.AccAddress
+	PoolName     string
+	ClaimedCoins sdk.SysCoins
 }
 
 func NewMockFarmKeeper(
 	k Keeper, keyStoreKey sdk.StoreKey, sKeeper supply.Keeper,
 	ms store.MultiStore, accKeeper auth.AccountKeeper, bankKeeper bank.Keeper,
-	tokenKeeper token.Keeper, swapKeeper swap.Keeper,
+	tokenKeeper token.Keeper, swapKeeper swap.Keeper, observerKeeper *MockObserverKeeper,
 ) MockFarmKeeper {
 	return MockFarmKeeper{
 		k,
@@ -63,6 +82,7 @@ func NewMockFarmKeeper(
 		bankKeeper,
 		tokenKeeper,
 		swapKeeper,
+		observerKeeper,
 	}
 }
 
@@ -194,8 +214,11 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	govKeeper.SetTallyParams(ctx, tallyParams)
 
 	fk.SetGovKeeper(govKeeper)
+
+	observerKeeper := &MockObserverKeeper{}
+	fk.SetObserverKeeper(observerKeeper)
 	// 2. init mock keeper
-	mk := NewMockFarmKeeper(fk, keyFarm, sk, ms, ak, bk, tk, swapKeeper)
+	mk := NewMockFarmKeeper(fk, keyFarm, sk, ms, ak, bk, tk, swapKeeper, observerKeeper)
 
 	//// 3. init mockApp
 	//mApp := mock.NewApp()
