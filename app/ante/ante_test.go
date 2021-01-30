@@ -16,7 +16,6 @@ import (
 
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/ante"
-	"github.com/okex/okexchain/app/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 )
 
@@ -257,7 +256,12 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
-	suite.ctx = suite.ctx.WithMinGasPrices(sdk.NewDecCoins(types.NewPhotonDecCoin(sdk.NewInt(500000))))
+	minGasPrice, err := sdk.ParseDecCoin("0.0000000000005okt")
+	if err != nil {
+		panic(err)
+	}
+	suite.ctx = suite.ctx.WithMinGasPrices(sdk.NewDecCoins(minGasPrice))
+
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
