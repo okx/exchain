@@ -318,6 +318,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	addInfo := types.SwapAddInfo{
 		BaseTokenAmount: addAmount,
 		PoolShare:       liquidity.Quo(totalSupply.Add(liquidity)),
+		Liquidity:       liquidity,
 	}
 	response := common.GetBaseResponse(addInfo)
 	bz, err := json.Marshal(response)
