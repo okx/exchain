@@ -104,7 +104,8 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	// fee = gas price * gas limit
 	fee := sdk.NewDecCoin(evmDenom, sdk.NewIntFromBigInt(msgEthTx.Fee()))
 
-	minGasPrices := ctx.MinGasPrices().MulDec(sdk.NewDecFromBigInt(math.BigPow(10, sdk.Precision)))
+	coinUnit := sdk.NewDecFromBigInt(math.BigPow(10, sdk.Precision))
+	minGasPrices := ctx.MinGasPrices().MulDec(coinUnit)
 	minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
 
 	// check that fee provided is greater than the minimum defined by the validator node
