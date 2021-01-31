@@ -310,7 +310,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	var liquidity sdk.Dec
 	if swapTokenPair.BasePooledCoin.Denom == queryTokenAmount.Denom {
 		addAmount = common.MulAndQuo(queryTokenAmount.Amount, swapTokenPair.QuotePooledCoin.Amount, swapTokenPair.BasePooledCoin.Amount)
-		liquidity = common.MulAndQuo(queryTokenAmount.Amount, totalSupply, swapTokenPair.BasePooledCoin.Amount)
+		liquidity = common.MulAndQuo(addAmount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
 	} else {
 		addAmount = common.MulAndQuo(queryTokenAmount.Amount, swapTokenPair.BasePooledCoin.Amount, swapTokenPair.QuotePooledCoin.Amount)
 		liquidity = common.MulAndQuo(queryTokenAmount.Amount, totalSupply, swapTokenPair.QuotePooledCoin.Amount)
@@ -318,6 +318,7 @@ func querySwapAddLiquidityQuote(ctx sdk.Context, req abci.RequestQuery, keeper K
 	addInfo := types.SwapAddInfo{
 		BaseTokenAmount: addAmount,
 		PoolShare:       liquidity.Quo(totalSupply.Add(liquidity)),
+		Liquidity:       liquidity,
 	}
 	response := common.GetBaseResponse(addInfo)
 	bz, err := json.Marshal(response)
