@@ -43,6 +43,7 @@ type SwapBuyInfo struct {
 type SwapAddInfo struct {
 	BaseTokenAmount sdk.Dec `json:"base_token_amount"`
 	PoolShare       sdk.Dec `json:"pool_share"`
+	Liquidity       sdk.Dec `json:"liquidity"`
 }
 
 type QueryBuyAmountParams struct {

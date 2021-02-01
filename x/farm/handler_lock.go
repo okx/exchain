@@ -29,7 +29,8 @@ func handleMsgLock(ctx sdk.Context, k keeper.Keeper, msg types.MsgLock) (*sdk.Re
 	var rewards sdk.SysCoins
 	if hasLocked {
 		// If it exists, withdraw money
-		rewards, err := k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
+		var err error
+		rewards, err = k.WithdrawRewards(ctx, pool.Name, pool.TotalValueLocked, yieldedTokens, msg.Address)
 		if err != nil {
 			return nil, err
 		}
