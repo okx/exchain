@@ -36,6 +36,7 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -52,6 +53,7 @@ type PublicEthereumAPI struct {
 	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
+	gasPrice     *hexutil.Big
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -65,6 +67,19 @@ func NewAPI(
 		panic(err)
 	}
 
+	//gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
+	gasPricesStr := viper.GetString(server.FlagMinGasPrices)
+	gasPrices, err := sdk.ParseDecCoins(gasPricesStr)
+	if err != nil {
+		panic(fmt.Sprintf("invalid minimum gas prices: %v", err))
+	}
+	var gasPrice *hexutil.Big
+	if gasPrices == nil || len(gasPrices) == 0 {
+		gasPrice = (*hexutil.Big)(new(big.Int).SetUint64(ethermint.DefaultGasPrice * 1000000000))
+	} else {
+		gasPrice = (*hexutil.Big)(gasPrices[0].Amount.Int)
+	}
+
 	api := &PublicEthereumAPI{
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
@@ -73,6 +88,7 @@ func NewAPI(
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,
+		gasPrice:     gasPrice,
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -189,8 +205,7 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 // GasPrice returns the current gas price based on Ethermint's gas price oracle.
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	api.logger.Debug("eth_gasPrice")
-	out := big.NewInt(0)
-	return (*hexutil.Big)(out)
+	return api.gasPrice
 }
 
 // Accounts returns the list of accounts available to this node.
