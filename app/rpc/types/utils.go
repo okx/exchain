@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"math/big"
+
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -125,7 +126,7 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, ethTx.Fee())
+		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
 		transactionHashes = append(transactionHashes, common.BytesToHash(tx.Hash()))
 	}
 
