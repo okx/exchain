@@ -80,7 +80,7 @@ func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]co
 			}
 		}
 	}
-	return included
+	return true
 }
 
 // returnHashes is a helper that will return an empty hash array case the given hash array is nil,
