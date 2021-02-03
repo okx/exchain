@@ -79,6 +79,9 @@ func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]co
 				break
 			}
 		}
+		if !included {
+			return false
+		}
 	}
 	return true
 }
