@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -200,7 +203,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
-		return nil, err
+		return st.genericFailedExecuteResult("execute evm call failed", csdb, ret,
+			GasInfo{
+				GasConsumed: gasConsumed,
+				GasLimit:    gasLimit,
+				GasRefunded: leftOverGas,
+			}, err)
 	}
 
 	// Resets nonce to value pre state transition
@@ -274,6 +282,47 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	return executionResult, nil
 }
 
+func (st StateTransition) genericFailedExecuteResult(executeLog string, csdb *CommitStateDB, ret []byte, gasInfo GasInfo, e error) (*ExecutionResult, error) {
+	bloomInt := big.NewInt(0)
+
+	var (
+		bloomFilter ethtypes.Bloom
+		logs        []*ethtypes.Log
+	)
+
+	if st.TxHash != nil && !st.Simulate {
+		logs, err := csdb.GetLogs(*st.TxHash)
+		if err != nil {
+			return nil, err
+		}
+
+		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
+		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
+	}
+
+	resultData := ResultData{
+		Bloom:  bloomFilter,
+		Logs:   logs,
+		Ret:    ret,
+		TxHash: *st.TxHash,
+	}
+	resBz, err := EncodeResultData(resultData)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResult := &ExecutionResult{
+		Logs:  logs,
+		Bloom: bloomInt,
+		Result: &sdk.Result{
+			Data: resBz,
+			Log:  executeLog,
+		},
+		GasInfo: gasInfo,
+	}
+	return executionResult, newRevertError(ret, e)
+}
+
 // HashFromContext returns the Ethereum Header hash from the context's Tendermint
 // block header.
 func HashFromContext(ctx sdk.Context) common.Hash {
@@ -316,4 +365,18 @@ func (st StateTransition) RefundGas(ctx sdk.Context) error {
 	}
 
 	return nil
+}
+
+func newRevertError(data []byte, e error) error {
+	var err error
+	if e.Error() != vm.ErrExecutionReverted.Error() {
+		return e
+	}
+	reason, errUnpack := abi.UnpackRevert(data)
+	if errUnpack == nil {
+		err = fmt.Errorf(e.Error()+": %v ", reason)
+	} else {
+		err = fmt.Errorf(e.Error()+": %v ", hexutil.Encode(data))
+	}
+	return err
 }

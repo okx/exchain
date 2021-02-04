@@ -55,6 +55,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 		if err != nil {
 			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, "EVM Call Failed : "+err.Error())
 		}
 		return result, err
 	}
@@ -121,6 +122,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if executionResult != nil {
+			return executionResult.Result, err
+		}
 		return nil, err
 	}
 
