@@ -135,20 +135,22 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
 func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.CLIContext) (int64, error) {
-	resConsParams, err := clientCtx.Client.ConsensusParams(nil)
-	if err != nil {
-		return 0, err
-	}
+	//resConsParams, err := clientCtx.Client.ConsensusParams(nil)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//gasLimit := resConsParams.ConsensusParams.Block.MaxGas
+	//if gasLimit == -1 {
+	//	// Sets gas limit to max uint32 to not error with javascript dev tooling
+	//	// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
+	//	// which errors certain javascript dev tooling which only supports up to 53 bits
+	//	gasLimit = int64(^uint32(0))
+	//}
+	//
+	//return gasLimit, nil
 
-	gasLimit := resConsParams.ConsensusParams.Block.MaxGas
-	if gasLimit == -1 {
-		// Sets gas limit to max uint32 to not error with javascript dev tooling
-		// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
-		// which errors certain javascript dev tooling which only supports up to 53 bits
-		gasLimit = int64(^uint32(0))
-	}
-
-	return gasLimit, nil
+	return int64(^uint32(0)), nil
 }
 
 // FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted

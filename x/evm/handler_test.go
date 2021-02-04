@@ -540,6 +540,81 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 	suite.Require().Fail("panic did not happen")
 }
 
+func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
+	// Test contract:
+
+	//// SPDX-License-Identifier: GPL-3.0
+	//
+	//pragma solidity >=0.7.0 <0.8.0;
+	//
+	///**
+	// * @title Storage
+	// * @dev Store & retrieve value in a variable
+	// */
+	//contract Storage {
+	//
+	//	uint256 number;
+	//	event Test(address to);
+	//
+	//	/**
+	//	 * @dev Store value in variable
+	//	 * @param num value to store
+	//	 */
+	//	function store(uint256 num) public {
+	//	require(false,"this is my test failed message");
+	//	number = num;
+	//	emit Test(msg.sender);
+	//}
+	//
+	//	/**
+	//	 * @dev Return value
+	//	 * @return value of 'number'
+	//	 */
+	//	function retrieve() public view returns (uint256){
+	//	return number;
+	//}
+	//}
+
+	// Deploy contract - storage.sol
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	// Deploy contract - storage.sol
+	gasLimit := uint64(100000000)
+	gasPrice := big.NewInt(10000)
+
+	priv, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err, "failed to create key")
+
+	bytecode := common.FromHex("0x608060405234801561001057600080fd5b50610191806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610087565b6040518082815260200191505060405180910390f35b6100856004803603602081101561006f57600080fd5b8101908080359060200190929190505050610090565b005b60008054905090565b6000610104576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252601e8152602001807f74686973206973206d792074657374206661696c6564206d657373616765000081525060200191505060405180910390fd5b806000819055507faa9449f2bca09a7b28319d46fd3f3b58a1bb7d94039fc4b69b7bfe5d8535d52733604051808273ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a15056fea264697066735822122078908b7dd6de7f67bccf9fa221c027590325c5df3cd7d654ee654e4834ca952b64736f6c63430007060033")
+	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx.Sign(big.NewInt(3), priv.ToECDSA())
+	suite.Require().NoError(err)
+
+	result, err := suite.handler(suite.ctx, tx)
+	suite.Require().NoError(err, "failed to handle eth tx msg")
+
+	resultData, err := types.DecodeResultData(result.Data)
+	suite.Require().NoError(err, "failed to decode result data")
+
+	// store - changeOwner
+	gasLimit = uint64(100000000000)
+	gasPrice = big.NewInt(100)
+	receiver := common.HexToAddress(resultData.ContractAddress.String())
+
+	storeAddr := "0x6057361d0000000000000000000000000000000000000000000000000000000000000001"
+	bytecode = common.FromHex(storeAddr)
+	tx = types.NewMsgEthereumTx(2, &receiver, big.NewInt(0), gasLimit, gasPrice, bytecode)
+	tx.Sign(big.NewInt(3), priv.ToECDSA())
+	suite.Require().NoError(err)
+
+	result, err = suite.handler(suite.ctx, tx)
+	suite.Require().Nil(result)
+	suite.Require().NotNil(err)
+	suite.Require().Equal(err.Error(), "EVM Call Failed : execution reverted: this is my test failed message ")
+}
+
 func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	gasLimit := uint64(1000000)
 	gasPrice := big.NewInt(10000)

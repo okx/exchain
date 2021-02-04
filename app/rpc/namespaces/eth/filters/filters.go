@@ -87,7 +87,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 		if header == nil {
 			return nil, fmt.Errorf("unknown block header %s", f.criteria.BlockHash.String())
 		}
-		return f.blockLogs(header)
+		return f.blockLogs(header, *f.criteria.BlockHash)
 	}
 
 	// Figure out the limits of the filter range
@@ -127,12 +127,12 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 }
 
 // blockLogs returns the logs matching the filter criteria within a single block.
-func (f *Filter) blockLogs(header *ethtypes.Header) ([]*ethtypes.Log, error) {
+func (f *Filter) blockLogs(header *ethtypes.Header, hash common.Hash) ([]*ethtypes.Log, error) {
 	if !bloomFilter(header.Bloom, f.criteria.Addresses, f.criteria.Topics) {
 		return []*ethtypes.Log{}, nil
 	}
 
-	logsList, err := f.backend.GetLogs(header.Hash())
+	logsList, err := f.backend.GetLogs(hash)
 	if err != nil {
 		return []*ethtypes.Log{}, err
 	}

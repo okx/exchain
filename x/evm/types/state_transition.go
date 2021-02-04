@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -200,7 +203,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
-		return nil, err
+		return nil, newRevertError(ret, err)
 	}
 
 	// Resets nonce to value pre state transition
@@ -316,4 +319,18 @@ func (st StateTransition) RefundGas(ctx sdk.Context) error {
 	}
 
 	return nil
+}
+
+func newRevertError(data []byte, e error) error {
+	var err error
+	if data == nil || e.Error() != vm.ErrExecutionReverted.Error() {
+		return e
+	}
+	reason, errUnpack := abi.UnpackRevert(data)
+	if errUnpack == nil {
+		err = fmt.Errorf(e.Error()+": %v ", reason)
+	} else {
+		err = fmt.Errorf(e.Error()+": %v ", hexutil.Encode(data))
+	}
+	return err
 }

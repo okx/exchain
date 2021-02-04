@@ -152,11 +152,7 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 		return nil, fmt.Errorf("could not unmarshal block height: %w", err)
 	}
 
-	bloom, found := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
-	if !found {
-		return nil, fmt.Errorf("block bloom not found for height %d", num)
-	}
-
+	bloom := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
 	res := types.QueryBloomFilter{Bloom: bloom}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {

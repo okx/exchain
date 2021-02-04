@@ -36,6 +36,7 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -52,6 +53,7 @@ type PublicEthereumAPI struct {
 	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
+	gasPrice     *hexutil.Big
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -73,6 +75,7 @@ func NewAPI(
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,
+		gasPrice:     ParseGasPrice(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -189,8 +192,7 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 // GasPrice returns the current gas price based on Ethermint's gas price oracle.
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	api.logger.Debug("eth_gasPrice")
-	out := big.NewInt(0)
-	return (*hexutil.Big)(out)
+	return api.gasPrice
 }
 
 // Accounts returns the list of accounts available to this node.
@@ -900,6 +902,9 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		// sender and receiver (contract or EOA) addresses
 		"from": from,
 		"to":   ethTx.To(),
+
+		//compatible with truffle
+		"reason": tx.TxResult.Log,
 	}
 
 	return receipt, nil
@@ -1147,4 +1152,15 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
+}
+
+//gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
+func ParseGasPrice() *hexutil.Big {
+	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
+	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
+		return (*hexutil.Big)(gasPrices[0].Amount.BigInt())
+	}
+
+	//return the default gas price : DefaultGasPrice
+	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
 }
