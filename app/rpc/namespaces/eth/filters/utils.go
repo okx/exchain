@@ -1,13 +1,8 @@
 package filters
 
 import (
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/spf13/viper"
 	"math/big"
 )
 
@@ -104,20 +99,4 @@ func returnLogs(logs []*ethtypes.Log) []*ethtypes.Log {
 		return []*ethtypes.Log{}
 	}
 	return logs
-}
-
-//gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
-func ParseGasPrice() *hexutil.Big {
-	gasPricesStr := viper.GetString(server.FlagMinGasPrices)
-	gasPrices, _ := sdk.ParseDecCoins(gasPricesStr)
-
-	var gasPrice *hexutil.Big
-	if gasPrices == nil || len(gasPrices) == 0 {
-		var gweiNum uint64 = 1000000000
-		gasPrice = (*hexutil.Big)(new(big.Int).SetUint64(ethermint.DefaultGasPrice * gweiNum))
-	} else {
-		gasPrice = (*hexutil.Big)(gasPrices[0].Amount.Int)
-	}
-
-	return gasPrice
 }

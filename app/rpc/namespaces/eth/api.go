@@ -36,11 +36,11 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	rpcfilters "github.com/okex/okexchain/app/rpc/namespaces/eth/filters"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -67,9 +67,6 @@ func NewAPI(
 		panic(err)
 	}
 
-	//gasPrice
-	gasPrice := rpcfilters.ParseGasPrice()
-
 	api := &PublicEthereumAPI{
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
@@ -78,7 +75,7 @@ func NewAPI(
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,
-		gasPrice:     gasPrice,
+		gasPrice:     ParseGasPrice(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -1152,4 +1149,15 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
+}
+
+//gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
+func ParseGasPrice() *hexutil.Big {
+	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
+	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
+		return (*hexutil.Big)(gasPrices[0].Amount.BigInt())
+	}
+
+	//return the default gas price : DefaultGasPrice
+	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
 }
