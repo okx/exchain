@@ -251,6 +251,19 @@ func (msg MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 	})
 }
 
+// Hash returns the hash to be signed by the sender.
+// It does not uniquely identify the transaction.
+func (msg MsgEthereumTx) HomesteadSignHash() ethcmn.Hash {
+	return rlpHash([]interface{}{
+		msg.Data.AccountNonce,
+		msg.Data.Price,
+		msg.Data.GasLimit,
+		msg.Data.Recipient,
+		msg.Data.Amount,
+		msg.Data.Payload,
+	})
+}
+
 // EncodeRLP implements the rlp.Encoder interface.
 func (msg *MsgEthereumTx) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &msg.Data)
@@ -311,7 +324,12 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
-	signer := ethtypes.NewEIP155Signer(chainID)
+	var signer ethtypes.Signer
+	if isProtectedV(msg.Data.V) {
+		signer = ethtypes.NewEIP155Signer(chainID)
+	} else {
+		signer = ethtypes.HomesteadSigner{}
+	}
 
 	if sc := msg.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
@@ -322,16 +340,25 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 		}
 	}
 
-	// do not allow recovery for transactions with an unprotected chainID
-	if chainID.Sign() == 0 {
-		return ethcmn.Address{}, errors.New("chainID cannot be zero")
+	V := new(big.Int)
+	var sigHash ethcmn.Hash
+	if isProtectedV(msg.Data.V) {
+		// do not allow recovery for transactions with an unprotected chainID
+		if chainID.Sign() == 0 {
+			return ethcmn.Address{}, errors.New("chainID cannot be zero")
+		}
+
+		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		V.Sub(V, big8)
+
+		sigHash = msg.RLPSignBytes(chainID)
+	} else {
+		V = msg.Data.V
+
+		sigHash = msg.HomesteadSignHash()
 	}
 
-	chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
-	V := new(big.Int).Sub(msg.Data.V, chainIDMul)
-	V.Sub(V, big8)
-
-	sigHash := msg.RLPSignBytes(chainID)
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
 		return ethcmn.Address{}, err
@@ -339,6 +366,16 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 
 	msg.from.Store(sigCache{signer: signer, from: sender})
 	return sender, nil
+}
+
+// codes from go-ethereum/core/types/transaction.go:122
+func isProtectedV(V *big.Int) bool {
+	if V.BitLen() <= 8 {
+		v := V.Uint64()
+		return v != 27 && v != 28
+	}
+	// anything not 27 or 28 is considered protected
+	return true
 }
 
 // GetGas implements the GasTx interface. It returns the GasLimit of the transaction.

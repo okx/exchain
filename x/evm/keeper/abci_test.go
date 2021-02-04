@@ -55,8 +55,7 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 
 	suite.Require().Equal(int64(initialConsumed), int64(suite.ctx.GasMeter().GasConsumed()))
 
-	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 100)
-	suite.Require().True(found)
+	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 100)
 	suite.Require().Equal(int64(10), bloom.Big().Int64())
 }
 
