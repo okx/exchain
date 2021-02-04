@@ -368,6 +368,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	return sender, nil
 }
 
+// codes from go-ethereum/core/types/transaction.go:122
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
