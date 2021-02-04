@@ -324,7 +324,12 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
-	signer := ethtypes.NewEIP155Signer(chainID)
+	var signer ethtypes.Signer
+	if isProtectedV(msg.Data.V) {
+		signer = ethtypes.NewEIP155Signer(chainID)
+	} else {
+		signer = ethtypes.HomesteadSigner{}
+	}
 
 	if sc := msg.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
