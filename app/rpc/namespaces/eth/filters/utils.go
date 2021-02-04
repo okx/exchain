@@ -1,9 +1,9 @@
 package filters
 
 import (
+	"math/big"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 // filterLogs creates a slice of logs matching the given criteria.
