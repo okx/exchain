@@ -576,6 +576,7 @@ func TestEth_gasPrice(t *testing.T) {
 	var res hexutil.Uint64
 	err := res.UnmarshalJSON(rpcRes.Result)
 	require.NoError(t, err)
+	require.NotEqual(t, (*hexutil.Big)(big.NewInt(0)), res)
 
 	t.Logf("Got gas price: %s\n", res.String())
 }
