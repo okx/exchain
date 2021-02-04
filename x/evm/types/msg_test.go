@@ -208,7 +208,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
 	require.Nil(t, err)
 	_, err = msg.VerifySig(zeroChainID)
-	require.Error(t, err)
+	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))

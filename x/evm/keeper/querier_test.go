@@ -45,7 +45,7 @@ func (suite *KeeperTestSuite) TestQuerier() {
 		{"fail bloom number", []string{types.QueryBloom, "4"}, func() {
 			testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 			suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 3, testBloom)
-		}, false},
+		}, true},
 		{"logs", []string{types.QueryLogs, "0x0"}, func() {}, true},
 		{"account", []string{types.QueryAccount, "0x0"}, func() {}, true},
 		{"exportAccount", []string{types.QueryExportAccount, suite.address.String()}, func() {
