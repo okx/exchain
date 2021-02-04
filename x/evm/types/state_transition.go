@@ -323,7 +323,7 @@ func (st StateTransition) RefundGas(ctx sdk.Context) error {
 
 func newRevertError(data []byte, e error) error {
 	var err error
-	if e.Error() != vm.ErrExecutionReverted.Error() {
+	if data == nil || e.Error() != vm.ErrExecutionReverted.Error() {
 		return e
 	}
 	reason, errUnpack := abi.UnpackRevert(data)
