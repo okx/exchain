@@ -64,7 +64,7 @@ jobs:
             export GO111MODULE=on
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
-            excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)"
+            excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)|(okexchain/app/rpc)"
             included_packages=("./app" "./x/backend" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order" "./x/farm" "./x/evm")
             serial_exec_packages=("./app")
             for pkg in ${included_packages[@]}; do
