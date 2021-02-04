@@ -142,8 +142,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	heightHash := suite.app.EvmKeeper.GetHeightHash(suite.ctx, uint64(8))
 	suite.Require().Equal(heightHash, ethcmn.HexToHash("0x5"))
 
-	bloom, found := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
-	suite.Require().True(found)
+	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
 	err := suite.app.EvmKeeper.Finalise(suite.ctx, false)
