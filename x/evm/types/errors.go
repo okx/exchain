@@ -21,4 +21,6 @@ var (
 
 	// ErrCallDisabled returns an error if the EnableCall parameter is false.
 	ErrCallDisabled = sdkerrors.Register(ModuleName, 6, "EVM Call operation is disabled")
+
+	CodeSpaceEvmCallFailed = uint32(7)
 )
