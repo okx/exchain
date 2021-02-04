@@ -569,3 +569,14 @@ func TestEth_GetBlockByNumber(t *testing.T) {
 	require.Equal(t, "0x0", block["extraData"].(string))
 	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
 }
+
+func TestEth_gasPrice(t *testing.T) {
+	rpcRes := Call(t, "eth_gasPrice", []string{})
+
+	var res hexutil.Uint64
+	err := res.UnmarshalJSON(rpcRes.Result)
+	require.NoError(t, err)
+	require.NotEqual(t, (*hexutil.Big)(big.NewInt(0)), res)
+
+	t.Logf("Got gas price: %s\n", res.String())
+}
