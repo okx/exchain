@@ -122,9 +122,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	executionResult, err := st.TransitionDb(ctx, config)
 	if err != nil {
-		if executionResult != nil {
-			return executionResult.Result, err
-		}
 		return nil, err
 	}
 

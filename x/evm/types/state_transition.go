@@ -203,12 +203,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
-		return st.genericFailedExecuteResult("execute evm call failed", csdb, ret,
-			GasInfo{
-				GasConsumed: gasConsumed,
-				GasLimit:    gasLimit,
-				GasRefunded: leftOverGas,
-			}, err)
+		return nil, newRevertError(ret, err)
 	}
 
 	// Resets nonce to value pre state transition
@@ -280,47 +275,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
-}
-
-func (st StateTransition) genericFailedExecuteResult(executeLog string, csdb *CommitStateDB, ret []byte, gasInfo GasInfo, e error) (*ExecutionResult, error) {
-	bloomInt := big.NewInt(0)
-
-	var (
-		bloomFilter ethtypes.Bloom
-		logs        []*ethtypes.Log
-	)
-
-	if st.TxHash != nil && !st.Simulate {
-		logs, err := csdb.GetLogs(*st.TxHash)
-		if err != nil {
-			return nil, err
-		}
-
-		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
-		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
-	}
-
-	resultData := ResultData{
-		Bloom:  bloomFilter,
-		Logs:   logs,
-		Ret:    ret,
-		TxHash: *st.TxHash,
-	}
-	resBz, err := EncodeResultData(resultData)
-	if err != nil {
-		return nil, err
-	}
-
-	executionResult := &ExecutionResult{
-		Logs:  logs,
-		Bloom: bloomInt,
-		Result: &sdk.Result{
-			Data: resBz,
-			Log:  executeLog,
-		},
-		GasInfo: gasInfo,
-	}
-	return executionResult, newRevertError(ret, e)
 }
 
 // HashFromContext returns the Ethereum Header hash from the context's Tendermint
