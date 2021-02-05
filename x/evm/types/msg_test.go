@@ -181,6 +181,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
 	trimed := strings.Trim(addr1.Hex(), "0x")
 
+	fmt.Printf("%s\n", trimed)
 	addrSDKAddr1, err := sdk.AccAddressFromHex(trimed)
 	require.NoError(t, err)
 	addr2 := ethcmn.BytesToAddress(priv2.PubKey().Address().Bytes())
