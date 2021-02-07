@@ -36,7 +36,6 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
@@ -520,12 +519,12 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	return (hexutil.Bytes)(data.Ret), nil
@@ -643,7 +642,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	api.logger.Debug("eth_estimateGas", "args", args)
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return 0, err
+		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
@@ -906,7 +905,6 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		//compatible with truffle
 		"reason": tx.TxResult.Log,
 	}
-
 	return receipt, nil
 }
 
@@ -1152,15 +1150,4 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
-}
-
-//gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
-func ParseGasPrice() *hexutil.Big {
-	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
-	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
-		return (*hexutil.Big)(gasPrices[0].Amount.BigInt())
-	}
-
-	//return the default gas price : DefaultGasPrice
-	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
 }

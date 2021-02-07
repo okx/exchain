@@ -63,6 +63,26 @@ type SendTxArgs struct {
 	Input *hexutil.Bytes `json:"input"`
 }
 
+func (ca SendTxArgs) String() string {
+	var arg string
+	if ca.To != nil {
+		arg += fmt.Sprintf("To: %s, ", ca.To.String())
+	}
+	if ca.Gas != nil {
+		arg += fmt.Sprintf("Gas: %s, ", ca.Gas.String())
+	}
+	if ca.GasPrice != nil {
+		arg += fmt.Sprintf("GasPrice: %s, ", ca.GasPrice.String())
+	}
+	if ca.Value != nil {
+		arg += fmt.Sprintf("Value: %s, ", ca.Value.String())
+	}
+	if ca.Data != nil {
+		arg += fmt.Sprintf("Data: %s, ", ca.Data.String())
+	}
+	return strings.TrimRight(arg, ", ")
+}
+
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
 	From     *common.Address `json:"from"`
