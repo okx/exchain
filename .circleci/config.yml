@@ -57,6 +57,7 @@ jobs:
             - ".git"
       - run:
           name: Run tests with coverage and upload codecov
+          no_output_timeout: 30m
           command: |
             set -ex
             echo "--> Run tests with coverage:"
