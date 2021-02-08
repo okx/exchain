@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -322,15 +323,24 @@ func (st StateTransition) RefundGas(ctx sdk.Context) error {
 }
 
 func newRevertError(data []byte, e error) error {
-	var err error
+	var resultError []string
 	if data == nil || e.Error() != vm.ErrExecutionReverted.Error() {
 		return e
 	}
+	resultError = append(resultError, e.Error())
 	reason, errUnpack := abi.UnpackRevert(data)
 	if errUnpack == nil {
-		err = fmt.Errorf(e.Error()+": %v ", reason)
+		resultError = append(resultError, vm.ErrExecutionReverted.Error()+":"+reason)
 	} else {
-		err = fmt.Errorf(e.Error()+": %v ", hexutil.Encode(data))
+		resultError = append(resultError, hexutil.Encode(data))
 	}
-	return err
+	resultError = append(resultError, ErrorHexData)
+	resultError = append(resultError, hexutil.Encode(data))
+	ret, error := json.Marshal(resultError)
+
+	//failed to marshal, return original data in error
+	if error != nil {
+		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
+	}
+	return errors.New(string(ret))
 }

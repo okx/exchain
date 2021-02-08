@@ -612,7 +612,7 @@ func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().Nil(result)
 	suite.Require().NotNil(err)
-	suite.Require().Equal(err.Error(), "EVM Call Failed : execution reverted: this is my test failed message ")
+	suite.Require().Equal(err.Error(), "[\"execution reverted\",\"execution reverted:this is my test failed message\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e74686973206973206d792074657374206661696c6564206d6573736167650000\"]")
 }
 
 func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
