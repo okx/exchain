@@ -85,6 +85,16 @@ func TestEth_ChainId(t *testing.T) {
 	require.Equal(t, chainID, hexutil.Uint(defaultChainID))
 }
 
+func TestEth_Syncing(t *testing.T) {
+	rpcRes, err := CallWithError("eth_syncing", []string{})
+	require.NoError(t, err)
+
+	// single node for test.sh -> always leading without syncing
+	var catchingUp bool
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &catchingUp))
+	require.False(t,catchingUp)
+}
+
 func TestBlockBloom(t *testing.T) {
 	hash := DeployTestContractWithFunction(t, from)
 	receipt := WaitForReceipt(t, hash)
