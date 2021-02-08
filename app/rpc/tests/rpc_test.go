@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,6 +50,19 @@ func TestMain(m *testing.M) {
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)
+}
+
+func TestEth_Accounts(t *testing.T){
+	// all unlocked addresses
+	rpcRes, err := CallWithError("eth_accounts", []string{})
+	require.NoError(t, err)
+	require.Equal(t, 1, rpcRes.ID)
+
+	var addrsUnlocked []hexutil.Bytes
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &addrsUnlocked))
+	require.Equal(t, 2, len(addrsUnlocked))
+	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[0]), hexAddr1))
+	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[1]), hexAddr2))
 }
 
 func TestBlockBloom(t *testing.T) {

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-KEY="test"
+KEY1="alice"
+KEY2="bob"
 CHAINID="okexchainevm-65"
 MONIKER="okex"
 CURDIR=$(dirname $0)
@@ -34,7 +35,8 @@ okexchaincli config indent true --home $HOME_CLI
 okexchaincli config trust-node true --home $HOME_CLI
 
 # if $KEY exists it should be deleted
-okexchaincli keys add $KEY --recover -m "tragic ugly suggest nasty retire luxury era depth present cross various advice" --home $HOME_CLI
+okexchaincli keys add $KEY1 --recover -m "tragic ugly suggest nasty retire luxury era depth present cross various advice" --home $HOME_CLI
+okexchaincli keys add $KEY2 --recover -m "miracle desert mosquito bind main cage fiscal because flip turkey brother repair" --home $HOME_CLI
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 okexchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER
@@ -50,9 +52,10 @@ sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/gene
 sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-okexchaind add-genesis-account $(okexchaincli keys show $KEY -a --home $HOME_CLI) 1000000000okt --home $HOME_SERVER
+okexchaind add-genesis-account $(okexchaincli keys show $KEY1 -a --home $HOME_CLI) 1000000000okt --home $HOME_SERVER
+okexchaind add-genesis-account $(okexchaincli keys show $KEY2 -a --home $HOME_CLI) 1000000000okt --home $HOME_SERVER
 ## Sign genesis transaction
-okexchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER --home-client $HOME_CLI
+okexchaind gentx --name $KEY1 --keyring-backend test --home $HOME_SERVER --home-client $HOME_CLI
 # Collect genesis tx
 okexchaind collect-gentxs --home $HOME_SERVER
 # Run this to ensure everything worked and that the genesis file is setup correctly
@@ -63,7 +66,7 @@ LOG_LEVEL=main:info,state:info,distr:debug,auth:info,mint:debug,farm:debug
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 
 # start node with web3 rest
-okexchaind start --pruning=nothing --rpc.unsafe --rest.laddr tcp://0.0.0.0:8545 --chain-id $CHAINID --log_level $LOG_LEVEL --trace --home $HOME_SERVER --rest.unlock_key $KEY --rest.unlock_key_home $HOME_CLI --keyring-backend "test"
+okexchaind start --pruning=nothing --rpc.unsafe --rest.laddr tcp://0.0.0.0:8545 --chain-id $CHAINID --log_level $LOG_LEVEL --trace --home $HOME_SERVER --rest.unlock_key $KEY1,$KEY2 --rest.unlock_key_home $HOME_CLI --keyring-backend "test"
 
 #go test ./
 
