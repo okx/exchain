@@ -84,7 +84,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block)
@@ -104,7 +104,7 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 
 	resBlock, err := b.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return rpctypes.EthBlockFromTendermint(b.clientCtx, resBlock.Block)
