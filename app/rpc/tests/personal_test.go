@@ -69,7 +69,6 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 	require.Equal(t, addr.String(), resAddr.String())
 
 	addrCounter++
-	fmt.Println(addrCounter)
 
 	// error check with wrong hex format of privkey
 	rpcRes, err = CallWithError("personal_importRawKey", []string{fmt.Sprintf("%sg", hexPriv), defaultPassWd})
@@ -116,7 +115,6 @@ func TestPersonal_UnlockAccount(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 
 	addrCounter++
-	fmt.Println(addrCounter)
 
 	newPassWd := "87654321"
 	// try to sign with different password -> failed
@@ -149,9 +147,7 @@ func TestPersonal_LockAccount(t *testing.T) {
 	var addr common.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 
-	// global stores
 	addrCounter++
-	fmt.Println(addrCounter)
 
 	// unlock the account above first
 	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, defaultPassWd})
