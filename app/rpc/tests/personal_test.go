@@ -11,10 +11,6 @@ import (
 	"testing"
 )
 
-var (
-	hexAddr3, hexAddr4, hexAddr5 string
-)
-
 func TestPersonal_ListAccounts(t *testing.T) {
 	// there are two keys to unlock in the node from test.sh
 	rpcRes := Call(t, "personal_listAccounts", []string{})
@@ -32,8 +28,7 @@ func TestPersonal_NewAccount(t *testing.T) {
 	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
-	// global stores
-	hexAddr3 = addr.Hex()
+	addrCounter++
 
 	rpcRes = Call(t, "personal_listAccounts", []string{})
 	var res []hexutil.Bytes
@@ -41,7 +36,7 @@ func TestPersonal_NewAccount(t *testing.T) {
 	require.Equal(t, 3, len(res))
 	require.True(t, strings.EqualFold(hexutil.Encode(res[0]), hexAddr1))
 	require.True(t, strings.EqualFold(hexutil.Encode(res[1]), hexAddr2))
-	require.True(t, strings.EqualFold(hexutil.Encode(res[2]), hexAddr3))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[2]), addr.String()))
 }
 
 func TestPersonal_Sign(t *testing.T) {
@@ -53,7 +48,7 @@ func TestPersonal_Sign(t *testing.T) {
 	// TODO: check that signature is same as with geth, requires importing a key
 
 	// error with inexistent addr
-	inexistentAddr := hexutil.Bytes([]byte{0})
+	inexistentAddr := common.BytesToAddress([]byte{0})
 	rpcRes, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
 	require.Error(t, err)
 }
@@ -66,16 +61,15 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
 	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
 
-	var res hexutil.Bytes
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
+	var resAddr common.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &resAddr))
 
 	addr := ethcrypto.PubkeyToAddress(privkey.PublicKey)
-	resAddr := common.BytesToAddress(res)
 
 	require.Equal(t, addr.String(), resAddr.String())
 
-	// global stores
-	hexAddr4 = resAddr.String()
+	addrCounter++
+	fmt.Println(addrCounter)
 
 	// error check with wrong hex format of privkey
 	rpcRes, err = CallWithError("personal_importRawKey", []string{fmt.Sprintf("%sg", hexPriv), defaultPassWd})
@@ -121,8 +115,8 @@ func TestPersonal_UnlockAccount(t *testing.T) {
 	var addr common.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 
-	// global stores
-	hexAddr5 = addr.Hex()
+	addrCounter++
+	fmt.Println(addrCounter)
 
 	newPassWd := "87654321"
 	// try to sign with different password -> failed
@@ -144,31 +138,41 @@ func TestPersonal_UnlockAccount(t *testing.T) {
 
 	// error check
 	// inexistent addr
-	inexistentAddr := hexutil.Bytes([]byte{0})
+	inexistentAddr := common.BytesToAddress([]byte{0})
 	_, err = CallWithError("personal_unlockAccount", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, newPassWd})
 	require.Error(t, err)
 }
 
 func TestPersonal_LockAccount(t *testing.T) {
-	pswd := "nootwashere"
-	rpcRes := Call(t, "personal_newAccount", []string{pswd})
+	// create a new account
+	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	err := json.Unmarshal(rpcRes.Result, &addr)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 
-	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, ""})
+	// global stores
+	addrCounter++
+	fmt.Println(addrCounter)
+
+	// unlock the account above first
+	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, defaultPassWd})
 	var unlocked bool
-	err = json.Unmarshal(rpcRes.Result, &unlocked)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &unlocked))
 	require.True(t, unlocked)
 
+	// lock the account
 	rpcRes = Call(t, "personal_lockAccount", []interface{}{addr})
 	var locked bool
-	err = json.Unmarshal(rpcRes.Result, &locked)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &locked))
 	require.True(t, locked)
 
-	// try to sign, should be locked
-	_, err = CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, ""})
+	// try to sign, should be locked -> fail to sign
+	_, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, defaultPassWd})
 	require.Error(t, err)
+
+	// error check
+	// lock an inexistent account
+	inexistentAddr := common.BytesToAddress([]byte{0})
+	rpcRes = Call(t, "personal_lockAccount", []interface{}{inexistentAddr})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &locked))
+	require.False(t, locked)
 }

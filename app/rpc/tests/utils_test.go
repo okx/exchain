@@ -24,6 +24,7 @@ var (
 	keyInfo1, keyInfo2 keys.Info
 	Kb                 = keys.NewInMemory(hd.EthSecp256k1Options()...)
 	hexAddr1, hexAddr2 string
+	addrCounter        = 2
 )
 
 func init() {

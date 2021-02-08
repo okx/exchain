@@ -55,12 +55,11 @@ func TestEth_Accounts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, rpcRes.ID)
 
-	var addrsUnlocked []hexutil.Bytes
+	var addrsUnlocked []ethcmn.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addrsUnlocked))
-	require.Equal(t, 3, len(addrsUnlocked))
-	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[0]), hexAddr1))
-	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[1]), hexAddr2))
-	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[2]), hexAddr3))
+	require.Equal(t, addrCounter, len(addrsUnlocked))
+	require.True(t, strings.EqualFold(addrsUnlocked[0].Hex(), hexAddr1))
+	require.True(t, strings.EqualFold(addrsUnlocked[1].Hex(), hexAddr2))
 }
 
 func TestEth_ProtocolVersion(t *testing.T) {
