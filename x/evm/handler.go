@@ -55,7 +55,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 		if err != nil {
 			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
-			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, "EVM Call Failed : "+err.Error())
+			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 		return result, err
 	}
