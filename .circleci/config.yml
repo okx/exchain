@@ -57,7 +57,6 @@ jobs:
             - ".git"
       - run:
           name: Run tests with coverage and upload codecov
-          no_output_timeout: 30m
           command: |
             set -ex
             echo "--> Run tests with coverage:"
@@ -80,25 +79,26 @@ jobs:
                 SERIAL=`echo "-p 1"`
               fi
               echo ${RACE}
-              go test -mod=readonly -timeout 8m -race ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+#             go test -mod=readonly -timeout 8m -race ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+              go test -mod=readonly -timeout 8m -race ${SERIAL}
             done
 
-            echo "--> Gather coverage:"
-            ls /tmp/workspace/profiles/
-            echo "mode: atomic" > coverage.txt
-            for prof in $(ls /tmp/workspace/profiles/); do
-              tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
-            done
+            #echo "--> Gather coverage:"
+            #ls /tmp/workspace/profiles/
+            #echo "mode: atomic" > coverage.txt
+            #for prof in $(ls /tmp/workspace/profiles/); do
+            #  tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+            #done
 
-            echo "--> Filter out DONTCOVER:"
-            excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
-            for filename in ${excludelist}; do
-              filename=$(echo $filename | sed 's/^./github.com\/okex\/okexchain/g')
-              echo "Excluding ${filename} from coverage report..."
-              sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
-            done
+            #echo "--> Filter out DONTCOVER:"
+            #excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
+            #for filename in ${excludelist}; do
+            #  filename=$(echo $filename | sed 's/^./github.com\/okex\/okexchain/g')
+            #  echo "Excluding ${filename} from coverage report..."
+            #  sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
+            #done
 
-            echo "--> upload codecov:"
-            bash <(curl -s https://codecov.io/bash) -f coverage.txt
+#            echo "--> upload codecov:"
+#            bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
 #            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm"  "./x/backend")
