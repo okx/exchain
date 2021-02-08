@@ -118,6 +118,24 @@ func TestEth_Coinbase(t *testing.T) {
 	require.Equal(t, coinbaseAddr1, coinbaseAddr2)
 }
 
+func TestEth_PowAttribute(t *testing.T) {
+	// eth_mining -> always false
+	rpcRes, err := CallWithError("eth_mining", []string{})
+	require.NoError(t, err)
+
+	var mining bool
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &mining))
+	require.False(t, mining)
+
+	// eth_hashrate -> always 0
+	rpcRes, err = CallWithError("eth_hashrate", []string{})
+	require.NoError(t, err)
+
+	var hashrate hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hashrate))
+	require.Equal(t, hexutil.Uint64(0), hashrate)
+}
+
 func TestBlockBloom(t *testing.T) {
 	hash := DeployTestContractWithFunction(t, from)
 	receipt := WaitForReceipt(t, hash)
