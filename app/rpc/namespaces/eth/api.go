@@ -363,15 +363,6 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		}
 		txs = len(resBlock.Block.Txs)
 	default:
-		// get latest block height
-		blockNumber, err := api.backend.LatestBlockNumber()
-		if err != nil {
-			return nil
-		}
-		if height <= 0 || height > blockNumber{
-			height = blockNumber
-		}
-
 		height = blockNum.Int64()
 		resBlock, err := api.clientCtx.Client.Block(&height)
 		if err != nil {
@@ -808,13 +799,6 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 
 	default:
 		height = blockNum.Int64()
-		blockNumber, err := api.backend.LatestBlockNumber()
-		if err != nil {
-			return nil, err
-		}
-		if height <= 0 || height > blockNumber{
-			height = blockNumber
-		}
 	}
 
 	resBlock, err := api.clientCtx.Client.Block(&height)

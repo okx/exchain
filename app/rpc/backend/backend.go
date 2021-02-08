@@ -71,15 +71,15 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	// get latest block height
-	blockNumber, err := b.LatestBlockNumber()
-	if err != nil {
-		return nil, err
-	}
-
 	height := blockNum.Int64()
-	if height <= 0 || height > blockNumber{
-		height = blockNumber
+	if height <= 0 {
+		// get latest block height
+		num, err := b.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+
+		height = int64(num)
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
@@ -112,15 +112,15 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[st
 
 // HeaderByNumber returns the block header identified by height.
 func (b *EthermintBackend) HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error) {
-	// get latest block height
-	blockNumber, err := b.LatestBlockNumber()
-	if err != nil {
-		return nil, err
-	}
-
 	height := blockNum.Int64()
-	if height <= 0 || height > blockNumber{
-		height = blockNumber
+	if height <= 0 {
+		// get latest block height
+		num, err := b.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+
+		height = int64(num)
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
