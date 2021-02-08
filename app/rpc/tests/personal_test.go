@@ -3,14 +3,12 @@ package tests
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-	"testing"
-
-	"github.com/stretchr/testify/require"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
+	"strings"
+	"testing"
 )
 
 var (
@@ -89,15 +87,32 @@ func TestPersonal_EcRecover(t *testing.T) {
 	rpcRes := Call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
 
 	var res hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
 	require.Equal(t, 65, len(res))
 
 	rpcRes = Call(t, "personal_ecRecover", []interface{}{data, res})
 	var ecrecoverRes common.Address
-	err = json.Unmarshal(rpcRes.Result, &ecrecoverRes)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ecrecoverRes))
 	require.Equal(t, from, ecrecoverRes[:])
+
+	// error check for ecRecover
+	// wrong length of sig
+	rpcRes, err := CallWithError("personal_ecRecover", []interface{}{data, res[1:]})
+	require.Error(t, err)
+
+	// wrong RecoveryIDOffset -> nether 27 nor 28
+	res[ethcrypto.RecoveryIDOffset] = 29
+	rpcRes, err = CallWithError("personal_ecRecover", []interface{}{data, res})
+	require.Error(t, err)
+
+	// fail in SigToPub
+	sigInvalid := make(hexutil.Bytes, 65)
+	for i := 0; i < 64; i++ {
+		sigInvalid[i] = 0
+	}
+	sigInvalid[64] = 27
+	rpcRes, err = CallWithError("personal_ecRecover", []interface{}{data, sigInvalid})
+	require.Error(t, err)
 }
 
 func TestPersonal_UnlockAccount(t *testing.T) {
