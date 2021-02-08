@@ -66,7 +66,18 @@ LOG_LEVEL=main:info,state:info,distr:debug,auth:info,mint:debug,farm:debug
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 
 # start node with web3 rest
-okexchaind start --pruning=nothing --rpc.unsafe --rest.laddr tcp://0.0.0.0:8545 --chain-id $CHAINID --log_level $LOG_LEVEL --trace --home $HOME_SERVER --rest.unlock_key $KEY1,$KEY2 --rest.unlock_key_home $HOME_CLI --keyring-backend "test"
+okexchaind start \
+  --pruning=nothing \
+  --rpc.unsafe \
+  --rest.laddr tcp://0.0.0.0:8545 \
+  --chain-id $CHAINID \
+  --log_level $LOG_LEVEL \
+  --trace \
+  --home $HOME_SERVER \
+  --rest.unlock_key $KEY1,$KEY2 \
+  --rest.unlock_key_home $HOME_CLI \
+  --keyring-backend "test" \
+  --minimum-gas-prices "0.000000001okt"
 
 #go test ./
 

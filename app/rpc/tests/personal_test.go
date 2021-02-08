@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,26 +12,37 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
+var (
+	hexAddr3 string
+)
+
 func TestPersonal_ListAccounts(t *testing.T) {
+	// there are two keys to unlock in the node from test.sh
 	rpcRes := Call(t, "personal_listAccounts", []string{})
 
 	var res []hexutil.Bytes
 	err := json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(res))
+	require.Equal(t, 2, len(res))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[0]), hexAddr1))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[1]), hexAddr2))
 }
 
 func TestPersonal_NewAccount(t *testing.T) {
-	rpcRes := Call(t, "personal_newAccount", []string{"password"})
+	// create an new mnemonics randomly on the node
+	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	err := json.Unmarshal(rpcRes.Result, &addr)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
+	// global stores
+	hexAddr3 = addr.Hex()
 
 	rpcRes = Call(t, "personal_listAccounts", []string{})
 	var res []hexutil.Bytes
-	err = json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(res))
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
+	require.Equal(t, 3, len(res))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[0]), hexAddr1))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[1]), hexAddr2))
+	require.True(t, strings.EqualFold(hexutil.Encode(res[2]), hexAddr3))
 }
 
 func TestPersonal_Sign(t *testing.T) {
