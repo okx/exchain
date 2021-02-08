@@ -901,9 +901,6 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		// sender and receiver (contract or EOA) addresses
 		"from": from,
 		"to":   ethTx.To(),
-
-		//compatible with truffle
-		"reason": tx.TxResult.Log,
 	}
 	return receipt, nil
 }

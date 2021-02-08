@@ -20,6 +20,12 @@ const (
 	DefaultEVMErrorCode          = -32000
 	VMExecuteException           = -32015
 	VMExecuteExceptionInEstimate = 3
+
+	RpcEthCall        = "eth_call"
+	RpcEthEstimateGas = "eth_estimateGas"
+
+	RpcUnknowErr = "unknow"
+	RpcNullData  = "null"
 )
 
 //gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
@@ -34,7 +40,7 @@ func ParseGasPrice() *hexutil.Big {
 }
 
 type cosmosError struct {
-	Code      uint32 `json:"code"`
+	Code      int    `json:"code"`
 	Log       string `json:"log"`
 	Codespace string `json:"codespace"`
 }
@@ -43,7 +49,22 @@ func (c cosmosError) Error() string {
 	return c.Log
 }
 
-type wrapedEthError struct {
+func newCosmosError(code int, log, codeSpace string) cosmosError {
+	return cosmosError{
+		Code:      code,
+		Log:       log,
+		Codespace: codeSpace,
+	}
+}
+
+func NewWrappedCosmosError(code int, log, codeSpace string) cosmosError {
+	e := newCosmosError(code, log, codeSpace)
+	b, _ := json.Marshal(e)
+	e.Log = string(b)
+	return e
+}
+
+type wrappedEthError struct {
 	Wrap ethDataError `json:"0x00000000000000000000000000000000"`
 }
 
@@ -72,8 +93,8 @@ func (d DataError) ErrorCode() int {
 	return d.code
 }
 
-func newDataError(revert string, data string) *wrapedEthError {
-	return &wrapedEthError{
+func newDataError(revert string, data string) *wrappedEthError {
+	return &wrappedEthError{
 		Wrap: ethDataError{
 			Error:           "revert",
 			Program_counter: 0,
@@ -92,7 +113,7 @@ func TransformDataError(err error, method string) DataError {
 			return DataError{
 				code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: "null",
+				data: RpcNullData,
 			}
 		}
 		lastSeg := strings.LastIndexAny(realErr.Log, "]")
@@ -100,7 +121,7 @@ func TransformDataError(err error, method string) DataError {
 			return DataError{
 				code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: "null",
+				data: RpcNullData,
 			}
 		}
 		marshaler := realErr.Log[0 : lastSeg+1]
@@ -123,20 +144,20 @@ func TransformDataError(err error, method string) DataError {
 		//if there have multi error type of EVM, this need a reactor mode to process error
 		revert, f := m[vm.ErrExecutionReverted.Error()]
 		if !f {
-			revert = "unknow"
+			revert = RpcUnknowErr
 		}
 		data, f := m[types.ErrorHexData]
 		if !f {
-			data = "null"
+			data = RpcNullData
 		}
 		switch method {
-		case "eth_estimateGas":
+		case RpcEthEstimateGas:
 			return DataError{
 				code: VMExecuteExceptionInEstimate,
 				Msg:  revert,
 				data: data,
 			}
-		case "eth_call":
+		case RpcEthCall:
 			return DataError{
 				code: VMExecuteException,
 				Msg:  revert,
@@ -154,7 +175,7 @@ func TransformDataError(err error, method string) DataError {
 	return DataError{
 		code: DefaultEVMErrorCode,
 		Msg:  err.Error(),
-		data: "null",
+		data: RpcNullData,
 	}
 }
 
