@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,7 +13,9 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var hexAddr3 string
+var (
+	hexAddr3, hexAddr4 string
+)
 
 func TestPersonal_ListAccounts(t *testing.T) {
 	// there are two keys to unlock in the node from test.sh
@@ -63,16 +66,22 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 
 	// parse priv key to hex
 	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
-	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, "password"})
+	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
 
 	var res hexutil.Bytes
-	err = json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
 
 	addr := ethcrypto.PubkeyToAddress(privkey.PublicKey)
 	resAddr := common.BytesToAddress(res)
 
 	require.Equal(t, addr.String(), resAddr.String())
+
+	// global stores
+	hexAddr4 = resAddr.String()
+
+	// error check with wrong hex format of privkey
+	rpcRes, err = CallWithError("personal_importRawKey", []string{fmt.Sprintf("%sg", hexPriv), defaultPassWd})
+	require.Error(t, err)
 }
 
 func TestPersonal_EcRecover(t *testing.T) {
