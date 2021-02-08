@@ -31,6 +31,7 @@ const (
 	addrA                  = "0xc94770007dda54cF92009BFF0dE90c06F603a09f"
 	addrAStoreKey          = 0
 	defaultProtocolVersion = 65
+	defaultChainID         = 65
 )
 
 var (
@@ -73,6 +74,15 @@ func TestEth_ProtocolVersion(t *testing.T) {
 	var version hexutil.Uint
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &version))
 	require.Equal(t, version, hexutil.Uint(defaultProtocolVersion))
+}
+
+func TestEth_ChainId(t *testing.T) {
+	rpcRes, err := CallWithError("eth_chainId", []string{})
+	require.NoError(t, err)
+
+	var chainID hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &chainID))
+	require.Equal(t, chainID, hexutil.Uint(defaultChainID))
 }
 
 func TestBlockBloom(t *testing.T) {
