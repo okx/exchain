@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	hexAddr3, hexAddr4 string
+	hexAddr3, hexAddr4, hexAddr5 string
 )
 
 func TestPersonal_ListAccounts(t *testing.T) {
@@ -116,28 +116,37 @@ func TestPersonal_EcRecover(t *testing.T) {
 }
 
 func TestPersonal_UnlockAccount(t *testing.T) {
-	pswd := "nootwashere"
-	rpcRes := Call(t, "personal_newAccount", []string{pswd})
+	// create a new account
+	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	err := json.Unmarshal(rpcRes.Result, &addr)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 
-	// try to sign, should be locked
-	_, err = CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, ""})
+	// global stores
+	hexAddr5 = addr.Hex()
+
+	newPassWd := "87654321"
+	// try to sign with different password -> failed
+	_, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
 	require.Error(t, err)
 
-	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, ""})
+	// unlock the address with the new password
+	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, newPassWd})
 	var unlocked bool
-	err = json.Unmarshal(rpcRes.Result, &unlocked)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &unlocked))
 	require.True(t, unlocked)
 
-	// try to sign, should work now
-	rpcRes = Call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, pswd})
-	var res hexutil.Bytes
-	err = json.Unmarshal(rpcRes.Result, &res)
+	// try to sign with the new password -> successfully
+	rpcRes, err = CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
 	require.NoError(t, err)
+	var res hexutil.Bytes
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
 	require.Equal(t, 65, len(res))
+
+	// error check
+	// inexistent addr
+	inexistentAddr := hexutil.Bytes([]byte{0})
+	_, err = CallWithError("personal_unlockAccount", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, newPassWd})
+	require.Error(t, err)
 }
 
 func TestPersonal_LockAccount(t *testing.T) {

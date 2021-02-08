@@ -14,8 +14,8 @@ import (
 
 const (
 	// keys that provided on node (from test.sh)
-	mnemo1          = "tragic ugly suggest nasty retire luxury era depth present cross various advice"
-	mnemo2          = "miracle desert mosquito bind main cage fiscal because flip turkey brother repair"
+	mnemo1          = "plunge silk glide glass curve cycle snack garbage obscure express decade dirt"
+	mnemo2          = "lazy cupboard wealth canoe pumpkin gasp play dash antenna monitor material village"
 	defaultPassWd   = "12345678"
 	defaultCoinType = 60
 )
