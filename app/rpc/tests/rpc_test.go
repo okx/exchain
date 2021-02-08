@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	addrA         = "0xc94770007dda54cF92009BFF0dE90c06F603a09f"
-	addrAStoreKey = 0
+	addrA                  = "0xc94770007dda54cF92009BFF0dE90c06F603a09f"
+	addrAStoreKey          = 0
+	defaultProtocolVersion = 65
 )
 
 var (
@@ -52,7 +53,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestEth_Accounts(t *testing.T){
+func TestEth_Accounts(t *testing.T) {
 	// all unlocked addresses
 	rpcRes, err := CallWithError("eth_accounts", []string{})
 	require.NoError(t, err)
@@ -63,6 +64,15 @@ func TestEth_Accounts(t *testing.T){
 	require.Equal(t, 2, len(addrsUnlocked))
 	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[0]), hexAddr1))
 	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[1]), hexAddr2))
+}
+
+func TestEth_ProtocolVersion(t *testing.T) {
+	rpcRes, err := CallWithError("eth_protocolVersion", []string{})
+	require.NoError(t, err)
+
+	var version hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &version))
+	require.Equal(t, version, hexutil.Uint(defaultProtocolVersion))
 }
 
 func TestBlockBloom(t *testing.T) {
