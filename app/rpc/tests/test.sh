@@ -33,10 +33,9 @@ okexchaincli config chain-id $CHAINID --home $HOME_CLI
 okexchaincli config output json --home $HOME_CLI
 okexchaincli config indent true --home $HOME_CLI
 okexchaincli config trust-node true --home $HOME_CLI
-
 # if $KEY exists it should be deleted
-okexchaincli keys add $KEY1 --recover -m "tragic ugly suggest nasty retire luxury era depth present cross various advice" --home $HOME_CLI
-okexchaincli keys add $KEY2 --recover -m "miracle desert mosquito bind main cage fiscal because flip turkey brother repair" --home $HOME_CLI
+okexchaincli keys add $KEY1 --recover -m "plunge silk glide glass curve cycle snack garbage obscure express decade dirt" --home $HOME_CLI
+okexchaincli keys add $KEY2 --recover -m "lazy cupboard wealth canoe pumpkin gasp play dash antenna monitor material village" --home $HOME_CLI
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 okexchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER

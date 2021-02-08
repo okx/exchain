@@ -12,9 +12,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var (
-	hexAddr3 string
-)
+var hexAddr3 string
 
 func TestPersonal_ListAccounts(t *testing.T) {
 	// there are two keys to unlock in the node from test.sh
@@ -49,10 +47,14 @@ func TestPersonal_Sign(t *testing.T) {
 	rpcRes := Call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
 
 	var res hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
 	require.Equal(t, 65, len(res))
 	// TODO: check that signature is same as with geth, requires importing a key
+
+	// error with inexistent addr
+	inexistentAddr := hexutil.Bytes([]byte{0})
+	rpcRes, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
+	require.Error(t, err)
 }
 
 func TestPersonal_ImportRawKey(t *testing.T) {

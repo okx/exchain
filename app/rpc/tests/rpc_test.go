@@ -31,7 +31,7 @@ const (
 
 var (
 	MODE       = os.Getenv("MODE")
-	from       = []byte{}
+	from       = []byte{1}
 	zeroString = "0x0"
 )
 
@@ -57,9 +57,10 @@ func TestEth_Accounts(t *testing.T) {
 
 	var addrsUnlocked []hexutil.Bytes
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addrsUnlocked))
-	require.Equal(t, 2, len(addrsUnlocked))
+	require.Equal(t, 3, len(addrsUnlocked))
 	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[0]), hexAddr1))
 	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[1]), hexAddr2))
+	require.True(t, strings.EqualFold(hexutil.Encode(addrsUnlocked[2]), hexAddr3))
 }
 
 func TestEth_ProtocolVersion(t *testing.T) {
