@@ -92,7 +92,30 @@ func TestEth_Syncing(t *testing.T) {
 	// single node for test.sh -> always leading without syncing
 	var catchingUp bool
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &catchingUp))
-	require.False(t,catchingUp)
+	require.False(t, catchingUp)
+
+	// TODO: set an evn in multi-nodes testnet to test the sycing status of a lagging node
+}
+
+func TestEth_Coinbase(t *testing.T) {
+	// single node -> always the same addr for coinbase
+	rpcRes, err := CallWithError("eth_coinbase", []string{})
+	require.NoError(t, err)
+
+	var coinbaseAddr1 ethcmn.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &coinbaseAddr1))
+
+	// wait for 5s as an block interval
+	time.Sleep(5 * time.Second)
+
+	// query again
+	rpcRes, err = CallWithError("eth_coinbase", []string{})
+	require.NoError(t, err)
+
+	var coinbaseAddr2 ethcmn.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &coinbaseAddr2))
+
+	require.Equal(t, coinbaseAddr1, coinbaseAddr2)
 }
 
 func TestBlockBloom(t *testing.T) {
