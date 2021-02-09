@@ -373,7 +373,7 @@ func TestEth_GetTransactionByHash(t *testing.T) {
 	// hash not found -> rpcRes.Result -> "null"
 	rpcRes, err := CallWithError("eth_getTransactionByHash", []interface{}{inexistentHash})
 	require.NoError(t, err)
-	require.True(t, bytes.Equal(rpcRes.Result, []byte("null")))
+	assertNullFromJSONResponse(t, rpcRes.Result)
 	require.Nil(t, rpcRes.Error)
 }
 
@@ -393,7 +393,7 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	rpcRes = Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, (height - 1).String()})
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &preNonce))
 
-	require.Equal(t, hexutil.Uint64(0x1), nonce-preNonce)
+	require.True(t, nonce-preNonce == 1)
 
 	// latestBlock query
 	rpcRes = Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, latestBlockNumber})
@@ -411,6 +411,31 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	require.Error(t, err)
 
 	_, err = CallWithError("eth_getTransactionCount", nil)
+	require.Error(t, err)
+}
+
+func TestEth_GtBlockTransactionCountByHash(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+	blockHash := getBlockHashFromTxHash(t, hash)
+	require.NotNil(t, blockHash)
+
+	rpcRes := Call(t, "eth_getBlockTransactionCountByHash", []interface{}{*blockHash})
+
+	var txCount hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &txCount))
+	// only 1 tx on that height in this single node testnet
+	require.True(t, txCount == 1)
+
+	// inexistent hash -> return nil
+	rpcRes = Call(t, "eth_getBlockTransactionCountByHash", []interface{}{inexistentHash})
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// error check
+	// miss argument
+	_, err := CallWithError("eth_getBlockTransactionCountByHash", nil)
 	require.Error(t, err)
 }
 

@@ -85,3 +85,15 @@ func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {
 
 	return hexutil.Uint64(transaction.BlockNumber.ToInt().Uint64())
 }
+
+func getBlockHashFromTxHash(t *testing.T, hash ethcmn.Hash) *ethcmn.Hash {
+	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
+	var transaction types.Transaction
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
+
+	return transaction.BlockHash
+}
+
+func assertNullFromJSONResponse(t *testing.T, jrm json.RawMessage) {
+	require.True(t, bytes.Equal([]byte("null"), jrm))
+}
