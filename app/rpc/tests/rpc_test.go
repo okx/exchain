@@ -216,12 +216,50 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
 	var hash hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &hash)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 	receipt := WaitForReceipt(t, hash)
 	require.NotNil(t, receipt)
 	require.Equal(t, "0x1", receipt["status"].(string))
 	t.Logf("%s transfers %sokt to %s successfully\n", hexAddr1.Hex(), value.String(), receiverAddr.Hex())
+
+	// TODO: log bug, fix it later
+	// ignore gas price -> default 'ethermint.DefaultGasPrice' on node -> successfully
+	//delete(param[0], "gasPrice")
+	//rpcRes = Call(t, "eth_sendTransaction", param)
+	//
+	//require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	//receipt = WaitForReceipt(t, hash)
+	//require.NotNil(t, receipt)
+	//require.Equal(t, "0x1", receipt["status"].(string))
+	//t.Logf("%s transfers %sokt to %s successfully with nil gas price \n", hexAddr1.Hex(), value.String(), receiverAddr.Hex())
+
+	// error check
+	// sender is not unlocked on the node
+	param[0]["from"] = receiverAddr.Hex()
+	param[0]["to"] = hexAddr1.Hex()
+	rpcRes, err := CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// data.Data and data.Input are not same
+	param[0]["from"], param[0]["to"] = param[0]["to"], param[0]["from"]
+	param[0]["data"] = "0x1234567890abcdef"
+	param[0]["input"] = "0x1234567890abcd"
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// input and toAddr are all empty
+	delete(param[0], "to")
+	delete(param[0], "input")
+	delete(param[0], "data")
+
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// 0 gas price
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["gasPrice"] = (*hexutil.Big)(sdk.ZeroDec().BigInt()).String()
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
 }
 
 //func TestBlockBloom(t *testing.T) {
