@@ -7,6 +7,7 @@
 package tests
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -331,6 +332,26 @@ func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_GetStorageAt(t *testing.T) {
+	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	rpcRes := Call(t, "eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey), latestBlockNumber})
+
+	var storage hexutil.Bytes
+	require.NoError(t, storage.UnmarshalJSON(rpcRes.Result))
+
+	t.Logf("Got value [%X] for %s with key %X\n", storage, hexAddr1.Hex(), addrAStoreKey)
+
+	require.True(t, bytes.Equal(storage, expectedRes), "expected: %d (%d bytes) got: %d (%d bytes)", expectedRes, len(expectedRes), storage, len(storage))
+
+	// error check
+	// miss argument
+	_, err := CallWithError("eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey)})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getStorageAt", []string{hexAddr1.Hex()})
+	require.Error(t, err)
+}
+
 //
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
@@ -421,19 +442,7 @@ func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 //	require.Equal(t, 1, len(*logs))
 //}
 //
-//func TestEth_GetStorageAt(t *testing.T) {
-//	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-//	rpcRes := Call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(addrAStoreKey), zeroString})
-//
-//	var storage hexutil.Bytes
-//	err := storage.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	t.Logf("Got value [%X] for %s with key %X\n", storage, addrA, addrAStoreKey)
-//
-//	require.True(t, bytes.Equal(storage, expectedRes), "expected: %d (%d bytes) got: %d (%d bytes)", expectedRes, len(expectedRes), storage, len(storage))
-//}
-//
+
 //func TestEth_GetProof(t *testing.T) {
 //	params := make([]interface{}, 3)
 //	params[0] = addrA
