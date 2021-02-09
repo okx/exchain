@@ -394,6 +394,24 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &preNonce))
 
 	require.Equal(t, hexutil.Uint64(0x1), nonce-preNonce)
+
+	// latestBlock query
+	rpcRes = Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, latestBlockNumber})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &preNonce))
+	require.Equal(t, nonce, preNonce)
+
+	// pendingBlock query
+	rpcRes = Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, pendingBlockNumber})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &nonce))
+	require.Equal(t, preNonce, nonce)
+
+	// error check
+	// miss argument
+	_, err := CallWithError("eth_getTransactionCount", []interface{}{hexAddr1})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getTransactionCount", nil)
+	require.Error(t, err)
 }
 
 //
