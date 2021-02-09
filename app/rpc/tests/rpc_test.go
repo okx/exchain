@@ -12,7 +12,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/okexchain/app/types"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -29,9 +31,10 @@ const (
 )
 
 var (
-	MODE       = os.Getenv("MODE")
-	from       = []byte{1}
-	zeroString = "0x0"
+	receiverAddr = ethcmn.BytesToAddress([]byte("receiver"))
+	MODE         = os.Getenv("MODE")
+	from         = []byte{1}
+	zeroString   = "0x0"
 )
 
 func TestMain(m *testing.M) {
@@ -198,8 +201,27 @@ func TestEth_GetBalance(t *testing.T) {
 	// missing argument
 	_, err = CallWithError("eth_getBalance", []interface{}{hexAddr2})
 	require.Error(t, err)
+}
 
+func TestEth_SendTransaction_Transfer(t *testing.T) {
+	value := sdk.NewDec(1024)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = hexAddr1.Hex()
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
+	param[0]["gasLimit"] = (*hexutil.Big)(big.NewInt(types.DefaultRPCGasLimit)).String()
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
 
+	rpcRes := Call(t, "eth_sendTransaction", param)
+
+	var hash hexutil.Bytes
+	err := json.Unmarshal(rpcRes.Result, &hash)
+	require.NoError(t, err)
+	receipt := WaitForReceipt(t, hash)
+	require.NotNil(t, receipt)
+	require.Equal(t, "0x1", receipt["status"].(string))
+	t.Logf("%s transfers %sokt to %s successfully\n", hexAddr1.Hex(), value.String(), receiverAddr.Hex())
 }
 
 //func TestBlockBloom(t *testing.T) {
@@ -291,50 +313,6 @@ func TestEth_GetBalance(t *testing.T) {
 //	require.Equal(t, 1, len(*logs))
 //}
 //
-//func TestEth_protocolVersion(t *testing.T) {
-//	expectedRes := hexutil.Uint(ethermint.ProtocolVersion)
-//
-//	rpcRes := Call(t, "eth_protocolVersion", []string{})
-//
-//	var res hexutil.Uint
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	t.Logf("Got protocol version: %s\n", res.String())
-//	require.Equal(t, expectedRes, res, "expected: %s got: %s\n", expectedRes.String(), rpcRes.Result)
-//}
-//
-//func TestEth_chainId(t *testing.T) {
-//	rpcRes := Call(t, "eth_chainId", []string{})
-//
-//	var res hexutil.Uint
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//	require.NotEqual(t, "0x0", res.String())
-//}
-//
-//func TestEth_blockNumber(t *testing.T) {
-//	rpcRes := Call(t, "eth_blockNumber", []string{})
-//
-//	var res hexutil.Uint64
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	t.Logf("Got block number: %s\n", res.String())
-//}
-//
-//func TestEth_coinbase(t *testing.T) {
-//	zeroAddress := hexutil.Bytes(ethcmn.Address{}.Bytes())
-//	rpcRes := Call(t, "eth_coinbase", []string{})
-//
-//	var res hexutil.Bytes
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	t.Logf("Got coinbase block proposer: %s\n", res.String())
-//	require.NotEqual(t, zeroAddress.String(), res.String(), "expected: not %s got: %s\n", zeroAddress.String(), res.String())
-//}
-//
 //func TestEth_GetStorageAt(t *testing.T) {
 //	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 //	rpcRes := Call(t, "eth_getStorageAt", []string{addrA, fmt.Sprint(addrAStoreKey), zeroString})
@@ -378,26 +356,7 @@ func TestEth_GetBalance(t *testing.T) {
 //	require.True(t, bytes.Equal(expectedRes, code), "expected: %X got: %X", expectedRes, code)
 //}
 //
-//func TestEth_SendTransaction_Transfer(t *testing.T) {
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["to"] = "0x0000000000000000000000000000000012341234"
-//	param[0]["value"] = "0x16345785d8a0000"
-//	param[0]["gasLimit"] = "0x52080000"
-//	param[0]["gasPrice"] = "0x95ae826000"
-//
-//	rpcRes := Call(t, "eth_sendTransaction", param)
-//
-//	var hash hexutil.Bytes
-//	err := json.Unmarshal(rpcRes.Result, &hash)
-//	require.NoError(t, err)
-//
-//	receipt := WaitForReceipt(t, hash)
-//	require.NotNil(t, receipt)
-//	require.Equal(t, "0x1", receipt["status"].(string))
-//}
-//
+
 //func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 //	param := make([]map[string]string, 1)
 //	param[0] = make(map[string]string)

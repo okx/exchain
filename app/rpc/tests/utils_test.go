@@ -24,6 +24,7 @@ var (
 	Kb                 = keys.NewInMemory(hd.EthSecp256k1Options()...)
 	hexAddr1, hexAddr2 ethcmn.Address
 	addrCounter        = 2
+	defaultGasPrice    sdk.SysCoin
 )
 
 func init() {
@@ -34,6 +35,7 @@ func init() {
 	keyInfo2, _ = createAccountWithMnemo(mnemo2, "bob", defaultPassWd)
 	hexAddr1 = ethcmn.BytesToAddress(keyInfo1.GetAddress().Bytes())
 	hexAddr2 = ethcmn.BytesToAddress(keyInfo2.GetAddress().Bytes())
+	defaultGasPrice, _ = sdk.ParseDecCoin(defaultMinGasPrice)
 }
 
 func TestGetAddress(t *testing.T) {
