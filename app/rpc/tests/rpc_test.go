@@ -132,7 +132,22 @@ func TestEth_PowAttribute(t *testing.T) {
 
 	var hashrate hexutil.Uint64
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hashrate))
-	require.Equal(t, hexutil.Uint64(0), hashrate)
+	require.True(t, hashrate == 0)
+
+	// eth_getUncleCountByBlockHash -> 0 for any hash
+	rpcRes, err = CallWithError("eth_getUncleCountByBlockHash", []interface{}{inexistentHash})
+	require.NoError(t, err)
+
+	var uncleCount hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &uncleCount))
+	require.True(t, uncleCount == 0)
+
+	// eth_getUncleCountByBlockNumber -> 0 for any block number
+	rpcRes, err = CallWithError("eth_getUncleCountByBlockNumber", []interface{}{latestBlockNumber})
+	require.NoError(t, err)
+
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &uncleCount))
+	require.True(t, uncleCount == 0)
 }
 
 func TestEth_GasPrice(t *testing.T) {
