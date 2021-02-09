@@ -13,7 +13,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -30,10 +32,11 @@ const (
 )
 
 var (
-	receiverAddr = ethcmn.BytesToAddress([]byte("receiver"))
-	MODE         = os.Getenv("MODE")
-	from         = []byte{1}
-	zeroString   = "0x0"
+	receiverAddr   = ethcmn.BytesToAddress([]byte("receiver"))
+	inexistentHash = ethcmn.BytesToHash([]byte("inexistent hash"))
+	MODE           = os.Getenv("MODE")
+	from           = []byte{1}
+	zeroString     = "0x0"
 )
 
 func TestMain(m *testing.M) {
@@ -350,6 +353,28 @@ func TestEth_GetStorageAt(t *testing.T) {
 
 	_, err = CallWithError("eth_getStorageAt", []string{hexAddr1.Hex()})
 	require.Error(t, err)
+}
+
+func TestEth_GetTransactionByHash(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
+
+	var transaction types.Transaction
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
+	require.True(t, hexAddr1 == transaction.From)
+	require.True(t, receiverAddr == *transaction.To)
+	require.True(t, hash == transaction.Hash)
+	require.True(t, transaction.Value.ToInt().Cmp(big.NewInt(1024)) == 0)
+	require.True(t, transaction.GasPrice.ToInt().Cmp(defaultGasPrice.Amount.BigInt()) == 0)
+	// no input for a transfer tx
+	require.Equal(t, 0, len(transaction.Input))
+
+	// hash not found -> rpcRes.Result -> "null"
+	rpcRes, err := CallWithError("eth_getTransactionByHash", []interface{}{inexistentHash})
+	require.NoError(t, err)
+	require.True(t, bytes.Equal(rpcRes.Result, []byte("null")))
+	require.Nil(t, rpcRes.Error)
 }
 
 //

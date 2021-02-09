@@ -2,10 +2,12 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -52,4 +54,21 @@ func createAccountWithMnemo(mnemonic, name, passWd string) (info keys.Info, err 
 	}
 
 	return info, err
+}
+
+// sendTestTransaction sends a dummy transaction
+func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, value uint) ethcmn.Hash {
+	fromAddrStr, toAddrStr := senderAddr.Hex(), receiverAddr.Hex()
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = fromAddrStr
+	param[0]["to"] = toAddrStr
+	param[0]["value"] = hexutil.Uint(value).String()
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	rpcRes := Call(t, "eth_sendTransaction", param)
+
+	var hash ethcmn.Hash
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	t.Logf("%s transfers %d to %s successfully\n", fromAddrStr, value, toAddrStr)
+	return hash
 }

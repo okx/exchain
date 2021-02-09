@@ -134,22 +134,7 @@ func HexToBigInt(t *testing.T, in string) *big.Int {
 	return big.NewInt(0).SetBytes(b)
 }
 
-// sendTestTransaction sends a dummy transaction
-func SendTestTransaction(t *testing.T, addr []byte) hexutil.Bytes {
-	param := make([]map[string]string, 1)
-	param[0] = make(map[string]string)
-	param[0]["from"] = "0x" + fmt.Sprintf("%x", addr)
-	param[0]["to"] = "0x1122334455667788990011223344556677889900"
-	param[0]["value"] = "0x1"
-	param[0]["gaslimit"] = "0x2000000"
-	param[0]["gasprice"] = "0x2000000000"
-	rpcRes := Call(t, "eth_sendTransaction", param)
 
-	var hash hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &hash)
-	require.NoError(t, err)
-	return hash
-}
 
 // deployTestContract deploys a contract that emits an event in the constructor
 func DeployTestContract(t *testing.T, addr []byte) (hexutil.Bytes, map[string]interface{}) {
