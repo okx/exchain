@@ -414,7 +414,7 @@ func TestEth_GetTransactionCount(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestEth_GtBlockTransactionCountByHash(t *testing.T) {
+func TestEth_GetBlockTransactionCountByHash(t *testing.T) {
 	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
 
 	// sleep for a while
@@ -437,6 +437,40 @@ func TestEth_GtBlockTransactionCountByHash(t *testing.T) {
 	// miss argument
 	_, err := CallWithError("eth_getBlockTransactionCountByHash", nil)
 	require.Error(t, err)
+}
+
+func TestEth_GetBlockTransactionCountByNumber(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+	height := getBlockHeightFromTxHash(t, hash)
+	require.True(t, height != 0)
+
+	rpcRes := Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{height.String()})
+
+	var txCount hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &txCount))
+	// only 1 tx on that height in this single node testnet
+	require.True(t, txCount == 1)
+
+	// latestBlock query
+	rpcRes = Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{latestBlockNumber})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &txCount))
+	// there is no tx on latest block
+	require.True(t, txCount == 0)
+
+	// pendingBlock query
+	rpcRes = Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{pendingBlockNumber})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &txCount))
+	// there is no tx on latest block and mempool
+	require.True(t, txCount == 0)
+
+	// error check
+	// miss argument
+	_, err := CallWithError("eth_getBlockTransactionCountByNumber", nil)
+	require.Error(t, err)
+	fmt.Println(err)
 }
 
 //
