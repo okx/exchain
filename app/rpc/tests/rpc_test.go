@@ -12,9 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/okexchain/app/types"
 	"github.com/stretchr/testify/require"
-	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -210,7 +208,6 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	param[0]["from"] = hexAddr1.Hex()
 	param[0]["to"] = receiverAddr.Hex()
 	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
-	param[0]["gasLimit"] = (*hexutil.Big)(big.NewInt(types.DefaultRPCGasLimit)).String()
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
 
 	rpcRes := Call(t, "eth_sendTransaction", param)
@@ -222,7 +219,7 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	require.Equal(t, "0x1", receipt["status"].(string))
 	t.Logf("%s transfers %sokt to %s successfully\n", hexAddr1.Hex(), value.String(), receiverAddr.Hex())
 
-	// TODO: log bug, fix it later
+	// TODO: logic bug, fix it later
 	// ignore gas price -> default 'ethermint.DefaultGasPrice' on node -> successfully
 	//delete(param[0], "gasPrice")
 	//rpcRes = Call(t, "eth_sendTransaction", param)
@@ -243,7 +240,7 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	// data.Data and data.Input are not same
 	param[0]["from"], param[0]["to"] = param[0]["to"], param[0]["from"]
 	param[0]["data"] = "0x1234567890abcdef"
-	param[0]["input"] = "0x1234567890abcd"
+	param[0]["input"] = param[0]["data"][:len(param[0]["data"])-2]
 	rpcRes, err = CallWithError("eth_sendTransaction", param)
 	require.Error(t, err)
 
@@ -262,6 +259,79 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = hexAddr1.Hex()
+	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	rpcRes := Call(t, "eth_sendTransaction", param)
+
+	var hash hexutil.Bytes
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	receipt := WaitForReceipt(t, hash)
+	require.NotNil(t, receipt)
+	require.Equal(t, "0x1", receipt["status"].(string))
+	t.Logf("%s deploys contract (filled \"data\") successfully with tx hash %s\n", hexAddr1.Hex(), hash.String())
+
+	// TODO: logic bug, fix it later
+	// ignore gas price -> default 'ethermint.DefaultGasPrice' on node -> successfully
+	//delete(param[0], "gasPrice")
+	//rpcRes = Call(t, "eth_sendTransaction", param)
+	//
+	//require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	//receipt = WaitForReceipt(t, hash)
+	//require.NotNil(t, receipt)
+	//require.Equal(t, "0x1", receipt["status"].(string))
+	//t.Logf("%s deploys contract successfully with tx hash %s and nil gas price\n", hexAddr1.Hex(), hash.String())
+
+	// same payload filled in both 'input' and 'data' -> ok
+	param[0]["input"] = param[0]["data"]
+	rpcRes = Call(t, "eth_sendTransaction", param)
+
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	receipt = WaitForReceipt(t, hash)
+	require.NotNil(t, receipt)
+	require.Equal(t, "0x1", receipt["status"].(string))
+	t.Logf("%s deploys contract (filled \"input\" and \"data\") successfully with tx hash %s\n", hexAddr1.Hex(), hash.String())
+
+	// TODO: logic bug, fix it later
+	// filled in 'input' -> ok
+	//delete(param[0], "data")
+	//rpcRes = Call(t, "eth_sendTransaction", param)
+	//
+	//require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	//receipt = WaitForReceipt(t, hash)
+	//require.NotNil(t, receipt)
+	//require.Equal(t, "0x1", receipt["status"].(string))
+	//t.Logf("%s deploys contract (filled \"input\") successfully with tx hash %s\n", hexAddr1.Hex(), hash.String())
+
+	// error check
+	// sender is not unlocked on the node
+	param[0]["from"] = receiverAddr.Hex()
+	rpcRes, err := CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// data.Data and data.Input are not same
+	param[0]["from"] = hexAddr1.Hex()
+	param[0]["input"] = param[0]["data"][:len(param[0]["data"])-2]
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// 0 gas price
+	delete(param[0], "input")
+	param[0]["gasPrice"] = (*hexutil.Big)(sdk.ZeroDec().BigInt()).String()
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+
+	// no payload of contract deployment
+	delete(param[0], "data")
+
+	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	require.Error(t, err)
+}
+
+//
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
@@ -395,21 +465,6 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 //}
 //
 
-//func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
-//
-//	param[0]["gas"] = "0x20000000"
-//	param[0]["gasprice"] = "0x2000000000"
-//	rpcRes := Call(t, "eth_sendTransaction", param)
-//
-//	var hash hexutil.Bytes
-//	err := json.Unmarshal(rpcRes.Result, &hash)
-//	require.NoError(t, err)
-//}
-//
 //func TestEth_NewFilter(t *testing.T) {
 //	param := make([]map[string][]string, 1)
 //	param[0] = make(map[string][]string)
