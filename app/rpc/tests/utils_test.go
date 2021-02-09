@@ -9,7 +9,9 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/okexchain/app/crypto/hd"
+	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"testing"
 )
 
@@ -71,4 +73,16 @@ func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, 
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 	t.Logf("%s transfers %d to %s successfully\n", fromAddrStr, value, toAddrStr)
 	return hash
+}
+
+func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Big {
+	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
+	var transaction types.Transaction
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
+
+	fmt.Println(*transaction.BlockNumber)
+	if transaction.BlockNumber == nil {
+		return hexutil.Big(*big.NewInt(0))
+	}
+	return *transaction.BlockNumber
 }
