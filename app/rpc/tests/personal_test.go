@@ -7,20 +7,19 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
-	"strings"
 	"testing"
 )
 
 func TestPersonal_ListAccounts(t *testing.T) {
 	// there are two keys to unlock in the node from test.sh
-	rpcRes := Call(t, "personal_listAccounts", []string{})
+	rpcRes := Call(t, "personal_listAccounts", nil)
 
 	var res []common.Address
 	err := json.Unmarshal(rpcRes.Result, &res)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(res))
-	require.True(t, strings.EqualFold(res[0].Hex(), hexAddr1))
-	require.True(t, strings.EqualFold(res[1].Hex(), hexAddr2))
+	require.True(t, res[0] == hexAddr1)
+	require.True(t, res[1] == hexAddr2)
 }
 
 func TestPersonal_NewAccount(t *testing.T) {
@@ -30,13 +29,13 @@ func TestPersonal_NewAccount(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
 	addrCounter++
 
-	rpcRes = Call(t, "personal_listAccounts", []string{})
-	var res []hexutil.Bytes
+	rpcRes = Call(t, "personal_listAccounts", nil)
+	var res []common.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
 	require.Equal(t, 3, len(res))
-	require.True(t, strings.EqualFold(hexutil.Encode(res[0]), hexAddr1))
-	require.True(t, strings.EqualFold(hexutil.Encode(res[1]), hexAddr2))
-	require.True(t, strings.EqualFold(hexutil.Encode(res[2]), addr.String()))
+	require.True(t, res[0] == hexAddr1)
+	require.True(t, res[1] == hexAddr2)
+	require.True(t, res[2] == addr)
 }
 
 func TestPersonal_Sign(t *testing.T) {
@@ -66,7 +65,7 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 
 	addr := ethcrypto.PubkeyToAddress(privkey.PublicKey)
 
-	require.Equal(t, addr.String(), resAddr.String())
+	require.True(t, addr == resAddr)
 
 	addrCounter++
 

@@ -10,15 +10,12 @@ import (
 	"encoding/json"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"os"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/stretchr/testify/require"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
+	"time"
 )
 
 const (
@@ -27,6 +24,8 @@ const (
 	defaultProtocolVersion = 65
 	defaultChainID         = 65
 	defaultMinGasPrice     = "0.000000001okt"
+	latestBlockNumber      = "latest"
+	pendingBlockNumber     = "pending"
 )
 
 var (
@@ -51,19 +50,19 @@ func TestMain(m *testing.M) {
 
 func TestEth_Accounts(t *testing.T) {
 	// all unlocked addresses
-	rpcRes, err := CallWithError("eth_accounts", []string{})
+	rpcRes, err := CallWithError("eth_accounts", nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, rpcRes.ID)
 
 	var addrsUnlocked []ethcmn.Address
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &addrsUnlocked))
 	require.Equal(t, addrCounter, len(addrsUnlocked))
-	require.True(t, strings.EqualFold(addrsUnlocked[0].Hex(), hexAddr1))
-	require.True(t, strings.EqualFold(addrsUnlocked[1].Hex(), hexAddr2))
+	require.True(t, addrsUnlocked[0] == hexAddr1)
+	require.True(t, addrsUnlocked[1] == hexAddr2)
 }
 
 func TestEth_ProtocolVersion(t *testing.T) {
-	rpcRes, err := CallWithError("eth_protocolVersion", []string{})
+	rpcRes, err := CallWithError("eth_protocolVersion", nil)
 	require.NoError(t, err)
 
 	var version hexutil.Uint
@@ -72,7 +71,7 @@ func TestEth_ProtocolVersion(t *testing.T) {
 }
 
 func TestEth_ChainId(t *testing.T) {
-	rpcRes, err := CallWithError("eth_chainId", []string{})
+	rpcRes, err := CallWithError("eth_chainId", nil)
 	require.NoError(t, err)
 
 	var chainID hexutil.Uint
@@ -81,7 +80,7 @@ func TestEth_ChainId(t *testing.T) {
 }
 
 func TestEth_Syncing(t *testing.T) {
-	rpcRes, err := CallWithError("eth_syncing", []string{})
+	rpcRes, err := CallWithError("eth_syncing", nil)
 	require.NoError(t, err)
 
 	// single node for test.sh -> always leading without syncing
@@ -94,7 +93,7 @@ func TestEth_Syncing(t *testing.T) {
 
 func TestEth_Coinbase(t *testing.T) {
 	// single node -> always the same addr for coinbase
-	rpcRes, err := CallWithError("eth_coinbase", []string{})
+	rpcRes, err := CallWithError("eth_coinbase", nil)
 	require.NoError(t, err)
 
 	var coinbaseAddr1 ethcmn.Address
@@ -104,7 +103,7 @@ func TestEth_Coinbase(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// query again
-	rpcRes, err = CallWithError("eth_coinbase", []string{})
+	rpcRes, err = CallWithError("eth_coinbase", nil)
 	require.NoError(t, err)
 
 	var coinbaseAddr2 ethcmn.Address
@@ -115,7 +114,7 @@ func TestEth_Coinbase(t *testing.T) {
 
 func TestEth_PowAttribute(t *testing.T) {
 	// eth_mining -> always false
-	rpcRes, err := CallWithError("eth_mining", []string{})
+	rpcRes, err := CallWithError("eth_mining", nil)
 	require.NoError(t, err)
 
 	var mining bool
@@ -123,7 +122,7 @@ func TestEth_PowAttribute(t *testing.T) {
 	require.False(t, mining)
 
 	// eth_hashrate -> always 0
-	rpcRes, err = CallWithError("eth_hashrate", []string{})
+	rpcRes, err = CallWithError("eth_hashrate", nil)
 	require.NoError(t, err)
 
 	var hashrate hexutil.Uint64
@@ -132,7 +131,7 @@ func TestEth_PowAttribute(t *testing.T) {
 }
 
 func TestEth_GasPrice(t *testing.T) {
-	rpcRes, err := CallWithError("eth_gasPrice", []string{})
+	rpcRes, err := CallWithError("eth_gasPrice", nil)
 	require.NoError(t, err)
 
 	var gasPrice hexutil.Big
@@ -146,18 +145,61 @@ func TestEth_GasPrice(t *testing.T) {
 }
 
 func TestEth_BlockNumber(t *testing.T) {
-	rpcRes := Call(t, "eth_blockNumber", []string{})
+	rpcRes := Call(t, "eth_blockNumber", nil)
 	var blockNumber1 hexutil.Uint64
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber1))
 
 	// wait for 5s as an block interval
 	time.Sleep(5 * time.Second)
 
-	rpcRes = Call(t, "eth_blockNumber", []string{})
+	rpcRes = Call(t, "eth_blockNumber", nil)
 	var blockNumber2 hexutil.Uint64
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber2))
 
 	require.True(t, blockNumber2 > blockNumber1)
+}
+
+func TestEth_GetBalance(t *testing.T) {
+	// initial balance of hexAddr2 is 1000000000okt in test.sh
+	initialBalance, err := sdk.ParseDecCoin("1000000000okt")
+	require.NoError(t, err)
+
+	rpcRes, err := CallWithError("eth_getBalance", []interface{}{hexAddr2, latestBlockNumber})
+	require.NoError(t, err)
+
+	var balance hexutil.Big
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &balance))
+	require.True(t, initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+
+	// query on certain block height (2)
+	rpcRes, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, hexutil.EncodeUint64(2)})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &balance))
+	require.NoError(t, err)
+	require.True(t, initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+
+	// query with pending -> no tx in mempool
+	rpcRes, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, pendingBlockNumber})
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &balance))
+	require.True(t, initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+
+	// inexistent addr -> zero balance
+	inexistentAddr := ethcmn.BytesToAddress([]byte{0})
+	rpcRes, err = CallWithError("eth_getBalance", []interface{}{inexistentAddr, latestBlockNumber})
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &balance))
+	require.True(t, sdk.ZeroDec().Int.Cmp(balance.ToInt()) == 0)
+
+	// error check
+	// empty hex string
+	_, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, ""})
+	require.Error(t, err)
+
+	// missing argument
+	_, err = CallWithError("eth_getBalance", []interface{}{hexAddr2})
+	require.Error(t, err)
+
+
 }
 
 //func TestBlockBloom(t *testing.T) {
@@ -291,21 +333,6 @@ func TestEth_BlockNumber(t *testing.T) {
 //
 //	t.Logf("Got coinbase block proposer: %s\n", res.String())
 //	require.NotEqual(t, zeroAddress.String(), res.String(), "expected: not %s got: %s\n", zeroAddress.String(), res.String())
-//}
-//
-//func TestEth_GetBalance(t *testing.T) {
-//	rpcRes := Call(t, "eth_getBalance", []string{addrA, zeroString})
-//
-//	var res hexutil.Big
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	t.Logf("Got balance %s for %s\n", res.String(), addrA)
-//
-//	// 0 if x == y; where x is res, y is 0
-//	if res.ToInt().Cmp(big.NewInt(0)) != 0 {
-//		t.Errorf("expected balance: %d, got: %s", 0, res.String())
-//	}
 //}
 //
 //func TestEth_GetStorageAt(t *testing.T) {
