@@ -145,6 +145,21 @@ func TestEth_GasPrice(t *testing.T) {
 	require.True(t, mgp.Amount.BigInt().Cmp(gasPrice.ToInt()) == 0)
 }
 
+func TestEth_BlockNumber(t *testing.T) {
+	rpcRes := Call(t, "eth_blockNumber", []string{})
+	var blockNumber1 hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber1))
+
+	// wait for 5s as an block interval
+	time.Sleep(5 * time.Second)
+
+	rpcRes = Call(t, "eth_blockNumber", []string{})
+	var blockNumber2 hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber2))
+
+	require.True(t, blockNumber2 > blockNumber1)
+}
+
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
