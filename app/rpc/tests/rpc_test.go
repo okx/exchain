@@ -377,6 +377,25 @@ func TestEth_GetTransactionByHash(t *testing.T) {
 	require.Nil(t, rpcRes.Error)
 }
 
+func TestEth_GetTransactionCount(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+	height := getBlockHeightFromTxHash(t, hash)
+
+	rpcRes := Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, height.String()})
+
+	var nonce, preNonce hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &nonce))
+
+	// query height - 1
+	rpcRes = Call(t, "eth_getTransactionCount", []interface{}{hexAddr1, (height - 1).String()})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &preNonce))
+
+	require.Equal(t, hexutil.Uint64(0x1), nonce-preNonce)
+}
+
 //
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
