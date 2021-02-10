@@ -645,6 +645,25 @@ func TestEth_EstimateGas(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_GetBlockByHash(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+	receipt := WaitForReceipt(t, hash)
+	require.NotNil(t, receipt, "transaction failed")
+	require.Equal(t, "0x1", receipt["status"].(string))
+	expectedBlockHash := receipt["blockHash"].(string)
+	fmt.Println(expectedBlockHash)
+
+	// TODO: OKExChain only supports the block query with txs' hash inside no matter what the second bool argument is.
+	// 		eth rpc: 	false -> txs' hash inside
+	//				  	true  -> txs full content
+	rpcRes := Call(t, "eth_getBlockByHash", []interface{}{expectedBlockHash, false})
+	var res map[string]string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
+
+	fmt.Println(expectedBlockHash)
+	fmt.Println(res["hash"])
+}
+
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
