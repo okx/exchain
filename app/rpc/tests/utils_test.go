@@ -8,14 +8,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"testing"
 )
 
 const (
-	// keys that provided on node (from test.sh)
+	// keys which are provided on node (from test.sh)
 	mnemo1                = "plunge silk glide glass curve cycle snack garbage obscure express decade dirt"
 	mnemo2                = "lazy cupboard wealth canoe pumpkin gasp play dash antenna monitor material village"
 	defaultPassWd         = "12345678"
@@ -61,6 +63,7 @@ var (
 )
 
 func init() {
+	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
 	config := sdk.GetConfig()
 	config.SetCoinType(defaultCoinType)
 

@@ -14,6 +14,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
@@ -564,6 +565,47 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 	// miss argument
 	_, err = CallWithError("eth_getTransactionLogs", nil)
 	require.Error(t, err)
+}
+
+func TestEth_Sign(t *testing.T) {
+	data := []byte("context to sign")
+	expectedSignature, err := signWithAccNameAndPasswd("alice", defaultPassWd, data)
+	require.NoError(t, err)
+
+	rpcRes := Call(t, "eth_sign", []interface{}{hexAddr1, hexutil.Bytes(data)})
+	var sig hexutil.Bytes
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &sig))
+
+	require.True(t, bytes.Equal(expectedSignature, sig))
+
+	// error check
+	// inexistent signer
+	_, err = CallWithError("eth_sign", []interface{}{receiverAddr, hexutil.Bytes(data)})
+	require.Error(t, err)
+
+	// miss argument
+	_, err = CallWithError("eth_sign", []interface{}{receiverAddr})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_sign", nil)
+	require.Error(t, err)
+}
+
+func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, err error) {
+	privKey, err := Kb.ExportPrivateKeyObject(accName, passWd)
+	if err != nil {
+		return
+	}
+
+	ethPrivKey, ok := privKey.(ethsecp256k1.PrivKey)
+	if !ok {
+		return sig, fmt.Errorf("invalid private key type %T", privKey)
+	}
+
+	sig, err = ethPrivKey.Sign(msg)
+	sig[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+
+	return
 }
 
 //func TestBlockBloom(t *testing.T) {
