@@ -2,17 +2,20 @@ package tests
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"strings"
 	"testing"
 )
 
@@ -174,4 +177,11 @@ func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, e
 	sig[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
 
 	return
+}
+
+func hexToBloom(t *testing.T, hexStr string) ethtypes.Bloom {
+	bz, err := hex.DecodeString(strings.TrimPrefix(hexStr, "0x"))
+	require.NoError(t, err)
+
+	return ethtypes.BytesToBloom(bz)
 }

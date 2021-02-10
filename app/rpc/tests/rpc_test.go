@@ -777,20 +777,24 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 }
 
 func TestBlockBloom(t *testing.T) {
-	hash := DeployTestContractWithFunction(t, from)
-	receipt := WaitForReceipt(t, hash)
+	hash, receipt := deployTestContract(t, hexAddr1, testContractKind)
 
-	number := receipt["blockNumber"].(string)
-	param := []interface{}{number, false}
-	rpcRes := Call(t, "eth_getBlockByNumber", param)
+	rpcRes := Call(t, "eth_getBlockByNumber", []interface{}{receipt["blockNumber"].(string), false})
+	var blockInfo map[string]interface{}
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockInfo))
+	logsBloom := hexToBloom(t, blockInfo["logsBloom"].(string))
 
-	block := make(map[string]interface{})
-	err := json.Unmarshal(rpcRes.Result, &block)
-	require.NoError(t, err)
+	// get the transaction log with tx hash
+	rpcRes = Call(t, "eth_getTransactionLogs", []interface{}{hash})
+	var transactionLogs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactionLogs))
+	require.Equal(t, 1, len(transactionLogs))
 
-	lb := HexToBigInt(t, block["logsBloom"].(string))
-	require.NotEqual(t, big.NewInt(0), lb)
-	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
+	// all the topics in the transactionLogs should be included in the logs bloom of the block
+	require.True(t, logsBloom.Test(transactionLogs[0].Topics[0].Bytes()))
+	require.True(t, logsBloom.Test(transactionLogs[0].Topics[1].Bytes()))
+	// check the consistency of tx hash
+	require.True(t, strings.EqualFold(hash.Hex(), blockInfo["transactions"].([]interface{})[0].(string)))
 }
 
 //func TestEth_GetLogs_NoLogs(t *testing.T) {
