@@ -112,7 +112,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 		mockApp.keyLock,
 		//mockApp.keyTokenPair,
 		mockApp.Cdc,
-		true,
+		true, mockApp.AccountKeeper,
 	)
 
 	mockApp.dexKeeper = dex.NewKeeper(
