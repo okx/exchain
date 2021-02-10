@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -40,11 +41,14 @@ const (
 	CodeConfirmOwnershipAddressNotEqualsMsgAddress uint32 = 61030
 	CodeGetDecimalFromDecimalStringFailed          uint32 = 61031
 	CodeTotalsupplyExceedsTheUpperLimit            uint32 = 61032
+	CodeBlockedContractRecipient                   uint32 = 61033
+	CodeSendCoinsFromAccountToAccountFailed        uint32 = 61034
 )
 
 var (
 	errInvalidAsset                                   = sdkerrors.Register(DefaultCodespace, CodeInvalidAsset, "invalid asset")
 	errBlockedRecipient                               = sdkerrors.Register(DefaultCodespace, CodeBlockedRecipient, "blocked recipient")
+	errBlockedContractRecipient                       = sdkerrors.Register(DefaultCodespace, CodeBlockedContractRecipient, "blocked contract recipient")
 	errSendDisabled                                   = sdkerrors.Register(DefaultCodespace, CodeSendDisabled, "send disabled")
 	errCodeSendCoinsFromAccountToModuleFailed         = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToModuleFailed, "send to module account failed")
 	errCodeUnrecognizedLockCoinsType                  = sdkerrors.Register(DefaultCodespace, CodeUnrecognizedLockCoinsType, "unrecognized lock coins")
@@ -66,6 +70,7 @@ var (
 	errCodeMsgSymbolIsEmpty                           = sdkerrors.Register(DefaultCodespace, CodeMsgSymbolIsEmpty, "msg symbol is empty")
 	errCodeMintCoinsFailed                            = sdkerrors.Register(DefaultCodespace, CodeMintCoinsFailed, "mint coins failed")
 	errCodeSendCoinsFromModuleToAccountFailed         = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromModuleToAccountFailed, "send coins from module to account failed")
+	errCodeSendCoinsFromAccountToAccountFailed        = sdkerrors.Register(DefaultCodespace, CodeSendCoinsFromAccountToAccountFailed, "send coins from account to account failed")
 	errCodeBurnCoinsFailed                            = sdkerrors.Register(DefaultCodespace, CodeBurnCoinsFailed, "burn coins failed")
 	errCodeConfirmOwnershipNotExistOrBlockTimeAfter   = sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipNotExistOrBlockTimeAfter, "confirm ownership not exist or blocktime after")
 	errCodeWholeNameAndDescriptionIsNotModified       = sdkerrors.Register(DefaultCodespace, CodeWholeNameAndDescriptionIsNotModified, "whole name and description is not modified")
@@ -77,6 +82,11 @@ var (
 	errCodeGetDecimalFromDecimalStringFailed          = sdkerrors.Register(DefaultCodespace, CodeGetDecimalFromDecimalStringFailed, "create a decimal from an input decimal string failed")
 	errCodeTotalsupplyExceedsTheUpperLimit            = sdkerrors.Register(DefaultCodespace, CodeTotalsupplyExceedsTheUpperLimit, "total-supply exceeds the upper limit")
 )
+
+// ErrBlockedContractRecipient returns an error when a transfer is tried on a blocked contract recipient
+func ErrBlockedContractRecipient(contractAddr string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errBlockedContractRecipient, "failed. contract address %s is not allowed to receive transactions", contractAddr)}
+}
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
 func ErrBlockedRecipient(blockedAddr string) sdk.EnvelopedErr {
@@ -154,6 +164,10 @@ func ErrMintCoinsFailed(msg string) sdk.EnvelopedErr {
 
 func ErrSendCoinsFromModuleToAccountFailed(msg string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromModuleToAccountFailed, fmt.Sprintf("send coins from module to account failed: %s", msg))}
+}
+
+func ErrSendCoinsFromAccountToAccountFailed(msg string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToAccountFailed, fmt.Sprintf("send coins from account to account failed: %s", msg))}
 }
 
 func ErrBurnCoinsFailed(msg string) sdk.EnvelopedErr {
