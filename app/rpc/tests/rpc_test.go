@@ -759,6 +759,12 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	require.True(t, strings.EqualFold(hexutil.Uint(1).String(), receipt["status"].(string)))
 	require.True(t, strings.EqualFold(hash.Hex(), receipt["transactionHash"].(string)))
 
+	// contract deployment
+	hash, receipt = deployTestContract(t, hexAddr1, erc20ContractKind)
+	require.True(t, strings.EqualFold(hexAddr1.Hex(), receipt["from"].(string)))
+	require.True(t, strings.EqualFold(hexutil.Uint(1).String(), receipt["status"].(string)))
+	require.True(t, strings.EqualFold(hash.Hex(), receipt["transactionHash"].(string)))
+
 	// inexistent hash -> nil without error
 	rpcRes, err := CallWithError("eth_getTransactionReceipt", []interface{}{inexistentHash})
 	require.NoError(t, err)
@@ -770,23 +776,23 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	require.Error(t, err)
 }
 
-//func TestBlockBloom(t *testing.T) {
-//	hash := DeployTestContractWithFunction(t, from)
-//	receipt := WaitForReceipt(t, hash)
-//
-//	number := receipt["blockNumber"].(string)
-//	param := []interface{}{number, false}
-//	rpcRes := Call(t, "eth_getBlockByNumber", param)
-//
-//	block := make(map[string]interface{})
-//	err := json.Unmarshal(rpcRes.Result, &block)
-//	require.NoError(t, err)
-//
-//	lb := HexToBigInt(t, block["logsBloom"].(string))
-//	require.NotEqual(t, big.NewInt(0), lb)
-//	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
-//}
-//
+func TestBlockBloom(t *testing.T) {
+	hash := DeployTestContractWithFunction(t, from)
+	receipt := WaitForReceipt(t, hash)
+
+	number := receipt["blockNumber"].(string)
+	param := []interface{}{number, false}
+	rpcRes := Call(t, "eth_getBlockByNumber", param)
+
+	block := make(map[string]interface{})
+	err := json.Unmarshal(rpcRes.Result, &block)
+	require.NoError(t, err)
+
+	lb := HexToBigInt(t, block["logsBloom"].(string))
+	require.NotEqual(t, big.NewInt(0), lb)
+	require.Equal(t, hash.String(), block["transactions"].([]interface{})[0])
+}
+
 //func TestEth_GetLogs_NoLogs(t *testing.T) {
 //	param := make([]map[string][]string, 1)
 //	param[0] = make(map[string][]string)
@@ -830,18 +836,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 //	require.Equal(t, 1, len(logs))
 //}
 //
-//func TestEth_GetTransactionCount(t *testing.T) {
-//	// TODO: this test passes on when run on its own, but fails when run with the other tests
-//	if testing.Short() {
-//		t.Skip("skipping TestEth_GetTransactionCount")
-//	}
-//
-//	prev := GetNonce(t, "latest")
-//	SendTestTransaction(t, from)
-//	post := GetNonce(t, "latest")
-//	require.Equal(t, prev, post-1)
-//}
-//
+
 //func TestEth_GetProof(t *testing.T) {
 //	params := make([]interface{}, 3)
 //	params[0] = addrA
@@ -930,24 +925,7 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 //	require.NoError(t, err)
 //	require.NotNil(t, "invalid filter ID", rpcRes.Error.Message)
 //}
-//
-//func TestEth_GetTransactionReceipt(t *testing.T) {
-//	hash := SendTestTransaction(t, from)
-//
-//	time.Sleep(time.Second * 5)
-//
-//	param := []string{hash.String()}
-//	rpcRes := Call(t, "eth_getTransactionReceipt", param)
-//	require.Nil(t, rpcRes.Error)
-//
-//	receipt := make(map[string]interface{})
-//	err := json.Unmarshal(rpcRes.Result, &receipt)
-//	require.NoError(t, err)
-//	require.NotEmpty(t, receipt)
-//	require.Equal(t, "0x1", receipt["status"].(string))
-//	require.Equal(t, []interface{}{}, receipt["logs"].([]interface{}))
-//}
-//
+
 //func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
 //	hash, _ := DeployTestContract(t, from)
 //
@@ -1103,51 +1081,4 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 //	require.NoError(t, err, string(changesRes.Result))
 //
 //	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
-//}
-//
-//func TestEth_EstimateGas(t *testing.T) {
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["to"] = "0x1122334455667788990011223344556677889900"
-//	param[0]["value"] = "0x1"
-//	rpcRes := Call(t, "eth_estimateGas", param)
-//	require.NotNil(t, rpcRes)
-//	require.NotEmpty(t, rpcRes.Result)
-//
-//	var gas string
-//	err := json.Unmarshal(rpcRes.Result, &gas)
-//	require.NoError(t, err, string(rpcRes.Result))
-//
-//	require.Equal(t, "0x1006b", gas)
-//}
-//
-//func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
-//	bytecode := "0x608060405234801561001057600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a260d08061004d6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b8160008190555080827ff3ca124a697ba07e8c5e80bebcfcc48991fc16a63170e8a9206e30508960d00360405160405180910390a3505056fea265627a7a723158201d94d2187aaf3a6790527b615fcc40970febf0385fa6d72a2344848ebd0df3e964736f6c63430005110032"
-//
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["data"] = bytecode
-//
-//	rpcRes := Call(t, "eth_estimateGas", param)
-//	require.NotNil(t, rpcRes)
-//	require.NotEmpty(t, rpcRes.Result)
-//
-//	var gas hexutil.Uint64
-//	err := json.Unmarshal(rpcRes.Result, &gas)
-//	require.NoError(t, err, string(rpcRes.Result))
-//
-//	require.Equal(t, "0x1b243", gas.String())
-//}
-//
-//func TestEth_GetBlockByNumber(t *testing.T) {
-//	param := []interface{}{"0x1", false}
-//	rpcRes := Call(t, "eth_getBlockByNumber", param)
-//
-//	block := make(map[string]interface{})
-//	err := json.Unmarshal(rpcRes.Result, &block)
-//	require.NoError(t, err)
-//	require.Equal(t, "0x0", block["extraData"].(string))
-//	require.Equal(t, []interface{}{}, block["uncles"].([]interface{}))
 //}
