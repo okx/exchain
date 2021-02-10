@@ -22,6 +22,11 @@ const (
 	defaultCoinType = 60
 )
 
+const (
+	testContractKind = iota
+	erc20ContractKind
+)
+
 var (
 	keyInfo1, keyInfo2 keys.Info
 	Kb                 = keys.NewInMemory(hd.EthSecp256k1Options()...)
@@ -72,6 +77,34 @@ func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, 
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 	t.Logf("%s transfers %d to %s successfully\n", fromAddrStr, value, toAddrStr)
 	return hash
+}
+
+// deployTestContract deploys a contract that emits an event in the constructor
+func DeployTestContract(t *testing.T, senderAddr ethcmn.Address, kind int) (ethcmn.Hash, map[string]interface{}) {
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = senderAddr.Hex()
+	param[0]["gasprice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	switch kind {
+	case testContractKind:
+		param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+	case erc20ContractKind:
+		// TODO
+		param[0]["data"] = ""
+	default:
+		panic("unsupported contract kind")
+	}
+
+	rpcRes := Call(t, "eth_sendTransaction", param)
+
+	var hash ethcmn.Hash
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+
+	receipt := WaitForReceipt(t, hash)
+	require.NotNil(t, receipt, "transaction failed")
+	require.Equal(t, "0x1", receipt["status"].(string))
+
+	return hash, receipt
 }
 
 func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {

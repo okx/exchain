@@ -5,15 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"net/http"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/stretchr/testify/require"
 )
 
 type Request struct {
@@ -134,31 +134,7 @@ func HexToBigInt(t *testing.T, in string) *big.Int {
 	return big.NewInt(0).SetBytes(b)
 }
 
-
-
-// deployTestContract deploys a contract that emits an event in the constructor
-func DeployTestContract(t *testing.T, addr []byte) (hexutil.Bytes, map[string]interface{}) {
-	param := make([]map[string]string, 1)
-	param[0] = make(map[string]string)
-	param[0]["from"] = "0x" + fmt.Sprintf("%x", addr)
-	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
-	param[0]["gaslimit"] = "0x2000000000"
-	param[0]["gasprice"] = "0x2000000000"
-
-	rpcRes := Call(t, "eth_sendTransaction", param)
-
-	var hash hexutil.Bytes
-	err := json.Unmarshal(rpcRes.Result, &hash)
-	require.NoError(t, err)
-
-	receipt := WaitForReceipt(t, hash)
-	require.NotNil(t, receipt, "transaction failed")
-	require.Equal(t, "0x1", receipt["status"].(string))
-
-	return hash, receipt
-}
-
-func DeployTestContractWithFunction(t *testing.T, addr []byte) hexutil.Bytes {
+func DeployTestContractWithFunction(t *testing.T, addr []byte) ethcmn.Hash {
 	// pragma solidity ^0.5.1;
 
 	// contract Test {
@@ -188,7 +164,7 @@ func DeployTestContractWithFunction(t *testing.T, addr []byte) hexutil.Bytes {
 
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
-	var hash hexutil.Bytes
+	var hash ethcmn.Hash
 	err := json.Unmarshal(rpcRes.Result, &hash)
 	require.NoError(t, err)
 
@@ -200,8 +176,8 @@ func DeployTestContractWithFunction(t *testing.T, addr []byte) hexutil.Bytes {
 }
 
 //nolint
-func GetTransactionReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
-	param := []string{hash.String()}
+func GetTransactionReceipt(t *testing.T, hash ethcmn.Hash) map[string]interface{} {
+	param := []string{hash.Hex()}
 	rpcRes := Call(t, "eth_getTransactionReceipt", param)
 
 	receipt := make(map[string]interface{})
@@ -211,7 +187,7 @@ func GetTransactionReceipt(t *testing.T, hash hexutil.Bytes) map[string]interfac
 	return receipt
 }
 
-func WaitForReceipt(t *testing.T, hash hexutil.Bytes) map[string]interface{} {
+func WaitForReceipt(t *testing.T, hash ethcmn.Hash) map[string]interface{} {
 	for i := 0; i < 12; i++ {
 		receipt := GetTransactionReceipt(t, hash)
 		if receipt != nil {

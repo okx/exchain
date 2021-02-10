@@ -231,7 +231,7 @@ func TestEth_SendTransaction_Transfer(t *testing.T) {
 
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
-	var hash hexutil.Bytes
+	var hash ethcmn.Hash
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 	receipt := WaitForReceipt(t, hash)
 	require.NotNil(t, receipt)
@@ -286,7 +286,7 @@ func TestEth_SendTransaction_ContractDeploy(t *testing.T) {
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
 	rpcRes := Call(t, "eth_sendTransaction", param)
 
-	var hash hexutil.Bytes
+	var hash ethcmn.Hash
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 	receipt := WaitForReceipt(t, hash)
 	require.NotNil(t, receipt)
@@ -488,7 +488,10 @@ func TestEth_GetBlockTransactionCountByNumber(t *testing.T) {
 	fmt.Println(err)
 }
 
-//
+func TestEth_GetCode(t *testing.T) {
+
+}
+
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
