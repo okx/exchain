@@ -158,3 +158,20 @@ func getBlockHashFromTxHash(t *testing.T, hash ethcmn.Hash) *ethcmn.Hash {
 func assertNullFromJSONResponse(t *testing.T, jrm json.RawMessage) {
 	require.True(t, bytes.Equal([]byte("null"), jrm))
 }
+
+func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, err error) {
+	privKey, err := Kb.ExportPrivateKeyObject(accName, passWd)
+	if err != nil {
+		return
+	}
+
+	ethPrivKey, ok := privKey.(ethsecp256k1.PrivKey)
+	if !ok {
+		return sig, fmt.Errorf("invalid private key type %T", privKey)
+	}
+
+	sig, err = ethPrivKey.Sign(msg)
+	sig[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+
+	return
+}

@@ -14,7 +14,6 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
@@ -591,21 +590,30 @@ func TestEth_Sign(t *testing.T) {
 	require.Error(t, err)
 }
 
-func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, err error) {
-	privKey, err := Kb.ExportPrivateKeyObject(accName, passWd)
-	if err != nil {
-		return
-	}
+func TestEth_Call(t *testing.T) {
+	// simulate evm transfer
+	callArgs := make(map[string]string)
+	callArgs["from"] = hexAddr1.Hex()
+	callArgs["to"] = receiverAddr.Hex()
+	callArgs["value"] = hexutil.Uint(1024).String()
+	callArgs["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	_, err := CallWithError("eth_call", []interface{}{callArgs, latestBlockNumber})
+	require.NoError(t, err)
 
-	ethPrivKey, ok := privKey.(ethsecp256k1.PrivKey)
-	if !ok {
-		return sig, fmt.Errorf("invalid private key type %T", privKey)
-	}
+	// simulate contract deployment
+	delete(callArgs, "to")
+	delete(callArgs, "value")
+	callArgs["data"] = erc20ContractDeployedByteCode
+	_, err = CallWithError("eth_call", []interface{}{callArgs, latestBlockNumber})
+	require.NoError(t, err)
 
-	sig, err = ethPrivKey.Sign(msg)
-	sig[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_call", []interface{}{callArgs})
+	require.Error(t, err)
 
-	return
+	_, err = CallWithError("eth_call", nil)
+	require.Error(t, err)
 }
 
 //func TestBlockBloom(t *testing.T) {
@@ -680,24 +688,6 @@ func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, e
 //	require.Equal(t, prev, post-1)
 //}
 //
-//func TestEth_GetTransactionLogs(t *testing.T) {
-//	// TODO: this test passes on when run on its own, but fails when run with the other tests
-//	if testing.Short() {
-//		t.Skip("skipping TestEth_GetTransactionLogs")
-//	}
-//
-//	hash, _ := DeployTestContract(t, from)
-//
-//	param := []string{hash.String()}
-//	rpcRes := Call(t, "eth_getTransactionLogs", param)
-//
-//	logs := new([]*ethtypes.Log)
-//	err := json.Unmarshal(rpcRes.Result, logs)
-//	require.NoError(t, err)
-//	require.Equal(t, 1, len(*logs))
-//}
-//
-
 //func TestEth_GetProof(t *testing.T) {
 //	params := make([]interface{}, 3)
 //	params[0] = addrA
@@ -714,20 +704,6 @@ func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, e
 //
 //	t.Logf("Got AccountResult %s", rpcRes.Result)
 //}
-//
-//func TestEth_GetCode(t *testing.T) {
-//	expectedRes := hexutil.Bytes{}
-//	rpcRes := Call(t, "eth_getCode", []string{addrA, zeroString})
-//
-//	var code hexutil.Bytes
-//	err := code.UnmarshalJSON(rpcRes.Result)
-//
-//	require.NoError(t, err)
-//
-//	t.Logf("Got code [%X] for %s\n", code, addrA)
-//	require.True(t, bytes.Equal(expectedRes, code), "expected: %X got: %X", expectedRes, code)
-//}
-//
 
 //func TestEth_NewFilter(t *testing.T) {
 //	param := make([]map[string][]string, 1)
