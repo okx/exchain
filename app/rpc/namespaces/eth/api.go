@@ -1008,7 +1008,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	if args.GasPrice == nil {
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
+		gasPrice = ParseGasPrice().ToInt()
 	}
 
 	// get the nonce from the account retriever and the pending transactions
