@@ -745,6 +745,31 @@ func TestEth_GetTransactionByBlockHashAndIndex(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_GetTransactionReceipt(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+	rpcRes := Call(t, "eth_getTransactionReceipt", []interface{}{hash})
+
+	var receipt map[string]interface{}
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &receipt))
+	require.True(t, strings.EqualFold(hexAddr1.Hex(), receipt["from"].(string)))
+	require.True(t, strings.EqualFold(receiverAddr.Hex(), receipt["to"].(string)))
+	require.True(t, strings.EqualFold(hexutil.Uint(1).String(), receipt["status"].(string)))
+	require.True(t, strings.EqualFold(hash.Hex(), receipt["transactionHash"].(string)))
+
+	// inexistent hash -> nil without error
+	rpcRes, err := CallWithError("eth_getTransactionReceipt", []interface{}{inexistentHash})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_getTransactionReceipt", nil)
+	require.Error(t, err)
+}
+
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
