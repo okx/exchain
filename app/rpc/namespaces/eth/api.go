@@ -430,7 +430,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	api.logger.Debug("eth_sendTransaction", "args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := rpctypes.GetKeyByAddress(api.keys, args.From)
+	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
 		return common.Hash{}, keystore.ErrLocked
@@ -438,8 +438,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
 	if args.Nonce == nil {
-		api.nonceLock.LockAddr(args.From)
-		defer api.nonceLock.UnlockAddr(args.From)
+		api.nonceLock.LockAddr(*args.From)
+		defer api.nonceLock.UnlockAddr(*args.From)
 	}
 
 	// Assemble transaction from fields
@@ -1012,7 +1012,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 
 	// get the nonce from the account retriever and the pending transactions
-	nonce, err = api.accountNonce(api.clientCtx, args.From, true)
+	nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1029,11 +1029,10 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
 	var input []byte
-	if args.Input != nil {
-		input = *args.Input
-	} else if args.Data != nil {
-		input = *args.Data
+	if args.Input == nil {
+		args.Input = args.Data
 	}
+	input = *args.Input
 
 	if args.To == nil && len(input) == 0 {
 		// Contract creation
@@ -1042,12 +1041,12 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 
 	if args.Gas == nil {
 		callArgs := rpctypes.CallArgs{
-			From:     &args.From,
+			From:     args.From,
 			To:       args.To,
 			Gas:      args.Gas,
 			GasPrice: args.GasPrice,
 			Value:    args.Value,
-			Data:     args.Data,
+			Data:     args.Input,
 		}
 		gl, err := api.EstimateGas(callArgs)
 		if err != nil {
