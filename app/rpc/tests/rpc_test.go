@@ -13,6 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
@@ -520,6 +521,48 @@ func TestEth_GetCode(t *testing.T) {
 	require.Error(t, err)
 
 	_, err = CallWithError("eth_getCode", nil)
+	require.Error(t, err)
+}
+
+func Test1(t *testing.T) {
+	rpcRes := Call(t, "eth_getTransactionLogs", []interface{}{"0xb1bb11ec1248242eb33626831ce1f43a1cc07836b41cd699d6180eb15e699766"})
+	var transactionLogs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactionLogs))
+	//fmt.Println(hexutil.Encode(transactionLogs[0].Topics[1]))
+
+}
+
+func TestEth_GetTransactionLogs(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+
+	rpcRes := Call(t, "eth_getTransactionLogs", []interface{}{hash})
+	var transactionLogs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactionLogs))
+	// no transaction log for an evm transfer
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// test contract that emits an event in its constructor
+	hash, receipt := deployTestContract(t, hexAddr1, testContractKind)
+
+	rpcRes = Call(t, "eth_getTransactionLogs", []interface{}{hash})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactionLogs))
+	require.Equal(t, 1, len(transactionLogs))
+	require.True(t, ethcmn.HexToAddress(receipt["contractAddress"].(string)) == transactionLogs[0].Address)
+	require.True(t, hash == transactionLogs[0].TxHash)
+	// event in test contract constructor keeps the value: 1024
+	require.True(t, transactionLogs[0].Topics[1].Big().Cmp(big.NewInt(1024)) == 0)
+
+	// inexistent tx hash
+	rpcRes, err := CallWithError("eth_getTransactionLogs", []interface{}{inexistentHash})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_getTransactionLogs", nil)
 	require.Error(t, err)
 }
 
