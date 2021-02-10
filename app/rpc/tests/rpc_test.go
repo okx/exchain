@@ -616,6 +616,35 @@ func TestEth_Call(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_EstimateGas(t *testing.T) {
+	// gas estimated for evm transfer
+	callArgs := make(map[string]string)
+	callArgs["from"] = hexAddr1.Hex()
+	callArgs["to"] = receiverAddr.Hex()
+	callArgs["value"] = hexutil.Uint(1024).String()
+	callArgs["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	rpcRes := Call(t, "eth_estimateGas", []interface{}{callArgs})
+
+	var gasEstimatedForTransfer hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &gasEstimatedForTransfer))
+
+	// gas estimated for contract deployment
+	delete(callArgs, "to")
+	delete(callArgs, "value")
+	callArgs["data"] = erc20ContractDeployedByteCode
+	rpcRes = Call(t, "eth_estimateGas", []interface{}{callArgs})
+
+	var gasEstimatedForContractDeployment hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &gasEstimatedForContractDeployment))
+
+	require.True(t, gasEstimatedForTransfer < gasEstimatedForContractDeployment)
+
+	// error check
+	// miss argument
+	rpcRes, err := CallWithError("eth_estimateGas", nil)
+	require.Error(t, err)
+}
+
 //func TestBlockBloom(t *testing.T) {
 //	hash := DeployTestContractWithFunction(t, from)
 //	receipt := WaitForReceipt(t, hash)
