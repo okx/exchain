@@ -248,11 +248,6 @@ type testAccount struct {
 	baseAccount types.DecAccount
 }
 
-type testEthAccount struct {
-	addrKeys    *mock.AddrKeys
-	baseAccount app.EthAccount
-}
-
 func mockApplyBlock(t *testing.T, app *MockDexApp, txs []auth.StdTx, height int64) sdk.Context {
 	mockBlockHeight++
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: height}})
