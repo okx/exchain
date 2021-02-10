@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -675,6 +676,42 @@ func TestEth_GetBlockByHash(t *testing.T) {
 	require.Error(t, err)
 
 	_, err = CallWithError("eth_getBlockByHash", nil)
+	require.Error(t, err)
+}
+
+func TestEth_GetBlockByNumber(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(3 * time.Second)
+	expectedHeight := getBlockHeightFromTxHash(t, hash)
+
+	// TODO: OKExChain only supports the block query with txs' hash inside no matter what the second bool argument is.
+	// 		eth rpc: 	false -> txs' hash inside
+	rpcRes := Call(t, "eth_getBlockByNumber", []interface{}{expectedHeight, false})
+	var res map[string]interface{}
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
+	require.True(t, strings.EqualFold(expectedHeight.String(), res["number"].(string)))
+
+	rpcRes = Call(t, "eth_getBlockByNumber", []interface{}{expectedHeight, true})
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
+	require.True(t, strings.EqualFold(expectedHeight.String(), res["number"].(string)))
+
+	// error check
+	// future block height -> return nil without error
+	rpcRes = Call(t, "eth_blockNumber", nil)
+	var currentBlockHeight hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &currentBlockHeight))
+
+	rpcRes, err := CallWithError("eth_getBlockByNumber", []interface{}{currentBlockHeight + 100, false})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// miss argument
+	_, err = CallWithError("eth_getBlockByNumber", []interface{}{currentBlockHeight})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getBlockByNumber", nil)
 	require.Error(t, err)
 }
 
