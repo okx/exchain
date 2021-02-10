@@ -648,10 +648,8 @@ func TestEth_EstimateGas(t *testing.T) {
 
 func TestEth_GetBlockByHash(t *testing.T) {
 	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
-	receipt := WaitForReceipt(t, hash)
-	require.NotNil(t, receipt, "transaction failed")
-	require.Equal(t, "0x1", receipt["status"].(string))
-	expectedBlockHash := receipt["blockHash"].(string)
+	time.Sleep(3 * time.Second)
+	expectedBlockHash := getBlockHashFromTxHash(t, hash)
 
 	// TODO: OKExChain only supports the block query with txs' hash inside no matter what the second bool argument is.
 	// 		eth rpc: 	false -> txs' hash inside
@@ -712,6 +710,38 @@ func TestEth_GetBlockByNumber(t *testing.T) {
 	require.Error(t, err)
 
 	_, err = CallWithError("eth_getBlockByNumber", nil)
+	require.Error(t, err)
+}
+
+func TestEth_GetTransactionByBlockHashAndIndex(t *testing.T) {
+	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
+
+	// sleep for a while
+	time.Sleep(4 * time.Second)
+	blockHash, index := getBlockHashFromTxHash(t, hash), hexutil.Uint(0)
+	rpcRes := Call(t, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index})
+	var transaction types.Transaction
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
+	require.True(t, hash == transaction.Hash)
+	require.True(t, *blockHash == *transaction.BlockHash)
+	require.True(t, hexutil.Uint64(index) == *transaction.TransactionIndex)
+
+	// inexistent block hash
+	// TODO: error:{"code":1,"log":"internal","height":1497,"codespace":"undefined"}, fix it later
+	//rpcRes, err := CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{inexistentHash, index})
+	//fmt.Println(err)
+
+	// inexistent transaction index -> nil
+	rpcRes, err := CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index + 100})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// error check
+	// miss argument
+	rpcRes, err = CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash})
+	require.Error(t, err)
+
+	rpcRes, err = CallWithError("eth_getTransactionByBlockHashAndIndex", nil)
 	require.Error(t, err)
 }
 
