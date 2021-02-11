@@ -768,6 +768,14 @@ func TestEth_GetTransactionReceipt(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestEth_PendingTransactions(t *testing.T) {
+	// there will be no pending tx in mempool because of the quick grab of block building
+	rpcRes := Call(t, "eth_pendingTransactions", nil)
+	var transactions []types.Transaction
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactions))
+	require.Zero(t, len(transactions))
+}
+
 func TestBlockBloom(t *testing.T) {
 	hash, receipt := deployTestContract(t, hexAddr1, testContractKind)
 
