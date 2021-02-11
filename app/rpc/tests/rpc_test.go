@@ -17,6 +17,7 @@ import (
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
 	"math/big"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -150,6 +151,23 @@ func TestEth_PowAttribute(t *testing.T) {
 
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &uncleCount))
 	require.True(t, uncleCount == 0)
+
+	// eth_getUncleByBlockHashAndIndex -> always "null"
+	rand.Seed(time.Now().UnixNano())
+	luckyNum := int64(rand.Int())
+	randomBlockHash := ethcmn.BigToHash(big.NewInt(luckyNum))
+	randomIndex := hexutil.Uint(luckyNum)
+	rpcRes, err = CallWithError("eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash, randomIndex})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// eth_getUncleByBlockNumberAndIndex -> always "null"
+	luckyNum = int64(rand.Int())
+	randomBlockHeight := hexutil.Uint(luckyNum)
+	randomIndex = hexutil.Uint(luckyNum)
+	rpcRes, err = CallWithError("eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight, randomIndex})
+	require.NoError(t, err)
+	assertNullFromJSONResponse(t, rpcRes.Result)
 }
 
 func TestEth_GasPrice(t *testing.T) {
