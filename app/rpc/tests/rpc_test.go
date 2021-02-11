@@ -161,6 +161,14 @@ func TestEth_PowAttribute(t *testing.T) {
 	require.NoError(t, err)
 	assertNullFromJSONResponse(t, rpcRes.Result)
 
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getUncleByBlockHashAndIndex", nil)
+	require.Error(t, err)
+
 	// eth_getUncleByBlockNumberAndIndex -> always "null"
 	luckyNum = int64(rand.Int())
 	randomBlockHeight := hexutil.Uint(luckyNum)
@@ -168,6 +176,14 @@ func TestEth_PowAttribute(t *testing.T) {
 	rpcRes, err = CallWithError("eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight, randomIndex})
 	require.NoError(t, err)
 	assertNullFromJSONResponse(t, rpcRes.Result)
+
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getUncleByBlockNumberAndIndex", nil)
+	require.Error(t, err)
 }
 
 func TestEth_GasPrice(t *testing.T) {
