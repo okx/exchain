@@ -2,14 +2,12 @@ package tests
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
-	"math/big"
 	"net/http"
 	"os"
 	"testing"
@@ -124,14 +122,6 @@ func CallWithError(method string, params interface{}) (*Response, error) {
 	}
 
 	return rpcRes, nil
-}
-
-// turns a 0x prefixed hex string to a big.Int
-func HexToBigInt(t *testing.T, in string) *big.Int {
-	s := in[2:]
-	b, err := hex.DecodeString(s)
-	require.NoError(t, err)
-	return big.NewInt(0).SetBytes(b)
 }
 
 func DeployTestContractWithFunction(t *testing.T, addr []byte) ethcmn.Hash {

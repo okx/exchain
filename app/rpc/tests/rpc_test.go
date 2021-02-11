@@ -525,14 +525,6 @@ func TestEth_GetCode(t *testing.T) {
 	require.Error(t, err)
 }
 
-func Test1(t *testing.T) {
-	rpcRes := Call(t, "eth_getTransactionLogs", []interface{}{"0xb1bb11ec1248242eb33626831ce1f43a1cc07836b41cd699d6180eb15e699766"})
-	var transactionLogs []ethtypes.Log
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &transactionLogs))
-	//fmt.Println(hexutil.Encode(transactionLogs[0].Topics[1]))
-
-}
-
 func TestEth_GetTransactionLogs(t *testing.T) {
 	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
 
@@ -809,37 +801,39 @@ func TestEth_GetLogs_NoLogs(t *testing.T) {
 	var logs []ethtypes.Log
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &logs))
 	require.Zero(t, len(logs))
+
+	// error check
+	_, err = CallWithError("eth_getLogs", nil)
+	require.Error(t, err)
 }
 
-//func TestEth_GetLogs_Topics_AB(t *testing.T) {
-//	// TODO: this test passes on when run on its own, but fails when run with the other tests
-//	if testing.Short() {
-//		t.Skip("skipping TestEth_GetLogs_Topics_AB")
-//	}
-//
-//	rpcRes := Call(t, "eth_blockNumber", []string{})
-//
-//	var res hexutil.Uint64
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	param := make([]map[string]interface{}, 1)
-//	param[0] = make(map[string]interface{})
-//	param[0]["topics"] = []string{helloTopic, worldTopic}
-//	param[0]["fromBlock"] = res.String()
-//
-//	hash := DeployTestContractWithFunction(t, from)
-//	WaitForReceipt(t, hash)
-//
-//	rpcRes = Call(t, "eth_getLogs", param)
-//
-//	var logs []*ethtypes.Log
-//	err = json.Unmarshal(rpcRes.Result, &logs)
-//	require.NoError(t, err)
-//
-//	require.Equal(t, 1, len(logs))
-//}
-//
+func TestEth_GetLogs_GetTopicsFromHistory(t *testing.T) {
+	_, receipt := deployTestContract(t, hexAddr1, testContractKind)
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []string{helloTopic, worldTopic}
+	param[0]["fromBlock"] = receipt["blockNumber"].(string)
+
+	rpcRes := Call(t, "eth_getLogs", param)
+
+	var logs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &logs))
+	require.Equal(t, 1, len(logs))
+	require.Equal(t, 2, len(logs[0].Topics))
+	require.True(t, logs[0].Topics[0].Hex() == helloTopic)
+	require.True(t, logs[0].Topics[1].Hex() == worldTopic)
+
+	// get current block height -> there is no logs from that height
+	rpcRes = Call(t, "eth_blockNumber", nil)
+	var blockNumber hexutil.Uint64
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber))
+	param[0]["fromBlock"] = blockNumber.String()
+
+	rpcRes, err := CallWithError("eth_getLogs", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &logs))
+	require.Zero(t, len(logs))
+}
 
 //func TestEth_GetProof(t *testing.T) {
 //	params := make([]interface{}, 3)
@@ -989,11 +983,6 @@ func TestEth_GetLogs_NoLogs(t *testing.T) {
 //	// TODO: need transaction receipts to determine tx block
 //}
 //
-//// hash of Hello event
-//var helloTopic = "0x775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd738898"
-//
-//// world parameter in Hello event
-//var worldTopic = "0x0000000000000000000000000000000000000000000000000000000000000011"
 //
 //// Tests topics case where there are topics in first two positions
 //func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
