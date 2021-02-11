@@ -797,20 +797,20 @@ func TestBlockBloom(t *testing.T) {
 	require.True(t, strings.EqualFold(hash.Hex(), blockInfo["transactions"].([]interface{})[0].(string)))
 }
 
-//func TestEth_GetLogs_NoLogs(t *testing.T) {
-//	param := make([]map[string][]string, 1)
-//	param[0] = make(map[string][]string)
-//	param[0]["topics"] = []string{}
-//	rpcRes := Call(t, "eth_getLogs", param)
-//	require.NotNil(t, rpcRes)
-//	require.Nil(t, rpcRes.Error)
-//
-//	var logs []*ethtypes.Log
-//	err := json.Unmarshal(rpcRes.Result, &logs)
-//	require.NoError(t, err)
-//	require.Empty(t, logs)
-//}
-//
+func TestEth_GetLogs_NoLogs(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	// inexistent topics
+	inexistentTopicsHash := ethcmn.BytesToHash([]byte("inexistent topics")).Hex()
+	param[0]["topics"] = []string{inexistentTopicsHash}
+	rpcRes, err := CallWithError("eth_getLogs", param)
+	require.NoError(t, err)
+
+	var logs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &logs))
+	require.Zero(t, len(logs))
+}
+
 //func TestEth_GetLogs_Topics_AB(t *testing.T) {
 //	// TODO: this test passes on when run on its own, but fails when run with the other tests
 //	if testing.Short() {
