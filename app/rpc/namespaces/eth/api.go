@@ -1148,3 +1148,18 @@ func (api *PublicEthereumAPI) accountNonce(
 
 	return nonce, nil
 }
+
+// GetTxByHash returns the tx identified by txhash.
+func (api *PublicEthereumAPI) GetTxByHash(hash common.Hash) (*evmtypes.MsgEthereumTx, rpctypes.BlockNumber, uint32) {
+
+	resTx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
+	if err != nil {
+		return nil, 0, 0
+	}
+
+	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, resTx.Tx)
+	if err != nil {
+		return nil, 0, 0
+	}
+	return ethTx, rpctypes.BlockNumber(resTx.Height), resTx.Index
+}

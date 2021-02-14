@@ -4,18 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/spf13/viper"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/eth/tracers"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -87,7 +90,7 @@ func (st StateTransition) newEVM(
 	gasLimit uint64,
 	gasPrice *big.Int,
 	config ChainConfig,
-	extraEIPs []int,
+	vmConfig vm.Config,
 ) *vm.EVM {
 	// Create context for evm
 	blockCtx := vm.BlockContext{
@@ -104,10 +107,6 @@ func (st StateTransition) newEVM(
 	txCtx := vm.TxContext{
 		Origin:   st.Sender,
 		GasPrice: gasPrice,
-	}
-
-	vmConfig := vm.Config{
-		ExtraEips: extraEIPs,
 	}
 
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
@@ -157,7 +156,16 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		return nil, errors.New("gas price cannot be nil")
 	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config, params.ExtraEIPs)
+	var tracer vm.Tracer
+	tracer = vm.NewStructLogger(nil)
+
+	vmConfig := vm.Config{
+		ExtraEips: params.ExtraEIPs,
+		Debug:     true,
+		Tracer:    tracer,
+	}
+
+	evm := st.newEVM(ctx, csdb, gasLimit, gasPrice.Int, config, vmConfig)
 
 	var (
 		ret             []byte
@@ -194,6 +202,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	gasConsumed := gasLimit - leftOverGas
 
+	result := &core.ExecutionResult{
+		UsedGas:    gasConsumed,
+		Err:        err,
+		ReturnData: ret,
+	}
+
 	// The maximum refund should not be more than half of the consumption
 	gasReturn := gasConsumed / 2
 	if gasReturn > csdb.refund {
@@ -204,6 +218,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	if err != nil {
 		// Consume gas before returning
 		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
+		if !st.Simulate {
+			saveTraceResult(ctx, tracer, result)
+		}
 		return nil, newRevertError(ret, err)
 	}
 
@@ -234,6 +251,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		if err := csdb.Finalise(true); err != nil {
 			return nil, err
 		}
+		saveTraceResult(ctx, tracer, result)
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
@@ -343,4 +361,48 @@ func newRevertError(data []byte, e error) error {
 		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
 	}
 	return errors.New(string(ret))
+}
+
+func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
+	var (
+		res        []byte
+		err error
+	)
+	// Depending on the tracer type, format and return the output
+	switch tracer := tracer.(type) {
+	case *vm.StructLogger:
+		// If the result contains a revert reason, return it.
+		returnVal := fmt.Sprintf("%x", result.Return())
+		if len(result.Revert()) > 0 {
+			returnVal = fmt.Sprintf("%x", result.Revert())
+		}
+		res, err = json.Marshal(&TraceExecutionResult{
+			Gas:         result.UsedGas,
+			Failed:      result.Failed(),
+			ReturnValue: returnVal,
+			StructLogs:  FormatLogs(tracer.StructLogs()),
+		})
+
+	case *tracers.Tracer:
+		res, err = tracer.GetResult()
+
+	default:
+		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
+	}
+
+	if err != nil {
+		res = []byte(err.Error())
+	}
+
+	fileName := hexutil.Encode(tmtypes.Tx(ctx.TxBytes()).Hash())
+	input, err := os.OpenFile(filepath.Join(viper.GetString("home"), fileName), os.O_CREATE | os.O_RDWR, 0644)
+	defer func() {
+		input.Close()
+	}()
+
+	if err == nil {
+		_, err = input.Write(res)
+		err = input.Sync()
+	}
+
 }
