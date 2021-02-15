@@ -1172,27 +1172,25 @@ func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
 //	t.Skip()
 //	// TODO: call test function, need tx receipts to determine contract address
 //}
-//
-//func TestEth_PendingTransactionFilter(t *testing.T) {
-//	rpcRes := Call(t, "eth_newPendingTransactionFilter", []string{})
-//
-//	var ID string
-//	err := json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//
-//	for i := 0; i < 5; i++ {
-//		DeployTestContractWithFunction(t, from)
-//	}
-//
-//	time.Sleep(10 * time.Second)
-//
-//	// get filter changes
-//	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-//	require.NotNil(t, changesRes)
-//
-//	var txs []*hexutil.Bytes
-//	err = json.Unmarshal(changesRes.Result, &txs)
-//	require.NoError(t, err, string(changesRes.Result))
-//
-//	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
-//}
+
+func TestEth_PendingTransactionFilter(t *testing.T) {
+	rpcRes := Call(t, "eth_newPendingTransactionFilter", nil)
+
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+
+	for i := 0; i < 5; i++ {
+		_, _ = deployTestContract(t, hexAddr1, erc20ContractKind)
+	}
+
+	time.Sleep(10 * time.Second)
+
+	// get filter changes
+	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
+	require.NotNil(t, changesRes)
+
+	var txs []hexutil.Bytes
+	require.NoError(t, json.Unmarshal(changesRes.Result, &txs))
+
+	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
+}
