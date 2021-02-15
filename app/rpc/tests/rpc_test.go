@@ -1033,57 +1033,36 @@ func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 	require.Empty(t, logs)
 }
 
-//func TestEth_GetFilterChanges_WrongID(t *testing.T) {
-//	req, err := json.Marshal(CreateRequest("eth_getFilterChanges", []string{"0x1122334400000077"}))
-//	require.NoError(t, err)
-//
-//	var rpcRes *Response
-//	time.Sleep(1 * time.Second)
-//	/* #nosec */
-//	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req))
-//	require.NoError(t, err)
-//
-//	decoder := json.NewDecoder(res.Body)
-//	rpcRes = new(Response)
-//	err = decoder.Decode(&rpcRes)
-//	require.NoError(t, err)
-//
-//	err = res.Body.Close()
-//	require.NoError(t, err)
-//	require.NotNil(t, "invalid filter ID", rpcRes.Error.Message)
-//}
-//
-//func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
-//	rpcRes := Call(t, "eth_blockNumber", []string{})
-//
-//	var res hexutil.Uint64
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	param := make([]map[string]interface{}, 1)
-//	param[0] = make(map[string]interface{})
-//	param[0]["topics"] = []string{}
-//	param[0]["fromBlock"] = res.String()
-//
-//	// instantiate new filter
-//	rpcRes = Call(t, "eth_newFilter", param)
-//	require.Nil(t, rpcRes.Error)
-//	var ID string
-//	err = json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//
-//	// deploy contract, emitting some event
-//	DeployTestContract(t, from)
-//
-//	// get filter changes
-//	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-//
-//	var logs []*ethtypes.Log
-//	err = json.Unmarshal(changesRes.Result, &logs)
-//	require.NoError(t, err)
-//	require.Equal(t, 1, len(logs))
-//}
-//
+func TestEth_GetFilterChanges_WrongID(t *testing.T) {
+	// ID's length is 16
+	inexistentID := "0x1234567890abcdef"
+	_, err := CallWithError("eth_getFilterChanges", []interface{}{inexistentID})
+	require.Error(t, err)
+}
+
+func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
+	// create a new filter with no topics and latest block height for "fromBlock"
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["fromBlock"] = latestBlockNumber
+
+	rpcRes := Call(t, "eth_newFilter", param)
+	require.Nil(t, rpcRes.Error)
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	t.Logf("create filter successfully with ID %s\n", ID)
+
+	// deploy contract with emitting events
+	_, _ = deployTestContract(t, hexAddr1, testContractKind)
+
+	// get filter changes
+	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
+
+	var logs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(changesRes.Result, &logs))
+	require.Equal(t, 1, len(logs))
+}
+
 //func TestEth_GetFilterChanges_Addresses(t *testing.T) {
 //	t.Skip()
 //	// TODO: need transaction receipts to determine contract deployment address
