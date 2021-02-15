@@ -864,13 +864,14 @@ func TestEth_GetLogs_GetTopicsFromHistory(t *testing.T) {
 	require.True(t, logs[0].Topics[0].Hex() == helloTopic)
 	require.True(t, logs[0].Topics[1].Hex() == worldTopic)
 
-	// get current block height -> there is no logs from that height
-	rpcRes = Call(t, "eth_blockNumber", nil)
-	var blockNumber hexutil.Uint64
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &blockNumber))
-	param[0]["fromBlock"] = blockNumber.String()
+	// get block number from receipt
+	blockNumber, err := hexutil.DecodeUint64(receipt["blockNumber"].(string))
+	require.NoError(t, err)
 
-	rpcRes, err := CallWithError("eth_getLogs", param)
+	// get current block height -> there is no logs from that height
+	param[0]["fromBlock"] = hexutil.Uint64(blockNumber + 1).String()
+
+	rpcRes, err = CallWithError("eth_getLogs", param)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &logs))
 	require.Zero(t, len(logs))
@@ -910,16 +911,17 @@ func TestEth_GetProof(t *testing.T) {
 	require.Error(t, err)
 }
 
-//func TestEth_NewFilter(t *testing.T) {
-//	param := make([]map[string][]string, 1)
-//	param[0] = make(map[string][]string)
-//	param[0]["topics"] = []string{"0x0000000000000000000000000000000000000000000000000000000012341234"}
-//	rpcRes := Call(t, "eth_newFilter", param)
-//
-//	var ID string
-//	err := json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//}
+func TestEth_NewFilter(t *testing.T) {
+	param := make([]map[string][]string, 1)
+	param[0] = make(map[string][]string)
+	param[0]["topics"] = []string{"0x0000000000000000000000000000000000000000000000000000000012341234"}
+	rpcRes := Call(t, "eth_newFilter", param)
+
+	var ID string
+	err := json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, err)
+}
+
 //
 //func TestEth_NewBlockFilter(t *testing.T) {
 //	rpcRes := Call(t, "eth_newBlockFilter", []string{})
