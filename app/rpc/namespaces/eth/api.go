@@ -657,7 +657,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
 	block, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
-		return nil, TransformDataError(err, RpcEthGetBlockByHash)
+		return nil, TransformDataError(err, RPCEthGetBlockByHash)
 	}
 	return block, nil
 }

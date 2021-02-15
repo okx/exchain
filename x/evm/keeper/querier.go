@@ -149,7 +149,7 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		return nil, sdkerrors.Wrap(types.ErrStrConvertFailed, fmt.Sprintf("could not unmarshal block height: %w", err))
+		return nil, sdkerrors.Wrap(types.ErrStrConvertFailed, fmt.Sprintf("could not unmarshal block height: %s", err))
 	}
 
 	bloom := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)

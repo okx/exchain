@@ -10,7 +10,7 @@ import (
 
 func Test_TransformDataError(t *testing.T) {
 
-	sdkerr := NewWrappedCosmosError(7, `["execution reverted","message","HexData","0x00000000000"]`, evmtypes.ModuleName)
+	sdkerr := newWrappedCosmosError(7, `["execution reverted","message","HexData","0x00000000000"]`, evmtypes.ModuleName)
 	err := TransformDataError(sdkerr, "eth_estimateGas")
 	require.NotNil(t, err.ErrorData())
 	require.Equal(t, err.ErrorData(), "0x00000000000")
