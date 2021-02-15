@@ -22,7 +22,7 @@ var (
 	// ErrCallDisabled returns an error if the EnableCall parameter is false.
 	ErrCallDisabled = sdkerrors.Register(ModuleName, 6, "EVM Call operation is disabled")
 
-	// ErrCallDisabled returns an error if the EnableCall parameter is false.
+	// ErrKeyNotFound returns an error if the target key not found in database.
 	ErrKeyNotFound = sdkerrors.Register(ModuleName, 8, "Key not found in database")
 
 	CodeSpaceEvmCallFailed = uint32(7)
