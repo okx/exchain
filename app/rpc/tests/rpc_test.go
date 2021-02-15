@@ -1078,7 +1078,7 @@ func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
 func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
-	// set topics in filter
+	// set topics in filter with A && B
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = latestBlockNumber
 
@@ -1100,36 +1100,31 @@ func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	require.Equal(t, 1, len(logs))
 }
 
-//func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
-//	rpcRes := Call(t, "eth_blockNumber", []string{})
-//
-//	var res hexutil.Uint64
-//	err := res.UnmarshalJSON(rpcRes.Result)
-//	require.NoError(t, err)
-//
-//	param := make([]map[string]interface{}, 1)
-//	param[0] = make(map[string]interface{})
-//	param[0]["topics"] = []interface{}{nil, worldTopic}
-//	param[0]["fromBlock"] = res.String()
-//
-//	// instantiate new filter
-//	rpcRes = Call(t, "eth_newFilter", param)
-//	var ID string
-//	err = json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//
-//	DeployTestContractWithFunction(t, from)
-//
-//	// get filter changes
-//	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-//
-//	var logs []*ethtypes.Log
-//	err = json.Unmarshal(changesRes.Result, &logs)
-//	require.NoError(t, err)
-//
-//	require.Equal(t, 1, len(logs))
-//}
-//
+func TestEth_GetFilterChanges_Topics_XB(t *testing.T) {
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	// set topics in filter with X && B
+	param[0]["topics"] = []interface{}{nil, worldTopic}
+	param[0]["fromBlock"] = latestBlockNumber
+
+	// create new filter
+	rpcRes := Call(t, "eth_newFilter", param)
+
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	t.Logf("create filter successfully with ID %s\n", ID)
+
+	// deploy contract with emitting events
+	_, _ = deployTestContract(t, hexAddr1, testContractKind)
+
+	// get filter changes
+	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
+
+	var logs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(changesRes.Result, &logs))
+	require.Equal(t, 1, len(logs))
+}
+
 //func TestEth_GetFilterChanges_Topics_XXC(t *testing.T) {
 //	t.Skip()
 //	// TODO: call test function, need tx receipts to determine contract address
