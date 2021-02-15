@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	addrA                  = "0xc94770007dda54cF92009BFF0dE90c06F603a09f"
 	addrAStoreKey          = 0
 	defaultProtocolVersion = 65
 	defaultChainID         = 65
@@ -877,22 +876,21 @@ func TestEth_GetLogs_GetTopicsFromHistory(t *testing.T) {
 	require.Zero(t, len(logs))
 }
 
-//func TestEth_GetProof(t *testing.T) {
-//	params := make([]interface{}, 3)
-//	params[0] = addrA
-//	params[1] = []string{fmt.Sprint(addrAStoreKey)}
-//	params[2] = "latest"
-//	rpcRes := Call(t, "eth_getProof", params)
-//	require.NotNil(t, rpcRes)
-//
-//	var accRes rpctypes.AccountResult
-//	err := json.Unmarshal(rpcRes.Result, &accRes)
-//	require.NoError(t, err)
-//	require.NotEmpty(t, accRes.AccountProof)
-//	require.NotEmpty(t, accRes.StorageProof)
-//
-//	t.Logf("Got AccountResult %s", rpcRes.Result)
-//}
+func TestEth_GetProof(t *testing.T) {
+	// initial balance of hexAddr2 is 1000000000okt in test.sh
+	initialBalance, err := sdk.ParseDecCoin("1000000000okt")
+	require.NoError(t, err)
+
+	rpcRes := Call(t, "eth_getProof", []interface{}{hexAddr2, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+	require.NotNil(t, rpcRes)
+
+	var accRes types.AccountResult
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &accRes))
+	require.True(t, accRes.Address == hexAddr2)
+	require.True(t, initialBalance.Amount.Int.Cmp(accRes.Balance.ToInt()) == 0)
+	require.NotEmpty(t, accRes.AccountProof)
+	require.NotEmpty(t, accRes.StorageProof)
+}
 
 //func TestEth_NewFilter(t *testing.T) {
 //	param := make([]map[string][]string, 1)
