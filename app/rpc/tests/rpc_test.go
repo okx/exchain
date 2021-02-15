@@ -1015,23 +1015,24 @@ func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 	require.Error(t, err)
 }
 
-//func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
-//	param := make([]map[string][]string, 1)
-//	param[0] = make(map[string][]string)
-//	param[0]["topics"] = []string{}
-//	rpcRes := Call(t, "eth_newFilter", param)
-//
-//	var ID string
-//	err := json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//
-//	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-//
-//	var logs []*ethtypes.Log
-//	err = json.Unmarshal(changesRes.Result, &logs)
-//	require.NoError(t, err)
-//}
-//
+func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
+	param[0]["topics"] = []ethcmn.Hash{ethcmn.BytesToHash([]byte("random topics"))}
+
+	rpcRes := Call(t, "eth_newFilter", param)
+
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+
+	changesRes := Call(t, "eth_getFilterChanges", []interface{}{ID})
+
+	var logs []ethtypes.Log
+	require.NoError(t, json.Unmarshal(changesRes.Result, &logs))
+	// no logs
+	require.Empty(t, logs)
+}
+
 //func TestEth_GetFilterChanges_WrongID(t *testing.T) {
 //	req, err := json.Marshal(CreateRequest("eth_getFilterChanges", []string{"0x1122334400000077"}))
 //	require.NoError(t, err)
