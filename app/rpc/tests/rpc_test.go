@@ -995,23 +995,26 @@ func TestEth_NewBlockFilter(t *testing.T) {
 	require.NotZero(t, ID)
 }
 
-//
-//func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
-//	rpcRes := Call(t, "eth_newBlockFilter", []string{})
-//
-//	var ID string
-//	err := json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//
-//	time.Sleep(5 * time.Second)
-//
-//	changesRes := Call(t, "eth_getFilterChanges", []string{ID})
-//	var hashes []ethcmn.Hash
-//	err = json.Unmarshal(changesRes.Result, &hashes)
-//	require.NoError(t, err)
-//	require.GreaterOrEqual(t, len(hashes), 1)
-//}
-//
+func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
+	rpcRes := Call(t, "eth_newBlockFilter", nil)
+
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+
+	// wait for block generation
+	time.Sleep(5 * time.Second)
+
+	changesRes := Call(t, "eth_getFilterChanges", []interface{}{ID})
+	var hashes []ethcmn.Hash
+	require.NoError(t, json.Unmarshal(changesRes.Result, &hashes))
+	require.GreaterOrEqual(t, len(hashes), 1)
+
+	// error check
+	// miss argument
+	_, err := CallWithError("eth_getFilterChanges", nil)
+	require.Error(t, err)
+}
+
 //func TestEth_GetFilterChanges_NoLogs(t *testing.T) {
 //	param := make([]map[string][]string, 1)
 //	param[0] = make(map[string][]string)
