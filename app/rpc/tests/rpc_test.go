@@ -912,15 +912,79 @@ func TestEth_GetProof(t *testing.T) {
 }
 
 func TestEth_NewFilter(t *testing.T) {
-	param := make([]map[string][]string, 1)
-	param[0] = make(map[string][]string)
+	param := make([]map[string]interface{}, 1)
+	param[0] = make(map[string]interface{})
 	// random topics
-	param[0]["topics"] = []string{ethcmn.BytesToHash([]byte("random topics")).Hex()}
+	param[0]["topics"] = []ethcmn.Hash{ethcmn.BytesToHash([]byte("random topics"))}
 	rpcRes := Call(t, "eth_newFilter", param)
 
 	var ID string
-	err := json.Unmarshal(rpcRes.Result, &ID)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// fromBlock: latest, toBlock: latest -> no error
+	delete(param[0], "topics")
+	param[0]["fromBlock"] = latestBlockNumber
+	param[0]["toBlock"] = latestBlockNumber
+	rpcRes, err := CallWithError("eth_newFilter", param)
 	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// fromBlock: nil, toBlock: latest -> no error
+	delete(param[0], "fromBlock")
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// fromBlock: latest, toBlock: nil -> no error
+	delete(param[0], "toBlock")
+	param[0]["fromBlock"] = latestBlockNumber
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// fromBlock: pending, toBlock: pending -> no error
+	param[0]["fromBlock"] = pendingBlockNumber
+	param[0]["toBlock"] = pendingBlockNumber
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// fromBlock: latest, toBlock: pending -> no error
+	param[0]["fromBlock"] = latestBlockNumber
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// toBlock > fromBlock -> no error
+	param[0]["fromBlock"] = (*hexutil.Big)(big.NewInt(2)).String()
+	param[0]["toBlock"] = (*hexutil.Big)(big.NewInt(3)).String()
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_newFilter", nil)
+	require.Error(t, err)
+
+	// fromBlock > toBlock -> error: invalid from and to block combination: from > to
+	param[0]["fromBlock"] = (*hexutil.Big)(big.NewInt(3)).String()
+	param[0]["toBlock"] = (*hexutil.Big)(big.NewInt(2)).String()
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.Error(t, err)
+
+	// fromBlock: pending, toBlock: latest
+	param[0]["fromBlock"] = pendingBlockNumber
+	param[0]["toBlock"] = latestBlockNumber
+	rpcRes, err = CallWithError("eth_newFilter", param)
+	require.Error(t, err)
 }
 
 //
