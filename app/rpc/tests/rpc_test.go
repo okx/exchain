@@ -987,14 +987,14 @@ func TestEth_NewFilter(t *testing.T) {
 	require.Error(t, err)
 }
 
-//
-//func TestEth_NewBlockFilter(t *testing.T) {
-//	rpcRes := Call(t, "eth_newBlockFilter", []string{})
-//
-//	var ID string
-//	err := json.Unmarshal(rpcRes.Result, &ID)
-//	require.NoError(t, err)
-//}
+func TestEth_NewBlockFilter(t *testing.T) {
+	rpcRes := Call(t, "eth_newBlockFilter", nil)
+
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+}
+
 //
 //func TestEth_GetFilterChanges_BlockFilter(t *testing.T) {
 //	rpcRes := Call(t, "eth_newBlockFilter", []string{})
