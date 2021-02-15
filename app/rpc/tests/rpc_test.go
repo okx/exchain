@@ -742,7 +742,7 @@ func TestEth_GetTransactionByBlockHashAndIndex(t *testing.T) {
 	hash := sendTestTransaction(t, hexAddr1, receiverAddr, 1024)
 
 	// sleep for a while
-	time.Sleep(4 * time.Second)
+	time.Sleep(5 * time.Second)
 	blockHash, index := getBlockHashFromTxHash(t, hash), hexutil.Uint(0)
 	rpcRes := Call(t, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index})
 	var transaction types.Transaction
@@ -914,7 +914,8 @@ func TestEth_GetProof(t *testing.T) {
 func TestEth_NewFilter(t *testing.T) {
 	param := make([]map[string][]string, 1)
 	param[0] = make(map[string][]string)
-	param[0]["topics"] = []string{"0x0000000000000000000000000000000000000000000000000000000012341234"}
+	// random topics
+	param[0]["topics"] = []string{ethcmn.BytesToHash([]byte("random topics")).Hex()}
 	rpcRes := Call(t, "eth_newFilter", param)
 
 	var ID string
@@ -982,24 +983,6 @@ func TestEth_NewFilter(t *testing.T) {
 //	err = res.Body.Close()
 //	require.NoError(t, err)
 //	require.NotNil(t, "invalid filter ID", rpcRes.Error.Message)
-//}
-
-//func TestEth_GetTransactionReceipt_ContractDeployment(t *testing.T) {
-//	hash, _ := DeployTestContract(t, from)
-//
-//	time.Sleep(time.Second * 5)
-//
-//	param := []string{hash.String()}
-//	rpcRes := Call(t, "eth_getTransactionReceipt", param)
-//
-//	receipt := make(map[string]interface{})
-//	err := json.Unmarshal(rpcRes.Result, &receipt)
-//	require.NoError(t, err)
-//	require.Equal(t, "0x1", receipt["status"].(string))
-//
-//	require.NotEqual(t, ethcmn.Address{}.String(), receipt["contractAddress"].(string))
-//	require.NotNil(t, receipt["logs"])
-//
 //}
 //
 //func TestEth_GetFilterChanges_NoTopics(t *testing.T) {
