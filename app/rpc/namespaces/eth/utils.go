@@ -21,8 +21,9 @@ const (
 	VMExecuteException           = -32015
 	VMExecuteExceptionInEstimate = 3
 
-	RpcEthCall        = "eth_call"
-	RpcEthEstimateGas = "eth_estimateGas"
+	RpcEthCall           = "eth_call"
+	RpcEthEstimateGas    = "eth_estimateGas"
+	RpcEthGetBlockByHash = "eth_getBlockByHash"
 
 	RpcUnknowErr = "unknow"
 	RpcNullData  = "null"
@@ -116,6 +117,13 @@ func TransformDataError(err error, method string) DataError {
 				data: RpcNullData,
 			}
 		}
+		if method == RpcEthGetBlockByHash {
+			return DataError{
+				code: DefaultEVMErrorCode,
+				Msg:  realErr.Error(),
+				data: RpcNullData,
+			}
+		}
 		lastSeg := strings.LastIndexAny(realErr.Log, "]")
 		if lastSeg < 0 {
 			return DataError{
@@ -130,7 +138,7 @@ func TransformDataError(err error, method string) DataError {
 			return DataError{
 				code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: "null",
+				data: RpcNullData,
 			}
 		}
 		m := genericStringMap(logs)
