@@ -176,7 +176,7 @@ func FormatBlock(
 		"mixHash":          common.Hash{},
 		"difficulty":       0,
 		"totalDifficulty":  0,
-		"extraData":        hexutil.Uint64(0),
+		"extraData":        hexutil.Bytes(common.FromHex("0x")),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
