@@ -35,6 +35,7 @@ const (
 
 var (
 	receiverAddr   = ethcmn.BytesToAddress([]byte("receiver"))
+	inexistentAddr = ethcmn.BytesToAddress([]byte{0})
 	inexistentHash = ethcmn.BytesToHash([]byte("inexistent hash"))
 	MODE           = os.Getenv("MODE")
 	from           = []byte{1}
@@ -239,7 +240,6 @@ func TestEth_GetBalance(t *testing.T) {
 	require.True(t, initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
 
 	// inexistent addr -> zero balance
-	inexistentAddr := ethcmn.BytesToAddress([]byte{0})
 	rpcRes, err = CallWithError("eth_getBalance", []interface{}{inexistentAddr, latestBlockNumber})
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &balance))
@@ -890,6 +890,24 @@ func TestEth_GetProof(t *testing.T) {
 	require.True(t, initialBalance.Amount.Int.Cmp(accRes.Balance.ToInt()) == 0)
 	require.NotEmpty(t, accRes.AccountProof)
 	require.NotEmpty(t, accRes.StorageProof)
+
+	// inexistentAddr -> zero value account result
+	rpcRes, err = CallWithError("eth_getProof", []interface{}{inexistentAddr, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &accRes))
+	require.True(t, accRes.Address == inexistentAddr)
+	require.True(t, sdk.ZeroDec().Int.Cmp(accRes.Balance.ToInt()) == 0)
+
+	// error check
+	// miss argument
+	_, err = CallWithError("eth_getProof", []interface{}{hexAddr2, []string{fmt.Sprint(addrAStoreKey)}})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getProof", []interface{}{hexAddr2})
+	require.Error(t, err)
+
+	_, err = CallWithError("eth_getProof", nil)
+	require.Error(t, err)
 }
 
 //func TestEth_NewFilter(t *testing.T) {
