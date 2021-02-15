@@ -1090,13 +1090,33 @@ func TestEth_GetFilterChanges_Addresses(t *testing.T) {
 	//require.Equal(t, 1, len(logs))
 }
 
-//
-//func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
-//	t.Skip()
-//	// TODO: need transaction receipts to determine tx block
-//}
-//
-//
+func TestEth_GetFilterChanges_BlockHash(t *testing.T) {
+	// TODO: logic bug, fix it later
+	//// deploy contract with emitting events
+	//_, receipt := deployTestContract(t, hexAddr1, testContractKind)
+	//blockHash := receipt["blockHash"].(string)
+	//contractAddrHex := receipt["contractAddress"].(string)
+	//// create a filter
+	//param := make([]map[string]interface{}, 1)
+	//param[0] = make(map[string]interface{})
+	//// focus on the contract by its address
+	//param[0]["blockHash"] = blockHash
+	//param[0]["addresses"] = []string{contractAddrHex}
+	//param[0]["topics"] = []string{helloTopic, worldTopic}
+	//rpcRes := Call(t, "eth_newFilter", param)
+	//
+	//var ID string
+	//require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	//t.Logf("create filter focusing on contract %s in the block with block hash %s successfully with ID %s\n", contractAddrHex, blockHash, ID)
+	//
+	//// get filter changes
+	//changesRes := Call(t, "eth_getFilterChanges", []string{ID})
+	//
+	//var logs []ethtypes.Log
+	//require.NoError(t, json.Unmarshal(changesRes.Result, &logs))
+	//require.Equal(t, 1, len(logs))
+}
+
 // Tests topics case where there are topics in first two positions
 func TestEth_GetFilterChanges_Topics_AB(t *testing.T) {
 	param := make([]map[string]interface{}, 1)
