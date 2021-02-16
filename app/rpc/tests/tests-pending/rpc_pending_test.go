@@ -126,46 +126,38 @@ func TestEth_Pending_GetTransactionCount(t *testing.T) {
 	require.True(t, prePendingNonce+1 == pendingNonce)
 }
 
-//func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
-//	rpcRes := util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
-//	var preTxPendingTxCount hexutil.Uint
-//	err := json.Unmarshal(rpcRes.Result, &preTxPendingTxCount)
-//	require.NoError(t, err)
-//	t.Logf("Pre tx pending nonce is %d", preTxPendingTxCount)
-//
-//	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"latest"})
-//	var preTxLatestTxCount hexutil.Uint
-//	err = json.Unmarshal(rpcRes.Result, &preTxLatestTxCount)
-//	require.NoError(t, err)
-//	t.Logf("Pre tx latest nonce is %d", preTxLatestTxCount)
-//
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["to"] = addrA
-//	param[0]["value"] = "0xA"
-//	param[0]["gasLimit"] = "0x5208"
-//	param[0]["gasPrice"] = "0x1"
-//
-//	txRes := util.Call(t, "eth_sendTransaction", param)
-//	require.Nil(t, txRes.Error)
-//
-//	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
-//	var postTxPendingTxCount hexutil.Uint
-//	err = json.Unmarshal(rpcRes.Result, &postTxPendingTxCount)
-//	require.NoError(t, err)
-//	t.Logf("Post tx pending nonce is %d", postTxPendingTxCount)
-//
-//	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"latest"})
-//	var postTxLatestTxCount hexutil.Uint
-//	err = json.Unmarshal(rpcRes.Result, &postTxLatestTxCount)
-//	require.NoError(t, err)
-//	t.Logf("Post tx latest nonce is %d", postTxLatestTxCount)
-//
-//	require.Equal(t, uint64(preTxPendingTxCount)+uint64(1), uint64(postTxPendingTxCount))
-//	require.NotEqual(t, uint64(postTxPendingTxCount)-uint64(preTxPendingTxCount), uint64(postTxLatestTxCount)-uint64(preTxLatestTxCount))
-//}
-//
+func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
+	rpcRes := util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{latestBlockNumber})
+	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{pendingBlockNumber})
+	var preTxPendingTxCount, preTxLatestTxCount hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &preTxPendingTxCount))
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &preTxLatestTxCount))
+	t.Logf("Pre tx pending nonce is %d", preTxPendingTxCount)
+	t.Logf("Pre tx latest nonce is %d", preTxLatestTxCount)
+	require.True(t, preTxPendingTxCount == preTxLatestTxCount)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = senderAddrHex
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["value"] = "0xA"
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
+
+	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{latestBlockNumber})
+	rpcRes = util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{pendingBlockNumber})
+	var postTxPendingTxCount, postTxLatestTxCount hexutil.Uint
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &postTxPendingTxCount))
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &postTxLatestTxCount))
+	t.Logf("Post tx pending nonce is %d", postTxPendingTxCount)
+	t.Logf("Post tx latest nonce is %d", postTxLatestTxCount)
+
+	require.True(t, preTxPendingTxCount+1 == postTxPendingTxCount)
+	require.True(t, (postTxPendingTxCount-preTxPendingTxCount) >= (postTxLatestTxCount-preTxLatestTxCount))
+}
+
 //func TestEth_Pending_GetBlockByNumber(t *testing.T) {
 //	rpcRes := util.Call(t, "eth_getBlockByNumber", []interface{}{"latest", true})
 //	var preTxLatestBlock map[string]interface{}
