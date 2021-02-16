@@ -750,7 +750,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
+	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
