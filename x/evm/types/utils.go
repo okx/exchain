@@ -2,26 +2,21 @@ package types
 
 import (
 	"fmt"
-	"math/big"
-	"strings"
-
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	"github.com/tendermint/tendermint/version"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/pkg/errors"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/tendermint/tendermint/version"
+	"golang.org/x/crypto/sha3"
+	"math/big"
+	"strings"
 )
 
 // GenerateEthAddress generates an Ethereum address.
@@ -68,13 +63,19 @@ type ResultData struct {
 
 // String implements fmt.Stringer interface.
 func (rd ResultData) String() string {
+	var logsStr string
+	logsLen := len(rd.Logs)
+	for i := 0; i < logsLen; i++ {
+		logsStr = fmt.Sprintf("%s\t\t%v\n ", logsStr, *rd.Logs[i])
+	}
+
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %s
-	Logs: %v
 	Ret: %v
-	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
+	TxHash: %s	
+	Logs: 
+%s`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Ret, rd.TxHash.String(), logsStr))
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution

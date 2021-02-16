@@ -2,9 +2,10 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common"
-	"net/http"
 
 	"github.com/gorilla/mux"
 
@@ -60,7 +61,7 @@ func queryAccountHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(mux.Vars(r)["accAddr"])
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidAccountAddress, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeCreateAddrFromBech32Failed, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryAccountParams(accAddr))
@@ -91,7 +92,7 @@ func queryEarningsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		accAddr, err := sdk.AccAddressFromBech32(varsMap["accAddr"])
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidAccountAddress, err.Error())
+			common.HandleErrorMsg(w, cliCtx, common.CodeCreateAddrFromBech32Failed, err.Error())
 		}
 
 		jsonBytes, err := cliCtx.Codec.MarshalJSON(types.NewQueryPoolAccountParams(varsMap["poolName"], accAddr))

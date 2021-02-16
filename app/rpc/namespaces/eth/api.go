@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -51,6 +52,7 @@ type PublicEthereumAPI struct {
 	keys         []ethsecp256k1.PrivKey // unlocked keys
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
+	gasPrice     *hexutil.Big
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -72,6 +74,7 @@ func NewAPI(
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,
+		gasPrice:     ParseGasPrice(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -94,7 +97,7 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
 		viper.GetString(flags.FlagKeyringBackend),
-		viper.GetString(flags.FlagHome),
+		viper.GetString(cmserver.FlagUlockKeyHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
 	)
@@ -188,8 +191,7 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 // GasPrice returns the current gas price based on Ethermint's gas price oracle.
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	api.logger.Debug("eth_gasPrice")
-	out := big.NewInt(0)
-	return (*hexutil.Big)(out)
+	return api.gasPrice
 }
 
 // Accounts returns the list of accounts available to this node.
@@ -472,6 +474,10 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	if res.Code != abci.CodeTypeOK {
+		return common.Hash{}, fmt.Errorf(res.RawLog)
+	}
+
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
 }
@@ -501,6 +507,9 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
+	if res.Code != abci.CodeTypeOK {
+		return common.Hash{}, fmt.Errorf(res.RawLog)
+	}
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
 }
@@ -510,12 +519,12 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
 	return (hexutil.Bytes)(data.Ret), nil
@@ -544,6 +553,8 @@ func (api *PublicEthereumAPI) doCall(
 	} else {
 		addr = *args.From
 	}
+
+	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
@@ -582,7 +593,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	var msgs []sdk.Msg
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(0, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := evmtypes.NewMsgEthermint(nonce, &toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 	msgs = append(msgs, msg)
 
@@ -631,7 +642,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	api.logger.Debug("eth_estimateGas", "args", args)
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
-		return 0, err
+		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
@@ -683,10 +694,11 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 			ChainID:        api.clientCtx.ChainID,
 			Height:         height + 1,
 			Time:           time.Unix(0, 0),
-			LastBlockID:    latestBlock.BlockID,
+			LastBlockID:    latestBlock.Block.LastBlockID,
 			ValidatorsHash: latestBlock.Block.NextValidatorsHash,
 		},
 		0,
+		latestBlock.Block.Hash(),
 		0,
 		gasUsed,
 		pendingTxs,
@@ -725,7 +737,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		return nil, err
 	}
 
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 
 	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
 	if err != nil {
@@ -738,7 +750,7 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
+	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
@@ -811,7 +823,7 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 
 	height := uint64(block.Height)
 	txHash := common.BytesToHash(block.Txs[idx].Hash())
-	blockHash := common.BytesToHash(block.Header.Hash())
+	blockHash := common.BytesToHash(block.Hash())
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
@@ -830,7 +842,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		return nil, err
 	}
 
-	blockHash := common.BytesToHash(block.Block.Header.Hash())
+	blockHash := common.BytesToHash(block.Block.Hash())
 
 	// Convert tx bytes to eth transaction
 	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
@@ -890,7 +902,6 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[strin
 		"from": from,
 		"to":   ethTx.To(),
 	}
-
 	return receipt, nil
 }
 
@@ -1080,8 +1091,9 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 		}
 
 		pendingData := pendingTx.Input
+		nonce, _ := api.accountNonce(api.clientCtx, pendingTx.From, true)
 
-		msg := evmtypes.NewMsgEthermint(0, &pendingTo, sdk.NewIntFromBigInt(pendingValue), pendingGas,
+		msg := evmtypes.NewMsgEthermint(nonce, &pendingTo, sdk.NewIntFromBigInt(pendingValue), pendingGas,
 			sdk.NewIntFromBigInt(pendingGasPrice), pendingData, pendingFrom)
 
 		msgs = append(msgs, msg)

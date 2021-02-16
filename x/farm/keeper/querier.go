@@ -100,7 +100,7 @@ func queryEarnings(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sd
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	earnings, sdkErr := k.getEarnings(ctx, params.PoolName, params.AccAddress)
+	earnings, sdkErr := k.GetEarnings(ctx, params.PoolName, params.AccAddress)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
@@ -158,7 +158,7 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, sdk
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	poolNames := k.getFarmPoolNamesForAccount(ctx, params.AccAddress)
+	poolNames := k.GetFarmPoolNamesForAccount(ctx, params.AccAddress)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, poolNames)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)

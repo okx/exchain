@@ -58,8 +58,9 @@ func includes(addresses []common.Address, a common.Address) bool {
 }
 
 func bloomFilter(bloom ethtypes.Bloom, addresses []common.Address, topics [][]common.Hash) bool {
-	var included bool
+	var included bool = true
 	if len(addresses) > 0 {
+		included = false
 		for _, addr := range addresses {
 			if ethtypes.BloomLookup(bloom, addr) {
 				included = true

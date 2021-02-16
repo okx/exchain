@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/x/bank"
+
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -43,7 +45,7 @@ type Keeper struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk bank.Keeper,
 ) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -55,7 +57,7 @@ func NewKeeper(
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak),
+		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk, bk),
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 	}
@@ -112,15 +114,15 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) 
 // ----------------------------------------------------------------------------
 
 // GetBlockBloom gets bloombits from block height
-func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) (ethtypes.Bloom, bool) {
+func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
-		return ethtypes.Bloom{}, false
+		return ethtypes.Bloom{}
 	}
 
 	bz := store.Get(types.BloomKey(height))
-	return ethtypes.BytesToBloom(bz), true
+	return ethtypes.BytesToBloom(bz)
 }
 
 // SetBlockBloom sets the mapping from block height to bloom bits

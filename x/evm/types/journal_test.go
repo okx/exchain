@@ -5,6 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/supply"
+
 	"github.com/stretchr/testify/suite"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -97,6 +100,7 @@ func (suite *JournalTestSuite) SetupTest() {
 // to maintain consistency with the Geth implementation.
 func (suite *JournalTestSuite) setup() {
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	supplyKey := sdk.NewKVStoreKey(supply.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
 	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
@@ -121,11 +125,14 @@ func (suite *JournalTestSuite) setup() {
 	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
+	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
 	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
+	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
+	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak).WithContext(suite.ctx)
+	suite.stateDB = NewCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
 
