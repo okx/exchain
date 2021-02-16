@@ -22,6 +22,8 @@ const (
 	senderAddrHex      = "0x2CF4ea7dF75b513509d95946B43062E26bD88035"
 	addrAStoreKey      = 0
 	defaultMinGasPrice = "0.000000001okt"
+	latestBlockNumber  = "latest"
+	pendingBlockNumber = "pending"
 )
 
 var (
@@ -60,11 +62,11 @@ func TestMain(m *testing.M) {
 
 func TestEth_Pending_GetBalance(t *testing.T) {
 	var res hexutil.Big
-	rpcRes := util.Call(t, "eth_getBalance", []interface{}{receiverAddr, "latest"})
+	rpcRes := util.Call(t, "eth_getBalance", []interface{}{receiverAddr, latestBlockNumber})
 	require.NoError(t, res.UnmarshalJSON(rpcRes.Result))
 	preTxLatestBalance := res.ToInt()
 
-	rpcRes = util.Call(t, "eth_getBalance", []interface{}{receiverAddr, "pending"})
+	rpcRes = util.Call(t, "eth_getBalance", []interface{}{receiverAddr, pendingBlockNumber})
 	require.NoError(t, res.UnmarshalJSON(rpcRes.Result))
 	preTxPendingBalance := res.ToInt()
 
@@ -97,36 +99,33 @@ func TestEth_Pending_GetBalance(t *testing.T) {
 	require.Equal(t, preTxLatestBalance, postTxLatestBalance)
 }
 
-//
-//func TestEth_Pending_GetTransactionCount(t *testing.T) {
-//	prePendingNonce := util.GetNonce(t, "pending")
-//	t.Logf("Pending nonce before tx is %d", prePendingNonce)
-//
-//	currentNonce := util.GetNonce(t, "latest")
-//	t.Logf("Current nonce is %d", currentNonce)
-//
-//	param := make([]map[string]string, 1)
-//	param[0] = make(map[string]string)
-//	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
-//	param[0]["to"] = addrA
-//	param[0]["value"] = "0xA"
-//	param[0]["gasLimit"] = "0x5208"
-//	param[0]["gasPrice"] = "0x1"
-//
-//	txRes := util.Call(t, "eth_sendTransaction", param)
-//	require.Nil(t, txRes.Error)
-//
-//	pendingNonce := util.GetNonce(t, "pending")
-//	latestNonce := util.GetNonce(t, "latest")
-//	t.Logf("Latest nonce is %d", latestNonce)
-//	require.Equal(t, currentNonce, latestNonce)
-//	t.Logf("Pending nonce is %d", pendingNonce)
-//	require.NotEqual(t, latestNonce, pendingNonce)
-//
-//	require.Greater(t, uint64(pendingNonce), uint64(latestNonce))
-//	require.Equal(t, uint64(prePendingNonce)+uint64(1), uint64(pendingNonce))
-//}
-//
+func TestEth_Pending_GetTransactionCount(t *testing.T) {
+	prePendingNonce := util.GetNonce(t, pendingBlockNumber, senderAddrHex)
+	t.Logf("Pending nonce before tx is %d", prePendingNonce)
+
+	currentNonce := util.GetNonce(t, latestBlockNumber, senderAddrHex)
+	t.Logf("Current nonce is %d", currentNonce)
+	require.True(t, prePendingNonce == currentNonce)
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = senderAddrHex
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["value"] = "0xA"
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+
+	txRes := util.Call(t, "eth_sendTransaction", param)
+	require.Nil(t, txRes.Error)
+	pendingNonce := util.GetNonce(t, pendingBlockNumber, senderAddrHex)
+	latestNonce := util.GetNonce(t, latestBlockNumber, senderAddrHex)
+
+	t.Logf("Latest nonce is %d", latestNonce)
+	require.True(t, currentNonce <= latestNonce)
+	t.Logf("Pending nonce is %d", pendingNonce)
+	require.True(t, latestNonce <= pendingNonce)
+	require.True(t, prePendingNonce+1 == pendingNonce)
+}
+
 //func TestEth_Pending_GetBlockTransactionCountByNumber(t *testing.T) {
 //	rpcRes := util.Call(t, "eth_getBlockTransactionCountByNumber", []interface{}{"pending"})
 //	var preTxPendingTxCount hexutil.Uint

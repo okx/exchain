@@ -149,16 +149,11 @@ func WaitForReceipt(t *testing.T, hash ethcmn.Hash) map[string]interface{} {
 	return nil
 }
 
-func GetNonce(t *testing.T, block string) hexutil.Uint64 {
-	from, err := GetAddress()
-	require.NoError(t, err)
-
-	param := []interface{}{hexutil.Bytes(from), block}
-	rpcRes := Call(t, "eth_getTransactionCount", param)
+func GetNonce(t *testing.T, block string, addr string) hexutil.Uint64 {
+	rpcRes := Call(t, "eth_getTransactionCount", []interface{}{addr, block})
 
 	var nonce hexutil.Uint64
-	err = json.Unmarshal(rpcRes.Result, &nonce)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &nonce))
 	return nonce
 }
 
