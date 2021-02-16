@@ -8,8 +8,8 @@ import (
 	"github.com/okex/okexchain/x/stream/websocket"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/okex/okexchain/x/stream/distrlock"
 	"github.com/google/uuid"
+	"github.com/okex/okexchain/x/stream/distrlock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
@@ -33,6 +33,7 @@ type Stream struct {
 	marketKeeper   backend.MarketKeeper // The reference to MarketKeeper to get ticker/klines
 	dexKeeper      types.DexKeeper
 	swapKeeper     types.SwapKeeper
+	farmKeeper     types.FarmKeeper
 	cdc            *codec.Codec // The wire codec for binary encoding/decoding.
 	logger         log.Logger
 	engines        map[EngineKind]types.IStreamEngine
@@ -49,7 +50,7 @@ type Stream struct {
 	cfg             *appCfg.StreamConfig
 }
 
-func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, cdc *codec.Codec, logger log.Logger, cfg *appCfg.Config) *Stream {
+func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dexKeeper types.DexKeeper, swapKeeper types.SwapKeeper, farmKeeper types.FarmKeeper, cdc *codec.Codec, logger log.Logger, cfg *appCfg.Config) *Stream {
 
 	logger.Info("entering NewStreamEngine")
 
@@ -58,6 +59,7 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		tokenKeeper: tokenKeeper,
 		dexKeeper:   dexKeeper,
 		swapKeeper:  swapKeeper,
+		farmKeeper:  farmKeeper,
 		cdc:         cdc,
 		logger:      logger,
 		Cache:       common.NewCache(),

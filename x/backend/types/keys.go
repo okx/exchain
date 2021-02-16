@@ -20,7 +20,6 @@ const (
 	QueryCandleList    = "candles"
 	QueryTickerList    = "tickers"
 	QueryDexFeesList   = "dexFees"
-	QuerySwapWatchlist = "swapWatchlist"
 
 	// v2
 	QueryTickerListV2   = "tickerListV2"

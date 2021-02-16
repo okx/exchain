@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"math/big"
+
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -90,7 +91,7 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 
 	bloom := bloomRes.Bloom
 
-	return FormatBlock(block.Header, block.Size(), gasLimit, gasUsed, transactions, bloom), nil
+	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, transactions, bloom), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -125,7 +126,7 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, ethTx.Fee())
+		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
 		transactionHashes = append(transactionHashes, common.BytesToHash(tx.Hash()))
 	}
 
@@ -134,26 +135,28 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
 func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.CLIContext) (int64, error) {
-	resConsParams, err := clientCtx.Client.ConsensusParams(nil)
-	if err != nil {
-		return 0, err
-	}
+	//resConsParams, err := clientCtx.Client.ConsensusParams(nil)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//gasLimit := resConsParams.ConsensusParams.Block.MaxGas
+	//if gasLimit == -1 {
+	//	// Sets gas limit to max uint32 to not error with javascript dev tooling
+	//	// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
+	//	// which errors certain javascript dev tooling which only supports up to 53 bits
+	//	gasLimit = int64(^uint32(0))
+	//}
+	//
+	//return gasLimit, nil
 
-	gasLimit := resConsParams.ConsensusParams.Block.MaxGas
-	if gasLimit == -1 {
-		// Sets gas limit to max uint32 to not error with javascript dev tooling
-		// This -1 value indicating no block gas limit is set to max uint64 with geth hexutils
-		// which errors certain javascript dev tooling which only supports up to 53 bits
-		gasLimit = int64(^uint32(0))
-	}
-
-	return gasLimit, nil
+	return int64(^uint32(0)), nil
 }
 
 // FormatBlock creates an ethereum block from a tendermint header and ethereum-formatted
 // transactions.
 func FormatBlock(
-	header tmtypes.Header, size int, gasLimit int64,
+	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	if len(header.DataHash) == 0 {
@@ -162,7 +165,7 @@ func FormatBlock(
 
 	return map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
-		"hash":             hexutil.Bytes(header.Hash()),
+		"hash":             hexutil.Bytes(curBlockHash),
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
 		"nonce":            hexutil.Uint64(0), // PoW specific
 		"sha3Uncles":       common.Hash{},     // No uncles in Tendermint

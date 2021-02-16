@@ -30,7 +30,12 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/transactions", txListHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/dex/fees", dexFeesHandler(cliCtx)).Methods("GET")
-	r.HandleFunc("/swap/watchlist", swapWatchlistHandler(cliCtx)).Methods("GET")
+
+	// register swap rest
+	registerSwapQueryRoutes(cliCtx, r)
+
+	// register farm rest
+	registerFarmQueryRoutes(cliCtx, r)
 }
 
 func candleHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -522,36 +527,6 @@ func dexFeesHandler(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QueryDexFeesList), bz)
-		if err != nil {
-			sdkErr := common.ParseSDKError(err.Error())
-			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			return
-		}
-
-		rest.PostProcessResponse(w, cliCtx, res)
-	}
-}
-
-func swapWatchlistHandler(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		pageStr := r.URL.Query().Get("page")
-		perPageStr := r.URL.Query().Get("per_page")
-		sortColumn := r.URL.Query().Get("sort_column")
-		sortDirection := r.URL.Query().Get("sort_direction")
-
-		page, perPage, err := common.Paginate(pageStr, perPageStr)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeInvalidPaginateParam, err.Error())
-			return
-		}
-		params := types.NewQuerySwapWatchlistParams(sortColumn, sortDirection, page, perPage)
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/backend/%s", types.QuerySwapWatchlist), bz)
 		if err != nil {
 			sdkErr := common.ParseSDKError(err.Error())
 			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)

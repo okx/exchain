@@ -3,7 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,9 +29,15 @@ func TestMsgEthermint(t *testing.T) {
 	msg := NewMsgEthermint(0, &addr, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), fromAddr)
 	require.NotNil(t, msg)
 	require.Equal(t, msg.Recipient, &addr)
-
 	require.Equal(t, msg.Route(), RouterKey)
 	require.Equal(t, msg.Type(), TypeMsgEthermint)
+	require.True(t, bytes.Equal(msg.GetSignBytes(), sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))))
+	require.True(t, msg.GetSigners()[0].Equals(fromAddr))
+	require.Equal(t, *msg.To(), ethcmn.BytesToAddress(addr.Bytes()))
+
+	// clear recipient
+	msg.Recipient = nil
+	require.Nil(t, msg.To())
 }
 
 func TestMsgEthermintValidation(t *testing.T) {
@@ -158,25 +167,49 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 	err := rlp.Decode(bytes.NewReader(raw), &msg)
 	require.NoError(t, err)
 	require.Equal(t, expectedMsg.Data, msg.Data)
+
+	// value size exceeds available input length of stream
+	mockStream := rlp.NewStream(bytes.NewReader(raw), 1)
+	require.Error(t, msg.DecodeRLP(mockStream))
 }
 
 func TestMsgEthereumTxSig(t *testing.T) {
-	chainID := big.NewInt(3)
+	chainID, zeroChainID := big.NewInt(3), big.NewInt(0)
 
 	priv1, _ := ethsecp256k1.GenerateKey()
 	priv2, _ := ethsecp256k1.GenerateKey()
 	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
+	trimed := strings.TrimPrefix(addr1.Hex(), "0x")
+
+	fmt.Printf("%s\n", trimed)
+	addrSDKAddr1, err := sdk.AccAddressFromHex(trimed)
+	require.NoError(t, err)
 	addr2 := ethcmn.BytesToAddress(priv2.PubKey().Address().Bytes())
 
 	// require valid signature passes validation
 	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
-	err := msg.Sign(chainID, priv1.ToECDSA())
+	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
 	signer, err := msg.VerifySig(chainID)
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
 	require.NotEqual(t, addr2, signer)
+
+	// msg atomic load
+	signer, err = msg.VerifySig(chainID)
+	require.NoError(t, err)
+	require.Equal(t, addr1, signer)
+
+	signers := msg.GetSigners()
+	require.Equal(t, 1, len(signers))
+	require.True(t, addrSDKAddr1.Equals(signers[0]))
+
+	// zero chainID
+	err = msg.Sign(zeroChainID, priv1.ToECDSA())
+	require.Nil(t, err)
+	_, err = msg.VerifySig(zeroChainID)
+	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
 	msg = NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
@@ -186,6 +219,44 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	signer, err = msg.VerifySig(big.NewInt(4))
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
+}
+
+func TestMsgEthereumTx_ChainID(t *testing.T) {
+	chainID := big.NewInt(3)
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
+	err := msg.Sign(chainID, priv.ToECDSA())
+	require.Nil(t, err)
+
+	require.True(t, chainID.Cmp(msg.ChainID()) == 0)
+
+	msg.Data.V = big.NewInt(27)
+	require.NotNil(t, msg.ChainID())
+
+	msg.Data.V = math.MaxBig256
+	expectedChainID := new(big.Int).Div(new(big.Int).Sub(math.MaxBig256, big.NewInt(35)), big.NewInt(2))
+	require.True(t, expectedChainID.Cmp(msg.ChainID()) == 0)
+}
+
+func TestMsgEthereumTxGetter(t *testing.T) {
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
+	expectedFee := gasPrice * int64(gasLimit)
+	expectCost := expectedFee + amount
+	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
+
+	require.Equal(t, gasLimit, msg.GetGas())
+	require.True(t, big.NewInt(expectedFee).Cmp(msg.Fee()) == 0)
+	require.True(t, big.NewInt(expectCost).Cmp(msg.Cost()) == 0)
+
+	expectedV, expectedR, expectedS := big.NewInt(1), big.NewInt(2), big.NewInt(3)
+	msg.Data.V, msg.Data.R, msg.Data.S = expectedV, expectedR, expectedS
+	v, r, s := msg.RawSignatureValues()
+	require.True(t, expectedV.Cmp(v) == 0)
+	require.True(t, expectedR.Cmp(r) == 0)
+	require.True(t, expectedS.Cmp(s) == 0)
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {
@@ -221,4 +292,21 @@ func TestMarshalAndUnmarshalLogs(t *testing.T) {
 
 	err = cdc.UnmarshalJSON(raw, &logs2)
 	require.NoError(t, err)
+}
+
+func TestMsgString(t *testing.T) {
+	expectedUint64, expectedSDKAddr, expectedInt := uint64(1024), newSdkAddress(), sdk.OneInt()
+	expectedPayload, err := hexutil.Decode("0x1234567890abcdef")
+	require.NoError(t, err)
+	expectedOutput := fmt.Sprintf("nonce=1024 gasPrice=1 gasLimit=1024 recipient=%s amount=1 data=0x1234567890abcdef from=%s",
+		expectedSDKAddr, expectedSDKAddr)
+
+	msgEthermint := NewMsgEthermint(expectedUint64, &expectedSDKAddr, expectedInt, expectedUint64, expectedInt, expectedPayload, expectedSDKAddr)
+	require.True(t, strings.EqualFold(msgEthermint.String(), expectedOutput))
+
+	expectedHexAddr := ethcmn.BytesToAddress([]byte{0x01})
+	expectedBigInt := big.NewInt(1024)
+	expectedOutput = fmt.Sprintf("nonce=1024 price=1024 gasLimit=1024 recipient=%s amount=1024 data=0x1234567890abcdef v=0 r=0 s=0", expectedHexAddr.Hex())
+	msgEthereumTx := NewMsgEthereumTx(expectedUint64, &expectedHexAddr, expectedBigInt, expectedUint64, expectedBigInt, expectedPayload)
+	require.True(t, strings.EqualFold(msgEthereumTx.String(), expectedOutput))
 }

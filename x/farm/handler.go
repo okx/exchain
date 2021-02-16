@@ -2,8 +2,9 @@ package farm
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"strconv"
+
+	"github.com/okex/okexchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -50,7 +51,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgClaim(ctx, k, msg)
 			}
 		default:
-                        errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
+			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return types.ErrUnknownFarmMsgType(errMsg).Result()
 		}
 
@@ -150,6 +151,9 @@ func handleMsgClaim(ctx sdk.Context, k keeper.Keeper, msg types.MsgClaim) (*sdk.
 	}
 	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
 	k.SetFarmPool(ctx, updatedPool)
+
+	// 6. notify backend
+	k.OnClaim(ctx, msg.Address, pool.Name, rewards)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeClaim,

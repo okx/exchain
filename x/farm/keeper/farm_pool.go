@@ -34,8 +34,8 @@ func (k Keeper) DeleteFarmPool(ctx sdk.Context, poolName string) {
 	store.Delete(types.GetFarmPoolKey(poolName))
 }
 
-// getFarmPoolNamesForAccount gets all pool names that an account has locked coins in from the store
-func (k Keeper) getFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddress) (poolNames types.PoolNameList) {
+// GetFarmPoolNamesForAccount gets all pool names that an account has locked coins in from the store
+func (k Keeper) GetFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddress) (poolNames types.PoolNameList) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, append(types.Address2PoolPrefix, accAddr...))
 	defer iterator.Close()
