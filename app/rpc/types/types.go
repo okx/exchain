@@ -51,7 +51,7 @@ type Transaction struct {
 // Duplicate struct definition since geth struct is in internal package
 // Ref: https://github.com/ethereum/go-ethereum/blob/release/1.9/internal/ethapi/api.go#L1346
 type SendTxArgs struct {
-	From     common.Address  `json:"from"`
+	From     *common.Address `json:"from"`
 	To       *common.Address `json:"to"`
 	Gas      *hexutil.Uint64 `json:"gas"`
 	GasPrice *hexutil.Big    `json:"gasPrice"`
@@ -65,6 +65,9 @@ type SendTxArgs struct {
 
 func (ca SendTxArgs) String() string {
 	var arg string
+	if ca.From != nil {
+		arg += fmt.Sprintf("From: %s, ", ca.From.String())
+	}
 	if ca.To != nil {
 		arg += fmt.Sprintf("To: %s, ", ca.To.String())
 	}
@@ -77,8 +80,14 @@ func (ca SendTxArgs) String() string {
 	if ca.Value != nil {
 		arg += fmt.Sprintf("Value: %s, ", ca.Value.String())
 	}
+	if ca.Nonce != nil {
+		arg += fmt.Sprintf("Nonce: %s, ", ca.Nonce.String())
+	}
 	if ca.Data != nil {
 		arg += fmt.Sprintf("Data: %s, ", ca.Data.String())
+	}
+	if ca.Input != nil {
+		arg += fmt.Sprintf("Input: %s, ", ca.Input.String())
 	}
 	return strings.TrimRight(arg, ", ")
 }
