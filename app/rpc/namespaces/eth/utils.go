@@ -104,9 +104,8 @@ func newDataError(revert string, data string) *wrappedEthError {
 		}}
 }
 
-func TransformDataError(err error, method string) DataError {
+func TransformDataError(err error, method string) error {
 	msg := err.Error()
-	var logs []string
 	var realErr cosmosError
 	if len(msg) > 0 {
 		e := json.Unmarshal([]byte(msg), &realErr)
@@ -124,30 +123,9 @@ func TransformDataError(err error, method string) DataError {
 				data: RPCNullData,
 			}
 		}
-		lastSeg := strings.LastIndexAny(realErr.Log, "]")
-		if lastSeg < 0 {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: RPCNullData,
-			}
-		}
-		marshaler := realErr.Log[0 : lastSeg+1]
-		e = json.Unmarshal([]byte(marshaler), &logs)
-		if e != nil {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: RPCNullData,
-			}
-		}
-		m := genericStringMap(logs)
-		if m == nil {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: "null",
-			}
+		retErr, m := preProcessError(realErr, err)
+		if retErr != nil {
+			return realErr
 		}
 		//if there have multi error type of EVM, this need a reactor mode to process error
 		revert, f := m[vm.ErrExecutionReverted.Error()]
@@ -185,6 +163,39 @@ func TransformDataError(err error, method string) DataError {
 		Msg:  err.Error(),
 		data: RPCNullData,
 	}
+}
+
+//Preprocess error string, the string of realErr.Log is most like:
+//`["execution reverted","message","HexData","0x00000000000"];some failed information`
+//we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
+func preProcessError(realErr cosmosError, origError error) (error, map[string]string) {
+	var logs []string
+	lastSeg := strings.LastIndexAny(realErr.Log, "]")
+	if lastSeg < 0 {
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origError.Error(),
+			data: RPCNullData,
+		}, nil
+	}
+	marshaler := realErr.Log[0 : lastSeg+1]
+	e := json.Unmarshal([]byte(marshaler), &logs)
+	if e != nil {
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origError.Error(),
+			data: RPCNullData,
+		}, nil
+	}
+	m := genericStringMap(logs)
+	if m == nil {
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origError.Error(),
+			data: RPCNullData,
+		}, nil
+	}
+	return nil, m
 }
 
 func genericStringMap(s []string) map[string]string {
