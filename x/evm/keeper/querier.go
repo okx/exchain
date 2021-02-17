@@ -129,7 +129,7 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 	blockHash := ethcmn.FromHex(path[1])
 	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
 	if !found {
-		return []byte{}, fmt.Errorf("block height not found for hash %s", path[1])
+		return []byte{}, sdkerrors.Wrap(types.ErrKeyNotFound, fmt.Sprintf("block height not found for hash %s", path[1]))
 	}
 
 	res := types.QueryResBlockNumber{Number: blockNumber}
@@ -149,7 +149,7 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal block height: %w", err)
+		return nil, sdkerrors.Wrap(types.ErrStrConvertFailed, fmt.Sprintf("could not unmarshal block height: %s", err))
 	}
 
 	bloom := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
