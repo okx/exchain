@@ -655,7 +655,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-	return api.backend.GetBlockByHash(hash, fullTx)
+	block, err := api.backend.GetBlockByHash(hash, fullTx)
+	if err != nil {
+		return nil, TransformDataError(err, RPCEthGetBlockByHash)
+	}
+	return block, nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -753,7 +757,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	var out evmtypes.QueryResBlockNumber
@@ -761,7 +765,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 
 	resBlock, err := api.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
