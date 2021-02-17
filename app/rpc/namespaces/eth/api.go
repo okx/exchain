@@ -1032,14 +1032,11 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
-	var data *hexutil.Bytes
-	var input []byte
+	var input hexutil.Bytes
 	if args.Input != nil {
 		input = *args.Input
-		data = args.Input
 	} else if args.Data != nil {
 		input = *args.Data
-		data = args.Data
 	}
 
 	if args.To == nil && len(input) == 0 {
@@ -1054,7 +1051,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 			Gas:      args.Gas,
 			GasPrice: args.GasPrice,
 			Value:    args.Value,
-			Data:     data,
+			Data:     &input,
 		}
 		gl, err := api.EstimateGas(callArgs)
 		if err != nil {
