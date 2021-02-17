@@ -88,14 +88,13 @@ func (st StateTransition) newEVM(
 	gasPrice *big.Int,
 	config ChainConfig,
 	extraEIPs []int,
-	coinBase common.Address,
 ) *vm.EVM {
 	// Create context for evm
 	blockCtx := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     GetHashFn(ctx, csdb),
-		Coinbase:    coinBase, // there's no beneficiary since we're not mining
+		Coinbase:    common.BytesToAddress(ctx.BlockHeader().ProposerAddress),
 		BlockNumber: big.NewInt(ctx.BlockHeight()),
 		Time:        big.NewInt(ctx.BlockHeader().Time.Unix()),
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
@@ -153,9 +152,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	params := csdb.GetParams()
 
-	coinBase := common.BytesToAddress(ctx.BlockHeader().ProposerAddress)
-
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs, coinBase)
+	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs)
 
 	var (
 		ret             []byte
