@@ -123,7 +123,7 @@ func TransformDataError(err error, method string) error {
 				data: RPCNullData,
 			}
 		}
-		retErr, m := preProcessError(realErr, err.Error())
+		m, retErr := preProcessError(realErr, err.Error())
 		if retErr != nil {
 			return realErr
 		}
@@ -168,34 +168,34 @@ func TransformDataError(err error, method string) error {
 //Preprocess error string, the string of realErr.Log is most like:
 //`["execution reverted","message","HexData","0x00000000000"];some failed information`
 //we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
-func preProcessError(realErr cosmosError, origErrorMsg string) (error, map[string]string) {
+func preProcessError(realErr cosmosError, origErrorMsg string) (map[string]string, error) {
 	var logs []string
 	lastSeg := strings.LastIndexAny(realErr.Log, "]")
 	if lastSeg < 0 {
-		return DataError{
+		return nil, DataError{
 			code: DefaultEVMErrorCode,
 			Msg:  origErrorMsg,
 			data: RPCNullData,
-		}, nil
+		}
 	}
 	marshaler := realErr.Log[0 : lastSeg+1]
 	e := json.Unmarshal([]byte(marshaler), &logs)
 	if e != nil {
-		return DataError{
+		return nil, DataError{
 			code: DefaultEVMErrorCode,
 			Msg:  origErrorMsg,
 			data: RPCNullData,
-		}, nil
+		}
 	}
 	m := genericStringMap(logs)
 	if m == nil {
-		return DataError{
+		return nil, DataError{
 			code: DefaultEVMErrorCode,
 			Msg:  origErrorMsg,
 			data: RPCNullData,
-		}, nil
+		}
 	}
-	return nil, m
+	return m, nil
 }
 
 func genericStringMap(s []string) map[string]string {
