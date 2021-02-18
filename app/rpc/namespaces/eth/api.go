@@ -700,12 +700,13 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 
 	return rpctypes.FormatBlock(
 		tmtypes.Header{
-			Version:        latestBlock.Block.Version,
-			ChainID:        api.clientCtx.ChainID,
-			Height:         height + 1,
-			Time:           time.Unix(0, 0),
-			LastBlockID:    latestBlock.Block.LastBlockID,
-			ValidatorsHash: latestBlock.Block.NextValidatorsHash,
+			Version:         latestBlock.Block.Version,
+			ChainID:         api.clientCtx.ChainID,
+			Height:          height + 1,
+			Time:            time.Unix(0, 0),
+			LastBlockID:     latestBlock.Block.LastBlockID,
+			ValidatorsHash:  latestBlock.Block.NextValidatorsHash,
+			ProposerAddress: latestBlock.Block.ProposerAddress,
 		},
 		0,
 		latestBlock.Block.Hash(),
