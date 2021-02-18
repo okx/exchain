@@ -71,7 +71,8 @@ func (suite *KeeperTestSuite) TestResetCache() {
 	thash := ethcmn.BytesToHash([]byte("thash"))
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 2
-	suite.app.EvmKeeper.CommitStateDB.Prepare(thash, bhash, txi)
+	suite.app.EvmKeeper.CommitStateDB.Prepare(thash, txi)
+	suite.app.EvmKeeper.CommitStateDB.SetBlockHash(bhash)
 
 	// fill logSize
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))

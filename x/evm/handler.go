@@ -63,7 +63,6 @@ func NewHandler(k *Keeper) sdk.Handler {
 
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
-
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -110,8 +109,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// other nodes, causing a consensus error
 	if !st.Simulate {
 		// Prepare db for logs
-		blockHash := types.HashFromContext(ctx)
-		k.CommitStateDB.Prepare(ethHash, blockHash, k.TxCount)
+		k.CommitStateDB.Prepare(ethHash, k.TxCount)
 		k.TxCount++
 	}
 
@@ -208,8 +206,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	if !st.Simulate {
 		// Prepare db for logs
-		blockHash := types.HashFromContext(ctx)
-		k.CommitStateDB.Prepare(ethHash, blockHash, k.TxCount)
+		k.CommitStateDB.Prepare(ethHash, k.TxCount)
 		k.TxCount++
 	}
 
