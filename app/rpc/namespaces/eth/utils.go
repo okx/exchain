@@ -21,11 +21,12 @@ const (
 	VMExecuteException           = -32015
 	VMExecuteExceptionInEstimate = 3
 
-	RpcEthCall        = "eth_call"
-	RpcEthEstimateGas = "eth_estimateGas"
+	RPCEthCall           = "eth_call"
+	RPCEthEstimateGas    = "eth_estimateGas"
+	RPCEthGetBlockByHash = "eth_getBlockByHash"
 
-	RpcUnknowErr = "unknow"
-	RpcNullData  = "null"
+	RPCUnknowErr = "unknow"
+	RPCNullData  = "null"
 )
 
 //gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
@@ -57,7 +58,7 @@ func newCosmosError(code int, log, codeSpace string) cosmosError {
 	}
 }
 
-func NewWrappedCosmosError(code int, log, codeSpace string) cosmosError {
+func newWrappedCosmosError(code int, log, codeSpace string) cosmosError {
 	e := newCosmosError(code, log, codeSpace)
 	b, _ := json.Marshal(e)
 	e.Log = string(b)
@@ -69,10 +70,10 @@ type wrappedEthError struct {
 }
 
 type ethDataError struct {
-	Error           string `json:"error"`
-	Program_counter int    `json:"program_counter"`
-	Reason          string `json:"reason"`
-	Ret             string `json:"return"`
+	Error          string `json:"error"`
+	ProgramCounter int    `json:"program_counter"`
+	Reason         string `json:"reason"`
+	Ret            string `json:"return"`
 }
 
 type DataError struct {
@@ -96,16 +97,15 @@ func (d DataError) ErrorCode() int {
 func newDataError(revert string, data string) *wrappedEthError {
 	return &wrappedEthError{
 		Wrap: ethDataError{
-			Error:           "revert",
-			Program_counter: 0,
-			Reason:          revert,
-			Ret:             data,
+			Error:          "revert",
+			ProgramCounter: 0,
+			Reason:         revert,
+			Ret:            data,
 		}}
 }
 
-func TransformDataError(err error, method string) DataError {
+func TransformDataError(err error, method string) error {
 	msg := err.Error()
-	var logs []string
 	var realErr cosmosError
 	if len(msg) > 0 {
 		e := json.Unmarshal([]byte(msg), &realErr)
@@ -113,51 +113,37 @@ func TransformDataError(err error, method string) DataError {
 			return DataError{
 				code: DefaultEVMErrorCode,
 				Msg:  err.Error(),
-				data: RpcNullData,
+				data: RPCNullData,
 			}
 		}
-		lastSeg := strings.LastIndexAny(realErr.Log, "]")
-		if lastSeg < 0 {
+		if method == RPCEthGetBlockByHash {
 			return DataError{
 				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: RpcNullData,
+				Msg:  realErr.Error(),
+				data: RPCNullData,
 			}
 		}
-		marshaler := realErr.Log[0 : lastSeg+1]
-		e = json.Unmarshal([]byte(marshaler), &logs)
-		if e != nil {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: "null",
-			}
-		}
-		m := genericStringMap(logs)
-		if m == nil {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: "null",
-			}
+		m, retErr := preProcessError(realErr, err.Error())
+		if retErr != nil {
+			return realErr
 		}
 		//if there have multi error type of EVM, this need a reactor mode to process error
 		revert, f := m[vm.ErrExecutionReverted.Error()]
 		if !f {
-			revert = RpcUnknowErr
+			revert = RPCUnknowErr
 		}
 		data, f := m[types.ErrorHexData]
 		if !f {
-			data = RpcNullData
+			data = RPCNullData
 		}
 		switch method {
-		case RpcEthEstimateGas:
+		case RPCEthEstimateGas:
 			return DataError{
 				code: VMExecuteExceptionInEstimate,
 				Msg:  revert,
 				data: data,
 			}
-		case RpcEthCall:
+		case RPCEthCall:
 			return DataError{
 				code: VMExecuteException,
 				Msg:  revert,
@@ -175,12 +161,45 @@ func TransformDataError(err error, method string) DataError {
 	return DataError{
 		code: DefaultEVMErrorCode,
 		Msg:  err.Error(),
-		data: RpcNullData,
+		data: RPCNullData,
 	}
 }
 
+//Preprocess error string, the string of realErr.Log is most like:
+//`["execution reverted","message","HexData","0x00000000000"];some failed information`
+//we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
+func preProcessError(realErr cosmosError, origErrorMsg string) (map[string]string, error) {
+	var logs []string
+	lastSeg := strings.LastIndexAny(realErr.Log, "]")
+	if lastSeg < 0 {
+		return nil, DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origErrorMsg,
+			data: RPCNullData,
+		}
+	}
+	marshaler := realErr.Log[0 : lastSeg+1]
+	e := json.Unmarshal([]byte(marshaler), &logs)
+	if e != nil {
+		return nil, DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origErrorMsg,
+			data: RPCNullData,
+		}
+	}
+	m := genericStringMap(logs)
+	if m == nil {
+		return nil, DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  origErrorMsg,
+			data: RPCNullData,
+		}
+	}
+	return m, nil
+}
+
 func genericStringMap(s []string) map[string]string {
-	var ret = make(map[string]string, 0)
+	var ret = make(map[string]string)
 	if len(s)%2 != 0 {
 		return nil
 	}
