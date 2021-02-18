@@ -1209,3 +1209,25 @@ func TestEth_PendingTransactionFilter(t *testing.T) {
 
 	require.True(t, len(txs) >= 2, "could not get any txs", "changesRes.Result", string(changesRes.Result))
 }
+
+func TestEth_UninstallFilter(t *testing.T) {
+	// create a new filter, get id
+	rpcRes := Call(t, "eth_newBlockFilter", nil)
+	var ID string
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &ID))
+	require.NotZero(t, ID)
+
+	// based on id, uninstall filter
+	rpcRes = Call(t, "eth_uninstallFilter", []string{ID})
+	require.NotNil(t, rpcRes)
+	var status bool
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &status))
+	require.Equal(t, true, status)
+
+	// uninstall a non-existent filter
+	rpcRes = Call(t, "eth_uninstallFilter", []string{ID})
+	require.NotNil(t, rpcRes)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &status))
+	require.Equal(t, false, status)
+
+}
