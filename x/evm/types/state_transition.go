@@ -394,8 +394,14 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		res = []byte(err.Error())
 	}
 
-	fileName := hexutil.Encode(tmtypes.Tx(ctx.TxBytes()).Hash())
-	input, err := os.OpenFile(filepath.Join(viper.GetString("home"), fileName), os.O_CREATE | os.O_RDWR, 0644)
+	txTraceFile := hexutil.Encode(tmtypes.Tx(ctx.TxBytes()).Hash())
+	tracesDir := filepath.Join(viper.GetString("home"),  "traces")
+	if _, err := os.Stat(tracesDir); os.IsNotExist(err) {
+		if err = os.Mkdir(tracesDir, 0700); err != nil {
+			return
+		}
+	}
+	input, err := os.OpenFile(filepath.Join(tracesDir, txTraceFile), os.O_CREATE | os.O_RDWR, 0664)
 	defer func() {
 		input.Close()
 	}()
