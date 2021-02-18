@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/libs/cli"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
@@ -39,6 +40,7 @@ func main() {
 
 	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
+	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 
 	keys.CryptoCdc = cdc
 	clientkeys.KeysCdc = cdc
