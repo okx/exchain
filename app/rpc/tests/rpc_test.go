@@ -641,33 +641,49 @@ func TestEth_Call(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestEth_EstimateGas(t *testing.T) {
-	// gas estimated for evm transfer
-	callArgs := make(map[string]string)
-	callArgs["from"] = hexAddr1.Hex()
-	callArgs["to"] = receiverAddr.Hex()
-	callArgs["value"] = hexutil.Uint(1024).String()
-	callArgs["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-	rpcRes := Call(t, "eth_estimateGas", []interface{}{callArgs})
-
-	var gasEstimatedForTransfer hexutil.Uint64
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &gasEstimatedForTransfer))
-
-	// gas estimated for contract deployment
-	delete(callArgs, "to")
-	delete(callArgs, "value")
-	callArgs["data"] = erc20ContractDeployedByteCode
-	rpcRes = Call(t, "eth_estimateGas", []interface{}{callArgs})
-
-	var gasEstimatedForContractDeployment hexutil.Uint64
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &gasEstimatedForContractDeployment))
-
-	require.True(t, gasEstimatedForTransfer < gasEstimatedForContractDeployment)
-
+func TestEth_EstimateGas_WithoutArgs(t *testing.T) {
 	// error check
 	// miss argument
-	rpcRes, err := CallWithError("eth_estimateGas", nil)
+	res, err := CallWithError("eth_estimateGas", nil)
 	require.Error(t, err)
+	require.Nil(t, res)
+}
+
+func TestEth_EstimateGas_Transfer(t *testing.T) {
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["to"] = "0x1122334455667788990011223344556677889900"
+	param[0]["value"] = "0x1"
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+	rpcRes := Call(t, "eth_estimateGas", param)
+	require.NotNil(t, rpcRes)
+	require.NotEmpty(t, rpcRes.Result)
+
+	var gas string
+	err := json.Unmarshal(rpcRes.Result, &gas)
+	require.NoError(t, err, string(rpcRes.Result))
+
+	require.Equal(t, "0x100bb", gas)
+}
+
+func TestEth_EstimateGas_ContractDeployment(t *testing.T) {
+	bytecode := "0x608060405234801561001057600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a260d08061004d6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063eb8ac92114602d575b600080fd5b606060048036036040811015604157600080fd5b8101908080359060200190929190803590602001909291905050506062565b005b8160008190555080827ff3ca124a697ba07e8c5e80bebcfcc48991fc16a63170e8a9206e30508960d00360405160405180910390a3505056fea265627a7a723158201d94d2187aaf3a6790527b615fcc40970febf0385fa6d72a2344848ebd0df3e964736f6c63430005110032"
+
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = "0x" + fmt.Sprintf("%x", from)
+	param[0]["data"] = bytecode
+
+	rpcRes := Call(t, "eth_estimateGas", param)
+	require.NotNil(t, rpcRes)
+	require.NotEmpty(t, rpcRes.Result)
+
+	var gas hexutil.Uint64
+	err := json.Unmarshal(rpcRes.Result, &gas)
+	require.NoError(t, err, string(rpcRes.Result))
+
+	require.Equal(t, "0x1b243", gas.String())
 }
 
 func TestEth_GetBlockByHash(t *testing.T) {
