@@ -11,9 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	"github.com/tendermint/tendermint/version"
 	"golang.org/x/crypto/sha3"
 	"math/big"
 	"strings"
@@ -156,37 +153,4 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
 
 	return addr, nil
-}
-
-// AbciHeaderToTendermint is a util function to parse a tendermint ABCI Header to
-// tendermint types Header.
-func AbciHeaderToTendermint(header abci.Header) tmtypes.Header {
-	return tmtypes.Header{
-		Version: version.Consensus{
-			Block: version.Protocol(header.Version.Block),
-			App:   version.Protocol(header.Version.App),
-		},
-		ChainID: header.ChainID,
-		Height:  header.Height,
-		Time:    header.Time,
-
-		LastBlockID: tmtypes.BlockID{
-			Hash: header.LastBlockId.Hash,
-			PartsHeader: tmtypes.PartSetHeader{
-				Total: int(header.LastBlockId.PartsHeader.Total),
-				Hash:  header.LastBlockId.PartsHeader.Hash,
-			},
-		},
-		LastCommitHash: header.LastCommitHash,
-		DataHash:       header.DataHash,
-
-		ValidatorsHash:     header.ValidatorsHash,
-		NextValidatorsHash: header.NextValidatorsHash,
-		ConsensusHash:      header.ConsensusHash,
-		AppHash:            header.AppHash,
-		LastResultsHash:    header.LastResultsHash,
-
-		EvidenceHash:    header.EvidenceHash,
-		ProposerAddress: header.ProposerAddress,
-	}
 }
