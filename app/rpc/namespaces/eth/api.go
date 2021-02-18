@@ -664,7 +664,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map
 
 // GetBlockByNumber returns the block identified by number.
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
-	api.logger.Error("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
+	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 
 	if blockNum != rpctypes.PendingBlockNumber {
 		return api.backend.GetBlockByNumber(blockNum, fullTx)
