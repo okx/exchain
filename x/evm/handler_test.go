@@ -450,9 +450,12 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
+	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
+	var expectedGas uint64 = 5387
+	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
 func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {

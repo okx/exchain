@@ -70,13 +70,14 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 // EthBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (map[string]interface{}, error) {
+func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (map[string]interface{}, error) {
+	var blockTxs interface{}
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions, gasUsed, err := EthTransactionsFromTendermint(clientCtx, block.Txs)
+	transactions, gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +91,13 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
 
 	bloom := bloomRes.Bloom
+	if fullTx {
+		blockTxs = ethTxs
+	} else {
+		blockTxs = transactions
+	}
 
-	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, transactions, bloom), nil
+	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, blockTxs, bloom), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -100,7 +106,7 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 	return &ethtypes.Header{
 		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
 		UncleHash:   common.Hash{},
-		Coinbase:    common.Address{},
+		Coinbase:    common.BytesToAddress(header.ProposerAddress),
 		Root:        common.BytesToHash(header.AppHash),
 		TxHash:      common.BytesToHash(header.DataHash),
 		ReceiptHash: common.Hash{},
@@ -115,9 +121,11 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 
 // EthTransactionsFromTendermint returns a slice of ethereum transaction hashes and the total gas usage from a set of
 // tendermint block transactions.
-func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx) ([]common.Hash, *big.Int, error) {
-	transactionHashes := []common.Hash{}
+func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockHash common.Hash, blockNumber uint64) ([]common.Hash, *big.Int, []*Transaction, error) {
+	var transactionHashes []common.Hash
+	var transactions []*Transaction
 	gasUsed := big.NewInt(0)
+	index := uint64(0)
 
 	for _, tx := range txs {
 		ethTx, err := RawTxToEthTx(clientCtx, tx)
@@ -128,9 +136,14 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
 		transactionHashes = append(transactionHashes, common.BytesToHash(tx.Hash()))
+		tx, err := NewTransaction(ethTx, common.BytesToHash(tx.Hash()), blockHash, blockNumber, index)
+		if err == nil {
+			transactions = append(transactions, tx)
+			index++
+		}
 	}
 
-	return transactionHashes, gasUsed, nil
+	return transactionHashes, gasUsed, transactions, nil
 }
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
@@ -163,7 +176,7 @@ func FormatBlock(
 		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
 	}
 
-	return map[string]interface{}{
+	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
 		"hash":             hexutil.Bytes(curBlockHash),
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
@@ -172,19 +185,25 @@ func FormatBlock(
 		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
-		"miner":            common.Address{},
+		"miner":            common.BytesToAddress(header.ProposerAddress),
 		"mixHash":          common.Hash{},
-		"difficulty":       0,
-		"totalDifficulty":  0,
-		"extraData":        hexutil.Uint64(0),
+		"difficulty":       hexutil.Uint64(0),
+		"totalDifficulty":  hexutil.Uint64(0),
+		"extraData":        hexutil.Bytes{},
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
-		"transactions":     transactions.([]common.Hash),
 		"uncles":           []string{},
 		"receiptsRoot":     common.Hash{},
 	}
+	switch transactions.(type) {
+	case []common.Hash:
+		ret["transactions"] = transactions.([]common.Hash)
+	case []*Transaction:
+		ret["transactions"] = transactions.([]*Transaction)
+	}
+	return ret
 }
 
 // GetKeyByAddress returns the private key matching the given address. If not found it returns false.

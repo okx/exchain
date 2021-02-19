@@ -430,7 +430,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	api.logger.Debug("eth_sendTransaction", "args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := rpctypes.GetKeyByAddress(api.keys, args.From)
+	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
 		return common.Hash{}, keystore.ErrLocked
@@ -438,8 +438,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
 	if args.Nonce == nil {
-		api.nonceLock.LockAddr(args.From)
-		defer api.nonceLock.UnlockAddr(args.From)
+		api.nonceLock.LockAddr(*args.From)
+		defer api.nonceLock.UnlockAddr(*args.From)
 	}
 
 	// Assemble transaction from fields
@@ -655,13 +655,17 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-	return api.backend.GetBlockByHash(hash, fullTx)
+	block, err := api.backend.GetBlockByHash(hash, fullTx)
+	if err != nil {
+		return nil, TransformDataError(err, RPCEthGetBlockByHash)
+	}
+	return block, nil
 }
 
 // GetBlockByNumber returns the block identified by number.
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
-
+	var blockTxs interface{}
 	if blockNum != rpctypes.PendingBlockNumber {
 		return api.backend.GetBlockByNumber(blockNum, fullTx)
 	}
@@ -683,25 +687,32 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		return nil, err
 	}
 
-	pendingTxs, gasUsed, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs)
+	pendingTxs, gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
 	if err != nil {
 		return nil, err
 	}
 
+	if fullTx {
+		blockTxs = ethTxs
+	} else {
+		blockTxs = pendingTxs
+	}
+
 	return rpctypes.FormatBlock(
 		tmtypes.Header{
-			Version:        latestBlock.Block.Version,
-			ChainID:        api.clientCtx.ChainID,
-			Height:         height + 1,
-			Time:           time.Unix(0, 0),
-			LastBlockID:    latestBlock.Block.LastBlockID,
-			ValidatorsHash: latestBlock.Block.NextValidatorsHash,
+			Version:         latestBlock.Block.Version,
+			ChainID:         api.clientCtx.ChainID,
+			Height:          height + 1,
+			Time:            time.Unix(0, 0),
+			LastBlockID:     latestBlock.Block.LastBlockID,
+			ValidatorsHash:  latestBlock.Block.NextValidatorsHash,
+			ProposerAddress: latestBlock.Block.ProposerAddress,
 		},
 		0,
 		latestBlock.Block.Hash(),
 		0,
 		gasUsed,
-		pendingTxs,
+		blockTxs,
 		ethtypes.Bloom{},
 	), nil
 
@@ -750,10 +761,10 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByHashAndIndex", "hash", hash, "index", idx)
+	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	var out evmtypes.QueryResBlockNumber
@@ -761,7 +772,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 
 	resBlock, err := api.clientCtx.Client.Block(&out.Number)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
@@ -1008,11 +1019,11 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	if args.GasPrice == nil {
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(ethermint.DefaultGasPrice)
+		gasPrice = ParseGasPrice().ToInt()
 	}
 
 	// get the nonce from the account retriever and the pending transactions
-	nonce, err = api.accountNonce(api.clientCtx, args.From, true)
+	nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1028,7 +1039,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	}
 
 	// Sets input to either Input or Data, if both are set and not equal error above returns
-	var input []byte
+	var input hexutil.Bytes
 	if args.Input != nil {
 		input = *args.Input
 	} else if args.Data != nil {
@@ -1042,12 +1053,12 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 
 	if args.Gas == nil {
 		callArgs := rpctypes.CallArgs{
-			From:     &args.From,
+			From:     args.From,
 			To:       args.To,
 			Gas:      args.Gas,
 			GasPrice: args.GasPrice,
 			Value:    args.Value,
-			Data:     args.Data,
+			Data:     &input,
 		}
 		gl, err := api.EstimateGas(callArgs)
 		if err != nil {
