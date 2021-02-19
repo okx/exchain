@@ -128,7 +128,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
@@ -225,7 +225,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
