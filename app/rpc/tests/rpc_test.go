@@ -16,6 +16,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/websocket"
+
 	"math/big"
 	"math/rand"
 	"os"
@@ -1230,4 +1232,51 @@ func TestEth_UninstallFilter(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &status))
 	require.Equal(t, false, status)
 
+}
+
+func TestEth_Subscribe_And_UnSubscribe(t *testing.T) {
+	// create websocket
+	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
+	ws, err := websocket.Dial(url, "", origin)
+	require.NoError(t, err)
+
+	// send message
+	message := []byte(`{"id": 2, "method": "eth_subscribe", "params": ["newHeads"]}`)
+	excuteOneRound(t, ws, message)
+
+	// close websocket
+	err = ws.Close()
+	require.NoError(t, err)
+}
+
+func excuteOneRound(t *testing.T, ws  *websocket.Conn, message []byte) {
+	_, err := ws.Write(message)
+	require.NoError(t, err)
+
+	msg := make([]byte, 10240)
+	// receive subscription id
+	n, err := ws.Read(msg)
+	require.NoError(t, err)
+	var res Response
+	require.NoError(t, json.Unmarshal(msg[:n], &res))
+	subscriptionId := string(res.Result)
+
+	// receive message three times
+	for i := 0; i < 3; i++ {
+		n, err = ws.Read(msg)
+		require.NoError(t, err)
+		fmt.Println("Receive:", string(msg[:n]))
+	}
+
+	// cancel the subscription
+	cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
+	fmt.Println(cancelMsg)
+	_, err = ws.Write([]byte(cancelMsg))
+	require.NoError(t, err)
+
+	// receive the result of eth_unsubscribe
+	n, err = ws.Read(msg)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(msg[:n], &res))
+	require.Equal(t, "true", string(res.Result))
 }
