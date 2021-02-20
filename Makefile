@@ -16,6 +16,7 @@ ServerName=okexchaind
 ClientName=okexchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
+VERSION_0_16_x_HEIGHT=0
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -40,7 +41,7 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
   -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
-
+  -X $(GithubTop)/okexchain/app/version.VERSION_0_16_x_HEIGHT_STR=$(VERSION_0_16_x_HEIGHT) \
 
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
