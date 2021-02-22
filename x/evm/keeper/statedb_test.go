@@ -21,7 +21,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 	suite.app.EvmKeeper.Prepare(suite.ctx, tHash, 0)
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 	log := ethtypes.Log{Address: contractAddress}
-
+	logs := []*ethtypes.Log{&log}
 	testCase := []struct {
 		name     string
 		malleate func()
@@ -37,7 +37,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.app.EvmKeeper.AddLog(suite.ctx, &log)
+				suite.app.EvmKeeper.SetLogs(suite.ctx, tHash, logs)
 			},
 			1,
 			false,
@@ -228,14 +228,6 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 		dbLogs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, hash)
 		suite.Require().NoError(err, tc.name)
 		suite.Require().Equal(logs, dbLogs, tc.name)
-
-		suite.app.EvmKeeper.DeleteLogs(suite.ctx, hash)
-		dbLogs, err = suite.app.EvmKeeper.GetLogs(suite.ctx, hash)
-		suite.Require().NoError(err, tc.name)
-		suite.Require().Empty(dbLogs, tc.name)
-
-		suite.app.EvmKeeper.AddLog(suite.ctx, &tc.log)
-		suite.Require().Equal(logs, suite.app.EvmKeeper.AllLogs(suite.ctx), tc.name)
 
 		//resets state but checking to see if storekey still persists.
 		err = suite.app.EvmKeeper.Reset(suite.ctx, hash)

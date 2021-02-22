@@ -81,6 +81,8 @@ type CommitStateDB struct {
 	validRevisions []revision
 	nextRevisionID int
 
+	logs []*ethtypes.Log
+
 	// Per-transaction access list
 	accessList *accessList
 
@@ -110,6 +112,7 @@ func NewCommitStateDB(
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
 		journal:              newJournal(),
 		accessList:           newAccessList(),
+		logs:                 []*ethtypes.Log{},
 	}
 }
 
@@ -192,21 +195,13 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz, err := MarshalLogs(logs)
-	if err != nil {
-		return err
-	}
-
-	store.Set(hash.Bytes(), bz)
-	csdb.logSize = uint(len(logs))
+	csdb.logs = logs
 	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
 func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	store.Delete(hash.Bytes())
+	csdb.logs = []*ethtypes.Log{}
 }
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
@@ -217,17 +212,9 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	log.BlockHash = csdb.bhash
 	log.TxIndex = uint(csdb.txIndex)
 	log.Index = csdb.logSize
+	csdb.logSize = csdb.logSize + 1
 
-	logs, err := csdb.GetLogs(csdb.thash)
-	if err != nil {
-		// panic on unmarshal error
-		panic(err)
-	}
-
-	if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
-		// panic on marshal error
-		panic(err)
-	}
+	csdb.logs = append(csdb.logs, log)
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -409,30 +396,7 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		// return nil error if logs are not found
-		return []*ethtypes.Log{}, nil
-	}
-
-	return UnmarshalLogs(bz)
-}
-
-// AllLogs returns all the current logs in the state.
-func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixLogs)
-	defer iterator.Close()
-
-	allLogs := []*ethtypes.Log{}
-	for ; iterator.Valid(); iterator.Next() {
-		var logs []*ethtypes.Log
-		ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		allLogs = append(allLogs, logs...)
-	}
-
-	return allLogs
+	return csdb.logs, nil
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -551,6 +515,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 
 	// invalidate journal because reverting across transactions is not allowed
 	csdb.clearJournalAndRefund()
+	csdb.DeleteLogs(csdb.thash)
 	return nil
 }
 
@@ -796,6 +761,9 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 	to.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	to.refund = from.refund
 	to.logSize = from.logSize
+	logs := make([]*ethtypes.Log, len(from.logs))
+	copy(logs, from.logs)
+	to.logs = logs
 	to.preimages = make([]preimageEntry, len(from.preimages))
 	to.hashToPreimageIndex = make(map[ethcmn.Hash]int, len(from.hashToPreimageIndex))
 	to.journal = newJournal()

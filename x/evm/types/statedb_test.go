@@ -300,12 +300,16 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
-		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+		newLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
+		suite.Require().Equal(logs, newLogs, tc.name)
 
 		//resets state but checking to see if storekey still persists.
 		err = suite.stateDB.Reset(hash)
 		suite.Require().NoError(err, tc.name)
-		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+		newLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
+		suite.Require().Equal(logs, newLogs, tc.name)
 	}
 }
 
