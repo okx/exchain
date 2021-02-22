@@ -80,6 +80,9 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 
 	for _, token := range data.Tokens {
+		if token.OriginalTotalSupply.IsZero() {
+			continue
+		}
 		keeper.NewToken(ctx, token)
 	}
 

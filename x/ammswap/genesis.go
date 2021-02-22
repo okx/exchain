@@ -47,6 +47,9 @@ func DefaultGenesisState() GenesisState {
 func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 	for _, record := range data.SwapTokenPairRecords {
+		if record.BasePooledCoin.IsZero() && record.QuotePooledCoin.IsZero()  {
+			continue
+		}
 		keeper.SetSwapTokenPair(ctx, record.TokenPairName(), record)
 	}
 }
