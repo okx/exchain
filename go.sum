@@ -501,6 +501,7 @@ github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/okex/cosmos-sdk v0.39.3-0.20210219024619-37d9b3618b99 h1:oP3jTwUcMLjLPPd3Ocu7ViF9h2vxaeQiqftKQk3Wofo=
 github.com/okex/cosmos-sdk v0.39.3-0.20210219024619-37d9b3618b99/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
+github.com/okex/cosmos-sdk v0.39.3-0.20210222022840-fee4886d82f4/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/iavl v0.14.1-okexchain1 h1:aP9Rpxb1QU06WgTJ/xLyEQbZOiZzKy3once7wGtNLIU=
 github.com/okex/iavl v0.14.1-okexchain1/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/tendermint v0.33.9-okexchain2 h1:CMOxzE90NETbqmC/vKYeZ/mRnFdDV0SmQKXgjxMOOhw=

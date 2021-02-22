@@ -58,8 +58,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	for ; iterator.Valid(); iterator.Next() {
 		tokenPair := SwapTokenPair{}
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &tokenPair)
+		if tokenPair.BasePooledCoin.IsZero() && tokenPair.QuotePooledCoin.IsZero()  {
+			continue
+		}
 		records = append(records, tokenPair)
-
 	}
 	params := k.GetParams(ctx)
 	return GenesisState{SwapTokenPairRecords: records, Params: params}
