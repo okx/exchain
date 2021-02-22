@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	tokentypes "github.com/okex/okexchain/x/token/types"
 	"github.com/okex/okexchain/x/ammswap/types"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 )
 
 // GenesisState stores genesis data, all slashing state that must be provided at genesis
@@ -47,7 +47,7 @@ func DefaultGenesisState() GenesisState {
 func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 	for _, record := range data.SwapTokenPairRecords {
-		if record.BasePooledCoin.IsZero() && record.QuotePooledCoin.IsZero()  {
+		if record.BasePooledCoin.IsZero() && record.QuotePooledCoin.IsZero() {
 			continue
 		}
 		keeper.SetSwapTokenPair(ctx, record.TokenPairName(), record)
@@ -61,7 +61,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	for ; iterator.Valid(); iterator.Next() {
 		tokenPair := SwapTokenPair{}
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &tokenPair)
-		if tokenPair.BasePooledCoin.IsZero() && tokenPair.QuotePooledCoin.IsZero()  {
+		if tokenPair.BasePooledCoin.IsZero() && tokenPair.QuotePooledCoin.IsZero() {
 			continue
 		}
 		records = append(records, tokenPair)
