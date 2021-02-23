@@ -6,15 +6,16 @@ import (
 )
 
 var (
-	VERSION_0_16_x_HEIGHT               = "0"
-	VERSION_0_16_x_HEIGHT_NUM     int64 = 0
+	VERSION_0_16_6_1_HEIGHT               = "0"
+	VERSION_0_16_6_1_HEIGHT_NUM     int64 = 0
 	once                        sync.Once
 )
 
 func strin2number(input string) int64 {
 	if len(input) == 0 {
-		input = "0"
+		return 0
 	}
+
 	res, err := strconv.ParseInt(input, 10, 64)
 	if err != nil {
 		panic(err)
@@ -22,12 +23,9 @@ func strin2number(input string) int64 {
 	return res
 }
 
-func initVersionBlockHeight() {
+func init() {
 	once.Do(func() {
-		VERSION_0_16_x_HEIGHT_NUM = strin2number(VERSION_0_16_x_HEIGHT)
+		VERSION_0_16_6_1_HEIGHT_NUM = strin2number(VERSION_0_16_6_1_HEIGHT)
 	})
 }
 
-func init() {
-	initVersionBlockHeight()
-}
