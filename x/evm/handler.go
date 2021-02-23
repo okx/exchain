@@ -29,7 +29,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		if err != nil {
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}else if !ctx.IsCheckTx() {
-			types.CopyCommitStateDB(k.CommitStateDB, cacheStateDB)
+			types.CopyCommitStateDB(cacheStateDB, k.CommitStateDB)
 		}
 		return result, err
 	}
