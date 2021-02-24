@@ -44,6 +44,11 @@ func getMockApp(t *testing.T, numGenAccs int) (mockApp *MockApp, addrKeysSlice m
 	return getMockAppWithBalance(t, numGenAccs, 100)
 }
 
+func getMockAppWithKeeper(t *testing.T, numGenAccs int) (*MockApp, mock.AddrKeysSlice, Keeper, token.Keeper, supply.Keeper) {
+	mockApp, addrs := getMockAppWithBalance(t, numGenAccs, 100)
+	return mockApp, addrs, mockApp.swapKeeper, mockApp.tokenKeeper, mockApp.supplyKeeper
+}
+
 // initialize the mock application for this module
 func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp *MockApp,
 	addrKeysSlice mock.AddrKeysSlice) {

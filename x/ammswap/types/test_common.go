@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -17,7 +18,7 @@ const TestBasePooledToken3 = "ddb"
 const TestBasePooledToken4 = "kkb"
 const TestBasePooledToken5 = "ffb"
 const TestQuotePooledToken = common.NativeToken
-const TestQuotePooledToken2 = TestBasePooledToken
+const TestQuotePooledToken2 = TestBasePooledToken5
 const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
 
 // GetTestSwapTokenPair just for test
@@ -45,15 +46,23 @@ func GetTestSwapTokenPairWithZeroLiquidity() SwapTokenPair {
 	}
 }
 
-func GetCreateExchangeMsg4(addr sdk.AccAddress) MsgCreateExchange {
-	return NewMsgCreateExchange(TestBasePooledToken4, TestQuotePooledToken, addr)
+func CreateTestMsgs(addr sdk.AccAddress) []sdk.Msg {
+	return []sdk.Msg{
+		NewMsgCreateExchange(TestBasePooledToken4, TestQuotePooledToken, addr),
+		NewMsgCreateExchange(TestBasePooledToken, TestQuotePooledToken2, addr),
+		NewMsgAddLiquidity(sdk.ZeroDec(),
+			sdk.NewDecCoin(TestBasePooledToken4, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+		NewMsgAddLiquidity(sdk.ZeroDec(),
+			sdk.NewDecCoin(TestBasePooledToken, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken2, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+		NewMsgRemoveLiquidity(sdk.OneDec(),
+			sdk.NewDecCoin(TestBasePooledToken, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken2, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+	}
 }
 
-func GetCreateExchangeMsg5(addr sdk.AccAddress) MsgCreateExchange {
-	return NewMsgCreateExchange(TestBasePooledToken4, TestQuotePooledToken2, addr)
-}
-
-func SetTokens(ctx sdk.Context, tokenKeeper token.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress) error {
+func SetTestTokens(ctx sdk.Context, tokenKeeper token.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress) error {
 	balance := 100
 	coins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s,%d%s,%d%s,%d%s,%d%s",
 		balance, TestQuotePooledToken, balance, TestBasePooledToken, balance, TestBasePooledToken2, balance, TestBasePooledToken3,
