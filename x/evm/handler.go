@@ -85,7 +85,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         k.CommitStateDB.WithContext(ctx),
+		Csdb:         k.GetCommitStateDB(ctx).WithContext(ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
