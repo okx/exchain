@@ -2,6 +2,7 @@ package ammswap
 
 import (
 	"testing"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
@@ -60,4 +61,47 @@ func TestInitAndExportGenesis(t *testing.T) {
 	exportedGenesis := ExportGenesis(ctx, keeper)
 	require.Equal(t, defaultGenesisState, exportedGenesis)
 
+}
+
+func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
+	mapp, addrKeysSlice := getMockApp(t, 1)
+	keeper := mapp.swapKeeper
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	err := types.SetTokens(ctx, mapp.tokenKeeper, mapp.supplyKeeper, addrKeysSlice[0].Address)
+	require.NoError(t, err)
+
+	// test InitGenesis: init 3 new ammswap tokens
+	defaultGenesisState := DefaultGenesisState()
+	defaultGenesisState.SwapTokenPairRecords = []SwapTokenPair{
+		types.GetTestSwapTokenPair(), types.GetTestSwapTokenPairWithLargeLiquidity(), types.GetTestSwapTokenPairWithZeroLiquidity(),
+	}
+	InitGenesis(ctx, keeper, defaultGenesisState)
+	swapTokenPairs := keeper.GetSwapTokenPairs(ctx)
+	require.Equal(t, 2, len(swapTokenPairs))
+	require.EqualValues(t, defaultGenesisState.SwapTokenPairRecords[:2], swapTokenPairs)
+
+	// test ammswap ExportGenesis: create 2 new ammswap tokens
+	handler := NewHandler(keeper)
+	_, err = handler(ctx, types.GetCreateExchangeMsg4(addrKeysSlice[0].Address))
+	require.NoError(t, err)
+	_, err = handler(ctx, types.GetCreateExchangeMsg5(addrKeysSlice[0].Address))
+	require.NoError(t, err)
+	_, err = handler(ctx, types.NewMsgAddLiquidity(sdk.ZeroDec(),
+		sdk.NewDecCoin(types.TestBasePooledToken4, sdk.OneInt()), sdk.NewDecCoin(types.TestQuotePooledToken, sdk.OneInt()),
+		time.Now().Add(time.Hour).Unix(), addrKeysSlice[0].Address))
+	require.NoError(t, err)
+
+	exportedGenesis := ExportGenesis(ctx, keeper)
+	require.EqualValues(t, defaultGenesisState.Params, exportedGenesis.Params)
+	require.Equal(t, 3, len(exportedGenesis.SwapTokenPairRecords))
+	expectedSwapTokenPairRecords := []SwapTokenPair{
+		types.GetTestSwapTokenPair(),
+		types.GetTestSwapTokenPairWithLargeLiquidity(),
+		*types.NewSwapTokenPair(
+			sdk.NewDecCoin(types.TestQuotePooledToken, sdk.OneInt()),
+			sdk.NewDecCoin(types.TestBasePooledToken4, sdk.OneInt()),
+			types.GetPoolTokenName(types.TestQuotePooledToken, types.TestBasePooledToken4)),
+	}
+	require.EqualValues(t, expectedSwapTokenPairRecords, exportedGenesis.SwapTokenPairRecords)
 }
