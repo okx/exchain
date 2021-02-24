@@ -55,8 +55,10 @@ func NewHandler(k *Keeper) sdk.Handler {
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-		if err != nil && !ctx.IsCheckTx() {
-			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+		if err != nil {
+			if !ctx.IsCheckTx() {
+				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+			}
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 		return result, err
