@@ -5,6 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
@@ -68,10 +69,11 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	err := types.SetTokens(ctx, mapp.tokenKeeper, mapp.supplyKeeper, addrKeysSlice[0].Address)
 	require.NoError(t, err)
 
-	// test InitGenesis: init 3 new ammswap tokens
+	// test ammswap InitGenesis: init 3 new ammswap tokens
 	defaultGenesisState := DefaultGenesisState()
 	defaultGenesisState.SwapTokenPairRecords = []SwapTokenPair{
 		types.GetTestSwapTokenPair(), types.GetTestSwapTokenPairWithLargeLiquidity(), types.GetTestSwapTokenPairWithZeroLiquidity(),
@@ -104,4 +106,16 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 			types.GetPoolTokenName(types.TestQuotePooledToken, types.TestBasePooledToken4)),
 	}
 	require.EqualValues(t, expectedSwapTokenPairRecords, exportedGenesis.SwapTokenPairRecords)
+
+	// test supply Invariant & ExportGenesis
+	supplyinvariant := supply.AllInvariants(mapp.supplyKeeper)
+	_, broken := supplyinvariant(ctx)
+	require.False(t, broken)
+	var expectedCoins sdk.DecCoins
+	mapp.AccountKeeper.IterateAccounts(ctx, func(acc exported.Account) bool {
+		expectedCoins = expectedCoins.Add(acc.GetCoins()...)
+		return false
+	})
+	supplyExportGenesis := supply.ExportGenesis(ctx, mapp.supplyKeeper)
+	require.EqualValues(t, expectedCoins, supplyExportGenesis.Supply )
 }
