@@ -27,9 +27,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	lastHash := req.Header.LastBlockId.GetHash()
 	height := req.Header.GetHeight() - 1
 
+	k.CommitStateDB.Lock()
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
 	k.CommitStateDB.SetBlockHash(common.BytesToHash(currentHash))
+	k.CommitStateDB.UnLock()
 
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
@@ -44,6 +46,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 
+	k.CommitStateDB.Lock()
 	// Update account balances before committing other parts of state
 	k.UpdateAccounts(ctx)
 
@@ -62,6 +65,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
+	k.CommitStateDB.UnLock()
 
 	return []abci.ValidatorUpdate{}
 }

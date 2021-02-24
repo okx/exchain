@@ -113,6 +113,14 @@ func NewCommitStateDB(
 	}
 }
 
+func (csdb *CommitStateDB) Lock() {
+	csdb.lock.Lock()
+}
+
+func (csdb *CommitStateDB) UnLock() {
+	csdb.lock.Unlock()
+}
+
 // WithContext returns a Database with an updated SDK context
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
@@ -784,8 +792,10 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 }
 
 func CopyCommitStateDB(from, to *CommitStateDB) {
-	from.lock.Lock()
-	defer from.lock.Unlock()
+	from.Lock()
+	to.Lock()
+	defer from.UnLock()
+	defer to.UnLock()
 
 	to.ctx = from.ctx
 	to.storeKey = from.storeKey

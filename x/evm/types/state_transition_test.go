@@ -158,25 +158,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Csdb:         suite.stateDB,
 				TxHash:       &ethcmn.Hash{},
 				Sender:       suite.address,
-				Simulate:     true,
-			},
-			true,
-		},
-		{
-			"state transition simulation",
-			func() {},
-			types.StateTransition{
-				AccountNonce: 123,
-				Price:        sdk.NewDec(10).BigInt(),
-				GasLimit:     11,
-				Recipient:    &recipient,
-				Amount:       sdk.NewDec(10).BigInt(),
-				Payload:      []byte("data"),
-				ChainID:      big.NewInt(1),
-				Csdb:         suite.stateDB,
-				TxHash:       &ethcmn.Hash{},
-				Sender:       suite.address,
-				Simulate:     true,
+				Simulate:     suite.ctx.IsCheckTx(),
 			},
 			true,
 		},
@@ -264,21 +246,41 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			},
 			false,
 		},
+		{
+			"state transition simulation",
+			func() {
+				params := types.NewParams(ethermint.NativeToken, false, true)
+				suite.stateDB.SetParams(params)
+			},
+			types.StateTransition{
+				AccountNonce: 123,
+				Price:        sdk.NewDec(10).BigInt(),
+				GasLimit:     11,
+				Recipient:    &recipient,
+				Amount:       sdk.NewDec(10).BigInt(),
+				Payload:      []byte("data"),
+				ChainID:      big.NewInt(1),
+				Csdb:         suite.stateDB,
+				TxHash:       &ethcmn.Hash{},
+				Sender:       suite.address,
+				Simulate:     true,
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCase {
 		tc.malleate()
 
 		_, err = tc.state.TransitionDb(suite.ctx, types.DefaultChainConfig())
-
 		if tc.expPass {
 			suite.Require().NoError(err, tc.name)
-			fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
-			toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
-			suite.Require().Equal(fromBalance, sdk.NewDec(4950).BigInt(), tc.name)
-			suite.Require().Equal(toBalance, sdk.NewDec(50).BigInt(), tc.name)
 		} else {
 			suite.Require().Error(err, tc.name)
 		}
 	}
+	fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
+	toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
+	suite.Require().Equal(fromBalance, sdk.NewDec(4930).BigInt())
+	suite.Require().Equal(toBalance, sdk.NewDec(60).BigInt())
 }
