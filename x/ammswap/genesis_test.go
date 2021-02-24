@@ -1,7 +1,6 @@
 package ammswap
 
 import (
-	"fmt"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -125,5 +124,7 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	// 4.1 test token ExportGenesis: remove coin whose TotalSupply is zer
 	tokenKeeper.SetParams(ctx, tokentypes.DefaultParams())
 	tokenExportGenesis := token.ExportGenesis(ctx, tokenKeeper)
-	fmt.Println(len(tokenExportGenesis.Tokens))
+	for _, tokeninfo := range tokenExportGenesis.Tokens {
+		require.True(t, !tokeninfo.OriginalTotalSupply.IsZero())
+	}
 }
