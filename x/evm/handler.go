@@ -40,7 +40,9 @@ func NewHandler(k *Keeper) sdk.Handler {
 				// current Keeper object, but the Keeper object will be destroyed
 				// soon, it is not a global variable, so the content pointed to by
 				// the CommitStateDB pointer can be modified to take effect.
-				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				if !ctx.IsCheckTx() {
+					types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				}
 				panic(r)
 			}
 		}()
@@ -53,7 +55,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-		if err != nil {
+		if err != nil && !ctx.IsCheckTx() {
 			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
