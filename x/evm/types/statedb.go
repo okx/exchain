@@ -109,6 +109,7 @@ func NewCommitStateDB(
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
 		journal:              newJournal(),
+		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 	}
 }
@@ -127,6 +128,7 @@ func (csdb CommitStateDB) GenerateEmptyStateDB(ctx sdk.Context) *CommitStateDB {
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
 		journal:              newJournal(),
+		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 	}
 }
