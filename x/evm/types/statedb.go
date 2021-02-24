@@ -785,9 +785,7 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 
 func CopyCommitStateDB(from, to *CommitStateDB) {
 	from.lock.Lock()
-	to.lock.Lock()
 	defer from.lock.Unlock()
-	defer to.lock.Unlock()
 
 	to.ctx = from.ctx
 	to.storeKey = from.storeKey
