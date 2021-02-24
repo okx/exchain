@@ -36,6 +36,8 @@ type Keeper struct {
 	accountKeeper types.AccountKeeper
 	// Ethermint concrete implementation on the EVM StateDB interface
 	CommitStateDB *types.CommitStateDB
+	//The implementation on EVM StateDB interface for simulate run
+	SimulateStateDB *types.CommitStateDB
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
@@ -54,18 +56,28 @@ func NewKeeper(
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return &Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		accountKeeper: ak,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk, bk),
-		TxCount:       0,
-		Bloom:         big.NewInt(0),
+		cdc:             cdc,
+		storeKey:        storeKey,
+		accountKeeper:   ak,
+		CommitStateDB:   types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk, bk),
+		SimulateStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk, bk),
+		TxCount:         0,
+		Bloom:           big.NewInt(0),
 	}
 }
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+func (k Keeper) GetCommitStateDB(ctx sdk.Context) *types.CommitStateDB {
+	if ctx.IsCheckTx() {
+		//reset simulation commit stateDB
+		k.SimulateStateDB.Reset(common.Hash{})
+		return k.SimulateStateDB
+	}
+	return k.CommitStateDB
 }
 
 // ----------------------------------------------------------------------------
