@@ -74,8 +74,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 func (k Keeper) GetCommitStateDB(ctx sdk.Context) *types.CommitStateDB {
 	if ctx.IsCheckTx() {
 		//reset simulation commit stateDB
-		k.SimulateStateDB.Reset(common.Hash{})
-		return k.SimulateStateDB
+		return k.CommitStateDB.GenerateEmptyStateDB(ctx)
 	}
 	return k.CommitStateDB
 }

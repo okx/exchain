@@ -113,6 +113,24 @@ func NewCommitStateDB(
 	}
 }
 
+func (csdb CommitStateDB) GenerateEmptyStateDB(ctx sdk.Context) *CommitStateDB {
+	return &CommitStateDB{
+		ctx:                  ctx,
+		storeKey:             csdb.storeKey,
+		paramSpace:           csdb.paramSpace,
+		accountKeeper:        csdb.accountKeeper,
+		supplyKeeper:         csdb.supplyKeeper,
+		bankKeeper:           csdb.bankKeeper,
+		stateObjects:         []stateEntry{},
+		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
+		preimages:            []preimageEntry{},
+		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
+		journal:              newJournal(),
+		accessList:           newAccessList(),
+	}
+}
+
 // WithContext returns a Database with an updated SDK context
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
