@@ -76,7 +76,7 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	err := types.SetTestTokens(ctx, tokenKeeper, supplyKeeper, addrKeysSlice[0].Address)
 	require.NoError(t, err)
 
-	// 1. test ammswap InitGenesis:
+	// 1. Test ammswap InitGenesis:
 	// 1.1 add 3 new ammswap tokens in genesis
 	defaultGenesisState := DefaultGenesisState()
 	defaultGenesisState.SwapTokenPairRecords = []SwapTokenPair{
@@ -87,7 +87,7 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	swapTokenPairs := keeper.GetSwapTokenPairs(ctx)
 	require.EqualValues(t, defaultGenesisState.SwapTokenPairRecords[:2], swapTokenPairs)
 
-	// 2. test ammswap ExportGenesis:
+	// 2. Test ammswap ExportGenesis:
 	handler := NewHandler(keeper)
 	// 2.1 create 2 new ammswap tokens
 	// then add liquidity in 2 swap pairs
@@ -96,7 +96,7 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 		_, err = handler(ctx, msg)
 		require.NoError(t, err)
 	}
-	// 2.2 ammswap ExportGenesis: should remove 1 swap pair whose value is zero
+	// 2.2 Test ammswap ExportGenesis: should remove 1 swap pair whose value is zero
 	exportedGenesis := ExportGenesis(ctx, keeper)
 	require.EqualValues(t, defaultGenesisState.Params, exportedGenesis.Params)
 	expectedSwapTokenPairRecords := []SwapTokenPair{
@@ -109,11 +109,11 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	}
 	require.EqualValues(t, expectedSwapTokenPairRecords, exportedGenesis.SwapTokenPairRecords)
 
-	// 3.1 test supply Invariant
+	// 3.1 Test supply Invariant
 	supplyinvariant := supply.AllInvariants(supplyKeeper)
 	_, broken := supplyinvariant(ctx)
 	require.False(t, broken)
-	// 3.2 test supply ExportGenesis: remove coin whose supply is zero
+	// 3.2 Test supply ExportGenesis: remove coin whose supply is zero
 	var expectedCoins sdk.DecCoins
 	mapp.AccountKeeper.IterateAccounts(ctx, func(acc exported.Account) bool {
 		expectedCoins = expectedCoins.Add(acc.GetCoins()...)
@@ -122,7 +122,7 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	supplyExportGenesis := supply.ExportGenesis(ctx, supplyKeeper)
 	require.EqualValues(t, expectedCoins, supplyExportGenesis.Supply)
 
-	// 4.1 test token ExportGenesis: remove coin whose TotalSupply is zer
+	// 4.1 Test token ExportGenesis: remove coin whose TotalSupply is zer
 	tokenKeeper.SetParams(ctx, tokentypes.DefaultParams())
 	tokenExportGenesis := token.ExportGenesis(ctx, tokenKeeper)
 	for _, tokeninfo := range tokenExportGenesis.Tokens {

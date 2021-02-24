@@ -125,3 +125,7 @@ func TestInitGenesis(t *testing.T) {
 	})
 	require.Equal(t, newExportGenesis.LockedFees, actualLockeedFees)
 }
+
+func TestInitGenesisWithZeroSupplyCoin(t *testing.T) {
+
+}
