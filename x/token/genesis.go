@@ -80,7 +80,8 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 	keeper.SetParams(ctx, data.Params)
 
 	for _, token := range data.Tokens {
-		if token.OriginalTotalSupply.IsZero() {
+		supply := keeper.GetTokenTotalSupply(ctx, token.Symbol)
+		if supply.IsZero() {
 			continue
 		}
 		keeper.NewToken(ctx, token)
@@ -103,7 +104,6 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 // with initGenesis
 func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 	params := keeper.GetParams(ctx)
-	tokens := keeper.GetTokensInfo(ctx)
 	lockedAsset := keeper.GetAllLockedCoins(ctx)
 
 	var lockedFees []types.AccCoins
@@ -115,6 +115,15 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
 			})
 		return false
 	})
+
+	var tokens []types.Token
+	for _, token := range keeper.GetTokensInfo(ctx) {
+		supply := keeper.GetTokenTotalSupply(ctx, token.Symbol)
+		if supply.IsZero() {
+			continue
+		}
+		tokens = append(tokens, token)
+	}
 
 	return GenesisState{
 		Params:       params,

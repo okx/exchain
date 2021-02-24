@@ -1,12 +1,15 @@
 package ammswap
 
 import (
+	"fmt"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/okexchain/x/token"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -118,4 +121,13 @@ func TestInitAndExportGenesisWithZeroLiquidity(t *testing.T) {
 	})
 	supplyExportGenesis := supply.ExportGenesis(ctx, supplyKeeper)
 	require.EqualValues(t, expectedCoins, supplyExportGenesis.Supply)
+
+	// 4.1 test token ExportGenesis: remove coin whose TotalSupply is zer
+	tokenKeeper.SetParams(ctx, tokentypes.DefaultParams())
+	tokenExportGenesis := token.ExportGenesis(ctx, tokenKeeper)
+	for _, tokeninfo := range tokenExportGenesis.Tokens {
+		tokenSupply := supplyKeeper.GetSupplyByDenom(ctx, tokeninfo.Symbol)
+		require.True(t, !tokenSupply.IsZero() )
+	}
+	fmt.Println(tokenExportGenesis.Tokens)
 }
