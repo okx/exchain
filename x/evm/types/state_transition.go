@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"math/big"
-	"os"
-	"path/filepath"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,11 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -336,54 +330,4 @@ func newRevertError(data []byte, e error) error {
 		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
 	}
 	return errors.New(string(ret))
-}
-
-func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
-	var (
-		res        []byte
-		err error
-	)
-	// Depending on the tracer type, format and return the output
-	switch tracer := tracer.(type) {
-	case *vm.StructLogger:
-		// If the result contains a revert reason, return it.
-		returnVal := fmt.Sprintf("%x", result.Return())
-		if len(result.Revert()) > 0 {
-			returnVal = fmt.Sprintf("%x", result.Revert())
-		}
-		res, err = json.Marshal(&TraceExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
-		})
-
-	case *tracers.Tracer:
-		res, err = tracer.GetResult()
-
-	default:
-		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
-	}
-
-	if err != nil {
-		res = []byte(err.Error())
-	}
-
-	txTraceFile := hexutil.Encode(tmtypes.Tx(ctx.TxBytes()).Hash())
-	tracesDir := filepath.Join(viper.GetString("home"),  "traces")
-	if _, err := os.Stat(tracesDir); os.IsNotExist(err) {
-		if err = os.Mkdir(tracesDir, 0700); err != nil {
-			return
-		}
-	}
-	input, err := os.OpenFile(filepath.Join(tracesDir, txTraceFile), os.O_CREATE | os.O_RDWR, 0664)
-	defer func() {
-		input.Close()
-	}()
-
-	if err == nil {
-		_, err = input.Write(res)
-		err = input.Sync()
-	}
-
 }

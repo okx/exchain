@@ -3,6 +3,7 @@ package eth
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1173,4 +1174,8 @@ func (api *PublicEthereumAPI) GetTxByHash(hash common.Hash) (*evmtypes.MsgEthere
 		return nil, 0, 0
 	}
 	return ethTx, rpctypes.BlockNumber(resTx.Height), resTx.Index
+}
+
+func (api *PublicEthereumAPI) GetTxTrace(txHash string) json.RawMessage {
+	return evmtypes.GetTracesFromDB(txHash)
 }
