@@ -47,10 +47,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		k.SetCode(ctx,address, account.Code)
-		//filename := fmt.Sprintf("~project/okex/okexchain/contracts/%s.okexcontract", account.Address)
-		//code := readContractFromFile(filename)
-		//k.SetCode(ctx, address, code)
+		//k.SetCode(ctx,address, account.Code)
+		filename := fmt.Sprintf("~project/okex/okexchain/contracts/%s.okexcontract", account.Address)
+		code := readContractFromFile(filename)
+		k.SetCode(ctx, address, code)
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
@@ -87,10 +87,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("start!")
+
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	index, totalCodeLen, totalStorageLen := 0, 0 ,0
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
@@ -108,7 +107,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
-			Storage:  nil, //todo
+			Storage:  storage, //todo
 		}
 
 		code := k.GetCode(ctx, addr)
@@ -116,21 +115,15 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			writeContractIntoFile(genAccount.Address, code)
 		}
 
-		fmt.Printf("%d %s len(code): %d len(storage): %d\n", index, genAccount.Address, len(code), len(storage))
-		index++
-		totalCodeLen += len(code)
-		totalStorageLen += len(storage)
-
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
-	fmt.Println("totalCodeLen:", totalCodeLen, " |  ", "totalStorageLen", totalStorageLen)
 
 	config, _ := k.GetChainConfig(ctx)
 
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     []types.TransactionLogs{}, //todo
+		TxsLogs:     k.GetAllTxLogs(ctx), //todo
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}

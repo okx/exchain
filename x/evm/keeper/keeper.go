@@ -136,20 +136,18 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
 	defer iterator.Close()
-	index, totalLogs := 0, 0
+
 	txsLogs := []types.TransactionLogs{}
 	for ; iterator.Valid(); iterator.Next() {
 		hash := common.BytesToHash(iterator.Key())
 		var logs []*ethtypes.Log
 		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		fmt.Println(index, hash.String(), len(logs))
-		index++
-		totalLogs += len(logs)
+
 		// add a new entry
 		txLog := types.NewTransactionLogs(hash, logs)
 		txsLogs = append(txsLogs, txLog)
 	}
-	fmt.Println("totalLogs", totalLogs)
+
 	return txsLogs
 }
 
