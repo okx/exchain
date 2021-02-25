@@ -850,10 +850,9 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 	// copied, the loop above will be a no-op, since the copy's journal is empty.
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range from.stateObjectsDirty {
-		if idx, exist := to.addressToObjectIndex[addr]; !exist {
-			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
-			newStateObject.stateDB = to
-			to.setStateObject(newStateObject)
+		if _, exist := to.addressToObjectIndex[addr]; !exist {
+			idx, _ := from.addressToObjectIndex[addr]
+			to.setStateObject(from.stateObjects[idx].stateObject.deepCopy(to))
 			to.stateObjectsDirty[addr] = struct{}{}
 		}
 	}
