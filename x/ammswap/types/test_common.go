@@ -1,8 +1,13 @@
 package types
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/okex/okexchain/x/common"
+	"github.com/okex/okexchain/x/token"
+	tokentypes "github.com/okex/okexchain/x/token/types"
 )
 
 // nolint
@@ -21,3 +26,34 @@ func GetTestSwapTokenPair() SwapTokenPair {
 	}
 }
 
+func SetTestTokens(ctx sdk.Context, tokenKeeper token.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress, coins sdk.DecCoins) error {
+	for _, coin := range coins {
+		name := coin.Denom
+		tokenKeeper.NewToken(ctx, tokentypes.Token{"", name, name,name, coin.Amount, 1,addr,true})
+	}
+	err := supplyKeeper.MintCoins(ctx, tokentypes.ModuleName, coins)
+	if err != nil {
+		return err
+	}
+	err = supplyKeeper.SendCoinsFromModuleToAccount(ctx, tokentypes.ModuleName, addr, coins)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateTestMsgs(addr sdk.AccAddress) []sdk.Msg {
+	return []sdk.Msg{
+		NewMsgCreateExchange(TestBasePooledToken, TestQuotePooledToken, addr),
+		NewMsgCreateExchange(TestBasePooledToken2, TestQuotePooledToken, addr),
+		NewMsgAddLiquidity(sdk.ZeroDec(),
+			sdk.NewDecCoin(TestBasePooledToken, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+		NewMsgAddLiquidity(sdk.ZeroDec(),
+			sdk.NewDecCoin(TestBasePooledToken2, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+		NewMsgRemoveLiquidity(sdk.OneDec(),
+			sdk.NewDecCoin(TestBasePooledToken2, sdk.OneInt()), sdk.NewDecCoin(TestQuotePooledToken, sdk.OneInt()),
+			time.Now().Add(time.Hour).Unix(), addr),
+	}
+}
