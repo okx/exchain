@@ -108,7 +108,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
-			Storage: storage,
+			Storage:  nil, //todo
 		}
 
 		code := k.GetCode(ctx, addr)
@@ -128,10 +128,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	config, _ := k.GetChainConfig(ctx)
 
-	logs := k.GetAllTxLogs(ctx)
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     logs,
+		TxsLogs:     []types.TransactionLogs{}, //todo
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
