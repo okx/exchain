@@ -1,8 +1,13 @@
 package evm
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -42,7 +47,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		k.SetCode(ctx, address, account.Code)
+		k.SetCode(ctx,address, account.Code)
+		//filename := fmt.Sprintf("~project/okex/okexchain/contracts/%s.okexcontract", account.Address)
+		//code := readContractFromFile(filename)
+		//k.SetCode(ctx, address, code)
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
@@ -75,6 +83,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+	err := os.MkdirAll("./contracts", 0777)
+	if err != nil {
+		panic(err)
+	}
+
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
@@ -93,8 +106,13 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    k.GetCode(ctx, addr),
+			Code:    nil,
 			Storage: storage,
+		}
+
+		code := k.GetCode(ctx, addr)
+		if len(code) != 0 {
+			writeContractIntoFile(genAccount.Address, code)
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
@@ -109,4 +127,48 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
+}
+
+func writeContractIntoFile(addr string, code hexutil.Bytes) {
+	filename := fmt.Sprintf("./contracts/%s.okexcontract", addr)
+	dstFile, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	//
+	//dstFile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	bufWriter := bufio.NewWriter(dstFile)
+	defer func() {
+		err = bufWriter.Flush()
+		if err != nil {
+			panic(err)
+		}
+		err = dstFile.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	_, err = bufWriter.WriteString(code.String())
+	if err != nil {
+		panic(err)
+	}
+}
+
+func readContractFromFile(path string) []byte {
+	bin, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	hexcode, err := hexutil.Decode(string(bin))
+	if err != nil {
+		panic(err)
+	}
+
+	return hexcode
 }
