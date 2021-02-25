@@ -14,7 +14,10 @@ import (
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
-		snapshotStateDB := k.CommitStateDB.Copy()
+		var snapshotStateDB *types.CommitStateDB
+		if !ctx.IsCheckTx() {
+			snapshotStateDB = k.CommitStateDB.Copy()
+		}
 
 		// The "recover" code here is used to solve the problem of dirty data
 		// in CommitStateDB due to insufficient gas.
@@ -40,7 +43,9 @@ func NewHandler(k *Keeper) sdk.Handler {
 				// current Keeper object, but the Keeper object will be destroyed
 				// soon, it is not a global variable, so the content pointed to by
 				// the CommitStateDB pointer can be modified to take effect.
-				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				if !ctx.IsCheckTx() {
+					types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+				}
 				panic(r)
 			}
 		}()
@@ -54,7 +59,9 @@ func NewHandler(k *Keeper) sdk.Handler {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 		if err != nil {
-			types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+			if !ctx.IsCheckTx() {
+				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
+			}
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 		return result, err
@@ -85,7 +92,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         k.CommitStateDB.WithContext(ctx),
+		Csdb:         k.GetCommitStateDB(ctx).WithContext(ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
@@ -128,7 +135,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
@@ -180,7 +187,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         k.CommitStateDB.WithContext(ctx),
+		Csdb:         k.GetCommitStateDB(ctx).WithContext(ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
@@ -225,7 +232,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 
 		// update transaction logs in KVStore
-		err = k.SetLogs(ctx, common.BytesToHash(txHash), executionResult.Logs)
+		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}

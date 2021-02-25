@@ -450,9 +450,12 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
+	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
+	var expectedGas uint64 = 5387
+	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
 func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
@@ -718,4 +721,38 @@ func (suite *EvmTestSuite) TestRefundGas() {
 			suite.Require().Equal(big.NewInt(1).Mul(gasRefund, big.NewInt(1)), big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
 		})
 	}
+}
+
+func (suite *EvmTestSuite) TestSimulateConflict() {
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	gasLimit := uint64(100000)
+	gasPrice := big.NewInt(10000)
+
+	priv, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err, "failed to create key")
+	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
+
+	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
+	suite.app.EvmKeeper.CommitStateDB.Finalise(false)
+
+	// send simple value transfer with gasLimit=21000
+	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(100), gasLimit, gasPrice, nil)
+	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
+	suite.Require().NoError(err)
+
+	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	suite.ctx = suite.ctx.WithIsCheckTx(true)
+	result, err := suite.handler(suite.ctx, tx)
+	suite.Require().NotNil(result)
+	suite.Require().Nil(err)
+
+	suite.ctx = suite.ctx.WithIsCheckTx(false)
+	result, err = suite.handler(suite.ctx, tx)
+	suite.Require().NotNil(result)
+	suite.Require().Nil(err)
+	var expectedGas uint64 = 26387
+	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
