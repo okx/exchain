@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"unsafe"
 
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -88,10 +87,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	if err != nil {
 		panic(err)
 	}
-
+	fmt.Println("start!")
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	index := 0
+	index, totalCodeLen, totalStorageLen := 0, 0 ,0
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
@@ -117,17 +116,19 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			writeContractIntoFile(genAccount.Address, code)
 		}
 
-		fmt.Printf("%d %s cap(code): %d len(storage): %d, cap(storage): %d\n", index, genAccount.Address, unsafe.Sizeof(code), len(storage), unsafe.Sizeof(storage))
+		fmt.Printf("%d %s len(code): %d len(storage): %d\n", index, genAccount.Address, len(code), len(storage))
 		index++
+		totalCodeLen += len(code)
+		totalStorageLen += len(storage)
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
+	fmt.Println("totalCodeLen:", totalCodeLen, " |  ", "totalStorageLen", totalStorageLen)
 
 	config, _ := k.GetChainConfig(ctx)
 
 	logs := k.GetAllTxLogs(ctx)
-	fmt.Printf("cap(logs): %d len(logs): %d\n", unsafe.Sizeof(logs), len(logs))
 	return GenesisState{
 		Accounts:    ethGenAccounts,
 		TxsLogs:     logs,
