@@ -114,7 +114,7 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 			return logs, err
 		}
 
-		txs, ok := block["transactions"].([]common.Hash)
+		txs, ok := block["transactions"].([]*rpctypes.Transaction)
 		if !ok || len(txs) == 0 {
 			continue
 		}
@@ -151,10 +151,10 @@ func (f *Filter) blockLogs(header *ethtypes.Header, hash common.Hash) ([]*ethtyp
 // checkMatches checks if the logs from the a list of transactions transaction
 // contain any log events that  match the filter criteria. This function is
 // called when the bloom filter signals a potential match.
-func (f *Filter) checkMatches(transactions []common.Hash) []*ethtypes.Log {
+func (f *Filter) checkMatches(transactions []*rpctypes.Transaction) []*ethtypes.Log {
 	unfiltered := []*ethtypes.Log{}
 	for _, tx := range transactions {
-		logs, err := f.backend.GetTransactionLogs(tx)
+		logs, err := f.backend.GetTransactionLogs(tx.Hash)
 		if err != nil {
 			// ignore error if transaction didn't set any logs (eg: when tx type is not
 			// MsgEthereumTx or MsgEthermint)
