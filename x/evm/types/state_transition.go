@@ -138,8 +138,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 			// gas must be consumed to match to accurately simulate an Ethereum transaction
 			ctx.GasMeter().ConsumeGas(cost-consumedGas, "Intrinsic gas match")
 		}
-
-		csdb = st.Csdb.Copy()
 	}
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored

@@ -403,7 +403,8 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	}
 	newStateObj := newStateObject(db, newAccount)
 
-	newStateObj.code = so.code
+	newStateObj.code = make(types.Code, len(so.code))
+	copy(newStateObj.code, so.code)
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()
 	newStateObj.suicided = so.suicided
@@ -412,6 +413,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 	return newStateObj
 }
+
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
