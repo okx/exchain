@@ -810,58 +810,56 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 	to.accountKeeper = from.accountKeeper
 	to.bankKeeper = from.bankKeeper
 	to.supplyKeeper = from.supplyKeeper
-	to.stateObjects = []stateEntry{}
+
+	// copy StateObject
+	to.stateObjects = make([]stateEntry, 0, len(from.stateObjects))
+	for _, obj := range from.stateObjects {
+		newObj := stateEntry{
+			address: obj.address,
+			stateObject: obj.stateObject.deepCopy(to),
+		}
+		to.stateObjects = append(to.stateObjects, newObj)
+
+	}
+
 	to.addressToObjectIndex = make(map[ethcmn.Address]int)
+	for k, v := range from.addressToObjectIndex {
+		to.addressToObjectIndex[k] = v
+	}
+
 	to.stateObjectsDirty = make(map[ethcmn.Address]struct{})
+	for k, v := range from.stateObjectsDirty {
+		to.stateObjectsDirty[k] = v
+	}
+
 	to.refund = from.refund
 	to.logSize = from.logSize
-	to.preimages = make([]preimageEntry, len(from.preimages))
-	to.hashToPreimageIndex = make(map[ethcmn.Hash]int, len(from.hashToPreimageIndex))
+
+	// copy pre-images
+	to.preimages = make([]preimageEntry, 0, len(from.preimages))
+	to.hashToPreimageIndex = make(map[ethcmn.Hash]int)
+	for i, entry := range from.preimages {
+		newPreimage := make([]byte, len(entry.preimage))
+		copy(newPreimage, entry.preimage)
+		newPreimageEntry := preimageEntry{
+			entry.hash,
+			newPreimage,
+		}
+		to.preimages = append(to.preimages, newPreimageEntry)
+		to.hashToPreimageIndex[entry.hash] = i
+	}
+
+
 	to.journal = newJournal()
 	to.thash = from.thash
 	to.bhash = from.bhash
 	to.txIndex = from.txIndex
-	validRevisions := make([]revision, len(from.validRevisions))
-	copy(validRevisions, from.validRevisions)
-	to.validRevisions = validRevisions
+
+	to.validRevisions = make([]revision, len(from.validRevisions))
+	copy(to.validRevisions, from.validRevisions)
+
 	to.nextRevisionID = from.nextRevisionID
 	to.accessList = from.accessList.Copy()
-
-	// copy the dirty states, logs, and preimages
-	for _, dirty := range from.journal.dirties {
-		// There is a case where an object is in the journal but not in the
-		// stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we
-		// need to check for nil.
-		//
-		// Ref: https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527
-		if idx, exist := from.addressToObjectIndex[dirty.address]; exist {
-			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
-			newStateObject.stateDB = to
-			to.stateObjects = append(to.stateObjects, stateEntry{
-				address:     dirty.address,
-				stateObject: newStateObject,
-			})
-			to.addressToObjectIndex[dirty.address] = len(to.stateObjects) - 1
-			to.stateObjectsDirty[dirty.address] = struct{}{}
-		}
-	}
-
-	// Above, we don't copy the actual journal. This means that if the copy is
-	// copied, the loop above will be a no-op, since the copy's journal is empty.
-	// Thus, here we iterate over stateObjects, to enable copies of copies.
-	for addr := range from.stateObjectsDirty {
-		if _, exist := to.addressToObjectIndex[addr]; !exist {
-			idx, _ := from.addressToObjectIndex[addr]
-			to.setStateObject(from.stateObjects[idx].stateObject.deepCopy(to))
-			to.stateObjectsDirty[addr] = struct{}{}
-		}
-	}
-
-	// copy pre-images
-	for i, preimageEntry := range from.preimages {
-		to.preimages[i] = preimageEntry
-		to.hashToPreimageIndex[preimageEntry.hash] = i
-	}
 }
 
 // ForEachStorage iterates over each storage items, all invoke the provided
