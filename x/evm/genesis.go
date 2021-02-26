@@ -242,7 +242,9 @@ func readStorageFromFile(path string) types.Storage {
 		if err != nil || io.EOF == err {
 			break
 		}
-		kvPair := strings.Split(kvStr, ":")
+		// remove '\n', then split kvStr based on ':'
+		kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
+		//convert hexStr into common.Hash struct
 		k, v := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
 		states = append(states, types.NewState(k, v))
 	}
