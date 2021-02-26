@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	absolutePath           = "/Users/green/project/okex/okexchain/tmp"
+	absolutePath           = "/tmp/okexchain"
 	absoluteCodePath       = absolutePath + "/code/"
 	absoluteStoragePath    = absolutePath + "/storage/"
 	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
