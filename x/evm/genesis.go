@@ -19,6 +19,8 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
+const tmpPath = "/tmp/okexchain/contracts"
+
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	k.SetParams(ctx, data.Params)
@@ -47,10 +49,15 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		//k.SetCode(ctx,address, account.Code)
-		filename := fmt.Sprintf("~project/okex/okexchain/contracts/%s.okexcontract", account.Address)
-		code := readContractFromFile(filename)
-		k.SetCode(ctx, address, code)
+
+		filename := fmt.Sprintf("%s/%s.okexcontract", tmpPath, account.Address)
+		if fileExist(filename) {
+			code := readContractFromFile(filename)
+			k.SetCode(ctx, address, code)
+		} else {
+			k.SetCode(ctx,address, account.Code)
+		}
+
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
@@ -83,7 +90,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
-	err := os.MkdirAll("./contracts", 0777)
+	err := os.RemoveAll(tmpPath)
+	if err != nil {
+		panic(err)
+	}
+	err = os.MkdirAll(tmpPath, 0777)
 	if err != nil {
 		panic(err)
 	}
@@ -130,7 +141,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 }
 
 func writeContractIntoFile(addr string, code hexutil.Bytes) {
-	filename := fmt.Sprintf("./contracts/%s.okexcontract", addr)
+	filename := fmt.Sprintf("%s/%s.okexcontract", tmpPath, addr)
 	dstFile, err := os.Create(filename)
 	if err != nil {
 		panic(err)
@@ -171,4 +182,15 @@ func readContractFromFile(path string) []byte {
 	}
 
 	return hexcode
+}
+
+func fileExist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
 }
