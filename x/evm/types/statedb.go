@@ -109,6 +109,26 @@ func NewCommitStateDB(
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
 		journal:              newJournal(),
+		validRevisions:       []revision{},
+		accessList:           newAccessList(),
+	}
+}
+
+func (csdb CommitStateDB) GenerateEmptyStateDB(ctx sdk.Context) *CommitStateDB {
+	return &CommitStateDB{
+		ctx:                  ctx,
+		storeKey:             csdb.storeKey,
+		paramSpace:           csdb.paramSpace,
+		accountKeeper:        csdb.accountKeeper,
+		supplyKeeper:         csdb.supplyKeeper,
+		bankKeeper:           csdb.bankKeeper,
+		stateObjects:         []stateEntry{},
+		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
+		preimages:            []preimageEntry{},
+		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
+		journal:              newJournal(),
+		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 	}
 }
@@ -784,13 +804,12 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 }
 
 func CopyCommitStateDB(from, to *CommitStateDB) {
-	from.lock.Lock()
-	defer from.lock.Unlock()
-
 	to.ctx = from.ctx
 	to.storeKey = from.storeKey
 	to.paramSpace = from.paramSpace
 	to.accountKeeper = from.accountKeeper
+	to.bankKeeper = from.bankKeeper
+	to.supplyKeeper = from.supplyKeeper
 	to.stateObjects = []stateEntry{}
 	to.addressToObjectIndex = make(map[ethcmn.Address]int)
 	to.stateObjectsDirty = make(map[ethcmn.Address]struct{})
@@ -816,9 +835,11 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 		//
 		// Ref: https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527
 		if idx, exist := from.addressToObjectIndex[dirty.address]; exist {
+			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
+			newStateObject.stateDB = to
 			to.stateObjects = append(to.stateObjects, stateEntry{
 				address:     dirty.address,
-				stateObject: from.stateObjects[idx].stateObject.deepCopy(to),
+				stateObject: newStateObject,
 			})
 			to.addressToObjectIndex[dirty.address] = len(to.stateObjects) - 1
 			to.stateObjectsDirty[dirty.address] = struct{}{}
@@ -830,7 +851,9 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 	// Thus, here we iterate over stateObjects, to enable copies of copies.
 	for addr := range from.stateObjectsDirty {
 		if idx, exist := to.addressToObjectIndex[addr]; !exist {
-			to.setStateObject(from.stateObjects[idx].stateObject.deepCopy(to))
+			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
+			newStateObject.stateDB = to
+			to.setStateObject(newStateObject)
 			to.stateObjectsDirty[addr] = struct{}{}
 		}
 	}

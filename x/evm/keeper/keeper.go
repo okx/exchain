@@ -68,6 +68,14 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
+func (k Keeper) GetCommitStateDB(ctx sdk.Context) *types.CommitStateDB {
+	if ctx.IsCheckTx() {
+		//reset simulation commit stateDB
+		return k.CommitStateDB.GenerateEmptyStateDB(ctx)
+	}
+	return k.CommitStateDB
+}
+
 // ----------------------------------------------------------------------------
 // Block hash mapping functions
 // Required by Web3 API.
@@ -100,12 +108,12 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) common.Hash {
-	return k.CommitStateDB.WithContext(ctx).GetHeightHash(height)
+	return k.GetCommitStateDB(ctx).WithContext(ctx).GetHeightHash(height)
 }
 
 // SetHeightHash sets the block header hash associated with a given height.
 func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) {
-	k.CommitStateDB.WithContext(ctx).SetHeightHash(height, hash)
+	k.GetCommitStateDB(ctx).WithContext(ctx).SetHeightHash(height, hash)
 }
 
 // ----------------------------------------------------------------------------
