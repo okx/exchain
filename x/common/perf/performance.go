@@ -25,6 +25,7 @@ const (
 	govModule          = "gov"
 	distributionModule = "distribution"
 	farmModule         = "farm"
+	evmModule          = "evm"
 	summaryFormat      = "BlockHeight<%d>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
@@ -150,6 +151,9 @@ func newPerf() *performance {
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
 	p.moduleInfoMap[farmModule] = newHanlderMetrics()
+	p.moduleInfoMap[evmModule] = newHanlderMetrics()
+
+	p.check = false
 
 	return p
 }
@@ -201,6 +205,9 @@ func (p *performance) OnBeginBlockEnter(ctx sdk.Context, moduleName string) uint
 	p.seqNum++
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	return p.seqNum
@@ -209,6 +216,9 @@ func (p *performance) OnBeginBlockEnter(ctx sdk.Context, moduleName string) uint
 func (p *performance) OnBeginBlockExit(ctx sdk.Context, moduleName string, seq uint64) {
 	p.sanityCheck(ctx, seq)
 	m := p.getModule(moduleName)
+	if m == nil {
+		return
+	}
 	m.beginBlockElapse = time.Now().UnixNano() - p.lastTimestamp
 }
 
@@ -218,6 +228,9 @@ func (p *performance) OnEndBlockEnter(ctx sdk.Context, moduleName string) uint64
 	p.seqNum++
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	return p.seqNum
@@ -226,7 +239,9 @@ func (p *performance) OnEndBlockEnter(ctx sdk.Context, moduleName string) uint64
 func (p *performance) OnEndBlockExit(ctx sdk.Context, moduleName string, seq uint64) {
 	p.sanityCheck(ctx, seq)
 	m := p.getModule(moduleName)
-
+	if m == nil {
+		return
+	}
 	m.endBlockElapse = time.Now().UnixNano() - p.lastTimestamp
 }
 
@@ -235,6 +250,9 @@ func (p *performance) OnEndBlockExit(ctx sdk.Context, moduleName string, seq uin
 func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName string) uint64 {
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	_, ok := m.data[handlerName]
@@ -253,10 +271,13 @@ func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName s
 	}
 
 	m := p.getModule(moduleName)
-
+	if m == nil {
+		return
+	}
 	info, ok := m.data[handlerName]
 	if !ok {
-		panic("Invalid handler name: " + handlerName)
+		//should never panic in performance monitoring
+		return
 	}
 	info.invoke++
 	info.elapse = time.Now().UnixNano() - p.lastTimestamp
@@ -355,7 +376,8 @@ func (p *performance) getModule(moduleName string) *moduleInfo {
 
 	v, ok := p.moduleInfoMap[moduleName]
 	if !ok {
-		panic("Invalid module name: " + moduleName)
+		//should never panic in performance monitoring
+		return nil
 	}
 
 	return v
