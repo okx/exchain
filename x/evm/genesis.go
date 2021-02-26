@@ -12,10 +12,9 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -23,10 +22,11 @@ const (
 	tmpPath           = "/tmp/okexchain"
 	tmpCodePath       = tmpPath + "/code/"
 	tmpStoragePath    = tmpPath + "/storage/"
-	tmpTxlogsFilePath = tmpPath + "/txlogs.evm"
+	tmpTxlogsFilePath = tmpPath + "/txlogs/"
 
 	codeFileSuffix    = ".code"
 	storageFileSuffix = ".storage"
+	txlogsFileSuffix  = ".json"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
@@ -63,8 +63,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		if fileExist(codeFilePath) {
 			code := readCodeFromFile(codeFilePath)
 			k.SetCode(ctx, address, code)
-		} else {
-			k.SetCode(ctx, address, account.Code)
 		}
 
 		// read Storage From file
@@ -74,19 +72,14 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			for _, state := range storage {
 				k.SetState(ctx, address, state.Key, state.Value)
 			}
-		} else {
-			for _, state := range account.Storage {
-				k.SetState(ctx, address, state.Key, state.Value)
-			}
 		}
 	}
 
-	var err error
-	for _, txLog := range data.TxsLogs {
-		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
-			panic(err)
-		}
-	}
+	txLogsFileNames, err := ioutil.ReadDir(tmpTxlogsFilePath)
+	fmt.Println(len(txLogsFileNames))
+	//for _, txLogsFileName := range txLogsFileNames { //todo
+	//	readTxLogsFromFile(txLogsFileName)
+	//}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 
@@ -146,11 +139,17 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		return false
 	})
 
+	// write tx logs
+	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
+		writeTxLogs(txLog.Hash.String(), txLog.Logs)
+		return false
+	})
+
 	config, _ := k.GetChainConfig(ctx)
 
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     k.GetAllTxLogs(ctx), //todo
+		TxsLogs:     []types.TransactionLogs{}, //todo
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
@@ -172,13 +171,13 @@ func initPath() {
 	}
 }
 
-// writeCode writes evm.accounts.Code into individual file
+// writeCode writes types.Code into individual file
 func writeCode(addr string, code hexutil.Bytes) {
 	filePath := tmpCodePath + addr + codeFileSuffix
 	writeDataIntoFile(code.String(), filePath)
 }
 
-// writeStorage writes evm.accounts.Storage into individual file
+// writeStorage writes types.Storage into individual file
 func writeStorage(addr string, storage types.Storage) {
 	filePath := tmpStoragePath + addr + storageFileSuffix
 	var kvs string
@@ -186,6 +185,16 @@ func writeStorage(addr string, storage types.Storage) {
 		kvs += fmt.Sprintf("%s:%s\n", state.Key.Hex(), state.Value.Hex())
 	}
 	writeDataIntoFile(kvs, filePath)
+}
+
+// writeTxLogs writes []*ethtypes.Log into individual file
+func writeTxLogs(hash string, logs []*ethtypes.Log) {
+	filePath := tmpTxlogsFilePath + hash + txlogsFileSuffix
+	data, err := types.MarshalLogs(logs)
+	if err != nil {
+		panic(err)
+	}
+	writeDataIntoFile(string(data), filePath)
 }
 
 func writeDataIntoFile(data string, filePath string) {
@@ -212,7 +221,7 @@ func writeDataIntoFile(data string, filePath string) {
 	}
 }
 
-// readCodeFromFile used for InitGenesis
+// readCodeFromFile used for setting types.Code into evm db when  InitGenesis
 func readCodeFromFile(path string) []byte {
 	bin, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -227,7 +236,7 @@ func readCodeFromFile(path string) []byte {
 	return hexcode
 }
 
-// readStorageFromFile used for InitGenesis
+// readStorageFromFile used for setting types.Storage into evm db when  InitGenesis
 func readStorageFromFile(path string) types.Storage {
 	f, err := os.Open(path)
 	if err != nil {
@@ -249,6 +258,23 @@ func readStorageFromFile(path string) types.Storage {
 		states = append(states, types.NewState(k, v))
 	}
 	return states
+}
+
+// readTxLogsFromFile used for setting []*ethtypes.Log into evm db when  InitGenesis
+func readTxLogsFromFile(path string) (ethcmn.Hash, []*ethtypes.Log) {
+	// Todo resolve hash
+
+	bin, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	txlog, err := types.UnmarshalLogs(bin)
+	if err != nil {
+		panic(err)
+	}
+
+	return ethcmn.Hash{}, txlog
 }
 
 // fileExist used for judging the contract file exists in path or not when InitGenesis
