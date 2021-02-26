@@ -169,6 +169,10 @@ func initPath() {
 	if err != nil {
 		panic(err)
 	}
+	err = os.MkdirAll(tmpTxlogsFilePath, 0777)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // writeCode writes types.Code into individual file
