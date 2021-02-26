@@ -113,6 +113,7 @@ func NewCommitStateDB(
 		journal:              newJournal(),
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
+		logs:                 []*ethtypes.Log{},
 	}
 }
 
