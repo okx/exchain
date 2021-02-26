@@ -8,8 +8,6 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/okexchain/app/config"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -184,7 +182,8 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 	if k.bankKeeper.BlacklistedAddr(to) {
 		return types.ErrBlockedRecipient(to.String())
 	}
-	if config.IsDisableTransferToContract(ctx) && k.IsContractAddress(ctx, to) {
+
+	if sdk.IsDisableTransferToContractBlock(ctx.BlockHeight()) && k.IsContractAddress(ctx, to) {
 		return types.ErrBlockedContractRecipient(to.String())
 	}
 
