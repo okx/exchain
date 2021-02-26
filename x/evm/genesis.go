@@ -3,15 +3,15 @@ package evm
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
@@ -19,7 +19,15 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-const tmpPath = "/tmp/okexchain/contracts"
+const (
+	tmpPath           = "/tmp/okexchain"
+	tmpCodePath       = tmpPath + "/code/"
+	tmpStoragePath    = tmpPath + "/storage/"
+	tmpTxlogsFilePath = tmpPath + "/txlogs.evm"
+
+	codeFileSuffix    = ".code"
+	storageFileSuffix = ".storage"
+)
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
@@ -50,16 +58,26 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
 
-		filename := fmt.Sprintf("%s/%s.okexcontract", tmpPath, account.Address)
-		if fileExist(filename) {
-			code := readContractFromFile(filename)
+		// read Code from file
+		codeFilePath := tmpCodePath + account.Address + codeFileSuffix
+		if fileExist(codeFilePath) {
+			code := readCodeFromFile(codeFilePath)
 			k.SetCode(ctx, address, code)
 		} else {
-			k.SetCode(ctx,address, account.Code)
+			k.SetCode(ctx, address, account.Code)
 		}
 
-		for _, storage := range account.Storage {
-			k.SetState(ctx, address, storage.Key, storage.Value)
+		// read Storage From file
+		storageFilePath := tmpStoragePath + account.Address + storageFileSuffix
+		if fileExist(storageFilePath) {
+			storage := readStorageFromFile(storageFilePath)
+			for _, state := range storage {
+				k.SetState(ctx, address, state.Key, state.Value)
+			}
+		} else {
+			for _, state := range account.Storage {
+				k.SetState(ctx, address, state.Key, state.Value)
+			}
 		}
 	}
 
@@ -90,14 +108,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
-	err := os.RemoveAll(tmpPath)
-	if err != nil {
-		panic(err)
-	}
-	err = os.MkdirAll(tmpPath, 0777)
-	if err != nil {
-		panic(err)
-	}
+	initPath()
 
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
@@ -109,21 +120,26 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		addr := ethAccount.EthAddress()
+		addrStr := addr.String()
 
+		// write Code
+		code := k.GetCode(ctx, addr)
+		if len(code) != 0 {
+			writeCode(addrStr, code)
+		}
+		// write Storage
 		storage, err := k.GetAccountStorage(ctx, addr)
 		if err != nil {
 			panic(err)
+		}
+		if len(storage) != 0 {
+			writeStorage(addrStr, storage)
 		}
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
-			Storage:  storage, //todo
-		}
-
-		code := k.GetCode(ctx, addr)
-		if len(code) != 0 {
-			writeContractIntoFile(genAccount.Address, code)
+			Storage: nil,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
@@ -140,17 +156,43 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	}
 }
 
-func writeContractIntoFile(addr string, code hexutil.Bytes) {
-	filename := fmt.Sprintf("%s/%s.okexcontract", tmpPath, addr)
-	dstFile, err := os.Create(filename)
+// initPath initials paths
+func initPath() {
+	err := os.RemoveAll(tmpPath)
 	if err != nil {
 		panic(err)
 	}
-	//
-	//dstFile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	//if err != nil {
-	//	panic(err)
-	//}
+	err = os.MkdirAll(tmpCodePath, 0777)
+	if err != nil {
+		panic(err)
+	}
+	err = os.MkdirAll(tmpStoragePath, 0777)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// writeCode writes evm.accounts.Code into individual file
+func writeCode(addr string, code hexutil.Bytes) {
+	filePath := tmpCodePath + addr + codeFileSuffix
+	writeDataIntoFile(code.String(), filePath)
+}
+
+// writeStorage writes evm.accounts.Storage into individual file
+func writeStorage(addr string, storage types.Storage) {
+	filePath := tmpStoragePath + addr + storageFileSuffix
+	var kvs string
+	for _, state := range storage {
+		kvs += fmt.Sprintf("%s:%s\n", state.Key.Hex(), state.Value.Hex())
+	}
+	writeDataIntoFile(kvs, filePath)
+}
+
+func writeDataIntoFile(data string, filePath string) {
+	dstFile, err := os.Create(filePath)
+	if err != nil {
+		panic(err)
+	}
 
 	bufWriter := bufio.NewWriter(dstFile)
 	defer func() {
@@ -164,13 +206,14 @@ func writeContractIntoFile(addr string, code hexutil.Bytes) {
 		}
 	}()
 
-	_, err = bufWriter.WriteString(code.String())
+	_, err = bufWriter.WriteString(data)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func readContractFromFile(path string) []byte {
+// readCodeFromFile used for InitGenesis
+func readCodeFromFile(path string) []byte {
 	bin, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -184,6 +227,29 @@ func readContractFromFile(path string) []byte {
 	return hexcode
 }
 
+// readStorageFromFile used for InitGenesis
+func readStorageFromFile(path string) types.Storage {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	var states types.Storage
+	rd := bufio.NewReader(f)
+	for {
+		kvStr, err := rd.ReadString('\n')
+		if err != nil || io.EOF == err {
+			break
+		}
+		kvPair := strings.Split(kvStr, ":")
+		k, v := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
+		states = append(states, types.NewState(k, v))
+	}
+	return states
+}
+
+// fileExist used for judging the contract file exists in path or not when InitGenesis
 func fileExist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
