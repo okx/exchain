@@ -82,8 +82,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		for _, fileInfo := range fileInfos {
-			txLogsFilePath := absoluteTxlogsFilePath + fileInfo.Name()
-			hash, logs := readTxLogsFromFile(txLogsFilePath)
+			hash := convertHexStrToHash(fileInfo.Name())
+			logs := readTxLogsFromFile(absoluteTxlogsFilePath + fileInfo.Name())
 			err = k.SetLogs(ctx, hash, logs)
 			if err != nil {
 				panic(err)
@@ -272,11 +272,7 @@ func readStorageFromFile(path string) types.Storage {
 }
 
 // readTxLogsFromFile used for setting []*ethtypes.Log into evm db when  InitGenesis
-func readTxLogsFromFile(path string) (ethcmn.Hash, []*ethtypes.Log) {
-	// Todo resolve hash
-	f := strings.Split(path, ".") // make 0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2.json -> [0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2, json]
-	hashStr := f[0]
-
+func readTxLogsFromFile(path string) []*ethtypes.Log {
 	bin, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -285,7 +281,14 @@ func readTxLogsFromFile(path string) (ethcmn.Hash, []*ethtypes.Log) {
 	var txLogs []*ethtypes.Log
 	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
 
-	return ethcmn.HexToHash(hashStr), txLogs
+	return txLogs
+}
+
+// convertHexStrToHash converts hexStr into ethcmn.Hash struct
+func convertHexStrToHash(filename string) ethcmn.Hash {
+	f := strings.Split(filename, ".") // make 0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2.json -> [0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2, json]
+	hashStr := f[0]
+	return ethcmn.HexToHash(hashStr)
 }
 
 // fileExist used for judging the file or path exist or not when InitGenesis
