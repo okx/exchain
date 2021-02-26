@@ -3,6 +3,7 @@ package evm
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,6 +15,7 @@ import (
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
+
 		var snapshotStateDB *types.CommitStateDB
 		if !ctx.IsCheckTx() {
 			snapshotStateDB = k.CommitStateDB.Copy()
@@ -50,14 +52,29 @@ func NewHandler(k *Keeper) sdk.Handler {
 			}
 		}()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+		var handlerFun func() (*sdk.Result, error)
+		var name string
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			result, err = handleMsgEthereumTx(ctx, k, msg)
+			name = "handleMsgEthereumTx"
+			handlerFun = func() (*sdk.Result, error) {
+				return handleMsgEthereumTx(ctx, k, msg)
+			}
 		case types.MsgEthermint:
-			result, err = handleMsgEthermint(ctx, k, msg)
+			name = "handleMsgEthermint"
+			handlerFun = func() (*sdk.Result, error) {
+				return handleMsgEthermint(ctx, k, msg)
+			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
+
+		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
+		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
+
+		result, err = handlerFun()
+
 		if err != nil {
 			if !ctx.IsCheckTx() {
 				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
