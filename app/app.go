@@ -440,6 +440,10 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 }
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
+
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
@@ -539,6 +543,7 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 
 	return app.BaseApp.EndBlock(req)
 }
+
 
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
