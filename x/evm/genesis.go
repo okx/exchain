@@ -283,7 +283,7 @@ func readTxLogsFromFile(path string) (ethcmn.Hash, []*ethtypes.Log) {
 	}
 
 	var txLogs []*ethtypes.Log
-	types.ModuleCdc.MustUnmarshalJSON(bin, txLogs)
+	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
 
 	return ethcmn.HexToHash(hashStr), txLogs
 }
