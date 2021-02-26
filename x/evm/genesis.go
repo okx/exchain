@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	tmpPath           = "/tmp/okexchain"
-	tmpCodePath       = tmpPath + "/code/"
-	tmpStoragePath    = tmpPath + "/storage/"
-	tmpTxlogsFilePath = tmpPath + "/txlogs/"
+	absolutePath           = "/Users/green/project/okex/okexchain/tmp"
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
+	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
 
 	codeFileSuffix    = ".code"
 	storageFileSuffix = ".storage"
@@ -59,15 +59,15 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		k.SetBalance(ctx, address, evmBalance.BigInt())
 
 		// read Code from file
-		codeFilePath := tmpCodePath + account.Address + codeFileSuffix
-		if fileExist(codeFilePath) {
+		codeFilePath := absoluteCodePath + account.Address + codeFileSuffix
+		if pathExist(codeFilePath) {
 			code := readCodeFromFile(codeFilePath)
 			k.SetCode(ctx, address, code)
 		}
 
 		// read Storage From file
-		storageFilePath := tmpStoragePath + account.Address + storageFileSuffix
-		if fileExist(storageFilePath) {
+		storageFilePath := absoluteStoragePath + account.Address + storageFileSuffix
+		if pathExist(storageFilePath) {
 			storage := readStorageFromFile(storageFilePath)
 			for _, state := range storage {
 				k.SetState(ctx, address, state.Key, state.Value)
@@ -75,16 +75,26 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 	}
 
-	txLogsFileNames, err := ioutil.ReadDir(tmpTxlogsFilePath)
-	fmt.Println(len(txLogsFileNames))
-	//for _, txLogsFileName := range txLogsFileNames { //todo
-	//	readTxLogsFromFile(txLogsFileName)
-	//}
+	if pathExist(absoluteTxlogsFilePath) {
+		fileInfos, err := ioutil.ReadDir(absoluteTxlogsFilePath)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, fileInfo := range fileInfos {
+			txLogsFilePath := absoluteTxlogsFilePath + fileInfo.Name()
+			hash, logs := readTxLogsFromFile(txLogsFilePath)
+			err = k.SetLogs(ctx, hash, logs)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	// set state objects and code to store
-	_, err = k.Commit(ctx, false)
+	_, err := k.Commit(ctx, false)
 	if err != nil {
 		panic(err)
 	}
@@ -157,19 +167,19 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 // initPath initials paths
 func initPath() {
-	err := os.RemoveAll(tmpPath)
+	err := os.RemoveAll(absolutePath)
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(tmpCodePath, 0777)
+	err = os.MkdirAll(absoluteCodePath, 0777)
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(tmpStoragePath, 0777)
+	err = os.MkdirAll(absoluteStoragePath, 0777)
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(tmpTxlogsFilePath, 0777)
+	err = os.MkdirAll(absoluteTxlogsFilePath, 0777)
 	if err != nil {
 		panic(err)
 	}
@@ -177,13 +187,13 @@ func initPath() {
 
 // writeCode writes types.Code into individual file
 func writeCode(addr string, code hexutil.Bytes) {
-	filePath := tmpCodePath + addr + codeFileSuffix
+	filePath := absoluteCodePath + addr + codeFileSuffix
 	writeDataIntoFile(code.String(), filePath)
 }
 
 // writeStorage writes types.Storage into individual file
 func writeStorage(addr string, storage types.Storage) {
-	filePath := tmpStoragePath + addr + storageFileSuffix
+	filePath := absoluteStoragePath + addr + storageFileSuffix
 	var kvs string
 	for _, state := range storage {
 		kvs += fmt.Sprintf("%s:%s\n", state.Key.Hex(), state.Value.Hex())
@@ -193,11 +203,8 @@ func writeStorage(addr string, storage types.Storage) {
 
 // writeTxLogs writes []*ethtypes.Log into individual file
 func writeTxLogs(hash string, logs []*ethtypes.Log) {
-	filePath := tmpTxlogsFilePath + hash + txlogsFileSuffix
-	data, err := types.MarshalLogs(logs)
-	if err != nil {
-		panic(err)
-	}
+	filePath := absoluteTxlogsFilePath + hash + txlogsFileSuffix
+	data := types.ModuleCdc.MustMarshalJSON(logs)
 	writeDataIntoFile(string(data), filePath)
 }
 
@@ -273,16 +280,14 @@ func readTxLogsFromFile(path string) (ethcmn.Hash, []*ethtypes.Log) {
 		panic(err)
 	}
 
-	txlog, err := types.UnmarshalLogs(bin)
-	if err != nil {
-		panic(err)
-	}
+	var txLogs []*ethtypes.Log
+	types.ModuleCdc.MustUnmarshalJSON(bin, txLogs)
 
-	return ethcmn.Hash{}, txlog
+	return ethcmn.Hash{}, txLogs
 }
 
-// fileExist used for judging the contract file exists in path or not when InitGenesis
-func fileExist(path string) bool {
+// fileExist used for judging the file or path exist or not when InitGenesis
+func pathExist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsExist(err) {
