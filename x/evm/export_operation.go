@@ -23,7 +23,7 @@ var (
 )
 
 func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 64)
+	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 8)
 }
 
 func addGoroutine() {
@@ -66,12 +66,12 @@ func createFile(filePath string) *os.File {
 	return file
 }
 
-func closeFile(writer *bufio.Writer, dstFile *os.File) {
+func closeFile(writer *bufio.Writer, file *os.File) {
 	err := writer.Flush()
 	if err != nil {
 		panic(err)
 	}
-	err = dstFile.Close()
+	err = file.Close()
 	if err != nil {
 		panic(err)
 	}
