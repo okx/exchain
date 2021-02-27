@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -14,6 +15,25 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/x/evm/types"
 )
+
+var (
+	goroutinePool chan struct{}
+	globalWG      sync.WaitGroup
+)
+
+func initGoroutinePool() {
+	goroutinePool = make(chan struct{}, 1)
+}
+
+func addGoroutine() {
+	goroutinePool <- struct{}{}
+	globalWG.Add(1)
+}
+
+func finishGoroutine() {
+	<- goroutinePool
+	globalWG.Done()
+}
 
 // initExportEnv initials paths
 func initExportEnv() {
@@ -33,76 +53,16 @@ func initExportEnv() {
 	if err != nil {
 		panic(err)
 	}
+
+	initGoroutinePool()
 }
 
 func createFile(filePath string) *os.File {
-	dstFile, err := os.Create(filePath)
+	file, err := os.Create(filePath)
 	if err != nil {
 		panic(err)
 	}
-	return dstFile
-}
-
-func writeOneLine(writer *bufio.Writer, data string) {
-	_, err := writer.WriteString(data)
-	if err != nil {
-		panic(err)
-	}
-}
-
-// syncWriteAccountCode writes types.Code into individual file in sync
-func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	code := k.GetCode(ctx, address)
-	if len(code) != 0 {
-		dstFile := createFile(absoluteCodePath + address.String() + codeFileSuffix)
-		bufWriter := bufio.NewWriter(dstFile)
-		defer closeFile(bufWriter, dstFile)
-		writeOneLine(bufWriter, hexutil.Bytes(code).String())
-	}
-}
-
-// syncWriteAccountStorageSlice writes types.Storage into individual file in sync
-func syncWriteAccountStorageSlice(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	filename := absoluteStoragePath + address.String() + storageFileSuffix
-	index := 0
-	defer func() {
-		if index == 0 {
-			if err := os.Remove(filename); err != nil {
-				panic(err)
-			}
-		}
-	}()
-
-	dstFile := createFile(filename)
-	bufWriter := bufio.NewWriter(dstFile)
-	defer closeFile(bufWriter, dstFile)
-
-	err := k.ForEachStorage(ctx, address, func(key, value ethcmn.Hash) bool {
-		writeOneLine(bufWriter, fmt.Sprintf("%s:%s\n", key.Hex(), value.Hex()))
-		index++
-		return false
-	})
-	if err != nil {
-		panic(err)
-	}
-}
-
-// writeTxLogs writes []*ethtypes.Log into individual file
-func writeAllTxLogs(ctx sdk.Context, k Keeper) {
-	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
-		syncWriteTxLogs(txLog.Hash.String(), txLog.Logs)
-		return false
-	})
-}
-
-// writeTxLogs writes []*ethtypes.Log into individual file
-func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
-	dstFile := createFile(absoluteTxlogsFilePath + hash + txlogsFileSuffix)
-	bufWriter := bufio.NewWriter(dstFile)
-	defer closeFile(bufWriter, dstFile)
-
-	data := types.ModuleCdc.MustMarshalJSON(logs)
-	writeOneLine(bufWriter, string(data))
+	return file
 }
 
 func closeFile(writer *bufio.Writer, dstFile *os.File) {
@@ -114,6 +74,77 @@ func closeFile(writer *bufio.Writer, dstFile *os.File) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func writeOneLine(writer *bufio.Writer, data string) {
+	_, err := writer.WriteString(data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// syncWriteAccountCode writes types.Code into individual file in sync
+func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+	addGoroutine()
+	defer finishGoroutine()
+
+	code := k.GetCode(ctx, address)
+	if len(code) != 0 {
+		file := createFile(absoluteCodePath + address.String() + codeFileSuffix)
+		writer := bufio.NewWriter(file)
+		defer closeFile(writer, file)
+		writeOneLine(writer, hexutil.Bytes(code).String())
+	}
+}
+
+// syncWriteAccountStorageSlice writes types.Storage into individual file in sync
+func syncWriteAccountStorageSlice(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+	addGoroutine()
+	defer finishGoroutine()
+
+	filename := absoluteStoragePath + address.String() + storageFileSuffix
+	index := 0
+	defer func() {
+		if index == 0 {
+			if err := os.Remove(filename); err != nil {
+				panic(err)
+			}
+		}
+	}()
+
+	file := createFile(filename)
+	writer := bufio.NewWriter(file)
+	defer closeFile(writer, file)
+
+	err := k.ForEachStorage(ctx, address, func(key, value ethcmn.Hash) bool {
+		writeOneLine(writer, fmt.Sprintf("%s:%s\n", key.Hex(), value.Hex()))
+		index++
+		return false
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// writeAllTxLogs iterates all tx logs
+func writeAllTxLogs(ctx sdk.Context, k Keeper) {
+	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
+		syncWriteTxLogs(txLog.Hash.String(), txLog.Logs)
+		return false
+	})
+}
+
+// syncWriteTxLogs writes []*ethtypes.Log based on one hash into individual file in sync
+func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
+	addGoroutine()
+	defer finishGoroutine()
+
+	dstFile := createFile(absoluteTxlogsFilePath + hash + txlogsFileSuffix)
+	bufWriter := bufio.NewWriter(dstFile)
+	defer closeFile(bufWriter, dstFile)
+
+	data := types.ModuleCdc.MustMarshalJSON(logs)
+	writeOneLine(bufWriter, string(data))
 }
 
 // readCodeFromFile used for setting types.Code into evm db when  InitGenesis

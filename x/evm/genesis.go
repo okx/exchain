@@ -135,6 +135,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	// write tx logs
 	writeAllTxLogs(ctx, k)
+	globalWG.Wait()
 
 	config, _ := k.GetChainConfig(ctx)
 
