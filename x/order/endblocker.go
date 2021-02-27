@@ -2,7 +2,6 @@ package order
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/okex/okexchain/x/common/perf"
@@ -26,15 +25,18 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	keeper.SetMetric()
 	ret := keeper.GetOperationMetric()
-	msg := fmt.Sprintf(
-		"fullFilled<%d>, pending<%d>, "+
-			"canceled<%d>, expired<%d>, "+
-			"partialFilled<%d>",
-		ret.FullFillNum,
-		ret.OpenNum,
-		ret.CancelNum,
-		ret.ExpireNum,
-		ret.PartialFillNum)
 
-	perf.GetPerf().EnqueueMsg(msg)
+	if ret.FullFillNum > 0 || ret.OpenNum > 0 || ret.CancelNum > 0 || ret.ExpireNum > 0 || ret.PartialFillNum > 0 {
+		msg := fmt.Sprintf(
+			"fullFilled<%d>, pending<%d>, "+
+				"canceled<%d>, expired<%d>, "+
+				"partialFilled<%d>",
+			ret.FullFillNum,
+			ret.OpenNum,
+			ret.CancelNum,
+			ret.ExpireNum,
+			ret.PartialFillNum)
+
+		perf.GetPerf().EnqueueMsg(msg)
+	}
 }
