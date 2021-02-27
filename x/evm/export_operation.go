@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -22,7 +23,7 @@ var (
 )
 
 func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, 1)
+	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 64)
 }
 
 func addGoroutine() {
