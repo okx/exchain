@@ -105,7 +105,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
-	initPath()
+	initExportEnv()
 
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
@@ -117,21 +117,11 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		addr := ethAccount.EthAddress()
-		addrStr := addr.String()
 
 		// write Code
-		code := k.GetCode(ctx, addr)
-		if len(code) != 0 {
-			writeCode(addrStr, code)
-		}
+		go syncWriteAccountCode(ctx, k, addr)
 		// write Storage
-		storage, err := k.GetAccountStorage(ctx, addr)
-		if err != nil {
-			panic(err)
-		}
-		if len(storage) != 0 {
-			writeStorage(addrStr, storage)
-		}
+		go syncWriteAccountStorageSlice(ctx, k, addr)
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
@@ -144,10 +134,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 
 	// write tx logs
-	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
-		writeTxLogs(txLog.Hash.String(), txLog.Logs)
-		return false
-	})
+	writeAllTxLogs(ctx, k)
 
 	config, _ := k.GetChainConfig(ctx)
 
