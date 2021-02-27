@@ -13,7 +13,7 @@ import (
 var (
 	_ Perf = &performance{}
 	_      = info{txNum: 0, beginBlockElapse: 0,
-		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0}
+		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0, txElapseBySum: 0}
 )
 
 const (
@@ -34,6 +34,7 @@ const (
 	appFormat = "App: Height<%d>, " +
 		"BeginBlock<%dms>, " +
 		"DeliverTx<%dms>, " +
+		"txElapseBySum<%dms>, " +
 		"EndBlock<%dms>, " +
 		"Commit<%dms>, " +
 		"Tx<%d>" +
@@ -70,6 +71,9 @@ type Perf interface {
 	OnAppEndBlockEnter(height int64) uint64
 	OnAppEndBlockExit(height int64, seq uint64)
 
+	OnAppDeliverTxEnter(height int64) uint64
+	OnAppDeliverTxExit(height int64, seq uint64)
+
 	OnCommitEnter(height int64) uint64
 	OnCommitExit(height int64, seq uint64, logger log.Logger)
 
@@ -95,7 +99,8 @@ type info struct {
 	blockheight      int64
 	beginBlockElapse int64
 	endBlockElapse   int64
-	deliverTxElapse  int64
+	txElapseBySum    int64
+	deliverTxElapse int64
 	txNum            uint64
 }
 
@@ -198,6 +203,20 @@ func (p *performance) OnAppEndBlockExit(height int64, seq uint64) {
 	p.sanityCheckApp(height, seq)
 	p.app.endBlockElapse = time.Now().UnixNano() - p.app.lastTimestamp
 }
+//////////////////////////////////////////////////////////////////
+func (p *performance) OnAppDeliverTxEnter(height int64) uint64 {
+	p.sanityCheckApp(height, p.app.seqNum)
+
+	p.app.seqNum++
+	p.app.lastTimestamp = time.Now().UnixNano()
+
+	return p.app.seqNum
+}
+
+func (p *performance) OnAppDeliverTxExit(height int64, seq uint64) {
+	p.sanityCheckApp(height, seq)
+	p.app.deliverTxElapse += time.Now().UnixNano() - p.app.lastTimestamp
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -290,7 +309,7 @@ func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName s
 	m.deliverTxElapse += elapse
 
 	p.app.txNum++
-	p.app.deliverTxElapse += elapse
+	p.app.txElapseBySum += elapse
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -327,9 +346,14 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		}
 	}
 
-	logger.Info(fmt.Sprintf(appFormat, p.app.blockheight, p.app.beginBlockElapse/unit, p.app.deliverTxElapse/unit,
-		p.app.endBlockElapse/unit, p.app.commitElapse/unit, p.app.txNum, moduleInfo))
-
+	logger.Info(fmt.Sprintf(appFormat, p.app.blockheight,
+		p.app.beginBlockElapse/unit,
+		p.app.deliverTxElapse/unit,
+		p.app.txElapseBySum/unit,
+		p.app.endBlockElapse/unit,
+		p.app.commitElapse/unit,
+		p.app.txNum,
+		moduleInfo))
 
 	if len(p.msgQueue) > 0 {
 		for _, e := range p.msgQueue {
