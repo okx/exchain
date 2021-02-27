@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	okexchain "github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/app/config"
 	app "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/common/version"
@@ -63,7 +62,7 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	}
 	for i, tt := range TestSets {
 		t.Run(tt.description, func(t *testing.T) {
-			ctx = okexapp.NewContext(true, abci.Header{Height: config.DisableTransferToContractBlock - int64(2) + int64(i)})
+			ctx = okexapp.NewContext(true, abci.Header{Height: sdk.VERSION_0_16_x_HEIGHT_NUM - int64(2) + int64(i)})
 			handler(ctx, TestSets[i].msg)
 			acc := okexapp.AccountKeeper.GetAccount(ctx, tt.account.Address)
 			acc.GetCoins().String()
