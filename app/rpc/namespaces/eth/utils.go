@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -38,6 +39,26 @@ func ParseGasPrice() *hexutil.Big {
 
 	//return the default gas price : DefaultGasPrice
 	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
+}
+
+type performanceSimulate struct {
+	callTimeStamp int64
+}
+
+func (p *performanceSimulate) BeginSimulate() *performanceSimulate {
+	p.callTimeStamp = time.Now().UnixNano()
+	return p
+}
+
+func (p performanceSimulate) EndSimulate() uint64 {
+	//return in ms
+	return uint64((time.Now().UnixNano() - p.callTimeStamp) / int64(1e6))
+}
+
+func NewPerformanceSimulate() *performanceSimulate {
+	return &performanceSimulate{
+		callTimeStamp: 0,
+	}
 }
 
 type cosmosError struct {

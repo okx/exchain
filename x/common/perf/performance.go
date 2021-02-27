@@ -91,7 +91,7 @@ type Perf interface {
 }
 
 type hanlderInfo struct {
-	invoke uint64
+	invoke          uint64
 	deliverTxElapse int64
 }
 
@@ -100,7 +100,7 @@ type info struct {
 	beginBlockElapse int64
 	endBlockElapse   int64
 	txElapseBySum    int64
-	deliverTxElapse int64
+	deliverTxElapse  int64
 	txNum            uint64
 }
 
@@ -203,6 +203,7 @@ func (p *performance) OnAppEndBlockExit(height int64, seq uint64) {
 	p.sanityCheckApp(height, seq)
 	p.app.endBlockElapse = time.Now().UnixNano() - p.app.lastTimestamp
 }
+
 //////////////////////////////////////////////////////////////////
 func (p *performance) OnAppDeliverTxEnter(height int64) uint64 {
 	p.sanityCheckApp(height, p.app.seqNum)
@@ -269,6 +270,9 @@ func (p *performance) OnEndBlockExit(ctx sdk.Context, moduleName string, seq uin
 
 func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName string) uint64 {
 
+	if ctx.IsCheckTx() {
+		return 0
+	}
 	m := p.getModule(moduleName)
 	if m == nil {
 		return 0
@@ -286,10 +290,11 @@ func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName 
 }
 
 func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName string, seq uint64) {
-	if !ctx.IsCheckTx() {
-		p.sanityCheck(ctx, seq)
+	if ctx.IsCheckTx() {
+		return
 	}
 
+	p.sanityCheck(ctx, seq)
 	m := p.getModule(moduleName)
 	if m == nil {
 		return

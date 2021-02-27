@@ -517,6 +517,10 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 // Call performs a raw contract call.
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
+
+	perf := NewPerformanceSimulate().BeginSimulate()
+	defer api.logger.Info("Once call of eth_call cost %d ms", perf.EndSimulate())
+
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
@@ -640,6 +644,10 @@ func (api *PublicEthereumAPI) doCall(
 // param from the SDK.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	api.logger.Debug("eth_estimateGas", "args", args)
+
+	perf := NewPerformanceSimulate().BeginSimulate()
+	defer api.logger.Info("once call of eth_estimateGas cost %d ms", perf.EndSimulate())
+
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
