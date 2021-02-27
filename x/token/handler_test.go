@@ -41,9 +41,9 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	require.Nil(t, err)
 
 	successfulSendMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[1].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1))})
-	failedSendMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[2].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1))})
+	sendToContractMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[2].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1))})
 	successfulMultiSendMsg := types.NewMsgMultiSend(gAcc[0].Address, transfers)
-	failedMultiSendMsg := types.NewMsgMultiSend(gAcc[0].Address, transfers2)
+	multiSendToContractMsg := types.NewMsgMultiSend(gAcc[0].Address, transfers2)
 	handler := token.NewTokenHandler(okexapp.TokenKeeper, version.CurrentProtocolVersion)
 	okexapp.BankKeeper.SetSendEnabled(ctx, true)
 	TestSets := []struct {
@@ -57,8 +57,10 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 		{"success to multi-send", "9989.000000000000000000okt", successfulMultiSendMsg, gAcc[0]},
 		{"success to send", "9988.000000000000000000okt", successfulSendMsg, gAcc[0]},
 		{"success to multi-send", "9978.000000000000000000okt", successfulMultiSendMsg, gAcc[0]},
-		{"fail to send ", "9978.000000000000000000okt", failedSendMsg, gAcc[0]},
-		{"fail to multi-send ", "9978.000000000000000000okt", failedMultiSendMsg, gAcc[0]},
+		//{"fail to send to contract", "9978.000000000000000000okt", failedSendMsg, gAcc[0]},
+		//{"fail to multi-send to contract", "9978.000000000000000000okt", failedMultiSendMsg, gAcc[0]},
+		{"success to send to contract", "9977.000000000000000000okt", sendToContractMsg, gAcc[0]},
+		{"success to multi-send to contract", "9967.000000000000000000okt", multiSendToContractMsg, gAcc[0]},
 	}
 	for i, tt := range TestSets {
 		t.Run(tt.description, func(t *testing.T) {
