@@ -544,7 +544,6 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 	return app.BaseApp.EndBlock(req)
 }
 
-
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
