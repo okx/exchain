@@ -42,6 +42,9 @@ func (s Storage) String() string {
 
 // Copy returns a copy of storage.
 func (s Storage) Copy() Storage {
+	if s == nil {
+		return nil
+	}
 	cpy := make(Storage, len(s))
 	copy(cpy, s)
 

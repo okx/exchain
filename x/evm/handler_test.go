@@ -92,6 +92,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				// sign transaction
 				err = tx.Sign(chainID, privkey.ToECDSA())
 				suite.Require().NoError(err)
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			true,
 		},
@@ -110,6 +111,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 				// sign transaction
 				err = tx.Sign(chainID, privkey.ToECDSA())
 				suite.Require().NoError(err)
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			false,
 		},
@@ -141,9 +143,10 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
-
 			res, err := suite.handler(suite.ctx, tx)
-
+			csdb := suite.app.EvmKeeper.CommitStateDB
+			copyDB := csdb.Copy()
+			types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 			//nolint
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -177,6 +180,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			true,
 		},
@@ -185,6 +189,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 			func() {
 				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			false,
 		},
@@ -269,6 +274,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
+
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestQueryTxLogs() {
@@ -318,6 +327,10 @@ func (suite *EvmTestSuite) TestQueryTxLogs() {
 	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
 	resultData.Logs[0].Data = []byte{}
 	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
+
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestDeployAndCallContract() {
@@ -428,6 +441,10 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 
 	getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
 	suite.Require().Equal(true, strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
+
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestSendTransaction() {
@@ -444,7 +461,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
 
 	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
-
+	suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 	// send simple value transfer with gasLimit=21000
 	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(1), gasLimit, gasPrice, nil)
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
@@ -456,6 +473,10 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	suite.Require().NotNil(result)
 	var expectedGas uint64 = 5387
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
+
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
@@ -541,6 +562,10 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 
 	suite.handler(suite.ctx, tx)
 	suite.Require().Fail("panic did not happen")
+
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
@@ -616,6 +641,9 @@ func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
 	suite.Require().Nil(result)
 	suite.Require().NotNil(err)
 	suite.Require().Equal(err.Error(), "[\"execution reverted\",\"execution reverted:this is my test failed message\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e74686973206973206d792074657374206661696c6564206d6573736167650000\"]")
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
@@ -640,6 +668,9 @@ func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	currentCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
 	suite.Require().Nil(err)
 	suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }
 
 func (suite *EvmTestSuite) TestDefaultMsgHandler() {
@@ -681,6 +712,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 				// sign transaction
 				err = tx.Sign(chainID, privkey.ToECDSA())
 				suite.Require().NoError(err)
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			big.NewInt(0),
 		},
@@ -699,6 +731,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 
 				err = tx.Sign(chainID, privkey.ToECDSA())
 				suite.Require().NoError(err)
+				suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 			},
 			big.NewInt(0),
 		},
@@ -719,6 +752,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 			balanceAfterRefund := suite.app.EvmKeeper.GetBalance(suite.ctx, sender)
 
 			suite.Require().Equal(big.NewInt(1).Mul(gasRefund, big.NewInt(1)), big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
+			suite.app.EvmKeeper.CommitStateDB.Finalise(true)
 		})
 	}
 }
@@ -755,4 +789,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	suite.Require().Nil(err)
 	var expectedGas uint64 = 26387
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
+	csdb := suite.app.EvmKeeper.CommitStateDB
+	copyDB := csdb.Copy()
+	types.CompareCommitStateDB(suite.T(), csdb, copyDB)
 }

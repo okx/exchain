@@ -395,22 +395,46 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	newAccount := types.ProtoAccount().(*types.EthAccount)
 	jsonAccount, err := so.account.MarshalJSON()
 	if err != nil {
-		return nil
+		panic(err)
 	}
 	err = newAccount.UnmarshalJSON(jsonAccount)
 	if err != nil {
-		return nil
+		panic(err)
 	}
 	newStateObj := newStateObject(db, newAccount)
+	if so.account.PubKey == nil {
+		newStateObj.account.PubKey = nil
+	}
+	if so.account.CodeHash == nil {
+		newStateObj.account.CodeHash = nil
+	}
+	if so.account.Coins == nil {
+		newStateObj.account.Coins = nil
+	}
+	if so.account.Address == nil {
+		newStateObj.account.Address = nil
+	}
+	if so.code == nil {
+		newStateObj.code = nil
+	} else {
+		newStateObj.code = make(types.Code, len(so.code))
+		copy(newStateObj.code, so.code)
+	}
 
-	newStateObj.code = make(types.Code, len(so.code))
-	copy(newStateObj.code, so.code)
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()
 	newStateObj.suicided = so.suicided
 	newStateObj.dirtyCode = so.dirtyCode
 	newStateObj.deleted = so.deleted
 
+	newStateObj.keyToOriginStorageIndex = make(map[ethcmn.Hash]int)
+	for k, v := range so.keyToOriginStorageIndex {
+		newStateObj.keyToOriginStorageIndex[k] = v
+	}
+	newStateObj.keyToDirtyStorageIndex = make(map[ethcmn.Hash]int)
+	for k, v := range so.keyToDirtyStorageIndex {
+		newStateObj.keyToDirtyStorageIndex[k] = v
+	}
 	return newStateObj
 }
 
