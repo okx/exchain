@@ -310,7 +310,6 @@ func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName s
 
 	p.app.txNum++
 	p.app.txElapseBySum += elapse
-	//p.app.deliverTxElapse += elapse
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
