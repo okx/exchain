@@ -100,7 +100,7 @@ type info struct {
 	beginBlockElapse int64
 	endBlockElapse   int64
 	txElapseBySum    int64
-	deliverTxElapse int64
+	deliverTxElapse  int64
 	txNum            uint64
 }
 
@@ -268,6 +268,9 @@ func (p *performance) OnEndBlockExit(ctx sdk.Context, moduleName string, seq uin
 ////////////////////////////////////////////////////////////////////////////////////
 
 func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName string) uint64 {
+	if ctx.IsCheckTx() {
+		return 0
+	}
 
 	m := p.getModule(moduleName)
 	if m == nil {
@@ -286,9 +289,10 @@ func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName 
 }
 
 func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName string, seq uint64) {
-	if !ctx.IsCheckTx() {
-		p.sanityCheck(ctx, seq)
+	if ctx.IsCheckTx() {
+		return
 	}
+	p.sanityCheck(ctx, seq)
 
 	m := p.getModule(moduleName)
 	if m == nil {
