@@ -310,6 +310,7 @@ func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName s
 
 	p.app.txNum++
 	p.app.txElapseBySum += elapse
+	//p.app.deliverTxElapse += elapse
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -354,7 +355,6 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		p.app.commitElapse/unit,
 		p.app.txNum,
 		moduleInfo))
-
 
 	if len(p.msgQueue) > 0 {
 		for _, e := range p.msgQueue {
