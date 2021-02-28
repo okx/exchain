@@ -61,41 +61,44 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 
 func (suite *KeeperTestSuite) TestResetCache() {
 	// fill journal
-	suite.app.EvmKeeper.CommitStateDB.AddAddressToAccessList(suite.address)
+	suite.stateDB.AddAddressToAccessList(suite.address)
 	// fill refund
-	suite.app.EvmKeeper.CommitStateDB.AddRefund(100)
+	suite.stateDB.AddRefund(100)
 	// fill validRevisions
-	suite.app.EvmKeeper.CommitStateDB.Snapshot()
+	suite.stateDB.Snapshot()
 
 	// fill txIndex,thash,bhash
 	thash := ethcmn.BytesToHash([]byte("thash"))
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 2
-	suite.app.EvmKeeper.CommitStateDB.Prepare(thash, txi)
-	suite.app.EvmKeeper.CommitStateDB.SetBlockHash(bhash)
+	suite.stateDB.Prepare(thash, bhash, txi)
 
 	// fill logSize
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 	log := ethtypes.Log{Address: contractAddress}
-	suite.app.EvmKeeper.CommitStateDB.AddLog(&log)
+	suite.stateDB.AddLog(&log)
 
 	// fill preimages, hashToPreimageIndex
 	hash := ethcmn.BytesToHash([]byte("hash"))
 	preimage := []byte("preimage")
-	suite.app.EvmKeeper.CommitStateDB.AddPreimage(hash, preimage)
+	suite.stateDB.AddPreimage(hash, preimage)
 
 	// fill stateObjects, addressToObjectIndex, stateObjectsDirty
 	priv, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 	addr := ethcrypto.PubkeyToAddress(priv.ToECDSA().PublicKey)
-	suite.app.EvmKeeper.CommitStateDB.CreateAccount(addr)
+	suite.stateDB.CreateAccount(addr)
 
 	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 1})
 
-	suite.Require().Zero(suite.app.EvmKeeper.CommitStateDB.TxIndex())
-	suite.Require().Equal(ethcmn.Hash{}, suite.app.EvmKeeper.CommitStateDB.BlockHash())
+	err = suite.stateDB.Reset(ethcmn.Hash{})
+	suite.Require().Nil(err)
+
+	suite.Require().Zero(suite.stateDB.TxIndex())
+	suite.Require().Equal(ethcmn.Hash{}, suite.stateDB.BlockHash())
+
 	suite.Require().Zero(suite.app.EvmKeeper.Bloom.Int64())
 	suite.Require().Zero(suite.app.EvmKeeper.TxCount)
-	suite.Require().Zero(len(suite.app.EvmKeeper.Preimages(suite.ctx)))
-	suite.Require().Zero(suite.app.EvmKeeper.CommitStateDB.GetRefund())
+	suite.Require().Zero(len(suite.stateDB.WithContext(suite.ctx).Preimages()))
+	suite.Require().Zero(suite.stateDB.GetRefund())
 }

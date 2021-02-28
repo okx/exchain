@@ -29,11 +29,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
-	k.CommitStateDB.SetBlockHash(common.BytesToHash(currentHash))
 
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
+	k.Bhash = common.BytesToHash(currentHash)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -43,21 +43,6 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-
-	// Update account balances before committing other parts of state
-	k.UpdateAccounts(ctx)
-
-	root, err := k.Commit(ctx, true)
-	// Commit state objects to KV store
-	if err != nil {
-		k.Logger(ctx).Error("failed to commit state objects", "error", err, "height", ctx.BlockHeight())
-		panic(err)
-	}
-
-	// reset all cache after account data has been committed, that make sure node state consistent
-	if err = k.Reset(ctx, root); err != nil {
-		panic(err)
-	}
 
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())

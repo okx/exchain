@@ -41,7 +41,7 @@ func (suite *StateDBTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-1"})
-	suite.stateDB = suite.app.EvmKeeper.CommitStateDB.WithContext(suite.ctx)
+	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 
 	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
@@ -88,7 +88,8 @@ func (suite *StateDBTestSuite) TestGetHeightHash() {
 func (suite *StateDBTestSuite) TestBloomFilter() {
 	// Prepare db for logs
 	tHash := ethcmn.BytesToHash([]byte{0x1})
-	suite.stateDB.Prepare(tHash, 0)
+	bhash := ethcmn.BytesToHash([]byte{0x1})
+	suite.stateDB.Prepare(tHash, bhash, 0)
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 	log := ethtypes.Log{Address: contractAddress}
 
@@ -426,7 +427,7 @@ func (suite *StateDBTestSuite) TestSuiteDB_Prepare() {
 	bhash := ethcmn.BytesToHash([]byte("bhash"))
 	txi := 1
 
-	suite.stateDB.Prepare(thash, txi)
+	suite.stateDB.Prepare(thash, bhash, txi)
 	suite.stateDB.SetBlockHash(bhash)
 
 	suite.Require().Equal(txi, suite.stateDB.TxIndex())

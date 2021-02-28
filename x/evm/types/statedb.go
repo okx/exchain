@@ -32,6 +32,14 @@ type revision struct {
 	journalIndex int
 }
 
+type CommitStateDBParams struct {
+	StoreKey      sdk.StoreKey
+	ParamSpace    params.Subspace
+	AccountKeeper AccountKeeper
+	SupplyKeeper  SupplyKeeper
+	BankKeeper    bank.Keeper
+}
+
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
 // a trie and database for querying and persistence, the Keeper uses KVStores
 // and an account mapper is used to facilitate state transitions.
@@ -88,12 +96,12 @@ type CommitStateDB struct {
 	lock sync.Mutex
 }
 
-// NewCommitStateDB returns a reference to a newly initialized CommitStateDB
+// newCommitStateDB returns a reference to a newly initialized CommitStateDB
 // which implements Geth's state.StateDB interface.
 //
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
-func NewCommitStateDB(
+func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
@@ -103,6 +111,27 @@ func NewCommitStateDB(
 		accountKeeper:        ak,
 		supplyKeeper:         sk,
 		bankKeeper:           bk,
+		stateObjects:         []stateEntry{},
+		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
+		preimages:            []preimageEntry{},
+		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
+		journal:              newJournal(),
+		validRevisions:       []revision{},
+		accessList:           newAccessList(),
+	}
+}
+
+func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
+	return &CommitStateDB{
+		ctx: ctx,
+
+		storeKey:      csdbParams.StoreKey,
+		paramSpace:    csdbParams.ParamSpace,
+		accountKeeper: csdbParams.AccountKeeper,
+		supplyKeeper:  csdbParams.SupplyKeeper,
+		bankKeeper:    csdbParams.BankKeeper,
+
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -768,8 +797,9 @@ func (csdb *CommitStateDB) clearJournalAndRefund() {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-func (csdb *CommitStateDB) Prepare(thash ethcmn.Hash, txi int) {
+func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 	csdb.thash = thash
+	csdb.bhash = bhash
 	csdb.txIndex = txi
 }
 
