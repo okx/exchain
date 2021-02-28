@@ -11,10 +11,15 @@ import (
 )
 
 var (
+	lastHeightTimestamp int64
 	_ Perf = &performance{}
 	_      = info{txNum: 0, beginBlockElapse: 0,
 		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0, txElapseBySum: 0}
 )
+
+func init()  {
+	lastHeightTimestamp = time.Now().UnixNano()
+}
 
 const (
 	orderModule        = "order"
@@ -26,7 +31,7 @@ const (
 	distributionModule = "distribution"
 	farmModule         = "farm"
 	evmModule          = "evm"
-	summaryFormat      = "Summary: Height<%d>, " +
+	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>. " +
 		"%s"
@@ -359,12 +364,17 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		p.app.txNum,
 		moduleInfo))
 
+	interval := (time.Now().UnixNano() - lastHeightTimestamp)/unit/1e3
+	lastHeightTimestamp = time.Now().UnixNano()
+
 	if len(p.msgQueue) > 0 {
 		for _, e := range p.msgQueue {
-			logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, p.app.abciElapse()/unit, p.app.txNum, e))
+			logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
+				p.app.abciElapse()/unit, p.app.txNum, e))
 		}
 	} else {
-		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, p.app.abciElapse()/unit, p.app.txNum, ""))
+		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
+			p.app.abciElapse()/unit, p.app.txNum, ""))
 	}
 
 	p.msgQueue = nil
