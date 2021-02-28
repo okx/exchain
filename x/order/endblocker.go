@@ -26,17 +26,18 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 	keeper.SetMetric()
 	ret := keeper.GetOperationMetric()
 
-	if ret.FullFillNum > 0 || ret.OpenNum > 0 || ret.CancelNum > 0 || ret.ExpireNum > 0 || ret.PartialFillNum > 0 {
-		msg := fmt.Sprintf(
-			"fullFilled<%d>, pending<%d>, "+
-				"canceled<%d>, expired<%d>, "+
-				"partialFilled<%d>",
-			ret.FullFillNum,
-			ret.OpenNum,
-			ret.CancelNum,
-			ret.ExpireNum,
-			ret.PartialFillNum)
-
-		perf.GetPerf().EnqueueMsg(msg)
+	tailmsg := func(name string, num int64) string {
+		var msg string
+		if num != 0 {
+			msg = fmt.Sprintf("%s<%d>,", name, num)
+		}
+		return msg
 	}
+
+	message := tailmsg("FullFillNum", ret.FullFillNum)
+	message += tailmsg("OpenNum", ret.OpenNum)
+	message += tailmsg("CancelNum", ret.CancelNum)
+	message += tailmsg("ExpireNum", ret.ExpireNum)
+	message += tailmsg("PartialFillNum", ret.PartialFillNum)
+	perf.GetPerf().EnqueueMsg(message)
 }
