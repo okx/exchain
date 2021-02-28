@@ -108,7 +108,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc,
 		paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace),
-		 blacklistedAddrs)
+		blacklistedAddrs)
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName: nil,
 		token.ModuleName:      {supply.Minter, supply.Burner},
@@ -121,7 +121,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 
 	// token keeper
 	tokenKeepr := token.NewKeeper(bankKeeper, paramsKeeper.Subspace(token.DefaultParamspace),
-		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, true)
+		auth.FeeCollectorName, supplyKeeper, keyToken, keyLock, cdc, true, accountKeeper)
 
 	// dex keeper
 	paramsSubspace := paramsKeeper.Subspace(dex.DefaultParamspace)
