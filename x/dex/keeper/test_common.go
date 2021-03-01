@@ -111,7 +111,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 	// token keeper
 	tokenKeepr := token.NewKeeper(bankKeeper,
 		paramsKeeper.Subspace(token.DefaultParamspace), auth.FeeCollectorName, supplyKeeper,
-		keyToken, keyLock, cdc, true)
+		keyToken, keyLock, cdc, true, accountKeeper)
 
 	paramsSubspace := paramsKeeper.Subspace(types.DefaultParamspace)
 
