@@ -35,7 +35,9 @@ const (
 	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
-		"BlockSize<%d>, MemPoolTx<%d>, MemPoolTxTotalSize<%d>, " +
+		"BlockSize<%.2fKB>, " +
+		"MemPoolTx<%d>, " +
+		"MemPoolTxTotalSize<%.2fKB>, " +
 		"%s"
 
 	appFormat = "App: Height<%d>, " +
@@ -381,16 +383,20 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
 	}
 
-	if len(p.msgQueue) > 0 {
-		for _, e := range p.msgQueue {
-			logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
-				p.app.abciElapse()/unit, p.app.txNum,
-				tmStatus.blockSize, tmStatus.uncomfirmedTxNum, tmStatus.uncormfirmedTxTotalSize, e))
-		}
-	} else {
-		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
-			p.app.abciElapse()/unit, p.app.txNum,
-			tmStatus.blockSize, tmStatus.uncomfirmedTxNum, tmStatus.uncormfirmedTxTotalSize, ""))
+	if len(p.msgQueue) == 0 {
+		p.EnqueueMsg("")
+	}
+
+	for _, e := range p.msgQueue {
+		logger.Info(fmt.Sprintf(summaryFormat,
+			p.app.blockheight,
+			interval,
+			p.app.abciElapse()/unit,
+			p.app.txNum,
+			float64(tmStatus.blockSize)/1024,
+			tmStatus.uncomfirmedTxNum,
+			float64(tmStatus.uncormfirmedTxTotalSize)/1024,
+			e))
 	}
 
 	p.msgQueue = nil
