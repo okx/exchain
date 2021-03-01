@@ -114,9 +114,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 			Code:    nil,
 			//Storage: storage,
 		}
-		if code := k.GetCode(ctx, addr); code != nil {
-			db.Set(addr.Bytes(), code)
-		}
+		//if code := k.GetCode(ctx, addr); code != nil {
+		//	db.Set(addr.Bytes(), code)
+		//}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
