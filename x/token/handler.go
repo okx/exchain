@@ -270,7 +270,7 @@ func handleMsgMultiSend(ctx sdk.Context, keeper Keeper, msg types.MsgMultiSend, 
 		coinNum += len(transferUnit.Coins)
 		err := keeper.SendCoinsFromAccountToAccount(ctx, msg.From, transferUnit.To, transferUnit.Coins)
 		if err != nil {
-			return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
+			return types.ErrSendCoinsFromAccountToAccountFailed(err.Error()).Result()
 		}
 		transfers += fmt.Sprintf("                          msg<To:%s,Coin:%s>\n", transferUnit.To, transferUnit.Coins)
 	}
@@ -299,7 +299,7 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
+		return types.ErrSendCoinsFromAccountToAccountFailed(err.Error()).Result()
 	}
 
 	var name = "handleMsgSend"

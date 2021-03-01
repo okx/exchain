@@ -71,14 +71,14 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 		keyToken,
 		keyLock,
 		cdc,
-		true)
+		true, accountKeeper)
 	tk.SetParams(ctx, types.DefaultParams())
 
 	return ctx, tk, keyParams, []byte("testToken")
 }
 
 func NewTestToken(t *testing.T, ctx sdk.Context, keeper Keeper, bankKeeper bank.Keeper, tokenName string, addrList []sdk.AccAddress) {
-	require.NotEqual(t, 0 ,len(addrList))
+	require.NotEqual(t, 0, len(addrList))
 	tokenObject := InitTestTokenWithOwner(tokenName, addrList[0])
 	keeper.NewToken(ctx, tokenObject)
 

@@ -92,7 +92,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64, cfg *app
 		mockApp.keyToken,
 		mockApp.keyLock,
 		mockApp.Cdc,
-		true)
+		true, mockApp.AccountKeeper)
 
 	mockApp.DexKeeper = dex.NewKeeper(
 		auth.FeeCollectorName,

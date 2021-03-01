@@ -55,6 +55,18 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 	return nil
 }
 
+func checkDenom(paramProposal types.ParameterChangeProposal) sdk.Error {
+	for _, c := range paramProposal.Changes {
+		if c.Subspace == "evm" && c.Key == "EVMDenom" {
+			return sdkerrors.Wrap(sdkparams.ErrSettingParameter, "evm denom can not be reset")
+		}
+		if c.Subspace == "staking" && c.Key == "BondDenom" {
+			return sdkerrors.Wrap(sdkparams.ErrSettingParameter, "staking bond denom can not be reset")
+		}
+	}
+	return nil
+}
+
 // GetMinDeposit implements ProposalHandler interface
 func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govtypes.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
@@ -88,6 +100,13 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) 
 // CheckMsgSubmitProposal implements ProposalHandler interface
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error {
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
+
+	if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) {
+		if err := checkDenom(paramsChangeProposal); err != nil {
+			return err
+		}
+	}
+
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {
 		return govtypes.ErrInvalidProposer()
