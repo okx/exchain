@@ -2,26 +2,27 @@ package perf
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
-
+	tmcli "github.com/tendermint/tendermint/rpc/client"
+	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 	"sync"
 	"time"
 )
 
 var (
 	lastHeightTimestamp int64
-	_ Perf = &performance{}
-	_      = info{txNum: 0, beginBlockElapse: 0,
+	_                   Perf = &performance{}
+	_                        = info{txNum: 0, beginBlockElapse: 0,
 		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0, txElapseBySum: 0}
 )
 
-func init()  {
+func init() {
 	lastHeightTimestamp = time.Now().UnixNano()
 }
 
 const (
+	localRpcUrl        = "http://127.0.0.1:26657"
 	orderModule        = "order"
 	dexModule          = "dex"
 	swapModule         = "ammswap"
@@ -33,7 +34,10 @@ const (
 	evmModule          = "evm"
 	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
-		"Tx<%d>. " +
+		"Tx<%d>, " +
+		"BlockSize<%.2fKB>, " +
+		"MemPoolTx<%d>, " +
+		"MemPoolTxTotalSize<%.2fKB>, " +
 		"%s"
 
 	appFormat = "App: Height<%d>, " +
@@ -96,7 +100,7 @@ type Perf interface {
 }
 
 type hanlderInfo struct {
-	invoke uint64
+	invoke          uint64
 	deliverTxElapse int64
 }
 
@@ -137,6 +141,7 @@ func newHanlderMetrics() *moduleInfo {
 }
 
 type performance struct {
+	rpcClient     tmcli.Client
 	lastTimestamp int64
 	seqNum        uint64
 
@@ -147,7 +152,13 @@ type performance struct {
 }
 
 func newPerf() *performance {
+	rpcCli, err := tmhttp.New(localRpcUrl, "/websocket")
+	if err != nil {
+		panic("fail to init a tendermint rpc client in performance module")
+	}
+
 	p := &performance{
+		rpcClient:     rpcCli,
 		moduleInfoMap: make(map[string]*moduleInfo),
 	}
 
@@ -208,6 +219,7 @@ func (p *performance) OnAppEndBlockExit(height int64, seq uint64) {
 	p.sanityCheckApp(height, seq)
 	p.app.endBlockElapse = time.Now().UnixNano() - p.app.lastTimestamp
 }
+
 //////////////////////////////////////////////////////////////////
 func (p *performance) OnAppDeliverTxEnter(height int64) uint64 {
 	p.sanityCheckApp(height, p.app.seqNum)
@@ -364,17 +376,27 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		p.app.txNum,
 		moduleInfo))
 
-	interval := (time.Now().UnixNano() - lastHeightTimestamp)/unit/1e3
+	interval := (time.Now().UnixNano() - lastHeightTimestamp) / unit / 1e3
 	lastHeightTimestamp = time.Now().UnixNano()
+	tmStatus, err := p.getTendermintStatus(height)
+	if err != nil {
+		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
+	}
 
-	if len(p.msgQueue) > 0 {
-		for _, e := range p.msgQueue {
-			logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
-				p.app.abciElapse()/unit, p.app.txNum, e))
-		}
-	} else {
-		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, interval,
-			p.app.abciElapse()/unit, p.app.txNum, ""))
+	if len(p.msgQueue) == 0 {
+		p.EnqueueMsg("")
+	}
+
+	for _, e := range p.msgQueue {
+		logger.Info(fmt.Sprintf(summaryFormat,
+			p.app.blockheight,
+			interval,
+			p.app.abciElapse()/unit,
+			p.app.txNum,
+			float64(tmStatus.blockSize)/1024,
+			tmStatus.uncomfirmedTxNum,
+			float64(tmStatus.uncormfirmedTxTotalSize)/1024,
+			e))
 	}
 
 	p.msgQueue = nil
@@ -429,4 +451,33 @@ func (p *performance) getModule(moduleName string) *moduleInfo {
 	}
 
 	return v
+}
+
+func (p *performance) getTendermintStatus(height int64) (ts tendermintStatus, err error) {
+	ts.blockSize = -1
+	ts.uncomfirmedTxNum = -1
+	ts.uncormfirmedTxTotalSize = -1
+	block, err := p.rpcClient.Block(&height)
+	if err != nil {
+		return ts, fmt.Errorf("failed to query block on height %d", height)
+	}
+
+	uncomfirmedRes, err := p.rpcClient.NumUnconfirmedTxs()
+	if err != nil {
+		return ts, fmt.Errorf("failed to query mempool result on height %d", height)
+	}
+
+	ts = tendermintStatus{
+		blockSize:               block.Block.Size(),
+		uncomfirmedTxNum:        uncomfirmedRes.Total,
+		uncormfirmedTxTotalSize: uncomfirmedRes.TotalBytes,
+	}
+
+	return
+}
+
+type tendermintStatus struct {
+	blockSize               int
+	uncomfirmedTxNum        int
+	uncormfirmedTxTotalSize int64
 }
