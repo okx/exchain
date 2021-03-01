@@ -2,7 +2,9 @@ package evm
 
 import (
 	"fmt"
+
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	dbm "github.com/tendermint/tm-db"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -19,6 +21,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	k.SetParams(ctx, data.Params)
 
 	evmDenom := data.Params.EvmDenom
+	db, err := openContractDB("/Users/oker/go/src/github.com/okex/okexchain")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
@@ -42,13 +49,18 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		k.SetCode(ctx, address, account.Code)
+		//k.SetCode(ctx, address, account.Code)
+		code, err := db.Get(accAddress.Bytes())
+		if err != nil {
+			panic(err)
+		}
+		k.SetCode(ctx, address, code)
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
 	}
 
-	var err error
+	//var err error
 	for _, txLog := range data.TxsLogs {
 		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
 			panic(err)
@@ -76,6 +88,12 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
+	db, err := createContractDB("/Users/oker/go/src/github.com/okex/okexchain")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
 	var ethGenAccounts []types.GenesisAccount
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -93,8 +111,11 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    k.GetCode(ctx, addr),
+			Code:    nil,
 			Storage: storage,
+		}
+		if code := k.GetCode(ctx, addr); code != nil {
+			db.Set(addr.Bytes(), code)
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
@@ -109,4 +130,22 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
+}
+
+func openContractDB(rootDir string) (dbm.DB, error) {
+	//dataDir := filepath.Join(rootDir, "data")
+	dataDir := rootDir
+	name := "contract"
+	//dbPath := filepath.Join(dataDir, name+".db")
+	//os.Stat(dbPath)
+	db, err := sdk.NewLevelDB(name, dataDir)
+	fmt.Println(db.Stats())
+	return db, err
+}
+
+func createContractDB(rootDir string) (dbm.DB, error) {
+	//dataDir := filepath.Join(rootDir, "data")
+	dataDir := rootDir
+	db, err := sdk.NewLevelDB("contract", dataDir)
+	return db, err
 }
