@@ -38,6 +38,7 @@ func CompareCommitStateDB(t *testing.T, db1, db2 *CommitStateDB) {
 	}
 
 	require.True(t, reflect.DeepEqual(db1.dbErr, db2.dbErr))
+	require.True(t, reflect.DeepEqual(db1.journal, db2.journal))
 
 
 	for i, obj := range db1.stateObjects {

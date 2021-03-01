@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"math/big"
@@ -835,7 +836,7 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 
 	// copy pre-images
 	to.preimages = make([]preimageEntry, 0, len(from.preimages))
-	to.hashToPreimageIndex = make(map[ethcmn.Hash]int)
+	to.hashToPreimageIndex = make(map[ethcmn.Hash]int, len(from.hashToPreimageIndex))
 	for i, entry := range from.preimages {
 		newPreimage := make([]byte, len(entry.preimage))
 		copy(newPreimage, entry.preimage)
@@ -847,8 +848,16 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 		to.hashToPreimageIndex[entry.hash] = i
 	}
 
-
 	to.journal = newJournal()
+	newJournalJson, err := json.Marshal(from.journal)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(newJournalJson, &to.journal)
+	if err != nil {
+		panic(err)
+	}
+
 	to.thash = from.thash
 	to.bhash = from.bhash
 	to.txIndex = from.txIndex
