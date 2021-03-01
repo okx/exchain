@@ -85,6 +85,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	return []abci.ValidatorUpdate{}
 }
 
+var CodeKeyPrefix = []byte{0x01}
+var StorageKeyPrefix = []byte{0x02}
+var TxsLogKeyPrefix = []byte{0x03}
+
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
@@ -104,19 +108,26 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := ethAccount.EthAddress()
 
-		//storage, err := k.GetAccountStorage(ctx, addr)
-		//if err != nil {
-		//	panic(err)
-		//}
+		storage, err := k.GetAccountStorage(ctx, addr)
+		if err != nil {
+			panic(err)
+		}
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
-			//Storage: storage,
+			Storage: nil,
 		}
-		//if code := k.GetCode(ctx, addr); code != nil {
-		//	db.Set(addr.Bytes(), code)
-		//}
+
+		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
+		if code := k.GetCode(ctx, addr); code != nil {
+			db.Set(codeKey, code)
+		}
+
+		storageKey := append(StorageKeyPrefix, addr.Bytes()...)
+		for _, state := range storage {
+			db.Set(append(storageKey, state.Key[:]...), state.Value[:])
+		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
