@@ -21,7 +21,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	k.SetParams(ctx, data.Params)
 
 	evmDenom := data.Params.EvmDenom
-	db, err := openContractDB("/Users/oker/go/src/github.com/okex/okexchain")
+	db, err := openContractDB(".")
 	if err != nil {
 		panic(err)
 	}
@@ -104,15 +104,15 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := ethAccount.EthAddress()
 
-		storage, err := k.GetAccountStorage(ctx, addr)
-		if err != nil {
-			panic(err)
-		}
+		//storage, err := k.GetAccountStorage(ctx, addr)
+		//if err != nil {
+		//	panic(err)
+		//}
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
-			Storage: storage,
+			//Storage: storage,
 		}
 		if code := k.GetCode(ctx, addr); code != nil {
 			db.Set(addr.Bytes(), code)
@@ -125,8 +125,8 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	config, _ := k.GetChainConfig(ctx)
 
 	return GenesisState{
-		Accounts:    ethGenAccounts,
-		TxsLogs:     k.GetAllTxLogs(ctx),
+		Accounts: ethGenAccounts,
+		//TxsLogs:     k.GetAllTxLogs(ctx),
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
