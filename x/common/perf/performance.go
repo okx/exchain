@@ -454,6 +454,9 @@ func (p *performance) getModule(moduleName string) *moduleInfo {
 }
 
 func (p *performance) getTendermintStatus(height int64) (ts tendermintStatus, err error) {
+	ts.blockSize = -1
+	ts.uncomfirmedTxNum = -1
+	ts.uncormfirmedTxTotalSize = -1
 	block, err := p.rpcClient.Block(&height)
 	if err != nil {
 		return ts, fmt.Errorf("failed to query block on height %d", height)
