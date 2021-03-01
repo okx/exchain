@@ -427,11 +427,11 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	newStateObj.dirtyCode = so.dirtyCode
 	newStateObj.deleted = so.deleted
 
-	newStateObj.keyToOriginStorageIndex = make(map[ethcmn.Hash]int)
+	newStateObj.keyToOriginStorageIndex = make(map[ethcmn.Hash]int, len(so.keyToOriginStorageIndex))
 	for k, v := range so.keyToOriginStorageIndex {
 		newStateObj.keyToOriginStorageIndex[k] = v
 	}
-	newStateObj.keyToDirtyStorageIndex = make(map[ethcmn.Hash]int)
+	newStateObj.keyToDirtyStorageIndex = make(map[ethcmn.Hash]int, len(so.keyToDirtyStorageIndex))
 	for k, v := range so.keyToDirtyStorageIndex {
 		newStateObj.keyToDirtyStorageIndex[k] = v
 	}

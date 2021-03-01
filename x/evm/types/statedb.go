@@ -820,12 +820,12 @@ func CopyCommitStateDB(from, to *CommitStateDB) {
 		to.stateObjects = append(to.stateObjects, newObj)
 	}
 
-	to.addressToObjectIndex = make(map[ethcmn.Address]int)
+	to.addressToObjectIndex = make(map[ethcmn.Address]int, len(from.addressToObjectIndex))
 	for k, v := range from.addressToObjectIndex {
 		to.addressToObjectIndex[k] = v
 	}
 
-	to.stateObjectsDirty = make(map[ethcmn.Address]struct{})
+	to.stateObjectsDirty = make(map[ethcmn.Address]struct{}, len(from.stateObjectsDirty))
 	for k, v := range from.stateObjectsDirty {
 		to.stateObjectsDirty[k] = v
 	}
