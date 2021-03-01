@@ -57,10 +57,10 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 
 func checkDenom(paramProposal types.ParameterChangeProposal) sdk.Error {
 	for _, c := range paramProposal.Changes {
-		if c.Subspace == "evm" && c.Key == "evm_denom" {
+		if c.Subspace == "evm" && c.Key == "EVMDenom" {
 			return sdkerrors.Wrap(sdkparams.ErrSettingParameter, "evm denom can not be reset")
 		}
-		if c.Subspace == "staking" && c.Key == "bond_denom" {
+		if c.Subspace == "staking" && c.Key == "BondDenom" {
 			return sdkerrors.Wrap(sdkparams.ErrSettingParameter, "staking bond denom can not be reset")
 		}
 	}
