@@ -165,7 +165,7 @@ func syncReadCodeFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 			panic(err)
 		}
 
-		k.SetCode(ctx, address, hexcode)
+		k.SetCodeDirectly(ctx, hexcode)
 	}
 }
 
@@ -192,7 +192,7 @@ func syncReadStorageFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 			kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
 			//convert hexStr into common.Hash struct
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
-			k.SetState(ctx, address, key, value)
+			k.SetStateDirectly(ctx, address, key, value)
 		}
 	}
 }
@@ -224,10 +224,7 @@ func syncReadTxLogsFromFile(ctx sdk.Context, k Keeper, fileName string) {
 
 	var txLogs []*ethtypes.Log
 	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
-	err = k.SetLogs(ctx, hash, txLogs)
-	if err != nil {
-		panic(err)
-	}
+	k.SetTxLogsDirectly(ctx, hash, txLogs)
 }
 
 // convertHexStrToHash converts hexStr into ethcmn.Hash struct

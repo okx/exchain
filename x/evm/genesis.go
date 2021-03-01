@@ -24,10 +24,9 @@ const (
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+	initGoroutinePool()
+
 	k.SetParams(ctx, data.Params)
-
-	evmDenom := data.Params.EvmDenom
-
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
@@ -47,10 +46,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		k.SetNonce(ctx, address, acc.GetSequence())
-		k.SetBalance(ctx, address, evmBalance.BigInt())
-
 		// read Code from file
 		go syncReadCodeFromFile(ctx, k, address)
 
@@ -64,19 +59,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	globalWG.Wait()
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-
-	// set state objects and code to store
-	_, err := k.Commit(ctx, false)
-	if err != nil {
-		panic(err)
-	}
-
-	// set storage to store
-	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = k.Finalise(ctx, false)
-	if err != nil {
-		panic(err)
-	}
 
 	return []abci.ValidatorUpdate{}
 }
