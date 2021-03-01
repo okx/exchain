@@ -2,7 +2,6 @@ package evm
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -53,37 +52,16 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		k.SetBalance(ctx, address, evmBalance.BigInt())
 
 		// read Code from file
-		codeFilePath := absoluteCodePath + account.Address + codeFileSuffix
-		if pathExist(codeFilePath) {
-			code := readCodeFromFile(codeFilePath)
-			k.SetCode(ctx, address, code)
-		}
+		go syncReadCodeFromFile(ctx, k, address)
 
 		// read Storage From file
-		storageFilePath := absoluteStoragePath + account.Address + storageFileSuffix
-		if pathExist(storageFilePath) {
-			storage := readStorageFromFile(storageFilePath)
-			for _, state := range storage {
-				k.SetState(ctx, address, state.Key, state.Value)
-			}
-		}
+		go syncReadStorageFromFile(ctx, k, address)
 	}
 
-	if pathExist(absoluteTxlogsFilePath) {
-		fileInfos, err := ioutil.ReadDir(absoluteTxlogsFilePath)
-		if err != nil {
-			panic(err)
-		}
+	readAllTxLogs(ctx, k)
 
-		for _, fileInfo := range fileInfos {
-			hash := convertHexStrToHash(fileInfo.Name())
-			logs := readTxLogsFromFile(absoluteTxlogsFilePath + fileInfo.Name())
-			err = k.SetLogs(ctx, hash, logs)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
+	// wait for all data to be set into db
+	globalWG.Wait()
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 

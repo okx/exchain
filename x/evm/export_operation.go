@@ -23,7 +23,7 @@ var (
 )
 
 func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 8)
+	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 32)
 }
 
 func addGoroutine() {
@@ -84,7 +84,7 @@ func writeOneLine(writer *bufio.Writer, data string) {
 	}
 }
 
-// syncWriteAccountCode writes types.Code into individual file in sync
+// syncWriteAccountCode synchronize the process of writing types.Code into individual file
 func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	addGoroutine()
 	defer finishGoroutine()
@@ -98,7 +98,7 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	}
 }
 
-// syncWriteAccountStorageSlice writes types.Storage into individual file in sync
+// syncWriteAccountStorageSlice synchronize the process of writing types.Storage into individual file
 func syncWriteAccountStorageSlice(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	addGoroutine()
 	defer finishGoroutine()
@@ -127,7 +127,7 @@ func syncWriteAccountStorageSlice(ctx sdk.Context, k Keeper, address ethcmn.Addr
 	}
 }
 
-// writeAllTxLogs iterates all tx logs
+// writeAllTxLogs iterates all tx logs, then calls syncWriteTxLogs
 func writeAllTxLogs(ctx sdk.Context, k Keeper) {
 	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
 		syncWriteTxLogs(txLog.Hash.String(), txLog.Logs)
@@ -135,7 +135,7 @@ func writeAllTxLogs(ctx sdk.Context, k Keeper) {
 	})
 }
 
-// syncWriteTxLogs writes []*ethtypes.Log based on one hash into individual file in sync
+// syncWriteTxLogs synchronize the process of writing []*ethtypes.Log based on one hash into individual file
 func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
 	addGoroutine()
 	defer finishGoroutine()
@@ -148,61 +148,91 @@ func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
 	writeOneLine(bufWriter, string(data))
 }
 
-// readCodeFromFile used for setting types.Code into evm db when  InitGenesis
-func readCodeFromFile(path string) []byte {
-	bin, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
+// syncReadCodeFromFile synchronize the process of setting types.Code into evm db when InitGenesis
+func syncReadCodeFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+	addGoroutine()
+	defer finishGoroutine()
 
-	hexcode, err := hexutil.Decode(string(bin))
-	if err != nil {
-		panic(err)
-	}
+	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
+	if pathExist(codeFilePath) {
+		bin, err := ioutil.ReadFile(codeFilePath)
+		if err != nil {
+			panic(err)
+		}
 
-	return hexcode
+		hexcode, err := hexutil.Decode(string(bin))
+		if err != nil {
+			panic(err)
+		}
+
+		k.SetCode(ctx, address, hexcode)
+	}
 }
 
-// readStorageFromFile used for setting types.Storage into evm db when  InitGenesis
-func readStorageFromFile(path string) types.Storage {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
+// syncReadStorageFromFile synchronize the process of setting types.Storage into evm db when  InitGenesis
+func syncReadStorageFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+	addGoroutine()
+	defer finishGoroutine()
 
-	var states types.Storage
-	rd := bufio.NewReader(f)
-	for {
-		kvStr, err := rd.ReadString('\n')
-		if err != nil || io.EOF == err {
-			break
+	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix
+	if pathExist(storageFilePath) {
+		f, err := os.Open(storageFilePath)
+		if err != nil {
+			panic(err)
 		}
-		// remove '\n', then split kvStr based on ':'
-		kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
-		//convert hexStr into common.Hash struct
-		k, v := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
-		states = append(states, types.NewState(k, v))
+		defer f.Close()
+
+		rd := bufio.NewReader(f)
+		for {
+			kvStr, err := rd.ReadString('\n')
+			if err != nil || io.EOF == err {
+				break
+			}
+			// remove '\n', then split kvStr based on ':'
+			kvPair := strings.Split(strings.ReplaceAll(kvStr, "\n", ""), ":")
+			//convert hexStr into common.Hash struct
+			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
+			k.SetState(ctx, address, key, value)
+		}
 	}
-	return states
 }
 
 // readTxLogsFromFile used for setting []*ethtypes.Log into evm db when  InitGenesis
-func readTxLogsFromFile(path string) []*ethtypes.Log {
-	bin, err := ioutil.ReadFile(path)
+func readAllTxLogs(ctx sdk.Context, k Keeper) {
+	if pathExist(absoluteTxlogsFilePath) {
+		fileInfos, err := ioutil.ReadDir(absoluteTxlogsFilePath)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, fileInfo := range fileInfos {
+			go syncReadTxLogsFromFile(ctx, k, fileInfo.Name())
+		}
+	}
+}
+
+func syncReadTxLogsFromFile(ctx sdk.Context, k Keeper, fileName string) {
+	addGoroutine()
+	defer finishGoroutine()
+
+	hash := convertHexStrToHash(fileName)
+
+	bin, err := ioutil.ReadFile(absoluteTxlogsFilePath+fileName)
 	if err != nil {
 		panic(err)
 	}
 
 	var txLogs []*ethtypes.Log
 	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
-
-	return txLogs
+	err = k.SetLogs(ctx, hash, txLogs)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // convertHexStrToHash converts hexStr into ethcmn.Hash struct
 func convertHexStrToHash(filename string) ethcmn.Hash {
-	f := strings.Split(filename, ".") // make 0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2.json -> [0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2, json]
+	f := strings.Split(filename, ".") // make "0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2.json" -> ["0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2", "json"]
 	hashStr := f[0]
 	return ethcmn.HexToHash(hashStr)
 }
