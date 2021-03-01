@@ -88,7 +88,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
-	db, err := createContractDB("/Users/oker/go/src/github.com/okex/okexchain")
+	db, err := createContractDB(".")
 	if err != nil {
 		panic(err)
 	}
