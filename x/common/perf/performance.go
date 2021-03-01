@@ -378,7 +378,7 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	lastHeightTimestamp = time.Now().UnixNano()
 	tmStatus, err := p.getTendermintStatus(height)
 	if err != nil {
-		logger.Info("fail to get tendermint status in perf: %s", err)
+		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
 	}
 
 	if len(p.msgQueue) > 0 {
@@ -460,7 +460,7 @@ func (p *performance) getTendermintStatus(height int64) (ts tendermintStatus, er
 
 	ts = tendermintStatus{
 		blockSize:               block.Block.Size(),
-		uncomfirmedTxNum:        uncomfirmedRes.Count,
+		uncomfirmedTxNum:        uncomfirmedRes.Total,
 		uncormfirmedTxTotalSize: uncomfirmedRes.TotalBytes,
 	}
 
