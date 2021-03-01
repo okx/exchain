@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	app "github.com/okex/okexchain/app/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -53,6 +55,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 	mapp := mock.NewApp()
 	//mapp.Cdc = makeCodec()
 	registerCodec(mapp.Cdc)
+	app.RegisterCodec(mapp.Cdc)
 
 	mockDexApp = &MockDexApp{
 		App: mapp,
@@ -85,7 +88,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		true)
+		true, mapp.AccountKeeper)
 
 	handler := NewTokenHandler(mockDexApp.tokenKeeper, version.CurrentProtocolVersion)
 
@@ -169,7 +172,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.keyToken,
 		mockDexApp.keyLock,
 		mockDexApp.Cdc,
-		true)
+		true, mockDexApp.AccountKeeper)
 
 	// for staking/distr rollback to cosmos-sdk
 	//store.NewKVStoreKey(staking.DelegatorPoolKey),
