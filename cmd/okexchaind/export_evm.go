@@ -8,10 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/app"
-	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	evmTypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/cobra"
@@ -88,26 +86,27 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	}
 	defer evmDB.Close()
 
-	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
-		ethAccount, ok := account.(*ethermint.EthAccount)
-		if !ok {
-			// ignore non EthAccounts
-			return false
-		}
-
-		addr := ethAccount.EthAddress()
-		fmt.Println(addr.String())
-		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
-		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
-			evmDB.Set(codeKey, code)
-		}
-
-		//go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmDB)
-
-		return false
-	})
+	//ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
+	//	ethAccount, ok := account.(*ethermint.EthAccount)
+	//	if !ok {
+	//		// ignore non EthAccounts
+	//		return false
+	//	}
+	//
+	//	addr := ethAccount.EthAddress()
+	//	fmt.Println(addr.String())
+	//	codeKey := append(CodeKeyPrefix, addr.Bytes()...)
+	//	if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
+	//		evmDB.Set(codeKey, code)
+	//	}
+	//
+	//	//go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmDB)
+	//
+	//	return false
+	//})
 
 	txsLogs := ethermintApp.EvmKeeper.GetAllTxLogs(ctx)
+	fmt.Println(len(txsLogs))
 	for _, txsLog := range txsLogs {
 		txLogKey := append(TxsLogKeyPrefix, txsLog.Hash.Bytes()...)
 		logs, err := evmTypes.MarshalLogs(txsLog.Logs)
