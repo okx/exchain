@@ -3,6 +3,7 @@ package perf
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
 	tmcli "github.com/tendermint/tendermint/rpc/client"
 	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -382,6 +383,13 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	if err != nil {
 		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
 	}
+
+	// port monitor
+	portMonitor := monitor.GetPortMonitor()
+	if err := portMonitor.Run(); err != nil {
+		logger.Error("fail to get port monitoring info: %s", err.Error())
+	}
+	p.EnqueueMsg(portMonitor.GetResultString())
 
 	if len(p.msgQueue) == 0 {
 		p.EnqueueMsg("")
