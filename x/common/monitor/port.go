@@ -3,6 +3,8 @@ package monitor
 import (
 	"bytes"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/spf13/viper"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -17,9 +19,7 @@ var (
 // GetPortMonitor gets the global instance of PortMonitor
 func GetPortMonitor() *PortMonitor {
 	initPortMonitor.Do(func() {
-		// TODO: add config and cmd flag
-		// p2p:26656, rpc:26657, rest:26659
-		portMonitor = NewPortMonitor([]string{"26656", "26657", "26659"})
+		portMonitor = NewPortMonitor(parsePorts(viper.GetString(server.FlagPortMonitor)))
 	})
 
 	return portMonitor
@@ -27,7 +27,8 @@ func GetPortMonitor() *PortMonitor {
 
 // PortMonitor - structure of monitor for ports
 type PortMonitor struct {
-	ports []uint64
+	enable bool
+	ports  []uint64
 	// max total connecting numbers in one round
 	maxConnectingNumberTotal int
 	// connecting number of each port in one round
@@ -38,6 +39,12 @@ type PortMonitor struct {
 
 // NewPortMonitor creates a new instance of PortMonitor
 func NewPortMonitor(ports []string) *PortMonitor {
+	if len(ports) == 0 {
+		// disable the port monitor
+		return &PortMonitor{
+			enable: false,
+		}
+	}
 	// check port format
 	var portsInt []uint64
 	connectingMaxMap := make(map[uint64]int)
@@ -57,6 +64,7 @@ func NewPortMonitor(ports []string) *PortMonitor {
 	}
 
 	return &PortMonitor{
+		enable:                   true,
 		ports:                    portsInt,
 		connectingMap:            make(map[uint64]int),
 		connectingMaxMap:         connectingMaxMap,
@@ -99,7 +107,7 @@ func (pm *PortMonitor) getConnectingNumbers() error {
 
 func (pm *PortMonitor) Run() error {
 	// PortMonitor disabled
-	if len(pm.ports) == 0 {
+	if !pm.enable {
 		return nil
 	}
 
@@ -114,6 +122,11 @@ func (pm *PortMonitor) Run() error {
 
 // GetResultString gets the format string result
 func (pm *PortMonitor) GetResultString() string {
+	// PortMonitor disabled
+	if !pm.enable {
+		return ""
+	}
+
 	var buffer bytes.Buffer
 
 	// connecting number of each port in this round
@@ -142,4 +155,14 @@ func getConnectingNumbersFromPort(port uint64) (int, error) {
 
 	// data washing
 	return strconv.Atoi(string(bytes.TrimSpace(resBytes)))
+}
+
+func parsePorts(inputStr string) []string {
+	inputStr = strings.TrimSpace(inputStr)
+	if len(inputStr) == 0 {
+		// nothing input
+		return nil
+	}
+
+	return strings.Split(inputStr, ",")
 }
