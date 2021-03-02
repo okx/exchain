@@ -19,7 +19,7 @@ func GetPortMonitor() *PortMonitor {
 	initPortMonitor.Do(func() {
 		// TODO: add config and cmd flag
 		// p2p:26656, rpc:26657, rest:26659
-		portMonitor = NewPortMonitor([]string{"26656", "26657", "26659"})
+		portMonitor = NewPortMonitor([]string{"26656", "26657", "8545"})
 	})
 
 	return portMonitor
@@ -27,16 +27,20 @@ func GetPortMonitor() *PortMonitor {
 
 // PortMonitor - structure of monitor for ports
 type PortMonitor struct {
-	ports                   []uint64
-	maxConnectingNumber     int
-	currentConnectingNumber int
-	connectingMap           map[uint64]int
+	ports []uint64
+	// max total connecting numbers in one round
+	maxConnectingNumberTotal int
+	// connecting number of each port in one round
+	connectingMap map[uint64]int
+	// max connecting number record of each port
+	connectingMaxMap map[uint64]int
 }
 
 // NewPortMonitor creates a new instance of PortMonitor
 func NewPortMonitor(ports []string) *PortMonitor {
 	// check port format
 	var portsInt []uint64
+	connectingMaxMap := make(map[uint64]int)
 	for _, portStr := range ports {
 		n, err := strconv.ParseUint(strings.TrimSpace(portStr), 10, 64)
 		if err != nil {
@@ -48,13 +52,15 @@ func NewPortMonitor(ports []string) *PortMonitor {
 		}
 
 		portsInt = append(portsInt, n)
+		// init connectingMaxMap with -1
+		connectingMaxMap[n] = -1
 	}
 
 	return &PortMonitor{
-		ports:                   portsInt,
-		connectingMap:           make(map[uint64]int),
-		currentConnectingNumber: -1,
-		maxConnectingNumber:     -1,
+		ports:                    portsInt,
+		connectingMap:            make(map[uint64]int),
+		connectingMaxMap:         connectingMaxMap,
+		maxConnectingNumberTotal: -1,
 	}
 }
 
@@ -63,8 +69,6 @@ func (pm *PortMonitor) reset() {
 	for _, port := range pm.ports {
 		pm.connectingMap[port] = -1
 	}
-
-	pm.currentConnectingNumber = -1
 }
 
 // getConnectingNumbers gets the connecting numbers from ports
@@ -75,15 +79,20 @@ func (pm *PortMonitor) getConnectingNumbers() error {
 		if err != nil {
 			return fmt.Errorf("failed to get connecting numbers of port %d: %s", port, err.Error())
 		}
+
+		// update max connecting map
+		if connectingNumber > pm.connectingMaxMap[port] {
+			pm.connectingMaxMap[port] = connectingNumber
+		}
+
+		// update connecting map for this round
 		pm.connectingMap[port] = connectingNumber
 		connectingNumTotal += connectingNumber
 	}
 
-	pm.currentConnectingNumber = connectingNumTotal
-
-	// max check
-	if connectingNumTotal > pm.maxConnectingNumber {
-		pm.maxConnectingNumber = connectingNumTotal
+	// max total check
+	if connectingNumTotal > pm.maxConnectingNumberTotal {
+		pm.maxConnectingNumberTotal = connectingNumTotal
 	}
 	return nil
 }
@@ -106,12 +115,19 @@ func (pm *PortMonitor) Run() error {
 // GetResultString gets the format string result
 func (pm *PortMonitor) GetResultString() string {
 	var buffer bytes.Buffer
+
+	// connecting number of each port in this round
 	for _, port := range pm.ports {
 		buffer.WriteString(fmt.Sprintf("%d<%d>, ", port, pm.connectingMap[port]))
 	}
 
+	// max connecting number of each port
+	for _, port := range pm.ports {
+		buffer.WriteString(fmt.Sprintf("%dMax<%d>, ", port, pm.connectingMaxMap[port]))
+	}
+
 	// statistics
-	buffer.WriteString(fmt.Sprintf("CurConNum<%d>, MaxConNum<%d>", pm.currentConnectingNumber, pm.maxConnectingNumber))
+	buffer.WriteString(fmt.Sprintf("MaxConNum<%d>", pm.maxConnectingNumberTotal))
 	return buffer.String()
 }
 
