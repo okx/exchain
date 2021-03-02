@@ -44,7 +44,7 @@ func NewPortMonitor(ports []string) *PortMonitor {
 		}
 
 		if n > 65535 {
-			panic(fmt.Sprintf("invalid port %d. It should between 0 and 65535", n))
+			panic(fmt.Sprintf("invalid port %d. It should be between 0 and 65535", n))
 		}
 
 		portsInt = append(portsInt, n)
