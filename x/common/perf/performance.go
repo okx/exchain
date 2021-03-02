@@ -33,7 +33,7 @@ const (
 	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
-		"%s"
+		"%s %s"
 
 	appFormat = "App: Height<%d>, " +
 		"BeginBlock<%dms>, " +
@@ -372,14 +372,15 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	if err := tendermintMonitor.Run(height); err != nil {
 		logger.Error("fail to get tendermint monitoring info: %s", err.Error())
 	}
-	tendermintMonitorRes := tendermintMonitor.GetResultString()
 
 	// port monitor
 	portMonitor := monitor.GetPortMonitor()
 	if err := portMonitor.Run(); err != nil {
 		logger.Error("fail to get port monitoring info: %s", err.Error())
 	}
-	portMonitorRes := portMonitor.GetResultString()
+
+	// format monitor result
+	monitorsRes := monitor.CombineMonitorsRes(tendermintMonitor.GetResultString(), portMonitor.GetResultString())
 
 	if len(p.msgQueue) == 0 {
 		p.EnqueueMsg("")
@@ -391,7 +392,9 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 			interval,
 			p.app.abciElapse()/unit,
 			p.app.txNum,
-			tendermintMonitorRes+portMonitorRes+e))
+			monitorsRes,
+			e,
+		))
 	}
 
 	p.msgQueue = nil

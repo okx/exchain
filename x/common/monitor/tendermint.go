@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	tmcli "github.com/tendermint/tendermint/rpc/client"
 	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
+	"strings"
 	"sync"
 )
 
@@ -113,4 +114,14 @@ func (tm *TendermintMonitor) getTendermintStatus(height int64) error {
 	tm.status.uncormfirmedTxTotalSize = uncomfirmedRes.TotalBytes
 
 	return nil
+}
+
+// CombineMonitorsRes combines all the monitors' results
+func CombineMonitorsRes(res ...string) string {
+	var builder strings.Builder
+	for _, r := range res {
+		builder.WriteString(r)
+	}
+
+	return strings.Trim(strings.TrimSpace(builder.String()), ",")
 }
