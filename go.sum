@@ -503,6 +503,8 @@ github.com/okex/cosmos-sdk v0.39.2-okexchain5 h1:1fDCNcTM/rDS/mFGE/8Ua4n5dpga5/3
 github.com/okex/cosmos-sdk v0.39.2-okexchain5/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/cosmos-sdk v0.39.2-okexchain6 h1:ZvOhFysQKoCAOwW75sDvYnJ5KRscW7ce1FjCiHIhDVk=
 github.com/okex/cosmos-sdk v0.39.2-okexchain6/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
+github.com/okex/cosmos-sdk v0.39.2-okexchain7 h1:7fi/6BDN1wWkyXSssqk0rL9T9p61AElSCk3DMANWN94=
+github.com/okex/cosmos-sdk v0.39.2-okexchain7/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/cosmos-sdk v0.39.3-0.20210226091718-b9d0a62c8a81 h1:PD060KgAlJPt47DkW6pBzuCEbgXsHWrl6n47mx8tBvg=
 github.com/okex/cosmos-sdk v0.39.3-0.20210226091718-b9d0a62c8a81/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/cosmos-sdk v0.39.3-0.20210227031012-8a9209af2c3b h1:33r6ISb4YuZhOQzPsIsOkP2tzRNJE196gWKlJfoqduY=
