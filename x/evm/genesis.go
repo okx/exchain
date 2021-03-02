@@ -11,17 +11,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-const (
-	absolutePath           = "/tmp/okexchain"
-	absoluteCodePath       = absolutePath + "/code/"
-	absoluteStoragePath    = absolutePath + "/storage/"
-	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
-
-	codeFileSuffix    = ".code"
-	storageFileSuffix = ".storage"
-	txlogsFileSuffix  = ".json"
-)
-
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
@@ -82,7 +71,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		// write Code
 		go syncWriteAccountCode(ctx, k, addr)
 		// write Storage
-		go syncWriteAccountStorageSlice(ctx, k, addr)
+		go syncWriteAccountStorage(ctx, k, addr)
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
