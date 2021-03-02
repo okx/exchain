@@ -2,7 +2,6 @@ package evm_test
 
 import (
 	"crypto/ecdsa"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -41,6 +40,7 @@ type EvmTestSuite struct {
 	handler sdk.Handler
 	querier sdk.Querier
 	app     *app.OKExChainApp
+	stateDB *types.CommitStateDB
 	codec   *codec.Codec
 }
 
@@ -49,6 +49,7 @@ func (suite *EvmTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
 	suite.codec = codec.New()
@@ -262,10 +263,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
 	hash := []byte{1}
-	err = suite.app.EvmKeeper.SetLogs(suite.ctx, ethcmn.BytesToHash(hash), resultData.Logs)
+	err = suite.stateDB.WithContext(suite.ctx).SetLogs(ethcmn.BytesToHash(hash), resultData.Logs)
 	suite.Require().NoError(err)
 
-	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethcmn.BytesToHash(hash))
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
@@ -515,7 +516,7 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 
 	// Deploy contract - Owner.sol
 	gasLimit := uint64(1)
-	suite.ctx = suite.ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+	suite.ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
 	gasPrice := big.NewInt(10000)
 
 	priv, err := ethsecp256k1.GenerateKey()
@@ -526,17 +527,9 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 	tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	snapshotCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
-	suite.Require().Nil(err)
-
 	defer func() {
-		if r := recover(); r != nil {
-			currentCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
-			suite.Require().Nil(err)
-			suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
-		} else {
-			suite.Require().Fail("panic did not happen")
-		}
+		r := recover()
+		suite.Require().NotNil(r, "panic for out of gas")
 	}()
 
 	suite.handler(suite.ctx, tx)
@@ -701,15 +694,8 @@ func (suite *EvmTestSuite) TestErrorWhenDeployContract() {
 	tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	snapshotCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
-	suite.Require().Nil(err)
-
 	_, sdkErr := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(sdkErr)
-
-	currentCommitStateDBJson, err := json.Marshal(suite.app.EvmKeeper.CommitStateDB)
-	suite.Require().Nil(err)
-	suite.Require().Equal(snapshotCommitStateDBJson, currentCommitStateDBJson)
 }
 
 func (suite *EvmTestSuite) TestDefaultMsgHandler() {
@@ -786,7 +772,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 			gasRefund := big.NewInt(1).Mul(gasPrice, gasLeft)
 
 			balanceAfterHandler := big.NewInt(1).Sub(userBalance, tc.consumed)
-			balanceAfterRefund := suite.app.EvmKeeper.GetBalance(suite.ctx, sender)
+			balanceAfterRefund := suite.stateDB.WithContext(suite.ctx).GetBalance(sender)
 
 			suite.Require().Equal(big.NewInt(1).Mul(gasRefund, big.NewInt(1)), big.NewInt(1).Sub(balanceAfterRefund, balanceAfterHandler))
 		})
@@ -806,7 +792,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
 
 	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
-	suite.app.EvmKeeper.CommitStateDB.Finalise(false)
+	suite.stateDB.Finalise(false)
 
 	// send simple value transfer with gasLimit=21000
 	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(100), gasLimit, gasPrice, nil)

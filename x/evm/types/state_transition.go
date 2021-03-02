@@ -146,9 +146,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	ctx = ctx.WithGasMeter(evmGasMeter)
 	csdb.WithContext(ctx)
 
-	// Clear cache of accounts to handle changes outside of the EVM
-	csdb.UpdateAccounts()
-
 	params := csdb.GetParams()
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs)
@@ -230,6 +227,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
 		if err := csdb.Finalise(true); err != nil {
+			return nil, err
+		}
+
+		if _, err = csdb.Commit(true); err != nil {
 			return nil, err
 		}
 	}

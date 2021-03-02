@@ -37,7 +37,7 @@ const (
 		"Tx<%d>, " +
 		"BlockSize<%.2fKB>, " +
 		"MemPoolTx<%d>, " +
-		"MemPoolTxTotalSize<%.2fKB>, " +
+		"MemPoolSize<%.2fKB>, " +
 		"%s"
 
 	appFormat = "App: Height<%d>, " +
