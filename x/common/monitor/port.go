@@ -129,7 +129,7 @@ func (pm *PortMonitor) GetResultString() string {
 
 	// max connecting number of each port
 	for _, port := range pm.ports {
-		buffer.WriteString(fmt.Sprintf("%dMax<%d>, ", port, pm.connectingMaxMap[port]))
+		buffer.WriteString(fmt.Sprintf("%d-Max<%d>, ", port, pm.connectingMaxMap[port]))
 	}
 
 	// statistics
