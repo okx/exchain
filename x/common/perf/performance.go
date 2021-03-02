@@ -389,7 +389,7 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	if err := portMonitor.Run(); err != nil {
 		logger.Error("fail to get port monitoring info: %s", err.Error())
 	}
-	p.EnqueueMsg(portMonitor.GetResultString())
+	portMonitorRes := portMonitor.GetResultString()
 
 	if len(p.msgQueue) == 0 {
 		p.EnqueueMsg("")
@@ -404,7 +404,7 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 			float64(tmStatus.blockSize)/1024,
 			tmStatus.uncomfirmedTxNum,
 			float64(tmStatus.uncormfirmedTxTotalSize)/1024,
-			e))
+			portMonitorRes+e))
 	}
 
 	p.msgQueue = nil
