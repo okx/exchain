@@ -24,7 +24,7 @@ var (
 )
 
 func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 32)
+	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 16)
 }
 
 func addGoroutine() {
