@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	ethermint "github.com/okex/okexchain/app/types"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -86,24 +89,24 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	}
 	defer evmDB.Close()
 
-	//ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
-	//	ethAccount, ok := account.(*ethermint.EthAccount)
-	//	if !ok {
-	//		// ignore non EthAccounts
-	//		return false
-	//	}
-	//
-	//	addr := ethAccount.EthAddress()
-	//	fmt.Println(addr.String())
-	//	codeKey := append(CodeKeyPrefix, addr.Bytes()...)
-	//	if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
-	//		evmDB.Set(codeKey, code)
-	//	}
-	//
-	//	//go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmDB)
-	//
-	//	return false
-	//})
+	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
+		ethAccount, ok := account.(*ethermint.EthAccount)
+		if !ok {
+			// ignore non EthAccounts
+			return false
+		}
+
+		addr := ethAccount.EthAddress()
+		fmt.Println(addr.String())
+		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
+		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
+			evmDB.Set(codeKey, code)
+		}
+
+		go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmDB)
+
+		return false
+	})
 
 	//txsLogs := ethermintApp.EvmKeeper.GetAllTxLogs(ctx)
 	//fmt.Println(len(txsLogs))
@@ -133,13 +136,19 @@ func createContractDB(rootDir string) (dbm.DB, error) {
 }
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
-	storage, err := k.GetAccountStorage(ctx, addr)
-	if err != nil {
-		panic(err)
-	}
+	//storage, err := k.GetAccountStorage(ctx, addr)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//storageKey := append(StorageKeyPrefix, addr.Bytes()...)
+	//for _, state := range storage {
+	//	db.Set(append(storageKey, state.Key[:]...), state.Value[:])
+	//}
+	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
+		fmt.Println(common.BytesToHash(hash).String())
+		db.Set(hash, storage)
 
-	storageKey := append(StorageKeyPrefix, addr.Bytes()...)
-	for _, state := range storage {
-		db.Set(append(storageKey, state.Key[:]...), state.Value[:])
-	}
+		return false
+	})
 }
