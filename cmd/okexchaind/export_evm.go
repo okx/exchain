@@ -8,10 +8,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/x/evm"
-	evmTypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -105,16 +105,23 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	//	return false
 	//})
 
-	txsLogs := ethermintApp.EvmKeeper.GetAllTxLogs(ctx)
-	fmt.Println(len(txsLogs))
-	for _, txsLog := range txsLogs {
-		txLogKey := append(TxsLogKeyPrefix, txsLog.Hash.Bytes()...)
-		logs, err := evmTypes.MarshalLogs(txsLog.Logs)
-		if err != nil {
-			panic(err)
-		}
-		evmDB.Set(txLogKey, logs)
-	}
+	//txsLogs := ethermintApp.EvmKeeper.GetAllTxLogs(ctx)
+	//fmt.Println(len(txsLogs))
+	//for _, txsLog := range txsLogs {
+	//	txLogKey := append(TxsLogKeyPrefix, txsLog.Hash.Bytes()...)
+	//	logs, err := evmTypes.MarshalLogs(txsLog.Logs)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	evmDB.Set(txLogKey, logs)
+	//}
+	ethermintApp.EvmKeeper.IterateTxLogs(ctx, func(hash, logs []byte) bool {
+		fmt.Println(common.BytesToHash(hash).String())
+		evmDB.Set(hash, logs)
+
+		return false
+	})
+
 	return nil
 }
 

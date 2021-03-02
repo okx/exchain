@@ -158,6 +158,21 @@ func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
 	return txsLogs
 }
 
+// IterateAccounts iterates over all the stored accounts and performs a callback function
+func (k Keeper) IterateTxLogs(ctx sdk.Context, cb func(hash, logs []byte) (stop bool)) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		hash := iterator.Key()
+		logs := iterator.Value()
+
+		if cb(hash, logs) {
+			break
+		}
+	}
+}
+
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
