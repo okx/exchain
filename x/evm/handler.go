@@ -91,6 +91,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	if !st.Simulate {
 		// Prepare db for logs
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
 	}
 
@@ -105,14 +106,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	if !st.Simulate {
-		// update block bloom filter
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
 		// update transaction logs in KVStore
 		err = st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).SetLogs(common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
+
+		// update block bloom filter
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
+		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	// log successful execution
@@ -187,6 +189,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	if !st.Simulate {
 		// Prepare db for logs
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
 	}
 
@@ -202,13 +205,14 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// update block bloom filter
 	if !st.Simulate {
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
 		// update transaction logs in KVStore
 		err = st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).SetLogs(common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
+
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
+		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	// log successful execution

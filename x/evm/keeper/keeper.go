@@ -45,6 +45,7 @@ type Keeper struct {
 	TxCount int
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
+	LogSize uint
 }
 
 // NewKeeper generates new evm module keeper
@@ -66,6 +67,7 @@ func NewKeeper(
 		bankKeeper:    bk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
+		LogSize:       0,
 	}
 }
 
@@ -84,14 +86,6 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
-
-//func (k Keeper) GetCommitStateDB(ctx sdk.Context) *types.CommitStateDB {
-//	if ctx.IsCheckTx() {
-//		//reset simulation commit stateDB
-//		return k.CommitStateDB.GenerateEmptyStateDB(ctx)
-//	}
-//	return k.CommitStateDB
-//}
 
 // ----------------------------------------------------------------------------
 // Block hash mapping functions

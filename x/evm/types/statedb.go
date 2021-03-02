@@ -140,6 +140,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		journal:              newJournal(),
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
+		logSize:              0,
 	}
 }
 
@@ -1024,4 +1025,12 @@ type preimageEntry struct {
 	// hash key of the preimage entry
 	hash     ethcmn.Hash
 	preimage []byte
+}
+
+func (csdb *CommitStateDB) SetLogSize(logSize uint) {
+	csdb.logSize = logSize
+}
+
+func (csdb *CommitStateDB) GetLogSize() uint {
+	return csdb.logSize
 }
