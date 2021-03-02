@@ -82,11 +82,11 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
 
-	expLogs = []*ethtypes.Log{log2, log}
+	expLogs = []*ethtypes.Log{log, log2}
 
 	// add another log under the zero hash
-	suite.stateDB.WithContext(suite.ctx).AddLog(log2)
-	logs = suite.stateDB.WithContext(suite.ctx).AllLogs()
+	suite.app.EvmKeeper.SetLogs(suite.ctx, ethHash, expLogs)
+	logs = suite.app.EvmKeeper.AllLogs(suite.ctx)
 	suite.Require().Equal(expLogs, logs)
 
 	// add another log under the zero hash
@@ -95,16 +95,15 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 		Data:        []byte("log3"),
 		BlockNumber: 10,
 	}
-	suite.stateDB.WithContext(suite.ctx).AddLog(log3)
+
+	expLogs = append(expLogs, log3)
+	suite.app.EvmKeeper.SetLogs(suite.ctx, ethHash, expLogs)
 
 	txLogs := suite.app.EvmKeeper.GetAllTxLogs(suite.ctx)
-	suite.Require().Equal(2, len(txLogs))
+	suite.Require().Equal(1, len(txLogs))
 
-	suite.Require().Equal(ethcmn.Hash{}.String(), txLogs[0].Hash.String())
-	suite.Require().Equal([]*ethtypes.Log{log2, log3}, txLogs[0].Logs)
-
-	suite.Require().Equal(ethHash.String(), txLogs[1].Hash.String())
-	suite.Require().Equal([]*ethtypes.Log{log}, txLogs[1].Logs)
+	suite.Require().Equal(ethHash.String(), txLogs[0].Hash.String())
+	suite.Require().Equal([]*ethtypes.Log{log, log2, log3}, txLogs[0].Logs)
 }
 
 func (suite *KeeperTestSuite) TestDBStorage() {

@@ -301,12 +301,16 @@ func (suite *StateDBTestSuite) TestStateDB_Logs() {
 		suite.Require().Empty(dbLogs, tc.name)
 
 		suite.stateDB.AddLog(&tc.log)
-		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+		newLogs, err := suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
+		suite.Require().Equal(logs, newLogs, tc.name)
 
 		//resets state but checking to see if storekey still persists.
 		err = suite.stateDB.Reset(hash)
 		suite.Require().NoError(err, tc.name)
-		suite.Require().Equal(logs, suite.stateDB.AllLogs(), tc.name)
+		newLogs, err = suite.stateDB.GetLogs(hash)
+		suite.Require().Nil(err)
+		suite.Require().Equal(logs, newLogs, tc.name)
 	}
 }
 
@@ -432,43 +436,6 @@ func (suite *StateDBTestSuite) TestSuiteDB_Prepare() {
 
 	suite.Require().Equal(txi, suite.stateDB.TxIndex())
 	suite.Require().Equal(bhash, suite.stateDB.BlockHash())
-}
-
-func (suite *StateDBTestSuite) TestSuiteDB_CopyState() {
-	testCase := []struct {
-		name string
-		log  ethtypes.Log
-	}{
-		{
-			"copy state",
-			ethtypes.Log{
-				Address:     suite.address,
-				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
-				Data:        []byte("data"),
-				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{},
-				TxIndex:     1,
-				BlockHash:   ethcmn.Hash{},
-				Index:       1,
-				Removed:     false,
-			},
-		},
-	}
-
-	for _, tc := range testCase {
-		hash := ethcmn.BytesToHash([]byte("hash"))
-		logs := []*ethtypes.Log{&tc.log}
-
-		err := suite.stateDB.SetLogs(hash, logs)
-		suite.Require().NoError(err, tc.name)
-
-		copyDB := suite.stateDB.Copy()
-
-		copiedDBLogs, err := copyDB.GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
-		suite.Require().Equal(logs, copiedDBLogs, tc.name)
-		suite.Require().Equal(suite.stateDB.Exist(suite.address), copyDB.Exist(suite.address), tc.name)
-	}
 }
 
 func (suite *StateDBTestSuite) TestSuiteDB_Empty() {

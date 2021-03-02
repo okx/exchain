@@ -22,6 +22,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 	suite.stateDB.WithContext(suite.ctx).Prepare(tHash, bHash, 0)
 	contractAddress := ethcmn.BigToAddress(big.NewInt(1))
 	log := ethtypes.Log{Address: contractAddress}
+	logs := []*ethtypes.Log{&log}
 
 	testCase := []struct {
 		name     string
@@ -38,7 +39,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.stateDB.WithContext(suite.ctx).AddLog(&log)
+				suite.app.EvmKeeper.SetLogs(suite.ctx, tHash, logs)
 			},
 			1,
 			false,
@@ -53,7 +54,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
+		logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, tHash)
 		if !tc.isBloom {
 			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
@@ -224,24 +225,16 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
+		err := suite.app.EvmKeeper.SetLogs(suite.ctx, hash, logs)
 		suite.Require().NoError(err, tc.name)
-		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
+		dbLogs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, hash)
 		suite.Require().NoError(err, tc.name)
 		suite.Require().Equal(logs, dbLogs, tc.name)
-
-		suite.stateDB.WithContext(suite.ctx).DeleteLogs(hash)
-		dbLogs, err = suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
-		suite.Require().Empty(dbLogs, tc.name)
-
-		suite.stateDB.WithContext(suite.ctx).AddLog(&tc.log)
-		suite.Require().Equal(logs, suite.stateDB.WithContext(suite.ctx).AllLogs(), tc.name)
 
 		//resets state but checking to see if storekey still persists.
 		err = suite.stateDB.WithContext(suite.ctx).Reset(hash)
 		suite.Require().NoError(err, tc.name)
-		suite.Require().Equal(logs, suite.stateDB.WithContext(suite.ctx).AllLogs(), tc.name)
+		suite.Require().Equal(logs, suite.app.EvmKeeper.AllLogs(suite.ctx), tc.name)
 	}
 }
 
@@ -369,39 +362,6 @@ func (suite *KeeperTestSuite) TestSuiteDB_Prepare() {
 
 	suite.Require().Equal(txi, suite.stateDB.WithContext(suite.ctx).TxIndex())
 	suite.Require().Equal(bhash, suite.stateDB.WithContext(suite.ctx).BlockHash())
-}
-
-func (suite *KeeperTestSuite) TestSuiteDB_CopyState() {
-	testCase := []struct {
-		name string
-		log  ethtypes.Log
-	}{
-		{
-			"copy state",
-			ethtypes.Log{
-				Address:     suite.address,
-				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
-				Data:        []byte("data"),
-				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{},
-				TxIndex:     1,
-				BlockHash:   ethcmn.Hash{},
-				Index:       1,
-				Removed:     false,
-			},
-		},
-	}
-
-	for _, tc := range testCase {
-		hash := ethcmn.BytesToHash([]byte("hash"))
-		logs := []*ethtypes.Log{&tc.log}
-
-		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
-		suite.Require().NoError(err, tc.name)
-
-		copyDB := suite.stateDB.WithContext(suite.ctx).Copy()
-		suite.Require().Equal(suite.stateDB.WithContext(suite.ctx).Exist(suite.address), copyDB.Exist(suite.address), tc.name)
-	}
 }
 
 func (suite *KeeperTestSuite) TestSuiteDB_Empty() {
