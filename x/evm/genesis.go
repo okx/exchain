@@ -40,7 +40,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		go syncReadCodeFromFile(ctx, logger, k, address)
 
 		// read Storage From file
-		go syncReadStorageFromFile(ctx, logger,  k, address)
+		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
 	readAllTxLogs(ctx, logger, k)

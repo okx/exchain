@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	absolutePath           = "/tmp/okexchain"  //TODO: this root path is supposed to be set as a config
+	absolutePath           = "/tmp/okexchain" //TODO: this root path is supposed to be set as a config
 	absoluteCodePath       = absolutePath + "/code/"
 	absoluteStoragePath    = absolutePath + "/storage/"
 	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
@@ -40,18 +40,21 @@ var (
 	goroutinePool chan struct{}
 	globalWG      sync.WaitGroup
 )
+
 // initGoroutinePool creates an appropriate number of maximum goroutine
 func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1) * 16)
+	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1)*16)
 }
+
 // addGoroutine if goroutinePool is not full, then create a goroutine
 func addGoroutine() {
 	goroutinePool <- struct{}{}
 	globalWG.Add(1)
 }
+
 // finishGoroutine follows the function addGoroutine
 func finishGoroutine() {
-	<- goroutinePool
+	<-goroutinePool
 	globalWG.Done()
 }
 
@@ -81,6 +84,7 @@ func initExportEnv() {
 
 	initGoroutinePool()
 }
+
 // createFile creates a file based on a absolute path
 func createFile(filePath string) *os.File {
 	file, err := os.Create(filePath)
@@ -89,6 +93,7 @@ func createFile(filePath string) *os.File {
 	}
 	return file
 }
+
 // closeFile closes the current file and writer, in case of the waste of memory
 func closeFile(writer *bufio.Writer, file *os.File) {
 	err := writer.Flush()
@@ -100,6 +105,7 @@ func closeFile(writer *bufio.Writer, file *os.File) {
 		panic(err)
 	}
 }
+
 // writeOneLine only writes data into one line
 func writeOneLine(writer *bufio.Writer, data string) {
 	_, err := writer.WriteString(data)
@@ -159,6 +165,7 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 		panic(err)
 	}
 }
+
 // writeAllTxLogs iterates all tx logs, then calls syncWriteTxLogs to write data one by one
 func writeAllTxLogs(ctx sdk.Context, k Keeper) {
 	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
@@ -166,6 +173,7 @@ func writeAllTxLogs(ctx sdk.Context, k Keeper) {
 		return false
 	})
 }
+
 // syncWriteTxLogs synchronize the process of writing []*ethtypes.Log based on one hash into individual file
 // It will create a file based on every txhash, even if the logs is null
 func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
@@ -192,7 +200,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 
 	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
 	if pathExist(codeFilePath) {
-		logger.Debug("start loading code", "filename", address.String() + codeFileSuffix)
+		logger.Debug("start loading code", "filename", address.String()+codeFileSuffix)
 		bin, err := ioutil.ReadFile(codeFilePath)
 		if err != nil {
 			panic(err)
@@ -216,7 +224,7 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 
 	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix
 	if pathExist(storageFilePath) {
-		logger.Debug("start loading storage", "filename", address.String() + storageFileSuffix)
+		logger.Debug("start loading storage", "filename", address.String()+storageFileSuffix)
 		f, err := os.Open(storageFilePath)
 		if err != nil {
 			panic(err)
@@ -248,7 +256,7 @@ func readAllTxLogs(ctx sdk.Context, logger log.Logger, k Keeper) {
 		}
 
 		for _, fileInfo := range fileInfos {
-			go syncReadTxLogsFromFile(ctx, logger , k, fileInfo.Name())
+			go syncReadTxLogsFromFile(ctx, logger, k, fileInfo.Name())
 		}
 	}
 }
@@ -262,7 +270,7 @@ func syncReadTxLogsFromFile(ctx sdk.Context, logger log.Logger, k Keeper, fileNa
 	// get the hash based on the file name
 	hash := convertHexStrToHash(fileName)
 
-	bin, err := ioutil.ReadFile(absoluteTxlogsFilePath+fileName)
+	bin, err := ioutil.ReadFile(absoluteTxlogsFilePath + fileName)
 	if err != nil {
 		panic(err)
 	}
