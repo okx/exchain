@@ -156,6 +156,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 
 	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
 	if pathExist(codeFilePath) {
+		logger.Debug("start loading code", "filename", address.String() + codeFileSuffix)
 		bin, err := ioutil.ReadFile(codeFilePath)
 		if err != nil {
 			panic(err)
@@ -167,7 +168,6 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 		}
 
 		k.SetCodeDirectly(ctx, hexcode)
-		logger.Debug("start loading code", "filename", address.String() + codeFileSuffix)
 	}
 }
 
@@ -178,12 +178,12 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 
 	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix
 	if pathExist(storageFilePath) {
+		logger.Debug("start loading storage", "filename", address.String() + storageFileSuffix)
 		f, err := os.Open(storageFilePath)
 		if err != nil {
 			panic(err)
 		}
 		defer f.Close()
-
 		rd := bufio.NewReader(f)
 		for {
 			kvStr, err := rd.ReadString('\n')
@@ -196,7 +196,6 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
 			k.SetStateDirectly(ctx, address, key, value)
 		}
-		logger.Debug("start loading storage", "filename", address.String() + storageFileSuffix)
 	}
 }
 
@@ -217,6 +216,7 @@ func readAllTxLogs(ctx sdk.Context, logger log.Logger, k Keeper) {
 func syncReadTxLogsFromFile(ctx sdk.Context, logger log.Logger, k Keeper, fileName string) {
 	addGoroutine()
 	defer finishGoroutine()
+	logger.Debug("start loading tx logs", "filename", fileName)
 
 	hash := convertHexStrToHash(fileName)
 
@@ -228,8 +228,6 @@ func syncReadTxLogsFromFile(ctx sdk.Context, logger log.Logger, k Keeper, fileNa
 	var txLogs []*ethtypes.Log
 	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
 	k.SetTxLogsDirectly(ctx, hash, txLogs)
-
-	logger.Debug("start loading tx logs", "filename", fileName)
 }
 
 // convertHexStrToHash converts hexStr into ethcmn.Hash struct
