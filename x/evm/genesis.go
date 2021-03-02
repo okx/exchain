@@ -84,7 +84,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 
 	// write tx logs
-	writeAllTxLogs(ctx, k)
+	//writeAllTxLogs(ctx, k)
 
 	// wait for all data to be written into files
 	globalWG.Wait()

@@ -30,6 +30,7 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 			count int
 		)
 
+		csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 		k.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 			ethAccount, ok := account.(*ethermint.EthAccount)
 			if !ok {
@@ -39,7 +40,7 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 
 			evmDenom := k.GetParams(ctx).EvmDenom
 			accountBalance := ethAccount.GetCoins().AmountOf(evmDenom)
-			evmBalance := k.GetBalance(ctx, ethAccount.EthAddress())
+			evmBalance := csdb.GetBalance(ethAccount.EthAddress())
 
 			if evmBalance.Cmp(accountBalance.BigInt()) != 0 {
 				count++
@@ -70,6 +71,7 @@ func (k Keeper) NonceInvariant() sdk.Invariant {
 			count int
 		)
 
+		csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 		k.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 			ethAccount, ok := account.(*ethermint.EthAccount)
 			if !ok {
@@ -77,7 +79,7 @@ func (k Keeper) NonceInvariant() sdk.Invariant {
 				return false
 			}
 
-			evmNonce := k.GetNonce(ctx, ethAccount.EthAddress())
+			evmNonce := csdb.GetNonce(ethAccount.EthAddress())
 
 			if evmNonce != ethAccount.Sequence {
 				count++
