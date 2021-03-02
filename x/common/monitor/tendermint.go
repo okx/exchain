@@ -27,7 +27,7 @@ func GetTendermintMonitor() *TendermintMonitor {
 	return tmMonitor
 }
 
-// TendermintMonitor - structure of monitor for block/mempool
+// TendermintMonitor - structure of monitor for block/mempool monitoring
 type TendermintMonitor struct {
 	enable    bool
 	rpcClient tmcli.Client

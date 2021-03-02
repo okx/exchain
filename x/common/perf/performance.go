@@ -5,7 +5,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
-	tmcli "github.com/tendermint/tendermint/rpc/client"
 	"sync"
 	"time"
 )
@@ -137,10 +136,8 @@ func newHanlderMetrics() *moduleInfo {
 }
 
 type performance struct {
-	tmMonitorEnabled bool
-	rpcClient        tmcli.Client
-	lastTimestamp    int64
-	seqNum           uint64
+	lastTimestamp int64
+	seqNum        uint64
 
 	app           *appInfo
 	moduleInfoMap map[string]*moduleInfo
