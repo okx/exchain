@@ -19,7 +19,7 @@ func GetPortMonitor() *PortMonitor {
 	initPortMonitor.Do(func() {
 		// TODO: add config and cmd flag
 		// p2p:26656, rpc:26657, rest:26659
-		portMonitor = NewPortMonitor([]string{"26656", "26657", "8545"})
+		portMonitor = NewPortMonitor([]string{"26656", "26657", "26659"})
 	})
 
 	return portMonitor
