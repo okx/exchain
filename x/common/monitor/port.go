@@ -46,26 +46,18 @@ func NewPortMonitor(ports []string) *PortMonitor {
 		}
 	}
 	// check port format
-	var portsInt []uint64
+	var portsUint64 []uint64
 	connectingMaxMap := make(map[uint64]int)
 	for _, portStr := range ports {
-		n, err := strconv.ParseUint(strings.TrimSpace(portStr), 10, 64)
-		if err != nil {
-			panic(fmt.Sprintf("fail to convert port string %s to integer: %s", portStr, err.Error()))
-		}
-
-		if n > 65535 {
-			panic(fmt.Sprintf("invalid port %d. It should be between 0 and 65535", n))
-		}
-
-		portsInt = append(portsInt, n)
+		port := ParsePort(portStr)
+		portsUint64 = append(portsUint64, port)
 		// init connectingMaxMap with -1
-		connectingMaxMap[n] = -1
+		connectingMaxMap[port] = -1
 	}
 
 	return &PortMonitor{
 		enable:                   true,
-		ports:                    portsInt,
+		ports:                    portsUint64,
 		connectingMap:            make(map[uint64]int),
 		connectingMaxMap:         connectingMaxMap,
 		maxConnectingNumberTotal: -1,
@@ -105,6 +97,7 @@ func (pm *PortMonitor) getConnectingNumbers() error {
 	return nil
 }
 
+// Run starts monitoring
 func (pm *PortMonitor) Run() error {
 	// PortMonitor disabled
 	if !pm.enable {
@@ -165,4 +158,19 @@ func parsePorts(inputStr string) []string {
 	}
 
 	return strings.Split(inputStr, ",")
+}
+
+// ParsePort parses port into uint from a string
+func ParsePort(inputStr string) uint64 {
+	inputStr = strings.TrimSpace(inputStr)
+	port, err := strconv.ParseUint(inputStr, 10, 64)
+	if err != nil {
+		panic(fmt.Sprintf("fail to convert port string %s to integer: %s", inputStr, err.Error()))
+	}
+
+	if port > 65535 {
+		panic(fmt.Sprintf("invalid port %d. It should be between 0 and 65535", port))
+	}
+
+	return port
 }
