@@ -24,6 +24,7 @@ const (
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+	logger := ctx.Logger().With("module", types.ModuleName)
 	initGoroutinePool()
 
 	k.SetParams(ctx, data.Params)
@@ -47,13 +48,13 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		// read Code from file
-		go syncReadCodeFromFile(ctx, k, address)
+		go syncReadCodeFromFile(ctx, logger, k, address)
 
 		// read Storage From file
-		go syncReadStorageFromFile(ctx, k, address)
+		go syncReadStorageFromFile(ctx, logger,  k, address)
 	}
 
-	readAllTxLogs(ctx, k)
+	readAllTxLogs(ctx, logger, k)
 
 	// wait for all data to be set into db
 	globalWG.Wait()

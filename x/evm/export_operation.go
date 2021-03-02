@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 var (
@@ -149,7 +150,7 @@ func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
 }
 
 // syncReadCodeFromFile synchronize the process of setting types.Code into evm db when InitGenesis
-func syncReadCodeFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
 	addGoroutine()
 	defer finishGoroutine()
 
@@ -166,11 +167,12 @@ func syncReadCodeFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 		}
 
 		k.SetCodeDirectly(ctx, hexcode)
+		logger.Debug("start loading code", "filename", address.String() + codeFileSuffix)
 	}
 }
 
 // syncReadStorageFromFile synchronize the process of setting types.Storage into evm db when  InitGenesis
-func syncReadStorageFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
+func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
 	addGoroutine()
 	defer finishGoroutine()
 
@@ -194,11 +196,12 @@ func syncReadStorageFromFile(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
 			k.SetStateDirectly(ctx, address, key, value)
 		}
+		logger.Debug("start loading storage", "filename", address.String() + storageFileSuffix)
 	}
 }
 
 // readTxLogsFromFile used for setting []*ethtypes.Log into evm db when  InitGenesis
-func readAllTxLogs(ctx sdk.Context, k Keeper) {
+func readAllTxLogs(ctx sdk.Context, logger log.Logger, k Keeper) {
 	if pathExist(absoluteTxlogsFilePath) {
 		fileInfos, err := ioutil.ReadDir(absoluteTxlogsFilePath)
 		if err != nil {
@@ -206,12 +209,12 @@ func readAllTxLogs(ctx sdk.Context, k Keeper) {
 		}
 
 		for _, fileInfo := range fileInfos {
-			go syncReadTxLogsFromFile(ctx, k, fileInfo.Name())
+			go syncReadTxLogsFromFile(ctx, logger , k, fileInfo.Name())
 		}
 	}
 }
 
-func syncReadTxLogsFromFile(ctx sdk.Context, k Keeper, fileName string) {
+func syncReadTxLogsFromFile(ctx sdk.Context, logger log.Logger, k Keeper, fileName string) {
 	addGoroutine()
 	defer finishGoroutine()
 
@@ -225,6 +228,8 @@ func syncReadTxLogsFromFile(ctx sdk.Context, k Keeper, fileName string) {
 	var txLogs []*ethtypes.Log
 	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
 	k.SetTxLogsDirectly(ctx, hash, txLogs)
+
+	logger.Debug("start loading tx logs", "filename", fileName)
 }
 
 // convertHexStrToHash converts hexStr into ethcmn.Hash struct
