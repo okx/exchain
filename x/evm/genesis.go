@@ -43,7 +43,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
-	readAllTxLogs(ctx, logger, k)
+	//readAllTxLogs(ctx, logger, k)
 
 	// wait for all data to be set into db
 	globalWG.Wait()
