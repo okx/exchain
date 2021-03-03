@@ -14,6 +14,7 @@ import (
 	"github.com/okex/okexchain/app"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -83,7 +84,7 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	ctx := ethermintApp.NewContext(true, abci.Header{Height: ethermintApp.LastBlockHeight()})
 
 	// nolint: prealloc
-	evmByteCodeDB, evmStateDB, err := createContractDB(viper.GetString(flagDBPath))
+	evmByteCodeDB, evmStateDB, err := createEVMDB(viper.GetString(flagDBPath))
 	if err != nil {
 		panic(err)
 	}
@@ -109,7 +110,7 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	return nil
 }
 
-func createContractDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error) {
+func createEVMDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error) {
 	evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
 	if err != nil {
 		return
@@ -120,7 +121,8 @@ func createContractDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error)
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
 	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
-		db.Set(hash, storage)
+		prefix := evmtypes.AddressStoragePrefix(addr)
+		db.Set(append(prefix, hash...), storage)
 		return false
 	})
 }
