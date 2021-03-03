@@ -39,7 +39,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.app.EvmKeeper.SetLogs(suite.ctx, tHash, logs)
+				suite.stateDB.WithContext(suite.ctx).SetLogs(tHash, logs)
 			},
 			1,
 			false,
@@ -54,7 +54,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, tHash)
+		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
 		if !tc.isBloom {
 			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
@@ -225,16 +225,11 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		err := suite.app.EvmKeeper.SetLogs(suite.ctx, hash, logs)
+		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
 		suite.Require().NoError(err, tc.name)
-		dbLogs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, hash)
+		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
 		suite.Require().NoError(err, tc.name)
 		suite.Require().Equal(logs, dbLogs, tc.name)
-
-		//resets state but checking to see if storekey still persists.
-		err = suite.stateDB.WithContext(suite.ctx).Reset(hash)
-		suite.Require().NoError(err, tc.name)
-		suite.Require().Equal(logs, suite.app.EvmKeeper.AllLogs(suite.ctx), tc.name)
 	}
 }
 
