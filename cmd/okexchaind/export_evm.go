@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -22,11 +23,11 @@ import (
 
 const (
 	flagHeight = "height"
+	flagDBPath = "db_path"
 )
 
+var defaultHome, _ = os.Getwd()
 var CodeKeyPrefix = []byte{0x01}
-var StorageKeyPrefix = []byte{0x02}
-var TxsLogKeyPrefix = []byte{0x03}
 
 // ExportEVMCmd dumps app state to JSON.
 func ExportEVMCmd(ctx *server.Context) *cobra.Command {
@@ -58,6 +59,7 @@ func ExportEVMCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.Flags().Int64(flagHeight, -1, "Export state from a particular height (-1 means latest height)")
+	cmd.PersistentFlags().StringP(flagDBPath, "", defaultHome, "directory for config and data")
 	return cmd
 }
 
@@ -81,11 +83,11 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	ctx := ethermintApp.NewContext(true, abci.Header{Height: ethermintApp.LastBlockHeight()})
 
 	// nolint: prealloc
-	evmDB, err := createContractDB(".")
+	evmByteCodeDB, evmStateDB, err := createContractDB(viper.GetString(flagDBPath))
 	if err != nil {
 		panic(err)
 	}
-	defer evmDB.Close()
+	//defer evmDB.Close()
 
 	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -97,34 +99,28 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		addr := ethAccount.EthAddress()
 		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
 		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
-			evmDB.Set(codeKey, code)
+			evmByteCodeDB.Set(codeKey, code)
 		}
 
-		go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmDB)
+		go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmStateDB)
 
 		return false
 	})
-
-	//ethermintApp.EvmKeeper.IterateTxLogs(ctx, func(hash, logs []byte) bool {
-	//	evmDB.Set(hash, logs)
-	//
-	//	return false
-	//})
-
 	return nil
 }
 
-func createContractDB(rootDir string) (dbm.DB, error) {
-	//dataDir := filepath.Join(rootDir, "data")
-	dataDir := rootDir
-	db, err := sdk.NewLevelDB("evm_state", dataDir)
-	return db, err
+func createContractDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error) {
+	evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
+	if err != nil {
+		return
+	}
+	evmStateDB, err = sdk.NewLevelDB("evm_state", path)
+	return
 }
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
 	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
 		db.Set(hash, storage)
-
 		return false
 	})
 }
