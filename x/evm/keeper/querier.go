@@ -158,28 +158,6 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 	return bz, nil
 }
 
-func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
-	if len(path) < 2 {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
-			"Insufficient parameters, at least 2 parameters is required")
-	}
-
-	txHash := ethcmn.HexToHash(path[1])
-
-	logs, err := keeper.GetLogs(ctx, txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	res := types.QueryETHLogs{Logs: logs}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
-}
-
 func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	if len(path) < 2 {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
