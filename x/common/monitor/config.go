@@ -6,6 +6,7 @@ const (
 	orderSubSystem   = "order"
 	stakingSubSystem = "staking"
 	streamSubSystem  = "stream"
+	portSubSystem    = "port"
 )
 
 type prometheusConfig struct {
