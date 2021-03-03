@@ -15,8 +15,8 @@ import (
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
-	//logger := ctx.Logger().With("module", types.ModuleName)
-	codeDB, storageDB := createEVMDB("/Users/green")
+	logger := ctx.Logger().With("module", types.ModuleName)
+	codeDB, storageDB := createEVMDB("/Users/green") // TODO
 	defer func() {
 		err := codeDB.Close()
 		if err != nil {
@@ -55,7 +55,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 		if len(code) != 0 {
 			k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
-			fmt.Println("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
+			logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
 		}
 
 		prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
@@ -65,7 +65,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 		for ; iterator.Valid(); iterator.Next() {
 			k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
-			fmt.Println("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
+			logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
 		}
 		iterator.Close()
 	}
