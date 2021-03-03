@@ -20,6 +20,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
+	codeNum := 0
 	var codeDB, storageDB dbm.DB
 	if initEvmDataPath != "" {
 		logger.Debug(fmt.Sprintf("initial evm contract & storage data path: %s", initEvmDataPath))
@@ -65,6 +66,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			if len(code) != 0 {
 				k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
 				logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
+				codeNum++
 			}
 
 			prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
@@ -79,7 +81,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			iterator.Close()
 		}
 	}
-
+	logger.Debug(fmt.Sprintf("initial evm contract & storage done, contract number: %d", codeNum))
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	return []abci.ValidatorUpdate{}
