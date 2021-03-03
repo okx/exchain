@@ -4,13 +4,10 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
-
-	"github.com/okex/okexchain/x/evm/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/x/evm/types"
 )
 
 // ----------------------------------------------------------------------------
