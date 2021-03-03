@@ -9,6 +9,7 @@ import (
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -16,7 +17,7 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
-	codeDB, storageDB := createEVMDB("/Users/green") // TODO
+	codeDB, storageDB := createEVMDB(viper.GetString("")) // TODO
 	defer func() {
 		err := codeDB.Close()
 		if err != nil {
@@ -113,7 +114,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     []types.TransactionLogs{},
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
