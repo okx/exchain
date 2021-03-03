@@ -19,7 +19,7 @@ type PortMetrics struct {
 	ConnctingNums metrics.Gauge
 }
 
-// DefaultPortMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
+// GetPortMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
 // Otherwise, it returns no-op Metrics
 func GetPortMetrics() *PortMetrics {
 	initPortMetrics.Do(func() {
@@ -52,7 +52,7 @@ func NopPortMetrics() *PortMetrics {
 	}
 }
 
-//set
+//SetConnectingNums
 func (portMetrics *PortMetrics) SetConnectingNums(connectingMap map[uint64]int) {
 	if nil == connectingMap {
 		return
