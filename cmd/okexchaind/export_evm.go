@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	ethermint "github.com/okex/okexchain/app/types"
-
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum/common"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/app"
+	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -97,7 +95,6 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		}
 
 		addr := ethAccount.EthAddress()
-		fmt.Println(addr.String())
 		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
 		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
 			evmDB.Set(codeKey, code)
@@ -108,22 +105,11 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		return false
 	})
 
-	//txsLogs := ethermintApp.EvmKeeper.GetAllTxLogs(ctx)
-	//fmt.Println(len(txsLogs))
-	//for _, txsLog := range txsLogs {
-	//	txLogKey := append(TxsLogKeyPrefix, txsLog.Hash.Bytes()...)
-	//	logs, err := evmTypes.MarshalLogs(txsLog.Logs)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	evmDB.Set(txLogKey, logs)
-	//}
-	ethermintApp.EvmKeeper.IterateTxLogs(ctx, func(hash, logs []byte) bool {
-		fmt.Println(common.BytesToHash(hash).String())
-		evmDB.Set(hash, logs)
-
-		return false
-	})
+	//ethermintApp.EvmKeeper.IterateTxLogs(ctx, func(hash, logs []byte) bool {
+	//	evmDB.Set(hash, logs)
+	//
+	//	return false
+	//})
 
 	return nil
 }
@@ -131,22 +117,12 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 func createContractDB(rootDir string) (dbm.DB, error) {
 	//dataDir := filepath.Join(rootDir, "data")
 	dataDir := rootDir
-	db, err := sdk.NewLevelDB("contract", dataDir)
+	db, err := sdk.NewLevelDB("evm_state", dataDir)
 	return db, err
 }
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
-	//storage, err := k.GetAccountStorage(ctx, addr)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//storageKey := append(StorageKeyPrefix, addr.Bytes()...)
-	//for _, state := range storage {
-	//	db.Set(append(storageKey, state.Key[:]...), state.Value[:])
-	//}
 	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
-		fmt.Println(common.BytesToHash(hash).String())
 		db.Set(hash, storage)
 
 		return false

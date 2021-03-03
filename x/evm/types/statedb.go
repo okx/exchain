@@ -912,9 +912,6 @@ func (csdb *CommitStateDB) IterateStorage(addr ethcmn.Address, cb func(key, valu
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		//key := ethcmn.BytesToHash(iterator.Key())
-		//value := ethcmn.BytesToHash(iterator.Value())
-
 		// check if iteration stops
 		if cb(iterator.Key(), iterator.Value()) {
 			return nil

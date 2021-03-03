@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	dbm "github.com/tendermint/tm-db"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -21,11 +20,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	k.SetParams(ctx, data.Params)
 
 	evmDenom := data.Params.EvmDenom
-	db, err := openContractDB(".")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
@@ -49,18 +43,13 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		k.SetNonce(ctx, address, acc.GetSequence())
 		k.SetBalance(ctx, address, evmBalance.BigInt())
-		//k.SetCode(ctx, address, account.Code)
-		code, err := db.Get(accAddress.Bytes())
-		if err != nil {
-			panic(err)
-		}
-		k.SetCode(ctx, address, code)
+		k.SetCode(ctx, address, account.Code)
 		for _, storage := range account.Storage {
 			k.SetState(ctx, address, storage.Key, storage.Value)
 		}
 	}
 
-	//var err error
+	var err error
 	for _, txLog := range data.TxsLogs {
 		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
 			panic(err)
@@ -85,19 +74,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	return []abci.ValidatorUpdate{}
 }
 
-var CodeKeyPrefix = []byte{0x01}
-var StorageKeyPrefix = []byte{0x02}
-var TxsLogKeyPrefix = []byte{0x03}
-
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	// nolint: prealloc
-	db, err := createContractDB(".")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-
 	var ethGenAccounts []types.GenesisAccount
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -108,18 +87,16 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := ethAccount.EthAddress()
 
+		//storage, err := k.GetAccountStorage(ctx, addr)
+		//if err != nil {
+		//	panic(err)
+		//}
+
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
 			Storage: nil,
 		}
-
-		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
-		if code := k.GetCode(ctx, addr); code != nil {
-			db.Set(codeKey, code)
-		}
-
-		go exportStorage(ctx, k, addr, db)
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
@@ -128,39 +105,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	config, _ := k.GetChainConfig(ctx)
 
 	return GenesisState{
-		Accounts: ethGenAccounts,
-		//TxsLogs:     k.GetAllTxLogs(ctx),
+		Accounts:    ethGenAccounts,
+		TxsLogs:     nil,
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}
-}
-
-func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
-	storage, err := k.GetAccountStorage(ctx, addr)
-	if err != nil {
-		panic(err)
-	}
-
-	storageKey := append(StorageKeyPrefix, addr.Bytes()...)
-	for _, state := range storage {
-		db.Set(append(storageKey, state.Key[:]...), state.Value[:])
-	}
-}
-
-func openContractDB(rootDir string) (dbm.DB, error) {
-	//dataDir := filepath.Join(rootDir, "data")
-	dataDir := rootDir
-	name := "contract"
-	//dbPath := filepath.Join(dataDir, name+".db")
-	//os.Stat(dbPath)
-	db, err := sdk.NewLevelDB(name, dataDir)
-	fmt.Println(db.Stats())
-	return db, err
-}
-
-func createContractDB(rootDir string) (dbm.DB, error) {
-	//dataDir := filepath.Join(rootDir, "data")
-	dataDir := rootDir
-	db, err := sdk.NewLevelDB("contract", dataDir)
-	return db, err
 }
