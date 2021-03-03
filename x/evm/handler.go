@@ -106,12 +106,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	if !st.Simulate {
-		// update transaction logs in KVStore
-		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
-		if err != nil {
-			panic(err)
-		}
-
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
@@ -205,12 +199,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// update block bloom filter
 	if !st.Simulate {
-		// update transaction logs in KVStore
-		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
-		if err != nil {
-			panic(err)
-		}
-
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 	}
