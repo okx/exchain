@@ -21,6 +21,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	evmDenom := data.Params.EvmDenom
 
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
@@ -41,17 +43,17 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		k.SetNonce(ctx, address, acc.GetSequence())
-		k.SetBalance(ctx, address, evmBalance.BigInt())
-		k.SetCode(ctx, address, account.Code)
+		csdb.SetNonce(address, acc.GetSequence())
+		csdb.SetBalance(address, evmBalance.BigInt())
+		csdb.SetCode(address, account.Code)
 		for _, storage := range account.Storage {
-			k.SetState(ctx, address, storage.Key, storage.Value)
+			csdb.SetState(address, storage.Key, storage.Value)
 		}
 	}
 
 	var err error
 	for _, txLog := range data.TxsLogs {
-		if err = k.SetLogs(ctx, txLog.Hash, txLog.Logs); err != nil {
+		if err = csdb.SetLogs(txLog.Hash, txLog.Logs); err != nil {
 			panic(err)
 		}
 	}
@@ -59,14 +61,14 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	// set state objects and code to store
-	_, err = k.Commit(ctx, false)
+	_, err = csdb.Commit(false)
 	if err != nil {
 		panic(err)
 	}
 
 	// set storage to store
 	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = k.Finalise(ctx, false)
+	err = csdb.Finalise(false)
 	if err != nil {
 		panic(err)
 	}

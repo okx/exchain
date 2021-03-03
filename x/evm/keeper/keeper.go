@@ -7,6 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/bank"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -34,13 +35,17 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 	// Account Keeper for fetching accounts
 	accountKeeper types.AccountKeeper
-	// Ethermint concrete implementation on the EVM StateDB interface
-	CommitStateDB *types.CommitStateDB
+	paramSpace    params.Subspace
+	supplyKeeper  types.SupplyKeeper
+	bankKeeper    bank.Keeper
+
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
 	TxCount int
 	Bloom   *big.Int
+	Bhash   ethcmn.Hash
+	LogSize uint
 }
 
 // NewKeeper generates new evm module keeper
@@ -57,23 +62,29 @@ func NewKeeper(
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
-		CommitStateDB: types.NewCommitStateDB(sdk.Context{}, storeKey, paramSpace, ak, sk, bk),
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
+		LogSize:       0,
+	}
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
+	return types.CommitStateDBParams{
+		StoreKey:      k.storeKey,
+		ParamSpace:    k.paramSpace,
+		AccountKeeper: k.accountKeeper,
+		SupplyKeeper:  k.supplyKeeper,
+		BankKeeper:    k.bankKeeper,
 	}
 }
 
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
-}
-
-func (k Keeper) GetCommitStateDB(ctx sdk.Context) *types.CommitStateDB {
-	if ctx.IsCheckTx() {
-		//reset simulation commit stateDB
-		return k.CommitStateDB.GenerateEmptyStateDB(ctx)
-	}
-	return k.CommitStateDB
 }
 
 // ----------------------------------------------------------------------------
@@ -108,12 +119,12 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) common.Hash {
-	return k.GetCommitStateDB(ctx).WithContext(ctx).GetHeightHash(height)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetHeightHash(height)
 }
 
 // SetHeightHash sets the block header hash associated with a given height.
 func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) {
-	k.GetCommitStateDB(ctx).WithContext(ctx).SetHeightHash(height, hash)
+	types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).SetHeightHash(height, hash)
 }
 
 // ----------------------------------------------------------------------------
@@ -176,7 +187,8 @@ func (k Keeper) IterateTxLogs(ctx sdk.Context, cb func(hash, logs []byte) (stop 
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
-	err := k.ForEachStorage(ctx, address, func(key, value common.Hash) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	err := csdb.ForEachStorage(address, func(key, value common.Hash) bool {
 		storage = append(storage, types.NewState(key, value))
 		return false
 	})

@@ -34,7 +34,7 @@ func (suite *KeeperTestSuite) TestBalanceInvariant() {
 
 				suite.app.EvmKeeper.SetBalance(suite.ctx, address, big.NewInt(1000))
 			},
-			true,
+			false,
 		},
 		{
 			"balance ok",
@@ -97,7 +97,7 @@ func (suite *KeeperTestSuite) TestNonceInvariant() {
 
 				suite.app.EvmKeeper.SetNonce(suite.ctx, address, 100)
 			},
-			true,
+			false,
 		},
 		{
 			"nonce ok",

@@ -32,6 +32,14 @@ type revision struct {
 	journalIndex int
 }
 
+type CommitStateDBParams struct {
+	StoreKey      sdk.StoreKey
+	ParamSpace    params.Subspace
+	AccountKeeper AccountKeeper
+	SupplyKeeper  SupplyKeeper
+	BankKeeper    bank.Keeper
+}
+
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
 // a trie and database for querying and persistence, the Keeper uses KVStores
 // and an account mapper is used to facilitate state transitions.
@@ -63,6 +71,8 @@ type CommitStateDB struct {
 	txIndex      int
 	logSize      uint
 
+	logs []*ethtypes.Log
+
 	// TODO: Determine if we actually need this as we do not need preimages in
 	// the SDK, but it seems to be used elsewhere in Geth.
 	preimages           []preimageEntry
@@ -88,12 +98,12 @@ type CommitStateDB struct {
 	lock sync.Mutex
 }
 
-// NewCommitStateDB returns a reference to a newly initialized CommitStateDB
+// newCommitStateDB returns a reference to a newly initialized CommitStateDB
 // which implements Geth's state.StateDB interface.
 //
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
-func NewCommitStateDB(
+func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
@@ -111,17 +121,20 @@ func NewCommitStateDB(
 		journal:              newJournal(),
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
+		logs:                 []*ethtypes.Log{},
 	}
 }
 
-func (csdb CommitStateDB) GenerateEmptyStateDB(ctx sdk.Context) *CommitStateDB {
+func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
 	return &CommitStateDB{
-		ctx:                  ctx,
-		storeKey:             csdb.storeKey,
-		paramSpace:           csdb.paramSpace,
-		accountKeeper:        csdb.accountKeeper,
-		supplyKeeper:         csdb.supplyKeeper,
-		bankKeeper:           csdb.bankKeeper,
+		ctx: ctx,
+
+		storeKey:      csdbParams.StoreKey,
+		paramSpace:    csdbParams.ParamSpace,
+		accountKeeper: csdbParams.AccountKeeper,
+		supplyKeeper:  csdbParams.SupplyKeeper,
+		bankKeeper:    csdbParams.BankKeeper,
+
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -130,6 +143,8 @@ func (csdb CommitStateDB) GenerateEmptyStateDB(ctx sdk.Context) *CommitStateDB {
 		journal:              newJournal(),
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
+		logSize:              0,
+		logs:                 []*ethtypes.Log{},
 	}
 }
 
@@ -212,21 +227,13 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz, err := MarshalLogs(logs)
-	if err != nil {
-		return err
-	}
-
-	store.Set(hash.Bytes(), bz)
-	csdb.logSize = uint(len(logs))
+	csdb.logs = logs
 	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
 func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	store.Delete(hash.Bytes())
+	csdb.logs = []*ethtypes.Log{}
 }
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
@@ -238,16 +245,8 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	log.TxIndex = uint(csdb.txIndex)
 	log.Index = csdb.logSize
 
-	logs, err := csdb.GetLogs(csdb.thash)
-	if err != nil {
-		// panic on unmarshal error
-		panic(err)
-	}
-
-	if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
-		// panic on marshal error
-		panic(err)
-	}
+	csdb.logSize = csdb.logSize + 1
+	csdb.logs = append(csdb.logs, log)
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -429,30 +428,7 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		// return nil error if logs are not found
-		return []*ethtypes.Log{}, nil
-	}
-
-	return UnmarshalLogs(bz)
-}
-
-// AllLogs returns all the current logs in the state.
-func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixLogs)
-	defer iterator.Close()
-
-	allLogs := []*ethtypes.Log{}
-	for ; iterator.Valid(); iterator.Next() {
-		var logs []*ethtypes.Log
-		ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		allLogs = append(allLogs, logs...)
-	}
-
-	return allLogs
+	return csdb.logs, nil
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -571,6 +547,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 
 	// invalidate journal because reverting across transactions is not allowed
 	csdb.clearJournalAndRefund()
+	csdb.DeleteLogs(csdb.thash)
 	return nil
 }
 
@@ -768,8 +745,9 @@ func (csdb *CommitStateDB) clearJournalAndRefund() {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-func (csdb *CommitStateDB) Prepare(thash ethcmn.Hash, txi int) {
+func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 	csdb.thash = thash
+	csdb.bhash = bhash
 	csdb.txIndex = txi
 }
 
@@ -791,79 +769,6 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	}
 }
 
-// Copy creates a deep, independent copy of the state.
-//
-// NOTE: Snapshots of the copied state cannot be applied to the copy.
-func (csdb *CommitStateDB) Copy() *CommitStateDB {
-
-	// copy all the basic fields, initialize the memory ones
-	state := &CommitStateDB{}
-	CopyCommitStateDB(csdb, state)
-
-	return state
-}
-
-func CopyCommitStateDB(from, to *CommitStateDB) {
-	to.ctx = from.ctx
-	to.storeKey = from.storeKey
-	to.paramSpace = from.paramSpace
-	to.accountKeeper = from.accountKeeper
-	to.bankKeeper = from.bankKeeper
-	to.supplyKeeper = from.supplyKeeper
-	to.stateObjects = []stateEntry{}
-	to.addressToObjectIndex = make(map[ethcmn.Address]int)
-	to.stateObjectsDirty = make(map[ethcmn.Address]struct{})
-	to.refund = from.refund
-	to.logSize = from.logSize
-	to.preimages = make([]preimageEntry, len(from.preimages))
-	to.hashToPreimageIndex = make(map[ethcmn.Hash]int, len(from.hashToPreimageIndex))
-	to.journal = newJournal()
-	to.thash = from.thash
-	to.bhash = from.bhash
-	to.txIndex = from.txIndex
-	validRevisions := make([]revision, len(from.validRevisions))
-	copy(validRevisions, from.validRevisions)
-	to.validRevisions = validRevisions
-	to.nextRevisionID = from.nextRevisionID
-	to.accessList = from.accessList.Copy()
-
-	// copy the dirty states, logs, and preimages
-	for _, dirty := range from.journal.dirties {
-		// There is a case where an object is in the journal but not in the
-		// stateObjects: OOG after touch on ripeMD prior to Byzantium. Thus, we
-		// need to check for nil.
-		//
-		// Ref: https://github.com/ethereum/go-ethereum/pull/16485#issuecomment-380438527
-		if idx, exist := from.addressToObjectIndex[dirty.address]; exist {
-			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
-			newStateObject.stateDB = to
-			to.stateObjects = append(to.stateObjects, stateEntry{
-				address:     dirty.address,
-				stateObject: newStateObject,
-			})
-			to.addressToObjectIndex[dirty.address] = len(to.stateObjects) - 1
-			to.stateObjectsDirty[dirty.address] = struct{}{}
-		}
-	}
-
-	// Above, we don't copy the actual journal. This means that if the copy is
-	// copied, the loop above will be a no-op, since the copy's journal is empty.
-	// Thus, here we iterate over stateObjects, to enable copies of copies.
-	for addr := range from.stateObjectsDirty {
-		if idx, exist := to.addressToObjectIndex[addr]; !exist {
-			newStateObject := from.stateObjects[idx].stateObject.deepCopy(to)
-			newStateObject.stateDB = to
-			to.setStateObject(newStateObject)
-			to.stateObjectsDirty[addr] = struct{}{}
-		}
-	}
-
-	// copy pre-images
-	for i, preimageEntry := range from.preimages {
-		to.preimages[i] = preimageEntry
-		to.hashToPreimageIndex[preimageEntry.hash] = i
-	}
-}
 
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
@@ -1014,4 +919,12 @@ type preimageEntry struct {
 	// hash key of the preimage entry
 	hash     ethcmn.Hash
 	preimage []byte
+}
+
+func (csdb *CommitStateDB) SetLogSize(logSize uint) {
+	csdb.logSize = logSize
+}
+
+func (csdb *CommitStateDB) GetLogSize() uint {
+	return csdb.logSize
 }
