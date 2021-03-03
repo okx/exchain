@@ -14,9 +14,9 @@ var (
 	initPortMetrics sync.Once
 )
 
-// PortMetrics is the struct of metric in order module
+// PortMetrics monitors connecting number
 type PortMetrics struct {
-	ConnctingNums metrics.Gauge
+	ConnectingNums metrics.Gauge
 }
 
 // GetPortMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
@@ -33,10 +33,10 @@ func GetPortMetrics() *PortMetrics {
 	return portMetrics
 }
 
-// NewPortMetricss returns a pointer of a new PortMetrics object
+// NewPortMetrics returns a pointer of a new PortMetrics object
 func NewPortMetrics(labelsAndValues ...string) *PortMetrics {
 	return &PortMetrics{
-		ConnctingNums: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+		ConnectingNums: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: xNameSpace,
 			Subsystem: portSubSystem,
 			Name:      "connecting",
@@ -48,16 +48,16 @@ func NewPortMetrics(labelsAndValues ...string) *PortMetrics {
 // NopPortMetrics returns a pointer of a no-op Metrics
 func NopPortMetrics() *PortMetrics {
 	return &PortMetrics{
-		ConnctingNums: discard.NewGauge(),
+		ConnectingNums: discard.NewGauge(),
 	}
 }
 
-//SetConnectingNums
+//SetConnectingNums sets connectingNums by connecting number of each port
 func (portMetrics *PortMetrics) SetConnectingNums(connectingMap map[uint64]int) {
 	if nil == connectingMap {
 		return
 	}
 	for port, num := range connectingMap {
-		portMetrics.ConnctingNums.With(portSubSystem, strconv.FormatUint(port, 10)).Set(float64(num))
+		portMetrics.ConnectingNums.With(portSubSystem, strconv.FormatUint(port, 10)).Set(float64(num))
 	}
 }
