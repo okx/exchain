@@ -11,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
@@ -28,7 +29,6 @@ const (
 )
 
 var defaultHome, _ = os.Getwd()
-var CodeKeyPrefix = []byte{0x01}
 
 // ExportEVMCmd dumps app state to JSON.
 func ExportEVMCmd(ctx *server.Context) *cobra.Command {
@@ -98,9 +98,8 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		}
 
 		addr := ethAccount.EthAddress()
-		codeKey := append(CodeKeyPrefix, addr.Bytes()...)
 		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
-			evmByteCodeDB.Set(codeKey, code)
+			evmByteCodeDB.Set(append(evmtypes.KeyPrefixCode, ethcrypto.Keccak256Hash(code).Bytes()...), code)
 		}
 
 		go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmStateDB)
