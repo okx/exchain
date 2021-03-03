@@ -2,7 +2,6 @@ package evm_test
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -270,55 +269,6 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().NoError(err, "failed to get logs")
 
 	suite.Require().Equal(logs, resultData.Logs)
-}
-
-func (suite *EvmTestSuite) TestQueryTxLogs() {
-
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
-	gasLimit := uint64(100000)
-	gasPrice := big.NewInt(1000000)
-
-	priv, err := ethsecp256k1.GenerateKey()
-	suite.Require().NoError(err, "failed to create key")
-
-	// send contract deployment transaction with an event in the constructor
-	bytecode := common.FromHex("0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029")
-	tx := types.NewMsgEthereumTx(1, nil, big.NewInt(0), gasLimit, gasPrice, bytecode)
-	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
-	suite.Require().NoError(err)
-
-	result, err := suite.handler(suite.ctx, tx)
-	suite.Require().NoError(err)
-	suite.Require().NotNil(result)
-
-	resultData, err := types.DecodeResultData(result.Data)
-	suite.Require().NoError(err, "failed to decode result data")
-
-	suite.Require().Equal(len(resultData.Logs), 1)
-	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
-
-	// get logs by tx hash
-	hash := resultData.TxHash.Bytes()
-
-	logs, err := suite.app.EvmKeeper.GetLogs(suite.ctx, ethcmn.BytesToHash(hash))
-	suite.Require().NoError(err, "failed to get logs")
-
-	suite.Require().Equal(logs, resultData.Logs)
-
-	// query tx logs
-	path := []string{"transactionLogs", fmt.Sprintf("0x%x", hash)}
-	res, err := suite.querier(suite.ctx, path, abci.RequestQuery{})
-	suite.Require().NoError(err, "failed to query txLogs")
-
-	var txLogs types.QueryETHLogs
-	suite.codec.MustUnmarshalJSON(res, &txLogs)
-
-	// amino decodes an empty byte array as nil, whereas JSON decodes it as []byte{} causing a discrepancy
-	resultData.Logs[0].Data = []byte{}
-	suite.Require().Equal(txLogs.Logs[0], resultData.Logs[0])
 }
 
 func (suite *EvmTestSuite) TestDeployAndCallContract() {

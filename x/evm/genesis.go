@@ -109,7 +109,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     k.GetAllTxLogs(ctx),
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}

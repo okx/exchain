@@ -35,12 +35,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryCode(ctx, path, keeper)
 		case types.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
-		case types.QueryTransactionLogs:
-			return queryTransactionLogs(ctx, path, keeper)
 		case types.QueryBloom:
 			return queryBlockBloom(ctx, path, keeper)
-		case types.QueryLogs:
-			return queryLogs(ctx, keeper)
 		case types.QueryAccount:
 			return queryAccount(ctx, path, keeper)
 		case types.QueryExportAccount:
@@ -181,17 +177,6 @@ func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
-	return bz, nil
-}
-
-func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, error) {
-	logs := keeper.AllLogs(ctx)
-
-	res := types.QueryETHLogs{Logs: logs}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
 	return bz, nil
 }
 
