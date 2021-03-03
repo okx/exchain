@@ -179,12 +179,7 @@ func (b *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 // It returns an error if there's an encoding error.
 // If no logs are found for the tx hash, the error is nil.
 func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
-	node, err := b.clientCtx.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
-	txRes, err := node.Tx(txHash.Bytes(), !b.clientCtx.TrustNode)
+	txRes, err := b.clientCtx.Client.Tx(txHash.Bytes(), !b.clientCtx.TrustNode)
 	if err != nil {
 		return nil, err
 	}
@@ -245,12 +240,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, tx := range block.Block.Txs {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		node, err := b.clientCtx.GetNode()
-		if err != nil {
-			continue
-		}
-
-		txRes, err := node.Tx(tx.Hash(), !b.clientCtx.TrustNode)
+		txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
 		if err != nil {
 			continue
 		}
