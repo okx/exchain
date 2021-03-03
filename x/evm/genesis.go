@@ -3,6 +3,7 @@ package evm
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -17,17 +18,23 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
-	codeDB, storageDB := createEVMDB(viper.GetString("")) // TODO
-	defer func() {
-		err := codeDB.Close()
-		if err != nil {
-			panic(err)
-		}
-		err = storageDB.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
+
+	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
+	var codeDB, storageDB dbm.DB
+	if initEvmDataPath != "" {
+		logger.Debug(fmt.Sprintf("initial evm contract & storage data path: %s", initEvmDataPath))
+		codeDB, storageDB = createEVMDB(initEvmDataPath) // TODO
+		defer func() {
+			err := codeDB.Close()
+			if err != nil {
+				panic(err)
+			}
+			err = storageDB.Close()
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}
 
 	k.SetParams(ctx, data.Params)
 	for _, account := range data.Accounts {
@@ -50,25 +57,27 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		code, err := codeDB.Get(common.CloneAppend(types.KeyPrefixCode, ethAcc.CodeHash))
-		if err != nil {
-			panic(err)
-		}
-		if len(code) != 0 {
-			k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
-			logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
-		}
+		if initEvmDataPath != "" {
+			code, err := codeDB.Get(common.CloneAppend(types.KeyPrefixCode, ethAcc.CodeHash))
+			if err != nil {
+				panic(err)
+			}
+			if len(code) != 0 {
+				k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
+				logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
+			}
 
-		prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
-		iterator, err := storageDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
-		if err != nil {
-			panic(err)
+			prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
+			iterator, err := storageDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
+			if err != nil {
+				panic(err)
+			}
+			for ; iterator.Valid(); iterator.Next() {
+				k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
+				logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
+			}
+			iterator.Close()
 		}
-		for ; iterator.Valid(); iterator.Next() {
-			k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
-			logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
-		}
-		iterator.Close()
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
