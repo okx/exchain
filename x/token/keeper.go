@@ -1,13 +1,17 @@
 package token
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	app "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/params"
 	"github.com/okex/okexchain/x/token/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -17,6 +21,7 @@ import (
 type Keeper struct {
 	bankKeeper       bank.Keeper
 	supplyKeeper     SupplyKeeper
+	accountKeeper    types.AccountKeeper
 	feeCollectorName string // name of the FeeCollector ModuleAccount
 
 	// The reference to the Paramstore to get and set gov specific params
@@ -36,13 +41,14 @@ type Keeper struct {
 
 // NewKeeper creates a new token keeper
 func NewKeeper(bankKeeper bank.Keeper, paramSpace params.Subspace,
-	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool) Keeper {
+	feeCollectorName string, supplyKeeper SupplyKeeper, tokenStoreKey, lockStoreKey sdk.StoreKey, cdc *codec.Codec, enableBackend bool, ak types.AccountKeeper) Keeper {
 
 	k := Keeper{
 		bankKeeper:       bankKeeper,
 		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
 		feeCollectorName: feeCollectorName,
 		supplyKeeper:     supplyKeeper,
+		accountKeeper:    ak,
 		tokenStoreKey:    tokenStoreKey,
 		lockStoreKey:     lockStoreKey,
 		cdc:              cdc,
@@ -160,10 +166,25 @@ func (k Keeper) UpdateToken(ctx sdk.Context, token types.Token) {
 	store.Set(types.GetTokenAddress(token.Symbol), k.cdc.MustMarshalBinaryBare(token))
 }
 
+func (k Keeper) IsContractAddress(ctx sdk.Context, addr sdk.AccAddress) bool {
+	acc := k.accountKeeper.GetAccount(ctx, addr)
+	if acc != nil {
+		ethAcc, ok := acc.(*app.EthAccount)
+		if ok {
+			return bytes.Compare(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) != 0
+		}
+	}
+	return false
+}
+
 // SendCoinsFromAccountToAccount - send token from one account to another account
 func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccAddress, amt sdk.SysCoins) error {
 	if k.bankKeeper.BlacklistedAddr(to) {
 		return types.ErrBlockedRecipient(to.String())
+	}
+
+	if sdk.IsDisableTransferToContractBlock(ctx.BlockHeight()) && k.IsContractAddress(ctx, to) {
+		return types.ErrBlockedContractRecipient(to.String())
 	}
 
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)

@@ -2,21 +2,27 @@ package perf
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/log"
-
+	tmcli "github.com/tendermint/tendermint/rpc/client"
+	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 	"sync"
 	"time"
 )
 
 var (
-	_ Perf = &performance{}
-	_      = info{txNum: 0, beginBlockElapse: 0,
-		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0}
+	lastHeightTimestamp int64
+	_                   Perf = &performance{}
+	_                        = info{txNum: 0, beginBlockElapse: 0,
+		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0, txElapseBySum: 0}
 )
 
+func init() {
+	lastHeightTimestamp = time.Now().UnixNano()
+}
+
 const (
+	localRpcUrl        = "http://127.0.0.1:26657"
 	orderModule        = "order"
 	dexModule          = "dex"
 	swapModule         = "ammswap"
@@ -25,26 +31,32 @@ const (
 	govModule          = "gov"
 	distributionModule = "distribution"
 	farmModule         = "farm"
-	summaryFormat      = "BlockHeight<%d>, " +
+	evmModule          = "evm"
+	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
+		"BlockSize<%.2fKB>, " +
+		"MemPoolTx<%d>, " +
+		"MemPoolSize<%.2fKB>, " +
 		"%s"
-	appFormat = "BlockHeight<%d>, " +
+
+	appFormat = "App: Height<%d>, " +
 		"BeginBlock<%dms>, " +
 		"DeliverTx<%dms>, " +
+		"txElapseBySum<%dms>, " +
 		"EndBlock<%dms>, " +
 		"Commit<%dms>, " +
 		"Tx<%d>" +
 		"%s"
-	moduleFormat = "BlockHeight<%d>, " +
+	moduleFormat = "Module: Height<%d>, " +
 		"module<%s>, " +
 		"BeginBlock<%dms>, " +
 		"DeliverTx<%dms>, " +
 		"TxNum<%d>, " +
 		"EndBlock<%dms>,"
-	handlerFormat = "BlockHeight<%d>, " +
+	handlerFormat = "Handler: Height<%d>, " +
 		"module<%s>, " +
-		"handler<%s>, " +
+		"DeliverTx<%s>, " +
 		"elapsed<%dms>, " +
 		"invoked<%d>,"
 )
@@ -68,6 +80,9 @@ type Perf interface {
 	OnAppEndBlockEnter(height int64) uint64
 	OnAppEndBlockExit(height int64, seq uint64)
 
+	OnAppDeliverTxEnter(height int64) uint64
+	OnAppDeliverTxExit(height int64, seq uint64)
+
 	OnCommitEnter(height int64) uint64
 	OnCommitExit(height int64, seq uint64, logger log.Logger)
 
@@ -85,14 +100,15 @@ type Perf interface {
 }
 
 type hanlderInfo struct {
-	invoke uint64
-	elapse int64
+	invoke          uint64
+	deliverTxElapse int64
 }
 
 type info struct {
 	blockheight      int64
 	beginBlockElapse int64
 	endBlockElapse   int64
+	txElapseBySum    int64
 	deliverTxElapse  int64
 	txNum            uint64
 }
@@ -125,6 +141,7 @@ func newHanlderMetrics() *moduleInfo {
 }
 
 type performance struct {
+	rpcClient     tmcli.Client
 	lastTimestamp int64
 	seqNum        uint64
 
@@ -135,7 +152,13 @@ type performance struct {
 }
 
 func newPerf() *performance {
+	rpcCli, err := tmhttp.New(localRpcUrl, "/websocket")
+	if err != nil {
+		panic("fail to init a tendermint rpc client in performance module")
+	}
+
 	p := &performance{
+		rpcClient:     rpcCli,
 		moduleInfoMap: make(map[string]*moduleInfo),
 	}
 
@@ -150,6 +173,9 @@ func newPerf() *performance {
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
 	p.moduleInfoMap[farmModule] = newHanlderMetrics()
+	p.moduleInfoMap[evmModule] = newHanlderMetrics()
+
+	p.check = false
 
 	return p
 }
@@ -194,6 +220,21 @@ func (p *performance) OnAppEndBlockExit(height int64, seq uint64) {
 	p.app.endBlockElapse = time.Now().UnixNano() - p.app.lastTimestamp
 }
 
+//////////////////////////////////////////////////////////////////
+func (p *performance) OnAppDeliverTxEnter(height int64) uint64 {
+	p.sanityCheckApp(height, p.app.seqNum)
+
+	p.app.seqNum++
+	p.app.lastTimestamp = time.Now().UnixNano()
+
+	return p.app.seqNum
+}
+
+func (p *performance) OnAppDeliverTxExit(height int64, seq uint64) {
+	p.sanityCheckApp(height, seq)
+	p.app.deliverTxElapse += time.Now().UnixNano() - p.app.lastTimestamp
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 func (p *performance) OnBeginBlockEnter(ctx sdk.Context, moduleName string) uint64 {
@@ -201,6 +242,9 @@ func (p *performance) OnBeginBlockEnter(ctx sdk.Context, moduleName string) uint
 	p.seqNum++
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	return p.seqNum
@@ -209,6 +253,9 @@ func (p *performance) OnBeginBlockEnter(ctx sdk.Context, moduleName string) uint
 func (p *performance) OnBeginBlockExit(ctx sdk.Context, moduleName string, seq uint64) {
 	p.sanityCheck(ctx, seq)
 	m := p.getModule(moduleName)
+	if m == nil {
+		return
+	}
 	m.beginBlockElapse = time.Now().UnixNano() - p.lastTimestamp
 }
 
@@ -218,6 +265,9 @@ func (p *performance) OnEndBlockEnter(ctx sdk.Context, moduleName string) uint64
 	p.seqNum++
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	return p.seqNum
@@ -226,15 +276,23 @@ func (p *performance) OnEndBlockEnter(ctx sdk.Context, moduleName string) uint64
 func (p *performance) OnEndBlockExit(ctx sdk.Context, moduleName string, seq uint64) {
 	p.sanityCheck(ctx, seq)
 	m := p.getModule(moduleName)
-
+	if m == nil {
+		return
+	}
 	m.endBlockElapse = time.Now().UnixNano() - p.lastTimestamp
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
 func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName string) uint64 {
+	if ctx.IsCheckTx() {
+		return 0
+	}
 
 	m := p.getModule(moduleName)
+	if m == nil {
+		return 0
+	}
 	m.blockheight = ctx.BlockHeight()
 
 	_, ok := m.data[handlerName]
@@ -248,24 +306,31 @@ func (p *performance) OnDeliverTxEnter(ctx sdk.Context, moduleName, handlerName 
 }
 
 func (p *performance) OnDeliverTxExit(ctx sdk.Context, moduleName, handlerName string, seq uint64) {
-	if !ctx.IsCheckTx() {
-		p.sanityCheck(ctx, seq)
+	if ctx.IsCheckTx() {
+		return
 	}
+	p.sanityCheck(ctx, seq)
 
 	m := p.getModule(moduleName)
-
+	if m == nil {
+		return
+	}
 	info, ok := m.data[handlerName]
 	if !ok {
-		panic("Invalid handler name: " + handlerName)
+		//should never panic in performance monitoring
+		return
 	}
 	info.invoke++
-	info.elapse = time.Now().UnixNano() - p.lastTimestamp
+
+	elapse := time.Now().UnixNano() - p.lastTimestamp
+
+	info.deliverTxElapse += elapse
 
 	m.txNum++
-	m.deliverTxElapse += info.elapse
+	m.deliverTxElapse += elapse
 
 	p.app.txNum++
-	p.app.deliverTxElapse += info.elapse
+	p.app.txElapseBySum += elapse
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -291,22 +356,47 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		if blockElapse == 0 && m.txNum == 0 {
 			continue
 		}
-		moduleInfo += fmt.Sprintf(", %s[hdl<%dms>, blk<%dms>, tx<%d>]", moduleName, handlerElapse, blockElapse,
+		moduleInfo += fmt.Sprintf(", %s[handler<%dms>, (begin+end)block<%dms>, tx<%d>]", moduleName, handlerElapse, blockElapse,
 			m.txNum)
 
 		logger.Info(fmt.Sprintf(moduleFormat, m.blockheight, moduleName, m.beginBlockElapse/unit, m.deliverTxElapse/unit,
 			m.txNum, m.endBlockElapse/unit))
 
 		for hanlderName, info := range m.data {
-			logger.Info(fmt.Sprintf(handlerFormat, m.blockheight, moduleName, hanlderName, info.elapse/unit, info.invoke))
+			logger.Info(fmt.Sprintf(handlerFormat, m.blockheight, moduleName, hanlderName, info.deliverTxElapse/unit, info.invoke))
 		}
 	}
 
-	logger.Info(fmt.Sprintf(appFormat, p.app.blockheight, p.app.beginBlockElapse/unit, p.app.deliverTxElapse/unit,
-		p.app.endBlockElapse/unit, p.app.commitElapse/unit, p.app.txNum, moduleInfo))
+	logger.Info(fmt.Sprintf(appFormat, p.app.blockheight,
+		p.app.beginBlockElapse/unit,
+		p.app.deliverTxElapse/unit,
+		p.app.txElapseBySum/unit,
+		p.app.endBlockElapse/unit,
+		p.app.commitElapse/unit,
+		p.app.txNum,
+		moduleInfo))
+
+	interval := (time.Now().UnixNano() - lastHeightTimestamp) / unit / 1e3
+	lastHeightTimestamp = time.Now().UnixNano()
+	tmStatus, err := p.getTendermintStatus(height)
+	if err != nil {
+		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
+	}
+
+	if len(p.msgQueue) == 0 {
+		p.EnqueueMsg("")
+	}
 
 	for _, e := range p.msgQueue {
-		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, p.app.abciElapse()/unit, p.app.txNum, e))
+		logger.Info(fmt.Sprintf(summaryFormat,
+			p.app.blockheight,
+			interval,
+			p.app.abciElapse()/unit,
+			p.app.txNum,
+			float64(tmStatus.blockSize)/1024,
+			tmStatus.uncomfirmedTxNum,
+			float64(tmStatus.uncormfirmedTxTotalSize)/1024,
+			e))
 	}
 
 	p.msgQueue = nil
@@ -320,6 +410,7 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
 	p.moduleInfoMap[farmModule] = newHanlderMetrics()
+	p.moduleInfoMap[evmModule] = newHanlderMetrics()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -355,8 +446,38 @@ func (p *performance) getModule(moduleName string) *moduleInfo {
 
 	v, ok := p.moduleInfoMap[moduleName]
 	if !ok {
-		panic("Invalid module name: " + moduleName)
+		//should never panic in performance monitoring
+		return nil
 	}
 
 	return v
+}
+
+func (p *performance) getTendermintStatus(height int64) (ts tendermintStatus, err error) {
+	ts.blockSize = -1
+	ts.uncomfirmedTxNum = -1
+	ts.uncormfirmedTxTotalSize = -1
+	block, err := p.rpcClient.Block(&height)
+	if err != nil {
+		return ts, fmt.Errorf("failed to query block on height %d", height)
+	}
+
+	uncomfirmedRes, err := p.rpcClient.NumUnconfirmedTxs()
+	if err != nil {
+		return ts, fmt.Errorf("failed to query mempool result on height %d", height)
+	}
+
+	ts = tendermintStatus{
+		blockSize:               block.Block.Size(),
+		uncomfirmedTxNum:        uncomfirmedRes.Total,
+		uncormfirmedTxTotalSize: uncomfirmedRes.TotalBytes,
+	}
+
+	return
+}
+
+type tendermintStatus struct {
+	blockSize               int
+	uncomfirmedTxNum        int
+	uncormfirmedTxTotalSize int64
 }

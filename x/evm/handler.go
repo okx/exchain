@@ -3,6 +3,7 @@ package evm
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,56 +15,30 @@ import (
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
-		var snapshotStateDB *types.CommitStateDB
-		if !ctx.IsCheckTx() {
-			snapshotStateDB = k.CommitStateDB.Copy()
-		}
-
-		// The "recover" code here is used to solve the problem of dirty data
-		// in CommitStateDB due to insufficient gas.
-
-		// The following is a detailed description:
-		// If the gas is insufficient during the execution of the "handler",
-		// panic will be thrown from the function "ConsumeGas" and finally
-		// caught by the function "runTx" from Cosmos. The function "runTx"
-		// will think that the execution of Msg has failed and the modified
-		// data in the Store will not take effect.
-
-		// Stacktrace：runTx->runMsgs->handler->...->gaskv.Store.Set->ConsumeGas
-
-		// The problem is that when the modified data in the Store does not take
-		// effect, the data in the modified CommitStateDB is not rolled back,
-		// they take effect, and dirty data is generated.
-		// Therefore, the code here specifically deals with this situation.
-		// See https://github.com/cosmos/ethermint/issues/668 for more information.
-		defer func() {
-			if r := recover(); r != nil {
-				// We first used "k.CommitStateDB = snapshotStateDB" to roll back
-				// CommitStateDB, but this can only change the CommitStateDB in the
-				// current Keeper object, but the Keeper object will be destroyed
-				// soon, it is not a global variable, so the content pointed to by
-				// the CommitStateDB pointer can be modified to take effect.
-				if !ctx.IsCheckTx() {
-					types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
-				}
-				panic(r)
-			}
-		}()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+		var handlerFun func() (*sdk.Result, error)
+		var name string
 		switch msg := msg.(type) {
 		case types.MsgEthereumTx:
-			result, err = handleMsgEthereumTx(ctx, k, msg)
+			name = "handleMsgEthereumTx"
+			handlerFun = func() (*sdk.Result, error) {
+				return handleMsgEthereumTx(ctx, k, msg)
+			}
 		case types.MsgEthermint:
-			result, err = handleMsgEthermint(ctx, k, msg)
+			name = "handleMsgEthermint"
+			handlerFun = func() (*sdk.Result, error) {
+				return handleMsgEthermint(ctx, k, msg)
+			}
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
-		if err != nil {
-			if !ctx.IsCheckTx() {
-				types.CopyCommitStateDB(snapshotStateDB, k.CommitStateDB)
-			}
-			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
-		}
+
+		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
+		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
+
+		result, err = handlerFun()
+
 		return result, err
 	}
 }
@@ -92,7 +67,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         k.GetCommitStateDB(ctx).WithContext(ctx),
+		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
@@ -107,7 +82,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			if refundErr != nil {
 				panic(refundErr)
 			}
-			st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).UpdateAccounts()
 		}
 	}()
 
@@ -116,7 +90,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// other nodes, causing a consensus error
 	if !st.Simulate {
 		// Prepare db for logs
-		k.CommitStateDB.Prepare(ethHash, k.TxCount)
+		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
 	}
 
@@ -131,14 +106,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	if !st.Simulate {
-		// update block bloom filter
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
+
+		// update block bloom filter
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
+		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	// log successful execution
@@ -187,7 +163,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         k.GetCommitStateDB(ctx).WithContext(ctx),
+		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
@@ -202,7 +178,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 			if refundErr != nil {
 				panic(refundErr)
 			}
-			st.Csdb.WithContext(ctx.WithGasMeter(sdk.NewInfiniteGasMeter())).UpdateAccounts()
 		}
 	}()
 
@@ -213,7 +188,8 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	if !st.Simulate {
 		// Prepare db for logs
-		k.CommitStateDB.Prepare(ethHash, k.TxCount)
+		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
 	}
 
@@ -229,13 +205,14 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// update block bloom filter
 	if !st.Simulate {
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-
 		// update transaction logs in KVStore
 		err = k.SetLogs(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), common.BytesToHash(txHash), executionResult.Logs)
 		if err != nil {
 			panic(err)
 		}
+
+		k.Bloom.Or(k.Bloom, executionResult.Bloom)
+		k.LogSize = st.Csdb.GetLogSize()
 	}
 
 	// log successful execution
