@@ -2,19 +2,23 @@ package perf
 
 import (
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
-
 	"sync"
 	"time"
 )
 
 var (
-	_ Perf = &performance{}
-	_      = info{txNum: 0, beginBlockElapse: 0,
+	lastHeightTimestamp int64
+	_                   Perf = &performance{}
+	_                        = info{txNum: 0, beginBlockElapse: 0,
 		endBlockElapse: 0, blockheight: 0, deliverTxElapse: 0, txElapseBySum: 0}
 )
+
+func init() {
+	lastHeightTimestamp = time.Now().UnixNano()
+}
 
 const (
 	orderModule        = "order"
@@ -26,10 +30,10 @@ const (
 	distributionModule = "distribution"
 	farmModule         = "farm"
 	evmModule          = "evm"
-	summaryFormat      = "Summary: Height<%d>, " +
+	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
-		"Tx<%d>. " +
-		"%s"
+		"Tx<%d>, " +
+		"%s %s"
 
 	appFormat = "App: Height<%d>, " +
 		"BeginBlock<%dms>, " +
@@ -91,7 +95,7 @@ type Perf interface {
 }
 
 type hanlderInfo struct {
-	invoke uint64
+	invoke          uint64
 	deliverTxElapse int64
 }
 
@@ -203,6 +207,7 @@ func (p *performance) OnAppEndBlockExit(height int64, seq uint64) {
 	p.sanityCheckApp(height, seq)
 	p.app.endBlockElapse = time.Now().UnixNano() - p.app.lastTimestamp
 }
+
 //////////////////////////////////////////////////////////////////
 func (p *performance) OnAppDeliverTxEnter(height int64) uint64 {
 	p.sanityCheckApp(height, p.app.seqNum)
@@ -359,12 +364,37 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		p.app.txNum,
 		moduleInfo))
 
-	if len(p.msgQueue) > 0 {
-		for _, e := range p.msgQueue {
-			logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, p.app.abciElapse()/unit, p.app.txNum, e))
-		}
-	} else {
-		logger.Info(fmt.Sprintf(summaryFormat, p.app.blockheight, p.app.abciElapse()/unit, p.app.txNum, ""))
+	interval := (time.Now().UnixNano() - lastHeightTimestamp) / unit / 1e3
+	lastHeightTimestamp = time.Now().UnixNano()
+
+	// tendermint monitor
+	tendermintMonitor := monitor.GetTendermintMonitor()
+	if err := tendermintMonitor.Run(height); err != nil {
+		logger.Error("fail to get tendermint monitoring info: %s", err.Error())
+	}
+
+	// port monitor
+	portMonitor := monitor.GetPortMonitor()
+	if err := portMonitor.Run(); err != nil {
+		logger.Error("fail to get port monitoring info: %s", err.Error())
+	}
+
+	// format monitor result
+	monitorsRes := monitor.CombineMonitorsRes(tendermintMonitor.GetResultString(), portMonitor.GetResultString())
+
+	if len(p.msgQueue) == 0 {
+		p.EnqueueMsg("")
+	}
+
+	for _, e := range p.msgQueue {
+		logger.Info(fmt.Sprintf(summaryFormat,
+			p.app.blockheight,
+			interval,
+			p.app.abciElapse()/unit,
+			p.app.txNum,
+			monitorsRes,
+			e,
+		))
 	}
 
 	p.msgQueue = nil
