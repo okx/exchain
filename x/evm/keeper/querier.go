@@ -35,12 +35,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryCode(ctx, path, keeper)
 		case types.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
-		case types.QueryTransactionLogs:
-			return queryTransactionLogs(ctx, path, keeper)
 		case types.QueryBloom:
 			return queryBlockBloom(ctx, path, keeper)
-		case types.QueryLogs:
-			return queryLogs(ctx, keeper)
 		case types.QueryAccount:
 			return queryAccount(ctx, path, keeper)
 		case types.QueryExportAccount:
@@ -159,39 +155,6 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
-	return bz, nil
-}
-
-func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
-	if len(path) < 2 {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
-			"Insufficient parameters, at least 2 parameters is required")
-	}
-
-	txHash := ethcmn.HexToHash(path[1])
-
-	logs, err := keeper.GetLogs(ctx, txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	res := types.QueryETHLogs{Logs: logs}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
-}
-
-func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, error) {
-	logs := keeper.AllLogs(ctx)
-
-	res := types.QueryETHLogs{Logs: logs}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
 	return bz, nil
 }
 
