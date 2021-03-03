@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -89,6 +90,7 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		panic(err)
 	}
 	//defer evmDB.Close()
+	var wg sync.WaitGroup
 
 	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -102,10 +104,12 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 			evmByteCodeDB.Set(append(evmtypes.KeyPrefixCode, ethcrypto.Keccak256Hash(code).Bytes()...), code)
 		}
 
+		wg.Add(1)
 		go exportStorage(ctx, *ethermintApp.EvmKeeper, addr, evmStateDB)
 
 		return false
 	})
+	wg.Wait()
 	return nil
 }
 
