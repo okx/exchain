@@ -30,6 +30,7 @@ const (
 )
 
 var defaultHome, _ = os.Getwd()
+var wg sync.WaitGroup
 
 // ExportEVMCmd dumps app state to JSON.
 func ExportEVMCmd(ctx *server.Context) *cobra.Command {
@@ -90,7 +91,6 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		panic(err)
 	}
 	//defer evmDB.Close()
-	var wg sync.WaitGroup
 
 	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -123,6 +123,7 @@ func createEVMDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error) {
 }
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
+	defer wg.Done()
 	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
 		prefix := evmtypes.AddressStoragePrefix(addr)
 		db.Set(append(prefix, hash...), storage)

@@ -326,3 +326,10 @@ func ValidateUint16Positive(param string) subspace.ValueValidatorFn {
 		return nil
 	}
 }
+
+func CloneAppend(bz []byte, tail []byte) (res []byte) {
+	res = make([]byte, len(bz)+len(tail))
+	copy(res, bz)
+	copy(res[len(bz):], tail)
+	return
+}

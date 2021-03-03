@@ -7,19 +7,32 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
-	logger := ctx.Logger().With("module", types.ModuleName)
-	codeDB, storageDB := createContractDB("")
+	//logger := ctx.Logger().With("module", types.ModuleName)
+	codeDB, storageDB := createEVMDB("/Users/green")
+	defer func() {
+		err := codeDB.Close()
+		if err != nil {
+			panic(err)
+		}
+		err = storageDB.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	k.SetParams(ctx, data.Params)
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
-		accAddress := sdk.AccAddress(address.Bytes())
+		addrBytes := address.Bytes()
+		accAddress := sdk.AccAddress(addrBytes)
 
 		// check that the EVM balance the matches the account balance
 		acc := accountKeeper.GetAccount(ctx, accAddress)
@@ -27,7 +40,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			panic(fmt.Errorf("account not found for address %s", account.Address))
 		}
 
-		_, ok := acc.(*ethermint.EthAccount)
+		ethAcc, ok := acc.(*ethermint.EthAccount)
 		if !ok {
 			panic(
 				fmt.Errorf("account %s must be an %T type, got %T",
@@ -36,11 +49,42 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
+		code, err := codeDB.Get(common.CloneAppend(types.KeyPrefixCode, ethAcc.CodeHash))
+		if err != nil {
+			panic(err)
+		}
+		if len(code) != 0 {
+			k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
+			fmt.Println("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
+		}
+
+		prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
+		iterator, err := storageDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
+		if err != nil {
+			panic(err)
+		}
+		for ; iterator.Valid(); iterator.Next() {
+			k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
+			fmt.Println("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
+		}
+		iterator.Close()
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	return []abci.ValidatorUpdate{}
+}
+
+func createEVMDB(path string) (dbm.DB, dbm.DB) {
+	evmByteCodeDB, err := sdk.NewLevelDB("evm_bytecode", path)
+	if err != nil {
+		panic(err)
+	}
+	evmStateDB, err := sdk.NewLevelDB("evm_state", path)
+	if err != nil {
+		panic(err)
+	}
+	return evmByteCodeDB, evmStateDB
 }
 
 // ExportGenesis exports genesis state of the EVM module
