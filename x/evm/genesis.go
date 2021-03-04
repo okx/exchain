@@ -4,19 +4,27 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/okexchain/x/common"
+	"github.com/spf13/viper"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/evm/types"
-	"github.com/spf13/viper"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+	k.SetParams(ctx, data.Params)
+
+	evmDenom := data.Params.EvmDenom
+
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
@@ -37,11 +45,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}()
 	}
 
-	k.SetParams(ctx, data.Params)
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
-		addrBytes := address.Bytes()
-		accAddress := sdk.AccAddress(addrBytes)
+		accAddress := sdk.AccAddress(address.Bytes())
 
 		// check that the EVM balance the matches the account balance
 		acc := accountKeeper.GetAccount(ctx, accAddress)
@@ -58,31 +64,62 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
+		evmBalance := acc.GetCoins().AmountOf(evmDenom)
+		csdb.SetNonce(address, acc.GetSequence())
+		csdb.SetBalance(address, evmBalance.BigInt())
+		//csdb.SetCode(address, account.Code)
+		//for _, storage := range account.Storage {
+		//	csdb.SetState(address, storage.Key, storage.Value)
+		//}
 		if initEvmDataPath != "" {
 			code, err := codeDB.Get(common.CloneAppend(types.KeyPrefixCode, ethAcc.CodeHash))
 			if err != nil {
 				panic(err)
 			}
 			if len(code) != 0 {
-				k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
+				csdb.SetCode(address, code)
+				//k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
 				logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
 				codeNum++
 			}
 
-			prefix := common.CloneAppend(types.KeyPrefixStorage, addrBytes)
+			prefix := evmtypes.AddressStoragePrefix(address)
 			iterator, err := storageDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
 			if err != nil {
 				panic(err)
 			}
 			for ; iterator.Valid(); iterator.Next() {
-				k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
+				csdb.SetState(address,
+					ethcmn.BytesToHash(iterator.Key()[len(prefix):]),
+					ethcmn.BytesToHash(iterator.Value()))
+				//k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
 				logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
 			}
 			iterator.Close()
 		}
 	}
-	logger.Debug(fmt.Sprintf("initial evm contract & storage done, contract number: %d", codeNum))
+
+	var err error
+	//for _, txLog := range data.TxsLogs {
+	//	if err = csdb.SetLogs(txLog.Hash, txLog.Logs); err != nil {
+	//		panic(err)
+	//	}
+	//}
+
 	k.SetChainConfig(ctx, data.ChainConfig)
+
+	// set state objects and code to store
+	_, err = csdb.Commit(false)
+	if err != nil {
+		panic(err)
+	}
+
+	// set storage to store
+	// NOTE: don't delete empty object to prevent import-export simulation failure
+	err = csdb.Finalise(false)
+	if err != nil {
+		panic(err)
+	}
 
 	return []abci.ValidatorUpdate{}
 }
