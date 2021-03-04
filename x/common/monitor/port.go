@@ -137,6 +137,11 @@ func (pm *PortMonitor) GetResultString() string {
 	return buffer.String()
 }
 
+//GetConnectingMap gets connectingMap
+func (pm *PortMonitor) GetConnectingMap() map[uint64]int {
+	return pm.connectingMap
+}
+
 // tools function
 func getConnectingNumbersFromPort(port uint64) (int, error) {
 	// get connecting number from a shell command running
