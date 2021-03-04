@@ -53,8 +53,8 @@ all: install
 install: okexchain
 
 okexchain:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
+	go install -race -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
+	go install -race -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
 
 testnet:
 	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
