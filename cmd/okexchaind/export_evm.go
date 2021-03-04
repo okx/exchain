@@ -12,7 +12,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
@@ -90,7 +89,8 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 	if err != nil {
 		panic(err)
 	}
-	//defer evmDB.Close()
+	defer evmByteCodeDB.Close()
+	defer evmStateDB.Close()
 
 	ethermintApp.AccountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
@@ -101,7 +101,7 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 
 		addr := ethAccount.EthAddress()
 		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
-			evmByteCodeDB.Set(append(evmtypes.KeyPrefixCode, ethcrypto.Keccak256Hash(code).Bytes()...), code)
+			evmByteCodeDB.Set(append(evmtypes.KeyPrefixCode, ethAccount.CodeHash...), code)
 		}
 
 		wg.Add(1)
@@ -124,9 +124,9 @@ func createEVMDB(path string) (evmByteCodeDB, evmStateDB dbm.DB, err error) {
 
 func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB) {
 	defer wg.Done()
-	k.IterateStorage(ctx, addr, func(hash, storage []byte) bool {
+	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
 		prefix := evmtypes.AddressStoragePrefix(addr)
-		db.Set(append(prefix, hash...), storage)
+		db.Set(append(prefix, key.Bytes()...), value.Bytes())
 		return false
 	})
 }

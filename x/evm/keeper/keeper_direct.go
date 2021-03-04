@@ -3,7 +3,7 @@ package keeper
 import (
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/x/evm/types"
 )
 
@@ -14,7 +14,7 @@ func (k Keeper) SetCodeDirectly(ctx sdk.Context, address, code []byte) {
 }
 
 // SetStateDirectly commit one state into db with no cache
-func (k Keeper) SetStateDirectly(ctx sdk.Context, addr, key, value []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), common.CloneAppend(types.KeyPrefixStorage, addr))
-	store.Set(key, value)
+func (k Keeper) SetStateDirectly(ctx sdk.Context, address ethcmn.Address, key, value ethcmn.Hash) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(address))
+	store.Set(key.Bytes(), value.Bytes())
 }

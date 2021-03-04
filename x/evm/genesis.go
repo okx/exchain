@@ -4,15 +4,14 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/okex/okexchain/x/common"
-	"github.com/spf13/viper"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/evm/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -21,9 +20,9 @@ import (
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	k.SetParams(ctx, data.Params)
 
-	evmDenom := data.Params.EvmDenom
+	//evmDenom := data.Params.EvmDenom
 
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	//csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 
 	logger := ctx.Logger().With("module", types.ModuleName)
 
@@ -64,9 +63,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		csdb.SetNonce(address, acc.GetSequence())
-		csdb.SetBalance(address, evmBalance.BigInt())
+		//evmBalance := acc.GetCoins().AmountOf(evmDenom)
+		//csdb.SetNonce(address, acc.GetSequence())
+		//csdb.SetBalance(address, evmBalance.BigInt())
 		//csdb.SetCode(address, account.Code)
 		//for _, storage := range account.Storage {
 		//	csdb.SetState(address, storage.Key, storage.Value)
@@ -77,8 +76,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				panic(err)
 			}
 			if len(code) != 0 {
-				csdb.SetCode(address, code)
-				//k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
+				//csdb.SetCode(address, code)
+				k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
 				logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
 				codeNum++
 			}
@@ -89,37 +88,27 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				panic(err)
 			}
 			for ; iterator.Valid(); iterator.Next() {
-				csdb.SetState(address,
-					ethcmn.BytesToHash(iterator.Key()[len(prefix):]),
-					ethcmn.BytesToHash(iterator.Value()))
-				//k.SetStateDirectly(ctx, addrBytes, iterator.Key(), iterator.Value())
+				k.SetStateDirectly(ctx, address, ethcmn.BytesToHash(iterator.Key()[len(prefix):]), ethcmn.BytesToHash(iterator.Value()))
 				logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
 			}
 			iterator.Close()
 		}
 	}
 
-	var err error
-	//for _, txLog := range data.TxsLogs {
-	//	if err = csdb.SetLogs(txLog.Hash, txLog.Logs); err != nil {
-	//		panic(err)
-	//	}
-	//}
-
 	k.SetChainConfig(ctx, data.ChainConfig)
-
-	// set state objects and code to store
-	_, err = csdb.Commit(false)
-	if err != nil {
-		panic(err)
-	}
-
-	// set storage to store
-	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = csdb.Finalise(false)
-	if err != nil {
-		panic(err)
-	}
+	//
+	//// set state objects and code to store
+	//_, err := csdb.Commit(false)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//// set storage to store
+	//// NOTE: don't delete empty object to prevent import-export simulation failure
+	//err = csdb.Finalise(false)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	return []abci.ValidatorUpdate{}
 }
@@ -148,9 +137,14 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		addr := ethAccount.EthAddress()
+		//storage, err := k.GetAccountStorage(ctx, addr)
+		//if err != nil {
+		//	panic(err)
+		//}
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
 			Code:    nil,
+			//Storage: storage,
 			Storage: nil,
 		}
 
