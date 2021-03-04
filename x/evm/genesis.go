@@ -43,8 +43,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
-	//readAllTxLogs(ctx, logger, k)
-
 	// wait for all data to be set into db
 	globalWG.Wait()
 
@@ -93,7 +91,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	return GenesisState{
 		Accounts:    ethGenAccounts,
-		TxsLogs:     []types.TransactionLogs{}, //todo
 		ChainConfig: config,
 		Params:      k.GetParams(ctx),
 	}

@@ -150,44 +150,6 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 	store.Set(types.BloomKey(height), bloom.Bytes())
 }
 
-// GetAllTxLogs return all the transaction logs from the store.
-func (k Keeper) GetAllTxLogs(ctx sdk.Context) []types.TransactionLogs {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
-	defer iterator.Close()
-
-	txsLogs := []types.TransactionLogs{}
-	for ; iterator.Valid(); iterator.Next() {
-		hash := common.BytesToHash(iterator.Key())
-		var logs []*ethtypes.Log
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-
-		// add a new entry
-		txLog := types.NewTransactionLogs(hash, logs)
-		txsLogs = append(txsLogs, txLog)
-	}
-
-	return txsLogs
-}
-
-// IterateAllTxLogs iterates over all types.TransactionLogs
-func (k Keeper) IterateAllTxLogs(ctx sdk.Context, cb func(txLog types.TransactionLogs) (stop bool)) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
-
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		hash := common.BytesToHash(iterator.Key())
-
-		var logs []*ethtypes.Log
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		txLog := types.NewTransactionLogs(hash, logs)
-		if cb(txLog) {
-			break
-		}
-	}
-}
-
 // GetAccountStorage return state storage associated with an account
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}

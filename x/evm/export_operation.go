@@ -166,14 +166,6 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 	}
 }
 
-// writeAllTxLogs iterates all tx logs, then calls syncWriteTxLogs to write data one by one
-func writeAllTxLogs(ctx sdk.Context, k Keeper) {
-	k.IterateAllTxLogs(ctx, func(txLog types.TransactionLogs) (stop bool) {
-		syncWriteTxLogs(txLog.Hash.String(), txLog.Logs)
-		return false
-	})
-}
-
 // syncWriteTxLogs synchronize the process of writing []*ethtypes.Log based on one hash into individual file
 // It will create a file based on every txhash, even if the logs is null
 func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
@@ -245,46 +237,6 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			k.SetStateDirectly(ctx, address, key, value)
 		}
 	}
-}
-
-// readAllTxLogs iterates all the files in the absoluteTxlogsFilePath
-func readAllTxLogs(ctx sdk.Context, logger log.Logger, k Keeper) {
-	if pathExist(absoluteTxlogsFilePath) {
-		fileInfos, err := ioutil.ReadDir(absoluteTxlogsFilePath)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, fileInfo := range fileInfos {
-			go syncReadTxLogsFromFile(ctx, logger, k, fileInfo.Name())
-		}
-	}
-}
-
-// syncReadTxLogsFromFile setting the []*ethtypes.Log of one txhash into evm db when InitGenesis
-func syncReadTxLogsFromFile(ctx sdk.Context, logger log.Logger, k Keeper, fileName string) {
-	addGoroutine()
-	defer finishGoroutine()
-	logger.Debug("start loading tx logs", "filename", fileName)
-
-	// get the hash based on the file name
-	hash := convertHexStrToHash(fileName)
-
-	bin, err := ioutil.ReadFile(absoluteTxlogsFilePath + fileName)
-	if err != nil {
-		panic(err)
-	}
-
-	var txLogs []*ethtypes.Log
-	types.ModuleCdc.MustUnmarshalJSON(bin, &txLogs)
-	k.SetTxLogsDirectly(ctx, hash, txLogs)
-}
-
-// convertHexStrToHash converts hexStr into ethcmn.Hash struct
-func convertHexStrToHash(filename string) ethcmn.Hash {
-	f := strings.Split(filename, ".") // make "0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2.json" -> ["0x0de69dd3828f8a79d6e51ae7eeb69a2b5f2", "json"]
-	hashStr := f[0]
-	return ethcmn.HexToHash(hashStr)
 }
 
 // pathExist used for judging the file or path exist or not when InitGenesis
