@@ -379,6 +379,9 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 		logger.Error("fail to get port monitoring info: %s", err.Error())
 	}
 
+	//set portMetrics by portMonitor
+	monitor.GetPortMetrics().SetConnectingNums(portMonitor.GetConnectingMap())
+
 	// format monitor result
 	monitorsRes := monitor.CombineMonitorsRes(tendermintMonitor.GetResultString(), portMonitor.GetResultString())
 
