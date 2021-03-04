@@ -86,7 +86,7 @@ jobs:
                 RACE=
               fi
               echo ${RACE}
-              go test -mod=readonly -timeout 8m -race ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+              go test -mod=readonly -timeout 8m ${RACE} ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
             echo "--> Gather coverage:"
