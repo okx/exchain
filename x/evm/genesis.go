@@ -2,26 +2,21 @@ package evm
 
 import (
 	"fmt"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
-
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
+	logger := ctx.Logger().With("module", types.ModuleName)
+	initImportEnv()
+
 	k.SetParams(ctx, data.Params)
-
-	evmDenom := data.Params.EvmDenom
-
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
@@ -41,46 +36,32 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
-		csdb.SetNonce(address, acc.GetSequence())
-		csdb.SetBalance(address, evmBalance.BigInt())
-		csdb.SetCode(address, account.Code)
-		for _, storage := range account.Storage {
-			csdb.SetState(address, storage.Key, storage.Value)
-		}
+		// read Code from file
+		addGoroutine()
+		go syncReadCodeFromFile(ctx, logger, k, address)
+
+		// read Storage From file
+		addGoroutine()
+		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
-	var err error
-	for _, txLog := range data.TxsLogs {
-		if err = csdb.SetLogs(txLog.Hash, txLog.Logs); err != nil {
-			panic(err)
-		}
-	}
+	// wait for all data to be set into db
+	globalWG.Wait()
+
+	logger.Debug("Import finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-
-	// set state objects and code to store
-	_, err = csdb.Commit(false)
-	if err != nil {
-		panic(err)
-	}
-
-	// set storage to store
-	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = csdb.Finalise(false)
-	if err != nil {
-		panic(err)
-	}
 
 	return []abci.ValidatorUpdate{}
 }
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+	logger := ctx.Logger().With("module", types.ModuleName)
+	initExportEnv()
+
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
@@ -90,20 +71,25 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		addr := ethAccount.EthAddress()
 
-		storage, err := k.GetAccountStorage(ctx, addr)
-		if err != nil {
-			panic(err)
-		}
+		// write Code
+		addGoroutine()
+		go syncWriteAccountCode(ctx, k, addr)
+		// write Storage
+		addGoroutine()
+		go syncWriteAccountStorage(ctx, k, addr)
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    csdb.GetCode(addr),
-			Storage: storage,
+			Code:    nil,
+			Storage: nil,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
+	// wait for all data to be written into files
+	globalWG.Wait()
+	logger.Debug("Export finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	config, _ := k.GetChainConfig(ctx)
 
