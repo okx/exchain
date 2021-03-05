@@ -14,8 +14,7 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
-	initPath()
-	initGoroutinePool()
+	initImportEnv()
 
 	k.SetParams(ctx, data.Params)
 	for _, account := range data.Accounts {

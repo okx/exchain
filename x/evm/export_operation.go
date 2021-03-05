@@ -12,9 +12,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -27,7 +29,6 @@ var (
 	absolutePath          string
 	absoluteCodePath       string
 	absoluteStoragePath    string
-	absoluteTxlogsFilePath string
 )
 
 // ************************************************************************************************************
@@ -96,7 +97,10 @@ func (c *Counter) GetNum() int {
 // ************************************************************************************************************
 // initExportEnv only initializes the paths and goroutine pool
 func initExportEnv() {
-	initPath()
+	absolutePath           = "/tmp/okexchain"
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
+
 	err := os.RemoveAll(absolutePath)
 	if err != nil {
 		panic(err)
@@ -109,19 +113,14 @@ func initExportEnv() {
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(absoluteTxlogsFilePath, 0777)
-	if err != nil {
-		panic(err)
-	}
-
-	initGoroutinePool()
 }
 
-func initPath() {
-	absolutePath           = "/tmp/okexchain"
+func initImportEnv() {
+	absolutePath           = viper.GetString(server.FlagEvmDataInitPath)
 	absoluteCodePath       = absolutePath + "/code/"
 	absoluteStoragePath    = absolutePath + "/storage/"
-	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
+
+	initGoroutinePool()
 }
 
 // createFile creates a file based on a absolute path
