@@ -15,20 +15,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/x/evm/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 const (
-	absolutePath           = "/tmp/okexchain" //TODO: this root path is supposed to be set as a config
-	absoluteCodePath       = absolutePath + "/code/"
-	absoluteStoragePath    = absolutePath + "/storage/"
-	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
-
 	codeFileSuffix    = ".code"
 	storageFileSuffix = ".storage"
-	txlogsFileSuffix  = ".json"
+)
+
+var (
+	absolutePath          string
+	absoluteCodePath       string
+	absoluteStoragePath    string
+	absoluteTxlogsFilePath string
 )
 
 // ************************************************************************************************************
@@ -39,6 +38,9 @@ const (
 var (
 	goroutinePool chan struct{}
 	globalWG      sync.WaitGroup
+
+	contractCounter = NewCounter()
+	stateCounter    = NewCounter()
 )
 
 // initGoroutinePool creates an appropriate number of maximum goroutine
@@ -59,12 +61,42 @@ func finishGoroutine() {
 }
 
 // ************************************************************************************************************
+// Conuter
+// ************************************************************************************************************
+type Counter struct {
+	cur  int
+	lock *sync.RWMutex
+}
+
+func NewCounter() *Counter {
+		return &Counter{
+			cur:  0,
+			lock: new(sync.RWMutex),
+		}
+}
+
+func (c *Counter) Add(n int) int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.cur += n
+	cur := c.cur
+	return cur
+}
+
+func (c *Counter) GetNum() int {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.cur
+}
+
+// ************************************************************************************************************
 // the List of functions are used for local file operations
 //     For now, the exported evm data are stored in the path /tmp/okexhcain
 //     All the file & writer hanlder will be closed when a goroutine is finished
 // ************************************************************************************************************
 // initExportEnv only initializes the paths and goroutine pool
 func initExportEnv() {
+	initPath()
 	err := os.RemoveAll(absolutePath)
 	if err != nil {
 		panic(err)
@@ -83,6 +115,13 @@ func initExportEnv() {
 	}
 
 	initGoroutinePool()
+}
+
+func initPath() {
+	absolutePath           = "/tmp/okexchain"
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
+	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
 }
 
 // createFile creates a file based on a absolute path
@@ -132,6 +171,7 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 		writer := bufio.NewWriter(file)
 		defer closeFile(writer, file)
 		writeOneLine(writer, hexutil.Bytes(code).String())
+		contractCounter.Add(1)
 	}
 }
 
@@ -148,6 +188,8 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 			if err := os.Remove(filename); err != nil {
 				panic(err)
 			}
+		} else {
+			stateCounter.Add(index)
 		}
 	}()
 
@@ -164,20 +206,6 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 	if err != nil {
 		panic(err)
 	}
-}
-
-// syncWriteTxLogs synchronize the process of writing []*ethtypes.Log based on one hash into individual file
-// It will create a file based on every txhash, even if the logs is null
-func syncWriteTxLogs(hash string, logs []*ethtypes.Log) {
-	addGoroutine()
-	defer finishGoroutine()
-
-	dstFile := createFile(absoluteTxlogsFilePath + hash + txlogsFileSuffix)
-	bufWriter := bufio.NewWriter(dstFile)
-	defer closeFile(bufWriter, dstFile)
-
-	data := types.ModuleCdc.MustMarshalJSON(logs)
-	writeOneLine(bufWriter, string(data))
 }
 
 // ************************************************************************************************************
@@ -206,6 +234,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 
 		// Set contract code into db, ignoring setting in cache
 		k.SetCodeDirectly(ctx, hexcode)
+		contractCounter.Add(1)
 	}
 }
 
@@ -235,6 +264,7 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
 			// Set the state of key&value into db, ignoring setting in cache
 			k.SetStateDirectly(ctx, address, key, value)
+			stateCounter.Add(1)
 		}
 	}
 }
