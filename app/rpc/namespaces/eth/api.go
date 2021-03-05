@@ -1176,6 +1176,13 @@ func (api *PublicEthereumAPI) GetTxByHash(hash common.Hash) (*evmtypes.MsgEthere
 	return ethTx, rpctypes.BlockNumber(resTx.Height), resTx.Index
 }
 
+// GetTxTrace returns the trace of tx execution by txhash.
 func (api *PublicEthereumAPI) GetTxTrace(txHash string) json.RawMessage {
 	return evmtypes.GetTracesFromDB(txHash)
+}
+
+// DeleteTxTrace delete the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash string) json.RawMessage {
+	evmtypes.DeleteTracesFromDB(txHash)
+	return []byte{}
 }

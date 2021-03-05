@@ -92,3 +92,10 @@ func GetTracesFromDB(txHash string) json.RawMessage{
 	}
 	return res
 }
+
+func DeleteTracesFromDB(txHash string) {
+	if tracesDB == nil {
+		return
+	}
+	tracesDB.Delete([]byte(txHash))
+}
