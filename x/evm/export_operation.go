@@ -123,6 +123,12 @@ func initImportEnv() {
 	initGoroutinePool()
 }
 
+func initPath() {
+	absolutePath           = "/tmp/okexchain"
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
+}
+
 // createFile creates a file based on a absolute path
 func createFile(filePath string) *os.File {
 	file, err := os.Create(filePath)
