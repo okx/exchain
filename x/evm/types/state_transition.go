@@ -136,7 +136,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
-	csdb.WithContext(ctx.WithGasMeter(evmGasMeter))
+	ctx = ctx.WithGasMeter(evmGasMeter)
+	csdb.WithContext(ctx)
 
 	params := csdb.GetParams()
 
@@ -199,12 +200,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	}
 	st.GasReturn = gasReturn
 
+	defer func() {
+		// Consume gas from evm execution
+		// Out of gas check does not need to be done here since it is done within the EVM execution
+		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+	}()
 	if err != nil {
 		// Consume gas before returning
-		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
-		if !st.Simulate {
-			saveTraceResult(ctx, tracer, result)
-		}
 		return nil, newRevertError(ret, err)
 	}
 
@@ -277,9 +279,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		},
 	}
 
-	// Consume gas from evm execution
-	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
 }

@@ -14,9 +14,7 @@ const (
 	QueryCode            = "code"
 	QueryNonce           = "nonce"
 	QueryHashToHeight    = "hashToHeight"
-	QueryTransactionLogs = "transactionLogs"
 	QueryBloom           = "bloom"
-	QueryLogs            = "logs"
 	QueryAccount         = "account"
 	QueryExportAccount   = "exportAccount"
 	// QueryParameters defines 	QueryParameters = "params" query route path

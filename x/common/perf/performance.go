@@ -3,9 +3,8 @@ package perf
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
-	tmcli "github.com/tendermint/tendermint/rpc/client"
-	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 	"sync"
 	"time"
 )
@@ -22,7 +21,6 @@ func init() {
 }
 
 const (
-	localRpcUrl        = "http://127.0.0.1:26657"
 	orderModule        = "order"
 	dexModule          = "dex"
 	swapModule         = "ammswap"
@@ -35,10 +33,7 @@ const (
 	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
 		"Tx<%d>, " +
-		"BlockSize<%.2fKB>, " +
-		"MemPoolTx<%d>, " +
-		"MemPoolSize<%.2fKB>, " +
-		"%s"
+		"%s %s"
 
 	appFormat = "App: Height<%d>, " +
 		"BeginBlock<%dms>, " +
@@ -141,7 +136,6 @@ func newHanlderMetrics() *moduleInfo {
 }
 
 type performance struct {
-	rpcClient     tmcli.Client
 	lastTimestamp int64
 	seqNum        uint64
 
@@ -152,13 +146,7 @@ type performance struct {
 }
 
 func newPerf() *performance {
-	rpcCli, err := tmhttp.New(localRpcUrl, "/websocket")
-	if err != nil {
-		panic("fail to init a tendermint rpc client in performance module")
-	}
-
 	p := &performance{
-		rpcClient:     rpcCli,
 		moduleInfoMap: make(map[string]*moduleInfo),
 	}
 
@@ -378,10 +366,24 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 
 	interval := (time.Now().UnixNano() - lastHeightTimestamp) / unit / 1e3
 	lastHeightTimestamp = time.Now().UnixNano()
-	tmStatus, err := p.getTendermintStatus(height)
-	if err != nil {
-		logger.Error(fmt.Sprintf("fail to get tendermint status in perf: %s", err))
+
+	// tendermint monitor
+	tendermintMonitor := monitor.GetTendermintMonitor()
+	if err := tendermintMonitor.Run(height); err != nil {
+		logger.Error("fail to get tendermint monitoring info: %s", err.Error())
 	}
+
+	// port monitor
+	portMonitor := monitor.GetPortMonitor()
+	if err := portMonitor.Run(); err != nil {
+		logger.Error("fail to get port monitoring info: %s", err.Error())
+	}
+
+	//set portMetrics by portMonitor
+	monitor.GetPortMetrics().SetConnectingNums(portMonitor.GetConnectingMap())
+
+	// format monitor result
+	monitorsRes := monitor.CombineMonitorsRes(tendermintMonitor.GetResultString(), portMonitor.GetResultString())
 
 	if len(p.msgQueue) == 0 {
 		p.EnqueueMsg("")
@@ -393,10 +395,9 @@ func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) 
 			interval,
 			p.app.abciElapse()/unit,
 			p.app.txNum,
-			float64(tmStatus.blockSize)/1024,
-			tmStatus.uncomfirmedTxNum,
-			float64(tmStatus.uncormfirmedTxTotalSize)/1024,
-			e))
+			monitorsRes,
+			e,
+		))
 	}
 
 	p.msgQueue = nil
@@ -451,33 +452,4 @@ func (p *performance) getModule(moduleName string) *moduleInfo {
 	}
 
 	return v
-}
-
-func (p *performance) getTendermintStatus(height int64) (ts tendermintStatus, err error) {
-	ts.blockSize = -1
-	ts.uncomfirmedTxNum = -1
-	ts.uncormfirmedTxTotalSize = -1
-	block, err := p.rpcClient.Block(&height)
-	if err != nil {
-		return ts, fmt.Errorf("failed to query block on height %d", height)
-	}
-
-	uncomfirmedRes, err := p.rpcClient.NumUnconfirmedTxs()
-	if err != nil {
-		return ts, fmt.Errorf("failed to query mempool result on height %d", height)
-	}
-
-	ts = tendermintStatus{
-		blockSize:               block.Block.Size(),
-		uncomfirmedTxNum:        uncomfirmedRes.Total,
-		uncormfirmedTxTotalSize: uncomfirmedRes.TotalBytes,
-	}
-
-	return
-}
-
-type tendermintStatus struct {
-	blockSize               int
-	uncomfirmedTxNum        int
-	uncormfirmedTxTotalSize int64
 }

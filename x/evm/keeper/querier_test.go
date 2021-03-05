@@ -33,7 +33,6 @@ func (suite *KeeperTestSuite) TestQuerier() {
 		{"fail hash to height", []string{types.QueryHashToHeight, "0x00"}, func() {
 			suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 8)
 		}, false},
-		{"tx logs", []string{types.QueryTransactionLogs, "0x0"}, func() {}, true},
 		{"bloom", []string{types.QueryBloom, "4"}, func() {
 			testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 			suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 4, testBloom)
@@ -46,7 +45,6 @@ func (suite *KeeperTestSuite) TestQuerier() {
 			testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})
 			suite.app.EvmKeeper.SetBlockBloom(suite.ctx, 3, testBloom)
 		}, true},
-		{"logs", []string{types.QueryLogs, "0x0"}, func() {}, true},
 		{"account", []string{types.QueryAccount, "0x0"}, func() {}, true},
 		{"exportAccount", []string{types.QueryExportAccount, suite.address.String()}, func() {
 			for i := 0; i < 5; i++ {

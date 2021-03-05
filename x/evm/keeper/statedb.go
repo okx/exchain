@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	"math/big"
 
 	"github.com/okex/okexchain/x/evm/types"
@@ -9,7 +8,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 // ----------------------------------------------------------------------------
@@ -30,17 +28,6 @@ func (k *Keeper) SetNonce(ctx sdk.Context, addr ethcmn.Address, nonce uint64) {
 	_ = csdb.Finalise(false)
 }
 
-func (k *Keeper) SetLogs(ctx sdk.Context, hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixLogs)
-	bz, err := types.MarshalLogs(logs)
-	if err != nil {
-		return err
-	}
-
-	store.Set(hash.Bytes(), bz)
-	return nil
-}
-
 // ----------------------------------------------------------------------------
 // Getters, for test and query case
 // ----------------------------------------------------------------------------
@@ -57,34 +44,6 @@ func (k *Keeper) GetCode(ctx sdk.Context, addr ethcmn.Address) []byte {
 // GetState calls CommitStateDB.GetState using the passed in context
 func (k *Keeper) GetState(ctx sdk.Context, addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetState(addr, hash)
-}
-
-// GetLogs calls CommitStateDB.GetLogs using the passed in context
-func (k *Keeper) GetLogs(ctx sdk.Context, hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		// return nil error if logs are not found
-		return []*ethtypes.Log{}, nil
-	}
-
-	return types.UnmarshalLogs(bz)
-}
-
-// AllLogs calls CommitStateDB.AllLogs using the passed in context
-func (k *Keeper) AllLogs(ctx sdk.Context) []*ethtypes.Log {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixLogs)
-	defer iterator.Close()
-
-	allLogs := []*ethtypes.Log{}
-	for ; iterator.Valid(); iterator.Next() {
-		var logs []*ethtypes.Log
-		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
-		allLogs = append(allLogs, logs...)
-	}
-
-	return allLogs
 }
 
 // ----------------------------------------------------------------------------
