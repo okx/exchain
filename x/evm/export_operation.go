@@ -113,6 +113,8 @@ func initExportEnv() {
 	if err != nil {
 		panic(err)
 	}
+
+	initGoroutinePool()
 }
 
 func initImportEnv() {
