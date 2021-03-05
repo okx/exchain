@@ -47,7 +47,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	// wait for all data to be set into db
 	globalWG.Wait()
 
-	logger.Debug("Load Code", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+	logger.Debug("Import finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 
@@ -86,7 +86,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 	// wait for all data to be written into files
 	globalWG.Wait()
-	logger.Debug("Write Code Done", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+	logger.Debug("Export finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	config, _ := k.GetChainConfig(ctx)
 
