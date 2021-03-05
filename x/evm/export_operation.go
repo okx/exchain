@@ -12,9 +12,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -27,7 +29,6 @@ var (
 	absolutePath          string
 	absoluteCodePath       string
 	absoluteStoragePath    string
-	absoluteTxlogsFilePath string
 )
 
 // ************************************************************************************************************
@@ -96,7 +97,10 @@ func (c *Counter) GetNum() int {
 // ************************************************************************************************************
 // initExportEnv only initializes the paths and goroutine pool
 func initExportEnv() {
-	initPath()
+	absolutePath           = "/tmp/okexchain"
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
+
 	err := os.RemoveAll(absolutePath)
 	if err != nil {
 		panic(err)
@@ -109,10 +113,14 @@ func initExportEnv() {
 	if err != nil {
 		panic(err)
 	}
-	err = os.MkdirAll(absoluteTxlogsFilePath, 0777)
-	if err != nil {
-		panic(err)
-	}
+
+	initGoroutinePool()
+}
+
+func initImportEnv() {
+	absolutePath           = viper.GetString(server.FlagEvmDataInitPath)
+	absoluteCodePath       = absolutePath + "/code/"
+	absoluteStoragePath    = absolutePath + "/storage/"
 
 	initGoroutinePool()
 }
@@ -121,7 +129,6 @@ func initPath() {
 	absolutePath           = "/tmp/okexchain"
 	absoluteCodePath       = absolutePath + "/code/"
 	absoluteStoragePath    = absolutePath + "/storage/"
-	absoluteTxlogsFilePath = absolutePath + "/txlogs/"
 }
 
 // createFile creates a file based on a absolute path
@@ -162,7 +169,6 @@ func writeOneLine(writer *bufio.Writer, data string) {
 // syncWriteAccountCode synchronize the process of writing types.Code into individual file.
 // It doesn't create file when there is no code linked to an account
 func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	code := k.GetCode(ctx, address)
@@ -178,7 +184,6 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 // syncWriteAccountStorage synchronize the process of writing types.Storage into individual file
 // It will delete the file when there is no storage linked to a contract
 func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	filename := absoluteStoragePath + address.String() + storageFileSuffix
@@ -215,7 +220,6 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 // ************************************************************************************************************
 // syncReadCodeFromFile synchronize the process of setting types.Code into evm db when InitGenesis
 func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
@@ -240,7 +244,6 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 
 // syncReadStorageFromFile synchronize the process of setting types.Storage into evm db when InitGenesis
 func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix

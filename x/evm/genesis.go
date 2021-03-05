@@ -14,8 +14,7 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
-	initPath()
-	initGoroutinePool()
+	initImportEnv()
 
 	k.SetParams(ctx, data.Params)
 	for _, account := range data.Accounts {
@@ -38,9 +37,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		// read Code from file
+		addGoroutine()
 		go syncReadCodeFromFile(ctx, logger, k, address)
 
 		// read Storage From file
+		addGoroutine()
 		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
@@ -71,8 +72,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		addr := ethAccount.EthAddress()
 
 		// write Code
+		addGoroutine()
 		go syncWriteAccountCode(ctx, k, addr)
 		// write Storage
+		addGoroutine()
 		go syncWriteAccountStorage(ctx, k, addr)
 
 		genAccount := types.GenesisAccount{
