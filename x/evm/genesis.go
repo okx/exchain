@@ -37,16 +37,18 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 
 		// read Code from file
+		addGoroutine()
 		go syncReadCodeFromFile(ctx, logger, k, address)
 
 		// read Storage From file
+		addGoroutine()
 		go syncReadStorageFromFile(ctx, logger, k, address)
 	}
 
 	// wait for all data to be set into db
 	globalWG.Wait()
 
-	logger.Debug("Load Code", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+	logger.Debug("Load Code Done", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 
@@ -70,8 +72,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		addr := ethAccount.EthAddress()
 
 		// write Code
+		addGoroutine()
 		go syncWriteAccountCode(ctx, k, addr)
 		// write Storage
+		addGoroutine()
 		go syncWriteAccountStorage(ctx, k, addr)
 
 		genAccount := types.GenesisAccount{

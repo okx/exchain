@@ -161,7 +161,6 @@ func writeOneLine(writer *bufio.Writer, data string) {
 // syncWriteAccountCode synchronize the process of writing types.Code into individual file.
 // It doesn't create file when there is no code linked to an account
 func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	code := k.GetCode(ctx, address)
@@ -177,7 +176,6 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 // syncWriteAccountStorage synchronize the process of writing types.Storage into individual file
 // It will delete the file when there is no storage linked to a contract
 func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	filename := absoluteStoragePath + address.String() + storageFileSuffix
@@ -214,7 +212,6 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 // ************************************************************************************************************
 // syncReadCodeFromFile synchronize the process of setting types.Code into evm db when InitGenesis
 func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
@@ -239,7 +236,6 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 
 // syncReadStorageFromFile synchronize the process of setting types.Storage into evm db when InitGenesis
 func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
-	addGoroutine()
 	defer finishGoroutine()
 
 	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix
