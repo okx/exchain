@@ -27,7 +27,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
-	codeNum := 0
 	var codeDB, storageDB dbm.DB
 	if initEvmDataPath != "" {
 		logger.Debug(fmt.Sprintf("initial evm contract & storage data path: %s", initEvmDataPath))
@@ -44,6 +43,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}()
 	}
 
+	var accCount, codeCount, storageCount uint64
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
@@ -62,6 +62,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				),
 			)
 		}
+		accCount++
 
 		//evmBalance := acc.GetCoins().AmountOf(evmDenom)
 		//csdb.SetNonce(address, acc.GetSequence())
@@ -78,8 +79,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			if len(code) != 0 {
 				//csdb.SetCode(address, code)
 				k.SetCodeDirectly(ctx, ethAcc.CodeHash, code)
-				logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
-				codeNum++
+				codeCount++
+				//logger.Debug("load code", "address", address.Hex(), "codehash", ethcmn.Bytes2Hex(ethAcc.CodeHash))
 			}
 
 			prefix := evmtypes.AddressStoragePrefix(address)
@@ -89,11 +90,13 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			}
 			for ; iterator.Valid(); iterator.Next() {
 				k.SetStateDirectly(ctx, address, ethcmn.BytesToHash(iterator.Key()[len(prefix):]), ethcmn.BytesToHash(iterator.Value()))
-				logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
+				storageCount++
+				//logger.Debug("load state", "address", address.Hex(), "key", ethcmn.BytesToHash(iterator.Key()).Hex(), "value", ethcmn.BytesToHash(iterator.Value()).Hex())
 			}
 			iterator.Close()
 		}
 	}
+	ctx.Logger().Info("import evm data info", "account", accCount, "code", codeCount, "storage", storageCount)
 
 	k.SetChainConfig(ctx, data.ChainConfig)
 	//

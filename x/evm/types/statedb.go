@@ -769,7 +769,6 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	}
 }
 
-
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
@@ -802,26 +801,6 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		}
 	}
 
-	return nil
-}
-
-func (csdb *CommitStateDB) IterateStorage(addr ethcmn.Address, cb func(key, value []byte) (stop bool)) error {
-	so := csdb.getStateObject(addr)
-	if so == nil {
-		return nil
-	}
-
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	prefix := AddressStoragePrefix(so.Address())
-	iterator := sdk.KVStorePrefixIterator(store, prefix)
-	defer iterator.Close()
-
-	for ; iterator.Valid(); iterator.Next() {
-		// check if iteration stops
-		if cb(iterator.Key(), iterator.Value()) {
-			return nil
-		}
-	}
 	return nil
 }
 

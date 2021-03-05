@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -30,6 +31,7 @@ const (
 
 var defaultHome, _ = os.Getwd()
 var wg sync.WaitGroup
+var accCount, codeCount, storageCount uint64
 
 // ExportEVMCmd dumps app state to JSON.
 func ExportEVMCmd(ctx *server.Context) *cobra.Command {
@@ -98,10 +100,12 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 			// ignore non EthAccounts
 			return false
 		}
-
+		accCount++
 		addr := ethAccount.EthAddress()
 		if code := ethermintApp.EvmKeeper.GetCode(ctx, addr); code != nil {
+			// TODO chongfu codes
 			evmByteCodeDB.Set(append(evmtypes.KeyPrefixCode, ethAccount.CodeHash...), code)
+			codeCount++
 		}
 
 		wg.Add(1)
@@ -110,6 +114,7 @@ func exportEVM(logger log.Logger, db dbm.DB, height int64) error {
 		return false
 	})
 	wg.Wait()
+	logger.Info("export evm data info", "account", accCount, "code", codeCount, "storage", storageCount)
 	return nil
 }
 
@@ -127,6 +132,7 @@ func exportStorage(ctx sdk.Context, k evm.Keeper, addr ethcmn.Address, db dbm.DB
 	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
 		prefix := evmtypes.AddressStoragePrefix(addr)
 		db.Set(append(prefix, key.Bytes()...), value.Bytes())
+		atomic.AddUint64(&storageCount, 1)
 		return false
 	})
 }

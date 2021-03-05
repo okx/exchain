@@ -54,11 +54,6 @@ func (k *Keeper) ForEachStorage(ctx sdk.Context, addr ethcmn.Address, cb func(ke
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).ForEachStorage(addr, cb)
 }
 
-// IterateStorage calls CommitStateDB.ForEachStorage using passed in context
-func (k *Keeper) IterateStorage(ctx sdk.Context, addr ethcmn.Address, cb func(key, value []byte) bool) error {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).IterateStorage(addr, cb)
-}
-
 // GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
 func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) types.StateObject {
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetOrNewStateObject(addr)
