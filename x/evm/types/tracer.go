@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/server"
 	"path/filepath"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,10 +25,14 @@ var (
 )
 
 func init() {
-	openDB()
+	server.TrapSignal(func() {
+		if tracesDB != nil {
+			tracesDB.Close()
+		}
+	})
 }
 
-func openDB() {
+func OpenTxTracesDB() {
 	dataDir := filepath.Join(viper.GetString("home"), "data")
 	var err error
 	tracesDB, err = sdk.NewLevelDB(tracesDir, dataDir)
@@ -76,7 +81,7 @@ func saveToDB(txHash string, res json.RawMessage) {
 	if tracesDB == nil {
 		panic("traces db is nil")
 	}
-	err := tracesDB.Set([]byte(txHash), res)
+	err := tracesDB.SetSync([]byte(txHash), res)
 	if err != nil {
 		panic(err)
 	}
