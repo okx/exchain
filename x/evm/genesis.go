@@ -14,6 +14,7 @@ import (
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
+	initPath()
 	initGoroutinePool()
 
 	k.SetParams(ctx, data.Params)
@@ -46,6 +47,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	// wait for all data to be set into db
 	globalWG.Wait()
 
+	logger.Debug("Import finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	return []abci.ValidatorUpdate{}
@@ -53,6 +56,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
+	logger := ctx.Logger().With("module", types.ModuleName)
 	initExportEnv()
 
 	// nolint: prealloc
@@ -80,12 +84,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
-
-	// write tx logs
-	//writeAllTxLogs(ctx, k)
-
 	// wait for all data to be written into files
 	globalWG.Wait()
+	logger.Debug("Export finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
 
 	config, _ := k.GetChainConfig(ctx)
 
