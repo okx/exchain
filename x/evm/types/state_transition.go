@@ -241,8 +241,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		if _, err = csdb.Commit(true); err != nil {
 			return nil, err
 		}
-		saveTraceResult(ctx, tracer, result)
 	}
+
+	defer func() {
+		if !st.Simulate {
+			saveTraceResult(ctx, tracer, result)
+		}
+	}()
 
 	// Encode all necessary data into slice of bytes to return in sdk result
 	resultData := ResultData{

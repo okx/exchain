@@ -67,4 +67,3 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 	}
 	return formatted
 }
-

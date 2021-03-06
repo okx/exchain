@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
@@ -91,6 +92,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().Bool(evmtypes.FlagEnableTraces, false, "enable traces db to save evm transaction trace")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

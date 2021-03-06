@@ -18,6 +18,7 @@ import (
 
 const (
 	tracesDir = "traces"
+	FlagEnableTraces = "enable-evm-traces"
 )
 
 var (
@@ -33,6 +34,9 @@ func init() {
 }
 
 func OpenTxTracesDB() {
+	if !viper.GetBool(FlagEnableTraces) {
+		return
+	}
 	dataDir := filepath.Join(viper.GetString("home"), "data")
 	var err error
 	tracesDB, err = sdk.NewLevelDB(tracesDir, dataDir)
@@ -42,6 +46,10 @@ func OpenTxTracesDB() {
 }
 
 func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
+	if !viper.GetBool(FlagEnableTraces) {
+		return
+	}
+
 	var (
 		res []byte
 		err error
@@ -98,9 +106,9 @@ func GetTracesFromDB(txHash string) json.RawMessage{
 	return res
 }
 
-func DeleteTracesFromDB(txHash string) {
+func DeleteTracesFromDB(txHash string) error {
 	if tracesDB == nil {
-		return
+		return fmt.Errorf("traces db is nil")
 	}
-	tracesDB.Delete([]byte(txHash))
+	return tracesDB.Delete([]byte(txHash))
 }

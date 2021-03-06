@@ -1183,6 +1183,11 @@ func (api *PublicEthereumAPI) GetTxTrace(txHash string) json.RawMessage {
 
 // DeleteTxTrace delete the trace of tx execution by txhash.
 func (api *PublicEthereumAPI) DeleteTxTrace(txHash string) json.RawMessage {
-	evmtypes.DeleteTracesFromDB(txHash)
-	return []byte{}
+	var rawMsg json.RawMessage
+	if err := evmtypes.DeleteTracesFromDB(txHash); err != nil {
+		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace failed"))
+	} else {
+		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace succeed"))
+	}
+	return rawMsg
 }
