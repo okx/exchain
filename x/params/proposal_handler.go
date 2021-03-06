@@ -101,7 +101,7 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) 
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error {
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
 
-	if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) {
+	if sdk.HigherThanMercury(ctx.BlockHeight()) {
 		if err := checkDenom(paramsChangeProposal); err != nil {
 			return err
 		}
