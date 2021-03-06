@@ -85,7 +85,7 @@ func (tm *TendermintMonitor) GetResultString() string {
 		return ""
 	}
 
-	return fmt.Sprintf(",BlockSize<%.2fKB>, MemPoolTx<%d>, MemPoolSize<%.2fKB>,",
+	return fmt.Sprintf(", Size<%.2fKB>, PoolTx<%d>, PoolSize<%.2fKB>,",
 		float64(tm.status.blockSize)/1024,
 		tm.status.uncomfirmedTxNum,
 		float64(tm.status.uncormfirmedTxTotalSize)/1024)
