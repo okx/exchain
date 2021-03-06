@@ -146,7 +146,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 
 	vmConfig := vm.Config{
 		ExtraEips: params.ExtraEIPs,
-		Debug:     true,
+		Debug:     enableTraces,
 		Tracer:    tracer,
 	}
 

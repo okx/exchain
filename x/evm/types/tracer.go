@@ -23,6 +23,7 @@ const (
 
 var (
 	tracesDB dbm.DB
+	enableTraces bool
 )
 
 func init() {
@@ -34,7 +35,8 @@ func init() {
 }
 
 func OpenTxTracesDB() {
-	if !viper.GetBool(FlagEnableTraces) {
+	enableTraces = viper.GetBool(FlagEnableTraces)
+	if !enableTraces {
 		return
 	}
 	dataDir := filepath.Join(viper.GetString("home"), "data")
@@ -46,7 +48,7 @@ func OpenTxTracesDB() {
 }
 
 func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
-	if !viper.GetBool(FlagEnableTraces) {
+	if !enableTraces {
 		return
 	}
 
