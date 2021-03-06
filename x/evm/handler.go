@@ -39,8 +39,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 
 		result, err = handlerFun()
 
-		// TODO: remove height judge on mainnet
-		if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) && err != nil {
+		if sdk.HigherThanMercury(ctx.BlockHeight()) && err != nil {
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 
