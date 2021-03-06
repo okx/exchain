@@ -39,6 +39,10 @@ func NewHandler(k *Keeper) sdk.Handler {
 
 		result, err = handlerFun()
 
+		if err != nil {
+			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
+		}
+
 		return result, err
 	}
 }
