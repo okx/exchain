@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -204,7 +206,7 @@ func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, 
 
 	res := types.GenesisAccount{
 		Address: hexAddress,
-		Code:    keeper.GetCode(ctx, addr),
+		Code:    hexutil.Bytes(keeper.GetCode(ctx, addr)).String(),
 		Storage: storage,
 	}
 

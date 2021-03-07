@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/viper"
@@ -50,9 +51,13 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 		switch mode {
 		case "default":
-			csdb.SetCode(address, account.Code)
+			if account.Code != "" {
+				hexcode := hexutil.MustDecode(account.Code)
+				csdb.SetCode(address, hexcode)
+			}
 			for _, storage := range account.Storage {
-				csdb.SetState(address, storage.Key, storage.Value)
+				//csdb.SetState(address, storage.Key, storage.Value)
+				k.SetStateDirectly(ctx, address, storage.Key, storage.Value)
 			}
 		case "files":
 			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
@@ -125,7 +130,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    code,
+			Code:    hexutil.Bytes(code).String(),
 			Storage: storage,
 		}
 
