@@ -20,8 +20,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	k.SetParams(ctx, data.Params)
 
 	evmDenom := data.Params.EvmDenom
-
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	mode := viper.GetString(server.FlagEvmImportMode)
+
+	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
@@ -46,17 +48,16 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		csdb.SetNonce(address, acc.GetSequence())
 		csdb.SetBalance(address, evmBalance.BigInt())
 
-		switch viper.Get(server.FlagImportMode) {
+		switch mode {
 		case "default":
 			csdb.SetCode(address, account.Code)
 			for _, storage := range account.Storage {
 				csdb.SetState(address, storage.Key, storage.Value)
 			}
 		case "files":
-			initImportEnv()
 			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
 		case "db":
-			importFromDB(ctx, logger, k, address, ethAcc.CodeHash)
+			importFromDB(ctx, k, address, ethAcc.CodeHash)
 		default:
 			panic("unsupported import mode")
 		}
@@ -64,8 +65,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	// wait for all data to be set into db
 	wg.Wait()
-
-	logger.Debug("Import finished:", "contract", contractCount, "state", stateCount)
+	logger.Debug("Import finished:", "code", codeCount, "storage", storageCount)
 
 	// set state objects and code to store
 	_, err := csdb.Commit(false)
@@ -89,6 +89,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	logger := ctx.Logger().With("module", types.ModuleName)
 
+	mode := viper.GetString(server.FlagEvmExportMode)
+	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
+
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
@@ -104,7 +107,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		code, storage := []byte(nil), types.Storage(nil)
 		var err error
 
-		switch viper.Get(server.FlagExportMode) {
+		switch mode {
 		case "default":
 			code = csdb.GetCode(addr)
 			storage, err = k.GetAccountStorage(ctx, addr)
@@ -112,7 +115,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 				panic(err)
 			}
 		case "files":
-			initExportEnv()
 			exportToFile(ctx, k, addr)
 		case "db":
 			exportToDB(ctx, k, addr, ethAccount.CodeHash)
@@ -132,7 +134,8 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 	// wait for all data to be written into files
 	wg.Wait()
-	logger.Debug("Export finished:", "contract", contractCount, "state", stateCount)
+
+	logger.Debug("Export finished:", "code", codeCount, "storage", storageCount)
 
 	config, _ := k.GetChainConfig(ctx)
 

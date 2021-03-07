@@ -6,17 +6,16 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/okexchain/x/evm/types"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -24,27 +23,20 @@ import (
 const (
 	codeFileSuffix    = ".code"
 	storageFileSuffix = ".storage"
+	codeSubPath       = "code"
+	storageSubPath    = "storage"
 )
 
 var (
-	absolutePath        string
-	absoluteCodePath    string
-	absoluteStoragePath string
-)
+	codePath       string
+	storagePath    string
+	defaultpath, _ = os.Getwd()
 
-var once sync.Once
-
-// ************************************************************************************************************
-// the List of structs and functions are the controller of read&write
-// ************************************************************************************************************
-// goroutinePool: used for controling the number of read&write goroutine, in case of too many goroutines
-// globalWG:      used for making sure that all read&write processes to be done
-var (
 	goroutinePool chan struct{}
 	wg            sync.WaitGroup
 
-	contractCount uint64
-	stateCount    uint64
+	codeCount    uint64
+	storageCount uint64
 
 	evmByteCodeDB, evmStateDB dbm.DB
 )
@@ -69,45 +61,39 @@ func importFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn
 }
 
 func exportToDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []byte) {
-	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
-	codeDB, storageDB := getEVMDB(initEvmDataPath)
-	if code := k.GetCode(ctx, address); code != nil {
+	if code := k.GetCode(ctx, address); len(code) > 0 {
 		// TODO repeat code
-		codeDB.Set(append(types.KeyPrefixCode, codeHash...), code)
-		atomic.AddUint64(&contractCount, 1)
+		evmByteCodeDB.Set(append(types.KeyPrefixCode, codeHash...), code)
+		codeCount++
 	}
 
 	wg.Add(1)
-	go exportStorage(ctx, k, address, storageDB)
+	go exportStorage(ctx, k, address, evmStateDB)
 }
 
-func importFromDB(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address, codeHash []byte) {
-	initEvmDataPath := viper.GetString(server.FlagEvmDataInitPath)
-	var err error
-	logger.Debug(fmt.Sprintf("initial evm contract & storage data path: %s", initEvmDataPath))
-	codeDB, storageDB := getEVMDB(initEvmDataPath)
-	if err != nil || isEmptyState(codeDB) || isEmptyState(storageDB) {
+func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []byte) {
+	if isEmptyState(evmByteCodeDB) || isEmptyState(evmStateDB) {
 		panic("failed to open evm db")
 	}
 
-	code, err := codeDB.Get(append(types.KeyPrefixCode, codeHash...))
+	code, err := evmByteCodeDB.Get(append(types.KeyPrefixCode, codeHash...))
 	if err != nil {
 		panic(err)
 	}
 	if len(code) != 0 {
 		//csdb.SetCode(address, code)
 		k.SetCodeDirectly(ctx, codeHash, code)
-		atomic.AddUint64(&stateCount, 1)
+		codeCount++
 	}
 
 	prefix := types.AddressStoragePrefix(address)
-	iterator, err := storageDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
+	iterator, err := evmStateDB.Iterator(prefix, sdk.PrefixEndBytes(prefix))
 	if err != nil {
 		panic(err)
 	}
 	for ; iterator.Valid(); iterator.Next() {
 		k.SetStateDirectly(ctx, address, ethcmn.BytesToHash(iterator.Key()[len(prefix):]), ethcmn.BytesToHash(iterator.Value()))
-		//storageCount++
+		storageCount++
 	}
 	iterator.Close()
 }
@@ -135,35 +121,52 @@ func finishGoroutine() {
 //     All the file & writer hanlder will be closed when a goroutine is finished
 // ************************************************************************************************************
 // initExportEnv only initializes the paths and goroutine pool
-func initExportEnv() {
-	absolutePath, _ = os.Getwd()
-	absoluteCodePath = absolutePath + "/code/"
-	absoluteStoragePath = absolutePath + "/storage/"
-
-	err := os.MkdirAll(absoluteCodePath, 0777)
-	if err != nil {
-		panic(err)
-	}
-	err = os.MkdirAll(absoluteStoragePath, 0777)
-	if err != nil {
-		panic(err)
+func initExportEnv(dataPath, mode string) {
+	if dataPath == "" {
+		dataPath = defaultpath
 	}
 
-	initGoroutinePool()
+	switch mode {
+	case "default":
+		return
+	case "files":
+		codePath = filepath.Join(dataPath, codeSubPath)
+		storagePath = filepath.Join(dataPath, storageSubPath)
+
+		err := os.MkdirAll(codePath, 0777)
+		if err != nil {
+			panic(err)
+		}
+		err = os.MkdirAll(storagePath, 0777)
+		if err != nil {
+			panic(err)
+		}
+
+		initGoroutinePool()
+	case "db":
+		initEVMDB(dataPath)
+	default:
+		panic("unsupported export mode")
+	}
 }
 
-func initImportEnv() {
-	absolutePath = viper.GetString(server.FlagEvmDataInitPath)
-	absoluteCodePath = absolutePath + "/code/"
-	absoluteStoragePath = absolutePath + "/storage/"
+func initImportEnv(dataPath, mode string) {
+	if dataPath == "" {
+		dataPath = defaultpath
+	}
+	switch mode {
+	case "default":
+		return
+	case "files":
+		codePath = filepath.Join(dataPath, codeSubPath)
+		storagePath = filepath.Join(dataPath, storageSubPath)
 
-	initGoroutinePool()
-}
-
-func initPath() {
-	absolutePath = "/tmp/okexchain"
-	absoluteCodePath = absolutePath + "/code/"
-	absoluteStoragePath = absolutePath + "/storage/"
+		initGoroutinePool()
+	case "db":
+		initEVMDB(dataPath)
+	default:
+		panic("unsupported import mode")
+	}
 }
 
 // createFile creates a file based on a absolute path
@@ -208,11 +211,11 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 
 	code := k.GetCode(ctx, address)
 	if len(code) != 0 {
-		file := createFile(absoluteCodePath + address.String() + codeFileSuffix)
+		file := createFile(filepath.Join(codePath, address.String()+codeFileSuffix))
 		writer := bufio.NewWriter(file)
 		defer closeFile(writer, file)
 		writeOneLine(writer, hexutil.Bytes(code).String())
-		atomic.AddUint64(&contractCount, 1)
+		atomic.AddUint64(&codeCount, 1)
 	}
 }
 
@@ -221,7 +224,7 @@ func syncWriteAccountCode(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	defer finishGoroutine()
 
-	filename := absoluteStoragePath + address.String() + storageFileSuffix
+	filename := filepath.Join(storagePath, address.String()+storageFileSuffix)
 	index := 0
 	defer func() {
 		if index == 0 { // make a judgement that there is a slice of ethtypes.State or not
@@ -229,7 +232,7 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 				panic(err)
 			}
 		} else {
-			atomic.AddUint64(&stateCount, uint64(index))
+			atomic.AddUint64(&storageCount, uint64(index))
 		}
 	}()
 
@@ -257,7 +260,7 @@ func syncWriteAccountStorage(ctx sdk.Context, k Keeper, address ethcmn.Address) 
 func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address, codeHash []byte) {
 	defer finishGoroutine()
 
-	codeFilePath := absoluteCodePath + address.String() + codeFileSuffix
+	codeFilePath := filepath.Join(codePath, address.String()+codeFileSuffix)
 	if pathExist(codeFilePath) {
 		logger.Debug("start loading code", "filename", address.String()+codeFileSuffix)
 		bin, err := ioutil.ReadFile(codeFilePath)
@@ -272,8 +275,9 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 		}
 
 		// Set contract code into db, ignoring setting in cache
-		k.SetCodeDirectly(ctx, hexcode, codeHash)
-		atomic.AddUint64(&contractCount, 1)
+		//k.SetCodeDirectly(ctx, hexcode, codeHash)
+		k.SetCodeDirectly_tmp(ctx, hexcode)
+		atomic.AddUint64(&codeCount, 1)
 	}
 }
 
@@ -281,7 +285,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address) {
 	defer finishGoroutine()
 
-	storageFilePath := absoluteStoragePath + address.String() + storageFileSuffix
+	storageFilePath := filepath.Join(storagePath, address.String()+storageFileSuffix)
 	if pathExist(storageFilePath) {
 		logger.Debug("start loading storage", "filename", address.String()+storageFileSuffix)
 		f, err := os.Open(storageFilePath)
@@ -302,7 +306,7 @@ func syncReadStorageFromFile(ctx sdk.Context, logger log.Logger, k Keeper, addre
 			key, value := ethcmn.HexToHash(kvPair[0]), ethcmn.HexToHash(kvPair[1])
 			// Set the state of key&value into db, ignoring setting in cache
 			k.SetStateDirectly(ctx, address, key, value)
-			atomic.AddUint64(&stateCount, 1)
+			atomic.AddUint64(&storageCount, 1)
 		}
 	}
 }
@@ -319,20 +323,16 @@ func pathExist(path string) bool {
 	return true
 }
 
-func getEVMDB(path string) (dbm.DB, dbm.DB) {
-	once.Do(func() {
-		var err error
-		evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
-		if err != nil {
-			panic(err)
-		}
-		evmStateDB, err = sdk.NewLevelDB("evm_state", path)
-		if err != nil {
-			panic(err)
-		}
-	})
-
-	return evmByteCodeDB, evmStateDB
+func initEVMDB(path string) {
+	var err error
+	evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
+	if err != nil {
+		panic(err)
+	}
+	evmStateDB, err = sdk.NewLevelDB("evm_state", path)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
@@ -342,7 +342,7 @@ func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
 		prefix := types.AddressStoragePrefix(addr)
 		db.Set(append(prefix, key.Bytes()...), value.Bytes())
 
-		atomic.AddUint64(&stateCount, 1)
+		atomic.AddUint64(&storageCount, 1)
 		return false
 	})
 }
