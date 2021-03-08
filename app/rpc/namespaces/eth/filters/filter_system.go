@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	txEvents     = tmtypes.QueryForEvent(tmtypes.EventTx).String()
-	evmEvents    = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
-	headerEvents = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
+	txEvents        = tmtypes.QueryForEvent(tmtypes.EventTx).String()
+	pendingtxEvents = tmtypes.QueryForEvent(tmtypes.EventPendingTx).String()
+	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
+	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -240,7 +241,7 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.PendingTransactionsSubscription,
-		event:     txEvents,
+		event:     pendingtxEvents,
 		created:   time.Now().UTC(),
 		hashes:    make(chan []common.Hash),
 		installed: make(chan struct{}, 1),
