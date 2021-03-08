@@ -2,10 +2,10 @@ package types
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
@@ -69,4 +69,30 @@ func NewState(key, value ethcmn.Hash) State {
 		Key:   key,
 		Value: value,
 	}
+}
+
+func (s State) MarshalJSON() ([]byte, error) {
+	formatState := &struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}{
+		Key:   s.Key.Hex(),
+		Value: s.Value.Hex(),
+	}
+
+	return json.Marshal(formatState)
+}
+
+func (s *State) UnmarshalJSON(input []byte) error {
+	formatState := &struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}{}
+	if err := json.Unmarshal(input, &formatState); err != nil {
+		return err
+	}
+
+	s.Key = ethcmn.HexToHash(formatState.Key)
+	s.Value = ethcmn.HexToHash(formatState.Value)
+	return nil
 }

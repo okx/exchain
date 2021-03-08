@@ -3,20 +3,30 @@ package evm
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
-	initImportEnv()
 
 	k.SetParams(ctx, data.Params)
+
+	evmDenom := data.Params.EvmDenom
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	mode := viper.GetString(server.FlagEvmImportMode)
+	if mode == "" {
+		mode = defaultMode
+	}
+	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
+
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
 		accAddress := sdk.AccAddress(address.Bytes())
@@ -27,7 +37,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			panic(fmt.Errorf("account not found for address %s", account.Address))
 		}
 
-		_, ok := acc.(*ethermint.EthAccount)
+		ethAcc, ok := acc.(*ethermint.EthAccount)
 		if !ok {
 			panic(
 				fmt.Errorf("account %s must be an %T type, got %T",
@@ -36,32 +46,64 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		// read Code from file
-		addGoroutine()
-		go syncReadCodeFromFile(ctx, logger, k, address)
+		evmBalance := acc.GetCoins().AmountOf(evmDenom)
+		csdb.SetNonce(address, acc.GetSequence())
+		csdb.SetBalance(address, evmBalance.BigInt())
 
-		// read Storage From file
-		addGoroutine()
-		go syncReadStorageFromFile(ctx, logger, k, address)
+		switch mode {
+		case defaultMode:
+			if account.Code != nil {
+				csdb.SetCode(address, account.Code)
+				codeCount++
+			}
+			for _, storage := range account.Storage {
+				k.SetStateDirectly(ctx, address, storage.Key, storage.Value)
+				storageCount++
+			}
+		case filesMode:
+			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
+		case dbMode:
+			importFromDB(ctx, k, address, ethAcc.CodeHash)
+		default:
+			panic("unsupported import mode")
+		}
 	}
 
 	// wait for all data to be set into db
-	globalWG.Wait()
+	wg.Wait()
+	logger.Debug("Import finished:", "code", codeCount, "storage", storageCount)
 
-	logger.Debug("Import finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+	// set state objects and code to store
+	_, err := csdb.Commit(false)
+	if err != nil {
+		panic(err)
+	}
+
+	// set storage to store
+	// NOTE: don't delete empty object to prevent import-export simulation failure
+	err = csdb.Finalise(false)
+	if err != nil {
+		panic(err)
+	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-
 	return []abci.ValidatorUpdate{}
 }
 
 // ExportGenesis exports genesis state of the EVM module
 func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisState {
 	logger := ctx.Logger().With("module", types.ModuleName)
-	initExportEnv()
+
+	mode := viper.GetString(server.FlagEvmExportMode)
+	if mode == "" {
+		mode = defaultMode
+	}
+	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
 
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+
 	ak.IterateAccounts(ctx, func(account authexported.Account) bool {
 		ethAccount, ok := account.(*ethermint.EthAccount)
 		if !ok {
@@ -70,29 +112,42 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		}
 
 		addr := ethAccount.EthAddress()
+		code, storage := []byte(nil), types.Storage(nil)
+		var err error
 
-		// write Code
-		addGoroutine()
-		go syncWriteAccountCode(ctx, k, addr)
-		// write Storage
-		addGoroutine()
-		go syncWriteAccountStorage(ctx, k, addr)
+		switch mode {
+		case defaultMode:
+			code = csdb.GetCode(addr)
+			if code != nil {
+				codeCount++
+			}
+			if storage, err = k.GetAccountStorage(ctx, addr); err != nil {
+				panic(err)
+			}
+			storageCount += uint64(len(storage))
+		case filesMode:
+			exportToFile(ctx, k, addr)
+		case dbMode:
+			exportToDB(ctx, k, addr, ethAccount.CodeHash)
+
+		default:
+			panic("unsupported export mode")
+		}
 
 		genAccount := types.GenesisAccount{
 			Address: addr.String(),
-			Code:    nil,
-			Storage: nil,
+			Code:    code,
+			Storage: storage,
 		}
 
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
 	// wait for all data to be written into files
-	globalWG.Wait()
-	logger.Debug("Export finished:", "contract num", contractCounter.GetNum(), "state num", stateCounter.GetNum())
+	wg.Wait()
+	logger.Debug("Export finished:", "code", codeCount, "storage", storageCount)
 
 	config, _ := k.GetChainConfig(ctx)
-
 	return GenesisState{
 		Accounts:    ethGenAccounts,
 		ChainConfig: config,
