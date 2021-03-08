@@ -23,7 +23,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	evmDenom := data.Params.EvmDenom
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	mode := viper.GetString(server.FlagEvmImportMode)
-
+	if mode == "" {
+		mode = defaultMode
+	}
 	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
 
 	for _, account := range data.Accounts {
@@ -50,7 +52,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		csdb.SetBalance(address, evmBalance.BigInt())
 
 		switch mode {
-		case "default":
+		case defaultMode:
 			if account.Code != "" {
 				hexcode := hexutil.MustDecode(account.Code)
 				csdb.SetCode(address, hexcode)
@@ -59,9 +61,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				//csdb.SetState(address, storage.Key, storage.Value)
 				k.SetStateDirectly(ctx, address, storage.Key, storage.Value)
 			}
-		case "files":
+		case filesMode:
 			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
-		case "db":
+		case dbMode:
 			importFromDB(ctx, k, address, ethAcc.CodeHash)
 		default:
 			panic("unsupported import mode")
@@ -95,6 +97,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	mode := viper.GetString(server.FlagEvmExportMode)
+	if mode == "" {
+		mode = defaultMode
+	}
 	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
 
 	// nolint: prealloc
@@ -113,15 +118,15 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		var err error
 
 		switch mode {
-		case "default":
+		case defaultMode:
 			code = csdb.GetCode(addr)
 			storage, err = k.GetAccountStorage(ctx, addr)
 			if err != nil {
 				panic(err)
 			}
-		case "files":
+		case filesMode:
 			exportToFile(ctx, k, addr)
-		case "db":
+		case dbMode:
 			exportToDB(ctx, k, addr, ethAccount.CodeHash)
 
 		default:

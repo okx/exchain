@@ -25,6 +25,9 @@ const (
 	storageFileSuffix = ".storage"
 	codeSubPath       = "code"
 	storageSubPath    = "storage"
+	defaultMode       = "default"
+	filesMode         = "files"
+	dbMode            = "db"
 )
 
 var (
