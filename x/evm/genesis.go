@@ -54,9 +54,11 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		case defaultMode:
 			if account.Code != nil {
 				csdb.SetCode(address, account.Code)
+				codeCount++
 			}
 			for _, storage := range account.Storage {
 				k.SetStateDirectly(ctx, address, storage.Key, storage.Value)
+				storageCount++
 			}
 		case filesMode:
 			importFromFile(ctx, logger, k, address, ethAcc.CodeHash)
@@ -116,10 +118,13 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		switch mode {
 		case defaultMode:
 			code = csdb.GetCode(addr)
-			storage, err = k.GetAccountStorage(ctx, addr)
-			if err != nil {
+			if code != nil {
+				codeCount++
+			}
+			if storage, err = k.GetAccountStorage(ctx, addr); err != nil {
 				panic(err)
 			}
+			storageCount += uint64(len(storage))
 		case filesMode:
 			exportToFile(ctx, k, addr)
 		case dbMode:

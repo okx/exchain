@@ -72,7 +72,6 @@ func (ga *GenesisAccount) UnmarshalJSON(input []byte) error {
 	if formatState.Code == "" {
 		ga.Code = nil
 	} else {
-		fmt.Println(333)
 		ga.Code = hexutil.MustDecode(formatState.Code)
 	}
 	ga.Storage = formatState.Storage
