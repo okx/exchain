@@ -101,11 +101,11 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) 
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error {
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
 
-	if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) {
-		if err := checkDenom(paramsChangeProposal); err != nil {
-			return err
-		}
-	}
+	//if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) {
+	//	if err := checkDenom(paramsChangeProposal); err != nil {
+	//		return err
+	//	}
+	//}
 
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {
