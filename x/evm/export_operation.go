@@ -33,7 +33,7 @@ const (
 var (
 	codePath       string
 	storagePath    string
-	defaultpath, _ = os.Getwd()
+	defaultPath, _ = os.Getwd()
 
 	goroutinePool chan struct{}
 	wg            sync.WaitGroup
@@ -44,6 +44,57 @@ var (
 	evmByteCodeDB, evmStateDB dbm.DB
 )
 
+// initExportEnv only initializes the paths and goroutine pool
+func initExportEnv(dataPath, mode string) {
+	if dataPath == "" {
+		dataPath = defaultPath
+	}
+
+	switch mode {
+	case "default":
+		return
+	case "files":
+		codePath = filepath.Join(dataPath, codeSubPath)
+		storagePath = filepath.Join(dataPath, storageSubPath)
+
+		err := os.MkdirAll(codePath, 0777)
+		if err != nil {
+			panic(err)
+		}
+		err = os.MkdirAll(storagePath, 0777)
+		if err != nil {
+			panic(err)
+		}
+
+		initGoroutinePool()
+	case "db":
+		initEVMDB(dataPath)
+	default:
+		panic("unsupported export mode")
+	}
+}
+
+// initImportEnv only initializes the paths and goroutine pool
+func initImportEnv(dataPath, mode string) {
+	if dataPath == "" {
+		dataPath = defaultPath
+	}
+	switch mode {
+	case "default":
+		return
+	case "files":
+		codePath = filepath.Join(dataPath, codeSubPath)
+		storagePath = filepath.Join(dataPath, storageSubPath)
+
+		initGoroutinePool()
+	case "db":
+		initEVMDB(dataPath)
+	default:
+		panic("unsupported import mode")
+	}
+}
+
+// exportToFile export EVM code and storage to files
 func exportToFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	// write Code
 	addGoroutine()
@@ -53,6 +104,7 @@ func exportToFile(ctx sdk.Context, k Keeper, address ethcmn.Address) {
 	go syncWriteAccountStorage(ctx, k, address)
 }
 
+// importFromFile import EVM code and storage from files
 func importFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn.Address, codeHash []byte) {
 	// read Code from file
 	addGoroutine()
@@ -63,6 +115,7 @@ func importFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn
 	go syncReadStorageFromFile(ctx, logger, k, address)
 }
 
+// exportToDB export EVM code and storage to leveldb
 func exportToDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []byte) {
 	if code := k.GetCode(ctx, address); len(code) > 0 {
 		// TODO repeat code
@@ -74,6 +127,7 @@ func exportToDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []by
 	go exportStorage(ctx, k, address, evmStateDB)
 }
 
+// importFromDB import EVM code and storage to leveldb
 func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []byte) {
 	if isEmptyState(evmByteCodeDB) || isEmptyState(evmStateDB) {
 		panic("failed to open evm db")
@@ -101,6 +155,30 @@ func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []
 	iterator.Close()
 }
 
+func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
+	defer wg.Done()
+
+	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
+		prefix := types.AddressStoragePrefix(addr)
+		db.Set(append(prefix, key.Bytes()...), value.Bytes())
+
+		atomic.AddUint64(&storageCount, 1)
+		return false
+	})
+}
+
+func initEVMDB(path string) {
+	var err error
+	evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
+	if err != nil {
+		panic(err)
+	}
+	evmStateDB, err = sdk.NewLevelDB("evm_state", path)
+	if err != nil {
+		panic(err)
+	}
+}
+
 // initGoroutinePool creates an appropriate number of maximum goroutine
 func initGoroutinePool() {
 	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1)*16)
@@ -116,60 +194,6 @@ func addGoroutine() {
 func finishGoroutine() {
 	<-goroutinePool
 	wg.Done()
-}
-
-// ************************************************************************************************************
-// the List of functions are used for local file operations
-//     For now, the exported evm data are stored in the path /tmp/okexhcain
-//     All the file & writer hanlder will be closed when a goroutine is finished
-// ************************************************************************************************************
-// initExportEnv only initializes the paths and goroutine pool
-func initExportEnv(dataPath, mode string) {
-	if dataPath == "" {
-		dataPath = defaultpath
-	}
-
-	switch mode {
-	case "default":
-		return
-	case "files":
-		codePath = filepath.Join(dataPath, codeSubPath)
-		storagePath = filepath.Join(dataPath, storageSubPath)
-
-		err := os.MkdirAll(codePath, 0777)
-		if err != nil {
-			panic(err)
-		}
-		err = os.MkdirAll(storagePath, 0777)
-		if err != nil {
-			panic(err)
-		}
-
-		initGoroutinePool()
-	case "db":
-		initEVMDB(dataPath)
-	default:
-		panic("unsupported export mode")
-	}
-}
-
-func initImportEnv(dataPath, mode string) {
-	if dataPath == "" {
-		dataPath = defaultpath
-	}
-	switch mode {
-	case "default":
-		return
-	case "files":
-		codePath = filepath.Join(dataPath, codeSubPath)
-		storagePath = filepath.Join(dataPath, storageSubPath)
-
-		initGoroutinePool()
-	case "db":
-		initEVMDB(dataPath)
-	default:
-		panic("unsupported import mode")
-	}
 }
 
 // createFile creates a file based on a absolute path
@@ -272,14 +296,10 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 		}
 
 		// make "0x608002412.....80" string into a slice of byte
-		hexcode, err := hexutil.Decode(string(bin))
-		if err != nil {
-			panic(err)
-		}
+		code := hexutil.MustDecode(string(bin))
 
 		// Set contract code into db, ignoring setting in cache
-		//k.SetCodeDirectly(ctx, hexcode, codeHash)
-		k.SetCodeDirectly_tmp(ctx, hexcode)
+		k.SetCodeDirectly(ctx, codeHash, code)
 		atomic.AddUint64(&codeCount, 1)
 	}
 }
@@ -324,30 +344,6 @@ func pathExist(path string) bool {
 		return false
 	}
 	return true
-}
-
-func initEVMDB(path string) {
-	var err error
-	evmByteCodeDB, err = sdk.NewLevelDB("evm_bytecode", path)
-	if err != nil {
-		panic(err)
-	}
-	evmStateDB, err = sdk.NewLevelDB("evm_state", path)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
-	defer wg.Done()
-
-	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
-		prefix := types.AddressStoragePrefix(addr)
-		db.Set(append(prefix, key.Bytes()...), value.Bytes())
-
-		atomic.AddUint64(&storageCount, 1)
-		return false
-	})
 }
 
 func isEmptyState(db dbm.DB) bool {

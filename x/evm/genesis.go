@@ -56,7 +56,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 				csdb.SetCode(address, account.Code)
 			}
 			for _, storage := range account.Storage {
-				//csdb.SetState(address, storage.Key, storage.Value)
 				k.SetStateDirectly(ctx, address, storage.Key, storage.Value)
 			}
 		case filesMode:
@@ -86,7 +85,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
-
 	return []abci.ValidatorUpdate{}
 }
 
@@ -142,11 +140,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 	// wait for all data to be written into files
 	wg.Wait()
-
 	logger.Debug("Export finished:", "code", codeCount, "storage", storageCount)
 
 	config, _ := k.GetChainConfig(ctx)
-
 	return GenesisState{
 		Accounts:    ethGenAccounts,
 		ChainConfig: config,
