@@ -24,7 +24,7 @@ func TestValidateGenesisAccount(t *testing.T) {
 			"valid genesis account",
 			GenesisAccount{
 				Address: address.String(),
-				Code:    "[]byte{1, 2, 3}",
+				Code:    []byte{1, 2, 3},
 				Storage: Storage{
 					NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
 				},
@@ -42,7 +42,7 @@ func TestValidateGenesisAccount(t *testing.T) {
 			"empty code bytes",
 			GenesisAccount{
 				Address: address.String(),
-				Code:    "",
+				Code:    []byte{},
 			},
 			false,
 		},
@@ -80,7 +80,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: address.String(),
-						Code:    "[]byte{1, 2, 3}",
+						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
 						},
@@ -131,14 +131,14 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: address.String(),
-						Code:    "[]byte{1, 2, 3}",
+						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
 						},
 					},
 					{
 						Address: address.String(),
-						Code:    "[]byte{1, 2, 3}",
+						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							NewState(ethcmn.BytesToHash([]byte{1, 2, 3}), ethcmn.BytesToHash([]byte{1, 2, 3})),
 						},
@@ -153,7 +153,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: address.String(),
-						Code:    "[]byte{1, 2, 3}",
+						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
 						},
@@ -202,7 +202,7 @@ func TestValidateGenesis(t *testing.T) {
 				Accounts: []GenesisAccount{
 					{
 						Address: address.String(),
-						Code:    "[]byte{1, 2, 3}",
+						Code:    []byte{1, 2, 3},
 						Storage: Storage{
 							{Key: ethcmn.BytesToHash([]byte{1, 2, 3})},
 						},
