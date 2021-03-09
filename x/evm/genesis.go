@@ -22,6 +22,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	evmDenom := data.Params.EvmDenom
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	mode := viper.GetString(server.FlagEvmImportMode)
+	if mode == "" {
+		mode = defaultMode
+	}
 	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
 
 	for _, account := range data.Accounts {
@@ -92,6 +95,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	logger := ctx.Logger().With("module", types.ModuleName)
 
 	mode := viper.GetString(server.FlagEvmExportMode)
+	if mode == "" {
+		mode = defaultMode
+	}
 	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
 
 	// nolint: prealloc
