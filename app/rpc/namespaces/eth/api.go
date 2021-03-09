@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
+
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
@@ -475,6 +477,14 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	if res.Code != abci.CodeTypeOK {
+		switch res.Code {
+		case sdkerror.ErrTxInMempoolCache.ABCICode():
+			return common.Hash{}, sdkerror.ErrTxInMempoolCache
+		case sdkerror.ErrMempoolIsFull.ABCICode():
+			return common.Hash{}, sdkerror.ErrMempoolIsFull
+		case sdkerror.ErrTxTooLarge.ABCICode():
+			return common.Hash{}, sdkerror.ErrTxTooLarge
+		}
 		return common.Hash{}, fmt.Errorf(res.RawLog)
 	}
 
@@ -508,6 +518,14 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	if res.Code != abci.CodeTypeOK {
+		switch res.Code {
+		case sdkerror.ErrTxInMempoolCache.ABCICode():
+			return common.Hash{}, sdkerror.ErrTxInMempoolCache
+		case sdkerror.ErrMempoolIsFull.ABCICode():
+			return common.Hash{}, sdkerror.ErrMempoolIsFull
+		case sdkerror.ErrTxTooLarge.ABCICode():
+			return common.Hash{}, sdkerror.ErrTxTooLarge
+		}
 		return common.Hash{}, fmt.Errorf(res.RawLog)
 	}
 	// Return transaction hash
