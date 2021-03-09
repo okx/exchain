@@ -349,3 +349,8 @@ func pathExist(path string) bool {
 func isEmptyState(db dbm.DB) bool {
 	return db.Stats()["leveldb.sstables"] == ""
 }
+
+func CloseDB() {
+	evmByteCodeDB.Close()
+	evmStateDB.Close()
+}

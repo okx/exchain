@@ -23,6 +23,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	mode := viper.GetString(server.FlagEvmImportMode)
 	if mode == "" {
+		// for some UT
 		mode = defaultMode
 	}
 	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
@@ -71,7 +72,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	// wait for all data to be set into db
 	wg.Wait()
-	logger.Debug("Import finished:", "code", codeCount, "storage", storageCount)
+	logger.Debug("Import finished", "code", codeCount, "storage", storageCount)
 
 	// set state objects and code to store
 	_, err := csdb.Commit(false)
@@ -96,6 +97,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	mode := viper.GetString(server.FlagEvmExportMode)
 	if mode == "" {
+		// for some UT
 		mode = defaultMode
 	}
 	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
@@ -145,7 +147,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 	})
 	// wait for all data to be written into files
 	wg.Wait()
-	logger.Debug("Export finished:", "code", codeCount, "storage", storageCount)
+	logger.Debug("Export finished", "code", codeCount, "storage", storageCount)
 
 	config, _ := k.GetChainConfig(ctx)
 	return GenesisState{
