@@ -272,11 +272,6 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
 				txHash := common.BytesToHash(data.Tx.Hash())
-				//var tx sdk.Msg
-				//err := api.clientCtx.Codec.UnmarshalBinaryLengthPrefixed(data.Tx, &tx)
-				//if err != nil {
-				//	panic(err) //todo
-				//}
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
