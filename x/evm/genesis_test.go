@@ -1,6 +1,10 @@
 package evm_test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -8,12 +12,15 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -251,217 +258,185 @@ func (suite *EvmTestSuite) TestExport() {
 	})
 }
 
-//
-//func (suite *EvmTestSuite) TestExport_db() {
-//	address := ethcmn.HexToAddress("0x20293F834cA3de4634c2Bf10afB9AB09a92A8566")
-//	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
-//	suite.Require().NotNil(acc)
-//	err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
-//
-//	suite.Require().NoError(err)
-//	suite.app.AccountKeeper.SetAccount(suite.ctx, ethermint.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: acc.GetAddress(),
-//		},
-//		CodeHash: ethcrypto.Keccak256([]byte{1, 2, 3}),
-//	})
-//
-//	evmAcc := types.GenesisAccount{
-//		Address: address.String(),
-//		Code:    []byte{1, 2, 3},
-//		Storage: types.Storage{
-//			{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
-//			{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
-//			{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
-//		},
-//	}
-//
-//	initGenesis := types.GenesisState{
-//		Params:   types.DefaultParams(),
-//		Accounts: []types.GenesisAccount{evmAcc},
-//	}
-//	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
-//
-//	viper.SetEnvPrefix("OKEXCHAIN")
-//	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-//	viper.AutomaticEnv()
-//	tmpPath := "./test_tmp"
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
-//
-//	//defer func() {
-//	//	os.RemoveAll(tmpPath)
-//	//}()
-//
-//	suite.Require().NoDirExists(filepath.Join(tmpPath, "evm_bytecode.db"))
-//	suite.Require().NoDirExists(filepath.Join(tmpPath, "evm_state.db"))
-//	var exportState types.GenesisState
-//	suite.Require().NotPanics(func() {
-//		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper)
-//		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
-//		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
-//		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
-//	})
-//	suite.Require().DirExists(filepath.Join(tmpPath, "evm_bytecode.db"))
-//	suite.Require().DirExists(filepath.Join(tmpPath, "evm_state.db"))
-//}
-//
-//func (suite *EvmTestSuite) TestImport_db() {
-//	address := ethcmn.HexToAddress("0x20293F834cA3de4634c2Bf10afB9AB09a92A8566")
-//	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
-//	suite.Require().NotNil(acc)
-//	err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
-//	suite.Require().NoError(err)
-//	suite.app.AccountKeeper.SetAccount(suite.ctx, ethermint.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: acc.GetAddress(),
-//		},
-//		CodeHash: ethcrypto.Keccak256([]byte{1, 2, 3}),
-//	})
-//
-//	evmAcc := types.GenesisAccount{
-//		Address: address.String(),
-//	}
-//
-//	initGenesis := types.GenesisState{
-//		Params:   types.DefaultParams(),
-//		Accounts: []types.GenesisAccount{evmAcc},
-//	}
-//
-//	viper.SetEnvPrefix("OKEXCHAIN")
-//	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-//	viper.AutomaticEnv()
-//	tmpPath := "./test_tmp"
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
-//
-//	defer func() {
-//		os.RemoveAll(tmpPath)
-//	}()
-//
-//	code := []byte{1, 2, 3}
-//	//storage := types.Storage{
-//	//	{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
-//	//	{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
-//	//	{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
-//	//}
-//
-//	suite.Require().DirExists(filepath.Join(tmpPath, "evm_bytecode.db"))
-//	suite.Require().DirExists(filepath.Join(tmpPath, "evm_state.db"))
-//	suite.Require().NotPanics(func() {
-//		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
-//		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, address), code)
-//		//suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, address, storage[0].Key), storage[0].Value)
-//	})
-//}
-//
-//func (suite *EvmTestSuite) TestExport_file() {
-//	address := ethcmn.HexToAddress("0x20293F834cA3de4634c2Bf10afB9AB09a92A8566")
-//	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
-//	suite.Require().NotNil(acc)
-//	err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
-//
-//	suite.Require().NoError(err)
-//	suite.app.AccountKeeper.SetAccount(suite.ctx, ethermint.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: acc.GetAddress(),
-//		},
-//		CodeHash: ethcrypto.Keccak256([]byte{1, 2, 3}),
-//	})
-//
-//	evmAcc := types.GenesisAccount{
-//		Address: address.String(),
-//		Code:    []byte{1, 2, 3},
-//		Storage: types.Storage{
-//			{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
-//			{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
-//			{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
-//		},
-//	}
-//
-//	initGenesis := types.GenesisState{
-//		Params:   types.DefaultParams(),
-//		Accounts: []types.GenesisAccount{evmAcc},
-//	}
-//	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
-//
-//	viper.SetEnvPrefix("OKEXCHAIN")
-//	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-//	viper.AutomaticEnv()
-//	tmpPath := "./test_tmp"
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
-//
-//	//defer func() {
-//	//	os.RemoveAll(tmpPath)
-//	//}()
-//
-//	suite.Require().NoDirExists(filepath.Join(tmpPath, "code"))
-//	suite.Require().NoDirExists(filepath.Join(tmpPath, "storage"))
-//	var exportState types.GenesisState
-//	suite.Require().NotPanics(func() {
-//		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper)
-//		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
-//		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
-//		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
-//	})
-//	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
-//	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
-//}
-//
-//func (suite *EvmTestSuite) TestImport_file() {
-//	address := ethcmn.HexToAddress("0x20293F834cA3de4634c2Bf10afB9AB09a92A8566")
-//	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
-//	suite.Require().NotNil(acc)
-//	err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
-//	suite.Require().NoError(err)
-//	suite.app.AccountKeeper.SetAccount(suite.ctx, ethermint.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: acc.GetAddress(),
-//		},
-//		CodeHash: ethcrypto.Keccak256([]byte{1, 2, 3}),
-//	})
-//
-//	evmAcc := types.GenesisAccount{
-//		Address: address.String(),
-//	}
-//
-//	initGenesis := types.GenesisState{
-//		Params:   types.DefaultParams(),
-//		Accounts: []types.GenesisAccount{evmAcc},
-//	}
-//
-//	viper.SetEnvPrefix("OKEXCHAIN")
-//	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-//	viper.AutomaticEnv()
-//	tmpPath := "./test_tmp"
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
-//	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
-//	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
-//
-//	defer func() {
-//		os.RemoveAll(tmpPath)
-//	}()
-//
-//	code := []byte{1, 2, 3}
-//	//storage := types.Storage{
-//	//	{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
-//	//	{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
-//	//	{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
-//	//}
-//
-//	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
-//	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
-//	suite.Require().NotPanics(func() {
-//		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
-//		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, address), code)
-//		//suite.Require().Equal(suite.app.EvmKeeper.GetState(suite.ctx, address, storage[0].Key), storage[0].Value)
-//	})
-//}
+func (suite *EvmTestSuite) TestExport_db() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+
+	code := []byte{1, 2, 3}
+	ethAccount := ethermint.EthAccount{
+		BaseAccount: &auth.BaseAccount{
+			Address: acc.GetAddress(),
+		},
+		CodeHash: ethcrypto.Keccak256(code),
+	}
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	storage := types.Storage{
+		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
+		{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
+		{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
+	}
+	evmAcc := types.GenesisAccount{
+		Address: address.String(),
+		Code:    code,
+		Storage: storage,
+	}
+
+	initGenesis := types.GenesisState{
+		Params:   types.DefaultParams(),
+		Accounts: []types.GenesisAccount{evmAcc},
+	}
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
+
+	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+	tmpPath := "./test_tmp"
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+
+	defer func() {
+		os.RemoveAll(tmpPath)
+	}()
+
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "evm_bytecode.db"))
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "evm_state.db"))
+	var exportState types.GenesisState
+	suite.Require().NotPanics(func() {
+		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper)
+		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
+		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
+		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
+	})
+	suite.Require().DirExists(filepath.Join(tmpPath, "evm_bytecode.db"))
+	suite.Require().DirExists(filepath.Join(tmpPath, "evm_state.db"))
+
+	evm.CloseDB()
+	testImport_db(suite, exportState, tmpPath, ethAccount, code, storage)
+}
+
+func testImport_db(suite *EvmTestSuite,
+	exportState types.GenesisState,
+	dbPath string,
+	ethAccount ethermint.EthAccount,
+	code []byte,
+	storage types.Storage) {
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	suite.SetupTest() // reset
+
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
+
+	suite.Require().DirExists(filepath.Join(dbPath, "evm_bytecode.db"))
+	suite.Require().DirExists(filepath.Join(dbPath, "evm_state.db"))
+	suite.Require().NotPanics(func() {
+		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, exportState)
+		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, ethAccount.EthAddress()), code)
+		suite.app.EvmKeeper.ForEachStorage(suite.ctx, ethAccount.EthAddress(), func(key, value ethcmn.Hash) bool {
+			suite.Require().Contains(storage, types.State{key, value})
+			return false
+		})
+	})
+}
+
+func (suite *EvmTestSuite) TestExport_files() {
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+	suite.Require().NotNil(acc)
+	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+	suite.Require().NoError(err)
+
+	code := []byte{1, 2, 3}
+	ethAccount := ethermint.EthAccount{
+		BaseAccount: &auth.BaseAccount{
+			Address: acc.GetAddress(),
+		},
+		CodeHash: ethcrypto.Keccak256(code),
+	}
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	storage := types.Storage{
+		{Key: common.BytesToHash([]byte("key1")), Value: common.BytesToHash([]byte("value1"))},
+		{Key: common.BytesToHash([]byte("key2")), Value: common.BytesToHash([]byte("value2"))},
+		{Key: common.BytesToHash([]byte("key3")), Value: common.BytesToHash([]byte("value3"))},
+	}
+	evmAcc := types.GenesisAccount{
+		Address: address.String(),
+		Code:    code,
+		Storage: storage,
+	}
+
+	initGenesis := types.GenesisState{
+		Params:   types.DefaultParams(),
+		Accounts: []types.GenesisAccount{evmAcc},
+	}
+	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
+
+	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	viper.AutomaticEnv()
+	tmpPath := "./test_tmp"
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", tmpPath)
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+
+	defer func() {
+		os.RemoveAll(tmpPath)
+	}()
+
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().NoDirExists(filepath.Join(tmpPath, "storage"))
+	var exportState types.GenesisState
+	suite.Require().NotPanics(func() {
+		exportState = evm.ExportGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper)
+		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
+		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
+		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
+	})
+	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
+	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
+
+	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage)
+}
+
+func testImport_files(suite *EvmTestSuite,
+	exportState types.GenesisState,
+	filePath string,
+	ethAccount ethermint.EthAccount,
+	code []byte,
+	storage types.Storage) {
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	suite.SetupTest() // reset
+
+	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
+
+	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
+	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
+
+	suite.Require().DirExists(filepath.Join(filePath, "code"))
+	suite.Require().DirExists(filepath.Join(filePath, "storage"))
+	suite.Require().NotPanics(func() {
+		evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, exportState)
+		suite.Require().Equal(suite.app.EvmKeeper.GetCode(suite.ctx, ethAccount.EthAddress()), code)
+		suite.app.EvmKeeper.ForEachStorage(suite.ctx, ethAccount.EthAddress(), func(key, value ethcmn.Hash) bool {
+			suite.Require().Contains(storage, types.State{key, value})
+			return false
+		})
+	})
+}
