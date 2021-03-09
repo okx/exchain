@@ -2,8 +2,13 @@ package eth
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
+
+	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/okexchain/x/evm/types"
 
@@ -207,4 +212,16 @@ func genericStringMap(s []string) map[string]string {
 		ret[s[i]] = s[i+1]
 	}
 	return ret
+}
+
+func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
+	switch txRes.Code {
+	case sdkerror.ErrTxInMempoolCache.ABCICode():
+		return common.Hash{}, sdkerror.ErrTxInMempoolCache
+	case sdkerror.ErrMempoolIsFull.ABCICode():
+		return common.Hash{}, sdkerror.ErrMempoolIsFull
+	case sdkerror.ErrTxTooLarge.ABCICode():
+		return common.Hash{}, sdkerror.ErrTxTooLarge
+	}
+	return common.Hash{}, fmt.Errorf(txRes.RawLog)
 }
