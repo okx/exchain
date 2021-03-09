@@ -23,6 +23,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	mode := viper.GetString(server.FlagEvmImportMode)
 	if mode == "" {
+		// for some UT
 		mode = defaultMode
 	}
 	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
@@ -96,6 +97,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	mode := viper.GetString(server.FlagEvmExportMode)
 	if mode == "" {
+		// for some UT
 		mode = defaultMode
 	}
 	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
