@@ -3,24 +3,28 @@ package types
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
+	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	tmtypes "github.com/tendermint/tendermint/types"
+)
+
+var (
+	// static gas limit for all blocks
+	defaultGasLimit   = hexutil.Uint64(int64(^uint32(0)))
+	defaultGasUsed    = hexutil.Uint64(0)
+	defaultDifficulty = (*hexutil.Big)(big.NewInt(0))
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
@@ -237,4 +241,27 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 		}
 	}
 	return gasUsed
+}
+
+// EthHeaderWithBlockHashFromTendermint gets the eth Header with block hash from Tendermint block inside
+func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *EthHeaderWithBlockHash, err error) {
+	if tmHeader == nil {
+		return header, errors.New("failed. nil tendermint block header")
+	}
+
+	header = &EthHeaderWithBlockHash{
+		ParentHash: common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
+		Coinbase:   common.BytesToAddress(tmHeader.ProposerAddress),
+		Root:       common.BytesToHash(tmHeader.AppHash),
+		TxHash:     common.BytesToHash(tmHeader.DataHash),
+		Number:     (*hexutil.Big)(big.NewInt(tmHeader.Height)),
+		// difficulty is not available for DPOS
+		Difficulty: defaultDifficulty,
+		GasLimit:   defaultGasLimit,
+		GasUsed:    defaultGasUsed,
+		Time:       hexutil.Uint64(tmHeader.Time.Unix()),
+		Hash:       common.BytesToHash(tmHeader.Hash()),
+	}
+
+	return
 }
