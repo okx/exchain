@@ -99,7 +99,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 			select {
 			case event := <-headersCh:
 				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
-				headerWithBlockHash, err := rpctypes.EthHeaderWithBlockHashFromTendermint(&data.Header, api.clientCtx.Client)
+				headerWithBlockHash, err := rpctypes.EthHeaderWithBlockHashFromTendermint(&data.Header)
 				if err != nil {
 					api.logger.Error("failed to get header with block hash", err)
 					continue

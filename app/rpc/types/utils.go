@@ -17,7 +17,6 @@ import (
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -245,14 +244,9 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 }
 
 // EthHeaderWithBlockHashFromTendermint gets the eth Header with block hash from Tendermint block inside
-func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header, cli rpcclient.Client) (header *HeaderWithBlockHash, err error) {
+func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *HeaderWithBlockHash, err error) {
 	if tmHeader == nil {
 		return header, errors.New("failed. nil tendermint block header")
-	}
-
-	tmBlock, err := cli.Block(&tmHeader.Height)
-	if err != nil {
-		return
 	}
 
 	header = &HeaderWithBlockHash{
@@ -266,7 +260,7 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header, cli rpcclien
 		GasLimit:   defaultGasLimit,
 		GasUsed:    defaultGasUsed,
 		Time:       hexutil.Uint64(tmHeader.Time.Unix()),
-		Hash:       common.BytesToHash(tmBlock.Block.Hash()),
+		Hash:       common.BytesToHash(tmHeader.Hash()),
 	}
 
 	return
