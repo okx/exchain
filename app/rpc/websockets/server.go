@@ -131,6 +131,11 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
+			if len(ids) == 0 {
+				s.sendErrResponse(wsConn, "invalid parameters")
+				continue
+			}
+
 			if _, idok := ids[0].(string); !ok || !idok {
 				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
