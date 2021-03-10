@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	// static gas Limit for all block
+	// static gas limit for all blocks
 	defaultGasLimit   = hexutil.Uint64(int64(^uint32(0)))
 	defaultGasUsed    = hexutil.Uint64(0)
 	defaultDifficulty = (*hexutil.Big)(big.NewInt(0))
