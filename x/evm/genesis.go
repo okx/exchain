@@ -70,8 +70,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		}
 	}
 
-	// wait for all data to be set into db
-	wg.Wait()
+	// wait for all data to be imported from files
+	if mode == filesMode {
+		wg.Wait()
+	}
 	logger.Debug("Import finished", "code", codeCount, "storage", storageCount)
 
 	// set state objects and code to store
@@ -145,8 +147,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		ethGenAccounts = append(ethGenAccounts, genAccount)
 		return false
 	})
-	// wait for all data to be written into files
-	wg.Wait()
+	// wait for all data to be written into files or db
+	if mode == filesMode || mode == dbMode {
+		wg.Wait()
+	}
 	logger.Debug("Export finished", "code", codeCount, "storage", storageCount)
 
 	config, _ := k.GetChainConfig(ctx)

@@ -138,7 +138,6 @@ func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []
 		panic(err)
 	}
 	if len(code) != 0 {
-		//csdb.SetCode(address, code)
 		k.SetCodeDirectly(ctx, codeHash, code)
 		codeCount++
 	}
@@ -158,10 +157,9 @@ func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []
 func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
 	defer wg.Done()
 
+	prefix := types.AddressStoragePrefix(addr)
 	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
-		prefix := types.AddressStoragePrefix(addr)
 		db.Set(append(prefix, key.Bytes()...), value.Bytes())
-
 		atomic.AddUint64(&storageCount, 1)
 		return false
 	})
