@@ -244,12 +244,12 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 }
 
 // EthHeaderWithBlockHashFromTendermint gets the eth Header with block hash from Tendermint block inside
-func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *HeaderWithBlockHash, err error) {
+func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *EthHeaderWithBlockHash, err error) {
 	if tmHeader == nil {
 		return header, errors.New("failed. nil tendermint block header")
 	}
 
-	header = &HeaderWithBlockHash{
+	header = &EthHeaderWithBlockHash{
 		ParentHash: common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
 		Coinbase:   common.BytesToAddress(tmHeader.ProposerAddress),
 		Root:       common.BytesToHash(tmHeader.AppHash),

@@ -140,8 +140,8 @@ type Account struct {
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
 }
 
-// HeaderWithBlockHash represents a block header in the Ethereum blockchain with block hash generated from Tendermint Block
-type HeaderWithBlockHash struct {
+// EthHeaderWithBlockHash represents a block header in the Ethereum blockchain with block hash generated from Tendermint Block
+type EthHeaderWithBlockHash struct {
 	ParentHash  common.Hash         `json:"parentHash"`
 	UncleHash   common.Hash         `json:"sha3Uncles"`
 	Coinbase    common.Address      `json:"miner"`
