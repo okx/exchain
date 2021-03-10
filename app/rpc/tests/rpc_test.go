@@ -10,11 +10,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/okexchain/app/rpc/websockets"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 
@@ -1239,6 +1242,11 @@ func TestEth_Subscribe_And_UnSubscribe(t *testing.T) {
 	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
 	ws, err := websocket.Dial(url, "", origin)
 	require.NoError(t, err)
+	defer func() {
+		// close websocket
+		err = ws.Close()
+		require.NoError(t, err)
+	}()
 
 	// send valid message
 	validMessage := []byte(`{"id": 2, "method": "eth_subscribe", "params": ["newHeads"]}`)
@@ -1250,10 +1258,6 @@ func TestEth_Subscribe_And_UnSubscribe(t *testing.T) {
 
 	invalidMessage = []byte(`{"id": 2, "method": "eth_subscribe", "params": [""]}`)
 	excuteInvalidMessage(t, ws, invalidMessage)
-
-	// close websocket
-	err = ws.Close()
-	require.NoError(t, err)
 }
 
 func excuteValidMessage(t *testing.T, ws  *websocket.Conn, message []byte) {
@@ -1303,4 +1307,64 @@ func excuteInvalidMessage(t *testing.T, ws  *websocket.Conn, message []byte) {
 	require.NoError(t, json.Unmarshal(msg[:n], &res))
 	require.Equal(t, -32600, res.Error.Code)
 	require.Equal(t, 0, res.ID)
+}
+
+func TestWebsocket_PendingTransaction(t *testing.T) {
+	// create websocket
+	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
+	ws, err := websocket.Dial(url, "", origin)
+	require.NoError(t, err)
+	defer func() {
+		// close websocket
+		err = ws.Close()
+		require.NoError(t, err)
+	}()
+
+	// send message to call newPendingTransactions ws api
+	_, err = ws.Write([]byte(`{"id": 2, "method": "eth_subscribe", "params": ["newPendingTransactions"]}`))
+	require.NoError(t, err)
+
+	msg := make([]byte, 10240)
+	// receive subscription id
+	n, err := ws.Read(msg)
+	require.NoError(t, err)
+	var res Response
+	require.NoError(t, json.Unmarshal(msg[:n], &res))
+	subscriptionId := string(res.Result)
+
+	// send transactions
+	var expectedHashList [3]ethcmn.Hash
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 3; i++ {
+			param := make([]map[string]string, 1)
+			param[0] = make(map[string]string)
+			param[0]["from"] = hexAddr1.Hex()
+			param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
+			param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+			rpcRes := Call(t, "eth_sendTransaction", param)
+
+			var hash ethcmn.Hash
+			require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+			expectedHashList[i] = hash
+		}
+	}()
+	var actualHashList [3]ethcmn.Hash
+	// receive message three times
+	for i := 0; i < 3; i++ {
+		n, err = ws.Read(msg)
+		require.NoError(t, err)
+		var notification websockets.SubscriptionNotification
+		require.NoError(t, json.Unmarshal(msg[:n], &notification))
+		actualHashList[i] = ethcmn.HexToHash(notification.Params.Result.(string))
+	}
+	wg.Wait()
+	require.EqualValues(t, expectedHashList, actualHashList)
+
+	// cancel the subscription
+	cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
+	_, err = ws.Write([]byte(cancelMsg))
+	require.NoError(t, err)
 }
