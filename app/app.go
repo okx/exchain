@@ -318,6 +318,7 @@ func NewOKExChainApp(
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -441,7 +442,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)
