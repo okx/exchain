@@ -16,7 +16,7 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams("ara", true, true, 2929, 1884, 1344),
+			NewParams("ara", true, true, true, 2929, 1884, 1344),
 			false,
 		},
 		{
@@ -66,6 +66,7 @@ func TestParams_String(t *testing.T) {
 enable_create: false
 enable_call: false
 extra_eips: []
+enable_contract_deployment_whitelist: true
 `
 	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }

@@ -405,7 +405,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
-	var expectedGas uint64 = 5387
+	var expectedGas uint64 = 6399
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -561,7 +561,6 @@ func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
 	suite.Require().Equal(err.Error(), "[\"execution reverted\",\"execution reverted:this is my test failed message\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e74686973206973206d792074657374206661696c6564206d6573736167650000\"]")
 }
 
-
 func (suite *EvmTestSuite) TestGasConsume() {
 	// Test contract:
 	//
@@ -627,7 +626,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
-	var expectedConsumedGas sdk.Gas = 672894
+	var expectedConsumedGas sdk.Gas = 679038
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -759,6 +758,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 26387
+	var expectedGas uint64 = 27399
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
