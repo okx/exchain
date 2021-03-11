@@ -75,6 +75,35 @@ func TestPersonal_ImportRawKey(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestPersonal_ImportRawKey_Duplicate(t *testing.T) {
+	privkey, err := ethcrypto.GenerateKey()
+	require.NoError(t, err)
+	// parse priv key to hex, then add the key
+	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
+	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
+	var resAddr common.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &resAddr))
+	require.True(t, ethcrypto.PubkeyToAddress(privkey.PublicKey) == resAddr)
+	addrCounter++
+
+	// record the key-list length
+	rpcRes = Call(t, "personal_listAccounts", nil)
+	var list []common.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &list))
+	originLen := len(list)
+
+	// add the same key again
+	rpcRes = Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
+	var newResAddr common.Address
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &newResAddr))
+	require.Equal(t, resAddr, newResAddr)
+
+	// check the actual key-list length changed or not
+	rpcRes = Call(t, "personal_listAccounts", nil)
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &list))
+	require.Equal(t, originLen, len(list))
+}
+
 func TestPersonal_EcRecover(t *testing.T) {
 	data := hexutil.Bytes{0x88}
 	rpcRes := Call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
