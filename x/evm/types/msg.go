@@ -4,10 +4,11 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/tendermint/tendermint/mempool"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	"github.com/tendermint/tendermint/mempool"
 
 	"github.com/okex/okexchain/app/types"
 
@@ -442,7 +443,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
 		Sender:   "",
 		GasPrice: 0,
-		Nonce: msg.Data.AccountNonce,
+		Nonce:    msg.Data.AccountNonce,
 	}
 
 	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
