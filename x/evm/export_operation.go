@@ -45,7 +45,7 @@ var (
 )
 
 // initExportEnv only initializes the paths and goroutine pool
-func initExportEnv(dataPath, mode string) {
+func initExportEnv(dataPath, mode string, goroutineNum uint64) {
 	if dataPath == "" {
 		dataPath = defaultPath
 	}
@@ -66,16 +66,17 @@ func initExportEnv(dataPath, mode string) {
 			panic(err)
 		}
 
-		initGoroutinePool()
+		initGoroutinePool(goroutineNum)
 	case "db":
 		initEVMDB(dataPath)
+		initGoroutinePool(goroutineNum)
 	default:
 		panic("unsupported export mode")
 	}
 }
 
 // initImportEnv only initializes the paths and goroutine pool
-func initImportEnv(dataPath, mode string) {
+func initImportEnv(dataPath, mode string, goroutineNum uint64) {
 	if dataPath == "" {
 		dataPath = defaultPath
 	}
@@ -86,7 +87,7 @@ func initImportEnv(dataPath, mode string) {
 		codePath = filepath.Join(dataPath, codeSubPath)
 		storagePath = filepath.Join(dataPath, storageSubPath)
 
-		initGoroutinePool()
+		initGoroutinePool(goroutineNum)
 	case "db":
 		initEVMDB(dataPath)
 	default:
@@ -119,11 +120,13 @@ func importFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address ethcmn
 func exportToDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []byte) {
 	if code := k.GetCode(ctx, address); len(code) > 0 {
 		// TODO repeat code
-		evmByteCodeDB.Set(append(types.KeyPrefixCode, codeHash...), code)
+		if err := evmByteCodeDB.Set(append(types.KeyPrefixCode, codeHash...), code); err != nil {
+			panic(err)
+		}
 		codeCount++
 	}
 
-	wg.Add(1)
+	addGoroutine()
 	go exportStorage(ctx, k, address, evmStateDB)
 }
 
@@ -155,14 +158,17 @@ func importFromDB(ctx sdk.Context, k Keeper, address ethcmn.Address, codeHash []
 }
 
 func exportStorage(ctx sdk.Context, k Keeper, addr ethcmn.Address, db dbm.DB) {
-	defer wg.Done()
+	defer finishGoroutine()
 
 	prefix := types.AddressStoragePrefix(addr)
-	k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
+	err := k.ForEachStorage(ctx, addr, func(key, value ethcmn.Hash) bool {
 		db.Set(append(prefix, key.Bytes()...), value.Bytes())
 		atomic.AddUint64(&storageCount, 1)
 		return false
 	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initEVMDB(path string) {
@@ -178,8 +184,11 @@ func initEVMDB(path string) {
 }
 
 // initGoroutinePool creates an appropriate number of maximum goroutine
-func initGoroutinePool() {
-	goroutinePool = make(chan struct{}, (runtime.NumCPU()-1)*16)
+func initGoroutinePool(goroutineNum uint64) {
+	if goroutineNum == 0 {
+		goroutineNum = uint64(runtime.NumCPU()-1) * 16
+	}
+	goroutinePool = make(chan struct{}, goroutineNum)
 }
 
 // addGoroutine if goroutinePool is not full, then create a goroutine

@@ -26,7 +26,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		// for some UT
 		mode = defaultMode
 	}
-	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode)
+	initImportEnv(viper.GetString(server.FlagEvmImportPath), mode, viper.GetUint64(server.FlagGoroutineNum))
 
 	for _, account := range data.Accounts {
 		address := ethcmn.HexToAddress(account.Address)
@@ -102,7 +102,7 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		// for some UT
 		mode = defaultMode
 	}
-	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode)
+	initExportEnv(viper.GetString(server.FlagEvmExportPath), mode, viper.GetUint64(server.FlagGoroutineNum))
 
 	// nolint: prealloc
 	var ethGenAccounts []types.GenesisAccount
