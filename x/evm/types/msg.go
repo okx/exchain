@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/tendermint/tendermint/mempool"
 	"io"
 	"math/big"
 	"sync/atomic"
@@ -434,4 +435,29 @@ func deriveChainID(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
+}
+
+// Return tx sender and gas price
+func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   "",
+		GasPrice: 0,
+		Nonce: msg.Data.AccountNonce,
+	}
+
+	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return exTxInfo
+	}
+
+	// Verify signature and retrieve sender address
+	from, err := msg.VerifySig(chainIDEpoch)
+	if err != nil {
+		return exTxInfo
+	}
+
+	exTxInfo.Sender = sdk.AccAddress(from.Bytes()).String()
+	exTxInfo.GasPrice = msg.Data.Price.Int64()
+
+	return exTxInfo
 }
