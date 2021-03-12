@@ -39,7 +39,7 @@ var (
 	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 10, "Unsupported proposal type of evm module")
 
 	// ErrEmptyAddress returns an error if the address is empty
-	ErrEmptyAddress = sdkerrors.Register(ModuleName, 13, "Empty account address")
+	ErrEmptyAddress = sdkerrors.Register(ModuleName, 11, "Empty account address")
 
 	CodeSpaceEvmCallFailed = uint32(7)
 
@@ -51,7 +51,7 @@ func ErrDeployerAlreadyExists(deployerAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			11,
+			12,
 			fmt.Sprintf("failed. deployer %s is already in the whitelist", deployerAddr.String()))}
 }
 
@@ -60,7 +60,7 @@ func ErrDeployerNotExists(deployerAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			12,
+			13,
 			fmt.Sprintf("failed. deployer %s is not in the whitelist", deployerAddr.String()))}
 }
 
