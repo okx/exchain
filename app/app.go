@@ -21,6 +21,7 @@ import (
 	distr "github.com/okex/okexchain/x/distribution"
 	"github.com/okex/okexchain/x/evidence"
 	"github.com/okex/okexchain/x/evm"
+	evmclient "github.com/okex/okexchain/x/evm/client"
 	"github.com/okex/okexchain/x/farm"
 	farmclient "github.com/okex/okexchain/x/farm/client"
 	"github.com/okex/okexchain/x/genutil"
@@ -85,6 +86,7 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
+			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

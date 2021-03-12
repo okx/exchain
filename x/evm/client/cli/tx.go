@@ -5,24 +5,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
+	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	emint "github.com/okex/okexchain/app/types"
+	evmutils "github.com/okex/okexchain/x/evm/client/utils"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 // GetTxCmd defines the CLI commands regarding evm module transactions
@@ -174,6 +176,59 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 				sdk.AccAddress(contractAddr.Bytes()),
 			)
 			return nil
+		},
+	}
+}
+
+// GetCmdManageContractDeploymentWhitelistProposal implements a command handler for submitting a manage contract deployment
+// whitelist proposal transaction
+func GetCmdManageContractDeploymentWhitelistProposal(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "manage-contract-deployment-whitelist [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a manage contract deployment whitelist proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a manage contract deployment whitelist proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal manage-contract-deployment-whitelist <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+ "title": "manage contract proposal whitelist with a deployer address",
+ "description": "add a deployer address into the whitelist",
+ "deployer_address": "0x04A987fa1Bd4b2B908e9A3Ca058cc8BD43035991",
+ "is_added": true,
+ "deposit": [
+   {
+     "denom": "%s",
+     "amount": "100"
+   }
+ ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageContractDeploymentWhitelistProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageContractDeploymentWhitelistProposal(
+				proposal.Title,
+				proposal.Description,
+				ethcmn.HexToAddress(proposal.DeployerAddr),
+				proposal.IsAdded,
+			)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 }

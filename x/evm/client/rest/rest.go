@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
+	govRest "github.com/okex/okexchain/x/gov/client/rest"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"net/http"
@@ -174,4 +175,9 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	}
 
 	return tx, nil
+}
+
+// ManageContractDeploymentWhitelistProposalRESTHandler defines farm proposal handler
+func ManageContractDeploymentWhitelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
 }
