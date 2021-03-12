@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 )
 
@@ -25,12 +24,13 @@ var _ govtypes.Content = (*ManageContractDeploymentWhitelistProposal)(nil)
 type ManageContractDeploymentWhitelistProposal struct {
 	Title        string         `json:"title" yaml:"title"`
 	Description  string         `json:"description" yaml:"description"`
-	DeployerAddr ethcmn.Address `json:"deployer_address" yaml:"deployer_address"`
+	DeployerAddr sdk.AccAddress `json:"deployer_address" yaml:"deployer_address"`
 	IsAdded      bool           `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
-func NewManageContractDeploymentWhitelistProposal(title, description string, deployerAddr ethcmn.Address, isAdded bool) ManageContractDeploymentWhitelistProposal {
+func NewManageContractDeploymentWhitelistProposal(title, description string, deployerAddr sdk.AccAddress, isAdded bool,
+) ManageContractDeploymentWhitelistProposal {
 	return ManageContractDeploymentWhitelistProposal{
 		Title:        title,
 		Description:  description,
@@ -80,6 +80,10 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
+	if mp.DeployerAddr.Empty() {
+		return ErrEmptyAddress
+	}
+
 	return nil
 }
 
@@ -91,5 +95,5 @@ func (mp ManageContractDeploymentWhitelistProposal) String() string {
  Type:                	%s
  DeployerAddress:		%s
  IsAdded:				%t`,
-		mp.Title, mp.Description, mp.ProposalType(), mp.DeployerAddr.Hex(), mp.IsAdded)
+		mp.Title, mp.Description, mp.ProposalType(), mp.DeployerAddr.String(), mp.IsAdded)
 }

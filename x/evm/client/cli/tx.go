@@ -16,7 +16,6 @@ import (
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	emint "github.com/okex/okexchain/app/types"
@@ -220,10 +219,15 @@ Where proposal.json contains:
 				return err
 			}
 
+			deployerAddr, err := sdk.AccAddressFromBech32(proposal.DeployerAddr)
+			if err != nil {
+				return err
+			}
+
 			content := types.NewManageContractDeploymentWhitelistProposal(
 				proposal.Title,
 				proposal.Description,
-				ethcmn.HexToAddress(proposal.DeployerAddr),
+				deployerAddr,
 				proposal.IsAdded,
 			)
 

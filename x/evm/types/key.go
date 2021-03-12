@@ -2,7 +2,6 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
@@ -50,11 +49,11 @@ func AddressStoragePrefix(address ethcmn.Address) []byte {
 }
 
 // GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
-func GetContractDeploymentWhitelistMemberKey(deployerAddr ethcmn.Address) []byte {
-	return append(KeyPrefixContractDeploymentWhitelist, deployerAddr.Bytes()...)
+func GetContractDeploymentWhitelistMemberKey(deployerAddr sdk.AccAddress) []byte {
+	return append(KeyPrefixContractDeploymentWhitelist, deployerAddr...)
 }
 
 // SplitApprovedDeployerAddress splits the deployer address from a ContractDeploymentWhitelistMemberKey
-func SplitApprovedDeployerAddress(key []byte) ethcmn.Address {
-	return ethcmn.BytesToAddress(key[1:])
+func SplitApprovedDeployerAddress(key []byte) sdk.AccAddress {
+	return key[1:]
 }

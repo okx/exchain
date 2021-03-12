@@ -8,11 +8,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/app/utils"
 	"github.com/okex/okexchain/x/evm/types"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -43,10 +41,22 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryExportAccount(ctx, path, keeper)
 		case types.QueryParameters:
 			return queryParams(ctx, keeper)
+		case types.QueryContractDeploymentWhitelist:
+			return queryContractDeploymentWhitelist(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
 	}
+}
+
+func queryContractDeploymentWhitelist(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	whitelist := keeper.GetContractDeploymentWhitelist(ctx)
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
