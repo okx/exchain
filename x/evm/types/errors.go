@@ -63,3 +63,12 @@ func ErrDeployerNotExists(deployerAddr sdk.AccAddress) sdk.EnvelopedErr {
 			12,
 			fmt.Sprintf("failed. deployer %s is not in the whitelist", deployerAddr.String()))}
 }
+
+// ErrDeployerUnqualified returns an error when a deployer not in the whitelist tries to create a contract
+func ErrDeployerUnqualified(deployerAddr sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			14,
+			fmt.Sprintf("failed. unqualified deployer %s for a contract deployment", deployerAddr.String()))}
+}

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/okexchain/x/evm/types"
 )
 
@@ -30,4 +31,14 @@ func (k Keeper) DeleteContractDeploymentWhitelistMember(ctx sdk.Context, deploye
 
 func (k Keeper) isDeployerInWhitelist(ctx sdk.Context, deployerAddr sdk.AccAddress) bool {
 	return ctx.KVStore(k.storeKey).Has(types.GetContractDeploymentWhitelistMemberKey(deployerAddr))
+}
+
+// IsContractDeployerQualified verifies the qualification of the contract deployer
+func (k Keeper) IsContractDeployerQualified(ctx sdk.Context, from sdk.AccAddress, Recipient *ethcmn.Address) bool {
+	if Recipient != nil {
+		// not contract creation -> pass
+		return true
+	}
+
+	return k.isDeployerInWhitelist(ctx, from)
 }
