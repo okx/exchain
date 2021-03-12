@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -33,11 +34,48 @@ func (ga GenesisAccount) Validate() error {
 	if ga.Address == (ethcmn.Address{}.String()) {
 		return fmt.Errorf("address cannot be the zero address %s", ga.Address)
 	}
-	if ga.Code != nil && len(ga.Code) == 0 {
+	if len(ga.Code) == 0 {
 		return errors.New("code bytes cannot be empty")
 	}
 
 	return ga.Storage.Validate()
+}
+
+func (ga GenesisAccount) MarshalJSON() ([]byte, error) {
+	formatState := &struct {
+		Address string  `json:"address"`
+		Code    string  `json:"code,omitempty"`
+		Storage Storage `json:"storage,omitempty"`
+	}{
+		Address: ga.Address,
+		Code:    ga.Code.String(),
+		Storage: ga.Storage,
+	}
+
+	if ga.Code == nil {
+		formatState.Code = ""
+	}
+	return json.Marshal(formatState)
+}
+
+func (ga *GenesisAccount) UnmarshalJSON(input []byte) error {
+	formatState := &struct {
+		Address string  `json:"address"`
+		Code    string  `json:"code,omitempty"`
+		Storage Storage `json:"storage,omitempty"`
+	}{}
+	if err := json.Unmarshal(input, &formatState); err != nil {
+		return err
+	}
+
+	ga.Address = formatState.Address
+	if formatState.Code == "" {
+		ga.Code = nil
+	} else {
+		ga.Code = hexutil.MustDecode(formatState.Code)
+	}
+	ga.Storage = formatState.Storage
+	return nil
 }
 
 // DefaultGenesisState sets default evm genesis state with empty accounts and default params and

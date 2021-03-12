@@ -42,9 +42,9 @@ jobs:
       - run:
           name: Build
           command: make build
-#      - run:
-#          name: Unit Test
-#          command: make test-unit
+      #      - run:
+      #          name: Unit Test
+      #          command: make test-unit
       - save_cache:
           name: Save go modules cache
           key: go-mod-v1-{{ checksum "go.sum" }}
@@ -68,6 +68,7 @@ jobs:
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)|(okexchain/app/rpc)"
             included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order" "./x/farm" "./x/evm")
             serial_exec_packages=("./app")
+            norace_exec_packages=("./x/evm")
             for pkg in ${included_packages[@]}; do
               package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
               echo "${package_lines[@]}"
@@ -79,8 +80,13 @@ jobs:
               if [ ${found} = "Yes" ]; then
                 SERIAL=`echo "-p 1"`
               fi
+              RACE=`echo "-race"`
+              found=`echo "${norace_exec_packages[@]}" | grep -wq "${pkg}" &&  echo "Yes" || echo "No"`
+              if [ ${found} = "Yes" ]; then
+                RACE=
+              fi
               echo ${RACE}
-              go test -mod=readonly -timeout 8m -race ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+              go test -mod=readonly -timeout 8m ${RACE} ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
             done
 
             echo "--> Gather coverage:"
