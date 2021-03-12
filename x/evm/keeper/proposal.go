@@ -65,7 +65,7 @@ func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Contex
 	if proposal.IsAdded {
 		// add deployer addr into whitelist
 		// 1. check the existence
-		if k.isDeployerInWhiteList(ctx, proposal.DeployerAddr) {
+		if k.isDeployerInWhitelist(ctx, proposal.DeployerAddr) {
 			return types.ErrDeployerAlreadyExists(proposal.DeployerAddr)
 		}
 
@@ -74,7 +74,7 @@ func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Contex
 
 	// delete the deployer addr from the white list
 	// 1. check the existence of deployer addr in whitelist
-	if !k.isDeployerInWhiteList(ctx, proposal.DeployerAddr) {
+	if !k.isDeployerInWhitelist(ctx, proposal.DeployerAddr) {
 		return types.ErrDeployerNotExists(proposal.DeployerAddr)
 	}
 

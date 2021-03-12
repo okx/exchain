@@ -308,7 +308,8 @@ func NewOKExChainApp(
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
-		AddRoute(farm.RouterKey, &app.FarmKeeper)
+		AddRoute(farm.RouterKey, &app.FarmKeeper).
+		AddRoute(evm.RouterKey, app.EvmKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,

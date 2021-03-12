@@ -28,6 +28,6 @@ func (k Keeper) DeleteContractDeploymentWhitelistMember(ctx sdk.Context, deploye
 	ctx.KVStore(k.storeKey).Delete(types.GetContractDeploymentWhitelistMemberKey(deployerAddr))
 }
 
-func (k Keeper) isDeployerInWhiteList(ctx sdk.Context, deployerAddr sdk.AccAddress) bool {
+func (k Keeper) isDeployerInWhitelist(ctx sdk.Context, deployerAddr sdk.AccAddress) bool {
 	return ctx.KVStore(k.storeKey).Has(types.GetContractDeploymentWhitelistMemberKey(deployerAddr))
 }
