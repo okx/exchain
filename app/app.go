@@ -5,36 +5,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/okex/okexchain/x/common/perf"
-
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
-	"github.com/okex/okexchain/app/ante"
-	okexchaincodec "github.com/okex/okexchain/app/codec"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/ammswap"
-	"github.com/okex/okexchain/x/backend"
-	commonversion "github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/debug"
-	"github.com/okex/okexchain/x/dex"
-	dexclient "github.com/okex/okexchain/x/dex/client"
-	distr "github.com/okex/okexchain/x/distribution"
-	"github.com/okex/okexchain/x/evidence"
-	"github.com/okex/okexchain/x/evm"
-	evmclient "github.com/okex/okexchain/x/evm/client"
-	"github.com/okex/okexchain/x/farm"
-	farmclient "github.com/okex/okexchain/x/farm/client"
-	"github.com/okex/okexchain/x/genutil"
-	"github.com/okex/okexchain/x/gov"
-	"github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/order"
-	"github.com/okex/okexchain/x/params"
-	paramsclient "github.com/okex/okexchain/x/params/client"
-	"github.com/okex/okexchain/x/slashing"
-	"github.com/okex/okexchain/x/staking"
-	"github.com/okex/okexchain/x/stream"
-	"github.com/okex/okexchain/x/token"
-
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -48,7 +18,33 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-
+	"github.com/okex/okexchain/app/ante"
+	okexchaincodec "github.com/okex/okexchain/app/codec"
+	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/ammswap"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/common/perf"
+	commonversion "github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/debug"
+	"github.com/okex/okexchain/x/dex"
+	dexclient "github.com/okex/okexchain/x/dex/client"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/evidence"
+	"github.com/okex/okexchain/x/evm"
+	evmclient "github.com/okex/okexchain/x/evm/client"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/farm"
+	farmclient "github.com/okex/okexchain/x/farm/client"
+	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/okexchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/params"
+	paramsclient "github.com/okex/okexchain/x/params/client"
+	"github.com/okex/okexchain/x/slashing"
+	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/okexchain/x/stream"
+	"github.com/okex/okexchain/x/token"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
@@ -307,7 +303,8 @@ func NewOKExChainApp(
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
-		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper))
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
+		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).

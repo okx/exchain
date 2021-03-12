@@ -1,10 +1,17 @@
 package types
 
 import (
+	"fmt"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.
+
+const (
+	DefaultCodespace string = ModuleName
+)
 
 var (
 	// ErrInvalidState returns an error resulting from an invalid Storage State.
@@ -28,7 +35,28 @@ var (
 	// ErrStrConvertFailed returns an error if failed to convert string
 	ErrStrConvertFailed = sdkerrors.Register(ModuleName, 9, "Failed to convert string")
 
+	// ErrUnexpectedProposalType returns an error when the proposal type is not supported in evm module
+	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 10, "Unsupported proposal type of evm module")
+
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"
 )
+
+// ErrDeployerAlreadyExists returns an error when duplicated deployer address will be added
+func ErrDeployerAlreadyExists(deployerAddr ethcmn.Address) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			11,
+			fmt.Sprintf("failed. deployer %s is already in the whitelist", deployerAddr.Hex()))}
+}
+
+// ErrDeployerNotExists returns an error when a deployer address not in the whitelist will be deleted
+func ErrDeployerNotExists(deployerAddr ethcmn.Address) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			12,
+			fmt.Sprintf("failed. deployer %s is not in the whitelist", deployerAddr.Hex()))}
+}

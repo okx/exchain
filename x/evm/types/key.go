@@ -21,12 +21,13 @@ const (
 
 // KVStore key prefixes
 var (
-	KeyPrefixBlockHash   = []byte{0x01}
-	KeyPrefixBloom       = []byte{0x02}
-	KeyPrefixCode        = []byte{0x04}
-	KeyPrefixStorage     = []byte{0x05}
-	KeyPrefixChainConfig = []byte{0x06}
-	KeyPrefixHeightHash  = []byte{0x07}
+	KeyPrefixBlockHash                   = []byte{0x01}
+	KeyPrefixBloom                       = []byte{0x02}
+	KeyPrefixCode                        = []byte{0x04}
+	KeyPrefixStorage                     = []byte{0x05}
+	KeyPrefixChainConfig                 = []byte{0x06}
+	KeyPrefixHeightHash                  = []byte{0x07}
+	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -46,4 +47,14 @@ func BloomKey(height int64) []byte {
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
 func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
+}
+
+// GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
+func GetContractDeploymentWhitelistMemberKey(deployerAddr ethcmn.Address) []byte {
+	return append(KeyPrefixContractDeploymentWhitelist, deployerAddr.Bytes()...)
+}
+
+// SplitApprovedDeployerAddress splits the deployer address from a ContractDeploymentWhitelistMemberKey
+func SplitApprovedDeployerAddress(key []byte) ethcmn.Address {
+	return ethcmn.BytesToAddress(key[1:])
 }

@@ -62,26 +62,21 @@ func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote)
 // CheckMsgManageContractDeploymentWhitelistProposal checks msg manage contract deployment whitelist proposal
 func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Context,
 	proposal types.ManageContractDeploymentWhitelistProposal) sdk.Error {
-	//if proposal.IsAdded {
-	//	// add deployer addr into whitelist
-	//	// 1. check the existence
-	//	pool, found := k.GetFarmPool(ctx, proposal.PoolName)
-	//	if !found {
-	//		return types.ErrNoFarmPoolFound(proposal.PoolName)
-	//	}
-	//	// 2. check the swap token pair
-	//	if sdkErr := k.satisfyWhiteListAdmittance(ctx, pool); sdkErr != nil {
-	//		return sdkErr
-	//	}
-	//
-	//	return nil
-	//}
-	//
-	//// delete the pool name from the white list
-	//// 1. check the existence of the pool name in whitelist
-	//if !k.isPoolNameExistedInWhiteList(ctx, proposal.PoolName) {
-	//	return types.ErrPoolNameNotExistedInWhiteList(proposal.PoolName)
-	//}
+	if proposal.IsAdded {
+		// add deployer addr into whitelist
+		// 1. check the existence
+		if k.isDeployerInWhiteList(ctx, proposal.DeployerAddr) {
+			return types.ErrDeployerAlreadyExists(proposal.DeployerAddr)
+		}
+
+		return nil
+	}
+
+	// delete the deployer addr from the white list
+	// 1. check the existence of deployer addr in whitelist
+	if !k.isDeployerInWhiteList(ctx, proposal.DeployerAddr) {
+		return types.ErrDeployerNotExists(proposal.DeployerAddr)
+	}
 
 	return nil
 }

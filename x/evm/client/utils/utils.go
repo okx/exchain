@@ -8,7 +8,7 @@ import (
 )
 
 // ManageContractDeploymentWhitelistProposalJSON defines a ManageContractDeploymentWhitelistProposal with a deposit used
-//to parse manage white list proposals from a JSON file.
+// to parse manage white list proposals from a JSON file.
 type ManageContractDeploymentWhitelistProposalJSON struct {
 	Title        string       `json:"title" yaml:"title"`
 	Description  string       `json:"description" yaml:"description"`
@@ -17,7 +17,8 @@ type ManageContractDeploymentWhitelistProposalJSON struct {
 	Deposit      sdk.SysCoins `json:"deposit" yaml:"deposit"`
 }
 
-// ParseManageContractDeploymentWhitelistProposalJSON parse json from proposal file to ManageContractDeploymentWhitelistProposalJSON struct
+// ParseManageContractDeploymentWhitelistProposalJSON parse json from proposal file to ManageContractDeploymentWhitelistProposalJSON
+// struct
 func ParseManageContractDeploymentWhitelistProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageContractDeploymentWhitelistProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
