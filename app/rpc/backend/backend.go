@@ -3,7 +3,6 @@ package backend
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -50,11 +49,11 @@ type EthermintBackend struct {
 }
 
 // New creates a new EthermintBackend instance
-func New(clientCtx clientcontext.CLIContext) *EthermintBackend {
+func New(clientCtx clientcontext.CLIContext, log log.Logger) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:       context.Background(),
 		clientCtx: clientCtx,
-		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		logger:    log.With("module", "json-rpc"),
 		gasLimit:  int64(^uint32(0)),
 	}
 }

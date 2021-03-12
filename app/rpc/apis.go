@@ -1,9 +1,9 @@
 package rpc
 
 import (
-	"github.com/ethereum/go-ethereum/rpc"
-
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc/backend"
@@ -26,10 +26,10 @@ const (
 )
 
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
-func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
+func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
-	backend := backend.New(clientCtx)
-	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
+	backend := backend.New(clientCtx, log)
+	ethAPI := eth.NewAPI(clientCtx, log, backend, nonceLock, keys...)
 
 	return []rpc.API{
 		{
@@ -53,7 +53,7 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 		{
 			Namespace: PersonalNamespace,
 			Version:   apiVersion,
-			Service:   personal.NewAPI(ethAPI),
+			Service:   personal.NewAPI(ethAPI, log),
 			Public:    false,
 		},
 		{

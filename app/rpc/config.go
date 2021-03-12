@@ -57,7 +57,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetAPIs(rs.CliCtx, privkeys...)
+	apis := GetAPIs(rs.CliCtx, rs.Logger(), privkeys...)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
@@ -72,7 +72,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := websockets.NewServer(rs.CliCtx, websocketAddr)
+	ws := websockets.NewServer(rs.CliCtx, rs.Logger(), websocketAddr)
 	ws.Start()
 }
 

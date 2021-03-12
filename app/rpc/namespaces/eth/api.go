@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"sync"
 	"time"
 
@@ -57,7 +56,7 @@ type PublicEthereumAPI struct {
 
 // NewAPI creates an instance of the public ETH Web3 API.
 func NewAPI(
-	clientCtx clientcontext.CLIContext, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
+	clientCtx clientcontext.CLIContext, log log.Logger, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
 	keys ...ethsecp256k1.PrivKey,
 ) *PublicEthereumAPI {
 
@@ -70,7 +69,7 @@ func NewAPI(
 		ctx:          context.Background(),
 		clientCtx:    clientCtx,
 		chainIDEpoch: epoch,
-		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
+		logger:       log.With("module", "json-rpc", "namespace", "eth"),
 		backend:      backend,
 		keys:         keys,
 		nonceLock:    nonceLock,

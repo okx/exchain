@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -32,12 +31,12 @@ type Server struct {
 }
 
 // NewServer creates a new websocket server instance.
-func NewServer(clientCtx context.CLIContext, wsAddr string) *Server {
+func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Server {
 	return &Server{
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,
-		api:     NewAPI(clientCtx),
-		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
+		api:     NewAPI(clientCtx, log),
+		logger:  log.With("module", "websocket-server"),
 	}
 }
 
