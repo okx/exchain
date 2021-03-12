@@ -7,27 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
-	"github.com/status-im/keycard-go/hexutils"
-
-	"github.com/stretchr/testify/suite"
-
-	"github.com/ethereum/go-ethereum/common"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
-
+	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/evm/keeper"
 	"github.com/okex/okexchain/x/evm/types"
-
+	"github.com/status-im/keycard-go/hexutils"
+	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
@@ -56,6 +50,7 @@ func (suite *EvmTestSuite) SetupTest() {
 	params := types.DefaultParams()
 	params.EnableCreate = true
 	params.EnableCall = true
+	params.EnableContractDeploymentWhitelist = false
 	suite.app.EvmKeeper.SetParams(suite.ctx, params)
 }
 
@@ -405,7 +400,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
-	var expectedGas uint64 = 6399
+	var expectedGas uint64 = 6402
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -626,7 +621,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
-	var expectedConsumedGas sdk.Gas = 679038
+	var expectedConsumedGas sdk.Gas = 679074
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -758,6 +753,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 27399
+	var expectedGas uint64 = 27402
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
