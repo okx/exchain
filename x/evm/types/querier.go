@@ -8,17 +8,18 @@ import (
 
 // Supported endpoints
 const (
-	QueryBalance         = "balance"
-	QueryBlockNumber     = "blockNumber"
-	QueryStorage         = "storage"
-	QueryCode            = "code"
-	QueryNonce           = "nonce"
-	QueryHashToHeight    = "hashToHeight"
-	QueryBloom           = "bloom"
-	QueryAccount         = "account"
-	QueryExportAccount   = "exportAccount"
+	QueryBalance       = "balance"
+	QueryBlockNumber   = "blockNumber"
+	QueryStorage       = "storage"
+	QueryCode          = "code"
+	QueryNonce         = "nonce"
+	QueryHashToHeight  = "hashToHeight"
+	QueryBloom         = "bloom"
+	QueryAccount       = "account"
+	QueryExportAccount = "exportAccount"
 	// QueryParameters defines 	QueryParameters = "params" query route path
-	QueryParameters = "params"
+	QueryParameters   = "params"
+	QueryHeightToHash = "heightToHash"
 )
 
 // QueryResBalance is response type for balance query

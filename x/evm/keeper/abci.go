@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height
@@ -48,6 +49,13 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
+
+	if types.GetEnableBloomFilter() {
+		err := types.GetIndexer().ProcessSection(ctx, k, req.Height)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	return []abci.ValidatorUpdate{}
 }

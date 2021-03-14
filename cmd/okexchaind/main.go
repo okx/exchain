@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -91,6 +92,8 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().Bool(evmtypes.FlagEnableBloomFilter,
+		true, "Assert registered invariants every N blocks")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

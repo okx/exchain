@@ -43,6 +43,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryExportAccount(ctx, path, keeper)
 		case types.QueryParameters:
 			return queryParams(ctx, keeper)
+		case types.QueryHeightToHash:
+			return queryHeightToHash(ctx, path, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -224,4 +226,20 @@ func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
 	return res, nil
+}
+
+func queryHeightToHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	height, err := strconv.Atoi(path[1])
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, params[1] convert to int failed")
+	}
+	hash := keeper.GetHeightHash(ctx, uint64(height))
+
+	return hash.Bytes(), nil
 }
