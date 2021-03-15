@@ -178,13 +178,29 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 
 			crit.Topics = [][]common.Hash{}
 			for _, topic := range topics {
-				tstr, ok := topic.(string)
-				if !ok {
-					return "", fmt.Errorf("invalid topics")
+				if topic == nil {
+					crit.Topics = append(crit.Topics, []common.Hash{})
+				} else {
+					tstr, ok := topic.(string)
+					tstres, sok := topic.([]interface{})
+					if !ok && !sok {
+						return "", fmt.Errorf("invalid topics")
+					}
+					if ok {
+						h := common.HexToHash(tstr)
+						crit.Topics = append(crit.Topics, []common.Hash{h})
+					} else if sok {
+						topicHashes := make([]common.Hash, len(tstres))
+						for i, tstr := range tstres {
+							topicHash, ok := tstr.(string)
+							if !ok {
+								return "", fmt.Errorf("invalid topics")
+							}
+							topicHashes[i] = common.HexToHash(topicHash)
+						}
+						crit.Topics = append(crit.Topics, topicHashes)
+					}
 				}
-
-				h := common.HexToHash(tstr)
-				crit.Topics = append(crit.Topics, []common.Hash{h})
 			}
 		}
 	}
@@ -229,18 +245,20 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						Method:  "eth_subscription",
 						Params: &SubscriptionResult{
 							Subscription: sub.ID(),
-							Result:       logs,
 						},
 					}
-
-					err = f.conn.WriteJSON(res)
+					for _, singleLog := range logs {
+						res.Params.Result = singleLog
+						err = f.conn.WriteJSON(res)
+						if err != nil {
+							api.filtersMu.Unlock()
+							err = fmt.Errorf("failed to write header: %w", err)
+							return
+						}
+					}
 				}
 				api.filtersMu.Unlock()
 
-				if err != nil {
-					err = fmt.Errorf("failed to write header: %w", err)
-					return
-				}
 			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, sub.ID())
