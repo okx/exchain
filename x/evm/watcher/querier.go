@@ -44,7 +44,15 @@ func (q Querier) GetBlockByHash(hash common.Hash) (*EthBlock, error) {
 }
 
 func (q Querier) GetBlockByNumber(number uint64) (*EthBlock, error) {
-	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(number))))
+	var height = number
+	var err error
+	if height == 0 {
+		height, err = q.GetLatestBlockNumber()
+		if err != nil {
+			return nil, err
+		}
+	}
+	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(height))))
 	if e != nil {
 		return nil, e
 	}
@@ -62,7 +70,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, e
 	}
 	if height < codeInfo.Height && height > 0 {
-		return nil, errors.New("the target height has not deployed this contract")
+		return nil, errors.New("the target height has not deploy this contract yet")
 	}
 	return hex.DecodeString(codeInfo.Code)
 }
