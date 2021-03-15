@@ -162,7 +162,7 @@ func (f *Filter) checkMatches(hash common.Hash) (logs []*ethtypes.Log, err error
 		unfiltered = append(unfiltered, logs...)
 	}
 	logs = filterLogs(unfiltered, nil, nil, f.criteria.Addresses, f.criteria.Topics)
-	return nil, nil
+	return logs, nil
 }
 
 // indexedLogs returns the logs matching the filter criteria based on the bloom

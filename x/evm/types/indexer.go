@@ -108,7 +108,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) error 
 			bloom = ethtypes.Bloom{}
 			hash = common.Hash{}
 		} else {
-			hash := k.GetHeightHash(ctx, number)
+			hash = k.GetHeightHash(ctx, number)
 			if hash == (common.Hash{}) {
 				return fmt.Errorf("canonical block #%d unknown", number)
 			}
