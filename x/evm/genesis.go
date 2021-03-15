@@ -90,6 +90,12 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
+
+	// set contract deployment whitelist into store
+	for _, deployerAddr := range data.ContractDeploymentWhitelist {
+		k.SetContractDeploymentWhitelistMember(ctx, deployerAddr)
+	}
+
 	return []abci.ValidatorUpdate{}
 }
 
