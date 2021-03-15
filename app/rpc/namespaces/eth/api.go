@@ -475,7 +475,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	if res.Code != abci.CodeTypeOK {
-		return common.Hash{}, fmt.Errorf(res.RawLog)
+		return CheckError(res)
 	}
 
 	// Return transaction hash
@@ -508,7 +508,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	if res.Code != abci.CodeTypeOK {
-		return common.Hash{}, fmt.Errorf(res.RawLog)
+		return CheckError(res)
 	}
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
