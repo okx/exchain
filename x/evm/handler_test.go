@@ -2,6 +2,7 @@ package evm_test
 
 import (
 	"crypto/ecdsa"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -29,12 +30,13 @@ import (
 type EvmTestSuite struct {
 	suite.Suite
 
-	ctx     sdk.Context
-	handler sdk.Handler
-	querier sdk.Querier
-	app     *app.OKExChainApp
-	stateDB *types.CommitStateDB
-	codec   *codec.Codec
+	ctx        sdk.Context
+	handler    sdk.Handler
+	govHandler govtypes.Handler
+	querier    sdk.Querier
+	app        *app.OKExChainApp
+	stateDB    *types.CommitStateDB
+	codec      *codec.Codec
 }
 
 func (suite *EvmTestSuite) SetupTest() {
