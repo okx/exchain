@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"math/big"
 	"os"
 	"sync"
@@ -53,6 +54,9 @@ type PublicEthereumAPI struct {
 	nonceLock    *rpctypes.AddrLocker
 	keyringLock  sync.Mutex
 	gasPrice     *hexutil.Big
+
+	latestBlockHeight int64
+	latestBlock       *ctypes.ResultBlock
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -67,14 +71,16 @@ func NewAPI(
 	}
 
 	api := &PublicEthereumAPI{
-		ctx:          context.Background(),
-		clientCtx:    clientCtx,
-		chainIDEpoch: epoch,
-		logger:       log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
-		backend:      backend,
-		keys:         keys,
-		nonceLock:    nonceLock,
-		gasPrice:     ParseGasPrice(),
+		ctx:               context.Background(),
+		clientCtx:         clientCtx,
+		chainIDEpoch:      epoch,
+		logger:            log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "eth"),
+		backend:           backend,
+		keys:              keys,
+		nonceLock:         nonceLock,
+		gasPrice:          ParseGasPrice(),
+		latestBlockHeight: -1,
+		latestBlock:       nil,
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -675,11 +681,16 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		return nil, err
 	}
 
-	// latest block info
-	latestBlock, err := api.clientCtx.Client.Block(&height)
-	if err != nil {
-		return nil, err
+	if height != api.latestBlockHeight {
+		// latest block info
+		block, err := api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil, err
+		}
+
+		api.latestBlock = block
 	}
+	latestBlock := api.latestBlock
 
 	// number of pending txs queried from the mempool
 	unconfirmedTxs, err := api.clientCtx.Client.UnconfirmedTxs(1000)

@@ -66,10 +66,6 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 		return hexutil.Uint64(0), err
 	}
 
-	if blockNumber > 0 {
-		//decrease blockNumber to make sure every block has been executed in local
-		blockNumber--
-	}
 	return hexutil.Uint64(blockNumber), nil
 }
 
