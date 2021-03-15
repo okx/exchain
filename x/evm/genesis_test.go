@@ -397,6 +397,8 @@ func (suite *EvmTestSuite) TestExport_files() {
 	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 	suite.Require().NoError(err)
 
+	expectedWhitelist := types.ContractDeploymentWhitelist{address.Bytes()}
+
 	code := []byte{1, 2, 3}
 	ethAccount := ethermint.EthAccount{
 		BaseAccount: &auth.BaseAccount{
@@ -418,8 +420,9 @@ func (suite *EvmTestSuite) TestExport_files() {
 	}
 
 	initGenesis := types.GenesisState{
-		Params:   types.DefaultParams(),
-		Accounts: []types.GenesisAccount{evmAcc},
+		Params:                      types.DefaultParams(),
+		Accounts:                    []types.GenesisAccount{evmAcc},
+		ContractDeploymentWhitelist: expectedWhitelist,
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
@@ -442,11 +445,12 @@ func (suite *EvmTestSuite) TestExport_files() {
 		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
 		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
 		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
+		suite.Require().Equal(expectedWhitelist, exportState.ContractDeploymentWhitelist)
 	})
 	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
 	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
 
-	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage)
+	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage, expectedWhitelist)
 }
 
 func testImport_files(suite *EvmTestSuite,
@@ -454,7 +458,8 @@ func testImport_files(suite *EvmTestSuite,
 	filePath string,
 	ethAccount ethermint.EthAccount,
 	code []byte,
-	storage types.Storage) {
+	storage types.Storage,
+	expectedWhitelist types.ContractDeploymentWhitelist) {
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
@@ -472,5 +477,6 @@ func testImport_files(suite *EvmTestSuite,
 			suite.Require().Contains(storage, types.State{key, value})
 			return false
 		})
+		suite.Require().Equal(expectedWhitelist, suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx))
 	})
 }
