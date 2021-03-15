@@ -58,7 +58,6 @@ func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote)
 	return "", nil
 }
 
-// TODO
 // CheckMsgManageContractDeploymentWhitelistProposal checks msg manage contract deployment whitelist proposal
 func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Context,
 	proposal types.ManageContractDeploymentWhitelistProposal) sdk.Error {
