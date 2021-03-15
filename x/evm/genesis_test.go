@@ -39,18 +39,20 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
-	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	address := privkey.PubKey().Address()
 
 	testCases := []struct {
-		name     string
-		malleate func()
-		genState types.GenesisState
-		expPanic bool
+		name        string
+		malleate    func()
+		genState    types.GenesisState
+		statusCheck func()
+		expPanic    bool
 	}{
 		{
 			"default",
 			func() {},
 			types.DefaultGenesisState(),
+			func() {},
 			false,
 		},
 		{
@@ -73,6 +75,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 					},
 				},
 			},
+			func() {},
 			false,
 		},
 		{
@@ -86,6 +89,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 					},
 				},
 			},
+			func() {},
 			true,
 		},
 		{
@@ -102,7 +106,33 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 					},
 				},
 			},
+			func() {},
 			true,
+		},
+		{
+			"valid contract deployment whitelist",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+				ContractDeploymentWhitelist: types.ContractDeploymentWhitelist{address.Bytes()},
+			},
+			func() {
+				whitelist := suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx)
+				suite.Require().Equal(1, len(whitelist))
+				suite.Require().Equal(sdk.AccAddress(address.Bytes()), whitelist[0])
+			},
+			false,
 		},
 	}
 
@@ -124,6 +154,8 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 						_ = evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, tc.genState)
 					},
 				)
+				// status check after genesis initialization
+				tc.statusCheck()
 			}
 		})
 	}
@@ -133,7 +165,7 @@ func (suite *EvmTestSuite) TestInit() {
 	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
-	address := ethcmn.HexToAddress(privkey.PubKey().Address().String())
+	address := privkey.PubKey().Address()
 
 	testCases := []struct {
 		name     string
