@@ -161,8 +161,9 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	config, _ := k.GetChainConfig(ctx)
 	return GenesisState{
-		Accounts:    ethGenAccounts,
-		ChainConfig: config,
-		Params:      k.GetParams(ctx),
+		Accounts:                    ethGenAccounts,
+		ChainConfig:                 config,
+		Params:                      k.GetParams(ctx),
+		ContractDeploymentWhitelist: k.GetContractDeploymentWhitelist(ctx),
 	}
 }
