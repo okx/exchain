@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/okex/okexchain/x/evm/watcher"
+
 	"github.com/cosmos/cosmos-sdk/x/bank"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -46,6 +48,7 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
+	Watcher *watcher.Watcher
 }
 
 // NewKeeper generates new evm module keeper
@@ -68,6 +71,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
 	}
 }
 
