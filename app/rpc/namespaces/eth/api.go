@@ -688,6 +688,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 			return nil, err
 		}
 
+		api.latestBlockHeight = height
 		api.latestBlock = block
 	}
 	latestBlock := api.latestBlock
