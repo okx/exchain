@@ -42,7 +42,7 @@ type Keeper interface {
 // after an entire section has been finished or in case of rollbacks that might
 // affect already finished sections.
 type Indexer struct {
-	backend BloomIndexer // Background processor generating the index data content
+	backend bloomIndexer // Background processor generating the index data content
 
 	update chan struct{} // Notification channel that headers should be processed
 	quit   chan struct{} // Quit channel to tear down running goroutines
@@ -89,7 +89,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) {
 	knownSection := uint64(height) / BloomBitsBlocks
 	for i.storedSections < knownSection {
 		section := i.storedSections
-		lastHead := i.SectionHead(section)
+		lastHead := i.sectionHead(section)
 
 		ctx.Logger().Debug("Processing new chain section", "section", section)
 
@@ -135,7 +135,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) {
 	}
 }
 
-// GetDB get db of BloomIndexer
+// GetDB get db of bloomIndexer
 func (b *Indexer) GetDB() dbm.DB {
 	if b != nil {
 		return b.backend.db
@@ -153,7 +153,7 @@ func (i *Indexer) setValidSections(sections uint64) {
 	// Remove any reorged sections, caching the valids in the mean time
 	for i.storedSections > sections {
 		i.storedSections--
-		i.RemoveSectionHead(i.storedSections)
+		i.removeSectionHead(i.storedSections)
 	}
 	i.storedSections = sections // needed if new > old
 }
@@ -168,25 +168,9 @@ func (i *Indexer) getValidSections() uint64 {
 	return 0
 }
 
-// RemoveSectionHead removes the reference to a processed section from the index
-// database.
-func (i *Indexer) RemoveSectionHead(section uint64) {
-	var data [8]byte
-	binary.BigEndian.PutUint64(data[:], section)
-
-	i.backend.db.Delete(append([]byte("shead"), data[:]...))
-}
-
-// encodeBlockNumber encodes a block number as big endian uint64
-func encodeBlockNumber(number uint64) []byte {
-	enc := make([]byte, 8)
-	binary.BigEndian.PutUint64(enc, number)
-	return enc
-}
-
 // SectionHead retrieves the last block hash of a processed section from the
 // index database.
-func (i *Indexer) SectionHead(section uint64) common.Hash {
+func (i *Indexer) sectionHead(section uint64) common.Hash {
 	var data [8]byte
 	binary.BigEndian.PutUint64(data[:], section)
 
