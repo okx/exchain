@@ -154,14 +154,15 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 			}
 
 			if ok {
+				if !common.IsHexAddress(address) {
+					return "", fmt.Errorf("invalid address")
+				}
 				crit.Addresses = []common.Address{common.HexToAddress(address)}
-			}
-
-			if sok {
+			} else if sok {
 				crit.Addresses = []common.Address{}
 				for _, addr := range addresses {
 					address, ok := addr.(string)
-					if !ok {
+					if !ok || !common.IsHexAddress(address) {
 						return "", fmt.Errorf("invalid address")
 					}
 
@@ -187,13 +188,16 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						return "", fmt.Errorf("invalid topics")
 					}
 					if ok {
+						if !IsHexHash(tstr) {
+							return "", fmt.Errorf("invalid topics")
+						}
 						h := common.HexToHash(tstr)
 						crit.Topics = append(crit.Topics, []common.Hash{h})
 					} else if sok {
 						topicHashes := make([]common.Hash, len(tstres))
 						for i, tstr := range tstres {
 							topicHash, ok := tstr.(string)
-							if !ok {
+							if !ok || !IsHexHash(topicHash) {
 								return "", fmt.Errorf("invalid topics")
 							}
 							topicHashes[i] = common.HexToHash(topicHash)
@@ -271,6 +275,36 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 	}(sub.Event(), sub.Err())
 
 	return sub.ID(), nil
+}
+
+func IsHexHash(s string) bool {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	return len(s) == 2*common.HashLength && isHex(s)
+}
+
+// has0xPrefix validates str begins with '0x' or '0X'.
+func has0xPrefix(str string) bool {
+	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
+}
+
+// isHexCharacter returns bool of c being a valid hexadecimal.
+func isHexCharacter(c byte) bool {
+	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
+}
+
+// isHex validates whether each byte is valid hexadecimal string.
+func isHex(str string) bool {
+	if len(str)%2 != 0 {
+		return false
+	}
+	for _, c := range []byte(str) {
+		if !isHexCharacter(c) {
+			return false
+		}
+	}
+	return true
 }
 
 func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID, error) {
