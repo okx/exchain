@@ -66,7 +66,7 @@ func TestParams_String(t *testing.T) {
 enable_create: false
 enable_call: false
 extra_eips: []
-enable_contract_deployment_whitelist: true
+enable_contract_deployment_whitelist: false
 `
 	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }
