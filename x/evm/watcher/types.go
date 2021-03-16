@@ -45,7 +45,7 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 		return nil
 	}
 	msg := MsgEthTx{
-		Key:       hexutils.BytesToHex(txHash.Bytes()),
+		Key:       txHash.String(),
 		JsonEthTx: string(jsTx),
 	}
 	return &msg

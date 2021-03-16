@@ -18,13 +18,25 @@ type Watcher struct {
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
+	sw            bool
 }
 
 func NewWatcher() *Watcher {
 	return &Watcher{store: InstanceOfWatchStore()}
 }
 
+func (w Watcher) enabled() bool {
+	return w.sw
+}
+
+func (w *Watcher) Enable(sw bool) {
+	w.sw = sw
+}
+
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
+	if !w.enabled() {
+		return
+	}
 	w.batch = []WatchMessage{}
 	w.header = header
 	w.height = height
@@ -35,6 +47,9 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 }
 
 func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, index uint64) {
+	if !w.enabled() {
+		return
+	}
 	wMsg := NewMsgEthTx(&msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -43,6 +58,9 @@ func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, i
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
+	if !w.enabled() {
+		return
+	}
 	wMsg := NewMsgCode(addr, code, w.height)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -50,6 +68,9 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *types2.ResultData, gasUsed uint64) {
+	if !w.enabled() {
+		return
+	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
 	wMsg := NewMsgTransactionReceipt(status, &msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
@@ -58,6 +79,9 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx
 }
 
 func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
+	if !w.enabled() {
+		return
+	}
 	if len(w.cumulativeGas) == 0 {
 		w.cumulativeGas[txIndex] = gasUsed
 	} else {
@@ -67,10 +91,16 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 }
 
 func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
+	if !w.enabled() {
+		return
+	}
 	w.blockTxs = append(w.blockTxs, txHash)
 }
 
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
+	if !w.enabled() {
+		return
+	}
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -84,6 +114,9 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
+	if !w.enabled() {
+		return
+	}
 	wMsg := NewMsgLatestHeight(height)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -91,6 +124,9 @@ func (w *Watcher) SaveLatestHeight(height uint64) {
 }
 
 func (w *Watcher) Commit() {
+	if !w.enabled() {
+		return
+	}
 	//hold it in temp
 	batch := w.batch
 	go func() {

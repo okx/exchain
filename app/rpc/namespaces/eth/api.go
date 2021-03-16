@@ -670,7 +670,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-	ethBlock, err := api.wrappedBackend.GetBlockByHash(hash)
+	ethBlock, err := api.wrappedBackend.GetBlockByHash(hash, fullTx)
 	if err == nil {
 		return ethBlock, nil
 	}
@@ -685,7 +685,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (int
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 
-	ethBlock, err := api.wrappedBackend.GetBlockByNumber(uint64(blockNum))
+	ethBlock, err := api.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
 		return ethBlock, nil
 	}
@@ -745,7 +745,10 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 // GetTransactionByHash returns the transaction identified by hash.
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
-
+	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
+	if err == nil {
+		return rawTx, nil
+	}
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// check if the tx is on the mempool
@@ -805,6 +808,11 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
+
+	tx, e := api.wrappedBackend.GetTransactionByBlockNumberAndIndex(uint64(blockNum), uint(idx))
+	if e == nil && tx != nil {
+		return tx, nil
+	}
 	var (
 		height int64
 		err    error
