@@ -586,9 +586,8 @@ func TestEth_GetTransactionLogs(t *testing.T) {
 	require.True(t, transactionLogs[0].Topics[1].Big().Cmp(big.NewInt(1024)) == 0)
 
 	// inexistent tx hash
-	rpcRes, err := CallWithError("eth_getTransactionLogs", []interface{}{inexistentHash})
-	require.NoError(t, err)
-	assertNullFromJSONResponse(t, rpcRes.Result)
+	_, err := CallWithError("eth_getTransactionLogs", []interface{}{inexistentHash})
+	require.Error(t, err)
 
 	// error check
 	// miss argument
@@ -875,6 +874,7 @@ func TestEth_GetLogs_GetTopicsFromHistory(t *testing.T) {
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = receipt["blockNumber"].(string)
 
+	time.Sleep(time.Second * 5)
 	rpcRes := Call(t, "eth_getLogs", param)
 
 	var logs []ethtypes.Log
