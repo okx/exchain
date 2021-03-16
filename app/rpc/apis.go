@@ -4,6 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc/backend"
@@ -13,6 +14,7 @@ import (
 	"github.com/okex/okexchain/app/rpc/namespaces/personal"
 	"github.com/okex/okexchain/app/rpc/namespaces/web3"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 // RPC namespaces and API version
@@ -35,7 +37,7 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
 
-	return []rpc.API{
+	apis := []rpc.API{
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
@@ -55,16 +57,20 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 			Public:    true,
 		},
 		{
-			Namespace: PersonalNamespace,
-			Version:   apiVersion,
-			Service:   personal.NewAPI(ethAPI),
-			Public:    false,
-		},
-		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
 			Service:   net.NewAPI(clientCtx),
 			Public:    true,
 		},
 	}
+
+	if viper.GetBool(client.FlagPersonalAPI) {
+		apis = append(apis, rpc.API{
+			Namespace: PersonalNamespace,
+			Version:   apiVersion,
+			Service:   personal.NewAPI(ethAPI),
+			Public:    false,
+		})
+	}
+	return apis
 }

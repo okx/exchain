@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -86,14 +85,12 @@ func main() {
 	)
 
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
-	rootCmd.PersistentFlags().Bool(evmtypes.FlagEnableBloomFilter,
-		false, "enable bloom filter for logs")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
