@@ -24,17 +24,17 @@ var _ govtypes.Content = (*ManageContractDeploymentWhitelistProposal)(nil)
 type ManageContractDeploymentWhitelistProposal struct {
 	Title        string         `json:"title" yaml:"title"`
 	Description  string         `json:"description" yaml:"description"`
-	DeployerAddr sdk.AccAddress `json:"deployer_address" yaml:"deployer_address"`
+	DistributorAddr sdk.AccAddress `json:"distributor_address" yaml:"distributor_address"`
 	IsAdded      bool           `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
-func NewManageContractDeploymentWhitelistProposal(title, description string, deployerAddr sdk.AccAddress, isAdded bool,
+func NewManageContractDeploymentWhitelistProposal(title, description string, distributorAddr sdk.AccAddress, isAdded bool,
 ) ManageContractDeploymentWhitelistProposal {
 	return ManageContractDeploymentWhitelistProposal{
 		Title:        title,
 		Description:  description,
-		DeployerAddr: deployerAddr,
+		DistributorAddr: distributorAddr,
 		IsAdded:      isAdded,
 	}
 }
@@ -80,7 +80,7 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if mp.DeployerAddr.Empty() {
+	if mp.DistributorAddr.Empty() {
 		return ErrEmptyAddress
 	}
 
@@ -95,5 +95,5 @@ func (mp ManageContractDeploymentWhitelistProposal) String() string {
  Type:                	%s
  DeployerAddress:		%s
  IsAdded:				%t`,
-		mp.Title, mp.Description, mp.ProposalType(), mp.DeployerAddr.String(), mp.IsAdded)
+		mp.Title, mp.Description, mp.ProposalType(), mp.DistributorAddr.String(), mp.IsAdded)
 }

@@ -32,11 +32,11 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 
 	if manageContractDeploymentWhitelistProposal.IsAdded {
 		// add deployer address into whitelist
-		k.SetContractDeploymentWhitelistMember(ctx, manageContractDeploymentWhitelistProposal.DeployerAddr)
+		k.SetContractDeploymentWhitelistMember(ctx, manageContractDeploymentWhitelistProposal.DistributorAddr)
 		return nil
 	}
 
 	// remove deployer address from whitelist
-	k.DeleteContractDeploymentWhitelistMember(ctx, manageContractDeploymentWhitelistProposal.DeployerAddr)
+	k.DeleteContractDeploymentWhitelistMember(ctx, manageContractDeploymentWhitelistProposal.DistributorAddr)
 	return nil
 }

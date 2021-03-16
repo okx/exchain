@@ -20,17 +20,17 @@ func (k Keeper) GetContractDeploymentWhitelist(ctx sdk.Context) (whitelist types
 }
 
 // SetContractDeploymentWhitelistMember sets the deployer address as a member into whitelist
-func (k Keeper) SetContractDeploymentWhitelistMember(ctx sdk.Context, deployerAddr sdk.AccAddress) {
-	ctx.KVStore(k.storeKey).Set(types.GetContractDeploymentWhitelistMemberKey(deployerAddr), []byte(""))
+func (k Keeper) SetContractDeploymentWhitelistMember(ctx sdk.Context, distributorAddr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Set(types.GetContractDeploymentWhitelistMemberKey(distributorAddr), []byte(""))
 }
 
 // DeleteContractDeploymentWhitelistMember removes the deployer address from whitelist
-func (k Keeper) DeleteContractDeploymentWhitelistMember(ctx sdk.Context, deployerAddr sdk.AccAddress) {
-	ctx.KVStore(k.storeKey).Delete(types.GetContractDeploymentWhitelistMemberKey(deployerAddr))
+func (k Keeper) DeleteContractDeploymentWhitelistMember(ctx sdk.Context, distributorAddr sdk.AccAddress) {
+	ctx.KVStore(k.storeKey).Delete(types.GetContractDeploymentWhitelistMemberKey(distributorAddr))
 }
 
-func (k Keeper) isDeployerInWhitelist(ctx sdk.Context, deployerAddr sdk.AccAddress) bool {
-	return ctx.KVStore(k.storeKey).Has(types.GetContractDeploymentWhitelistMemberKey(deployerAddr))
+func (k Keeper) isDeployerInWhitelist(ctx sdk.Context, distributorAddr sdk.AccAddress) bool {
+	return ctx.KVStore(k.storeKey).Has(types.GetContractDeploymentWhitelistMemberKey(distributorAddr))
 }
 
 // IsContractDeployerQualified verifies the qualification of the contract deployer

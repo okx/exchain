@@ -845,8 +845,8 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 			suite.app.EvmKeeper.SetParams(suite.ctx, params)
 
 			// set target whitelist
-			for _, deployerAddr := range tc.contractDeploymentWhitelist {
-				suite.app.EvmKeeper.SetContractDeploymentWhitelistMember(suite.ctx, deployerAddr)
+			for _, distributorAddr := range tc.contractDeploymentWhitelist {
+				suite.app.EvmKeeper.SetContractDeploymentWhitelistMember(suite.ctx, distributorAddr)
 			}
 
 			// sign transaction
@@ -940,8 +940,8 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 			suite.app.EvmKeeper.SetParams(suite.ctx, params)
 
 			// set target whitelist
-			for _, deployerAddr := range tc.contractDeploymentWhitelist {
-				suite.app.EvmKeeper.SetContractDeploymentWhitelistMember(suite.ctx, deployerAddr)
+			for _, distributorAddr := range tc.contractDeploymentWhitelist {
+				suite.app.EvmKeeper.SetContractDeploymentWhitelistMember(suite.ctx, distributorAddr)
 			}
 
 			// handle tx

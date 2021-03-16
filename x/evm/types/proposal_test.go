@@ -60,7 +60,7 @@ func TestProposal(t *testing.T) {
 	proposal.Description = b.String()
 	require.Error(t, proposal.ValidateBasic())
 	// 5. empty address
-	proposal.DeployerAddr = nil
+	proposal.DistributorAddr = nil
 	proposal.Description = expectedDescription
 	require.Error(t, proposal.ValidateBasic())
 }

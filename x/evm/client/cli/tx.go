@@ -219,7 +219,7 @@ Where proposal.json contains:
 				return err
 			}
 
-			deployerAddr, err := sdk.AccAddressFromBech32(proposal.DeployerAddr)
+			distributorAddr, err := sdk.AccAddressFromBech32(proposal.DistributorAddr)
 			if err != nil {
 				return err
 			}
@@ -227,7 +227,7 @@ Where proposal.json contains:
 			content := types.NewManageContractDeploymentWhitelistProposal(
 				proposal.Title,
 				proposal.Description,
-				deployerAddr,
+				distributorAddr,
 				proposal.IsAdded,
 			)
 

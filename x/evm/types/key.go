@@ -49,8 +49,8 @@ func AddressStoragePrefix(address ethcmn.Address) []byte {
 }
 
 // GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
-func GetContractDeploymentWhitelistMemberKey(deployerAddr sdk.AccAddress) []byte {
-	return append(KeyPrefixContractDeploymentWhitelist, deployerAddr...)
+func GetContractDeploymentWhitelistMemberKey(distributorAddr sdk.AccAddress) []byte {
+	return append(KeyPrefixContractDeploymentWhitelist, distributorAddr...)
 }
 
 // SplitApprovedDeployerAddress splits the deployer address from a ContractDeploymentWhitelistMemberKey
