@@ -183,20 +183,20 @@ func GetCmdGenCreateTx(cdc *codec.Codec) *cobra.Command {
 // whitelist proposal transaction
 func GetCmdManageContractDeploymentWhitelistProposal(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "manage-contract-deployment-whitelist [proposal-file]",
+		Use:   "update-contract-deployment-whitelist [proposal-file]",
 		Args:  cobra.ExactArgs(1),
-		Short: "Submit a manage contract deployment whitelist proposal",
+		Short: "Submit am update contract deployment whitelist proposal",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Submit a manage contract deployment whitelist proposal along with an initial deposit.
+			fmt.Sprintf(`Submit am update contract deployment whitelist proposal along with an initial deposit.
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal manage-contract-deployment-whitelist <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal update-contract-deployment-whitelist <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
 {
- "title": "manage contract proposal whitelist with a deployer address",
+ "title": "update contract proposal whitelist with a deployer address",
  "description": "add a deployer address into the whitelist",
  "deployer_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
  "is_added": true,
