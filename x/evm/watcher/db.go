@@ -8,6 +8,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+const ViperFlagFastQuery = "fast-query"
+
 type WatchStore struct {
 	db *leveldb.DB
 }
@@ -18,6 +20,7 @@ func InstanceOfWatchStore() *WatchStore {
 	if gWatchStore == nil {
 		db, e := initDb()
 		if e == nil {
+
 			gWatchStore = &WatchStore{db: db}
 		}
 	}

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/spf13/viper"
+
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -27,7 +29,7 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore()}
+	return &Querier{store: InstanceOfWatchStore(), sw: viper.GetBool(ViperFlagFastQuery)}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {

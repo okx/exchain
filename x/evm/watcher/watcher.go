@@ -3,6 +3,8 @@ package watcher
 import (
 	"math/big"
 
+	"github.com/spf13/viper"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	types2 "github.com/okex/okexchain/x/evm/types"
@@ -22,7 +24,7 @@ type Watcher struct {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore()}
+	return &Watcher{store: InstanceOfWatchStore(), sw: viper.GetBool(ViperFlagFastQuery)}
 }
 
 func (w Watcher) enabled() bool {
