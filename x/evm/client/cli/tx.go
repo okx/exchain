@@ -198,7 +198,7 @@ Where proposal.json contains:
 {
  "title": "update contract proposal whitelist with a deployer address",
  "description": "add a deployer address into the whitelist",
- "deployer_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
+ "distributor_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
  "is_added": true,
  "deposit": [
    {

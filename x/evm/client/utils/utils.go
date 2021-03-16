@@ -12,7 +12,7 @@ import (
 type ManageContractDeploymentWhitelistProposalJSON struct {
 	Title        string       `json:"title" yaml:"title"`
 	Description  string       `json:"description" yaml:"description"`
-	DistributorAddr string       `json:"deployer_address" yaml:"deployer_address"`
+	DistributorAddr string       `json:"distributor_address" yaml:"distributor_address"`
 	IsAdded      bool         `json:"is_added" yaml:"is_added"`
 	Deposit      sdk.SysCoins `json:"deposit" yaml:"deposit"`
 }
