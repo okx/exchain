@@ -64,7 +64,7 @@ func DefaultParams() Params {
 		EnableCreate:                      false,
 		EnableCall:                        false,
 		ExtraEIPs:                         []int(nil), // TODO: define default values
-		EnableContractDeploymentWhitelist: true,
+		EnableContractDeploymentWhitelist: false,
 	}
 }
 
