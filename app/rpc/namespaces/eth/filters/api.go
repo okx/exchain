@@ -434,7 +434,6 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
 	if err != nil {
-		// TODO: return nil if err != nil
 		return logs, err
 	}
 

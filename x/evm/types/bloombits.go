@@ -50,7 +50,7 @@ const (
 
 	// BloomBitsBlocks is the number of blocks a single bloom bit section vector
 	// contains on the server side.
-	BloomBitsBlocks uint64 = 128
+	BloomBitsBlocks uint64 = 4096
 )
 
 const (

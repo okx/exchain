@@ -28,6 +28,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
 	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
+	r.HandleFunc("/section", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -174,4 +175,25 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	}
 
 	return tx, nil
+}
+
+func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		hashHexStr := vars["section"]
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		var output interface{}
+		output, err := QueryTx(cliCtx, hashHexStr)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+
+		}
+
+		rest.PostProcessResponseBare(w, cliCtx, output)
+	}
 }

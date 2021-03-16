@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	tmtypes "github.com/tendermint/tendermint/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -51,9 +52,11 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	if types.GetEnableBloomFilter() {
-		err := types.GetIndexer().ProcessSection(ctx, k, req.Height)
-		if err != nil {
-			panic(err)
+		interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
+		// the hash of current block is stored when executing BeginBlock of next block.
+		// so update section in the next block.
+		if interval%types.BloomBitsBlocks == 0 && !types.GetIndexer().IsProcessing(){
+			go types.GetIndexer().ProcessSection(ctx, k, req.Height)
 		}
 	}
 

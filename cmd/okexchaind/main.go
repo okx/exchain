@@ -93,7 +93,7 @@ func main() {
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
 	rootCmd.PersistentFlags().Bool(evmtypes.FlagEnableBloomFilter,
-		true, "Assert registered invariants every N blocks")
+		false, "enable bloom filter for logs")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

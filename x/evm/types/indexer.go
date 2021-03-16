@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -10,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
+	"sync/atomic"
 )
 
 var (
@@ -47,8 +47,8 @@ type Indexer struct {
 	update chan struct{} // Notification channel that headers should be processed
 	quit   chan struct{} // Quit channel to tear down running goroutines
 
-	sectionSize    uint64 // Number of blocks in a single chain segment to process
 	storedSections uint64 // Number of sections successfully indexed into the database
+	processing     uint32 // Atomic flag whether indexer is processing or not
 }
 
 func InitIndexer() {
@@ -58,10 +58,9 @@ func InitIndexer() {
 	}
 
 	indexer = &Indexer{
-		backend:     initBloomIndexer(),
-		update:      make(chan struct{}, 1),
-		quit:        make(chan struct{}),
-		sectionSize: BloomBitsBlocks,
+		backend: initBloomIndexer(),
+		update:  make(chan struct{}),
+		quit:    make(chan struct{}),
 	}
 	indexer.setValidSections(indexer.getValidSections())
 }
@@ -77,54 +76,63 @@ func (i *Indexer) StoredSection() uint64 {
 	return 0
 }
 
-func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) error {
-	interval := uint64(height - tmtypes.GetStartBlockHeight())
-	// the hash of current block is stored when executing BeginBlock of next block.
-	// so update section in the next block.
-	if interval%i.sectionSize != 0 {
-		return nil
+func (i *Indexer) IsProcessing() bool {
+	return i.processing == 1
+}
+
+func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) {
+	if atomic.SwapUint32(&i.processing, 1) == 1 {
+		ctx.Logger().Error("matcher already running")
+		return
 	}
-	section := i.storedSections
-	lastHead := i.SectionHead(section)
+	defer atomic.StoreUint32(&i.processing, 0)
+	knownSection := uint64(height) / BloomBitsBlocks
+	for i.storedSections < knownSection {
+		section := i.storedSections
+		lastHead := i.SectionHead(section)
 
-	ctx.Logger().Debug("Processing new chain section", "section", section)
+		ctx.Logger().Debug("Processing new chain section", "section", section)
 
-	// Reset and partial processing
-	if err := i.backend.Reset(section); err != nil {
-		i.setValidSections(0)
-		return err
-	}
+		// Reset and partial processing
+		if err := i.backend.Reset(section); err != nil {
+			i.setValidSections(0)
+			ctx.Logger().Error(err.Error())
+			return
+		}
 
-	begin := section*i.sectionSize + uint64(tmtypes.GetStartBlockHeight())
-	end := (section+1)*i.sectionSize + uint64(tmtypes.GetStartBlockHeight())
+		begin := section*BloomBitsBlocks + uint64(tmtypes.GetStartBlockHeight())
+		end := (section+1)*BloomBitsBlocks + uint64(tmtypes.GetStartBlockHeight())
 
-	for number := begin; number < end; number++ {
-		var (
-			bloom ethtypes.Bloom
-			hash  common.Hash
-		)
-		// the initial height is 1 but it on ethereum is 0. so set the bloom and hash of the block 0 to empty.
-		if number == uint64(tmtypes.GetStartBlockHeight()) {
-			bloom = ethtypes.Bloom{}
-			hash = common.Hash{}
-		} else {
-			hash = k.GetHeightHash(ctx, number)
-			if hash == (common.Hash{}) {
-				return fmt.Errorf("canonical block #%d unknown", number)
+		for number := begin; number < end; number++ {
+			var (
+				bloom ethtypes.Bloom
+				hash  common.Hash
+			)
+			// the initial height is 1 but it on ethereum is 0. so set the bloom and hash of the block 0 to empty.
+			if number == uint64(tmtypes.GetStartBlockHeight()) {
+				bloom = ethtypes.Bloom{}
+				hash = common.Hash{}
+			} else {
+				hash = k.GetHeightHash(ctx, number)
+				if hash == (common.Hash{}) {
+					ctx.Logger().Error("canonical block #%d unknown", number)
+					return
+				}
+				bloom = k.GetBlockBloom(ctx, int64(number))
 			}
-			bloom = k.GetBlockBloom(ctx, int64(number))
+			if err := i.backend.Process(hash, number, bloom); err != nil {
+				ctx.Logger().Error(err.Error())
+				return
+			}
+			lastHead = hash
 		}
-		if err := i.backend.Process(hash, number, bloom); err != nil {
-			return err
+		if err := i.backend.Commit(); err != nil {
+			ctx.Logger().Error(err.Error())
+			return
 		}
-		lastHead = hash
+		i.setSectionHead(section, lastHead)
+		i.setValidSections(section + 1)
 	}
-	if err := i.backend.Commit(); err != nil {
-		return err
-	}
-	i.setSectionHead(section, lastHead)
-	i.setValidSections(section + 1)
-	return nil
 }
 
 // GetDB get db of BloomIndexer
