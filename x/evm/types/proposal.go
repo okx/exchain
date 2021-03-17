@@ -22,20 +22,20 @@ var _ govtypes.Content = (*ManageContractDeploymentWhitelistProposal)(nil)
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete a deployer address from whitelist
 type ManageContractDeploymentWhitelistProposal struct {
-	Title        string         `json:"title" yaml:"title"`
-	Description  string         `json:"description" yaml:"description"`
+	Title           string         `json:"title" yaml:"title"`
+	Description     string         `json:"description" yaml:"description"`
 	DistributorAddr sdk.AccAddress `json:"distributor_address" yaml:"distributor_address"`
-	IsAdded      bool           `json:"is_added" yaml:"is_added"`
+	IsAdded         bool           `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
 func NewManageContractDeploymentWhitelistProposal(title, description string, distributorAddr sdk.AccAddress, isAdded bool,
 ) ManageContractDeploymentWhitelistProposal {
 	return ManageContractDeploymentWhitelistProposal{
-		Title:        title,
-		Description:  description,
+		Title:           title,
+		Description:     description,
 		DistributorAddr: distributorAddr,
-		IsAdded:      isAdded,
+		IsAdded:         isAdded,
 	}
 }
 

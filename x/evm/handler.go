@@ -59,11 +59,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 
-	params := k.GetParams(ctx)
-	if params.EnableContractDeploymentWhitelist && !k.IsContractDeployerQualified(ctx, sender.Bytes(), msg.To()) {
-		return nil, types.ErrDeployerUnqualified(sender.Bytes())
-	}
-
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 
@@ -79,7 +74,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    params.EvmDenom,
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
 		GasReturn:    uint64(0),
 	}
 
@@ -155,11 +150,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, err
 	}
 
-	params := k.GetParams(ctx)
-	if params.EnableContractDeploymentWhitelist && !k.IsContractDeployerQualified(ctx, msg.From, msg.To()) {
-		return nil, types.ErrDeployerUnqualified(msg.From)
-	}
-
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 
@@ -174,7 +164,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    params.EvmDenom,
+		CoinDenom:    k.GetParams(ctx).EvmDenom,
 		GasReturn:    uint64(0),
 	}
 

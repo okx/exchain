@@ -59,7 +59,7 @@ func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 	return key[1:]
 }
 
-// GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
+// GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer as distributor
 func GetContractDeploymentWhitelistMemberKey(distributorAddr sdk.AccAddress) []byte {
 	return append(KeyPrefixContractDeploymentWhitelist, distributorAddr...)
 }

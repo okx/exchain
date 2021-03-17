@@ -50,7 +50,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 }
 
 func queryContractDeploymentWhitelist(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	whitelist := keeper.GetContractDeploymentWhitelist(ctx)
+	whitelist := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractDeploymentWhitelist()
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))

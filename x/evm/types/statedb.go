@@ -910,6 +910,7 @@ func (csdb *CommitStateDB) SetContractBlockedListMember(contractAddr sdk.AccAddr
 	csdb.ctx.KVStore(csdb.storeKey).Set(getContractBlockedListMemberKey(contractAddr), []byte(""))
 }
 
+// GetContractBlockedList gets the current contract blocked list from store
 func (csdb *CommitStateDB) GetContractBlockedList() (blockedList []sdk.AccAddress) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
@@ -925,4 +926,39 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList []sdk.AccAddres
 // IsContractBlocked checks whether the contract is blocked
 func (csdb *CommitStateDB) IsContractBlocked(contractAddr sdk.AccAddress) bool {
 	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
+}
+
+// SetContractDeploymentWhitelistMember sets the deployer address as a member into whitelist
+func (csdb *CommitStateDB) SetContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
+	csdb.ctx.KVStore(csdb.storeKey).Set(GetContractDeploymentWhitelistMemberKey(distributorAddr), []byte(""))
+}
+
+// DeleteContractDeploymentWhitelistMember removes the distributor address from whitelist
+func (csdb *CommitStateDB) DeleteContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
+	csdb.ctx.KVStore(csdb.storeKey).Delete(GetContractDeploymentWhitelistMemberKey(distributorAddr))
+}
+
+// SetContractDeploymentWhitelistMember sets the whole whitelist into store
+func (csdb *CommitStateDB) SetContractDeploymentWhitelist(whitelist ContractDeploymentWhitelist) {
+	for i := 0; i < len(whitelist); i++ {
+		csdb.SetContractDeploymentWhitelistMember(whitelist[i])
+	}
+}
+
+// GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
+func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist ContractDeploymentWhitelist) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		whitelist = append(whitelist, SplitApprovedDeployerAddress(iterator.Key()))
+	}
+
+	return
+}
+
+// IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
+func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
 }
