@@ -5,20 +5,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
-
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -699,4 +696,32 @@ func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
 	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
 	suite.Require().True(addrIn)
 	suite.Require().True(slotIn)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
+	whitelist := suite.stateDB.GetContractDeploymentWhitelist()
+	require.Zero(suite.T(), len(whitelist))
+
+	// create addresses for test
+	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	// setter
+	suite.stateDB.SetContractDeploymentWhitelistMember(addr)
+	whitelist = suite.stateDB.GetContractDeploymentWhitelist()
+	require.Equal(suite.T(), 1, len(whitelist))
+
+	// check for whitelist
+	require.True(suite.T(), suite.stateDB.IsDeployerInWhitelist(addr))
+	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
+
+	// delete
+	suite.stateDB.DeleteContractDeploymentWhitelistMember(addr)
+
+	// check for whitelist
+	whitelist = suite.stateDB.GetContractDeploymentWhitelist()
+	require.Zero(suite.T(), len(whitelist))
+
+	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addr))
+	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
 }
