@@ -12,11 +12,11 @@ import (
 type (
 	// GenesisState defines the evm module genesis state
 	GenesisState struct {
-		Accounts                    []GenesisAccount            `json:"accounts"`
-		TxsLogs                     []TransactionLogs           `json:"txs_logs"`
-		ContractDeploymentWhitelist ContractDeploymentWhitelist `json:"contract_deployment_whitelist"`
-		ChainConfig                 ChainConfig                 `json:"chain_config"`
-		Params                      Params                      `json:"params"`
+		Accounts                    []GenesisAccount  `json:"accounts"`
+		TxsLogs                     []TransactionLogs `json:"txs_logs"`
+		ContractDeploymentWhitelist AddressList       `json:"contract_deployment_whitelist"`
+		ChainConfig                 ChainConfig       `json:"chain_config"`
+		Params                      Params            `json:"params"`
 	}
 
 	// GenesisAccount defines an account to be initialized in the genesis state.
@@ -85,7 +85,7 @@ func DefaultGenesisState() GenesisState {
 	return GenesisState{
 		Accounts:                    []GenesisAccount{},
 		TxsLogs:                     []TransactionLogs{},
-		ContractDeploymentWhitelist: ContractDeploymentWhitelist{},
+		ContractDeploymentWhitelist: AddressList{},
 		ChainConfig:                 DefaultChainConfig(),
 		Params:                      DefaultParams(),
 	}

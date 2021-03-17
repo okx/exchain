@@ -6,15 +6,15 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// ContractDeploymentWhitelist is the type alias for []sdk.AccAddress
-type ContractDeploymentWhitelist []sdk.AccAddress
+// AddressList is the type alias for []sdk.AccAddress
+type AddressList []sdk.AccAddress
 
-// String returns a human readable string representation of ContractDeploymentWhitelist
-func (cdw ContractDeploymentWhitelist) String() string {
+// String returns a human readable string representation of AddressList
+func (al AddressList) String() string {
 	var b strings.Builder
-	b.WriteString("Contract Deployment Whitelist:\n")
-	for _, addr := range cdw {
-		b.WriteString(addr.String())
+	b.WriteString("Address List:\n")
+	for i := 0; i < len(al); i++ {
+		b.WriteString(al[i].String())
 		b.WriteByte('\n')
 	}
 

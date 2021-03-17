@@ -20,6 +20,7 @@ const (
 	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters                  = "params"
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
+	QueryContractBlockedList         = "contract-blocked-list"
 )
 
 // QueryResBalance is response type for balance query
