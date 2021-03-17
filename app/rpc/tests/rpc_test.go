@@ -1374,21 +1374,21 @@ func TestWebsocket_PendingTransaction(t *testing.T) {
 //{{A}, {B}}         matches topic A in first position AND B in second position
 //{{A, B}, {C, D}}   matches topic (A OR B) in first position AND (C OR D) in second position
 func TestWebsocket_Logs(t *testing.T) {
-	contractAddr1, contractAddr2, _ := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
+	contractAddr1, contractAddr2, contractAddr3 := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
 
 	// init test cases
 	tests := []struct {
 		addressList   string   // input
 		topicsList    string   // input
-		expected      bool // expected result
+		expected      int // expected result
 	}{
-		{"","",true},                                    // matches any address & any topics
-		{fmt.Sprintf(`"address":"%s"`, contractAddr1),"",true},                // matches one address & any topics
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),"",true}, // matches two addressses & any topics
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":"%s"`, approveFuncHash),true},
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[null, null, ["%s"]]`, recvAddr1Hash),true},
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s"], null, ["%s"]]`, approveFuncHash, recvAddr1Hash),true},
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s","%s"], null, ["%s","%s"]]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
+		{"","",21},                                    // matches any address & any topics
+		{fmt.Sprintf(`"address":"%s"`, contractAddr1),"",7},                // matches one address & any topics
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),"",14}, // matches two addressses & any topics
+		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":"%s"`, approveFuncHash),true},
+		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[null, null, ["%s"]]`, recvAddr1Hash),true},
+		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s"], null, ["%s"]]`, approveFuncHash, recvAddr1Hash),true},
+		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s","%s"], null, ["%s","%s"]]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
 	}
 
 	// create websocket
@@ -1417,8 +1417,17 @@ func TestWebsocket_Logs(t *testing.T) {
 
 		// send txs
 		// fetch logs
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go sendTxs(t, &wg, contractAddr1, contractAddr2, contractAddr3)
+		for i := 0; i < test.expected; i++ {
+			n, err = ws.Read(msg)
+			require.NoError(t, err)
+			var notification websockets.SubscriptionNotification
+			require.NoError(t, json.Unmarshal(msg[:n], &notification))
+		}
+		wg.Wait()
 
-		// unsub
 		// cancel the subscription
 		cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
 		_, err = ws.Write([]byte(cancelMsg))
@@ -1443,6 +1452,43 @@ func deployTestTokenContract(t *testing.T) string {
 	return contractAddr
 }
 
+func verifyWebSocketRecvNum(t *testing.T, addressList, topicsList string, expected int) {
+	// create websocket
+	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
+	ws, err := websocket.Dial(url, "", origin)
+	require.NoError(t, err)
+	defer func() {
+		// close websocket
+		err := ws.Close()
+		require.NoError(t, err)
+	}()
+
+	// fulfill parameters
+	param := assembleParameters(addressList, topicsList)
+	_, err = ws.Write([]byte(param))
+	require.NoError(t, err)
+
+	msg := make([]byte, 10240)
+	// receive subscription id
+	n, err := ws.Read(msg)
+	var res Response
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(msg[:n], &res))
+	subscriptionId := string(res.Result)
+
+	for i := 0; i < expected; i++ {
+		n, err = ws.Read(msg)
+		require.NoError(t, err)
+		var notification websockets.SubscriptionNotification
+		require.NoError(t, json.Unmarshal(msg[:n], &notification))
+	}
+
+	// cancel the subscription
+	cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
+	_, err = ws.Write([]byte(cancelMsg))
+	require.NoError(t, err)
+}
+
 func assembleParameters(addressList string, topicsList string) string {
 	var param string
 	if addressList == "" {
@@ -1455,4 +1501,39 @@ func assembleParameters(addressList string, topicsList string) string {
 		param = addressList+","+topicsList
 	}
 	return fmt.Sprintf(`{"id": 2, "method": "eth_subscribe", "params": ["logs",{%s}]}`, param)
+}
+
+func sendTxs(t *testing.T, wg *sync.WaitGroup, contractAddrs ...string) {
+	dataList := []string{
+		// 0. mint  4294967295coin -> 0x2cf4ea7df75b513509d95946b43062e26bd88035
+		"0x40c10f190000000000000000000000002cf4ea7df75b513509d95946b43062e26bd8803500000000000000000000000000000000000000000000000000000000ffffffff",
+		// 1. approve 12345678coin -> 0x9ad84c8630e0282f78e5479b46e64e17779e3cfb
+		"0x095ea7b30000000000000000000000009ad84c8630e0282f78e5479b46e64e17779e3cfb0000000000000000000000000000000000000000000000000000000000bc614e",
+		// 2. approve 12345678coin -> 0xc9c9b43322f5e1dc401252076fa4e699c9122cd6
+		"0x095ea7b3000000000000000000000000c9c9b43322f5e1dc401252076fa4e699c9122cd60000000000000000000000000000000000000000000000000000000000bc614e",
+		// 3. approve 12345678coin -> 0x2B5Cf24AeBcE90f0B8f80Bc42603157b27cFbf47
+		"0x095ea7b30000000000000000000000002b5cf24aebce90f0b8f80bc42603157b27cfbf470000000000000000000000000000000000000000000000000000000000bc614e",
+		// 4. transfer 1234coin    -> 0x9ad84c8630e0282f78e5479b46e64e17779e3cfb
+		"0xa9059cbb0000000000000000000000009ad84c8630e0282f78e5479b46e64e17779e3cfb00000000000000000000000000000000000000000000000000000000000004d2",
+		// 5. transfer 1234coin    -> 0xc9c9b43322f5e1dc401252076fa4e699c9122cd6
+		"0xa9059cbb000000000000000000000000c9c9b43322f5e1dc401252076fa4e699c9122cd600000000000000000000000000000000000000000000000000000000000004d2",
+		// 6. transfer 1234coin    -> 0x2B5Cf24AeBcE90f0B8f80Bc42603157b27cFbf47
+		"0xa9059cbb0000000000000000000000002b5cf24aebce90f0b8f80bc42603157b27cfbf4700000000000000000000000000000000000000000000000000000000000004d2",
+	}
+	defer wg.Done()
+	for _, contractAddr := range contractAddrs{
+		for i := 0; i < 7; i++{
+			param := make([]map[string]string, 1)
+			param[0] = make(map[string]string)
+			param[0]["from"] = hexAddr1.Hex()
+			param[0]["to"] = contractAddr
+			param[0]["data"] = dataList[i]
+			param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+			rpcRes := Call(t, "eth_sendTransaction", param)
+			var hash ethcmn.Hash
+			require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+
+			time.Sleep(time.Second*1)
+		}
+	}
 }
