@@ -181,3 +181,8 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 func ManageContractDeploymentWhitelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+
+// ManageContractBlockedListProposalRESTHandler defines evm proposal handler
+func ManageContractBlockedListProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}

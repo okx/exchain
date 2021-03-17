@@ -72,3 +72,21 @@ func ErrDeployerUnqualified(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 			14,
 			fmt.Sprintf("failed. unqualified deployer %s for a contract deployment", distributorAddr.String()))}
 }
+
+// ErrContractAlreadyExists returns an error when duplicated contract will be added into blocked list
+func ErrContractAlreadyExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			15,
+			fmt.Sprintf("failed. contract %s is already in the blocked list", contractAddr.String()))}
+}
+
+// ErrContractNotExists returns an error when a contract not in the blocked list will be deleted
+func ErrContractNotExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			16,
+			fmt.Sprintf("failed. contract %s is not in the blocked list", contractAddr.String()))}
+}

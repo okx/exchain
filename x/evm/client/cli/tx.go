@@ -196,7 +196,7 @@ $ %s tx gov submit-proposal update-contract-deployment-whitelist <path/to/propos
 Where proposal.json contains:
 
 {
- "title": "update contract proposal whitelist with a distributor address",
+ "title": "update contract whitelist proposal with a distributor address",
  "description": "add a distributor address into the whitelist",
  "distributor_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
  "is_added": true,
@@ -228,6 +228,64 @@ Where proposal.json contains:
 				proposal.Title,
 				proposal.Description,
 				distributorAddr,
+				proposal.IsAdded,
+			)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdManageContractBlockedListProposal implements a command handler for submitting a manage contract blocked list
+// proposal transaction
+func GetCmdManageContractBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "update-contract-blocked-list [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an update contract blocked list proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an update contract blocked list proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal update-contract-blocked-list <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+ "title": "update contract blocked list proposal with a contract address",
+ "description": "add a contract address into the blocked list",
+ "contract_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
+ "is_added": true,
+ "deposit": [
+   {
+     "denom": "%s",
+     "amount": "100"
+   }
+ ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageContractBlockedListProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			contractAddr, err := sdk.AccAddressFromBech32(proposal.ContractAddr)
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageContractBlockedListProposal(
+				proposal.Title,
+				proposal.Description,
+				contractAddr,
 				proposal.IsAdded,
 			)
 

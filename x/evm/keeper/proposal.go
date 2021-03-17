@@ -45,8 +45,10 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	switch content := msg.Content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal:
 		return k.CheckMsgManageContractDeploymentWhitelistProposal(ctx, content)
+	case types.ManageContractBlockedListProposal:
+		return k.CheckMsgManageContractBlockedListProposal(ctx, content)
 	default:
-		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized dex proposal content type: %T", content))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}
 }
 
@@ -72,10 +74,33 @@ func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Contex
 		return nil
 	}
 
-	// delete the deployer addr from the white list
+	// delete the deployer addr from the whitelist
 	// 1. check the existence of deployer addr in whitelist
 	if !csdb.IsDeployerInWhitelist(proposal.DistributorAddr) {
 		return types.ErrDeployerNotExists(proposal.DistributorAddr)
+	}
+
+	return nil
+}
+
+// CheckMsgManageContractBlockedListProposal checks msg manage contract blocked list proposal
+func (k Keeper) CheckMsgManageContractBlockedListProposal(ctx sdk.Context,
+	proposal types.ManageContractBlockedListProposal) sdk.Error {
+	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	if proposal.IsAdded {
+		// add contract addr into blocked list
+		// 1. check the existence
+		if csdb.IsContractInBlockedList(proposal.ContractAddr) {
+			return types.ErrContractAlreadyExists(proposal.ContractAddr)
+		}
+
+		return nil
+	}
+
+	// delete the contract addr from the blocked list
+	// 1. check the existence of contract addr in blocked list
+	if !csdb.IsContractInBlockedList(proposal.ContractAddr) {
+		return types.ErrContractNotExists(proposal.ContractAddr)
 	}
 
 	return nil

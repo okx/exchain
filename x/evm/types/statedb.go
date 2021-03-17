@@ -969,3 +969,8 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 	return
 }
+
+// IsContractInBlockedList checks whether the contract address is in the blocked list
+func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
+}

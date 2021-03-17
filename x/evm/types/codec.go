@@ -15,7 +15,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
 	cdc.RegisterConcrete(ChainConfig{}, "ethermint/ChainConfig", nil)
 	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal", nil)
-
+	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal", nil)
 }
 
 func init() {
