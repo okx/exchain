@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"math/rand"
 	"os"
@@ -1382,57 +1383,29 @@ func TestWebsocket_Logs(t *testing.T) {
 		topicsList    string   // input
 		expected      int // expected result
 	}{
-		{"","",21},                                    // matches any address & any topics
-		{fmt.Sprintf(`"address":"%s"`, contractAddr1),"",7},                // matches one address & any topics
-		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),"",14}, // matches two addressses & any topics
-		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":"%s"`, approveFuncHash),true},
-		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[null, null, ["%s"]]`, recvAddr1Hash),true},
-		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s"], null, ["%s"]]`, approveFuncHash, recvAddr1Hash),true},
-		//{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s","%s"], null, ["%s","%s"]]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
+		// case 0: matches any contract address & any topics
+		{"","",21},
+		// case 1: matches one contract address & any topics
+		{fmt.Sprintf(`"address":"%s"`, contractAddr1),"",7},
+		// case 2: matches two contract addressses & any topics
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),"",14},
+		// case 3: matches two contract addressses & one topic in first position
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":["%s"]`, approveFuncHash),6},
+		// case 4: matches two contract addressses & one topic in third position
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[null, null, ["%s"]]`, recvAddr1Hash),4},
+		// case 5: matches two contract addressses & two topics in first、third position
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s"], null, ["%s"]]`, approveFuncHash, recvAddr1Hash),2},
+		// case 6: matches two contract addressses & two topic lists in first、third position
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s","%s"], null, ["%s","%s"]]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),8},
 	}
 
-	// create websocket
-	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
-	ws, err := websocket.Dial(url, "", origin)
-	require.NoError(t, err)
-	defer func() {
-		// close websocket
-		err := ws.Close()
-		require.NoError(t, err)
-	}()
-
-	msg := make([]byte, 10240)
-	for _, test := range tests {
-		// fulfill parameters
-		param := assembleParameters(test.addressList, test.topicsList)
-		_, err = ws.Write([]byte(param))
-		require.NoError(t, err)
-
-		// receive subscription id
-		n, err := ws.Read(msg)
-		var res Response
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(msg[:n], &res))
-		subscriptionId := string(res.Result)
-
-		// send txs
-		// fetch logs
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go sendTxs(t, &wg, contractAddr1, contractAddr2, contractAddr3)
-		for i := 0; i < test.expected; i++ {
-			n, err = ws.Read(msg)
-			require.NoError(t, err)
-			var notification websockets.SubscriptionNotification
-			require.NoError(t, json.Unmarshal(msg[:n], &notification))
-		}
-		wg.Wait()
-
-		// cancel the subscription
-		cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
-		_, err = ws.Write([]byte(cancelMsg))
-		require.NoError(t, err)
+	var wg sync.WaitGroup
+	wg.Add(len(tests)+1)
+	for i, test := range tests{
+		go verifyWebSocketRecvNum(t, &wg, i, test.addressList, test.topicsList, test.expected)
 	}
+	go sendTxs(t, &wg, contractAddr1, contractAddr2, contractAddr3)
+	wg.Wait()
 }
 
 func deployTestTokenContract(t *testing.T) string {
@@ -1452,7 +1425,9 @@ func deployTestTokenContract(t *testing.T) string {
 	return contractAddr
 }
 
-func verifyWebSocketRecvNum(t *testing.T, addressList, topicsList string, expected int) {
+func verifyWebSocketRecvNum(t *testing.T, wg *sync.WaitGroup, index int, addressList, topicsList string, expected int) {
+	defer wg.Done()
+
 	// create websocket
 	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
 	ws, err := websocket.Dial(url, "", origin)
@@ -1474,7 +1449,9 @@ func verifyWebSocketRecvNum(t *testing.T, addressList, topicsList string, expect
 	var res Response
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(msg[:n], &res))
+	require.Nil(t,res.Error)
 	subscriptionId := string(res.Result)
+	log.Printf("test case %d: websocket %s is created successfully, expect receive %d logs \n", index, subscriptionId, expected)
 
 	for i := 0; i < expected; i++ {
 		n, err = ws.Read(msg)
@@ -1487,6 +1464,7 @@ func verifyWebSocketRecvNum(t *testing.T, addressList, topicsList string, expect
 	cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
 	_, err = ws.Write([]byte(cancelMsg))
 	require.NoError(t, err)
+	log.Printf("test case %d: webdocket %s receive %d logs, then close successfully", index, subscriptionId, expected)
 }
 
 func assembleParameters(addressList string, topicsList string) string {
