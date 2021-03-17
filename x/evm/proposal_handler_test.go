@@ -30,7 +30,7 @@ func (suite *EvmTestSuite) TestProposalHandler() {
 			"add address into whitelist",
 			func() {},
 			func() {
-				whitelist := suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx)
+				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
 				suite.Require().Equal(1, len(whitelist))
 			},
 			false,
@@ -48,7 +48,7 @@ func (suite *EvmTestSuite) TestProposalHandler() {
 				govProposal.Content = proposal
 			},
 			func() {
-				whitelist := suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx)
+				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
 				suite.Require().Zero(len(whitelist))
 			},
 			false,

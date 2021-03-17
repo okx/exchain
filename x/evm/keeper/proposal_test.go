@@ -37,7 +37,7 @@ func (suite *KeeperTestSuite) TestProposal() {
 	require.NoError(suite.T(), suite.app.EvmKeeper.CheckMsgManageContractDeploymentWhitelistProposal(suite.ctx, proposal))
 	// error check
 	// to add a address already exists in whitelist
-	suite.app.EvmKeeper.SetContractDeploymentWhitelistMember(suite.ctx, addr)
+	suite.stateDB.SetContractDeploymentWhitelistMember(addr)
 	require.Error(suite.T(), suite.app.EvmKeeper.CheckMsgManageContractDeploymentWhitelistProposal(suite.ctx, proposal))
 	// to delete a address not in the whitelist
 	proposal.DistributorAddr = addrUnqualified

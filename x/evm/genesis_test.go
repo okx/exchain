@@ -128,7 +128,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				ContractDeploymentWhitelist: types.ContractDeploymentWhitelist{address.Bytes()},
 			},
 			func() {
-				whitelist := suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx)
+				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
 				suite.Require().Equal(1, len(whitelist))
 				suite.Require().Equal(sdk.AccAddress(address.Bytes()), whitelist[0])
 			},
@@ -477,6 +477,6 @@ func testImport_files(suite *EvmTestSuite,
 			suite.Require().Contains(storage, types.State{key, value})
 			return false
 		})
-		suite.Require().Equal(expectedWhitelist, suite.app.EvmKeeper.GetContractDeploymentWhitelist(suite.ctx))
+		suite.Require().Equal(expectedWhitelist, suite.stateDB.GetContractDeploymentWhitelist())
 	})
 }
