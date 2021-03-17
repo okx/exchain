@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/accounts"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/crypto/hd"
 	"github.com/okex/okexchain/app/rpc/types"
@@ -179,7 +181,10 @@ func signWithAccNameAndPasswd(accName, passWd string, msg []byte) (sig []byte, e
 		return sig, fmt.Errorf("invalid private key type %T", privKey)
 	}
 
-	sig, err = ethPrivKey.Sign(msg)
+	sig, err = crypto.Sign(accounts.TextHash(msg), ethPrivKey.ToECDSA())
+	if err != nil {
+		return nil, err
+	}
 	sig[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
 
 	return
