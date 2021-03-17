@@ -407,7 +407,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
-	var expectedGas uint64 = 6402
+	var expectedGas uint64 = 0x1cf9
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -628,7 +628,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
-	var expectedConsumedGas sdk.Gas = 679074
+	var expectedConsumedGas sdk.Gas = 0xa74c6
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -760,7 +760,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 27402
+	var expectedGas uint64 = 0x6f01
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -787,7 +787,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 	testCases := []struct {
 		msg                               string
 		enableContractDeploymentWhitelist bool
-		contractDeploymentWhitelist       types.ContractDeploymentWhitelist
+		contractDeploymentWhitelist       types.AddressList
 		expPass                           bool
 	}{
 		{
@@ -799,19 +799,19 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 		{
 			"every address could deploy contract when contract deployment whitelist is disabled whatever whitelist members are",
 			false,
-			types.ContractDeploymentWhitelist{addrUnqualified},
+			types.AddressList{addrUnqualified},
 			true,
 		},
 		{
 			"every address in whitelist could deploy contract when contract deployment whitelist is disabled",
 			false,
-			types.ContractDeploymentWhitelist{addrQualified},
+			types.AddressList{addrQualified},
 			true,
 		},
 		{
 			"address in whitelist could deploy contract when contract deployment whitelist is enabled",
 			true,
-			types.ContractDeploymentWhitelist{addrQualified},
+			types.AddressList{addrQualified},
 			true,
 		},
 		{
@@ -823,7 +823,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 		{
 			"address not in the whitelist couldn't deploy contract when contract deployment whitelist is enabled",
 			true,
-			types.ContractDeploymentWhitelist{addrUnqualified},
+			types.AddressList{addrUnqualified},
 			false,
 		},
 	}
@@ -880,7 +880,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 	testCases := []struct {
 		msg                               string
 		enableContractDeploymentWhitelist bool
-		contractDeploymentWhitelist       types.ContractDeploymentWhitelist
+		contractDeploymentWhitelist       types.AddressList
 		expPass                           bool
 	}{
 		{
@@ -892,19 +892,19 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 		{
 			"every address could deploy contract when contract deployment whitelist is disabled whatever whitelist members are",
 			false,
-			types.ContractDeploymentWhitelist{addrUnqualified},
+			types.AddressList{addrUnqualified},
 			true,
 		},
 		{
 			"every address in whitelist could deploy contract when contract deployment whitelist is disabled",
 			false,
-			types.ContractDeploymentWhitelist{addrQualified},
+			types.AddressList{addrQualified},
 			true,
 		},
 		{
 			"address in whitelist could deploy contract when contract deployment whitelist is enabled",
 			true,
-			types.ContractDeploymentWhitelist{addrQualified},
+			types.AddressList{addrQualified},
 			true,
 		},
 		{
@@ -916,7 +916,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 		{
 			"address not in the whitelist couldn't deploy contract when contract deployment whitelist is enabled",
 			true,
-			types.ContractDeploymentWhitelist{addrUnqualified},
+			types.AddressList{addrUnqualified},
 			false,
 		},
 	}
