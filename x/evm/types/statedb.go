@@ -370,6 +370,11 @@ func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
 
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
+	// check for the contract calling from blocked list if contract blocked list is enabled
+	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
+		panic(addr)
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		return so.Code(nil)

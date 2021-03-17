@@ -5,10 +5,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.
-
 const (
 	DefaultCodespace string = ModuleName
 )
@@ -89,4 +89,15 @@ func ErrContractNotExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
 			DefaultParamspace,
 			16,
 			fmt.Sprintf("failed. contract %s is not in the blocked list", contractAddr.String()))}
+}
+
+// ErrCallBlockedContract returns an error when the blocked contract is invoked
+func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			17,
+			fmt.Sprintf("failed. the contract %s is not allowed to invoke", contractAddr.Hex()),
+		),
+	}
 }
