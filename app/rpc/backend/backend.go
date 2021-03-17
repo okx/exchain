@@ -223,7 +223,7 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error) {
-	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(1000)
+	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
 	if err != nil {
 		return nil, err
 	}
