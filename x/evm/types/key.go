@@ -27,6 +27,7 @@ var (
 	KeyPrefixChainConfig                 = []byte{0x06}
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
+	KeyPrefixContractBlockedList         = []byte{0x09}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -46,6 +47,16 @@ func BloomKey(height int64) []byte {
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
 func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
+}
+
+// getContractBlockedListMemberKey builds the key for a blocked contract address
+func getContractBlockedListMemberKey(contractAddr sdk.AccAddress) []byte {
+	return append(KeyPrefixContractBlockedList, contractAddr...)
+}
+
+// splitBlockedContractAddress splits the blocked contract address from a ContractBlockedListMemberKey
+func splitBlockedContractAddress(key []byte) sdk.AccAddress {
+	return key[1:]
 }
 
 // GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer

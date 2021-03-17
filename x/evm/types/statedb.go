@@ -6,19 +6,16 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
-	ethermint "github.com/okex/okexchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/params"
 )
 
 var (
@@ -769,7 +766,6 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	}
 }
 
-
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
@@ -907,4 +903,26 @@ func (csdb *CommitStateDB) SetLogSize(logSize uint) {
 
 func (csdb *CommitStateDB) GetLogSize() uint {
 	return csdb.logSize
+}
+
+// SetContractBlockedListMember sets the blocked contract address as a member into blocked list
+func (csdb *CommitStateDB) SetContractBlockedListMember(contractAddr sdk.AccAddress) {
+	csdb.ctx.KVStore(csdb.storeKey).Set(getContractBlockedListMemberKey(contractAddr), []byte(""))
+}
+
+func (csdb *CommitStateDB) GetContractBlockedList() (blockedList []sdk.AccAddress) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		blockedList = append(blockedList, splitBlockedContractAddress(iterator.Key()))
+	}
+
+	return
+}
+
+// IsContractBlocked checks whether the contract is blocked
+func (csdb *CommitStateDB) IsContractBlocked(contractAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
 }
