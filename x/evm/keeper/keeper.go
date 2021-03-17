@@ -79,6 +79,13 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	}
 }
 
+// GeneratePureCSDBParams generates an instance of csdb params ONLY for store setter and getter
+func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
+	return types.CommitStateDBParams{
+		StoreKey: k.storeKey,
+	}
+}
+
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))

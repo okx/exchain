@@ -2,14 +2,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/vm"
-
-	"gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
+	"github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/params"
+	"gopkg.in/yaml.v2"
 )
 
 const (

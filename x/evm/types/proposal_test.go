@@ -16,7 +16,7 @@ const (
  Title:					default title
  Description:        	default description
  Type:                	ManageContractDeploymentWhitelist
- DeployerAddress:		okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
+ DistributorAddr:		okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
  IsAdded:				true`
 )
 

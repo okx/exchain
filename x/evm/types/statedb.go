@@ -6,19 +6,16 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
-	ethermint "github.com/okex/okexchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/params"
 )
 
 var (
@@ -769,7 +766,6 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	}
 }
 
-
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
@@ -907,4 +903,39 @@ func (csdb *CommitStateDB) SetLogSize(logSize uint) {
 
 func (csdb *CommitStateDB) GetLogSize() uint {
 	return csdb.logSize
+}
+
+// SetContractDeploymentWhitelistMember sets the deployer address as a member into whitelist
+func (csdb *CommitStateDB) SetContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
+	csdb.ctx.KVStore(csdb.storeKey).Set(GetContractDeploymentWhitelistMemberKey(distributorAddr), []byte(""))
+}
+
+// DeleteContractDeploymentWhitelistMember removes the distributor address from whitelist
+func (csdb *CommitStateDB) DeleteContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
+	csdb.ctx.KVStore(csdb.storeKey).Delete(GetContractDeploymentWhitelistMemberKey(distributorAddr))
+}
+
+// SetContractDeploymentWhitelistMember sets the whole whitelist into store
+func (csdb *CommitStateDB) SetContractDeploymentWhitelist(whitelist ContractDeploymentWhitelist) {
+	for i := 0; i < len(whitelist); i++ {
+		csdb.SetContractDeploymentWhitelistMember(whitelist[i])
+	}
+}
+
+// GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
+func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist ContractDeploymentWhitelist) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		whitelist = append(whitelist, SplitApprovedDeployerAddress(iterator.Key()))
+	}
+
+	return
+}
+
+// IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
+func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
 }

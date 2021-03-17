@@ -61,10 +61,11 @@ func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote)
 // CheckMsgManageContractDeploymentWhitelistProposal checks msg manage contract deployment whitelist proposal
 func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Context,
 	proposal types.ManageContractDeploymentWhitelistProposal) sdk.Error {
+	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if proposal.IsAdded {
 		// add deployer addr into whitelist
 		// 1. check the existence
-		if k.isDeployerInWhitelist(ctx, proposal.DistributorAddr) {
+		if csdb.IsDeployerInWhitelist(proposal.DistributorAddr) {
 			return types.ErrDeployerAlreadyExists(proposal.DistributorAddr)
 		}
 
@@ -73,7 +74,7 @@ func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Contex
 
 	// delete the deployer addr from the white list
 	// 1. check the existence of deployer addr in whitelist
-	if !k.isDeployerInWhitelist(ctx, proposal.DistributorAddr) {
+	if !csdb.IsDeployerInWhitelist(proposal.DistributorAddr) {
 		return types.ErrDeployerNotExists(proposal.DistributorAddr)
 	}
 
