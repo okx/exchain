@@ -20,6 +20,7 @@ const (
 	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters   = "params"
 	QueryHeightToHash = "heightToHash"
+	QuerySection      = "section"
 )
 
 // QueryResBalance is response type for balance query

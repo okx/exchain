@@ -45,6 +45,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryParams(ctx, keeper)
 		case types.QueryHeightToHash:
 			return queryHeightToHash(ctx, path, keeper)
+		case types.QuerySection:
+			return querySection(ctx, path, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -242,4 +244,23 @@ func queryHeightToHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 	hash := keeper.GetHeightHash(ctx, uint64(height))
 
 	return hash.Bytes(), nil
+}
+
+func querySection(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if !types.GetEnableBloomFilter() {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"disable bloom filter")
+	}
+
+	if len(path) != 1 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"wrong parameters, need no parameters")
+	}
+
+	res, err := json.Marshal(types.GetIndexer().StoredSection())
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
