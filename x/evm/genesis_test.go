@@ -134,6 +134,31 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			},
 			false,
 		},
+		{
+			"valid contract blocked list",
+			func() {
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				suite.Require().NotNil(acc)
+				err := acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
+				suite.Require().NoError(err)
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+			},
+			types.GenesisState{
+				Params: types.DefaultParams(),
+				Accounts: []types.GenesisAccount{
+					{
+						Address: address.String(),
+					},
+				},
+				ContractBlockedList: types.AddressList{address.Bytes()},
+			},
+			func() {
+				blockedList := suite.stateDB.GetContractBlockedList()
+				suite.Require().Equal(1, len(blockedList))
+				suite.Require().Equal(sdk.AccAddress(address.Bytes()), blockedList[0])
+			},
+			false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -282,6 +307,8 @@ func (suite *EvmTestSuite) TestExport() {
 				},
 			},
 		},
+		ContractDeploymentWhitelist: types.AddressList{address.Bytes()},
+		ContractBlockedList:         types.AddressList{address.Bytes()},
 	}
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
 
@@ -397,7 +424,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 	suite.Require().NoError(err)
 
-	expectedWhitelist := types.AddressList{address.Bytes()}
+	expectedAddrList := types.AddressList{address.Bytes()}
 
 	code := []byte{1, 2, 3}
 	ethAccount := ethermint.EthAccount{
@@ -422,7 +449,8 @@ func (suite *EvmTestSuite) TestExport_files() {
 	initGenesis := types.GenesisState{
 		Params:                      types.DefaultParams(),
 		Accounts:                    []types.GenesisAccount{evmAcc},
-		ContractDeploymentWhitelist: expectedWhitelist,
+		ContractDeploymentWhitelist: expectedAddrList,
+		ContractBlockedList:         expectedAddrList,
 	}
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, suite.app.AccountKeeper, initGenesis)
@@ -445,12 +473,13 @@ func (suite *EvmTestSuite) TestExport_files() {
 		suite.Require().Equal(exportState.Accounts[0].Address, evmAcc.Address)
 		suite.Require().Equal(exportState.Accounts[0].Code, hexutil.Bytes(nil))
 		suite.Require().Equal(exportState.Accounts[0].Storage, types.Storage(nil))
-		suite.Require().Equal(expectedWhitelist, exportState.ContractDeploymentWhitelist)
+		suite.Require().Equal(expectedAddrList, exportState.ContractDeploymentWhitelist)
+		suite.Require().Equal(expectedAddrList, exportState.ContractBlockedList)
 	})
 	suite.Require().DirExists(filepath.Join(tmpPath, "code"))
 	suite.Require().DirExists(filepath.Join(tmpPath, "storage"))
 
-	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage, expectedWhitelist)
+	testImport_files(suite, exportState, tmpPath, ethAccount, code, storage, expectedAddrList)
 }
 
 func testImport_files(suite *EvmTestSuite,
@@ -478,5 +507,6 @@ func testImport_files(suite *EvmTestSuite,
 			return false
 		})
 		suite.Require().Equal(expectedWhitelist, suite.stateDB.GetContractDeploymentWhitelist())
+		suite.Require().Equal(expectedWhitelist, suite.stateDB.GetContractBlockedList())
 	})
 }
