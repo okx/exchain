@@ -78,6 +78,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	// set contract deployment whitelist into store
 	csdb.SetContractDeploymentWhitelist(data.ContractDeploymentWhitelist)
 
+	// set contract blocked list into store
+	csdb.SetContractBlockedList(data.ContractBlockedList)
+
 	logger.Debug("Import finished", "code", codeCount, "storage", storageCount)
 
 	// set state objects and code to store
@@ -164,5 +167,6 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 		ChainConfig:                 config,
 		Params:                      k.GetParams(ctx),
 		ContractDeploymentWhitelist: csdb.GetContractDeploymentWhitelist(),
+		ContractBlockedList:         csdb.GetContractBlockedList(),
 	}
 }

@@ -15,6 +15,7 @@ type (
 		Accounts                    []GenesisAccount  `json:"accounts"`
 		TxsLogs                     []TransactionLogs `json:"txs_logs"`
 		ContractDeploymentWhitelist AddressList       `json:"contract_deployment_whitelist"`
+		ContractBlockedList         AddressList       `json:"contract_blocked_list"`
 		ChainConfig                 ChainConfig       `json:"chain_config"`
 		Params                      Params            `json:"params"`
 	}
