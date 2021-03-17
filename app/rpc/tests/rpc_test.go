@@ -20,6 +20,7 @@ import (
 	"github.com/okex/okexchain/app/rpc/websockets"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
+	_type "google.golang.org/genproto/googleapis/identity/accesscontextmanager/type"
 
 	"math/big"
 	"math/rand"
@@ -1367,4 +1368,71 @@ func TestWebsocket_PendingTransaction(t *testing.T) {
 	cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
 	_, err = ws.Write([]byte(cancelMsg))
 	require.NoError(t, err)
+}
+
+//{} or nil          matches any topic list
+//{A}                matches topic A in first position
+//{{}, {B}}          matches any topic in first position AND B in second position
+//{{A}, {B}}         matches topic A in first position AND B in second position
+//{{A, B}, {C, D}}   matches topic (A OR B) in first position AND (C OR D) in second position
+func TestWebsocket_Logs(t *testing.T) {
+	contractAddr1, contractAddr2, contractAddr3 := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
+
+	// init test cases
+	tests := []struct {
+		addressList   string   // input
+		topicsList    string   // input
+		expected  bool // expected result
+	}{
+		{nil,``,true},                                    // matches any address & any topics
+		{fmt.Sprintf(`"%s"`, contractAddr1),``,true},                // matches one address & any topics
+		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),``,true}, // matches two addressses & any topics
+		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"%s"`, approveFuncHash),true},
+		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`null, null, ["%s"]`, recvAddr1Hash),true},
+		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`["%s"], null, ["%s"]`, approveFuncHash, recvAddr1Hash),true},
+		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`["%s","%s"], null, ["%s","%s"]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
+	}
+
+	// create websocket
+	origin, url := "http://127.0.0.1:8546/", "ws://127.0.0.1:8546"
+	ws, err := websocket.Dial(url, "", origin)
+	require.NoError(t, err)
+	defer func() {
+		// close websocket
+		err = ws.Close()
+		require.NoError(t, err)
+	}()
+
+	for _, test := range tests {
+		// fulfill parameters
+
+		// send txs
+		// fetch logs
+
+		// unsub
+	}
+}
+
+func deployTestTokenContract(t *testing.T) string {
+	param := make([]map[string]string, 1)
+	param[0] = map[string]string{
+		"from": hexAddr1.Hex(),
+		"data": ttokenContractByteCode,
+		"gasPrice": (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String(),
+	}
+	rpcRes := Call(t, "eth_sendTransaction", param)
+	var hash ethcmn.Hash
+	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	receipt := WaitForReceipt(t, hash)
+	require.NotNil(t, receipt)
+	contractAddr, ok := receipt["contractAddress"].(string)
+	require.True(t, ok)
+	return contractAddr
+}
+
+func assembleParameters(addressList string, topicsList string) string {
+
+
+
+	return fmt.Sprintf(`{"id": 2, "method": "eth_subscribe", "params": ["logs",{%s}]}`, addressList+topicsList)
 }
