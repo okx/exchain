@@ -11,6 +11,8 @@ import (
 	"time"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -151,9 +153,9 @@ func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		// "startingBlock": nil, // NA
-		"currentBlock": hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
-		// "highestBlock":  nil, // NA
+		"startingBlock": hexutil.Uint64(status.SyncInfo.EarliestBlockHeight),
+		"currentBlock":  hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
+		"highestBlock":  hexutil.Uint64(0), // NA
 		// "pulledStates":  nil, // NA
 		// "knownStates":   nil, // NA
 	}, nil
@@ -416,13 +418,14 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 	}
 
 	// Sign the requested hash with the wallet
-	signature, err := key.Sign(data)
+	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
 	if err != nil {
 		return nil, err
 	}
 
-	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
-	return signature, nil
+	sig[crypto.RecoveryIDOffset] += 27 // transform V from 0/1 to 27/28
+
+	return sig, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
