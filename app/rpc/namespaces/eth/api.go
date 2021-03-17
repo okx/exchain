@@ -155,9 +155,9 @@ func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		// "startingBlock": nil, // NA
-		"currentBlock": hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
-		// "highestBlock":  nil, // NA
+		"startingBlock": hexutil.Uint64(status.SyncInfo.EarliestBlockHeight),
+		"currentBlock":  hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
+		"highestBlock":  hexutil.Uint64(0), // NA
 		// "pulledStates":  nil, // NA
 		// "knownStates":   nil, // NA
 	}, nil

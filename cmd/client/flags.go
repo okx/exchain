@@ -8,6 +8,6 @@ const (
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool(FlagPersonalAPI, false, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Bool(FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 }
