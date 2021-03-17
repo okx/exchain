@@ -10,7 +10,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"os"
+	"strings"
 	"sync"
+	"testing"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -20,14 +26,6 @@ import (
 	"github.com/okex/okexchain/app/rpc/websockets"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
-	_type "google.golang.org/genproto/googleapis/identity/accesscontextmanager/type"
-
-	"math/big"
-	"math/rand"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 const (
@@ -1376,21 +1374,21 @@ func TestWebsocket_PendingTransaction(t *testing.T) {
 //{{A}, {B}}         matches topic A in first position AND B in second position
 //{{A, B}, {C, D}}   matches topic (A OR B) in first position AND (C OR D) in second position
 func TestWebsocket_Logs(t *testing.T) {
-	contractAddr1, contractAddr2, contractAddr3 := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
+	contractAddr1, contractAddr2, _ := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
 
 	// init test cases
 	tests := []struct {
 		addressList   string   // input
 		topicsList    string   // input
-		expected  bool // expected result
+		expected      bool // expected result
 	}{
-		{nil,``,true},                                    // matches any address & any topics
-		{fmt.Sprintf(`"%s"`, contractAddr1),``,true},                // matches one address & any topics
-		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),``,true}, // matches two addressses & any topics
-		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"%s"`, approveFuncHash),true},
-		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`null, null, ["%s"]`, recvAddr1Hash),true},
-		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`["%s"], null, ["%s"]`, approveFuncHash, recvAddr1Hash),true},
-		{fmt.Sprintf(`["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`["%s","%s"], null, ["%s","%s"]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
+		{"","",true},                                    // matches any address & any topics
+		{fmt.Sprintf(`"address":"%s"`, contractAddr1),"",true},                // matches one address & any topics
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),"",true}, // matches two addressses & any topics
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":"%s"`, approveFuncHash),true},
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[null, null, ["%s"]]`, recvAddr1Hash),true},
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s"], null, ["%s"]]`, approveFuncHash, recvAddr1Hash),true},
+		{fmt.Sprintf(`"address":["%s","%s"]`, contractAddr1, contractAddr2),fmt.Sprintf(`"topics":[["%s","%s"], null, ["%s","%s"]]`, approveFuncHash,transferFuncHash, recvAddr1Hash, recvAddr2Hash),true},
 	}
 
 	// create websocket
@@ -1399,17 +1397,32 @@ func TestWebsocket_Logs(t *testing.T) {
 	require.NoError(t, err)
 	defer func() {
 		// close websocket
-		err = ws.Close()
+		err := ws.Close()
 		require.NoError(t, err)
 	}()
 
+	msg := make([]byte, 10240)
 	for _, test := range tests {
 		// fulfill parameters
+		param := assembleParameters(test.addressList, test.topicsList)
+		_, err = ws.Write([]byte(param))
+		require.NoError(t, err)
+
+		// receive subscription id
+		n, err := ws.Read(msg)
+		var res Response
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(msg[:n], &res))
+		subscriptionId := string(res.Result)
 
 		// send txs
 		// fetch logs
 
 		// unsub
+		// cancel the subscription
+		cancelMsg := fmt.Sprintf(`{"id": 2, "method": "eth_unsubscribe", "params": [%s]}`, subscriptionId)
+		_, err = ws.Write([]byte(cancelMsg))
+		require.NoError(t, err)
 	}
 }
 
@@ -1431,8 +1444,15 @@ func deployTestTokenContract(t *testing.T) string {
 }
 
 func assembleParameters(addressList string, topicsList string) string {
-
-
-
-	return fmt.Sprintf(`{"id": 2, "method": "eth_subscribe", "params": ["logs",{%s}]}`, addressList+topicsList)
+	var param string
+	if addressList == "" {
+		param = topicsList
+	}
+	if topicsList == "" {
+		param = addressList
+	}
+	if addressList != "" && topicsList != "" {
+		param = addressList+","+topicsList
+	}
+	return fmt.Sprintf(`{"id": 2, "method": "eth_subscribe", "params": ["logs",{%s}]}`, param)
 }
