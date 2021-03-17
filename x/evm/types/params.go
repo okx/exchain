@@ -2,12 +2,12 @@ package types
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/params"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -22,6 +22,7 @@ var (
 	ParamStoreKeyEnableCall                  = []byte("EnableCall")
 	ParamStoreKeyExtraEIPs                   = []byte("EnableExtraEIPs")
 	ParamStoreKeyContractDeploymentWhitelist = []byte("EnableContractDeploymentWhitelist")
+	ParamStoreKeyContractBlockedList         = []byte("EnableContractBlockedList")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -42,16 +43,20 @@ type Params struct {
 	ExtraEIPs []int `json:"extra_eips" yaml:"extra_eips"`
 	// EnableContractDeploymentWhitelist controls the authorization of contract deployer
 	EnableContractDeploymentWhitelist bool `json:"enable_contract_deployment_whitelist" yaml:"enable_contract_deployment_whitelist"`
+	// EnableContractBlockedList controls the availability of contracts
+	EnableContractBlockedList bool `json:"enable_contract_blocked_list" yaml:"enable_contract_blocked_list"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall, enableContractDeploymentWhitelist bool, extraEIPs ...int) Params {
+func NewParams(evmDenom string, enableCreate, enableCall, enableContractDeploymentWhitelist, enableContractBlockedList bool,
+	extraEIPs ...int) Params {
 	return Params{
 		EvmDenom:                          evmDenom,
 		EnableCreate:                      enableCreate,
 		EnableCall:                        enableCall,
 		ExtraEIPs:                         extraEIPs,
 		EnableContractDeploymentWhitelist: enableContractDeploymentWhitelist,
+		EnableContractBlockedList:         enableContractBlockedList,
 	}
 }
 
@@ -63,6 +68,7 @@ func DefaultParams() Params {
 		EnableCall:                        false,
 		ExtraEIPs:                         []int(nil), // TODO: define default values
 		EnableContractDeploymentWhitelist: false,
+		EnableContractBlockedList:         false,
 	}
 }
 
@@ -80,6 +86,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyEnableCall, &p.EnableCall, validateBool),
 		params.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
 		params.NewParamSetPair(ParamStoreKeyContractDeploymentWhitelist, &p.EnableContractDeploymentWhitelist, validateBool),
+		params.NewParamSetPair(ParamStoreKeyContractBlockedList, &p.EnableContractBlockedList, validateBool),
 	}
 }
 
