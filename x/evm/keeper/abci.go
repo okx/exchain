@@ -52,11 +52,13 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	if types.GetEnableBloomFilter() {
-		interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
-		if interval%types.BloomBitsBlocks == 0 && !types.GetIndexer().IsProcessing(){
-			go types.GetIndexer().ProcessSection(ctx, k, req.Height)
+		if indexer := types.GetIndexer(); indexer != nil {
+			interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
+			if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks && !types.GetIndexer().IsProcessing() {
+				go types.GetIndexer().ProcessSection(ctx, k, interval)
+			}
 		}
 	}
 

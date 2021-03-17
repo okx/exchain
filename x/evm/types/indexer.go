@@ -62,7 +62,7 @@ func InitIndexer() {
 		update:  make(chan struct{}),
 		quit:    make(chan struct{}),
 	}
-	indexer.setValidSections(indexer.getValidSections())
+	indexer.setValidSections(indexer.GetValidSections())
 }
 
 func GetIndexer() *Indexer {
@@ -80,13 +80,13 @@ func (i *Indexer) IsProcessing() bool {
 	return i.processing == 1
 }
 
-func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, height int64) {
+func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	if atomic.SwapUint32(&i.processing, 1) == 1 {
 		ctx.Logger().Error("matcher already running")
 		return
 	}
 	defer atomic.StoreUint32(&i.processing, 0)
-	knownSection := uint64(height) / BloomBitsBlocks
+	knownSection := interval / BloomBitsBlocks
 	for i.storedSections < knownSection {
 		section := i.storedSections
 		lastHead := i.sectionHead(section)
@@ -160,7 +160,7 @@ func (i *Indexer) setValidSections(sections uint64) {
 
 // loadValidSections reads the number of valid sections from the index database
 // and caches is into the local state.
-func (i *Indexer) getValidSections() uint64 {
+func (i *Indexer) GetValidSections() uint64 {
 	data, _ := i.backend.db.Get([]byte("count"))
 	if len(data) == 8 {
 		return binary.BigEndian.Uint64(data)
