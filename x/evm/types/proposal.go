@@ -93,7 +93,7 @@ func (mp ManageContractDeploymentWhitelistProposal) String() string {
  Title:					%s
  Description:        	%s
  Type:                	%s
- DeployerAddress:		%s
+ DistributorAddr:		%s
  IsAdded:				%t`,
 		mp.Title, mp.Description, mp.ProposalType(), mp.DistributorAddr.String(), mp.IsAdded)
 }
