@@ -177,35 +177,11 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				return "", fmt.Errorf("invalid topics")
 			}
 
-			crit.Topics = [][]common.Hash{}
-			for _, topic := range topics {
-				if topic == nil {
-					crit.Topics = append(crit.Topics, []common.Hash{})
-				} else {
-					tstr, ok := topic.(string)
-					tstres, sok := topic.([]interface{})
-					if !ok && !sok {
-						return "", fmt.Errorf("invalid topics")
-					}
-					if ok {
-						if !IsHexHash(tstr) {
-							return "", fmt.Errorf("invalid topics")
-						}
-						h := common.HexToHash(tstr)
-						crit.Topics = append(crit.Topics, []common.Hash{h})
-					} else if sok {
-						topicHashes := make([]common.Hash, len(tstres))
-						for i, tstr := range tstres {
-							topicHash, ok := tstr.(string)
-							if !ok || !IsHexHash(topicHash) {
-								return "", fmt.Errorf("invalid topics")
-							}
-							topicHashes[i] = common.HexToHash(topicHash)
-						}
-						crit.Topics = append(crit.Topics, topicHashes)
-					}
-				}
+			topicFilterLists, err :=  resolveTopicList(topics)
+			if err != nil {
+				return "", fmt.Errorf("invalid topics")
 			}
+			crit.Topics = topicFilterLists
 		}
 	}
 
@@ -275,6 +251,50 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 	}(sub.Event(), sub.Err())
 
 	return sub.ID(), nil
+}
+
+func resolveTopicList(params []interface{}) ([][]common.Hash, error) {
+	topicFilterLists := make([][]common.Hash, len(params))
+	for i, param := range params { // eg: ["0xddf252......f523b3ef", null, ["0x000000......32fea9e4", "0x000000......ab14dc5d"]]
+		if param == nil {
+			// 1.1 if the topic is null
+			topicFilterLists[i] = nil
+		} else {
+			// 2.1 judge if the param is the type of string or not
+			topicStr, ok := param.(string)
+			// 2.1 judge if the param is the type of string slice or not
+			topicSlices, sok := param.([]interface{})
+			if !ok && !sok {
+				// if both judgement are false, return invalid topics
+				return topicFilterLists, fmt.Errorf("invalid topics")
+			}
+
+			if ok {
+				// 2.2 This is string
+				// 2.3 judge the topic is a valid hex hash or not
+				if !IsHexHash(topicStr) {
+					return topicFilterLists, fmt.Errorf("invalid topics")
+				}
+				// 2.4 add this topic to topic-hash-lists
+				topicHash := common.HexToHash(topicStr)
+				topicFilterLists[i] = []common.Hash{topicHash}
+			} else if sok {
+				// 2.2 This is slice of string
+				topicHashes := make([]common.Hash, len(topicSlices))
+				for n, topicStr := range topicSlices {
+					//2.3 judge every topic
+					topicHash, ok := topicStr.(string)
+					if !ok || !IsHexHash(topicHash) {
+						return topicFilterLists, fmt.Errorf("invalid topics")
+					}
+					topicHashes[n] = common.HexToHash(topicHash)
+				}
+				// 2.4 add this topic slice to topic-hash-lists
+				topicFilterLists[i] = topicHashes
+			}
+		}
+	}
+	return topicFilterLists, nil
 }
 
 func IsHexHash(s string) bool {
