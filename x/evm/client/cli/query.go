@@ -41,7 +41,7 @@ func GetCmdQueryContractDeploymentWhitelist(storeName string, cdc *codec.Codec) 
 		Use:   "contract-deployment-whitelist",
 		Short: "query the whitelist of contract deployment",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the current whitelist of deployers for contract deployment.
+			fmt.Sprintf(`Query the current whitelist of distributors for contract deployment.
 
 Example:
 $ %s query evm contract-deployment-whitelist
