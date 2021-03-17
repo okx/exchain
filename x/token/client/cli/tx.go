@@ -3,12 +3,12 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"io/ioutil"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -260,7 +260,7 @@ func getCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
 				}
 				transferStr = string(transferBytes)
 				//return errors.New(transferStr)
-				transfers, err = types.StrToTransfers(transferStr)
+				transfers, err = types.CSVToTransfers(transferStr)
 				if err != nil {
 					return err
 				}

@@ -1,8 +1,10 @@
 package types
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -95,6 +97,39 @@ func StrToTransfers(str string) (transfers []TransferUnit, err error) {
 		t.Coins, err = sdk.ParseDecCoins(trans.Amount)
 		if err != nil {
 			return transfers, err
+		}
+		transfers = append(transfers, t)
+	}
+	return transfers, nil
+}
+
+func CSVToTransfers(str string) (transfers []TransferUnit, err error) {
+	br := bufio.NewReader(strings.NewReader(str))
+	for {
+		a, _, c := br.ReadLine()
+		if c == io.EOF {
+			break
+		}
+
+		spl := strings.Split(strings.TrimSpace(string(a)), ",")
+		if len(spl) != 2 {
+			panic("invalid csv file")
+		}
+
+		trans := Transfer{
+			To:     spl[0],
+			Amount: spl[1] + "okt",
+		}
+
+		var t TransferUnit
+		to, err := sdk.AccAddressFromBech32(trans.To)
+		if err != nil {
+			panic(fmt.Errorf("invalid address %s: %s", trans.To, err))
+		}
+		t.To = to
+		t.Coins, err = sdk.ParseDecCoins(trans.Amount)
+		if err != nil {
+			panic(err)
 		}
 		transfers = append(transfers, t)
 	}
