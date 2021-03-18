@@ -90,7 +90,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
 			_ = wsConn.Close()
-			s.logger.Error(fmt.Sprintf("failed to read message: %s", err))
+			s.logger.Error("failed to read message; error", err)
 			return
 		}
 
