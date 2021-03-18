@@ -404,12 +404,27 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 	startingBlock := hexutil.Uint64(status.SyncInfo.EarliestBlockHeight)
 	highestBlock := hexutil.Uint64(0)
 
+	var result interface{}
+
 	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
-			case event := <-headersCh:
-				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
-				blockHeight := data.Header.Height
+			case <-headersCh:
+
+				newStatus, err := api.clientCtx.Client.Status()
+				if err != nil {
+					api.logger.Error("error get sync status: %s", err.Error())
+				}
+
+				if !newStatus.SyncInfo.CatchingUp {
+					result = false
+				} else {
+					result = map[string]interface{}{
+						"startingBlock": startingBlock,
+						"currentBlock":  hexutil.Uint64(newStatus.SyncInfo.LatestBlockHeight),
+						"highestBlock":  highestBlock,
+					}
+				}
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
@@ -419,11 +434,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 						Method:  "eth_subscription",
 						Params: &SubscriptionResult{
 							Subscription: sub.ID(),
-							Result: map[string]interface{}{
-								"startingBlock": startingBlock,
-								"currentBlock":  hexutil.Uint64(blockHeight),
-								"highestBlock":  highestBlock, // NA
-							},
+							Result:       result,
 						},
 					}
 
