@@ -5,19 +5,17 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
 	"github.com/gorilla/websocket"
 
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-
-	context "github.com/cosmos/cosmos-sdk/client/context"
 
 	rpcfilters "github.com/okex/okexchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
@@ -75,7 +73,9 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	if api.filters[id] == nil {
 		return false
 	}
-	api.filters[id].sub.Unsubscribe(api.events)
+	if api.filters[id].sub != nil {
+		api.filters[id].sub.Unsubscribe(api.events)
+	}
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
 	return true
@@ -125,8 +125,13 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 					}
 				}
 				api.filtersMu.Unlock()
+
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
+				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
@@ -233,16 +238,19 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						res.Params.Result = singleLog
 						err = f.conn.WriteJSON(res)
 						if err != nil {
-							api.filtersMu.Unlock()
-							err = fmt.Errorf("failed to write header: %w", err)
-							return
+							api.logger.Error(fmt.Sprintf("failed to write header: %s", err))
+							break
 						}
 					}
 				}
 				api.filtersMu.Unlock()
 
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
+				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
@@ -364,17 +372,23 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 					}
 
 					err = f.conn.WriteJSON(res)
+					if err != nil {
+						api.logger.Error(fmt.Sprintf("failed to write header: %s", err.Error()))
+					}
 				}
 				api.filtersMu.Unlock()
 
-				if err != nil {
-					err = fmt.Errorf("failed to write header: %w", err)
-					return
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
 				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				return
+			case <-unsubscribed:
+				return
 			}
 		}
 	}(sub.Event(), sub.Err())
@@ -451,6 +465,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
