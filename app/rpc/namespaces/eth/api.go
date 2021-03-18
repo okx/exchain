@@ -224,10 +224,13 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	api.logger.Debug("eth_blockNumber")
 	latestHeight, e := api.wrappedBackend.GetLatestBlockNumber()
 	if e == nil {
+		api.logger.Debug("wrappedBackend.GetLatestBlockNumber matched")
 		if latestHeight > 0 {
 			latestHeight--
 		}
 		return hexutil.Uint64(latestHeight), e
+	} else {
+		api.logger.Debug("wrappedBackend.GetLatestBlockNumber unmatched")
 	}
 	return api.backend.BlockNumber()
 }
@@ -401,7 +404,10 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
 	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
+		api.logger.Debug("wrappedBackend.GetCode matched")
 		return code, nil
+	} else {
+		api.logger.Debug("wrappedBackend.GetCode unmatched")
 	}
 	clientCtx := api.clientCtx.WithHeight(blockNumber.Int64())
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
@@ -672,7 +678,10 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (int
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
 	ethBlock, err := api.wrappedBackend.GetBlockByHash(hash, fullTx)
 	if err == nil {
+		api.logger.Debug("wrappedBackend.GetBlockByHash matched")
 		return ethBlock, nil
+	} else {
+		api.logger.Debug("wrappedBackend.GetBlockByHash unmatched")
 	}
 	block, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
@@ -687,7 +696,10 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 
 	ethBlock, err := api.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
+		api.logger.Debug("wrappedBackend.GetBlockByNumber matched")
 		return ethBlock, nil
+	} else {
+		api.logger.Debug("wrappedBackend.GetBlockByNumber unmatched")
 	}
 	var blockTxs interface{}
 	if blockNum != rpctypes.PendingBlockNumber {
@@ -875,7 +887,10 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 	api.logger.Debug("eth_getTransactionReceipt", "hash", hash)
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
 	if e == nil {
+		api.logger.Debug("wrappedBackend.GetTransactionReceipt matched")
 		return res, nil
+	} else {
+		api.logger.Debug("wrappedBackend.GetTransactionReceipt unmatched")
 	}
 
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
