@@ -14,7 +14,6 @@ import (
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -699,29 +698,109 @@ func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
 }
 
 func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
-	whitelist := suite.stateDB.GetContractDeploymentWhitelist()
-	require.Zero(suite.T(), len(whitelist))
-
 	// create addresses for test
 	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 
-	// setter
-	suite.stateDB.SetContractDeploymentWhitelistMember(addr)
-	whitelist = suite.stateDB.GetContractDeploymentWhitelist()
-	require.Equal(suite.T(), 1, len(whitelist))
+	var whitelist types.AddressList
+	testCase := []struct {
+		name        string
+		malleate    func()
+		statusCheck func()
+		expectedLen int
+	}{
+		{
+			"empty whitelist",
+			func() {},
+			func() {},
+			0,
+		},
+		{
+			"add member into whitelist",
+			func() {
+				suite.stateDB.SetContractDeploymentWhitelistMember(addr)
+			},
+			func() {
+				suite.Require().True(suite.stateDB.IsDeployerInWhitelist(addr))
+				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
+			},
+			1,
+		},
+		{
+			"delete member from whitelist",
+			func() {
+				suite.stateDB.DeleteContractDeploymentWhitelistMember(addr)
+			},
+			func() {
+				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addr))
+				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
+			},
+			0,
+		},
+	}
 
-	// check for whitelist
-	require.True(suite.T(), suite.stateDB.IsDeployerInWhitelist(addr))
-	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			tc.malleate()
 
-	// delete
-	suite.stateDB.DeleteContractDeploymentWhitelistMember(addr)
+			whitelist = suite.stateDB.GetContractDeploymentWhitelist()
+			suite.Require().Equal(tc.expectedLen, len(whitelist))
 
-	// check for whitelist
-	whitelist = suite.stateDB.GetContractDeploymentWhitelist()
-	require.Zero(suite.T(), len(whitelist))
+			tc.statusCheck()
+		})
+	}
+}
 
-	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addr))
-	require.False(suite.T(), suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractBlockedList() {
+	// create addresses for test
+	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	var blockedList types.AddressList
+	testCase := []struct {
+		name        string
+		malleate    func()
+		statusCheck func()
+		expectedLen int
+	}{
+		{
+			"empty blocked list",
+			func() {},
+			func() {},
+			0,
+		},
+		{
+			"add member into blocked list",
+			func() {
+				suite.stateDB.SetContractBlockedListMember(addr)
+			},
+			func() {
+				suite.Require().True(suite.stateDB.IsContractInBlockedList(addr))
+				suite.Require().False(suite.stateDB.IsContractInBlockedList(addrUnqualified))
+			},
+			1,
+		},
+		{
+			"delete member from blocked list",
+			func() {
+				suite.stateDB.DeleteContractBlockedListMember(addr)
+			},
+			func() {
+				suite.Require().False(suite.stateDB.IsContractInBlockedList(addr))
+				suite.Require().False(suite.stateDB.IsContractInBlockedList(addrUnqualified))
+			},
+			0,
+		},
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			tc.malleate()
+
+			blockedList = suite.stateDB.GetContractBlockedList()
+			suite.Require().Equal(tc.expectedLen, len(blockedList))
+
+			tc.statusCheck()
+		})
+	}
 }
