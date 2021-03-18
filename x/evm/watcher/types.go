@@ -128,7 +128,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		BlockHash:         blockHash.String(),
 		BlockNumber:       height,
 		TransactionIndex:  txIndex,
-		From:              tx.From().String(),
+		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
 		To:                toAddr,
 	}
 	jsTr, e := json.Marshal(tr)
