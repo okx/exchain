@@ -75,7 +75,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	if api.filters[id] == nil {
 		return false
 	}
-
+	api.filters[id].sub.Unsubscribe(api.events)
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
 	return true
@@ -444,6 +444,11 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 					}
 				}
 				api.filtersMu.Unlock()
+
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
+				}
+
 			case <-errCh:
 				api.filtersMu.Lock()
 				delete(api.filters, sub.ID())
