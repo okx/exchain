@@ -89,8 +89,10 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	knownSection := interval / BloomBitsBlocks
 	for i.storedSections < knownSection {
 		section := i.storedSections
-		lastHead := i.sectionHead(section)
-
+		var lastHead common.Hash
+		if section > 0 {
+			lastHead = i.sectionHead(section - 1)
+		}
 		ctx.Logger().Debug("Processing new chain section", "section", section)
 
 		// Reset and partial processing

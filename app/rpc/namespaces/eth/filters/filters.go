@@ -109,18 +109,27 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		f.criteria.ToBlock = big.NewInt(head)
 	}
 
+	if f.criteria.FromBlock.Int64() <= tmtypes.GetStartBlockHeight() ||
+		f.criteria.ToBlock.Int64() <= tmtypes.GetStartBlockHeight(){
+		return nil, fmt.Errorf("from and to block height must greater than %d", tmtypes.GetStartBlockHeight())
+	}
+
 	begin := f.criteria.FromBlock.Uint64()
 	end := f.criteria.ToBlock.Uint64()
 	size, sections := f.backend.BloomStatus()
-	if indexed := sections*size + uint64(tmtypes.GetStartBlockHeight()); indexed > uint64(begin) {
+	if indexed := sections*size + uint64(tmtypes.GetStartBlockHeight()); indexed > begin {
+		// update from block height
+		f.criteria.FromBlock.Sub(f.criteria.FromBlock, big.NewInt(tmtypes.GetStartBlockHeight()))
 		if indexed > end {
-			logs, err = f.indexedLogs(ctx, end)
+			logs, err = f.indexedLogs(ctx, end-uint64(tmtypes.GetStartBlockHeight()))
 		} else {
-			logs, err = f.indexedLogs(ctx, indexed-1)
+			logs, err = f.indexedLogs(ctx, indexed-1-uint64(tmtypes.GetStartBlockHeight()))
 		}
 		if err != nil {
 			return logs, err
 		}
+		// recover from block height
+		f.criteria.FromBlock.Add(f.criteria.FromBlock, big.NewInt(tmtypes.GetStartBlockHeight()))
 	}
 	rest, err := f.unindexedLogs(ctx, end)
 	logs = append(logs, rest...)
@@ -186,6 +195,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 	for {
 		select {
 		case number, ok := <-matches:
+			number += uint64(tmtypes.GetStartBlockHeight())
 			// Abort if all matches have been fulfilled
 			if !ok {
 				err := session.Error()
