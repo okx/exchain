@@ -1093,61 +1093,43 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 		msg                       string
 		enableContractBlockedList bool
 		contractBlockedList       types.AddressList
-		invokeContract1           bool
-		invokeContract2           bool
-		prepare                   func()
 		expectedErrorForContract1 bool
 		expectedErrorForContract2 bool
 	}{
 		{
-			"every contract could be invoked with empty blocked list which is disabled",
-			false,
-			types.AddressList{},
-			true,
-			true,
-			func() {},
-			false,
-			false,
+			msg:                       "every contract could be invoked with empty blocked list which is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
 		},
 		{
-			"every contract could be invoked with empty blocked list which is enabled",
-			true,
-			types.AddressList{},
-			true,
-			true,
-			func() {},
-			false,
-			false,
+			msg:                       "every contract could be invoked with empty blocked list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
 		},
 		{
-			"every contract in the blocked list could be invoked when contract blocked list is disabled",
-			false,
-			types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
-			true,
-			true,
-			func() {},
-			false,
-			false,
+			msg:                       "every contract in the blocked list could be invoked when contract blocked list is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
 		},
 		{
-			"Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
-			true,
-			types.AddressList{suite.contract2Addr.Bytes()},
-			true,
-			true,
-			func() {},
-			false,
-			true,
+			msg:                       "Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: true,
 		},
 		{
-			"Neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
-			true,
-			types.AddressList{suite.contract1Addr.Bytes()},
-			true,
-			true,
-			func() {},
-			true,
-			true,
+			msg:                       "Neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
+			expectedErrorForContract1: true,
+			expectedErrorForContract2: true,
 		},
 	}
 
@@ -1165,27 +1147,20 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 
 			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 
-			// prepare
-			tc.prepare()
-
-			if tc.invokeContract1 {
-				// nonce here could be any value
-				err = suite.deployOrInvokeContract(callerPrivKey, invokeContract1HexPayload, 1024, &suite.contract1Addr)
-				if tc.expectedErrorForContract1 {
-					suite.Require().Error(err)
-				} else {
-					suite.Require().NoError(err)
-				}
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract1HexPayload, 1024, &suite.contract1Addr)
+			if tc.expectedErrorForContract1 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
 			}
 
-			if tc.invokeContract2 {
-				// nonce here could be any value
-				err = suite.deployOrInvokeContract(callerPrivKey, invokeContract2HexPayload, 1024, &suite.contract2Addr)
-				if tc.expectedErrorForContract2 {
-					suite.Require().Error(err)
-				} else {
-					suite.Require().NoError(err)
-				}
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract2HexPayload, 1024, &suite.contract2Addr)
+			if tc.expectedErrorForContract2 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
 			}
 		})
 	}
