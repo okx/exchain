@@ -11,9 +11,6 @@ import (
 )
 
 func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProposal() {
-	// reset state
-	suite.SetupTest()
-
 	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 	proposal := types.NewManageContractDeploymentWhitelistProposal(
@@ -78,9 +75,6 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProp
 }
 
 func (suite *KeeperTestSuite) TestProposal_ManageContractBlockedListProposal() {
-	// reset state
-	suite.SetupTest()
-
 	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 	proposal := types.NewManageContractBlockedListProposal(
