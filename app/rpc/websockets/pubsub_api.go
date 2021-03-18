@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -396,5 +397,83 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 }
 
 func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
-	return "", nil
+	sub, _, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return "", fmt.Errorf("error creating block filter: %s", err.Error())
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	status, err := api.clientCtx.Client.Status()
+	if err != nil {
+		return "", fmt.Errorf("error get sync status: %s", err.Error())
+	}
+	startingBlock := hexutil.Uint64(status.SyncInfo.EarliestBlockHeight)
+	highestBlock := hexutil.Uint64(0)
+
+	var result interface{}
+
+	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case <-headersCh:
+
+				newStatus, err := api.clientCtx.Client.Status()
+				if err != nil {
+					api.logger.Error("error get sync status: %s", err.Error())
+				}
+
+				if !newStatus.SyncInfo.CatchingUp {
+					result = false
+				} else {
+					result = map[string]interface{}{
+						"startingBlock": startingBlock,
+						"currentBlock":  hexutil.Uint64(newStatus.SyncInfo.LatestBlockHeight),
+						"highestBlock":  highestBlock,
+					}
+				}
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[sub.ID()]; found {
+					// write to ws conn
+					res := &SubscriptionNotification{
+						Jsonrpc: "2.0",
+						Method:  "eth_subscription",
+						Params: &SubscriptionResult{
+							Subscription: sub.ID(),
+							Result:       result,
+						},
+					}
+
+					err = f.conn.WriteJSON(res)
+					if err != nil {
+						api.logger.Error("error writing syncing")
+					}
+				}
+				api.filtersMu.Unlock()
+
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
+				}
+
+			case <-errCh:
+				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
+				delete(api.filters, sub.ID())
+				api.filtersMu.Unlock()
+				return
+			case <-unsubscribed:
+				return
+			}
+		}
+	}(sub.Event(), sub.Err())
+
+	return sub.ID(), nil
 }
