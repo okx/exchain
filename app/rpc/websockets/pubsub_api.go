@@ -128,6 +128,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
@@ -180,7 +181,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				return "", fmt.Errorf("invalid topics")
 			}
 
-			topicFilterLists, err :=  resolveTopicList(topics)
+			topicFilterLists, err := resolveTopicList(topics)
 			if err != nil {
 				return "", fmt.Errorf("invalid topics")
 			}
@@ -234,7 +235,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						res.Params.Result = singleLog
 						err = f.conn.WriteJSON(res)
 						if err != nil {
-							err = fmt.Errorf("failed to write header: %w", err)
+							api.logger.Error(fmt.Sprintf("failed to write header: %s", err))
 							break
 						}
 					}
@@ -246,6 +247,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
 				return
@@ -367,19 +369,21 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 					}
 
 					err = f.conn.WriteJSON(res)
+					if err != nil {
+						api.logger.Error(fmt.Sprintf("failed to write header: %s", err.Error()))
+					}
 				}
 				api.filtersMu.Unlock()
 
-				if err != nil {
-					if err == websocket.ErrCloseSent {
-						api.unsubscribe(sub.ID())
-					}
-					err = fmt.Errorf("failed to write header: %w", err)
+				if err == websocket.ErrCloseSent {
+					api.unsubscribe(sub.ID())
 				}
 			case <-errCh:
 				api.filtersMu.Lock()
+				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				return
 			case <-unsubscribed:
 				return
 			}
