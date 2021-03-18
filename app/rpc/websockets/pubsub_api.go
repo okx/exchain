@@ -5,6 +5,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"github.com/gorilla/websocket"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -177,7 +179,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				return "", fmt.Errorf("invalid topics")
 			}
 
-			topicFilterLists, err :=  resolveTopicList(topics)
+			topicFilterLists, err := resolveTopicList(topics)
 			if err != nil {
 				return "", fmt.Errorf("invalid topics")
 			}
@@ -381,5 +383,66 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 }
 
 func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
-	return "", nil
+	sub, _, err := api.events.SubscribeNewHeads()
+	if err != nil {
+		return "", fmt.Errorf("error creating block filter: %s", err.Error())
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	status, err := api.clientCtx.Client.Status()
+	if err != nil {
+		return "", fmt.Errorf("error get sync status: %s", err.Error())
+	}
+	startingBlock := hexutil.Uint64(status.SyncInfo.EarliestBlockHeight)
+	highestBlock := hexutil.Uint64(0)
+
+	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case event := <-headersCh:
+				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
+				blockHeight := data.Header.Height
+
+				api.filtersMu.Lock()
+				if f, found := api.filters[sub.ID()]; found {
+					// write to ws conn
+					res := &SubscriptionNotification{
+						Jsonrpc: "2.0",
+						Method:  "eth_subscription",
+						Params: &SubscriptionResult{
+							Subscription: sub.ID(),
+							Result: map[string]interface{}{
+								"startingBlock": startingBlock,
+								"currentBlock":  hexutil.Uint64(blockHeight),
+								"highestBlock":  highestBlock, // NA
+							},
+						},
+					}
+
+					err = f.conn.WriteJSON(res)
+					if err != nil {
+						api.logger.Error("error writing syncing")
+					}
+				}
+				api.filtersMu.Unlock()
+			case <-errCh:
+				api.filtersMu.Lock()
+				delete(api.filters, sub.ID())
+				api.filtersMu.Unlock()
+				return
+			case <-unsubscribed:
+				return
+			}
+		}
+	}(sub.Event(), sub.Err())
+
+	return sub.ID(), nil
 }
