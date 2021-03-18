@@ -72,6 +72,9 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	if api.filters[id] == nil {
 		return false
 	}
+	if api.filters[id].sub == nil {
+		return false
+	}
 	api.filters[id].sub.Unsubscribe(api.events)
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
