@@ -74,11 +74,10 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 		{
 			"overlong title",
 			func() {
-				var b strings.Builder
 				for i := 0; i < govtypes.MaxTitleLength+1; i++ {
-					b.WriteByte('a')
+					suite.strBuilder.WriteByte('a')
 				}
-				proposal.Title = b.String()
+				proposal.Title = suite.strBuilder.String()
 			},
 			true,
 		},
@@ -93,11 +92,11 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 		{
 			"overlong description",
 			func() {
-				var b strings.Builder
+				suite.strBuilder.Reset()
 				for i := 0; i < govtypes.MaxDescriptionLength+1; i++ {
-					b.WriteByte('a')
+					suite.strBuilder.WriteByte('a')
 				}
-				proposal.Description = b.String()
+				proposal.Description = suite.strBuilder.String()
 			},
 			true,
 		},
