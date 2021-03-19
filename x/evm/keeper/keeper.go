@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/spf13/viper"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
@@ -55,6 +56,12 @@ func NewKeeper(
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	if enable := viper.GetBool(types.FlagEnableBloomFilter); enable {
+		types.SetEnableBloomFilter(enable)
+		db := types.BloomDb()
+		types.InitIndexer(db)
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
