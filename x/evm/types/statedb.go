@@ -93,6 +93,8 @@ type CommitStateDB struct {
 
 	// mutex for state deep copying
 	lock sync.Mutex
+
+	params *Params
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -164,6 +166,7 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 
 // SetParams sets the evm parameters to the param space.
 func (csdb *CommitStateDB) SetParams(params Params) {
+	csdb.params = &params
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
 }
 
@@ -328,9 +331,13 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 }
 
 // GetParams returns the total set of evm parameters.
-func (csdb *CommitStateDB) GetParams() (params Params) {
-	csdb.paramSpace.GetParamSet(csdb.ctx, &params)
-	return params
+func (csdb *CommitStateDB) GetParams() Params {
+	if csdb.params == nil {
+		var params Params
+		csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+		csdb.params = &params
+	}
+	return *csdb.params
 }
 
 // GetBalance retrieves the balance from the given address or 0 if object not
@@ -700,6 +707,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	csdb.preimages = []preimageEntry{}
 	csdb.hashToPreimageIndex = make(map[ethcmn.Hash]int)
 	csdb.accessList = newAccessList()
+	csdb.params = nil
 
 	csdb.clearJournalAndRefund()
 	return nil
