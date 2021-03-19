@@ -30,10 +30,12 @@ func NewKeeper(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 		metric: metrics,
 		stream: NewStream(orderKeeper, tokenKeeper, dexKeeper, swapKeeper, farmKeeper, cdc, logger, cfg),
 	}
-	dexKeeper.SetObserverKeeper(k)
-	accountKeeper.SetObserverKeeper(k)
-	swapKeeper.SetObserverKeeper(k)
-	farmKeeper.SetObserverKeeper(k)
+	if k.stream.engines != nil {
+		dexKeeper.SetObserverKeeper(k)
+		accountKeeper.SetObserverKeeper(k)
+		swapKeeper.SetObserverKeeper(k)
+		farmKeeper.SetObserverKeeper(k)
+	}
 	return k
 }
 
