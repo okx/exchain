@@ -98,16 +98,16 @@ type MsgTransactionReceipt struct {
 }
 
 type TransactionReceipt struct {
-	Status            uint32          `json:"status"`
-	CumulativeGasUsed uint64          `json:"cumulativeGasUsed"`
+	Status            hexutil.Uint64  `json:"status"`
+	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed"`
 	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
 	Logs              []*ethtypes.Log `json:"logs"`
 	TransactionHash   string          `json:"transactionHash"`
 	ContractAddress   string          `json:"contractAddress"`
-	GasUsed           uint64          `json:"gasUsed"`
+	GasUsed           hexutil.Uint64  `json:"gasUsed"`
 	BlockHash         string          `json:"blockHash"`
-	BlockNumber       uint64          `json:"blockNumber"`
-	TransactionIndex  uint64          `json:"transactionIndex"`
+	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
+	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
 	From              string          `json:"from"`
 	To                string          `json:"to"`
 }
@@ -118,16 +118,16 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		toAddr = tx.To().String()
 	}
 	tr := TransactionReceipt{
-		Status:            status,
-		CumulativeGasUsed: cumulativeGas,
+		Status:            hexutil.Uint64(status),
+		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
 		TransactionHash:   txHash.String(),
 		ContractAddress:   data.ContractAddress.String(),
-		GasUsed:           GasUsed,
+		GasUsed:           hexutil.Uint64(GasUsed),
 		BlockHash:         blockHash.String(),
-		BlockNumber:       height,
-		TransactionIndex:  txIndex,
+		BlockNumber:       hexutil.Uint64(height),
+		TransactionIndex:  hexutil.Uint64(txIndex),
 		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
 		To:                toAddr,
 	}
@@ -152,7 +152,7 @@ type MsgBlock struct {
 }
 
 type EthBlock struct {
-	Number           uint64         `json:"number"`
+	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
 	Nonce            uint64         `json:"nonce"`
@@ -162,13 +162,13 @@ type EthBlock struct {
 	StateRoot        common.Hash    `json:"stateRoot"`
 	Miner            common.Address `json:"miner"`
 	MixHash          common.Hash    `json:"mixHash"`
-	Difficulty       uint64         `json:"difficulty"`
-	TotalDifficulty  uint64         `json:"totalDifficulty"`
+	Difficulty       hexutil.Uint64 `json:"difficulty"`
+	TotalDifficulty  hexutil.Uint64 `json:"totalDifficulty"`
 	ExtraData        hexutil.Bytes  `json:"extraData"`
-	Size             uint64         `json:"size"`
-	GasLimit         uint64         `json:"gasLimit"`
-	GasUsed          *big.Int       `json:"gasUsed"`
-	Timestamp        uint64         `json:"timestamp"`
+	Size             hexutil.Uint64 `json:"size"`
+	GasLimit         hexutil.Uint64 `json:"gasLimit"`
+	GasUsed          *hexutil.Big   `json:"gasUsed"`
+	Timestamp        hexutil.Uint64 `json:"timestamp"`
 	Uncles           []string       `json:"uncles"`
 	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
 	Transactions     interface{}    `json:"transactions"`
@@ -176,7 +176,7 @@ type EthBlock struct {
 
 func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
 	b := EthBlock{
-		Number:           height,
+		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
 		Nonce:            0,
@@ -189,10 +189,10 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Difficulty:       0,
 		TotalDifficulty:  0,
 		ExtraData:        nil,
-		Size:             uint64(header.Size()),
-		GasLimit:         gasLimit,
-		GasUsed:          gasUsed,
-		Timestamp:        uint64(header.Time.Unix()),
+		Size:             hexutil.Uint64(header.Size()),
+		GasLimit:         hexutil.Uint64(gasLimit),
+		GasUsed:          (*hexutil.Big)(gasUsed),
+		Timestamp:        hexutil.Uint64(header.Time.Unix()),
 		Uncles:           []string{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
