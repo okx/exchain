@@ -1051,6 +1051,9 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	// init contracts for test environment
+	suite.deployInterdependentContracts()
 }
 
 // deployInterdependentContracts deploys two contracts that Contract1 will be invoked by Contract2
@@ -1067,25 +1070,36 @@ func (suite *EvmContractBlockedListTestSuite) deployInterdependentContracts() {
 	suite.Require().NoError(err)
 }
 
-func (suite *EvmContractBlockedListTestSuite) deployOrInvokeContract(privkey ethsecp256k1.PrivKey, hexPayload string,
+func (suite *EvmContractBlockedListTestSuite) deployOrInvokeContract(source interface{}, hexPayload string,
 	nonce uint64, to *ethcmn.Address) error {
 	payload, err := hexutil.Decode(hexPayload)
 	suite.Require().NoError(err)
 
-	tx := types.NewMsgEthereumTx(nonce, to, nil, 3000000, big.NewInt(1), payload)
+	var msg interface{}
+	switch s := source.(type) {
+	case ethsecp256k1.PrivKey:
+		msgEthereumTx := types.NewMsgEthereumTx(nonce, to, nil, 3000000, big.NewInt(1), payload)
+		// sign transaction
+		err = msgEthereumTx.Sign(suite.chainID, s.ToECDSA())
+		suite.Require().NoError(err)
+		msg = msgEthereumTx
+	case sdk.AccAddress:
+		var toAccAddr sdk.AccAddress
+		if to == nil {
+			toAccAddr = nil
+		} else {
+			toAccAddr = to.Bytes()
+		}
+		msg = types.NewMsgEthermint(nonce, &toAccAddr, sdk.ZeroInt(), 3000000, sdk.OneInt(), payload, s)
+	}
 
-	// sign transaction
-	err = tx.Sign(suite.chainID, privkey.ToECDSA())
-	suite.Require().NoError(err)
-
-	_, err = suite.handler(suite.ctx, tx)
+	m, ok := msg.(sdk.Msg)
+	suite.Require().True(ok)
+	_, err = suite.handler(suite.ctx, m)
 	return err
 }
 
 func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedListControlling_MsgEthereumTx() {
-	// deploy all contracts for test
-	suite.deployInterdependentContracts()
-
 	callerPrivKey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
 
@@ -1157,6 +1171,86 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 
 			// nonce here could be any value
 			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract2HexPayload, 1024, &suite.contract2Addr)
+			if tc.expectedErrorForContract2 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
+}
+
+func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedListControlling_MsgEthermint() {
+	callerAddr := sdk.AccAddress(ethcmn.BytesToAddress([]byte{0x0}).Bytes())
+
+	testCases := []struct {
+		msg                       string
+		enableContractBlockedList bool
+		contractBlockedList       types.AddressList
+		expectedErrorForContract1 bool
+		expectedErrorForContract2 bool
+	}{
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract in the blocked list could be invoked when contract blocked list is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: true,
+		},
+		{
+			msg:                       "Neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
+			expectedErrorForContract1: true,
+			expectedErrorForContract2: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			// update params
+			params := suite.app.EvmKeeper.GetParams(suite.ctx)
+			params.EnableContractBlockedList = tc.enableContractBlockedList
+			suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+			// reset contract blocked list
+			for _, addr := range suite.stateDB.GetContractBlockedList() {
+				suite.stateDB.DeleteContractBlockedListMember(addr)
+			}
+
+			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
+
+			// nonce here could be any value
+			err := suite.deployOrInvokeContract(callerAddr, invokeContract1HexPayload, 1024, &suite.contract1Addr)
+			if tc.expectedErrorForContract1 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerAddr, invokeContract2HexPayload, 1024, &suite.contract2Addr)
 			if tc.expectedErrorForContract2 {
 				suite.Require().Error(err)
 			} else {
