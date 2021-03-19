@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/viper"
@@ -33,7 +34,11 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 	ethBackend := backend.New(clientCtx)
 	ethAPI := eth.NewAPI(clientCtx, ethBackend, nonceLock, keys...)
 	if evmtypes.GetEnableBloomFilter() {
-		backend.SetEthBackend(ethBackend)
+		server.TrapSignal(func() {
+			if ethBackend != nil {
+				ethBackend.Close()
+			}
+		})
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
 

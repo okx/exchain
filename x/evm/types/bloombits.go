@@ -17,11 +17,8 @@ package types
 
 import (
 	"encoding/binary"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
-	"path/filepath"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -64,13 +61,7 @@ const (
 
 var (
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
-
-	enableBloomFilter bool
 )
-
-func GetEnableBloomFilter() bool {
-	return enableBloomFilter
-}
 
 // bloomIndexer implements a core.ChainIndexer, building up a rotated bloom bits index
 // for the Ethereum header bloom filters, permitting blazing fast filtering.
@@ -82,13 +73,7 @@ type bloomIndexer struct {
 	head    common.Hash          // Head is the hash of the last header processed
 }
 
-func initBloomIndexer() bloomIndexer {
-	dataDir := filepath.Join(viper.GetString("home"), "data")
-	var err error
-	db, err := sdk.NewLevelDB(bloomDir, dataDir)
-	if err != nil {
-		panic(err)
-	}
+func initBloomIndexer(db dbm.DB) bloomIndexer {
 	return bloomIndexer{
 		db:   db,
 		size: BloomBitsBlocks,

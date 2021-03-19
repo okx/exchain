@@ -9,27 +9,34 @@ import (
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
+	"path/filepath"
 	"sync/atomic"
 )
 
 var (
-	headerPrefix     = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
-	headerHashSuffix = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
+	indexer           *Indexer
+	enableBloomFilter bool
 )
 
-var indexer *Indexer
+type Keeper interface {
+	GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom
+	GetHeightHash(ctx sdk.Context, height uint64) common.Hash
+}
 
 func init() {
 	server.TrapSignal(func() {
-		if indexer.backend.db != nil {
+		if indexer != nil && indexer.backend.db != nil {
 			indexer.backend.db.Close()
 		}
 	})
 }
 
-type Keeper interface {
-	GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom
-	GetHeightHash(ctx sdk.Context, height uint64) common.Hash
+func GetEnableBloomFilter() bool {
+	return enableBloomFilter
+}
+
+func SetEnableBloomFilter(enable bool) {
+	enableBloomFilter = enable
 }
 
 // Indexer does a post-processing job for equally sized sections of the
@@ -51,18 +58,27 @@ type Indexer struct {
 	processing     uint32 // Atomic flag whether indexer is processing or not
 }
 
-func InitIndexer() {
-	enableBloomFilter = viper.GetBool(FlagEnableBloomFilter)
+func InitIndexer(db dbm.DB) {
 	if !enableBloomFilter {
 		return
 	}
 
 	indexer = &Indexer{
-		backend: initBloomIndexer(),
+		backend: initBloomIndexer(db),
 		update:  make(chan struct{}),
 		quit:    make(chan struct{}),
 	}
 	indexer.setValidSections(indexer.GetValidSections())
+}
+
+func BloomDb() dbm.DB {
+	dataDir := filepath.Join(viper.GetString("home"), "data")
+	var err error
+	db, err := sdk.NewLevelDB(bloomDir, dataDir)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func GetIndexer() *Indexer {

@@ -3,9 +3,6 @@ package backend
 import (
 	"context"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/server"
-	tmtypes "github.com/tendermint/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
 	"os"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -20,25 +17,9 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 )
-
-func init() {
-	server.TrapSignal(func() {
-		if gEthBackend != nil {
-			close(gEthBackend.closeBloomHandler)
-		}
-	})
-}
-
-var gEthBackend *EthermintBackend
-
-func SetEthBackend(backend *EthermintBackend) {
-	gEthBackend = backend
-}
-
-func GetEthBackend() *EthermintBackend {
-	return gEthBackend
-}
 
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
@@ -352,4 +333,9 @@ func (b *EthermintBackend) GetBlockHashByHeight(height rpctypes.BlockNumber) (co
 
 	hash := common.BytesToHash(res)
 	return hash, nil
+}
+
+// Close
+func (b *EthermintBackend) Close() {
+	close(b.closeBloomHandler)
 }
