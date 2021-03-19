@@ -1139,7 +1139,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 			expectedErrorForContract2: true,
 		},
 		{
-			msg:                       "Neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			msg:                       "neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
 			enableContractBlockedList: true,
 			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
 			expectedErrorForContract1: true,
@@ -1219,7 +1219,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 			expectedErrorForContract2: true,
 		},
 		{
-			msg:                       "Neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			msg:                       "neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
 			enableContractBlockedList: true,
 			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
 			expectedErrorForContract1: true,
