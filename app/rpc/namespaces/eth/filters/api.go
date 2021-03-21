@@ -3,6 +3,7 @@ package filters
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	"sync"
 	"time"
 
@@ -29,6 +30,8 @@ type Backend interface {
 
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
+	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
+	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
 }
 
 // consider a filter inactive if it has not been polled for within deadline
@@ -431,7 +434,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
 	if err != nil {
-		return nil, err
+		return logs, err
 	}
 
 	return returnLogs(logs), nil
