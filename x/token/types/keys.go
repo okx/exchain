@@ -34,6 +34,8 @@ const (
 	QueryAccountV2 = "accountsV2"
 	QueryTokensV2  = "tokensV2"
 	QueryTokenV2   = "tokenV2"
+
+	UploadAccount = "upload"
 )
 
 var (

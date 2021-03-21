@@ -1,0 +1,141 @@
+package token
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
+	"os"
+	"path"
+	"sync/atomic"
+	"time"
+
+	"github.com/okex/okexchain/cmd/client"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
+)
+
+var (
+	processing  atomic.Value
+	logFileName = "export-upload-account.log"
+)
+
+func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
+	pt := time.Now().UTC().Format(time.RFC3339)
+	rootDir := viper.GetString(cli.HomeFlag)
+
+	accFileName := fmt.Sprintf("accounts-%d-%s.csv", ctx.BlockHeight(), pt)
+
+	// 1. open log file
+	logFile, logWr, err := openLogFile()
+	if err != nil {
+		return
+	}
+	defer logFile.Close()
+	defer logWr.Flush()
+
+	recodeLog(logWr, "===============")
+	recodeLog(logWr, fmt.Sprintf("time: %s", pt))
+	recodeLog(logWr, fmt.Sprintf("height: %d", ctx.BlockHeight()))
+	recodeLog(logWr, fmt.Sprintf("file name: %s", accFileName))
+
+	// 2. open account file
+	accFile, err := os.OpenFile(path.Join(rootDir, accFileName), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		recodeLog(logWr, fmt.Sprintf("open account file error: %s", err))
+		return
+	}
+	defer accFile.Close()
+	accWr := bufio.NewWriter(accFile)
+	defer accWr.Flush()
+
+	count := 0
+	startTime := time.Now()
+	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
+		ethAcc, ok := account.(*ethermint.EthAccount)
+		if !ok {
+			return false
+		}
+
+		//account.SpendableCoins()
+		oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		if !oktBalance.GT(sdk.ZeroDec()) {
+			return false
+		}
+
+		accType := 0 //0:user account  1:contract account
+		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
+			accType = 1
+		}
+
+		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
+			ethAcc.EthAddress().String(),
+			accType,
+			oktBalance.String(),
+			ctx.BlockHeight(),
+			pt,
+		)
+		fmt.Fprintln(accWr, csvStr)
+		count++
+		return false
+	})
+	recodeLog(logWr, fmt.Sprintf("count: %d", count))
+	recodeLog(logWr, fmt.Sprintf("export duration: %s", time.Since(startTime).String()))
+	return path.Join(rootDir, accFileName)
+}
+
+func uploadOSS(file string) {
+	// 1. open log file
+	logFile, logWr, err := openLogFile()
+	if err != nil {
+		return
+	}
+	defer logFile.Close()
+	defer logWr.Flush()
+
+	startTime := time.Now()
+	// create OSSClient
+	ossClient, err := oss.New(viper.GetString(client.FlagOSSEndpoint), viper.GetString(client.FlagOSSAccessKeyID), viper.GetString(client.FlagOSSAccessKeySecret))
+	if err != nil {
+		recodeLog(logWr, fmt.Sprintf("creates oss lcient error: %s", err))
+		return
+	}
+
+	// gets the bucket instance
+	bucket, err := ossClient.Bucket(viper.GetString(client.FlagOSSBucketName))
+	if err != nil {
+		recodeLog(logWr, fmt.Sprintf("gets the bucket instance error: %s", err))
+		return
+	}
+
+	// TODO yourObjectName
+	// multipart file upload
+	err = bucket.UploadFile("<yourObjectName>", file, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
+	if err != nil {
+		recodeLog(logWr, fmt.Sprintf("multipart file upload error: %s", err))
+		return
+	}
+	recodeLog(logWr, fmt.Sprintf("oss file: %s", "<yourObjectName>"))
+	recodeLog(logWr, fmt.Sprintf("upload duration: %s", time.Since(startTime).String()))
+}
+
+func openLogFile() (*os.File, *bufio.Writer, error) {
+	rootDir := viper.GetString(cli.HomeFlag)
+
+	file, err := os.OpenFile(path.Join(rootDir, logFileName), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logWr := bufio.NewWriter(file)
+	return file, logWr, nil
+}
+func recodeLog(w io.Writer, s string) {
+	fmt.Fprintln(w, s)
+}

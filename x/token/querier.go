@@ -31,6 +31,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryTokensV2(ctx, path[1:], req, keeper)
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
+		case types.UploadAccount:
+			return uploadAccount(ctx, keeper)
 		default:
 			return nil, types.ErrUnknownTokenQueryType()
 		}
@@ -166,4 +168,22 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return res, nil
+}
+
+func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	p := processing.Load()
+	if p != nil && p.(bool) {
+		return []byte("Exporting account data and uploading it to oss, please be patient"), nil
+	}
+	processing.Store(true)
+	go func(ctx sdk.Context, keeper Keeper) {
+		defer processing.Store(false)
+		filePath := exportAccounts(ctx, keeper)
+		if filePath == "" {
+			return
+		}
+		uploadOSS(filePath)
+	}(ctx, keeper)
+
+	return []byte("Start to export account data and upload it to oss, please wait patiently"), nil
 }
