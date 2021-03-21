@@ -688,10 +688,6 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (int
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
 
-	ethBlock, err := api.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
-	if err == nil {
-		return ethBlock, nil
-	}
 	var blockTxs interface{}
 	if blockNum != rpctypes.PendingBlockNumber {
 		return api.backend.GetBlockByNumber(blockNum, fullTx)
