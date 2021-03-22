@@ -227,7 +227,7 @@ Where proposal.json contains:
 			content := types.NewManageContractDeploymentWhitelistProposal(
 				proposal.Title,
 				proposal.Description,
-				distributorAddr,
+				[]sdk.AccAddress{distributorAddr},
 				proposal.IsAdded,
 			)
 

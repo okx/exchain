@@ -30,14 +30,14 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 		return sdkErr
 	}
 
-	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if manageContractDeploymentWhitelistProposal.IsAdded {
-		// add deployer address into whitelist
-		csdb.SetContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
-		return nil
-	}
-
-	// remove deployer address from whitelist
-	csdb.DeleteContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
+	//csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	//if manageContractDeploymentWhitelistProposal.IsAdded {
+	//	// add deployer address into whitelist
+	//	csdb.SetContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
+	//	return nil
+	//}
+	//
+	//// remove deployer address from whitelist
+	//csdb.DeleteContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
 	return nil
 }
