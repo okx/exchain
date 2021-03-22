@@ -8,7 +8,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-const ViperFlagFastQuery = "fast-query"
+const FlagFastQuery = "fast-query"
 
 type WatchStore struct {
 	db *leveldb.DB

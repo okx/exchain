@@ -24,7 +24,7 @@ type Watcher struct {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: viper.GetBool(ViperFlagFastQuery)}
+	return &Watcher{store: InstanceOfWatchStore(), sw: viper.GetBool(FlagFastQuery)}
 }
 
 func (w Watcher) enabled() bool {

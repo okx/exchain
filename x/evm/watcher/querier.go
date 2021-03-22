@@ -29,7 +29,7 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore(), sw: viper.GetBool(ViperFlagFastQuery)}
+	return &Querier{store: InstanceOfWatchStore(), sw: viper.GetBool(FlagFastQuery)}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
