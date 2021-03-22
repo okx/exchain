@@ -224,13 +224,6 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 // BlockNumber returns the current block number.
 func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	api.logger.Debug("eth_blockNumber")
-	latestHeight, e := api.wrappedBackend.GetLatestBlockNumber()
-	if e == nil {
-		if latestHeight > 0 {
-			latestHeight--
-		}
-		return hexutil.Uint64(latestHeight), e
-	}
 	return api.backend.BlockNumber()
 }
 
