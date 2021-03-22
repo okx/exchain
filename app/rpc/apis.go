@@ -2,7 +2,9 @@ package rpc
 
 import (
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -29,8 +31,16 @@ const (
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
 func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
-	backend := backend.New(clientCtx)
-	ethAPI := eth.NewAPI(clientCtx, backend, nonceLock, keys...)
+	ethBackend := backend.New(clientCtx)
+	ethAPI := eth.NewAPI(clientCtx, ethBackend, nonceLock, keys...)
+	if evmtypes.GetEnableBloomFilter() {
+		server.TrapSignal(func() {
+			if ethBackend != nil {
+				ethBackend.Close()
+			}
+		})
+		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
+	}
 
 	apis := []rpc.API{
 		{
@@ -48,7 +58,7 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   filters.NewAPI(clientCtx, backend),
+			Service:   filters.NewAPI(clientCtx, ethBackend),
 			Public:    true,
 		},
 		{
