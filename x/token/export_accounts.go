@@ -54,6 +54,11 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	defer accFile.Close()
 	accWr := bufio.NewWriter(accFile)
 	defer accWr.Flush()
+	defer func() {
+		if err := recover(); err != nil {
+			recodeLog(logWr, fmt.Sprintf("panic: %s", err))
+		}
+	}()
 
 	count := 0
 	startTime := time.Now()
@@ -98,6 +103,11 @@ func uploadOSS(file string) {
 	}
 	defer logFile.Close()
 	defer logWr.Flush()
+	defer func() {
+		if err := recover(); err != nil {
+			recodeLog(logWr, fmt.Sprintf("panic: %s", err))
+		}
+	}()
 
 	startTime := time.Now()
 	// create OSSClient
