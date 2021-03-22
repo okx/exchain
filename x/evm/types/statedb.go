@@ -952,20 +952,19 @@ func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bo
 	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractDeploymentWhitelistMemberKey(deployerAddr))
 }
 
-// SetContractBlockedListMember sets the contract address as a member into blocked list
-func (csdb *CommitStateDB) SetContractBlockedListMember(contractAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Set(getContractBlockedListMemberKey(contractAddr), []byte(""))
+// SetContractBlockedList sets the target address list into blocked list store
+func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Set(getContractBlockedListMemberKey(addrList[i]), []byte(""))
+	}
 }
 
-// DeleteContractBlockedListMember removes the contract address from blocked list
-func (csdb *CommitStateDB) DeleteContractBlockedListMember(contractAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Delete(getContractBlockedListMemberKey(contractAddr))
-}
-
-// SetContractBlockedList sets the whole contract blocked list into store
-func (csdb *CommitStateDB) SetContractBlockedList(blockedList AddressList) {
-	for i := 0; i < len(blockedList); i++ {
-		csdb.SetContractBlockedListMember(blockedList[i])
+// DeleteContractBlockedList deletes the target address list from blocked list store
+func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Delete(getContractBlockedListMemberKey(addrList[i]))
 	}
 }
 
