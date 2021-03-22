@@ -12,7 +12,7 @@ import (
 
 const (
 	expectedJSONString = `{
-  "title": "manage contract proposal whitelist with a distributor address",
+  "title": "update contract proposal whitelist with a distributor address",
   "description": "add a distributor address into the whitelist",
   "distributor_addresses": [
     "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
@@ -27,7 +27,7 @@ const (
   ]
 }`
 	fileName                 = "./proposal.json"
-	expectedTitle            = "manage contract proposal whitelist with a distributor address"
+	expectedTitle            = "update contract proposal whitelist with a distributor address"
 	expectedDescription      = "add a distributor address into the whitelist"
 	expectedDistributorAddr1 = "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0"
 	expectedDistributorAddr2 = "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"

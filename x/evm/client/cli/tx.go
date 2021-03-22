@@ -196,7 +196,7 @@ $ %s tx gov submit-proposal update-contract-deployment-whitelist <path/to/propos
 Where proposal.json contains:
 
 {
-  "title": "manage contract proposal whitelist with a distributor address",
+  "title": "update contract proposal whitelist with a distributor address",
   "description": "add a distributor address into the whitelist",
   "distributor_addresses": [
     "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
