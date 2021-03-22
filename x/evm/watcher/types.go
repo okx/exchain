@@ -23,6 +23,9 @@ const (
 	prefixLatestHeight = "0x6"
 
 	KeyLatestHeight = "LatestHeight"
+
+	TransactionSuccess = 1
+	TransactionFailed  = 0
 )
 
 type WatchMessage interface {

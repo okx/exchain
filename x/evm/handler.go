@@ -5,6 +5,7 @@ import (
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/evm/watcher"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -108,7 +109,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		if !st.Simulate {
-			k.Watcher.SaveTransactionReceipt(0, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
 		return nil, err
 	}
@@ -117,7 +118,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
-		k.Watcher.SaveTransactionReceipt(1, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
 			k.Watcher.SaveContractCode(resultData.ContractAddress, msg.Data.Payload)
 		}
