@@ -32,7 +32,7 @@ type Backend interface {
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
-	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
+	GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -120,7 +120,11 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+	ethBlock, err := b.wrappedBackend.GetBlockByHash(hash, fullTx)
+	if err == nil {
+		return ethBlock, nil
+	}
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err

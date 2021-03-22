@@ -666,10 +666,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-	ethBlock, err := api.wrappedBackend.GetBlockByHash(hash, fullTx)
-	if err == nil {
-		return ethBlock, nil
-	}
+
 	block, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
