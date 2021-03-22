@@ -10,11 +10,11 @@ import (
 // ManageContractDeploymentWhitelistProposalJSON defines a ManageContractDeploymentWhitelistProposal with a deposit used
 // to parse manage white list proposals from a JSON file.
 type ManageContractDeploymentWhitelistProposalJSON struct {
-	Title        string       `json:"title" yaml:"title"`
-	Description  string       `json:"description" yaml:"description"`
-	DistributorAddr string       `json:"distributor_address" yaml:"distributor_address"`
-	IsAdded      bool         `json:"is_added" yaml:"is_added"`
-	Deposit      sdk.SysCoins `json:"deposit" yaml:"deposit"`
+	Title            string           `json:"title" yaml:"title"`
+	Description      string           `json:"description" yaml:"description"`
+	DistributorAddrs []sdk.AccAddress `json:"distributor_addresses" yaml:"distributor_addresses"`
+	IsAdded          bool             `json:"is_added" yaml:"is_added"`
+	Deposit          sdk.SysCoins     `json:"deposit" yaml:"deposit"`
 }
 
 // ParseManageContractDeploymentWhitelistProposalJSON parse json from proposal file to ManageContractDeploymentWhitelistProposalJSON
