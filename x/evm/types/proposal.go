@@ -29,10 +29,10 @@ var (
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
 type ManageContractDeploymentWhitelistProposal struct {
-	Title            string           `json:"title" yaml:"title"`
-	Description      string           `json:"description" yaml:"description"`
-	DistributorAddrs []sdk.AccAddress `json:"distributor_addresses" yaml:"distributor_addresses"`
-	IsAdded          bool             `json:"is_added" yaml:"is_added"`
+	Title            string      `json:"title" yaml:"title"`
+	Description      string      `json:"description" yaml:"description"`
+	DistributorAddrs AddressList `json:"distributor_addresses" yaml:"distributor_addresses"`
+	IsAdded          bool        `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
@@ -137,20 +137,20 @@ func isAddrDuplicated(addrs []sdk.AccAddress) bool {
 
 // ManageContractBlockedListProposal - structure for the proposal to add or delete a contract address from blocked list
 type ManageContractBlockedListProposal struct {
-	Title        string         `json:"title" yaml:"title"`
-	Description  string         `json:"description" yaml:"description"`
-	ContractAddr sdk.AccAddress `json:"contract_address" yaml:"contract_address"`
-	IsAdded      bool           `json:"is_added" yaml:"is_added"`
+	Title         string      `json:"title" yaml:"title"`
+	Description   string      `json:"description" yaml:"description"`
+	ContractAddrs AddressList `json:"contract_addresses" yaml:"contract_addresses"`
+	IsAdded       bool        `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractBlockedListProposal creates a new instance of ManageContractBlockedListProposal
-func NewManageContractBlockedListProposal(title, description string, contractAddr sdk.AccAddress, isAdded bool,
+func NewManageContractBlockedListProposal(title, description string, contractAddrs AddressList, isAdded bool,
 ) ManageContractBlockedListProposal {
 	return ManageContractBlockedListProposal{
-		Title:        title,
-		Description:  description,
-		ContractAddr: contractAddr,
-		IsAdded:      isAdded,
+		Title:         title,
+		Description:   description,
+		ContractAddrs: contractAddrs,
+		IsAdded:       isAdded,
 	}
 }
 
@@ -195,20 +195,36 @@ func (mp ManageContractBlockedListProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	//if mp.ContractAddr.Empty() {
-	//	return
-	//}
+	if len(mp.ContractAddrs) == 0 {
+		return ErrEmptyAddressList
+	}
+
+	if isAddrDuplicated(mp.ContractAddrs) {
+		return ErrDuplicatedAddr
+	}
 
 	return nil
 }
 
 // String returns a human readable string representation of a ManageContractBlockedListProposal
 func (mp ManageContractBlockedListProposal) String() string {
-	return fmt.Sprintf(`ManageContractBlockedListProposal:
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ManageContractBlockedListProposal:
  Title:					%s
  Description:        	%s
  Type:                	%s
- ContractAddr:			%s
- IsAdded:				%t`,
-		mp.Title, mp.Description, mp.ProposalType(), mp.ContractAddr.String(), mp.IsAdded)
+ IsAdded:				%t
+ ContractAddrs:
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.IsAdded),
+	)
+
+	for i := 0; i < len(mp.ContractAddrs); i++ {
+		builder.WriteString("\t\t\t\t\t\t")
+		builder.WriteString(mp.ContractAddrs[i].String())
+		builder.Write([]byte{'\n'})
+	}
+
+	return strings.TrimSpace(builder.String())
 }

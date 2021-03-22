@@ -62,26 +62,3 @@ func (k Keeper) RejectedHandler(_ sdk.Context, _ govTypes.Content)             {
 func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote) (string, sdk.Error) {
 	return "", nil
 }
-
-// CheckMsgManageContractBlockedListProposal checks msg manage contract blocked list proposal
-func (k Keeper) CheckMsgManageContractBlockedListProposal(ctx sdk.Context,
-	proposal types.ManageContractBlockedListProposal) sdk.Error {
-	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if proposal.IsAdded {
-		// add contract addr into blocked list
-		// 1. check the existence
-		if csdb.IsContractInBlockedList(proposal.ContractAddr) {
-			return types.ErrContractAlreadyExists(proposal.ContractAddr)
-		}
-
-		return nil
-	}
-
-	// delete the contract addr from the blocked list
-	// 1. check the existence of contract addr in blocked list
-	if !csdb.IsContractInBlockedList(proposal.ContractAddr) {
-		return types.ErrContractNotExists(proposal.ContractAddr)
-	}
-
-	return nil
-}

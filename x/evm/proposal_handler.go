@@ -47,18 +47,19 @@ func handleManageContractBlockedlListProposal(ctx sdk.Context, k *Keeper, propos
 		return types.ErrUnexpectedProposalType
 	}
 
-	if sdkErr := k.CheckMsgManageContractBlockedListProposal(ctx, manageContractBlockedListProposal); sdkErr != nil {
-		return sdkErr
-	}
+	//if sdkErr := k.CheckMsgManageContractBlockedListProposal(ctx, manageContractBlockedListProposal); sdkErr != nil {
+	//	return sdkErr
+	//}
 
+	// TODO
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if manageContractBlockedListProposal.IsAdded {
 		// add contract address into blocked list
-		csdb.SetContractBlockedListMember(manageContractBlockedListProposal.ContractAddr)
+		csdb.SetContractBlockedListMember(manageContractBlockedListProposal.ContractAddrs[0])
 		return nil
 	}
 
 	// remove contract address from blocked list
-	csdb.DeleteContractBlockedListMember(manageContractBlockedListProposal.ContractAddr)
+	csdb.DeleteContractBlockedListMember(manageContractBlockedListProposal.ContractAddrs[0])
 	return nil
 }

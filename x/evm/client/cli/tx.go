@@ -196,8 +196,8 @@ $ %s tx gov submit-proposal update-contract-deployment-whitelist <path/to/propos
 Where proposal.json contains:
 
 {
-  "title": "update contract proposal whitelist with a distributor address",
-  "description": "add a distributor address into the whitelist",
+  "title": "update contract proposal whitelist with a distributor address list",
+  "description": "add a distributor address list into the whitelist",
   "distributor_addresses": [
     "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
     "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
@@ -257,16 +257,19 @@ $ %s tx gov submit-proposal update-contract-blocked-list <path/to/proposal.json>
 Where proposal.json contains:
 
 {
- "title": "update contract blocked list proposal with a contract address",
- "description": "add a contract address into the blocked list",
- "contract_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
- "is_added": true,
- "deposit": [
-   {
-     "denom": "%s",
-     "amount": "100"
-   }
- ]
+  "title": "update contract blocked list proposal with a contract address list",
+  "description": "add a contract address list into the blocked list",
+  "contract_addresses": [
+    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
+    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+  ],
+  "is_added": true,
+  "deposit": [
+    {
+      "denom": "%s",
+      "amount": "100.000000000000000000"
+    }
+  ]
 }
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
@@ -280,17 +283,17 @@ Where proposal.json contains:
 				return err
 			}
 
-			contractAddr, err := sdk.AccAddressFromBech32(proposal.ContractAddr)
-			if err != nil {
-				return err
-			}
-
 			content := types.NewManageContractBlockedListProposal(
 				proposal.Title,
 				proposal.Description,
-				contractAddr,
+				proposal.ContractAddrs,
 				proposal.IsAdded,
 			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
