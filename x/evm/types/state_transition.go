@@ -128,16 +128,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
 
 	csdb := st.Csdb.WithContext(ctx)
-	if st.Simulate {
-		// gasLimit is set here because stdTxs incur gaskv charges in the ante handler, but for eth_call
-		// the cost needs to be the same as an Ethereum transaction sent through the web3 API
-		consumedGas := ctx.GasMeter().GasConsumed()
-		gasLimit = st.GasLimit - cost
-		if consumedGas < cost {
-			// If Cosmos standard tx ante handler cost is less than EVM intrinsic cost
-			// gas must be consumed to match to accurately simulate an Ethereum transaction
-			ctx.GasMeter().ConsumeGas(cost-consumedGas, "Intrinsic gas match")
-		}
+	consumedGas := ctx.GasMeter().GasConsumed()
+	if consumedGas < cost {
+		// If Cosmos standard tx ante handler cost is less than EVM intrinsic cost
+		// gas must be consumed to match to accurately simulate an Ethereum transaction
+		ctx.GasMeter().ConsumeGas(cost - consumedGas, "Intrinsic gas match")
 	}
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
