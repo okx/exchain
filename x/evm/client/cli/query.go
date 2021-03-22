@@ -58,7 +58,7 @@ $ %s query evm contract-deployment-whitelist
 				return err
 			}
 
-			var whitelist types.ContractDeploymentWhitelist
+			var whitelist types.AddressList
 			cdc.MustUnmarshalJSON(bz, &whitelist)
 			return cliCtx.PrintOutput(whitelist)
 		},

@@ -913,25 +913,24 @@ func (csdb *CommitStateDB) GetLogSize() uint {
 	return csdb.logSize
 }
 
-// SetContractDeploymentWhitelistMember sets the deployer address as a member into whitelist
-func (csdb *CommitStateDB) SetContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Set(GetContractDeploymentWhitelistMemberKey(distributorAddr), []byte(""))
+// SetContractDeploymentWhitelistMember sets the target address list into whitelist store
+func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
+	}
 }
 
-// DeleteContractDeploymentWhitelistMember removes the distributor address from whitelist
-func (csdb *CommitStateDB) DeleteContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Delete(GetContractDeploymentWhitelistMemberKey(distributorAddr))
-}
-
-// SetContractDeploymentWhitelistMember sets the whole whitelist into store
-func (csdb *CommitStateDB) SetContractDeploymentWhitelist(whitelist ContractDeploymentWhitelist) {
-	for i := 0; i < len(whitelist); i++ {
-		csdb.SetContractDeploymentWhitelistMember(whitelist[i])
+// DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
+func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 	}
 }
 
 // GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
-func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist ContractDeploymentWhitelist) {
+func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressList) {
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
 	defer iterator.Close()

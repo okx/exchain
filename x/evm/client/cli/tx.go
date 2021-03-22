@@ -229,6 +229,11 @@ Where proposal.json contains:
 				proposal.IsAdded,
 			)
 
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},

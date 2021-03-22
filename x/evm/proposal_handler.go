@@ -26,18 +26,14 @@ func handleManageContractDeploymentWhitelistProposal(ctx sdk.Context, k *Keeper,
 		return types.ErrUnexpectedProposalType
 	}
 
-	if sdkErr := k.CheckMsgManageContractDeploymentWhitelistProposal(ctx, manageContractDeploymentWhitelistProposal); sdkErr != nil {
-		return sdkErr
+	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	if manageContractDeploymentWhitelistProposal.IsAdded {
+		// add deployer addresses into whitelist
+		csdb.SetContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
+		return nil
 	}
 
-	//csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	//if manageContractDeploymentWhitelistProposal.IsAdded {
-	//	// add deployer address into whitelist
-	//	csdb.SetContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
-	//	return nil
-	//}
-	//
-	//// remove deployer address from whitelist
-	//csdb.DeleteContractDeploymentWhitelistMember(manageContractDeploymentWhitelistProposal.DistributorAddr)
+	// remove deployer addresses from whitelist
+	csdb.DeleteContractDeploymentWhitelist(manageContractDeploymentWhitelistProposal.DistributorAddrs)
 	return nil
 }
