@@ -125,7 +125,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 						Address: address.String(),
 					},
 				},
-				ContractDeploymentWhitelist: types.ContractDeploymentWhitelist{address.Bytes()},
+				ContractDeploymentWhitelist: types.AddressList{address.Bytes()},
 			},
 			func() {
 				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
@@ -397,7 +397,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 	err = acc.SetCoins(sdk.NewCoins(ethermint.NewPhotonCoinInt64(1)))
 	suite.Require().NoError(err)
 
-	expectedWhitelist := types.ContractDeploymentWhitelist{address.Bytes()}
+	expectedWhitelist := types.AddressList{address.Bytes()}
 
 	code := []byte{1, 2, 3}
 	ethAccount := ethermint.EthAccount{
@@ -459,7 +459,7 @@ func testImport_files(suite *EvmTestSuite,
 	ethAccount ethermint.EthAccount,
 	code []byte,
 	storage types.Storage,
-	expectedWhitelist types.ContractDeploymentWhitelist) {
+	expectedWhitelist types.AddressList) {
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
