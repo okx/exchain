@@ -19,6 +19,8 @@ const (
 	QueryExportAccount = "exportAccount"
 	// QueryParameters defines 	QueryParameters = "params" query route path
 	QueryParameters                  = "params"
+	QueryHeightToHash                = "heightToHash"
+	QuerySection                     = "section"
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
 )
 

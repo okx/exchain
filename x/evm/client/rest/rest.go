@@ -3,6 +3,11 @@ package rest
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,16 +15,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/okexchain/x/common"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 	govRest "github.com/okex/okexchain/x/gov/client/rest"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -29,6 +32,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
 	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
+	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -111,9 +115,9 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx evmtypes
 	if err != nil {
 		return nil, err
 	}
-	blockHash := common.BytesToHash(block.Block.Hash())
+	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := rpctypes.NewTransaction(&ethTx, common.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
+	res, err := rpctypes.NewTransaction(&ethTx, ethcommon.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -180,4 +184,17 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 // ManageContractDeploymentWhitelistProposalRESTHandler defines evm proposal handler
 func ManageContractDeploymentWhitelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
+}
+
+func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", evmtypes.RouterKey, evmtypes.QuerySection))
+		if err != nil {
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		rest.PostProcessResponseBare(w, cliCtx, res)
+	}
 }
