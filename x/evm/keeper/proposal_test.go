@@ -13,6 +13,7 @@ import (
 func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProposal() {
 	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
 	proposal := types.NewManageContractDeploymentWhitelistProposal(
 		"default title",
 		"default description",
@@ -71,12 +72,13 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProp
 }
 
 func (suite *KeeperTestSuite) TestProposal_ManageContractBlockedListProposal() {
-	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
-	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
 	proposal := types.NewManageContractBlockedListProposal(
 		"default title",
 		"default description",
-		addr,
+		types.AddressList{addr1, addr2},
 		true,
 	)
 
@@ -89,47 +91,43 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractBlockedListProposal() {
 	votingPeriod := suite.app.EvmKeeper.GetVotingPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*72, votingPeriod)
 
-	// check submit proposal
-	msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr)
-	require.NoError(suite.T(), suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg))
-
 	testCases := []struct {
-		msg           string
-		malleate      func()
-		expectedError bool
+		msg     string
+		prepare func()
 	}{
 		{
 			"pass check",
 			func() {},
-			false,
 		},
 		{
-			"try to add an address already exists in blocked list",
+			"pass check when trying to add addresses already exists in blocked list",
 			func() {
-				suite.stateDB.SetContractBlockedListMember(addr)
+				suite.stateDB.SetContractDeploymentWhitelist(types.AddressList{addr1, addr2})
 			},
-			true,
 		},
 		{
-			"try to delete an address not in the blocked list",
+			"pass check when trying to delete addresses from blocked list",
 			func() {
 				proposal.IsAdded = false
-				proposal.ContractAddr = addrUnqualified
 			},
-			true,
+		},
+		{
+			"pass check when trying to delete addresses from blocked list which contains none of them",
+			func() {
+				// clear blocked list in the store
+				suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
+				suite.Require().Zero(len(suite.stateDB.GetContractBlockedList()))
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			tc.malleate()
+			tc.prepare()
 
-			err := suite.app.EvmKeeper.CheckMsgManageContractBlockedListProposal(suite.ctx, proposal)
-			if tc.expectedError {
-				suite.Require().Error(err)
-			} else {
-				suite.Require().NoError(err)
-			}
+			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr1)
+			err := suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg)
+			suite.Require().NoError(err)
 		})
 	}
 }

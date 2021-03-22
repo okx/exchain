@@ -24,8 +24,10 @@ const (
  Title:					default title
  Description:        	default description
  Type:                	ManageContractBlockedList
- ContractAddr:			okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
- IsAdded:				true`
+ IsAdded:				true
+ ContractAddrs:
+						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
+						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpphf0s5`
 )
 
 type ProposalTestSuite struct {
@@ -141,7 +143,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 	proposal := NewManageContractBlockedListProposal(
 		expectedTitle,
 		expectedDescription,
-		suite.addrs[0],
+		suite.addrs,
 		true,
 	)
 
@@ -171,11 +173,10 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 		{
 			"overlong title",
 			func() {
-				var b strings.Builder
 				for i := 0; i < govtypes.MaxTitleLength+1; i++ {
-					b.WriteByte('a')
+					suite.strBuilder.WriteByte('a')
 				}
-				proposal.Title = b.String()
+				proposal.Title = suite.strBuilder.String()
 			},
 			true,
 		},
@@ -190,19 +191,27 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 		{
 			"overlong description",
 			func() {
-				var b strings.Builder
+				suite.strBuilder.Reset()
 				for i := 0; i < govtypes.MaxDescriptionLength+1; i++ {
-					b.WriteByte('a')
+					suite.strBuilder.WriteByte('a')
 				}
-				proposal.Description = b.String()
+				proposal.Description = suite.strBuilder.String()
 			},
 			true,
 		},
 		{
-			"empty contract address",
+			"duplicated contract addresses",
 			func() {
-				proposal.ContractAddr = nil
+				// add a duplicated address into ContractAddrs
+				proposal.ContractAddrs = append(proposal.ContractAddrs, proposal.ContractAddrs[0])
 				proposal.Description = expectedDescription
+			},
+			true,
+		},
+		{
+			"empty contract addresses",
+			func() {
+				proposal.ContractAddrs = nil
 			},
 			true,
 		},

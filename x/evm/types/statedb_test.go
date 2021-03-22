@@ -702,7 +702,6 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
 	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
 	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 
-	var whitelist types.AddressList
 	testCase := []struct {
 		name           string
 		targetAddrList types.AddressList
@@ -760,10 +759,9 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
 				suite.stateDB.SetContractDeploymentWhitelist(tc.targetAddrList)
 			} else {
 				suite.stateDB.DeleteContractDeploymentWhitelist(tc.targetAddrList)
-
 			}
 
-			whitelist = suite.stateDB.GetContractDeploymentWhitelist()
+			whitelist := suite.stateDB.GetContractDeploymentWhitelist()
 			suite.Require().Equal(tc.expectedLen, len(whitelist))
 		})
 	}
@@ -771,54 +769,70 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
 
 func (suite *StateDBTestSuite) TestCommitStateDB_ContractBlockedList() {
 	// create addresses for test
-	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
-	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 
-	var blockedList types.AddressList
 	testCase := []struct {
-		name        string
-		malleate    func()
-		statusCheck func()
+		name           string
+		targetAddrList types.AddressList
+		// true -> add, false -> delete
+		isAdded     bool
 		expectedLen int
 	}{
 		{
-			"empty blocked list",
-			func() {},
-			func() {},
+			"add empty list into blocked list",
+			types.AddressList{},
+			true,
 			0,
 		},
 		{
-			"add member into blocked list",
-			func() {
-				suite.stateDB.SetContractBlockedListMember(addr)
-			},
-			func() {
-				suite.Require().True(suite.stateDB.IsContractInBlockedList(addr))
-				suite.Require().False(suite.stateDB.IsContractInBlockedList(addrUnqualified))
-			},
+			"add list with one member into blocked list",
+			types.AddressList{addr1},
+			true,
 			1,
 		},
 		{
-			"delete member from blocked list",
-			func() {
-				suite.stateDB.DeleteContractBlockedListMember(addr)
-			},
-			func() {
-				suite.Require().False(suite.stateDB.IsContractInBlockedList(addr))
-				suite.Require().False(suite.stateDB.IsContractInBlockedList(addrUnqualified))
-			},
+			"add list with two members into the blocked list that has contained one member already",
+			types.AddressList{addr1, addr2},
+			true,
+			2,
+		},
+		{
+			"delete empty from blocked list",
+			types.AddressList{},
+			false,
+			2,
+		},
+		{
+			"delete list with one member from blocked list",
+			types.AddressList{addr1},
+			false,
+			1,
+		},
+		{
+			"delete list with two members from the blocked list that has contained one member only",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+		{
+			"delete list with two members from the empty blocked list",
+			types.AddressList{addr1, addr2},
+			false,
 			0,
 		},
 	}
 
 	for _, tc := range testCase {
 		suite.Run(tc.name, func() {
-			tc.malleate()
+			if tc.isAdded {
+				suite.stateDB.SetContractBlockedList(tc.targetAddrList)
+			} else {
+				suite.stateDB.DeleteContractBlockedList(tc.targetAddrList)
+			}
 
-			blockedList = suite.stateDB.GetContractBlockedList()
+			blockedList := suite.stateDB.GetContractBlockedList()
 			suite.Require().Equal(tc.expectedLen, len(blockedList))
-
-			tc.statusCheck()
 		})
 	}
 }
