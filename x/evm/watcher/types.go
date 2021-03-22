@@ -65,8 +65,8 @@ type MsgCode struct {
 }
 
 type CodeInfo struct {
-	Height uint64 `height`
-	Code   string `code`
+	Height uint64 `json:"height"`
+	Code   string `json:"code"`
 }
 
 func NewMsgCode(contractAddr common.Address, code []byte, height uint64) *MsgCode {
