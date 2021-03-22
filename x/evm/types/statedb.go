@@ -918,20 +918,19 @@ func (csdb *CommitStateDB) GetLogSize() uint {
 	return csdb.logSize
 }
 
-// SetContractDeploymentWhitelistMember sets the deployer address as a member into whitelist
-func (csdb *CommitStateDB) SetContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Set(getContractDeploymentWhitelistMemberKey(distributorAddr), []byte(""))
+// SetContractDeploymentWhitelistMember sets the target address list into whitelist store
+func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Set(getContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
+	}
 }
 
-// DeleteContractDeploymentWhitelistMember removes the distributor address from whitelist
-func (csdb *CommitStateDB) DeleteContractDeploymentWhitelistMember(distributorAddr sdk.AccAddress) {
-	csdb.ctx.KVStore(csdb.storeKey).Delete(getContractDeploymentWhitelistMemberKey(distributorAddr))
-}
-
-// SetContractDeploymentWhitelistMember sets the whole whitelist into store
-func (csdb *CommitStateDB) SetContractDeploymentWhitelist(whitelist AddressList) {
-	for i := 0; i < len(whitelist); i++ {
-		csdb.SetContractDeploymentWhitelistMember(whitelist[i])
+// DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
+func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Delete(getContractDeploymentWhitelistMemberKey(addrList[i]))
 	}
 }
 

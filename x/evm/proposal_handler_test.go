@@ -8,10 +8,13 @@ import (
 )
 
 func (suite *EvmTestSuite) TestProposalHandler_ManageContractDeploymentWhitelistProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
 	proposal := types.NewManageContractDeploymentWhitelistProposal(
 		"default title",
 		"default description",
-		ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		types.AddressList{addr1, addr2},
 		true,
 	)
 
@@ -21,58 +24,66 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractDeploymentWhitelist
 	}
 
 	testCases := []struct {
-		msg           string
-		malleate      func()
-		statusCheck   func()
-		expectedError bool
+		msg                   string
+		prepare               func()
+		targetAddrListToCheck types.AddressList
 	}{
 		{
 			"add address into whitelist",
 			func() {},
-			func() {
-				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
-				suite.Require().Equal(1, len(whitelist))
-			},
-			false,
+			types.AddressList{addr1, addr2},
 		},
 		{
 			"add address repeatedly",
 			func() {},
-			func() {},
-			true,
+			types.AddressList{addr1, addr2},
 		},
 		{
-			"delete address from whitelist",
+			"delete an address from whitelist",
 			func() {
 				proposal.IsAdded = false
+				proposal.DistributorAddrs = types.AddressList{addr1}
 				govProposal.Content = proposal
 			},
-			func() {
-				whitelist := suite.stateDB.GetContractDeploymentWhitelist()
-				suite.Require().Zero(len(whitelist))
-			},
-			false,
+			types.AddressList{addr2},
 		},
 		{
-			"delete an address not in the whitelist",
+			"delete an address from whitelist",
+			func() {
+				proposal.IsAdded = false
+				proposal.DistributorAddrs = types.AddressList{addr1}
+				govProposal.Content = proposal
+			},
+			types.AddressList{addr2},
+		},
+		{
+			"delete two addresses from whitelist which contains one of them only",
+			func() {
+				proposal.DistributorAddrs = types.AddressList{addr1, addr2}
+				govProposal.Content = proposal
+			},
+			types.AddressList{},
+		},
+		{
+			"delete two addresses from whitelist which contains none of them",
 			func() {},
-			func() {},
-			true,
+			types.AddressList{},
 		},
 	}
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			tc.malleate()
+			tc.prepare()
 
 			err := suite.govHandler(suite.ctx, &govProposal)
+			suite.Require().NoError(err)
 
-			tc.statusCheck()
+			// check the whitelist with target address list
+			curWhitelist := suite.stateDB.GetContractDeploymentWhitelist()
+			suite.Require().Equal(len(tc.targetAddrListToCheck), len(curWhitelist))
 
-			if tc.expectedError {
-				suite.Require().Error(err)
-			} else {
-				suite.Require().NoError(err)
+			for i, addr := range curWhitelist {
+				suite.Require().Equal(tc.targetAddrListToCheck[i], addr)
 			}
 		})
 	}

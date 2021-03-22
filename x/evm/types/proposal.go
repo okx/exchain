@@ -27,22 +27,22 @@ var (
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
 )
 
-// ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete a deployer address from whitelist
+// ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
 type ManageContractDeploymentWhitelistProposal struct {
-	Title           string         `json:"title" yaml:"title"`
-	Description     string         `json:"description" yaml:"description"`
-	DistributorAddr sdk.AccAddress `json:"distributor_address" yaml:"distributor_address"`
-	IsAdded         bool           `json:"is_added" yaml:"is_added"`
+	Title            string           `json:"title" yaml:"title"`
+	Description      string           `json:"description" yaml:"description"`
+	DistributorAddrs []sdk.AccAddress `json:"distributor_addresses" yaml:"distributor_addresses"`
+	IsAdded          bool             `json:"is_added" yaml:"is_added"`
 }
 
 // NewManageContractDeploymentWhitelistProposal creates a new instance of ManageContractDeploymentWhitelistProposal
-func NewManageContractDeploymentWhitelistProposal(title, description string, distributorAddr sdk.AccAddress, isAdded bool,
+func NewManageContractDeploymentWhitelistProposal(title, description string, distributorAddrs []sdk.AccAddress, isAdded bool,
 ) ManageContractDeploymentWhitelistProposal {
 	return ManageContractDeploymentWhitelistProposal{
-		Title:           title,
-		Description:     description,
-		DistributorAddr: distributorAddr,
-		IsAdded:         isAdded,
+		Title:            title,
+		Description:      description,
+		DistributorAddrs: distributorAddrs,
+		IsAdded:          isAdded,
 	}
 }
 
@@ -87,8 +87,12 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if mp.DistributorAddr.Empty() {
-		return ErrEmptyAddress
+	if len(mp.DistributorAddrs) == 0 {
+		return ErrEmptyAddressList
+	}
+
+	if isAddrDuplicated(mp.DistributorAddrs) {
+		return ErrDuplicatedAddr
 	}
 
 	return nil
@@ -96,13 +100,39 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 
 // String returns a human readable string representation of a ManageContractDeploymentWhitelistProposal
 func (mp ManageContractDeploymentWhitelistProposal) String() string {
-	return fmt.Sprintf(`ManageContractDeploymentWhitelistProposal:
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ManageContractDeploymentWhitelistProposal:
  Title:					%s
  Description:        	%s
  Type:                	%s
- DistributorAddr:		%s
- IsAdded:				%t`,
-		mp.Title, mp.Description, mp.ProposalType(), mp.DistributorAddr.String(), mp.IsAdded)
+ IsAdded:				%t
+ DistributorAddrs:
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.IsAdded),
+	)
+
+	for i := 0; i < len(mp.DistributorAddrs); i++ {
+		builder.WriteString("\t\t\t\t\t\t")
+		builder.WriteString(mp.DistributorAddrs[i].String())
+		builder.Write([]byte{'\n'})
+	}
+
+	return strings.TrimSpace(builder.String())
+}
+
+func isAddrDuplicated(addrs []sdk.AccAddress) bool {
+	lenAddrs := len(addrs)
+	filter := make(map[string]struct{}, lenAddrs)
+	for i := 0; i < lenAddrs; i++ {
+		key := addrs[i].String()
+		if _, ok := filter[key]; ok {
+			return true
+		}
+		filter[key] = struct{}{}
+	}
+
+	return false
 }
 
 // ManageContractBlockedListProposal - structure for the proposal to add or delete a contract address from blocked list
@@ -165,9 +195,9 @@ func (mp ManageContractBlockedListProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if mp.ContractAddr.Empty() {
-		return ErrEmptyAddress
-	}
+	//if mp.ContractAddr.Empty() {
+	//	return
+	//}
 
 	return nil
 }

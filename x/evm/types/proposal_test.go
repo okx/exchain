@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	govtypes "github.com/okex/okexchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
@@ -17,8 +16,10 @@ const (
  Title:					default title
  Description:        	default description
  Type:                	ManageContractDeploymentWhitelist
- DistributorAddr:		okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
- IsAdded:				true`
+ IsAdded:				true
+ DistributorAddrs:
+						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
+						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpphf0s5`
 	expectedManageContractBlockedListProposalString = `ManageContractBlockedListProposal:
  Title:					default title
  Description:        	default description
@@ -30,12 +31,15 @@ const (
 type ProposalTestSuite struct {
 	suite.Suite
 	strBuilder strings.Builder
-	addr       sdk.AccAddress
+	addrs      AddressList
 }
 
 func TestProposalTestSuite(t *testing.T) {
 	proposalTestSuite := ProposalTestSuite{
-		addr: ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		addrs: AddressList{
+			ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+			ethcmn.BytesToAddress([]byte{0x1}).Bytes(),
+		},
 	}
 	suite.Run(t, &proposalTestSuite)
 }
@@ -44,7 +48,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 	proposal := NewManageContractDeploymentWhitelistProposal(
 		expectedTitle,
 		expectedDescription,
-		suite.addr,
+		suite.addrs,
 		true,
 	)
 
@@ -56,7 +60,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 
 	testCases := []struct {
 		msg           string
-		malleate      func()
+		prepare       func()
 		expectedError bool
 	}{
 		{
@@ -101,10 +105,18 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 			true,
 		},
 		{
-			"empty distributor address",
+			"duplicated distributor addresses",
 			func() {
-				proposal.DistributorAddr = nil
+				// add a duplicated address into DistributorAddrs
+				proposal.DistributorAddrs = append(proposal.DistributorAddrs, proposal.DistributorAddrs[0])
 				proposal.Description = expectedDescription
+			},
+			true,
+		},
+		{
+			"empty distributor addresses",
+			func() {
+				proposal.DistributorAddrs = nil
 			},
 			true,
 		},
@@ -112,7 +124,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			tc.malleate()
+			tc.prepare()
 
 			err := proposal.ValidateBasic()
 
@@ -129,7 +141,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 	proposal := NewManageContractBlockedListProposal(
 		expectedTitle,
 		expectedDescription,
-		suite.addr,
+		suite.addrs[0],
 		true,
 	)
 
@@ -141,7 +153,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 
 	testCases := []struct {
 		msg           string
-		malleate      func()
+		prepare       func()
 		expectedError bool
 	}{
 		{
@@ -198,7 +210,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			tc.malleate()
+			tc.prepare()
 
 			err := proposal.ValidateBasic()
 

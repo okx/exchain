@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	tmtypes "github.com/tendermint/tendermint/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -10,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height
@@ -48,6 +50,17 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
+
+	if types.GetEnableBloomFilter() {
+		// the hash of current block is stored when executing BeginBlock of next block.
+		// so update section in the next block.
+		if indexer := types.GetIndexer(); indexer != nil {
+			interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
+			if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks && !types.GetIndexer().IsProcessing() {
+				go types.GetIndexer().ProcessSection(ctx, k, interval)
+			}
+		}
+	}
 
 	return []abci.ValidatorUpdate{}
 }

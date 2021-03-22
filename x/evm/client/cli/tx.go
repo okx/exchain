@@ -196,16 +196,19 @@ $ %s tx gov submit-proposal update-contract-deployment-whitelist <path/to/propos
 Where proposal.json contains:
 
 {
- "title": "update contract whitelist proposal with a distributor address",
- "description": "add a distributor address into the whitelist",
- "distributor_address": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
- "is_added": true,
- "deposit": [
-   {
-     "denom": "%s",
-     "amount": "100"
-   }
- ]
+  "title": "update contract proposal whitelist with a distributor address",
+  "description": "add a distributor address into the whitelist",
+  "distributor_addresses": [
+    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
+    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+  ],
+  "is_added": true,
+  "deposit": [
+    {
+      "denom": "%s",
+      "amount": "100.000000000000000000"
+    }
+  ]
 }
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
@@ -219,17 +222,17 @@ Where proposal.json contains:
 				return err
 			}
 
-			distributorAddr, err := sdk.AccAddressFromBech32(proposal.DistributorAddr)
-			if err != nil {
-				return err
-			}
-
 			content := types.NewManageContractDeploymentWhitelistProposal(
 				proposal.Title,
 				proposal.Description,
-				distributorAddr,
+				proposal.DistributorAddrs,
 				proposal.IsAdded,
 			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})

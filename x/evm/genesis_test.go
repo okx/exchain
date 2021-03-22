@@ -488,7 +488,7 @@ func testImport_files(suite *EvmTestSuite,
 	ethAccount ethermint.EthAccount,
 	code []byte,
 	storage types.Storage,
-	expectedWhitelist types.AddressList) {
+	expectedAddrList types.AddressList) {
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
@@ -506,7 +506,7 @@ func testImport_files(suite *EvmTestSuite,
 			suite.Require().Contains(storage, types.State{key, value})
 			return false
 		})
-		suite.Require().Equal(expectedWhitelist, suite.stateDB.GetContractDeploymentWhitelist())
-		suite.Require().Equal(expectedWhitelist, suite.stateDB.GetContractBlockedList())
+		suite.Require().Equal(expectedAddrList, suite.stateDB.GetContractDeploymentWhitelist())
+		suite.Require().Equal(expectedAddrList, suite.stateDB.GetContractBlockedList())
 	})
 }

@@ -13,8 +13,12 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // Backend implements the functionality needed to filter changes.
@@ -37,25 +41,30 @@ type Backend interface {
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
+	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
 
 // EthermintBackend implements the Backend interface
 type EthermintBackend struct {
-	ctx       context.Context
-	clientCtx clientcontext.CLIContext
-	logger    log.Logger
-	gasLimit  int64
+	ctx               context.Context
+	clientCtx         clientcontext.CLIContext
+	logger            log.Logger
+	gasLimit          int64
+	bloomRequests     chan chan *bloombits.Retrieval
+	closeBloomHandler chan struct{}
 }
 
 // New creates a new EthermintBackend instance
 func New(clientCtx clientcontext.CLIContext) *EthermintBackend {
 	return &EthermintBackend{
-		ctx:       context.Background(),
-		clientCtx: clientCtx,
-		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
-		gasLimit:  int64(^uint32(0)),
+		ctx:               context.Background(),
+		clientCtx:         clientCtx,
+		logger:            log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		gasLimit:          int64(^uint32(0)),
+		bloomRequests:     make(chan chan *bloombits.Retrieval),
+		closeBloomHandler: make(chan struct{}),
 	}
 }
 
@@ -258,7 +267,8 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // BloomStatus returns the BloomBitsBlocks and the number of processed sections maintained
 // by the chain indexer.
 func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
-	return 4096, 0
+	sections := evmtypes.GetIndexer().StoredSection()
+	return evmtypes.BloomBitsBlocks, sections
 }
 
 // LatestBlockNumber gets the latest block height in int64 format.
@@ -270,4 +280,62 @@ func (b *EthermintBackend) LatestBlockNumber() (int64, error) {
 	}
 
 	return info.LastHeight, nil
+}
+
+func (b *EthermintBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
+	for i := 0; i < evmtypes.BloomFilterThreads; i++ {
+		go session.Multiplex(evmtypes.BloomRetrievalBatch, evmtypes.BloomRetrievalWait, b.bloomRequests)
+	}
+}
+
+// startBloomHandlers starts a batch of goroutines to accept bloom bit database
+// retrievals from possibly a range of filters and serving the data to satisfy.
+func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db dbm.DB) {
+	for i := 0; i < evmtypes.BloomServiceThreads; i++ {
+		go func() {
+			for {
+				select {
+				case <-b.closeBloomHandler:
+					return
+
+				case request := <-b.bloomRequests:
+					task := <-request
+					task.Bitsets = make([][]byte, len(task.Sections))
+					for i, section := range task.Sections {
+						height := int64((section+1)*sectionSize-1) + tmtypes.GetStartBlockHeight()
+						hash, err := b.GetBlockHashByHeight(rpctypes.BlockNumber(height))
+						if err != nil {
+							task.Error = err
+						}
+						if compVector, err := evmtypes.ReadBloomBits(db, task.Bit, section, hash); err == nil {
+							if blob, err := bitutil.DecompressBytes(compVector, int(sectionSize/8)); err == nil {
+								task.Bitsets[i] = blob
+							} else {
+								task.Error = err
+							}
+						} else {
+							task.Error = err
+						}
+					}
+					request <- task
+				}
+			}
+		}()
+	}
+}
+
+// GetBlockHashByHeight returns the block hash by height.
+func (b *EthermintBackend) GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error) {
+	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryHeightToHash, height))
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	hash := common.BytesToHash(res)
+	return hash, nil
+}
+
+// Close
+func (b *EthermintBackend) Close() {
+	close(b.closeBloomHandler)
 }

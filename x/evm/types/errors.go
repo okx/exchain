@@ -38,8 +38,11 @@ var (
 	// ErrUnexpectedProposalType returns an error when the proposal type is not supported in evm module
 	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 10, "Unsupported proposal type of evm module")
 
-	// ErrEmptyAddress returns an error if the address is empty
-	ErrEmptyAddress = sdkerrors.Register(ModuleName, 11, "Empty account address")
+	// ErrEmptyAddressList returns an error if the address list is empty
+	ErrEmptyAddressList = sdkerrors.Register(ModuleName, 11, "Empty account address list")
+
+	// ErrDuplicatedAddr returns an error if the address is duplicated in address list
+	ErrDuplicatedAddr = sdkerrors.Register(ModuleName, 12, "Duplicated address in address list")
 
 	CodeSpaceEvmCallFailed = uint32(7)
 
@@ -51,7 +54,7 @@ func ErrDeployerAlreadyExists(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			12,
+			13,
 			fmt.Sprintf("failed. deployer %s is already in the whitelist", distributorAddr.String()))}
 }
 
@@ -60,7 +63,7 @@ func ErrDeployerNotExists(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			13,
+			14,
 			fmt.Sprintf("failed. deployer %s is not in the whitelist", distributorAddr.String()))}
 }
 
@@ -69,7 +72,7 @@ func ErrDeployerUnqualified(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			14,
+			15,
 			fmt.Sprintf("failed. unqualified deployer %s for a contract deployment", distributorAddr.String()))}
 }
 
@@ -78,7 +81,7 @@ func ErrContractAlreadyExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			15,
+			16,
 			fmt.Sprintf("failed. contract %s is already in the blocked list", contractAddr.String()))}
 }
 
@@ -87,7 +90,7 @@ func ErrContractNotExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			16,
+			17,
 			fmt.Sprintf("failed. contract %s is not in the blocked list", contractAddr.String()))}
 }
 
@@ -96,7 +99,7 @@ func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			17,
+			18,
 			fmt.Sprintf("failed. the contract %s is not allowed to invoke", contractAddr.Hex()),
 		),
 	}

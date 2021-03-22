@@ -46,10 +46,10 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (voting
 // CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	switch content := msg.Content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal:
-		return k.CheckMsgManageContractDeploymentWhitelistProposal(ctx, content)
-	case types.ManageContractBlockedListProposal:
-		return k.CheckMsgManageContractBlockedListProposal(ctx, content)
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
+		// whole target address list will be added/deleted to/from the contract deployment whitelist/contract blocked list.
+		// It's not necessary to check the existence in CheckMsgSubmitProposal
+		return nil
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}
@@ -61,29 +61,6 @@ func (k Keeper) AfterDepositPeriodPassed(_ sdk.Context, _ govTypes.Proposal)   {
 func (k Keeper) RejectedHandler(_ sdk.Context, _ govTypes.Content)             {}
 func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote) (string, sdk.Error) {
 	return "", nil
-}
-
-// CheckMsgManageContractDeploymentWhitelistProposal checks msg manage contract deployment whitelist proposal
-func (k Keeper) CheckMsgManageContractDeploymentWhitelistProposal(ctx sdk.Context,
-	proposal types.ManageContractDeploymentWhitelistProposal) sdk.Error {
-	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	if proposal.IsAdded {
-		// add deployer addr into whitelist
-		// 1. check the existence
-		if csdb.IsDeployerInWhitelist(proposal.DistributorAddr) {
-			return types.ErrDeployerAlreadyExists(proposal.DistributorAddr)
-		}
-
-		return nil
-	}
-
-	// delete the deployer addr from the whitelist
-	// 1. check the existence of deployer addr in whitelist
-	if !csdb.IsDeployerInWhitelist(proposal.DistributorAddr) {
-		return types.ErrDeployerNotExists(proposal.DistributorAddr)
-	}
-
-	return nil
 }
 
 // CheckMsgManageContractBlockedListProposal checks msg manage contract blocked list proposal

@@ -699,54 +699,72 @@ func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
 
 func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
 	// create addresses for test
-	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
-	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 
 	var whitelist types.AddressList
 	testCase := []struct {
-		name        string
-		malleate    func()
-		statusCheck func()
+		name           string
+		targetAddrList types.AddressList
+		// true -> add, false -> delete
+		isAdded     bool
 		expectedLen int
 	}{
 		{
-			"empty whitelist",
-			func() {},
-			func() {},
+			"add empty list into whitelist",
+			types.AddressList{},
+			true,
 			0,
 		},
 		{
-			"add member into whitelist",
-			func() {
-				suite.stateDB.SetContractDeploymentWhitelistMember(addr)
-			},
-			func() {
-				suite.Require().True(suite.stateDB.IsDeployerInWhitelist(addr))
-				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
-			},
+			"add list with one member into whitelist",
+			types.AddressList{addr1},
+			true,
 			1,
 		},
 		{
-			"delete member from whitelist",
-			func() {
-				suite.stateDB.DeleteContractDeploymentWhitelistMember(addr)
-			},
-			func() {
-				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addr))
-				suite.Require().False(suite.stateDB.IsDeployerInWhitelist(addrUnqualified))
-			},
+			"add list with two members into the whitelist that has contained one member already",
+			types.AddressList{addr1, addr2},
+			true,
+			2,
+		},
+		{
+			"delete empty from whitelist",
+			types.AddressList{},
+			false,
+			2,
+		},
+		{
+			"delete list with one member from whitelist",
+			types.AddressList{addr1},
+			false,
+			1,
+		},
+		{
+			"delete list with two members from the whitelist that has contained one member only",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+		{
+			"delete list with two members from the empty whitelist",
+			types.AddressList{addr1, addr2},
+			false,
 			0,
 		},
 	}
 
 	for _, tc := range testCase {
 		suite.Run(tc.name, func() {
-			tc.malleate()
+			if tc.isAdded {
+				suite.stateDB.SetContractDeploymentWhitelist(tc.targetAddrList)
+			} else {
+				suite.stateDB.DeleteContractDeploymentWhitelist(tc.targetAddrList)
+
+			}
 
 			whitelist = suite.stateDB.GetContractDeploymentWhitelist()
 			suite.Require().Equal(tc.expectedLen, len(whitelist))
-
-			tc.statusCheck()
 		})
 	}
 }
