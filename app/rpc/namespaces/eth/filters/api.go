@@ -3,9 +3,10 @@ package filters
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/bloombits"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/core/bloombits"
 
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -23,7 +24,7 @@ import (
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
