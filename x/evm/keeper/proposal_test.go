@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (suite *KeeperTestSuite) TestProposal() {
-	addr := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
-	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
 	proposal := types.NewManageContractDeploymentWhitelistProposal(
 		"default title",
 		"default description",
-		addr,
+		types.AddressList{addr1, addr2},
 		true,
 	)
 
@@ -29,18 +29,43 @@ func (suite *KeeperTestSuite) TestProposal() {
 	votingPeriod := suite.app.EvmKeeper.GetVotingPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*72, votingPeriod)
 
-	// check submit proposal
-	msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr)
-	require.NoError(suite.T(), suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg))
+	testCases := []struct {
+		msg     string
+		prepare func()
+	}{
+		{
+			"pass check",
+			func() {},
+		},
+		{
+			"pass check when trying to add addresses already exists in whitelist",
+			func() {
+				suite.stateDB.SetContractDeploymentWhitelist(types.AddressList{addr1, addr2})
+			},
+		},
+		{
+			"pass check when trying to delete addresses from whitelist",
+			func() {
+				proposal.IsAdded = false
+			},
+		},
+		{
+			"pass check when trying to delete addresses from whitelist which contains none of them",
+			func() {
+				// clear whitelist in the store
+				suite.stateDB.DeleteContractDeploymentWhitelist(suite.stateDB.GetContractDeploymentWhitelist())
+				suite.Require().Zero(len(suite.stateDB.GetContractDeploymentWhitelist()))
+			},
+		},
+	}
 
-	// check ManageContractDeploymentWhitelistProposal in details
-	require.NoError(suite.T(), suite.app.EvmKeeper.CheckMsgManageContractDeploymentWhitelistProposal(suite.ctx, proposal))
-	// error check
-	// to add a address already exists in whitelist
-	suite.stateDB.SetContractDeploymentWhitelistMember(addr)
-	require.Error(suite.T(), suite.app.EvmKeeper.CheckMsgManageContractDeploymentWhitelistProposal(suite.ctx, proposal))
-	// to delete a address not in the whitelist
-	proposal.DistributorAddr = addrUnqualified
-	proposal.IsAdded = false
-	require.Error(suite.T(), suite.app.EvmKeeper.CheckMsgManageContractDeploymentWhitelistProposal(suite.ctx, proposal))
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			tc.prepare()
+
+			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr1)
+			err := suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg)
+			suite.Require().NoError(err)
+		})
+	}
 }
