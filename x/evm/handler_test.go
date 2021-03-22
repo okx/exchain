@@ -1155,10 +1155,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 			suite.app.EvmKeeper.SetParams(suite.ctx, params)
 
 			// reset contract blocked list
-			for _, addr := range suite.stateDB.GetContractBlockedList() {
-				suite.stateDB.DeleteContractBlockedListMember(addr)
-			}
-
+			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
 			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 
 			// nonce here could be any value
@@ -1235,10 +1232,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 			suite.app.EvmKeeper.SetParams(suite.ctx, params)
 
 			// reset contract blocked list
-			for _, addr := range suite.stateDB.GetContractBlockedList() {
-				suite.stateDB.DeleteContractBlockedListMember(addr)
-			}
-
+			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
 			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 
 			// nonce here could be any value

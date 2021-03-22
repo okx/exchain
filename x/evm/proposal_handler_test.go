@@ -90,10 +90,13 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractDeploymentWhitelist
 }
 
 func (suite *EvmTestSuite) TestProposalHandler_ManageContractBlockedListProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
 	proposal := types.NewManageContractBlockedListProposal(
 		"default title",
 		"default description",
-		ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		types.AddressList{addr1, addr2},
 		true,
 	)
 
@@ -103,58 +106,66 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractBlockedListProposal
 	}
 
 	testCases := []struct {
-		msg           string
-		malleate      func()
-		statusCheck   func()
-		expectedError bool
+		msg                   string
+		prepare               func()
+		targetAddrListToCheck types.AddressList
 	}{
 		{
 			"add address into blocked list",
 			func() {},
-			func() {
-				blockedList := suite.stateDB.GetContractBlockedList()
-				suite.Require().Equal(1, len(blockedList))
-			},
-			false,
+			types.AddressList{addr1, addr2},
 		},
 		{
 			"add address repeatedly",
 			func() {},
-			func() {},
-			true,
+			types.AddressList{addr1, addr2},
 		},
 		{
-			"delete address from blocked list",
+			"delete an address from blocked list",
 			func() {
 				proposal.IsAdded = false
+				proposal.ContractAddrs = types.AddressList{addr1}
 				govProposal.Content = proposal
 			},
-			func() {
-				blockedList := suite.stateDB.GetContractBlockedList()
-				suite.Require().Zero(len(blockedList))
-			},
-			false,
+			types.AddressList{addr2},
 		},
 		{
-			"delete an address not in the blocked list",
+			"delete an address from blocked list",
+			func() {
+				proposal.IsAdded = false
+				proposal.ContractAddrs = types.AddressList{addr1}
+				govProposal.Content = proposal
+			},
+			types.AddressList{addr2},
+		},
+		{
+			"delete two addresses from blocked list which contains one of them only",
+			func() {
+				proposal.ContractAddrs = types.AddressList{addr1, addr2}
+				govProposal.Content = proposal
+			},
+			types.AddressList{},
+		},
+		{
+			"delete two addresses from blocked list which contains none of them",
 			func() {},
-			func() {},
-			true,
+			types.AddressList{},
 		},
 	}
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			tc.malleate()
+			tc.prepare()
 
 			err := suite.govHandler(suite.ctx, &govProposal)
+			suite.Require().NoError(err)
 
-			tc.statusCheck()
+			// check the blocked list with target address list
+			curBlockedList := suite.stateDB.GetContractBlockedList()
+			suite.Require().Equal(len(tc.targetAddrListToCheck), len(curBlockedList))
 
-			if tc.expectedError {
-				suite.Require().Error(err)
-			} else {
-				suite.Require().NoError(err)
+			for i, addr := range curBlockedList {
+				suite.Require().Equal(tc.targetAddrListToCheck[i], addr)
 			}
 		})
 	}
