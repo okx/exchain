@@ -124,10 +124,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		return nil, nil, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
 
-	// This gas limit the the transaction gas limit with intrinsic gas subtracted
-	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
-
-	csdb := st.Csdb.WithContext(ctx)
 	consumedGas := ctx.GasMeter().GasConsumed()
 	if consumedGas < cost {
 		// If Cosmos standard tx ante handler cost is less than EVM intrinsic cost
@@ -135,11 +131,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (*Ex
 		ctx.GasMeter().ConsumeGas(cost - consumedGas, "Intrinsic gas match")
 	}
 
+	// This gas limit the the transaction gas limit with intrinsic gas subtracted
+	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
+
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(evmGasMeter)
-	csdb.WithContext(ctx)
+	csdb := st.Csdb.WithContext(ctx)
 
 	params := csdb.GetParams()
 
