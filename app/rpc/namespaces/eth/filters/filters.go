@@ -3,6 +3,7 @@ package filters
 import (
 	"context"
 	"fmt"
+	"github.com/okex/okexchain/cmd/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 	"math/big"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
+	"github.com/spf13/viper"
 
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
 )
@@ -112,6 +114,13 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	if f.criteria.FromBlock.Int64() <= tmtypes.GetStartBlockHeight() ||
 		f.criteria.ToBlock.Int64() <= tmtypes.GetStartBlockHeight(){
 		return nil, fmt.Errorf("from and to block height must greater than %d", tmtypes.GetStartBlockHeight())
+	}
+
+	heightSpan := viper.GetInt64(client.FlagGetLogsHeightSpan)
+	if heightSpan == 0 {
+		return nil, fmt.Errorf("the node connected does not support logs filter")
+	} else if heightSpan > 0 && f.criteria.ToBlock.Int64() - f.criteria.FromBlock.Int64() > heightSpan {
+		return nil, fmt.Errorf("the span between fromBlock and toBlock must be less than or equal to %d", heightSpan)
 	}
 
 	begin := f.criteria.FromBlock.Uint64()

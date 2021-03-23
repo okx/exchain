@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	FlagPersonalAPI = "personal-api"
-	FlagCloseMutex  = "close-mutex"
+	FlagPersonalAPI       = "personal-api"
+	FlagCloseMutex        = "close-mutex"
+	FlagGetLogsHeightSpan = "height-span"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -17,4 +18,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
 	cmd.Flags().Bool(FlagCloseMutex, false, "Close local client query mutex for better concurrency")
+	cmd.Flags().Int64(FlagGetLogsHeightSpan, -1, "config the block height span for get logs")
 }
