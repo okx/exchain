@@ -2,7 +2,6 @@ package websockets
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -32,12 +31,12 @@ type PubSubAPI struct {
 }
 
 // NewAPI creates an instance of the ethereum PubSub API.
-func NewAPI(clientCtx context.CLIContext) *PubSubAPI {
+func NewAPI(clientCtx context.CLIContext, log log.Logger) *PubSubAPI {
 	return &PubSubAPI{
 		clientCtx: clientCtx,
 		events:    rpcfilters.NewEventSystem(clientCtx.Client),
 		filters:   make(map[rpc.ID]*wsSubscription),
-		logger:    log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-client"),
+		logger:    log.With("module", "websocket-client"),
 	}
 }
 
