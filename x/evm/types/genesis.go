@@ -87,6 +87,7 @@ func DefaultGenesisState() GenesisState {
 		Accounts:                    []GenesisAccount{},
 		TxsLogs:                     []TransactionLogs{},
 		ContractDeploymentWhitelist: AddressList{},
+		ContractBlockedList:         AddressList{},
 		ChainConfig:                 DefaultChainConfig(),
 		Params:                      DefaultParams(),
 	}
