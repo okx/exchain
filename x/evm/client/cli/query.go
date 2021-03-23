@@ -31,15 +31,46 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		GetCmdGetCode(moduleName, cdc),
 		GetCmdQueryParams(moduleName, cdc),
 		GetCmdQueryContractDeploymentWhitelist(moduleName, cdc),
+		GetCmdQueryContractBlockedList(moduleName, cdc),
 	)...)
 	return evmQueryCmd
+}
+
+// GetCmdQueryContractBlockedList gets the contract blocked list query command.
+func GetCmdQueryContractBlockedList(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "contract-blocked-list",
+		Short: "Query the contract blocked list",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the current blocked list of contract addresses during evm calling.
+
+Example:
+$ %s query evm contract-blocked-list
+`,
+				version.ClientName,
+			),
+		),
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryContractBlockedList)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var blockedList types.AddressList
+			cdc.MustUnmarshalJSON(bz, &blockedList)
+			return cliCtx.PrintOutput(blockedList)
+		},
+	}
 }
 
 // GetCmdQueryContractDeploymentWhitelist gets the contract deployment whitelist query command.
 func GetCmdQueryContractDeploymentWhitelist(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "contract-deployment-whitelist",
-		Short: "query the whitelist of contract deployment",
+		Short: "Query the whitelist of contract deployment",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query the current whitelist of distributors for contract deployment.
 

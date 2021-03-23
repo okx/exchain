@@ -12,4 +12,10 @@ var (
 		cli.GetCmdManageContractDeploymentWhitelistProposal,
 		rest.ManageContractDeploymentWhitelistProposalRESTHandler,
 	)
+
+	// ManageContractBlockedListProposalHandler alias gov NewProposalHandler
+	ManageContractBlockedListProposalHandler = govcli.NewProposalHandler(
+		cli.GetCmdManageContractBlockedListProposal,
+		rest.ManageContractBlockedListProposalRESTHandler,
+	)
 )

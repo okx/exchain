@@ -83,6 +83,7 @@ var (
 			paramsclient.ProposalHandler, distr.ProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
+			evmclient.ManageContractBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

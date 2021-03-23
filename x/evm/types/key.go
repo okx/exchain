@@ -27,6 +27,7 @@ var (
 	KeyPrefixChainConfig                 = []byte{0x06}
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
+	KeyPrefixContractBlockedList         = []byte{0x09}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -48,12 +49,22 @@ func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
 }
 
-// GetContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
-func GetContractDeploymentWhitelistMemberKey(distributorAddr sdk.AccAddress) []byte {
+// getContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer
+func getContractDeploymentWhitelistMemberKey(distributorAddr sdk.AccAddress) []byte {
 	return append(KeyPrefixContractDeploymentWhitelist, distributorAddr...)
 }
 
-// SplitApprovedDeployerAddress splits the deployer address from a ContractDeploymentWhitelistMemberKey
-func SplitApprovedDeployerAddress(key []byte) sdk.AccAddress {
+// splitApprovedDeployerAddress splits the deployer address from a ContractDeploymentWhitelistMemberKey
+func splitApprovedDeployerAddress(key []byte) sdk.AccAddress {
+	return key[1:]
+}
+
+// getContractBlockedListMemberKey builds the key for a blocked contract address
+func getContractBlockedListMemberKey(contractAddr sdk.AccAddress) []byte {
+	return append(KeyPrefixContractBlockedList, contractAddr...)
+}
+
+// splitBlockedContractAddress splits the blocked contract address from a ContractBlockedListMemberKey
+func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 	return key[1:]
 }

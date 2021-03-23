@@ -22,6 +22,7 @@ const (
 	QueryHeightToHash                = "heightToHash"
 	QuerySection                     = "section"
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
+	QueryContractBlockedList         = "contract-blocked-list"
 )
 
 // QueryResBalance is response type for balance query
