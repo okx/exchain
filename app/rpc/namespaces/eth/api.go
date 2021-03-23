@@ -9,7 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/okexchain/x/evm/watcher"
+
 	cmserver "github.com/cosmos/cosmos-sdk/server"
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -43,15 +47,16 @@ import (
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthereumAPI struct {
-	ctx          context.Context
-	clientCtx    clientcontext.CLIContext
-	chainIDEpoch *big.Int
-	logger       log.Logger
-	backend      backend.Backend
-	keys         []ethsecp256k1.PrivKey // unlocked keys
-	nonceLock    *rpctypes.AddrLocker
-	keyringLock  sync.Mutex
-	gasPrice     *hexutil.Big
+	ctx            context.Context
+	clientCtx      clientcontext.CLIContext
+	chainIDEpoch   *big.Int
+	logger         log.Logger
+	backend        backend.Backend
+	keys           []ethsecp256k1.PrivKey // unlocked keys
+	nonceLock      *rpctypes.AddrLocker
+	keyringLock    sync.Mutex
+	gasPrice       *hexutil.Big
+	wrappedBackend *watcher.Querier
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -66,14 +71,15 @@ func NewAPI(
 	}
 
 	api := &PublicEthereumAPI{
-		ctx:          context.Background(),
-		clientCtx:    clientCtx,
-		chainIDEpoch: epoch,
-		logger:       log.With("module", "json-rpc", "namespace", "eth"),
-		backend:      backend,
-		keys:         keys,
-		nonceLock:    nonceLock,
-		gasPrice:     ParseGasPrice(),
+		ctx:            context.Background(),
+		clientCtx:      clientCtx,
+		chainIDEpoch:   epoch,
+		logger:         log.With("module", "json-rpc", "namespace", "eth"),
+		backend:        backend,
+		keys:           keys,
+		nonceLock:      nonceLock,
+		gasPrice:       ParseGasPrice(),
+		wrappedBackend: watcher.NewQuerier(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -150,9 +156,9 @@ func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		// "startingBlock": nil, // NA
-		"currentBlock": hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
-		// "highestBlock":  nil, // NA
+		"startingBlock": hexutil.Uint64(status.SyncInfo.EarliestBlockHeight),
+		"currentBlock":  hexutil.Uint64(status.SyncInfo.LatestBlockHeight),
+		"highestBlock":  hexutil.Uint64(0), // NA
 		// "pulledStates":  nil, // NA
 		// "knownStates":   nil, // NA
 	}, nil
@@ -387,6 +393,10 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 // GetCode returns the contract code at the given address and block number.
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
+	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
+	if err == nil {
+		return code, nil
+	}
 	clientCtx := api.clientCtx.WithHeight(blockNumber.Int64())
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
@@ -415,13 +425,14 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 	}
 
 	// Sign the requested hash with the wallet
-	signature, err := key.Sign(data)
+	sig, err := crypto.Sign(accounts.TextHash(data), key.ToECDSA())
 	if err != nil {
 		return nil, err
 	}
 
-	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
-	return signature, nil
+	sig[crypto.RecoveryIDOffset] += 27 // transform V from 0/1 to 27/28
+
+	return sig, nil
 }
 
 // SendTransaction sends an Ethereum transaction.
@@ -652,8 +663,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
+
 	block, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
@@ -662,8 +674,9 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (map
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
 	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
+
 	var blockTxs interface{}
 	if blockNum != rpctypes.PendingBlockNumber {
 		return api.backend.GetBlockByNumber(blockNum, fullTx)
@@ -720,7 +733,10 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 // GetTransactionByHash returns the transaction identified by hash.
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
-
+	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
+	if err == nil {
+		return rawTx, nil
+	}
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// check if the tx is on the mempool
@@ -780,6 +796,11 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
+
+	tx, e := api.wrappedBackend.GetTransactionByBlockNumberAndIndex(uint64(blockNum), uint(idx))
+	if e == nil && tx != nil {
+		return tx, nil
+	}
 	var (
 		height int64
 		err    error
@@ -838,8 +859,13 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 }
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
-func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (map[string]interface{}, error) {
+func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
 	api.logger.Debug("eth_getTransactionReceipt", "hash", hash)
+	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
+	if e == nil {
+		return res, nil
+	}
+
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// Return nil for transaction when not found

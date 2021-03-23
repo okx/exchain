@@ -2,7 +2,10 @@ package rpc
 
 import (
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -13,6 +16,7 @@ import (
 	"github.com/okex/okexchain/app/rpc/namespaces/personal"
 	"github.com/okex/okexchain/app/rpc/namespaces/web3"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/okexchain/cmd/client"
 )
 
 // RPC namespaces and API version
@@ -28,10 +32,18 @@ const (
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
 func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
-	backend := backend.New(clientCtx, log)
-	ethAPI := eth.NewAPI(clientCtx, log, backend, nonceLock, keys...)
+	ethBackend := backend.New(clientCtx, log)
+	ethAPI := eth.NewAPI(clientCtx, log, ethBackend, nonceLock, keys...)
+	if evmtypes.GetEnableBloomFilter() {
+		server.TrapSignal(func() {
+			if ethBackend != nil {
+				ethBackend.Close()
+			}
+		})
+		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
+	}
 
-	return []rpc.API{
+	apis := []rpc.API{
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
@@ -47,14 +59,8 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   filters.NewAPI(clientCtx, backend),
+			Service:   filters.NewAPI(clientCtx, ethBackend),
 			Public:    true,
-		},
-		{
-			Namespace: PersonalNamespace,
-			Version:   apiVersion,
-			Service:   personal.NewAPI(ethAPI, log),
-			Public:    false,
 		},
 		{
 			Namespace: NetNamespace,
@@ -63,4 +69,14 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 			Public:    true,
 		},
 	}
+
+	if viper.GetBool(client.FlagPersonalAPI) {
+		apis = append(apis, rpc.API{
+			Namespace: PersonalNamespace,
+			Version:   apiVersion,
+			Service:   personal.NewAPI(ethAPI, log),
+			Public:    false,
+		})
+	}
+	return apis
 }

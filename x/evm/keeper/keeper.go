@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/okex/okexchain/x/evm/watcher"
+
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/spf13/viper"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/tendermint/tendermint/libs/log"
@@ -46,6 +49,7 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
+	Watcher *watcher.Watcher
 }
 
 // NewKeeper generates new evm module keeper
@@ -55,6 +59,12 @@ func NewKeeper(
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	if enable := viper.GetBool(types.FlagEnableBloomFilter); enable {
+		types.SetEnableBloomFilter(enable)
+		db := types.BloomDb()
+		types.InitIndexer(db)
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
@@ -68,6 +78,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
 	}
 }
 
