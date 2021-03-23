@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	maxAddressListLength = 100
 	// proposalTypeManageContractDeploymentWhitelist defines the type for a ManageContractDeploymentWhitelist
 	proposalTypeManageContractDeploymentWhitelist = "ManageContractDeploymentWhitelist"
 )
@@ -80,8 +81,13 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if len(mp.DistributorAddrs) == 0 {
+	distributorAddrLen := len(mp.DistributorAddrs)
+	if distributorAddrLen == 0 {
 		return ErrEmptyAddressList
+	}
+
+	if distributorAddrLen > maxAddressListLength {
+		return ErrOversizeAddrList(distributorAddrLen)
 	}
 
 	if isAddrDuplicated(mp.DistributorAddrs) {
