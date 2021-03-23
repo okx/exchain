@@ -113,7 +113,7 @@ func (st StateTransition) newEVM(
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (executionResult *ExecutionResult, err error) {
+func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
@@ -128,7 +128,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	cost, err := core.IntrinsicGas(st.Payload, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
-		return executionResult, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
+		return exeRes, resData, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
@@ -174,20 +174,20 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	switch contractCreation {
 	case true:
 		if !params.EnableCreate {
-			return nil, ErrCreateDisabled
+			return exeRes, resData, ErrCreateDisabled
 		}
 
 		// check whether the deployer address is in the whitelist if the whitelist is enabled
 		senderAccAddr := st.Sender.Bytes()
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
-			return executionResult, ErrDeployerUnqualified(senderAccAddr)
+			return exeRes, resData, ErrDeployerUnqualified(senderAccAddr)
 		}
 
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		if !params.EnableCall {
-			return executionResult, ErrCallDisabled
+			return exeRes, resData, ErrCallDisabled
 		}
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
@@ -212,7 +212,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}()
 	if err != nil {
 		// Consume gas before returning
-		return executionResult, newRevertError(ret, err)
+		return exeRes, resData, newRevertError(ret, err)
 	}
 
 	// Resets nonce to value pre state transition
@@ -249,7 +249,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := ResultData{
+	resData = &ResultData{
 		Bloom:  bloomFilter,
 		Logs:   logs,
 		Ret:    ret,
@@ -257,10 +257,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	if contractCreation {
-		resultData.ContractAddress = contractAddress
+		resData.ContractAddress = contractAddress
 	}
 
-	resBz, err := EncodeResultData(resultData)
+	resBz, err := EncodeResultData(*resData)
 	if err != nil {
 		return
 	}
@@ -269,7 +269,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
 	)
 
-	executionResult = &ExecutionResult{
+	exeRes = &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
 		Result: &sdk.Result{

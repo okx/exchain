@@ -49,22 +49,15 @@ var (
 	ErrorHexData = "HexData"
 )
 
-// ErrDeployerAlreadyExists returns an error when duplicated deployer address will be added
-func ErrDeployerAlreadyExists(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
+// ErrOversizeAddrList returns an error when the length of address list in the proposal is larger than the max limitation
+func ErrOversizeAddrList(length int) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			13,
-			fmt.Sprintf("failed. deployer %s is already in the whitelist", distributorAddr.String()))}
-}
-
-// ErrDeployerNotExists returns an error when a deployer address not in the whitelist will be deleted
-func ErrDeployerNotExists(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{
-		Err: sdkerrors.New(
-			DefaultParamspace,
-			14,
-			fmt.Sprintf("failed. deployer %s is not in the whitelist", distributorAddr.String()))}
+			fmt.Sprintf("failed. the length of address list in the proposal %d is larger than the max limitation %d",
+				length, maxAddressListLength,
+			))}
 }
 
 // ErrDeployerUnqualified returns an error when a deployer not in the whitelist tries to create a contract
@@ -72,7 +65,7 @@ func ErrDeployerUnqualified(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			15,
+			14,
 			fmt.Sprintf("failed. unqualified deployer %s for a contract deployment", distributorAddr.String()))}
 }
 

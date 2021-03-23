@@ -7,6 +7,7 @@ import (
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/common/perf"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -91,6 +92,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
 	if !st.Simulate {
+		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
@@ -102,8 +104,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if !st.Simulate {
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+		}
 		return nil, err
 	}
 
@@ -111,6 +116,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
+		if msg.Data.Recipient == nil {
+			k.Watcher.SaveContractCode(resultData.ContractAddress, msg.Data.Payload)
+		}
 	}
 
 	// log successful execution
@@ -194,7 +203,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	executionResult, _, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}

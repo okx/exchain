@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 
@@ -119,6 +120,16 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractDeploymentWhitelistPr
 			"empty distributor addresses",
 			func() {
 				proposal.DistributorAddrs = nil
+			},
+			true,
+		},
+		{
+			"oversize distributor addresses",
+			func() {
+				for i := int64(0); i <= maxAddressListLength; i++ {
+					testAddr := ethcmn.BigToAddress(big.NewInt(i)).Bytes()
+					proposal.DistributorAddrs = append(proposal.DistributorAddrs, testAddr)
+				}
 			},
 			true,
 		},
