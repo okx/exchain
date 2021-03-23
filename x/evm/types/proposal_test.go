@@ -226,6 +226,16 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractBlockedListProposal()
 			},
 			true,
 		},
+		{
+			"oversize contract addresses",
+			func() {
+				for i := int64(0); i <= maxAddressListLength; i++ {
+					testAddr := ethcmn.BigToAddress(big.NewInt(i)).Bytes()
+					proposal.ContractAddrs = append(proposal.ContractAddrs, testAddr)
+				}
+			},
+			true,
+		},
 	}
 
 	for _, tc := range testCases {

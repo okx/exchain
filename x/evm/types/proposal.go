@@ -201,8 +201,13 @@ func (mp ManageContractBlockedListProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if len(mp.ContractAddrs) == 0 {
+	contractAddrLen := len(mp.ContractAddrs)
+	if contractAddrLen == 0 {
 		return ErrEmptyAddressList
+	}
+
+	if contractAddrLen > maxAddressListLength {
+		return ErrOversizeAddrList(contractAddrLen)
 	}
 
 	if isAddrDuplicated(mp.ContractAddrs) {
