@@ -10,13 +10,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/cmd/client"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 )
