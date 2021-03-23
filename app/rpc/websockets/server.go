@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -32,12 +31,12 @@ type Server struct {
 }
 
 // NewServer creates a new websocket server instance.
-func NewServer(clientCtx context.CLIContext, wsAddr string) *Server {
+func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Server {
 	return &Server{
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,
-		api:     NewAPI(clientCtx),
-		logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "websocket-server"),
+		api:     NewAPI(clientCtx, log),
+		logger:  log.With("module", "websocket-server"),
 	}
 }
 
@@ -90,7 +89,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
 			_ = wsConn.Close()
-			s.logger.Error("failed to read message; error", err)
+			s.logger.Error(fmt.Sprintf("failed to read message: %s", err))
 			return
 		}
 
@@ -131,6 +130,11 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
+			if len(ids) == 0 {
+				s.sendErrResponse(wsConn, "invalid parameters")
+				continue
+			}
+
 			if _, idok := ids[0].(string); !ok || !idok {
 				s.sendErrResponse(wsConn, "invalid parameters")
 				continue

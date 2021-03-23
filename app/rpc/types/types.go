@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
 // Copied the Account and StorageResult types since they are registered under an
@@ -137,4 +138,24 @@ type Account struct {
 	Balance   **hexutil.Big                `json:"balance"`
 	State     *map[common.Hash]common.Hash `json:"state"`
 	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
+}
+
+// EthHeaderWithBlockHash represents a block header in the Ethereum blockchain with block hash generated from Tendermint Block
+type EthHeaderWithBlockHash struct {
+	ParentHash  common.Hash         `json:"parentHash"`
+	UncleHash   common.Hash         `json:"sha3Uncles"`
+	Coinbase    common.Address      `json:"miner"`
+	Root        common.Hash         `json:"stateRoot"`
+	TxHash      common.Hash         `json:"transactionsRoot"`
+	ReceiptHash common.Hash         `json:"receiptsRoot"`
+	Bloom       ethtypes.Bloom      `json:"logsBloom"`
+	Difficulty  *hexutil.Big        `json:"difficulty"`
+	Number      *hexutil.Big        `json:"number"`
+	GasLimit    hexutil.Uint64      `json:"gasLimit"`
+	GasUsed     hexutil.Uint64      `json:"gasUsed"`
+	Time        hexutil.Uint64      `json:"timestamp"`
+	Extra       hexutil.Bytes       `json:"extraData"`
+	MixDigest   common.Hash         `json:"mixHash"`
+	Nonce       ethtypes.BlockNonce `json:"nonce"`
+	Hash        common.Hash         `json:"hash"`
 }

@@ -31,10 +31,10 @@ type PrivateAccountAPI struct {
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
-func NewAPI(ethAPI *eth.PublicEthereumAPI) *PrivateAccountAPI {
+func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 	api := &PrivateAccountAPI{
 		ethAPI: ethAPI,
-		logger: log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "personal"),
+		logger: log.With("module", "json-rpc", "namespace", "personal"),
 	}
 
 	err := api.ethAPI.GetKeyringInfo()
@@ -62,18 +62,23 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 	}
 
 	privKey := ethsecp256k1.PrivKey(crypto.FromECDSA(priv))
-
-	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
+	pubKey := privKey.PubKey()
 
 	// ignore error as we only care about the length of the list
 	list, _ := api.ethAPI.ClientCtx().Keybase.List()
+	for _, info := range list {
+		if info.GetPubKey().Equals(pubKey) {
+			return common.BytesToAddress(info.GetAddress().Bytes()), nil
+		}
+	}
 	privKeyName := fmt.Sprintf("personal_%d", len(list))
+	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	if err := api.ethAPI.ClientCtx().Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
 		return common.Address{}, err
 	}
 
-	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
+	addr := common.BytesToAddress(pubKey.Address().Bytes())
 
 	info, err := api.ethAPI.ClientCtx().Keybase.Get(privKeyName)
 	if err != nil {
