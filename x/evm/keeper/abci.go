@@ -37,6 +37,9 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.TxCount = 0
 	k.LogSize = 0
 	k.Bhash = common.BytesToHash(currentHash)
+
+	//that can make sure latest block has been committed
+	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -51,6 +54,10 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
+
+	k.Watcher.SaveBlock(bloom)
+	k.Watcher.Commit()
+
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
@@ -61,6 +68,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			}
 		}
 	}
+
 
 	return []abci.ValidatorUpdate{}
 }

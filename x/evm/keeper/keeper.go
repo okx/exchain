@@ -13,6 +13,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/evm/watcher"
 	"github.com/okex/okexchain/x/params"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
@@ -44,6 +45,7 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
+	Watcher *watcher.Watcher
 }
 
 // NewKeeper generates new evm module keeper
@@ -72,6 +74,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
 	}
 }
 
