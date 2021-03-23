@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	"github.com/okex/okexchain/app/rpc/backend"
@@ -29,10 +30,10 @@ const (
 )
 
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
-func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.API {
+func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
-	ethBackend := backend.New(clientCtx)
-	ethAPI := eth.NewAPI(clientCtx, ethBackend, nonceLock, keys...)
+	ethBackend := backend.New(clientCtx, log)
+	ethAPI := eth.NewAPI(clientCtx, log, ethBackend, nonceLock, keys...)
 	if evmtypes.GetEnableBloomFilter() {
 		server.TrapSignal(func() {
 			if ethBackend != nil {
@@ -73,7 +74,7 @@ func GetAPIs(clientCtx context.CLIContext, keys ...ethsecp256k1.PrivKey) []rpc.A
 		apis = append(apis, rpc.API{
 			Namespace: PersonalNamespace,
 			Version:   apiVersion,
-			Service:   personal.NewAPI(ethAPI),
+			Service:   personal.NewAPI(ethAPI, log),
 			Public:    false,
 		})
 	}
