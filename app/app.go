@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/okex/okexchain/app/gas"
+	"github.com/okex/okexchain/app/gasRefund"
 
 	"github.com/okex/okexchain/x/common/perf"
 
@@ -418,7 +418,7 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
-	app.SetGasHandler(gas.NewGasHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper))
+	app.SetGasRefundHandler(gasRefund.NewGasRefundHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

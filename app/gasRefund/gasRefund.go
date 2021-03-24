@@ -1,4 +1,4 @@
-package gas
+package gasRefund
 
 import (
 	"math/big"
@@ -20,30 +20,30 @@ type EVMKeeper interface {
 	GetParams(ctx sdk.Context) evmtypes.Params
 }
 
-func NewGasHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasHandler {
+func NewGasRefundHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (err error) {
-		var gasHandler sdk.GasHandler
+		var gasRefundHandler sdk.GasRefundHandler
 		switch tx.(type) {
 		case auth.StdTx:
-			gasHandler = CosmosGasDecorator(ak, sk)
+			gasRefundHandler = CosmosGasRefundDecorator(ak, sk)
 		case evmtypes.MsgEthereumTx:
-			gasHandler = EthGasDecorator(ak, evmKeeper, sk)
+			gasRefundHandler = EthGasRefundDecorator(ak, evmKeeper, sk)
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 		}
-		return gasHandler(ctx, tx, sim)
+		return gasRefundHandler(ctx, tx, sim)
 	}
 }
 
-type EthGasHandler struct {
+type EthGasRefundHandler struct {
 	ak        auth.AccountKeeper
 	sk        types.SupplyKeeper
 	evmKeeper EVMKeeper
 }
 
-func (egh EthGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err error) {
+func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err error) {
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
@@ -83,12 +83,12 @@ func (egh EthGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err er
 	gasLeft := new(big.Int).Sub(new(big.Int).SetUint64(gasLimit), new(big.Int).SetUint64(gasUsed))
 	gasRefund := new(big.Int).Mul(msgEthTx.Data.Price, gasLeft)
 
-	evmDenom := egh.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := egrh.evmKeeper.GetParams(ctx).EvmDenom
 	feeAmt := sdk.NewCoins(
 		sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(gasRefund, sdk.Precision)),
 	)
 
-	err = ante.RefundFees(egh.sk, ctx, address, feeAmt)
+	err = ante.RefundFees(egrh.sk, ctx, address, feeAmt)
 	if err != nil {
 		return err
 	}
@@ -96,25 +96,25 @@ func (egh EthGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err er
 	return nil
 }
 
-func EthGasDecorator(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasHandler {
+func EthGasRefundDecorator(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 
-	egh := EthGasHandler{
+	egrh := EthGasRefundHandler{
 		ak:        ak,
 		sk:        sk,
 		evmKeeper: evmKeeper,
 	}
 
 	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (err error) {
-		return egh.GasHandle(ctx, tx, simulate)
+		return egrh.GasRefundHandle(ctx, tx, simulate)
 	}
 }
 
-type CosmosGasHandler struct {
+type CosmosGasRefundHandler struct {
 	ak           keeper.AccountKeeper
 	supplyKeeper types.SupplyKeeper
 }
 
-func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err error) {
+func (cgrh CosmosGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err error) {
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
@@ -137,7 +137,7 @@ func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err
 	}
 
 	feePayer := feeTx.FeePayer()
-	feePayerAcc := cgh.ak.GetAccount(ctx, feePayer)
+	feePayerAcc := cgrh.ak.GetAccount(ctx, feePayer)
 	if feePayerAcc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
@@ -155,7 +155,7 @@ func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err
 		gasFees[i] = gasRefund
 	}
 
-	err = ante.RefundFees(cgh.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
+	err = ante.RefundFees(cgrh.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return err
 	}
@@ -163,13 +163,13 @@ func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err
 	return nil
 }
 
-func CosmosGasDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasHandler {
-	cgh := CosmosGasHandler{
+func CosmosGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+	cgrh := CosmosGasRefundHandler{
 		ak:           ak,
 		supplyKeeper: sk,
 	}
 
 	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (err error) {
-		return cgh.GasHandle(ctx, tx, simulate)
+		return cgrh.GasRefundHandle(ctx, tx, simulate)
 	}
 }

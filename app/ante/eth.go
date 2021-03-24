@@ -337,7 +337,6 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		)
 
 		err = auth.DeductFees(egcd.sk, ctx, senderAcc, feeAmt)
-
 		if err != nil {
 			return ctx, err
 		}
