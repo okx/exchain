@@ -30,12 +30,12 @@ func (k Keeper) bondedTokensToNotBonded(ctx sdk.Context, tokens sdk.SysCoin) {
 // TODO:No usages found in project files,remove it later
 func (k Keeper) TotalBondedTokens(ctx sdk.Context) sdk.Dec {
 	bondedPool := k.GetBondedPool(ctx)
-	return bondedPool.GetCoins().AmountOf(k.BondDenom(ctx))
+	return bondedPool.GetCoins().AmountOf(sdk.DefaultBondDenom)
 }
 
 // StakingTokenSupply staking tokens from the total supply
 func (k Keeper) StakingTokenSupply(ctx sdk.Context) sdk.Dec {
-	return k.supplyKeeper.GetSupplyByDenom(ctx, k.BondDenom(ctx))
+	return k.supplyKeeper.GetSupplyByDenom(ctx, sdk.DefaultBondDenom)
 }
 
 // BondedRatio the fraction of the staking tokens which are currently bonded
@@ -44,7 +44,7 @@ func (k Keeper) BondedRatio(ctx sdk.Context) sdk.Dec {
 
 	stakeSupply := k.StakingTokenSupply(ctx)
 	if stakeSupply.IsPositive() {
-		return bondedPool.GetCoins().AmountOf(k.BondDenom(ctx)).Quo(stakeSupply)
+		return bondedPool.GetCoins().AmountOf(sdk.DefaultBondDenom).Quo(stakeSupply)
 	}
 	return sdk.ZeroDec()
 }

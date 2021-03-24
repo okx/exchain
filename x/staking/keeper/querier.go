@@ -1,16 +1,15 @@
 package keeper
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/okex/okexchain/x/common"
-	"github.com/tendermint/tendermint/crypto"
 	"strings"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/staking/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
 )
 
 // NewQuerier creates a querier for staking REST endpoints
@@ -124,7 +123,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 }
 
 func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
-	bondDenom := k.BondDenom(ctx)
+	bondDenom := sdk.DefaultBondDenom
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {

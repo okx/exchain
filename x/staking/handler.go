@@ -107,7 +107,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if _, found := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey)); found {
 		return nil, ErrValidatorPubKeyExists()
 	}
-	if msg.MinSelfDelegation.Denom != k.BondDenom(ctx) {
+	if msg.MinSelfDelegation.Denom != sdk.DefaultBondDenom {
 		return nil, ErrBadDenom()
 	}
 
@@ -133,7 +133,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
 	// add shares of equal value of msd for validator itself
-	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator.MinSelfDelegation)
+	defaultMinSelfDelegationToken := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, validator.MinSelfDelegation)
 	if err = k.AddSharesAsMinSelfDelegation(ctx, msg.DelegatorAddress, &validator, defaultMinSelfDelegationToken); err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/staking/exported"
-
 	"github.com/okex/okexchain/x/staking/types"
 )
 
@@ -126,7 +125,7 @@ func ModuleAccountInvariantsCustom(k Keeper) sdk.Invariant {
 		notBonded := sdk.ZeroDec()
 		bondedPool := k.GetBondedPool(ctx)
 		notBondedPool := k.GetNotBondedPool(ctx)
-		bondDenom := k.BondDenom(ctx)
+		bondDenom := sdk.DefaultBondDenom
 
 		k.IterateValidators(ctx, func(index int64, validator exported.ValidatorI) bool {
 			bonded = bonded.Add(validator.GetMinSelfDelegation())
