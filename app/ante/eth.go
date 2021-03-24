@@ -255,11 +255,20 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
-	if msgEthTx.Data.AccountNonce != seq {
-		return ctx, sdkerrors.Wrapf(
-			sdkerrors.ErrInvalidSequence,
-			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-		)
+	if ctx.IsCheckTx() {
+		if msgEthTx.Data.AccountNonce > seq {
+			return ctx, sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
+	} else {
+		if msgEthTx.Data.AccountNonce != seq {
+			return ctx, sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
 	}
 
 	return next(ctx, tx, simulate)
@@ -379,6 +388,11 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		acc := issd.ak.GetAccount(ctx, addr)
+
+		if msgEthTx.Data.AccountNonce < acc.GetSequence() {
+			continue
+		}
+
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 			panic(err)
 		}
