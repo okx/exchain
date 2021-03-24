@@ -106,7 +106,7 @@ type TransactionReceipt struct {
 	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
 	Logs              []*ethtypes.Log `json:"logs"`
 	TransactionHash   string          `json:"transactionHash"`
-	ContractAddress   string          `json:"contractAddress"`
+	ContractAddress   *common.Address `json:"contractAddress"`
 	GasUsed           hexutil.Uint64  `json:"gasUsed"`
 	BlockHash         string          `json:"blockHash"`
 	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
@@ -123,13 +123,19 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
 		TransactionHash:   txHash.String(),
-		ContractAddress:   data.ContractAddress.String(),
+		ContractAddress:   &data.ContractAddress,
 		GasUsed:           hexutil.Uint64(GasUsed),
 		BlockHash:         blockHash.String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
 		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
 		To:                tx.To(),
+	}
+
+	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
+	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+		//set to nil to keep sync with ethereum rpc
+		tr.ContractAddress = nil
 	}
 	jsTr, e := json.Marshal(tr)
 	if e != nil {
