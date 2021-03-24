@@ -23,8 +23,12 @@ type Watcher struct {
 	sw            bool
 }
 
+func IsWatcherEnabled() bool {
+	return viper.GetBool(FlagFastQuery)
+}
+
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: viper.GetBool(FlagFastQuery)}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
 }
 
 func (w Watcher) enabled() bool {

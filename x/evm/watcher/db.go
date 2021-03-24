@@ -17,10 +17,9 @@ type WatchStore struct {
 var gWatchStore *WatchStore = nil
 
 func InstanceOfWatchStore() *WatchStore {
-	if gWatchStore == nil {
+	if gWatchStore == nil && IsWatcherEnabled() {
 		db, e := initDb()
 		if e == nil {
-
 			gWatchStore = &WatchStore{db: db}
 		}
 	}
