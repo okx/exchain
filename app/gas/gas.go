@@ -3,17 +3,16 @@ package gas
 import (
 	"math/big"
 
+	ethermint "github.com/okex/okexchain/app/types"
+
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
-
-	ethermint "github.com/okex/okexchain/app/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/ethereum/go-ethereum/common"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 )
 
@@ -50,6 +49,17 @@ func (egh EthGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err er
 	TempGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(TempGasMeter)
 
+	defer func() {
+		ctx = ctx.WithGasMeter(currentGasMeter)
+	}()
+
+	gasLimit := currentGasMeter.Limit()
+	gasUsed := currentGasMeter.GasConsumed()
+
+	if gasUsed >= gasLimit {
+		return nil
+	}
+
 	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
 	if !ok {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -70,32 +80,18 @@ func (egh EthGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err er
 		panic("sender address cannot be empty")
 	}
 
-	// fetch sender account from signature
-	senderAcc, err := auth.GetSignerAcc(ctx, egh.ak, address)
-	if err != nil {
-		return err
-	}
+	gasLeft := new(big.Int).Sub(new(big.Int).SetUint64(gasLimit), new(big.Int).SetUint64(gasUsed))
+	gasRefund := new(big.Int).Mul(msgEthTx.Data.Price, gasLeft)
 
-	if senderAcc == nil {
-		return sdkerrors.Wrapf(
-			sdkerrors.ErrUnknownAddress,
-			"sender account %s (%s) is nil", common.BytesToAddress(address.Bytes()), address,
-		)
-	}
-
-	gasUsed := currentGasMeter.GasConsumed()
-	gasCost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasUsed))
 	evmDenom := egh.evmKeeper.GetParams(ctx).EvmDenom
 	feeAmt := sdk.NewCoins(
-		sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(gasCost, sdk.Precision)),
+		sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(gasRefund, sdk.Precision)),
 	)
 
-	err = auth.DeductFees(egh.sk, ctx, senderAcc, feeAmt, false)
+	err = ante.RefundFees(egh.sk, ctx, address, feeAmt)
 	if err != nil {
 		return err
 	}
-
-	ctx = ctx.WithGasMeter(currentGasMeter)
 
 	return nil
 }
@@ -124,6 +120,17 @@ func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err
 	TempGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(TempGasMeter)
 
+	defer func() {
+		ctx = ctx.WithGasMeter(currentGasMeter)
+	}()
+
+	gasLimit := currentGasMeter.Limit()
+	gasUsed := currentGasMeter.GasConsumed()
+
+	if gasUsed >= gasLimit {
+		return nil
+	}
+
 	feeTx, ok := tx.(ante.FeeTx)
 	if !ok {
 		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
@@ -138,21 +145,20 @@ func (cgh CosmosGasHandler) GasHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := make(sdk.Coins, len(fees))
-	gasUsed := currentGasMeter.GasConsumed()
 
 	for i, fee := range fees {
 		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
 		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
-		gasFee := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
-		gasFees[i] = gasFee
+		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
+		gasRefund := fee.Sub(gasCost)
+
+		gasFees[i] = gasRefund
 	}
 
-	err = auth.DeductFees(cgh.supplyKeeper, ctx, feePayerAcc, gasFees, false)
+	err = ante.RefundFees(cgh.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return err
 	}
-
-	ctx = ctx.WithGasMeter(currentGasMeter)
 
 	return nil
 }
