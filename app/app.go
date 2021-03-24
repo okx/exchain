@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/okex/okexchain/app/gas"
+
 	"github.com/okex/okexchain/x/common/perf"
 
 	evmtypes "github.com/okex/okexchain/x/evm/types"
@@ -416,6 +418,7 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
+	app.SetGasHandler(gas.NewGasHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -441,7 +444,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)
