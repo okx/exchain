@@ -112,14 +112,11 @@ type TransactionReceipt struct {
 	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
 	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
 	From              string          `json:"from"`
-	To                string          `json:"to"`
+	To                *common.Address `json:"to"`
 }
 
 func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-	toAddr := ""
-	if tx.To() != nil {
-		toAddr = tx.To().String()
-	}
+
 	tr := TransactionReceipt{
 		Status:            hexutil.Uint64(status),
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
@@ -132,7 +129,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
 		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
-		To:                toAddr,
+		To:                tx.To(),
 	}
 	jsTr, e := json.Marshal(tr)
 	if e != nil {
