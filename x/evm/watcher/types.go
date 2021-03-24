@@ -134,7 +134,7 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
-		//set to nil to keep sycn with ethereum rpc
+		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
 	jsTr, e := json.Marshal(tr)
