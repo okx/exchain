@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/okexchain/x/staking/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +25,7 @@ func TestDelegatorAddSharesInvariant(t *testing.T) {
 	k.SetValidatorByConsAddr(ctx, validator1)
 	k.SetNewValidatorByPowerIndex(ctx, validator1)
 	// add shares of equal value of msd for validator itself
-	defaultMinSelfDelegationToken1 := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator1.MinSelfDelegation)
+	defaultMinSelfDelegationToken1 := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, validator1.MinSelfDelegation)
 	err := k.AddSharesAsMinSelfDelegation(ctx, msgCreateValidator1.DelegatorAddress, &validator1, defaultMinSelfDelegationToken1)
 	require.Nil(t, err)
 
@@ -37,12 +36,12 @@ func TestDelegatorAddSharesInvariant(t *testing.T) {
 	k.SetValidatorByConsAddr(ctx, validator2)
 	k.SetNewValidatorByPowerIndex(ctx, validator2)
 	// add shares of equal value of msd for validator itself
-	defaultMinSelfDelegationToken2 := sdk.NewDecCoinFromDec(k.BondDenom(ctx), validator2.MinSelfDelegation)
+	defaultMinSelfDelegationToken2 := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, validator2.MinSelfDelegation)
 	err = k.AddSharesAsMinSelfDelegation(ctx, msgCreateValidator2.DelegatorAddress, &validator2, defaultMinSelfDelegationToken2)
 	require.Nil(t, err)
 
 	// deposit
-	delegateAmount, sdkErr := sdk.ParseDecCoin(fmt.Sprintf("100%s", k.BondDenom(ctx)))
+	delegateAmount, sdkErr := sdk.ParseDecCoin(fmt.Sprintf("100%s", sdk.DefaultBondDenom))
 	require.Nil(t, sdkErr)
 	err = k.Delegate(ctx, dAddr, delegateAmount)
 	require.Nil(t, err)
