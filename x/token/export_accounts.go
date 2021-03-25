@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"sync/atomic"
 	"time"
 
 	ethermint "github.com/okex/okexchain/app/types"
@@ -22,7 +21,6 @@ import (
 )
 
 var (
-	processing  atomic.Value
 	logFileName = "export-upload-account.log"
 )
 
@@ -95,7 +93,7 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	return path.Join(rootDir, accFileName)
 }
 
-func uploadOSS(file string) {
+func uploadOSS(filePath string) {
 	// 1. open log file
 	logFile, logWr, err := openLogFile()
 	if err != nil {
@@ -124,9 +122,9 @@ func uploadOSS(file string) {
 		return
 	}
 
-	// TODO yourObjectName
+	_, objectName := path.Split(filePath)
 	// multipart file upload
-	err = bucket.UploadFile("<yourObjectName>", file, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
+	err = bucket.UploadFile(objectName, filePath, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
 	if err != nil {
 		recodeLog(logWr, fmt.Sprintf("multipart file upload error: %s", err))
 		return

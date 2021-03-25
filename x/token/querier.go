@@ -171,20 +171,12 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	p := processing.Load()
-	if p != nil && p.(bool) {
-		return []byte("Exporting account data and uploading it to oss, please be patient"), nil
-	}
-	processing.Store(true)
-	//go func(ctx sdk.Context, keeper Keeper) {
-	defer processing.Store(false)
 	// Note: very time-consuming
 	filePath := exportAccounts(ctx, keeper)
 	if filePath == "" {
 		return
 	}
 	uploadOSS(filePath)
-	//}(ctx, keeper)
 
-	return []byte("Start to export account data and upload it to oss, please wait patiently"), nil
+	return []byte("Complete the Export account data and Upload it to oss"), nil
 }
