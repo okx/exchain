@@ -123,7 +123,7 @@ func uploadOSS(filePath string) {
 	}
 
 	_, fileName := path.Split(filePath)
-	objectName := viper.GetString(client.FlagOSSObjectPath) + fileName
+	objectName := viper.GetString(client.FlagOSSObjectPath) + fmt.Sprintf("accounts-%s/", time.Now().Format("20060102")) + fileName
 	// multipart file upload
 	err = bucket.UploadFile(objectName, filePath, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
 	if err != nil {
