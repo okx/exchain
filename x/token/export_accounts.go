@@ -9,13 +9,13 @@ import (
 	"path"
 	"time"
 
-	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/cmd/client"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 )
@@ -54,7 +54,7 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	defer accWr.Flush()
 	defer func() {
 		if err := recover(); err != nil {
-			recodeLog(logWr, fmt.Sprintf("panic: %s", err))
+			recodeLog(logWr, fmt.Sprintf("export accounts panic: %s", err))
 		}
 	}()
 
@@ -103,7 +103,7 @@ func uploadOSS(filePath string) {
 	defer logWr.Flush()
 	defer func() {
 		if err := recover(); err != nil {
-			recodeLog(logWr, fmt.Sprintf("panic: %s", err))
+			recodeLog(logWr, fmt.Sprintf("upload OSS panic: %s", err))
 		}
 	}()
 
@@ -122,14 +122,15 @@ func uploadOSS(filePath string) {
 		return
 	}
 
-	_, objectName := path.Split(filePath)
+	_, fileName := path.Split(filePath)
+	objectName := viper.GetString(client.FlagOSSObjectPath) + fileName
 	// multipart file upload
 	err = bucket.UploadFile(objectName, filePath, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
 	if err != nil {
 		recodeLog(logWr, fmt.Sprintf("multipart file upload error: %s", err))
 		return
 	}
-	recodeLog(logWr, fmt.Sprintf("oss file: %s", "<yourObjectName>"))
+	recodeLog(logWr, fmt.Sprintf("oss file: %s", objectName))
 	recodeLog(logWr, fmt.Sprintf("upload duration: %s", time.Since(startTime).String()))
 }
 

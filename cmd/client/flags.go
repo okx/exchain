@@ -13,6 +13,7 @@ const (
 	FlagOSSAccessKeyID     = "oss-access-key-id"
 	FlagOSSAccessKeySecret = "oss-access-key-secret"
 	FlagOSSBucketName      = "oss-bucket-name"
+	FlagOSSObjectPath      = "oss-object-path"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -23,5 +24,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(FlagOSSEndpoint, "", "The OSS datacenter endpoint such as http://oss-cn-hangzhou.aliyuncs.com")
 	cmd.Flags().String(FlagOSSAccessKeyID, "", "The OSS access key Id")
 	cmd.Flags().String(FlagOSSAccessKeySecret, "", "The OSS access key secret")
-	cmd.Flags().String(FlagOSSBucketName, "", "The bucket name")
+	cmd.Flags().String(FlagOSSBucketName, "", "The OSS bucket name")
+	cmd.Flags().String(FlagOSSObjectPath, "", "The OSS object path")
 }
