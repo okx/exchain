@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strconv"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -42,6 +44,9 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	e = json.Unmarshal(b, &receipt)
 	if e != nil {
 		return nil, e
+	}
+	if receipt.Logs == nil {
+		receipt.Logs = []*ethtypes.Log{}
 	}
 	return &receipt, nil
 }
