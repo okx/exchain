@@ -28,7 +28,6 @@ import (
 	"github.com/okex/okexchain/app/crypto/hd"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/common"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
 	"github.com/okex/okexchain/x/genutil"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
 	"github.com/spf13/cobra"
@@ -336,12 +335,6 @@ func initGenFiles(
 
 	crisisGenState.ConstantFee.Denom = coinDenom
 	appGenState[crisis.ModuleName] = cdc.MustMarshalJSON(crisisGenState)
-
-	var evmGenState evmtypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[evmtypes.ModuleName], &evmGenState)
-
-	evmGenState.Params.EvmDenom = coinDenom
-	appGenState[evmtypes.ModuleName] = cdc.MustMarshalJSON(evmGenState)
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)
 	if err != nil {

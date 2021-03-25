@@ -6,19 +6,16 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
-	ethermint "github.com/okex/okexchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/params"
 )
 
 var (
@@ -575,9 +572,8 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
-	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -725,10 +721,9 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
-		evmDenom := csdb.GetParams().EvmDenom
 		balance := sdk.Coin{
-			Denom:  evmDenom,
-			Amount: ethermintAcc.GetCoins().AmountOf(evmDenom),
+			Denom:  sdk.DefaultBondDenom,
+			Amount: ethermintAcc.GetCoins().AmountOf(sdk.DefaultBondDenom),
 		}
 
 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
@@ -772,11 +767,9 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
+		newobj.setBalance(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
-
 
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
