@@ -500,8 +500,8 @@ github.com/okex/cosmos-sdk v0.39.3-0.20210324103003-977040c23565 h1:s1wRyf+LHvMe
 github.com/okex/cosmos-sdk v0.39.3-0.20210324103003-977040c23565/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/iavl v0.14.1-okexchain2 h1:vhWUd07zSLAckgaZBVaj/MGAm1FQ6P0i8zTuW/xbMGU=
 github.com/okex/iavl v0.14.1-okexchain2/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
-github.com/okex/tendermint v0.33.9-okexchain5.0.20210322061756-1d7f05428780 h1:ft25kPM2WRV4gBUnyOS8SMQemLbcuhzOf1RyqvMGO98=
-github.com/okex/tendermint v0.33.9-okexchain5.0.20210322061756-1d7f05428780/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
+github.com/okex/tendermint v0.33.9-okexchain5.0.20210325070257-ade429d4350b h1:Ue+YP+HGOkv+V3v/3c7FDNTdeCyXkeab42n5pXIRzvU=
+github.com/okex/tendermint v0.33.9-okexchain5.0.20210325070257-ade429d4350b/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
