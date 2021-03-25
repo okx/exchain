@@ -457,7 +457,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 		return exTxInfo
 	}
 
-	exTxInfo.Sender = sdk.AccAddress(from.Bytes()).String()
+	exTxInfo.Sender = from.String()
 	exTxInfo.GasPrice = msg.Data.Price.Int64()
 
 	return exTxInfo

@@ -1141,24 +1141,13 @@ func (api *PublicEthereumAPI) accountNonce(
 		return nonce, nil
 	}
 
-	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
-	// to manually add them.
-	pendingTxs, err := api.backend.PendingTransactions()
+	//// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
+	//// to manually add them.
+	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
 	if err != nil {
 		return 0, err
 	}
-
-	// add the uncommitted txs to the nonce counter
-	if len(pendingTxs) != 0 {
-		for i := range pendingTxs {
-			if pendingTxs[i] == nil {
-				continue
-			}
-			if pendingTxs[i].From == address {
-				nonce++
-			}
-		}
-	}
+	nonce += uint64(pendingTxs)
 
 	return nonce, nil
 }

@@ -2,11 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/okexchain/x/common/perf"
 	"io"
 	"os"
-	"strconv"
-
-	"github.com/okex/okexchain/x/common/perf"
 
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 
@@ -443,7 +441,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)
@@ -603,17 +601,12 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 }
 
 func NewMempoolHandler(ak auth.AccountKeeper) sdk.MempoolHandler {
-	return func(ctx sdk.Context, address, txNums string) error {
+	return func(ctx sdk.Context, address string, pendingTxs int) error {
 		addr, err := sdk.AccAddressFromBech32(address)
 		if err != nil {
 			return err
 		}
 		acc := ak.GetAccount(ctx, addr)
-
-		pendingTxs, err := strconv.Atoi(txNums)
-		if err != nil {
-			return err
-		}
 
 		if err := acc.SetSequence(acc.GetSequence() + uint64(pendingTxs)); err != nil {
 			return err
