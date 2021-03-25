@@ -16,25 +16,12 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams("ara", true, true, 2929, 1884, 1344),
+			NewParams(true, true, 2929, 1884, 1344),
 			false,
-		},
-		{
-			"empty",
-			Params{},
-			true,
-		},
-		{
-			"invalid evm denom",
-			Params{
-				EvmDenom: "@!#!@$!@5^32",
-			},
-			true,
 		},
 		{
 			"invalid eip",
 			Params{
-				EvmDenom:  "stake",
 				ExtraEIPs: []int{1},
 			},
 			true,
@@ -53,8 +40,6 @@ func TestParamsValidate(t *testing.T) {
 }
 
 func TestParamsValidatePriv(t *testing.T) {
-	require.Error(t, validateEVMDenom(false))
-	require.NoError(t, validateEVMDenom("aphoton"))
 	require.Error(t, validateBool(""))
 	require.NoError(t, validateBool(true))
 	require.Error(t, validateEIPs(""))
@@ -62,8 +47,7 @@ func TestParamsValidatePriv(t *testing.T) {
 }
 
 func TestParams_String(t *testing.T) {
-	const expectedParamsStr = `evm_denom: okt
-enable_create: false
+	const expectedParamsStr = `enable_create: false
 enable_call: false
 extra_eips: []
 `
