@@ -161,7 +161,7 @@ type EthBlock struct {
 	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
-	Nonce            uint64         `json:"nonce"`
+	Nonce            hexutil.Uint64 `json:"nonce"`
 	Sha3Uncles       common.Hash    `json:"sha3Uncles"`
 	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
 	TransactionsRoot common.Hash    `json:"transactionsRoot"`
