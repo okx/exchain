@@ -24,6 +24,13 @@ var (
 	logFileName = "export-upload-account.log"
 )
 
+type AccType int
+
+const (
+	userAccount AccType = iota
+	contractAccount
+)
+
 func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	pt := time.Now().UTC().Format(time.RFC3339)
 	rootDir := viper.GetString(cli.HomeFlag)
@@ -72,9 +79,9 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			return false
 		}
 
-		accType := 0 //0:user account  1:contract account
+		accType := userAccount
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
-			accType = 1
+			accType = contractAccount
 		}
 
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
