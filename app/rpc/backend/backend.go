@@ -3,7 +3,8 @@ package backend
 import (
 	"context"
 	"fmt"
-	"os"
+
+	"github.com/okex/okexchain/x/evm/watcher"
 
 	"github.com/tendermint/tendermint/libs/log"
 
@@ -29,8 +30,8 @@ type Backend interface {
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
-	GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
+	GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error)
 
 	// returns the logs of a given block
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -54,22 +55,32 @@ type EthermintBackend struct {
 	gasLimit          int64
 	bloomRequests     chan chan *bloombits.Retrieval
 	closeBloomHandler chan struct{}
+	wrappedBackend    *watcher.Querier
 }
 
 // New creates a new EthermintBackend instance
-func New(clientCtx clientcontext.CLIContext) *EthermintBackend {
+func New(clientCtx clientcontext.CLIContext, log log.Logger) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:               context.Background(),
 		clientCtx:         clientCtx,
-		logger:            log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc"),
+		logger:            log.With("module", "json-rpc"),
 		gasLimit:          int64(^uint32(0)),
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		closeBloomHandler: make(chan struct{}),
+		wrappedBackend:    watcher.NewQuerier(),
 	}
 }
 
 // BlockNumber returns the current block number.
 func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
+	ublockNumber, err := b.wrappedBackend.GetLatestBlockNumber()
+	if err == nil {
+		if ublockNumber > 0 {
+			//decrease blockNumber to make sure every block has been executed in local
+			ublockNumber--
+		}
+		return hexutil.Uint64(ublockNumber), err
+	}
 	blockNumber, err := b.LatestBlockNumber()
 	if err != nil {
 		return hexutil.Uint64(0), err
@@ -83,7 +94,11 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error) {
+func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
+	ethBlock, err := b.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
+	if err == nil {
+		return ethBlock, nil
+	}
 	height := blockNum.Int64()
 	if height <= 0 {
 		// get latest block height
@@ -104,7 +119,11 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
+	ethBlock, err := b.wrappedBackend.GetBlockByHash(hash, fullTx)
+	if err == nil {
+		return ethBlock, nil
+	}
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil, err
