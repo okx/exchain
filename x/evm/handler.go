@@ -77,8 +77,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
-		GasReturn:    uint64(0),
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -166,8 +164,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
-		GasReturn:    uint64(0),
 	}
 
 	if msg.Recipient != nil {
