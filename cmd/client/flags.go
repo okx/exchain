@@ -8,7 +8,6 @@ import (
 
 const (
 	FlagPersonalAPI = "personal-api"
-	FlagCloseMutex  = "close-mutex"
 
 	FlagEnableOSS          = "oss-enable"
 	FlagOSSEndpoint        = "oss-endpoint"
@@ -22,7 +21,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Bool(FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
-	cmd.Flags().Bool(FlagCloseMutex, false, "Close local client query mutex for better concurrency")
 
 	cmd.Flags().Bool(FlagEnableOSS, false, "Enable the function of exporting account data and uploading to oss")
 	cmd.Flags().String(FlagOSSEndpoint, "", "The OSS datacenter endpoint such as http://oss-cn-hangzhou.aliyuncs.com")
