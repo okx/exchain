@@ -120,6 +120,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			// contract calling
 			if blockedContractAddr, ok := e.(common.Address); ok {
 				err = ErrCallBlockedContract(blockedContractAddr)
+			} else {
+				// unexpected and unknown panic from lower part
+				panic(e)
 			}
 		}
 	}()
