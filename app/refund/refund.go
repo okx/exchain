@@ -20,18 +20,16 @@ type EVMKeeper interface {
 
 func NewGasRefundHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 	return func(
-		ctx sdk.Context, tx sdk.Tx, sim bool,
+		ctx sdk.Context, tx sdk.Tx,
 	) (err error) {
 		var gasRefundHandler sdk.GasRefundHandler
 		switch tx.(type) {
-		case auth.StdTx:
-			gasRefundHandler = refund.NewGasRefundHandler(ak, sk)
 		case evmtypes.MsgEthereumTx:
 			gasRefundHandler = EthGasRefundDecorator(ak, evmKeeper, sk)
 		default:
-			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+			return nil
 		}
-		return gasRefundHandler(ctx, tx, sim)
+		return gasRefundHandler(ctx, tx)
 	}
 }
 
@@ -41,7 +39,7 @@ type EthGasRefundHandler struct {
 	evmKeeper EVMKeeper
 }
 
-func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx, sim bool) (err error) {
+func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx) (err error) {
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
@@ -102,7 +100,7 @@ func EthGasRefundDecorator(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.
 		evmKeeper: evmKeeper,
 	}
 
-	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (err error) {
-		return egrh.GasRefundHandle(ctx, tx, simulate)
+	return func(ctx sdk.Context, tx sdk.Tx) (err error) {
+		return egrh.GasRefundHandle(ctx, tx)
 	}
 }
