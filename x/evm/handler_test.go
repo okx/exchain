@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
 	"github.com/status-im/keycard-go/hexutils"
 
 	"github.com/stretchr/testify/suite"
@@ -19,8 +17,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
-
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
@@ -68,9 +64,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
-
 	var tx types.MsgEthereumTx
 
 	testCases := []struct {
@@ -82,7 +75,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"passed",
 			func() {
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
-				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 
 				// parse context chain ID to big.Int
@@ -99,8 +91,6 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"insufficient balance",
 			func() {
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(1))
-				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
 				tx = types.NewMsgEthereumTxContract(0, big.NewInt(100), 3000000, big.NewInt(1), nil)
 
 				// parse context chain ID to big.Int
@@ -163,9 +153,6 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		to   = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
 
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
-
 	testCases := []struct {
 		msg      string
 		malleate func()
@@ -174,7 +161,6 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"passed",
 			func() {
-				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
@@ -183,7 +169,6 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 		{
 			"invalid state transition",
 			func() {
-				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
 			},
 			false,
@@ -236,10 +221,6 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	// 	"opcodes": "PUSH1 0x80 PUSH1 0x40 MSTORE CALLVALUE DUP1 ISZERO PUSH1 0xF JUMPI PUSH1 0x0 DUP1 REVERT JUMPDEST POP PUSH1 0x11 PUSH32 0x775A94827B8FD9B519D36CD827093C664F93347070A554F65E4A6F56CD738898 PUSH1 0x40 MLOAD PUSH1 0x40 MLOAD DUP1 SWAP2 SUB SWAP1 LOG2 PUSH1 0x35 DUP1 PUSH1 0x4B PUSH1 0x0 CODECOPY PUSH1 0x0 RETURN INVALID PUSH1 0x80 PUSH1 0x40 MSTORE PUSH1 0x0 DUP1 REVERT INVALID LOG1 PUSH6 0x627A7A723058 KECCAK256 PUSH13 0xAB665F0F557620554BB45ADF26 PUSH8 0x8D2BD349B8A4314 0xbd SELFDESTRUCT KECCAK256 0x5e 0xe8 DIFFICULTY 0xe EXTCODECOPY 0x24 STOP 0x29 ",
 	// 	"sourceMap": "25:119:0:-;;;90:52;8:9:-1;5:2;;;30:1;27;20:12;5:2;90:52:0;132:2;126:9;;;;;;;;;;25:119;;;;;;"
 	// }
-
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(1000000)
@@ -326,10 +307,6 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	//}
 	//}
 
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
 	// Deploy contract - Owner.sol
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
@@ -383,10 +360,6 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 
 func (suite *EvmTestSuite) TestSendTransaction() {
 
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(10000)
 
@@ -405,7 +378,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
-	var expectedGas uint64 = 5387
+	var expectedGas uint64 = 1336
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -522,11 +495,6 @@ func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
 	//}
 
 	// Deploy contract - storage.sol
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
-	// Deploy contract - storage.sol
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
 
@@ -608,11 +576,6 @@ func (suite *EvmTestSuite) TestGasConsume() {
 	//}
 
 	// Deploy contract - storage.sol
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-
-	// Deploy contract - storage.sol
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
 
@@ -626,7 +589,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
-	var expectedConsumedGas sdk.Gas = 672894
+	var expectedConsumedGas sdk.Gas = 660122
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -654,9 +617,6 @@ func (suite *EvmTestSuite) TestDefaultMsgHandler() {
 }
 
 func (suite *EvmTestSuite) TestSimulateConflict() {
-	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
-	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
 	gasPrice := big.NewInt(10000)
@@ -683,6 +643,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 26387
+	var expectedGas uint64 = 22336
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
