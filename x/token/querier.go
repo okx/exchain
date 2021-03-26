@@ -173,7 +173,7 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	if !viper.GetBool(client.FlagEnableOSS) {
+	if !viper.GetBool(client.FlagOSSEnable) {
 		return []byte("This API is not enabled"), nil
 	}
 	// Note: very time-consuming
