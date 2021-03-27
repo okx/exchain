@@ -3,9 +3,10 @@ package refund
 import (
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/x/auth/refund"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 
-	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/refund"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -14,18 +15,14 @@ import (
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 )
 
-type EVMKeeper interface {
-	GetParams(ctx sdk.Context) evmtypes.Params
-}
-
-func NewGasRefundHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx,
 	) (err error) {
 		var gasRefundHandler sdk.GasRefundHandler
 		switch tx.(type) {
 		case evmtypes.MsgEthereumTx:
-			gasRefundHandler = EthGasRefundDecorator(ak, evmKeeper, sk)
+			gasRefundHandler = NewGasRefundDecorator(ak, sk)
 		default:
 			return nil
 		}
@@ -33,13 +30,12 @@ func NewGasRefundHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.Su
 	}
 }
 
-type EthGasRefundHandler struct {
-	ak        auth.AccountKeeper
-	sk        types.SupplyKeeper
-	evmKeeper EVMKeeper
+type GasRefundHandler struct {
+	ak           keeper.AccountKeeper
+	supplyKeeper types.SupplyKeeper
 }
 
-func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx) (err error) {
+func (grh GasRefundHandler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
@@ -56,35 +52,31 @@ func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx) (err
 		return nil
 	}
 
-	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	feeTx, ok := tx.(ante.FeeTx)
 	if !ok {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
 	}
 
-	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return err
-	}
-	_, err = msgEthTx.VerifySig(chainIDEpoch)
-	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
+	feePayer := feeTx.FeePayer()
+	feePayerAcc := grh.ak.GetAccount(ctx, feePayer)
+	if feePayerAcc == nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
 
-	// sender address should be in the tx cache from the previous AnteHandle call
-	address := msgEthTx.From()
-	if address.Empty() {
-		panic("sender address cannot be empty")
+	gas := feeTx.GetGas()
+	fees := feeTx.GetFee()
+	gasFees := make(sdk.Coins, len(fees))
+
+	for i, fee := range fees {
+		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
+		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
+		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
+		gasRefund := fee.Sub(gasCost)
+
+		gasFees[i] = gasRefund
 	}
 
-	gasLeft := new(big.Int).Sub(new(big.Int).SetUint64(gasLimit), new(big.Int).SetUint64(gasUsed))
-	gasRefund := new(big.Int).Mul(msgEthTx.Data.Price, gasLeft)
-
-	evmDenom := egrh.evmKeeper.GetParams(ctx).EvmDenom
-	feeAmt := sdk.NewCoins(
-		sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(gasRefund, sdk.Precision)),
-	)
-
-	err = refund.RefundFees(egrh.sk, ctx, address, feeAmt)
+	err = refund.RefundFees(grh.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return err
 	}
@@ -92,15 +84,13 @@ func (egrh EthGasRefundHandler) GasRefundHandle(ctx sdk.Context, tx sdk.Tx) (err
 	return nil
 }
 
-func EthGasRefundDecorator(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
-
-	egrh := EthGasRefundHandler{
-		ak:        ak,
-		sk:        sk,
-		evmKeeper: evmKeeper,
+func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+	cgrh := GasRefundHandler{
+		ak:           ak,
+		supplyKeeper: sk,
 	}
 
 	return func(ctx sdk.Context, tx sdk.Tx) (err error) {
-		return egrh.GasRefundHandle(ctx, tx)
+		return cgrh.GasRefund(ctx, tx)
 	}
 }
