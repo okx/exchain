@@ -24,6 +24,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) 
 	r.HandleFunc(fmt.Sprintf("/tokens"), tokensHandler(cliCtx, storeName)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/currency/describe"), currencyDescribeHandler(cliCtx, storeName)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/accounts/{address}"), spotAccountsHandler(cliCtx, storeName)).Methods("GET")
+	r.HandleFunc(fmt.Sprintf("/upload"), uploadAccountsHandler(cliCtx, storeName)).Methods("GET")
 }
 
 func tokenHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc {
@@ -131,6 +132,25 @@ func spotAccountsHandler(cliCtx context.CLIContext, storeName string) http.Handl
 			return
 		}
 
+		result := common.GetBaseResponse("hello")
+		result2, err2 := json.Marshal(result)
+		if err2 != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err2.Error())
+			return
+		}
+		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
+		rest.PostProcessResponse(w, cliCtx, result2)
+	}
+}
+
+func uploadAccountsHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/upload", storeName), nil)
+		if err != nil {
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, err.Error())
+			return
+		}
 		result := common.GetBaseResponse("hello")
 		result2, err2 := json.Marshal(result)
 		if err2 != nil {
