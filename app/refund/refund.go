@@ -30,12 +30,12 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRe
 	}
 }
 
-type GasRefundHandler struct {
+type Handler struct {
 	ak           keeper.AccountKeeper
 	supplyKeeper types.SupplyKeeper
 }
 
-func (grh GasRefundHandler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
+func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
@@ -58,7 +58,7 @@ func (grh GasRefundHandler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 	}
 
 	feePayer := feeTx.FeePayer()
-	feePayerAcc := grh.ak.GetAccount(ctx, feePayer)
+	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
 	if feePayerAcc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
@@ -76,7 +76,7 @@ func (grh GasRefundHandler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 		gasFees[i] = gasRefund
 	}
 
-	err = refund.RefundFees(grh.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
+	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return err
 	}
@@ -85,12 +85,12 @@ func (grh GasRefundHandler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 }
 
 func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
-	cgrh := GasRefundHandler{
+	chandler := Handler{
 		ak:           ak,
 		supplyKeeper: sk,
 	}
 
 	return func(ctx sdk.Context, tx sdk.Tx) (err error) {
-		return cgrh.GasRefund(ctx, tx)
+		return chandler.GasRefund(ctx, tx)
 	}
 }
