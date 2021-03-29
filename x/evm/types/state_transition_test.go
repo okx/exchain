@@ -185,7 +185,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"call disabled",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, true, false, false, false, types.DefaultMaxGasLimit)
+				params := types.NewParams(ethermint.NativeToken, true, false, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -206,7 +206,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"create disabled",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, false, true, false, false, types.DefaultMaxGasLimit)
+				params := types.NewParams(ethermint.NativeToken, false, true, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -251,7 +251,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"state transition simulation",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, false, true, false, false, types.DefaultMaxGasLimit)
+				params := types.NewParams(ethermint.NativeToken, false, true, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{

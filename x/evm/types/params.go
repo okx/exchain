@@ -15,8 +15,8 @@ import (
 
 const (
 	// DefaultParamspace for params keeper
-	DefaultParamspace  = ModuleName
-	DefaultMaxGasLimit = 30000000
+	DefaultParamspace       = ModuleName
+	DefaultMaxGasLimitPerTx = 30000000
 )
 
 // Parameter keys
@@ -27,7 +27,7 @@ var (
 	ParamStoreKeyExtraEIPs                   = []byte("EnableExtraEIPs")
 	ParamStoreKeyContractDeploymentWhitelist = []byte("EnableContractDeploymentWhitelist")
 	ParamStoreKeyContractBlockedList         = []byte("EnableContractBlockedList")
-	ParamStoreKeyMaxGasLimit                 = []byte("MaxGasLimit")
+	ParamStoreKeyMaxGasLimitPerTx            = []byte("MaxGasLimitPerTx")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -51,11 +51,11 @@ type Params struct {
 	// EnableContractBlockedList controls the availability of contracts
 	EnableContractBlockedList bool `json:"enable_contract_blocked_list" yaml:"enable_contract_blocked_list"`
 	// MaxGasLimit defines the max gas limit in transaction
-	MaxGasLimit uint64 `json:"max_gas_limit" yaml:"max_gas_limit"`
+	MaxGasLimitPerTx uint64 `json:"max_gas_limit" yaml:"max_gas_limit"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall, enableContractDeploymentWhitelist, enableContractBlockedList bool, maxGasLimit uint64, extraEIPs ...int) Params {
+func NewParams(evmDenom string, enableCreate, enableCall, enableContractDeploymentWhitelist, enableContractBlockedList bool, maxGasLimitPerTx uint64, extraEIPs ...int) Params {
 	return Params{
 		EvmDenom:                          evmDenom,
 		EnableCreate:                      enableCreate,
@@ -63,7 +63,7 @@ func NewParams(evmDenom string, enableCreate, enableCall, enableContractDeployme
 		ExtraEIPs:                         extraEIPs,
 		EnableContractDeploymentWhitelist: enableContractDeploymentWhitelist,
 		EnableContractBlockedList:         enableContractBlockedList,
-		MaxGasLimit:                       maxGasLimit,
+		MaxGasLimitPerTx:                  maxGasLimitPerTx,
 	}
 }
 
@@ -76,7 +76,7 @@ func DefaultParams() Params {
 		ExtraEIPs:                         []int(nil), // TODO: define default values
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,
-		MaxGasLimit:                       DefaultMaxGasLimit,
+		MaxGasLimitPerTx:                  DefaultMaxGasLimitPerTx,
 	}
 }
 
@@ -95,7 +95,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
 		params.NewParamSetPair(ParamStoreKeyContractDeploymentWhitelist, &p.EnableContractDeploymentWhitelist, validateBool),
 		params.NewParamSetPair(ParamStoreKeyContractBlockedList, &p.EnableContractBlockedList, validateBool),
-		params.NewParamSetPair(ParamStoreKeyMaxGasLimit, &p.MaxGasLimit, validateMaxGasLimit),
+		params.NewParamSetPair(ParamStoreKeyMaxGasLimitPerTx, &p.MaxGasLimitPerTx, validateUint64),
 	}
 }
 
@@ -140,6 +140,10 @@ func validateEIPs(i interface{}) error {
 	return nil
 }
 
-func validateMaxGasLimit(_ interface{}) error {
+func validateUint64(i interface{}) error {
+	_, ok := i.(uint64)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
 	return nil
 }

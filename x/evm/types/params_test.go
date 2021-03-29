@@ -16,7 +16,7 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams("ara", true, true, false, false, DefaultMaxGasLimit, 2929, 1884, 1344),
+			NewParams("ara", true, true, false, false, DefaultMaxGasLimitPerTx, 2929, 1884, 1344),
 			false,
 		},
 		{
@@ -66,6 +66,9 @@ func TestParams_String(t *testing.T) {
 enable_create: false
 enable_call: false
 extra_eips: []
+enable_contract_deployment_whitelist: false
+enable_contract_blocked_list: false
+max_gas_limit: 30000000
 `
 	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }
