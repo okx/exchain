@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	evmclient "github.com/okex/okexchain/x/evm/client"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
@@ -66,6 +67,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			distr.ProposalHandler.RESTHandler(rs.CliCtx),
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
+			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
 }
