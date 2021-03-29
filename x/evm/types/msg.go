@@ -442,7 +442,7 @@ func deriveChainID(v *big.Int) *big.Int {
 func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
 		Sender:   "",
-		GasPrice: 0,
+		GasPrice: big.NewInt(0),
 		Nonce:    msg.Data.AccountNonce,
 	}
 
@@ -458,7 +458,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 
 	exTxInfo.Sender = from.String()
-	exTxInfo.GasPrice = msg.Data.Price.Int64()
+	exTxInfo.GasPrice = msg.Data.Price
 
 	return exTxInfo
 }
