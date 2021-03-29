@@ -3,10 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/params"
 )
 
@@ -45,7 +45,6 @@ var (
 var (
 	KeyUnbondingTime     = []byte("UnbondingTime")
 	KeyMaxValidators     = []byte("MaxValidators")
-	KeyBondDenom         = []byte("BondDenom")
 	KeyEpoch             = []byte("BlocksPerEpoch")    // how many blocks each epoch has
 	KeyTheEndOfLastEpoch = []byte("TheEndOfLastEpoch") // a block height that is the end of last epoch
 
@@ -66,8 +65,6 @@ type Params struct {
 	// epoch for validator update
 	Epoch              uint16 `json:"epoch" yaml:"epoch"`
 	MaxValsToAddShares uint16 `json:"max_validators_to_add_shares" yaml:"max_validators_to_add_shares"`
-	// bondable coin denomination
-	BondDenom string `json:"bond_denom" yaml:"bond_denom"`
 	// limited amount of delegate
 	MinDelegation sdk.Dec `json:"min_delegation" yaml:"min_delegation"`
 	// validator's self declared minimum self delegation
@@ -75,13 +72,11 @@ type Params struct {
 }
 
 // NewParams creates a new Params instance
-func NewParams(unbondingTime time.Duration, maxValidators uint16, bondDenom string, epoch uint16, maxValsToAddShares uint16,
-	minDelegation sdk.Dec, minSelfDelegation sdk.Dec) Params {
-
+func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
+	minSelfDelegation sdk.Dec) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
-		BondDenom:          bondDenom,
 		Epoch:              epoch,
 		MaxValsToAddShares: maxValsToAddShares,
 		MinDelegation:      minDelegation,
@@ -99,7 +94,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
 		{Key: KeyUnbondingTime, Value: &p.UnbondingTime, ValidatorFn: common.ValidateDurationPositive("unbonding time")},
 		{Key: KeyMaxValidators, Value: &p.MaxValidators, ValidatorFn: common.ValidateUint16Positive("max validators")},
-		{Key: KeyBondDenom, Value: &p.BondDenom, ValidatorFn: common.ValidateDenom("bond denom")},
 		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16Positive("epoch")},
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
@@ -118,9 +112,11 @@ func (p Params) Equal(p2 Params) bool {
 // DefaultParams returns a default set of parameters
 func DefaultParams() Params {
 	return NewParams(
-		DefaultUnbondingTime, DefaultMaxValidators,
-		sdk.DefaultBondDenom, DefaultEpoch,
-		DefaultMaxValsToAddShares, DefaultMinDelegation,
+		DefaultUnbondingTime,
+		DefaultMaxValidators,
+		DefaultEpoch,
+		DefaultMaxValsToAddShares,
+		DefaultMinDelegation,
 		DefaultMinSelfDelegation,
 	)
 }
@@ -131,18 +127,14 @@ func (p Params) String() string {
   Unbonding Time:    		%s
   Max Validators:   	 	%d
   Epoch: 					%d
-  Bonded Coin Denom: 		%s
   MaxValsToAddShares:       %d
   MinDelegation				%d
   MinSelfDelegation         %d`,
-		p.UnbondingTime, p.MaxValidators, p.Epoch, p.BondDenom, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation)
+		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation)
 }
 
 // Validate gives a quick validity check for a set of params
 func (p Params) Validate() error {
-	if p.BondDenom == "" {
-		return fmt.Errorf("staking parameter BondDenom can't be an empty string")
-	}
 	if p.MaxValidators == 0 {
 		return fmt.Errorf("staking parameter MaxValidators must be a positive integer")
 	}

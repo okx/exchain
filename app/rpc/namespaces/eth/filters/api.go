@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/bloombits"
+
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -22,13 +24,15 @@ import (
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (map[string]interface{}, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
 
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
+	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
+	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
 }
 
 // consider a filter inactive if it has not been polled for within deadline
@@ -431,7 +435,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
 	if err != nil {
-		return nil, err
+		return logs, err
 	}
 
 	return returnLogs(logs), nil

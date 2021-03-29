@@ -5,20 +5,18 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
-	"github.com/okex/okexchain/x/evm/types"
-
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/evm/watcher"
+	"github.com/okex/okexchain/x/params"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -38,6 +36,7 @@ type Keeper struct {
 	paramSpace    params.Subspace
 	supplyKeeper  types.SupplyKeeper
 	bankKeeper    bank.Keeper
+	govKeeper     GovKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
@@ -46,6 +45,7 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
+	Watcher *watcher.Watcher
 }
 
 // NewKeeper generates new evm module keeper
@@ -55,6 +55,12 @@ func NewKeeper(
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	if enable := viper.GetBool(types.FlagEnableBloomFilter); enable {
+		types.SetEnableBloomFilter(enable)
+		db := types.BloomDb()
+		types.InitIndexer(db)
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
@@ -68,6 +74,7 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
 	}
 }
 
@@ -79,6 +86,13 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
+	}
+}
+
+// GeneratePureCSDBParams generates an instance of csdb params ONLY for store setter and getter
+func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
+	return types.CommitStateDBParams{
+		StoreKey: k.storeKey,
 	}
 }
 
@@ -185,4 +199,9 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+}
+
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk GovKeeper) {
+	k.govKeeper = gk
 }
