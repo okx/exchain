@@ -4,6 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,13 +18,11 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/okexchain/x/common"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
+	govRest "github.com/okex/okexchain/x/gov/client/rest"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	"net/http"
-	"strings"
-	"time"
-	"github.com/okex/okexchain/x/common"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -177,6 +179,16 @@ func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	}
 
 	return tx, nil
+}
+
+// ManageContractDeploymentWhitelistProposalRESTHandler defines evm proposal handler
+func ManageContractDeploymentWhitelistProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+
+// ManageContractBlockedListProposalRESTHandler defines evm proposal handler
+func ManageContractBlockedListProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
 }
 
 func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
