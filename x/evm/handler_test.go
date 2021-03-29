@@ -197,7 +197,6 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 			tc.malleate()
 			suite.ctx = suite.ctx.WithIsCheckTx(true)
 			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			suite.ctx.IsCheckTx()
 			res, err := suite.handler(suite.ctx, tx)
 
 			//nolint
