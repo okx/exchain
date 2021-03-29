@@ -5,20 +5,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
-
+	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -699,4 +695,144 @@ func (suite *StateDBTestSuite) TestCommitStateDB_AccessList() {
 	addrIn, slotIn = suite.stateDB.SlotInAccessList(addr, hash)
 	suite.Require().True(addrIn)
 	suite.Require().True(slotIn)
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractDeploymentWhitelist() {
+	// create addresses for test
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	testCase := []struct {
+		name           string
+		targetAddrList types.AddressList
+		// true -> add, false -> delete
+		isAdded     bool
+		expectedLen int
+	}{
+		{
+			"add empty list into whitelist",
+			types.AddressList{},
+			true,
+			0,
+		},
+		{
+			"add list with one member into whitelist",
+			types.AddressList{addr1},
+			true,
+			1,
+		},
+		{
+			"add list with two members into the whitelist that has contained one member already",
+			types.AddressList{addr1, addr2},
+			true,
+			2,
+		},
+		{
+			"delete empty from whitelist",
+			types.AddressList{},
+			false,
+			2,
+		},
+		{
+			"delete list with one member from whitelist",
+			types.AddressList{addr1},
+			false,
+			1,
+		},
+		{
+			"delete list with two members from the whitelist that has contained one member only",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+		{
+			"delete list with two members from the empty whitelist",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			if tc.isAdded {
+				suite.stateDB.SetContractDeploymentWhitelist(tc.targetAddrList)
+			} else {
+				suite.stateDB.DeleteContractDeploymentWhitelist(tc.targetAddrList)
+			}
+
+			whitelist := suite.stateDB.GetContractDeploymentWhitelist()
+			suite.Require().Equal(tc.expectedLen, len(whitelist))
+		})
+	}
+}
+
+func (suite *StateDBTestSuite) TestCommitStateDB_ContractBlockedList() {
+	// create addresses for test
+	addr1 := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	testCase := []struct {
+		name           string
+		targetAddrList types.AddressList
+		// true -> add, false -> delete
+		isAdded     bool
+		expectedLen int
+	}{
+		{
+			"add empty list into blocked list",
+			types.AddressList{},
+			true,
+			0,
+		},
+		{
+			"add list with one member into blocked list",
+			types.AddressList{addr1},
+			true,
+			1,
+		},
+		{
+			"add list with two members into the blocked list that has contained one member already",
+			types.AddressList{addr1, addr2},
+			true,
+			2,
+		},
+		{
+			"delete empty from blocked list",
+			types.AddressList{},
+			false,
+			2,
+		},
+		{
+			"delete list with one member from blocked list",
+			types.AddressList{addr1},
+			false,
+			1,
+		},
+		{
+			"delete list with two members from the blocked list that has contained one member only",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+		{
+			"delete list with two members from the empty blocked list",
+			types.AddressList{addr1, addr2},
+			false,
+			0,
+		},
+	}
+
+	for _, tc := range testCase {
+		suite.Run(tc.name, func() {
+			if tc.isAdded {
+				suite.stateDB.SetContractBlockedList(tc.targetAddrList)
+			} else {
+				suite.stateDB.DeleteContractBlockedList(tc.targetAddrList)
+			}
+
+			blockedList := suite.stateDB.GetContractBlockedList()
+			suite.Require().Equal(tc.expectedLen, len(blockedList))
+		})
+	}
 }
