@@ -195,6 +195,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
 			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := suite.handler(suite.ctx, tx)
 
@@ -817,6 +818,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
 			suite.SetupTest()
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
 
 			// reset FeeCollector
 			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -1119,6 +1121,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedLis
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
 			// update params
 			params := suite.app.EvmKeeper.GetParams(suite.ctx)
 			params.EnableContractBlockedList = tc.enableContractBlockedList
