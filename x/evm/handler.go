@@ -143,7 +143,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
-		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Msg of type ethermint is not allowed to be executed.")
+		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
 
 	// parse the chainID from a string to a base-10 integer
