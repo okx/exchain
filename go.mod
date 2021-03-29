@@ -54,7 +54,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210329104036-9ac63aa800a2
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210329104904-f341de66a7d0
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.1-okexchain2
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6
 )
