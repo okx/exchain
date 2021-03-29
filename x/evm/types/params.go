@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	"gopkg.in/yaml.v2"
@@ -14,7 +15,8 @@ import (
 
 const (
 	// DefaultParamspace for params keeper
-	DefaultParamspace = ModuleName
+	DefaultParamspace  = ModuleName
+	DefaultMaxGasLimit = 30000000
 )
 
 // Parameter keys
@@ -23,6 +25,7 @@ var (
 	ParamStoreKeyEnableCreate = []byte("EnableCreate")
 	ParamStoreKeyEnableCall   = []byte("EnableCall")
 	ParamStoreKeyExtraEIPs    = []byte("EnableExtraEIPs")
+	ParamStoreKeyMaxGasLimit  = []byte("MaxGasLimit")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -41,25 +44,29 @@ type Params struct {
 	EnableCall bool `json:"enable_call" yaml:"enable_call"`
 	// ExtraEIPs defines the additional EIPs for the vm.Config
 	ExtraEIPs []int `json:"extra_eips" yaml:"extra_eips"`
+	// MaxGasLimit defines the max gas limit in transaction
+	MaxGasLimit uint64 `json:"max_gas_limit" yaml:"max_gas_limit"`
 }
 
 // NewParams creates a new Params instance
-func NewParams(evmDenom string, enableCreate, enableCall bool, extraEIPs ...int) Params {
+func NewParams(evmDenom string, enableCreate, enableCall bool, maxGasLimit uint64, extraEIPs ...int) Params {
 	return Params{
 		EvmDenom:     evmDenom,
 		EnableCreate: enableCreate,
 		EnableCall:   enableCall,
 		ExtraEIPs:    extraEIPs,
+		MaxGasLimit:  maxGasLimit,
 	}
 }
 
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EvmDenom: ethermint.NativeToken,
+		EvmDenom:     ethermint.NativeToken,
 		EnableCreate: false,
 		EnableCall:   false,
 		ExtraEIPs:    []int(nil), // TODO: define default values
+		MaxGasLimit:  DefaultMaxGasLimit,
 	}
 }
 
@@ -76,6 +83,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyEnableCreate, &p.EnableCreate, validateBool),
 		params.NewParamSetPair(ParamStoreKeyEnableCall, &p.EnableCall, validateBool),
 		params.NewParamSetPair(ParamStoreKeyExtraEIPs, &p.ExtraEIPs, validateEIPs),
+		params.NewParamSetPair(ParamStoreKeyMaxGasLimit, &p.MaxGasLimit, validateMaxGasLimit),
 	}
 }
 
@@ -105,7 +113,6 @@ func validateBool(i interface{}) error {
 	return nil
 }
 
-
 func validateEIPs(i interface{}) error {
 	eips, ok := i.([]int)
 	if !ok {
@@ -118,5 +125,9 @@ func validateEIPs(i interface{}) error {
 		}
 	}
 
+	return nil
+}
+
+func validateMaxGasLimit(_ interface{}) error {
 	return nil
 }

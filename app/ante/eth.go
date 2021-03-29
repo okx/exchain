@@ -389,3 +389,26 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	ctx = ctx.WithGasMeter(gasMeter)
 	return next(ctx, tx, simulate)
 }
+
+// NewGasLimitDecorator creates a new GasLimitDecorator.
+func NewGasLimitDecorator(evm EVMKeeper) GasLimitDecorator {
+	return GasLimitDecorator{
+		evm: evm,
+	}
+}
+
+type GasLimitDecorator struct {
+	evm EVMKeeper
+}
+
+// AnteHandle handles incrementing the sequence of the sender.
+func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	if !ok {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+	}
+	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimit {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", msgEthTx.GetGas())
+	}
+	return next(ctx, tx, simulate)
+}
