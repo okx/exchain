@@ -407,7 +407,7 @@ func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool,
 	if !ok {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
-	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimit {
+	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", msgEthTx.GetGas())
 	}
 	return next(ctx, tx, simulate)
