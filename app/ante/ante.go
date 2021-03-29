@@ -55,8 +55,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		case evmtypes.MsgEthereumTx:
 			anteHandler = sdk.ChainAnteDecorators(
 				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-				NewEthMempoolFeeDecorator(evmKeeper),
 				NewGasLimitDecorator(evmKeeper),
+				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
 				NewEthSigVerificationDecorator(),
 				NewAccountVerificationDecorator(ak, evmKeeper),
