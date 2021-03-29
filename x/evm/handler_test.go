@@ -412,7 +412,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
 
-	var expectedGas uint64 = 0x5208
+	var expectedGas uint64 = 21000
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -634,7 +634,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
 
-	var expectedConsumedGas sdk.Gas = 0xb4f5c
+	var expectedConsumedGas sdk.Gas = 741212
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -766,7 +766,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-
 	var expectedGas uint64 = 0x5740
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }

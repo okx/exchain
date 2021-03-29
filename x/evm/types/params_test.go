@@ -16,7 +16,7 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams(true, true, false, false, 2929, 1884, 1344),
+			NewParams(true, true, false, false, DefaultMaxGasLimitPerTx, 2929, 1884, 1344),
 			false,
 		},
 		{
@@ -44,6 +44,8 @@ func TestParamsValidatePriv(t *testing.T) {
 	require.NoError(t, validateBool(true))
 	require.Error(t, validateEIPs(""))
 	require.NoError(t, validateEIPs([]int{1884}))
+	require.NoError(t, validateUint64(uint64(30000000)))
+	require.Error(t, validateUint64("test"))
 }
 
 func TestParams_String(t *testing.T) {
@@ -52,6 +54,7 @@ enable_call: false
 extra_eips: []
 enable_contract_deployment_whitelist: false
 enable_contract_blocked_list: false
+max_gas_limit_per_tx: 30000000
 `
 	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }
