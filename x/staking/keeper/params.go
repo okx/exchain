@@ -30,7 +30,8 @@ func (k Keeper) MaxValidators(ctx sdk.Context) (res uint16) {
 	return
 }
 
-func (k Keeper) BondDenom(ctx sdk.Context) (string) {
+// BondDenom returns the default the denomination of staking token
+func (k Keeper) BondDenom(_ sdk.Context) string {
 	return sdk.DefaultBondDenom
 }
 

@@ -125,7 +125,7 @@ func ModuleAccountInvariantsCustom(k Keeper) sdk.Invariant {
 		notBonded := sdk.ZeroDec()
 		bondedPool := k.GetBondedPool(ctx)
 		notBondedPool := k.GetNotBondedPool(ctx)
-		bondDenom := sdk.DefaultBondDenom
+		bondDenom := k.BondDenom(ctx)
 
 		k.IterateValidators(ctx, func(index int64, validator exported.ValidatorI) bool {
 			bonded = bonded.Add(validator.GetMinSelfDelegation())

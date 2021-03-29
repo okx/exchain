@@ -123,7 +123,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 }
 
 func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
-	bondDenom := sdk.DefaultBondDenom
+	bondDenom := k.BondDenom(ctx)
 	bondedPool := k.GetBondedPool(ctx)
 	notBondedPool := k.GetNotBondedPool(ctx)
 	if bondedPool == nil || notBondedPool == nil {
