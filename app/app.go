@@ -21,6 +21,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/okex/okexchain/app/ante"
 	okexchaincodec "github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/refund"
 	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
@@ -118,11 +119,6 @@ var (
 		farm.ModuleName:           nil,
 		farm.YieldFarmingAccount:  nil,
 		farm.MintFarmingAccount:   {supply.Burner},
-	}
-
-	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{
-		distr.ModuleName: true,
 	}
 )
 
@@ -239,7 +235,7 @@ func NewOKExChainApp(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
-		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+		app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
@@ -419,6 +415,7 @@ func NewOKExChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetMempoolHandler(NewMempoolHandler(app.AccountKeeper))
+	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -490,16 +487,6 @@ func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
 	}
 
 	return modAccAddrs
-}
-
-// BlacklistedAccAddrs returns all the app's module account addresses black listed for receiving tokens.
-func (app *OKExChainApp) BlacklistedAccAddrs() map[string]bool {
-	blacklistedAddrs := make(map[string]bool)
-	for acc := range maccPerms {
-		blacklistedAddrs[supply.NewModuleAddress(acc).String()] = !allowedReceivingModAcc[acc]
-	}
-
-	return blacklistedAddrs
 }
 
 // SimulationManager implements the SimulationApp interface
