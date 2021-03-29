@@ -30,6 +30,10 @@ func (k Keeper) MaxValidators(ctx sdk.Context) (res uint16) {
 	return
 }
 
+func (k Keeper) BondDenom(ctx sdk.Context) (string) {
+	return sdk.DefaultBondDenom
+}
+
 // GetParams gets all params as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
