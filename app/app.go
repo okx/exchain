@@ -120,11 +120,6 @@ var (
 		farm.YieldFarmingAccount:  nil,
 		farm.MintFarmingAccount:   {supply.Burner},
 	}
-
-	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{
-		distr.ModuleName: true,
-	}
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -240,7 +235,7 @@ func NewOKExChainApp(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
-		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+		app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
@@ -491,16 +486,6 @@ func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
 	}
 
 	return modAccAddrs
-}
-
-// BlacklistedAccAddrs returns all the app's module account addresses black listed for receiving tokens.
-func (app *OKExChainApp) BlacklistedAccAddrs() map[string]bool {
-	blacklistedAddrs := make(map[string]bool)
-	for acc := range maccPerms {
-		blacklistedAddrs[supply.NewModuleAddress(acc).String()] = !allowedReceivingModAcc[acc]
-	}
-
-	return blacklistedAddrs
 }
 
 // SimulationManager implements the SimulationApp interface
