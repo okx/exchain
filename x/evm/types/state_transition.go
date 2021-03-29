@@ -5,12 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -138,7 +135,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	if consumedGas < cost {
 		// If Cosmos standard tx ante handler cost is less than EVM intrinsic cost
 		// gas must be consumed to match to accurately simulate an Ethereum transaction
-		ctx.GasMeter().ConsumeGas(cost - consumedGas, "Intrinsic gas match")
+		ctx.GasMeter().ConsumeGas(cost-consumedGas, "Intrinsic gas match")
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
