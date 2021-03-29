@@ -3,13 +3,11 @@ package types
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/stretchr/testify/require"
 )
 
 var address = ethcmn.BytesToAddress([]byte{1, 2, 3, 4, 5})
@@ -216,7 +214,7 @@ func TestValidateGenesis(t *testing.T) {
 			name: "invalid params",
 			genState: GenesisState{
 				ChainConfig: DefaultChainConfig(),
-				Params:      Params{},
+				Params:      Params{ExtraEIPs: []int{1}},
 			},
 			expPass: false,
 		},

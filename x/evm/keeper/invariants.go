@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-
 	ethermint "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/evm/types"
 )
@@ -38,8 +37,7 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 				return false
 			}
 
-			evmDenom := k.GetParams(ctx).EvmDenom
-			accountBalance := ethAccount.GetCoins().AmountOf(evmDenom)
+			accountBalance := ethAccount.GetCoins().AmountOf(sdk.DefaultBondDenom)
 			evmBalance := csdb.GetBalance(ethAccount.EthAddress())
 
 			if evmBalance.Cmp(accountBalance.BigInt()) != 0 {

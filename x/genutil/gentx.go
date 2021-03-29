@@ -6,14 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // ValidateAccountInGenesis checks that the provided key has sufficient coins in the genesis accounts
@@ -24,10 +23,7 @@ func ValidateAccountInGenesis(appGenesisState map[string]json.RawMessage,
 	accountIsInGenesis := false
 
 	// TODO: refactor out bond denom to common state area
-	stakingDataBz := appGenesisState[stakingtypes.ModuleName]
-	var stakingData stakingtypes.GenesisState
-	cdc.MustUnmarshalJSON(stakingDataBz, &stakingData)
-	bondDenom := stakingData.Params.BondDenom
+	bondDenom := sdk.DefaultBondDenom
 
 	genUtilDataBz := appGenesisState[stakingtypes.ModuleName]
 	var genesisState GenesisState
