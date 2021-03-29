@@ -71,7 +71,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(30000000)))
 
 	var tx types.MsgEthereumTx
 
@@ -168,7 +168,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 	)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(30000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(30000000)))
 
 	testCases := []struct {
 		msg      string
@@ -244,7 +244,7 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	// }
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
@@ -333,7 +333,7 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 	//}
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000000000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	// Deploy contract - Owner.sol
@@ -390,7 +390,7 @@ func (suite *EvmTestSuite) TestDeployAndCallContract() {
 func (suite *EvmTestSuite) TestSendTransaction() {
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
@@ -530,7 +530,7 @@ func (suite *EvmTestSuite) TestRevertErrorWhenCallContract() {
 
 	// Deploy contract - storage.sol
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000000000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	// Deploy contract - storage.sol
@@ -616,7 +616,7 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	// Deploy contract - storage.sol
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000000000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	// Deploy contract - storage.sol
@@ -666,7 +666,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 	suite.Require().NoError(err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(1000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000000000)))
 
 	var tx types.MsgEthereumTx
 
@@ -738,7 +738,7 @@ func (suite *EvmTestSuite) TestRefundGas() {
 
 func (suite *EvmTestSuite) TestSimulateConflict() {
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(suite.app.EvmKeeper.GetParams(suite.ctx).EvmDenom, sdk.NewInt(3000000000000)))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(3000000000000)))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	gasLimit := uint64(100000)
@@ -766,7 +766,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
-	var expectedGas uint64 = 0x7307
+	var expectedGas uint64 = 0x5740
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -840,7 +840,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 
 			// reset FeeCollector
 			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(params.EvmDenom, sdk.OneDec()))
+			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
 			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 			// set account sufficient balance for sender
@@ -933,7 +933,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 
 			// reset FeeCollector
 			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(params.EvmDenom, sdk.OneDec()))
+			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
 			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 			// set account sufficient balance for sender

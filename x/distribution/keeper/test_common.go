@@ -3,23 +3,21 @@ package keeper
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/okexchain/x/params"
+	"github.com/okex/okexchain/x/staking"
+	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
-
-	"github.com/okex/okexchain/x/distribution/types"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/staking"
 )
 
 //nolint: deadcode unused

@@ -37,8 +37,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
 
 		result, err = handlerFun()
-
-		if sdk.HigherThanMercury(ctx.BlockHeight()) && err != nil {
+		if err != nil {
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 
@@ -75,7 +74,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
+		CoinDenom:    sdk.DefaultBondDenom,
 		GasReturn:    uint64(0),
 	}
 
@@ -173,7 +172,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
+		CoinDenom:    sdk.DefaultBondDenom,
 		GasReturn:    uint64(0),
 	}
 
