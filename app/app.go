@@ -5,35 +5,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/okex/okexchain/x/common/perf"
-
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
-	"github.com/okex/okexchain/app/ante"
-	okexchaincodec "github.com/okex/okexchain/app/codec"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/ammswap"
-	"github.com/okex/okexchain/x/backend"
-	commonversion "github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/debug"
-	"github.com/okex/okexchain/x/dex"
-	dexclient "github.com/okex/okexchain/x/dex/client"
-	distr "github.com/okex/okexchain/x/distribution"
-	"github.com/okex/okexchain/x/evidence"
-	"github.com/okex/okexchain/x/evm"
-	"github.com/okex/okexchain/x/farm"
-	farmclient "github.com/okex/okexchain/x/farm/client"
-	"github.com/okex/okexchain/x/genutil"
-	"github.com/okex/okexchain/x/gov"
-	"github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/order"
-	"github.com/okex/okexchain/x/params"
-	paramsclient "github.com/okex/okexchain/x/params/client"
-	"github.com/okex/okexchain/x/slashing"
-	"github.com/okex/okexchain/x/staking"
-	"github.com/okex/okexchain/x/stream"
-	"github.com/okex/okexchain/x/token"
-
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -47,7 +18,33 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-
+	"github.com/okex/okexchain/app/ante"
+	okexchaincodec "github.com/okex/okexchain/app/codec"
+	okexchain "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/ammswap"
+	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/okexchain/x/common/perf"
+	commonversion "github.com/okex/okexchain/x/common/version"
+	"github.com/okex/okexchain/x/debug"
+	"github.com/okex/okexchain/x/dex"
+	dexclient "github.com/okex/okexchain/x/dex/client"
+	distr "github.com/okex/okexchain/x/distribution"
+	"github.com/okex/okexchain/x/evidence"
+	"github.com/okex/okexchain/x/evm"
+	evmclient "github.com/okex/okexchain/x/evm/client"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/okexchain/x/farm"
+	farmclient "github.com/okex/okexchain/x/farm/client"
+	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/okexchain/x/gov/keeper"
+	"github.com/okex/okexchain/x/order"
+	"github.com/okex/okexchain/x/params"
+	paramsclient "github.com/okex/okexchain/x/params/client"
+	"github.com/okex/okexchain/x/slashing"
+	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/okexchain/x/stream"
+	"github.com/okex/okexchain/x/token"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
@@ -85,6 +82,8 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
+			evmclient.ManageContractDeploymentWhitelistProposalHandler,
+			evmclient.ManageContractBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -305,11 +304,13 @@ func NewOKExChainApp(
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
-		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper))
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
+		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
-		AddRoute(farm.RouterKey, &app.FarmKeeper)
+		AddRoute(farm.RouterKey, &app.FarmKeeper).
+		AddRoute(evm.RouterKey, app.EvmKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -318,6 +319,7 @@ func NewOKExChainApp(
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -441,7 +443,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)

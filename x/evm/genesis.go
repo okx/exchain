@@ -74,6 +74,13 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	if mode == filesMode {
 		wg.Wait()
 	}
+
+	// set contract deployment whitelist into store
+	csdb.SetContractDeploymentWhitelist(data.ContractDeploymentWhitelist)
+
+	// set contract blocked list into store
+	csdb.SetContractBlockedList(data.ContractBlockedList)
+
 	logger.Debug("Import finished", "code", codeCount, "storage", storageCount)
 
 	// set state objects and code to store
@@ -90,6 +97,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 	}
 
 	k.SetChainConfig(ctx, data.ChainConfig)
+
 	return []abci.ValidatorUpdate{}
 }
 
@@ -155,8 +163,10 @@ func ExportGenesis(ctx sdk.Context, k Keeper, ak types.AccountKeeper) GenesisSta
 
 	config, _ := k.GetChainConfig(ctx)
 	return GenesisState{
-		Accounts:    ethGenAccounts,
-		ChainConfig: config,
-		Params:      k.GetParams(ctx),
+		Accounts:                    ethGenAccounts,
+		ChainConfig:                 config,
+		Params:                      k.GetParams(ctx),
+		ContractDeploymentWhitelist: csdb.GetContractDeploymentWhitelist(),
+		ContractBlockedList:         csdb.GetContractBlockedList(),
 	}
 }
