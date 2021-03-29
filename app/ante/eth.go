@@ -9,12 +9,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	ethermint "github.com/okex/okexchain/app/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
+	ethermint "github.com/okex/okexchain/app/types"
+	evmtypes "github.com/okex/okexchain/x/evm/types"
 )
 
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler
@@ -96,7 +94,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	evmDenom := emfd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 
 	// fee = gas price * gas limit
 	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecFromBigIntWithPrec(msgEthTx.Fee(), sdk.Precision))
@@ -202,7 +200,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		)
 	}
 
-	evmDenom := avd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)
@@ -330,7 +328,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
 
-		evmDenom := egcd.evmKeeper.GetParams(ctx).EvmDenom
+		evmDenom := sdk.DefaultBondDenom
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec

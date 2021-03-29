@@ -19,7 +19,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	k.SetParams(ctx, data.Params)
 
-	evmDenom := data.Params.EvmDenom
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	mode := viper.GetString(server.FlagEvmImportMode)
 	if mode == "" {
@@ -47,7 +46,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(evmDenom)
+		evmBalance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom)
 		csdb.SetNonce(address, acc.GetSequence())
 		csdb.SetBalance(address, evmBalance.BigInt())
 

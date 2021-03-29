@@ -3,13 +3,12 @@ package staking
 import (
 	"fmt"
 
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/okex/okexchain/x/staking/exported"
 	"github.com/okex/okexchain/x/staking/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // InitGenesis sets the pool and parameters for the provided keeper
@@ -46,8 +45,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 		keeper.SetProxyBinding(ctx, proxyDelegatorKeyExported.ProxyAddr, proxyDelegatorKeyExported.DelAddr, false)
 	}
 
-	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(data.Params.BondDenom, bondedTokens),
-		sdk.NewDecCoinFromDec(data.Params.BondDenom, notBondedTokens), data.Exported)
+	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, bondedTokens),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, notBondedTokens), data.Exported)
 
 	// don't need to run Tendermint updates if we exported
 	if data.Exported {
