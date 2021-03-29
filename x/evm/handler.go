@@ -37,8 +37,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
 
 		result, err = handlerFun()
-
-		if sdk.HigherThanMercury(ctx.BlockHeight()) && err != nil {
+		if err != nil {
 			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 		}
 
