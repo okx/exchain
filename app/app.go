@@ -20,6 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/okex/okexchain/app/ante"
 	okexchaincodec "github.com/okex/okexchain/app/codec"
+	"github.com/okex/okexchain/app/refund"
 	okexchain "github.com/okex/okexchain/app/types"
 	"github.com/okex/okexchain/x/ammswap"
 	"github.com/okex/okexchain/x/backend"
@@ -418,6 +419,7 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
+	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
