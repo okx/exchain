@@ -2,6 +2,7 @@ package evm_test
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/okexchain/app"
 	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
@@ -20,21 +22,27 @@ import (
 	"github.com/okex/okexchain/x/evm"
 	"github.com/okex/okexchain/x/evm/keeper"
 	"github.com/okex/okexchain/x/evm/types"
+	govtypes "github.com/okex/okexchain/x/gov/types"
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
+// erc20 contract with params:
+//		initial_supply:1000000000,    token_name:btc,    token_symbol:btc
+const hexPayloadContractDeployment = "0x60806040526012600260006101000a81548160ff021916908360ff1602179055503480156200002d57600080fd5b506040516200129738038062001297833981018060405281019080805190602001909291908051820192919060200180518201929190505050600260009054906101000a900460ff1660ff16600a0a8302600381905550600354600460003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508160009080519060200190620000e292919062000105565b508060019080519060200190620000fb92919062000105565b50505050620001b4565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f106200014857805160ff191683800117855562000179565b8280016001018555821562000179579182015b82811115620001785782518255916020019190600101906200015b565b5b5090506200018891906200018c565b5090565b620001b191905b80821115620001ad57600081600090555060010162000193565b5090565b90565b6110d380620001c46000396000f3006080604052600436106100ba576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306fdde03146100bf578063095ea7b31461014f57806318160ddd146101b457806323b872dd146101df578063313ce5671461026457806342966c681461029557806370a08231146102da57806379cc67901461033157806395d89b4114610396578063a9059cbb14610426578063cae9ca5114610473578063dd62ed3e1461051e575b600080fd5b3480156100cb57600080fd5b506100d4610595565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156101145780820151818401526020810190506100f9565b50505050905090810190601f1680156101415780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561015b57600080fd5b5061019a600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610633565b604051808215151515815260200191505060405180910390f35b3480156101c057600080fd5b506101c96106c0565b6040518082815260200191505060405180910390f35b3480156101eb57600080fd5b5061024a600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803590602001909291905050506106c6565b604051808215151515815260200191505060405180910390f35b34801561027057600080fd5b506102796107f3565b604051808260ff1660ff16815260200191505060405180910390f35b3480156102a157600080fd5b506102c060048036038101908080359060200190929190505050610806565b604051808215151515815260200191505060405180910390f35b3480156102e657600080fd5b5061031b600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061090a565b6040518082815260200191505060405180910390f35b34801561033d57600080fd5b5061037c600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610922565b604051808215151515815260200191505060405180910390f35b3480156103a257600080fd5b506103ab610b3c565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156103eb5780820151818401526020810190506103d0565b50505050905090810190601f1680156104185780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561043257600080fd5b50610471600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610bda565b005b34801561047f57600080fd5b50610504600480360381019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190803590602001908201803590602001908080601f0160208091040260200160405190810160405280939291908181526020018383808284378201915050505050509192919290505050610be9565b604051808215151515815260200191505060405180910390f35b34801561052a57600080fd5b5061057f600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610d6c565b6040518082815260200191505060405180910390f35b60008054600181600116156101000203166002900480601f01602080910402602001604051908101604052809291908181526020018280546001816001161561010002031660029004801561062b5780601f106106005761010080835404028352916020019161062b565b820191906000526020600020905b81548152906001019060200180831161060e57829003601f168201915b505050505081565b600081600560003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055506001905092915050565b60035481565b6000600560008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054821115151561075357600080fd5b81600560008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825403925050819055506107e8848484610d91565b600190509392505050565b600260009054906101000a900460ff1681565b600081600460003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020541015151561085657600080fd5b81600460003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816003600082825403925050819055503373ffffffffffffffffffffffffffffffffffffffff167fcc16f5dbb4873280815c1ee09dbd06736cffcc184412cf7a71a0fdb75d397ca5836040518082815260200191505060405180910390a260019050919050565b60046020528060005260406000206000915090505481565b600081600460008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020541015151561097257600080fd5b600560008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205482111515156109fd57600080fd5b81600460008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206000828254039250508190555081600560008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816003600082825403925050819055508273ffffffffffffffffffffffffffffffffffffffff167fcc16f5dbb4873280815c1ee09dbd06736cffcc184412cf7a71a0fdb75d397ca5836040518082815260200191505060405180910390a26001905092915050565b60018054600181600116156101000203166002900480601f016020809104026020016040519081016040528092919081815260200182805460018160011615610100020316600290048015610bd25780601f10610ba757610100808354040283529160200191610bd2565b820191906000526020600020905b815481529060010190602001808311610bb557829003601f168201915b505050505081565b610be5338383610d91565b5050565b600080849050610bf98585610633565b15610d63578073ffffffffffffffffffffffffffffffffffffffff16638f4ffcb1338630876040518563ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018481526020018373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200180602001828103825283818151815260200191508051906020019080838360005b83811015610cf3578082015181840152602081019050610cd8565b50505050905090810190601f168015610d205780820380516001836020036101000a031916815260200191505b5095505050505050600060405180830381600087803b158015610d4257600080fd5b505af1158015610d56573d6000803e3d6000fd5b5050505060019150610d64565b5b509392505050565b6005602052816000526040600020602052806000526040600020600091509150505481565b6000808373ffffffffffffffffffffffffffffffffffffffff1614151515610db857600080fd5b81600460008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205410151515610e0657600080fd5b600460008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205482600460008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205401111515610e9457600080fd5b600460008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054600460008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205401905081600460008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000206000828254039250508190555081600460008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020600082825401925050819055508273ffffffffffffffffffffffffffffffffffffffff168473ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a380600460008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054600460008773ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054011415156110a157fe5b505050505600a165627a7a72305820ed94dd1ff19d5d05f76d2df0d1cb9002bb293a6fbb55f287f36aff57fba1b0420029000000000000000000000000000000000000000000000000000000003b9aca00000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000003627463000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000036274630000000000000000000000000000000000000000000000000000000000"
+
 type EvmTestSuite struct {
 	suite.Suite
 
-	ctx     sdk.Context
-	handler sdk.Handler
-	querier sdk.Querier
-	app     *app.OKExChainApp
-	stateDB *types.CommitStateDB
-	codec   *codec.Codec
+	ctx        sdk.Context
+	handler    sdk.Handler
+	govHandler govtypes.Handler
+	querier    sdk.Querier
+	app        *app.OKExChainApp
+	stateDB    *types.CommitStateDB
+	codec      *codec.Codec
 }
 
 func (suite *EvmTestSuite) SetupTest() {
@@ -135,13 +143,15 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
-
+			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := suite.handler(suite.ctx, tx)
 
 			//nolint
 			if tc.expPass {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(res)
+				var expectedConsumedGas uint64 = 21000
+				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 			} else {
 				suite.Require().Error(err)
 				suite.Require().Nil(res)
@@ -169,7 +179,7 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 			"passed",
 			func() {
 				suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
-				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte("test"), from)
+				tx = types.NewMsgEthermint(0, &to, sdk.NewInt(1), 100000, sdk.NewInt(2), []byte{}, from)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(from.Bytes()), big.NewInt(100))
 			},
 			true,
@@ -196,13 +206,15 @@ func (suite *EvmTestSuite) TestMsgEthermint() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
-
+			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := suite.handler(suite.ctx, tx)
 
 			//nolint
 			if tc.expPass {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(res)
+				var expectedConsumedGas uint64 = 21000
+				suite.Require().EqualValues(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 			} else {
 				suite.Require().Error(err)
 				suite.Require().Nil(res)
@@ -399,7 +411,8 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
-	var expectedGas uint64 = 0x538
+
+	var expectedGas uint64 = 0x5208
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -620,7 +633,8 @@ func (suite *EvmTestSuite) TestGasConsume() {
 
 	_, err = suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err, "failed to handle eth tx msg")
-	var expectedConsumedGas sdk.Gas = 0xa14a2
+
+	var expectedConsumedGas sdk.Gas = 0xb4f5c
 	suite.Require().Equal(expectedConsumedGas, suite.ctx.GasMeter().GasConsumed())
 }
 
@@ -752,6 +766,497 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
+
 	var expectedGas uint64 = 0x5740
 	suite.Require().EqualValues(expectedGas, suite.ctx.GasMeter().GasConsumed())
+}
+
+func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControlling_MsgEthereumTx() {
+	params := suite.app.EvmKeeper.GetParams(suite.ctx)
+
+	privkey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+	addrQualified := privkey.PubKey().Address().Bytes()
+
+	privkeyUnqualified, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+	addrUnqualified := privkeyUnqualified.PubKey().Address().Bytes()
+
+	// parse context chain ID to big.Int
+	chainID, err := ethermint.ParseChainID(suite.ctx.ChainID())
+	suite.Require().NoError(err)
+
+	// build a tx with contract deployment
+	payload, err := hexutil.Decode(hexPayloadContractDeployment)
+	suite.Require().NoError(err)
+	tx := types.NewMsgEthereumTx(0, nil, nil, 3000000, big.NewInt(1), payload)
+
+	testCases := []struct {
+		msg                               string
+		enableContractDeploymentWhitelist bool
+		contractDeploymentWhitelist       types.AddressList
+		expPass                           bool
+	}{
+		{
+			"every address could deploy contract when contract deployment whitelist is disabled",
+			false,
+			nil,
+			true,
+		},
+		{
+			"every address could deploy contract when contract deployment whitelist is disabled whatever whitelist members are",
+			false,
+			types.AddressList{addrUnqualified},
+			true,
+		},
+		{
+			"every address in whitelist could deploy contract when contract deployment whitelist is disabled",
+			false,
+			types.AddressList{addrQualified},
+			true,
+		},
+		{
+			"address in whitelist could deploy contract when contract deployment whitelist is enabled",
+			true,
+			types.AddressList{addrQualified},
+			true,
+		},
+		{
+			"no address could deploy contract when contract deployment whitelist is enabled and whitelist is nil",
+			true,
+			nil,
+			false,
+		},
+		{
+			"address not in the whitelist couldn't deploy contract when contract deployment whitelist is enabled",
+			true,
+			types.AddressList{addrUnqualified},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			suite.SetupTest()
+
+			// reset FeeCollector
+			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
+			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+			// set account sufficient balance for sender
+			suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(addrQualified), sdk.NewDec(1024).BigInt())
+
+			// reset params
+			params.EnableContractDeploymentWhitelist = tc.enableContractDeploymentWhitelist
+			suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+			// set target whitelist
+			suite.stateDB.SetContractDeploymentWhitelist(tc.contractDeploymentWhitelist)
+
+			// sign transaction
+			err = tx.Sign(chainID, privkey.ToECDSA())
+			suite.Require().NoError(err)
+
+			// handle tx
+			res, err := suite.handler(suite.ctx, tx)
+
+			//nolint
+			if tc.expPass {
+				suite.Require().NoError(err)
+				suite.Require().NotNil(res)
+			} else {
+				suite.Require().Error(err)
+				suite.Require().Nil(res)
+			}
+		})
+	}
+}
+
+func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControlling_MsgEthermint() {
+	params := suite.app.EvmKeeper.GetParams(suite.ctx)
+
+	addrQualified := ethcmn.BytesToAddress([]byte{0x0}).Bytes()
+	addrUnqualified := ethcmn.BytesToAddress([]byte{0x1}).Bytes()
+
+	// build a tx with contract deployment
+	payload, err := hexutil.Decode(hexPayloadContractDeployment)
+	suite.Require().NoError(err)
+	tx := types.NewMsgEthermint(0, nil, sdk.ZeroInt(), 3000000, sdk.NewInt(1), payload, addrQualified)
+
+	testCases := []struct {
+		msg                               string
+		enableContractDeploymentWhitelist bool
+		contractDeploymentWhitelist       types.AddressList
+		expPass                           bool
+	}{
+		{
+			"every address could deploy contract when contract deployment whitelist is disabled",
+			false,
+			nil,
+			true,
+		},
+		{
+			"every address could deploy contract when contract deployment whitelist is disabled whatever whitelist members are",
+			false,
+			types.AddressList{addrUnqualified},
+			true,
+		},
+		{
+			"every address in whitelist could deploy contract when contract deployment whitelist is disabled",
+			false,
+			types.AddressList{addrQualified},
+			true,
+		},
+		{
+			"address in whitelist could deploy contract when contract deployment whitelist is enabled",
+			true,
+			types.AddressList{addrQualified},
+			true,
+		},
+		{
+			"no address could deploy contract when contract deployment whitelist is enabled and whitelist is nil",
+			true,
+			nil,
+			false,
+		},
+		{
+			"address not in the whitelist couldn't deploy contract when contract deployment whitelist is enabled",
+			true,
+			types.AddressList{addrUnqualified},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			suite.SetupTest()
+
+			// reset FeeCollector
+			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
+			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+			// set account sufficient balance for sender
+			suite.app.EvmKeeper.SetBalance(suite.ctx, ethcmn.BytesToAddress(addrQualified), sdk.NewDec(1024).BigInt())
+
+			// reset params
+			params.EnableContractDeploymentWhitelist = tc.enableContractDeploymentWhitelist
+			suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+			// set target whitelist
+			suite.stateDB.SetContractDeploymentWhitelist(tc.contractDeploymentWhitelist)
+
+			// handle tx
+			res, err := suite.handler(suite.ctx, tx)
+
+			//nolint
+			if tc.expPass {
+				suite.Require().NoError(err)
+				suite.Require().NotNil(res)
+			} else {
+				suite.Require().Error(err)
+				suite.Require().Nil(res)
+			}
+		})
+	}
+}
+
+const (
+	// contracts solidity codes:
+	//
+	//		pragma solidity >=0.6.0 <0.8.0;
+	//
+	//		contract Contract1 {
+	//
+	//		    uint256 public num;
+	//
+	//		    function add() public {
+	//		        num = num + 1;
+	//		    }
+	//		}
+	//
+	//
+	//		contract Contract2 {
+	//
+	//		    address public c1;
+	//
+	//		    function setAddr(address _c1) public {
+	//		        c1 = _c1;
+	//		    }
+	//
+	//		    function add() public {
+	//		        Contract1(c1).add();
+	//		    }
+	//
+	//		    function number() public view returns (uint256) {
+	//		        return Contract1(c1).num();
+	//		    }
+	//
+	//		}
+
+	// Contract1's deployment
+	contract1DeployedHexPayload = "0x6080604052348015600f57600080fd5b5060a58061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80634e70b1dc1460375780634f2be91f146053575b600080fd5b603d605b565b6040518082815260200191505060405180910390f35b60596061565b005b60005481565b60016000540160008190555056fea2646970667358221220892505b233ac0976b1a78e3fb9cee468a1c25027c175e73386f2d1920579520b64736f6c63430007060033"
+	// Contract2's deployment
+	contract2DeployedHexPayload = "0x608060405234801561001057600080fd5b506102b9806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80634f2be91f146100515780635f57697c1461005b5780638381f58a1461008f578063d1d80fdf146100ad575b600080fd5b6100596100f1565b005b610063610173565b604051808273ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b610097610197565b6040518082815260200191505060405180910390f35b6100ef600480360360208110156100c357600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610240565b005b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16634f2be91f6040518163ffffffff1660e01b8152600401600060405180830381600087803b15801561015957600080fd5b505af115801561016d573d6000803e3d6000fd5b50505050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16634e70b1dc6040518163ffffffff1660e01b815260040160206040518083038186803b15801561020057600080fd5b505afa158015610214573d6000803e3d6000fd5b505050506040513d602081101561022a57600080fd5b8101908080519060200190929190505050905090565b806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea2646970667358221220ae5d2293d42642ceaab5fae3db75e377553fcb7099f8b5bd24d3b9e740ba8f0e64736f6c63430007060033"
+	// invoke Contract2's 'setAddr' function to set Contract1's address into Contract2
+	contract2SetContact1HexPayloadFormat = "0xd1d80fdf000000000000000000000000%s"
+	// invoke Contract1's 'add' function
+	invokeContract1HexPayload = "0x4f2be91f"
+	// invoke Contract2's 'add' function(it will invoke Contract1)
+	invokeContract2HexPayload = "0x4f2be91f"
+)
+
+type EvmContractBlockedListTestSuite struct {
+	suite.Suite
+
+	ctx     sdk.Context
+	handler sdk.Handler
+	app     *app.OKExChainApp
+	stateDB *types.CommitStateDB
+
+	// global data for test
+	chainID                 *big.Int
+	contractDeployerPrivKey ethsecp256k1.PrivKey
+	contract1Addr           ethcmn.Address
+	contract2Addr           ethcmn.Address
+}
+
+func TestEvmContractBlockedListTestSuite(t *testing.T) {
+	suite.Run(t, new(EvmContractBlockedListTestSuite))
+}
+
+func (suite *EvmContractBlockedListTestSuite) SetupTest() {
+	var err error
+	checkTx := false
+
+	suite.app = app.Setup(checkTx)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
+	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
+
+	// parse context chain ID to big.Int
+	suite.chainID, err = ethermint.ParseChainID(suite.ctx.ChainID())
+	suite.Require().NoError(err)
+
+	// set priv key and address for mock contract deployer
+	suite.contractDeployerPrivKey, err = ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	// set contract address for Contract1 and Contract2 as we know the deployer address and nonce in advance
+	contractDeployerAddr := ethcmn.BytesToAddress(suite.contractDeployerPrivKey.PubKey().Address().Bytes())
+	suite.contract1Addr = ethcrypto.CreateAddress(contractDeployerAddr, 0)
+	suite.contract2Addr = ethcrypto.CreateAddress(contractDeployerAddr, 1)
+
+	// set new params
+	params := types.DefaultParams()
+	params.EnableCreate = true
+	params.EnableCall = true
+	suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+	// fill the fee collector for mock refunding
+	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
+	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
+
+	// init contracts for test environment
+	suite.deployInterdependentContracts()
+}
+
+// deployInterdependentContracts deploys two contracts that Contract1 will be invoked by Contract2
+func (suite *EvmContractBlockedListTestSuite) deployInterdependentContracts() {
+	// deploy Contract1
+	err := suite.deployOrInvokeContract(suite.contractDeployerPrivKey, contract1DeployedHexPayload, 0, nil)
+	suite.Require().NoError(err)
+	// deploy Contract2
+	err = suite.deployOrInvokeContract(suite.contractDeployerPrivKey, contract2DeployedHexPayload, 1, nil)
+	suite.Require().NoError(err)
+	// set Contract1 into Contract2
+	payload := fmt.Sprintf(contract2SetContact1HexPayloadFormat, suite.contract1Addr.Hex()[2:])
+	err = suite.deployOrInvokeContract(suite.contractDeployerPrivKey, payload, 2, &suite.contract2Addr)
+	suite.Require().NoError(err)
+}
+
+func (suite *EvmContractBlockedListTestSuite) deployOrInvokeContract(source interface{}, hexPayload string,
+	nonce uint64, to *ethcmn.Address) error {
+	payload, err := hexutil.Decode(hexPayload)
+	suite.Require().NoError(err)
+
+	var msg interface{}
+	switch s := source.(type) {
+	case ethsecp256k1.PrivKey:
+		msgEthereumTx := types.NewMsgEthereumTx(nonce, to, nil, 3000000, big.NewInt(1), payload)
+		// sign transaction
+		err = msgEthereumTx.Sign(suite.chainID, s.ToECDSA())
+		suite.Require().NoError(err)
+		msg = msgEthereumTx
+	case sdk.AccAddress:
+		var toAccAddr sdk.AccAddress
+		if to == nil {
+			toAccAddr = nil
+		} else {
+			toAccAddr = to.Bytes()
+		}
+		msg = types.NewMsgEthermint(nonce, &toAccAddr, sdk.ZeroInt(), 3000000, sdk.OneInt(), payload, s)
+	}
+
+	m, ok := msg.(sdk.Msg)
+	suite.Require().True(ok)
+	_, err = suite.handler(suite.ctx, m)
+	return err
+}
+
+func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedListControlling_MsgEthereumTx() {
+	callerPrivKey, err := ethsecp256k1.GenerateKey()
+	suite.Require().NoError(err)
+
+	testCases := []struct {
+		msg                       string
+		enableContractBlockedList bool
+		contractBlockedList       types.AddressList
+		expectedErrorForContract1 bool
+		expectedErrorForContract2 bool
+	}{
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract in the blocked list could be invoked when contract blocked list is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: true,
+		},
+		{
+			msg:                       "neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
+			expectedErrorForContract1: true,
+			expectedErrorForContract2: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			// update params
+			params := suite.app.EvmKeeper.GetParams(suite.ctx)
+			params.EnableContractBlockedList = tc.enableContractBlockedList
+			suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+			// reset contract blocked list
+			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
+			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
+
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract1HexPayload, 1024, &suite.contract1Addr)
+			if tc.expectedErrorForContract1 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerPrivKey, invokeContract2HexPayload, 1024, &suite.contract2Addr)
+			if tc.expectedErrorForContract2 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
+}
+
+func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractBlockedListControlling_MsgEthermint() {
+	callerAddr := sdk.AccAddress(ethcmn.BytesToAddress([]byte{0x0}).Bytes())
+
+	testCases := []struct {
+		msg                       string
+		enableContractBlockedList bool
+		contractBlockedList       types.AddressList
+		expectedErrorForContract1 bool
+		expectedErrorForContract2 bool
+	}{
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract could be invoked with empty blocked list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "every contract in the blocked list could be invoked when contract blocked list is disabled",
+			enableContractBlockedList: false,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes(), suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: false,
+		},
+		{
+			msg:                       "Contract1 could be invoked but Contract2 couldn't when Contract2 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract2Addr.Bytes()},
+			expectedErrorForContract1: false,
+			expectedErrorForContract2: true,
+		},
+		{
+			msg:                       "neither Contract1 nor Contract2 could be invoked when Contract1 is in block list which is enabled",
+			enableContractBlockedList: true,
+			contractBlockedList:       types.AddressList{suite.contract1Addr.Bytes()},
+			expectedErrorForContract1: true,
+			expectedErrorForContract2: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			// update params
+			params := suite.app.EvmKeeper.GetParams(suite.ctx)
+			params.EnableContractBlockedList = tc.enableContractBlockedList
+			suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+			// reset contract blocked list
+			suite.stateDB.DeleteContractBlockedList(suite.stateDB.GetContractBlockedList())
+			suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
+
+			// nonce here could be any value
+			err := suite.deployOrInvokeContract(callerAddr, invokeContract1HexPayload, 1024, &suite.contract1Addr)
+			if tc.expectedErrorForContract1 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+
+			// nonce here could be any value
+			err = suite.deployOrInvokeContract(callerAddr, invokeContract2HexPayload, 1024, &suite.contract2Addr)
+			if tc.expectedErrorForContract2 {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
 }
