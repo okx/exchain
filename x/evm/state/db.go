@@ -3,41 +3,43 @@ package state
 import (
 	"path/filepath"
 
+	"github.com/ethereum/go-ethereum/core/rawdb"
+
+	"github.com/ethereum/go-ethereum/core/state"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const FlagFastQuery = "fast-query"
 
 type stateStore struct {
-	db *leveldb.DB
+	db state.Database
 }
 
 var gStateStore *stateStore = nil
 
 func InstanceOfStateStore() *stateStore {
 	if gStateStore == nil {
-		db, e := initDb()
+		homeDir := viper.GetString(flags.FlagHome)
+		dbPath := filepath.Join(homeDir, "data/storage.db")
+		db, e := rawdb.NewLevelDBDatabase(dbPath, 1024, 102400, "state")
 		if e == nil {
-			gStateStore = &stateStore{db: db}
-		} else {
-			panic(e)
+			gStateStore = &stateStore{db: state.NewDatabase(db)}
 		}
+
 	}
 	return gStateStore
 }
 
-func initDb() (*leveldb.DB, error) {
-	homeDir := viper.GetString(flags.FlagHome)
-	dbPath := filepath.Join(homeDir, "data/storage.db")
-	return leveldb.OpenFile(dbPath, nil)
+func (s stateStore) GetDb() state.Database {
+	return s.db
 }
 
 func (s stateStore) Set(key []byte, value []byte) {
-	s.db.Put(key, value, nil)
+
 }
 
 func (s stateStore) Get(key []byte) ([]byte, error) {
-	return s.db.Get(key, nil)
+	return nil, nil
 }

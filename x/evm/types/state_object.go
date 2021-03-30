@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/okex/okexchain/x/evm/state"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -241,8 +243,10 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore and resets
 // the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
-	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	//ctx := so.stateDB.ctx
+	//store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	store := state.InstanceOfStateStore()
+	store.GetDb().OpenTrie(so.address)
 
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
