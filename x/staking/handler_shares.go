@@ -258,7 +258,6 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 }
 
 func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*sdk.Result, error) {
-
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom().Result()
 	}

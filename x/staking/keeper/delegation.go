@@ -163,7 +163,7 @@ func (k Keeper) CompleteUndelegation(ctx sdk.Context, delAddr sdk.AccAddress) (s
 		return sdk.NewDec(0), types.ErrNotInDelegating(delAddr.String())
 	}
 
-	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(k.GetParams(ctx).BondDenom, ud.Quantity)}
+	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, ud.Quantity)}
 
 	err := k.supplyKeeper.UndelegateCoinsFromModuleToAccount(ctx, types.NotBondedPoolName, ud.DelegatorAddress, coin)
 	if err != nil {

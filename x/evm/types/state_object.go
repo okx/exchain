@@ -6,8 +6,6 @@ import (
 	"io"
 	"math/big"
 
-	statePkg "github.com/okex/okexchain/x/evm/state"
-
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -166,7 +164,7 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // AddBalance adds an amount to a state object's balance. It is used to add
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 
@@ -186,7 +184,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // SubBalance removes an amount from the stateObject's balance. It is used to
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
 	if amt.IsZero() {
 		return
 	}
@@ -197,12 +195,12 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 
 // SetBalance sets the state object's balance.
 func (so *stateObject) SetBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
 
 	evmDenom := so.stateDB.GetParams().EvmDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.GetCoins().AmountOf(evmDenom), // int2dec
+		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom),  // int2dec
 	})
 
 	so.setBalance(evmDenom, amt)
@@ -243,9 +241,9 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore and resets
 // the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
-	//ctx := so.stateDB.ctx
-	//store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	store := statePkg.NewState(AddressStoragePrefix(so.Address()))
+	ctx := so.stateDB.ctx
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
 
@@ -372,10 +370,9 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
 
-	//ctx := so.stateDB.ctx
-	//store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	store := statePkg.NewState(AddressStoragePrefix(so.Address()))
-	rawValue, _ := store.Get(prefixKey.Bytes())
+	ctx := so.stateDB.ctx
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)
@@ -416,6 +413,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 	return newStateObj
 }
+
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {

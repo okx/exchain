@@ -6,19 +6,16 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
-
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-
-	ethermint "github.com/okex/okexchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/okexchain/x/params"
 )
 
 var (
@@ -380,6 +377,11 @@ func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
 
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
+	// check for the contract calling from blocked list if contract blocked list is enabled
+	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
+		panic(addr)
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		return so.Code(nil)
@@ -575,9 +577,8 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Has
 
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
-	evmDenom := csdb.GetParams().EvmDenom
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: evmDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -725,10 +726,9 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 			continue
 		}
 
-		evmDenom := csdb.GetParams().EvmDenom
 		balance := sdk.Coin{
-			Denom:  evmDenom,
-			Amount: ethermintAcc.GetCoins().AmountOf(evmDenom),
+			Denom:  sdk.DefaultBondDenom,
+			Amount: ethermintAcc.GetCoins().AmountOf(sdk.DefaultBondDenom),
 		}
 
 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
@@ -772,11 +772,9 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		evmDenom := csdb.GetParams().EvmDenom
-		newobj.setBalance(evmDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
+		newobj.setBalance(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
-
 
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
@@ -915,4 +913,72 @@ func (csdb *CommitStateDB) SetLogSize(logSize uint) {
 
 func (csdb *CommitStateDB) GetLogSize() uint {
 	return csdb.logSize
+}
+
+// SetContractDeploymentWhitelistMember sets the target address list into whitelist store
+func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Set(getContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
+	}
+}
+
+// DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
+func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Delete(getContractDeploymentWhitelistMemberKey(addrList[i]))
+	}
+}
+
+// GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
+func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		whitelist = append(whitelist, splitApprovedDeployerAddress(iterator.Key()))
+	}
+
+	return
+}
+
+// IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
+func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractDeploymentWhitelistMemberKey(deployerAddr))
+}
+
+// SetContractBlockedList sets the target address list into blocked list store
+func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Set(getContractBlockedListMemberKey(addrList[i]), []byte(""))
+	}
+}
+
+// DeleteContractBlockedList deletes the target address list from blocked list store
+func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	for i := 0; i < len(addrList); i++ {
+		store.Delete(getContractBlockedListMemberKey(addrList[i]))
+	}
+}
+
+// GetContractBlockedList gets the whole contract blocked list currently
+func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		blockedList = append(blockedList, splitBlockedContractAddress(iterator.Key()))
+	}
+
+	return
+}
+
+// IsContractInBlockedList checks whether the contract address is in the blocked list
+func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
+	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
 }
