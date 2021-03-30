@@ -164,7 +164,7 @@ func (so *stateObject) setCode(codeHash ethcmn.Hash, code []byte) {
 // AddBalance adds an amount to a state object's balance. It is used to add
 // funds to the destination account of a transfer.
 func (so *stateObject) AddBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
 	// EIP158: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 
@@ -176,7 +176,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	evmDenom := so.stateDB.GetParams().EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 	newBalance := so.account.GetCoins().AmountOf(evmDenom).Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
@@ -184,23 +184,23 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 // SubBalance removes an amount from the stateObject's balance. It is used to
 // remove funds from the origin account of a transfer.
 func (so *stateObject) SubBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
 	if amt.IsZero() {
 		return
 	}
-	evmDenom := so.stateDB.GetParams().EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 	newBalance := so.account.GetCoins().AmountOf(evmDenom).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
 // SetBalance sets the state object's balance.
 func (so *stateObject) SetBalance(amount *big.Int) {
-	amt := sdk.NewDecFromBigIntWithPrec(amount,sdk.Precision) // int2dec
+	amt := sdk.NewDecFromBigIntWithPrec(amount, sdk.Precision) // int2dec
 
-	evmDenom := so.stateDB.GetParams().EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom),  // int2dec
+		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom), // int2dec
 	})
 
 	so.setBalance(evmDenom, amt)
@@ -294,7 +294,7 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	evmDenom := so.stateDB.GetParams().EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 	balance := so.account.Balance(evmDenom).BigInt()
 	if balance == nil {
 		return zeroBalance
@@ -414,10 +414,9 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	return newStateObj
 }
 
-
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	evmDenom := so.stateDB.GetParams().EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 	balace := so.account.Balance(evmDenom)
 	return so.account == nil ||
 		(so.account != nil &&
