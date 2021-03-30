@@ -17,16 +17,13 @@ func (s State) genPrefix(tail []byte) (res []byte) {
 }
 
 func (s State) Set(key, value []byte) error {
-	prefixKey := s.genPrefix(key)
-	return s.store.db.Put(prefixKey, value, nil)
+	return nil
 }
 
 func (s State) Get(key []byte) ([]byte, error) {
-	prefixKey := s.genPrefix(key)
-	return s.store.db.Get(prefixKey, nil)
+	return nil, nil
 }
 
 func (s *State) Delete(key []byte) error {
-	prefixKey := s.genPrefix(key)
-	return s.store.db.Delete(prefixKey, nil)
+	return nil
 }

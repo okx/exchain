@@ -24,6 +24,11 @@ var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
+
+	// emptyRoot is the known root hash of an empty trie.
+	emptyRoot = ethcmn.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+
+	rootKey = "_root"
 )
 
 // StateObject interface for interacting with state object
@@ -80,6 +85,8 @@ type stateObject struct {
 	dirtyCode bool // true if the code was updated
 	suicided  bool
 	deleted   bool
+	trie      ethstate.Trie
+	root      ethcmn.Hash
 }
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
@@ -94,7 +101,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	return &stateObject{
+	so := &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
 		address:                 ethermintAccount.EthAddress(),
@@ -102,7 +109,11 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		dirtyStorage:            Storage{},
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
+		trie:                    nil,
+		root:                    emptyRoot,
 	}
+	so.loadRoot()
+	return so
 }
 
 // ----------------------------------------------------------------------------
@@ -240,20 +251,32 @@ func (so *stateObject) markSuicided() {
 	so.suicided = true
 }
 
+func (s *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
+	if s.trie == nil {
+		var err error
+		s.trie, err = db.OpenStorageTrie(s.address.Hash(), s.root)
+		if err != nil {
+			s.trie, _ = db.OpenStorageTrie(s.address.Hash(), ethcmn.Hash{})
+			s.setError(fmt.Errorf("can't create storage trie: %v", err))
+		}
+	}
+	return s.trie
+}
+
 // commitState commits all dirty storage to a KVStore and resets
 // the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
 	//ctx := so.stateDB.ctx
 	//store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	store := state.InstanceOfStateStore()
-	store.GetDb().OpenTrie(so.address)
+	tr := so.getTrie(store.GetDb())
 
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
 
 		// delete empty values from the store
 		if (state.Value == ethcmn.Hash{}) {
-			store.Delete(state.Key.Bytes())
+			so.setError(tr.TryDelete(state.Key[:]))
 		}
 
 		delete(so.keyToDirtyStorageIndex, state.Key)
@@ -274,10 +297,39 @@ func (so *stateObject) commitState() {
 		}
 
 		so.originStorage[idx].Value = state.Value
-		store.Set(state.Key.Bytes(), state.Value.Bytes())
+		// Encoding []byte cannot fail, ok to ignore the error.
+		data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(state.Value[:]))
+		so.setError(tr.TryUpdate(state.Key[:], data))
 	}
+	so.commit()
+	so.commitRoot()
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
+}
+
+func (so *stateObject) commit() {
+	so.trie.Commit(nil)
+	so.root = so.trie.Hash()
+}
+
+func (so *stateObject) commitRoot() {
+	ctx := so.stateDB.ctx
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	store.Set([]byte(rootKey), so.root.Bytes())
+}
+
+func (so *stateObject) loadRoot() {
+	if so.root != emptyRoot {
+		return
+	}
+	ctx := so.stateDB.ctx
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	r := store.Get([]byte(rootKey))
+	if r != nil {
+		so.root = ethcmn.BytesToHash(r)
+	} else {
+		so.root = emptyRoot
+	}
 }
 
 // commitCode persists the state object's code to the KVStore.
@@ -362,7 +414,7 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 // GetCommittedState retrieves a value from the committed account storage trie.
 //
 // NOTE: the key will be prefixed with the address of the state object.
-func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
+func (so *stateObject) GetCommittedState2(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
 	// if we have the original value cached, return that
@@ -385,6 +437,40 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	so.originStorage = append(so.originStorage, state)
 	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
 	return state.Value
+}
+
+func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
+	prefixKey := so.GetStorageByAddressKey(key.Bytes())
+	// if we have the original value cached, return that
+	idx, cached := so.keyToOriginStorageIndex[prefixKey]
+	if cached {
+		return so.originStorage[idx].Value
+	}
+	// otherwise load the value from the KVStore
+	cache := NewState(prefixKey, ethcmn.Hash{})
+
+	// If no live objects are available, attempt to use snapshots
+	var (
+		enc []byte
+		err error
+	)
+	if enc, err = so.getTrie(state.InstanceOfStateStore().GetDb()).TryGet(prefixKey.Bytes()); err != nil {
+		so.setError(err)
+		return ethcmn.Hash{}
+	}
+	var value ethcmn.Hash
+	if len(enc) > 0 {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
+			so.setError(err)
+		}
+		value.SetBytes(content)
+		cache.Value.SetBytes(content)
+	}
+
+	so.originStorage = append(so.originStorage, cache)
+	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
+	return value
 }
 
 // ----------------------------------------------------------------------------
