@@ -410,31 +410,6 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 // GetCommittedState retrieves a value from the committed account storage trie.
 //
 // NOTE: the key will be prefixed with the address of the state object.
-func (so *stateObject) GetCommittedState2(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
-	prefixKey := so.GetStorageByAddressKey(key.Bytes())
-
-	// if we have the original value cached, return that
-	idx, cached := so.keyToOriginStorageIndex[prefixKey]
-	if cached {
-		return so.originStorage[idx].Value
-	}
-
-	// otherwise load the value from the KVStore
-	state := NewState(prefixKey, ethcmn.Hash{})
-
-	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
-
-	if len(rawValue) > 0 {
-		state.Value.SetBytes(rawValue)
-	}
-
-	so.originStorage = append(so.originStorage, state)
-	so.keyToOriginStorageIndex[prefixKey] = len(so.originStorage) - 1
-	return state.Value
-}
-
 func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 	// if we have the original value cached, return that
