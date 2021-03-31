@@ -15,8 +15,8 @@ const (
   "title": "default title",
   "description": "default description",
   "distributor_addresses": [
-    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
-    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+    "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
+    "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
   ],
   "is_added": true,
   "deposit": [
@@ -30,8 +30,8 @@ const (
   "title": "default title",
   "description": "default description",
   "contract_addresses": [
-    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
-    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+    "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
+    "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
   ],
   "is_added": true,
   "deposit": [
@@ -44,8 +44,8 @@ const (
 	fileName                 = "./proposal.json"
 	expectedTitle            = "default title"
 	expectedDescription      = "default description"
-	expectedDistributorAddr1 = "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0"
-	expectedDistributorAddr2 = "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+	expectedDistributorAddr1 = "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02"
+	expectedDistributorAddr2 = "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
 )
 
 func init() {

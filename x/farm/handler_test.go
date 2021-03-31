@@ -360,7 +360,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				return destroyPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrInvalidPoolOwner("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgpq6kh8f", "abc"),
+			expectedErr:  types.ErrInvalidPoolOwner("ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658", "abc"),
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -718,7 +718,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrNoLockInfoFound("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgqavzz6m", "abc"),
+			expectedErr:  types.ErrNoLockInfoFound("ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658", "abc"),
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
