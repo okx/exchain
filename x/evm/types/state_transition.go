@@ -233,6 +233,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if _, err = csdb.Commit(true); err != nil {
 			return
 		}
+		defer func() {
+			//make sure commit state only works when err == nil
+			if err == nil {
+				csdb.CommitState()
+			}
+		}()
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

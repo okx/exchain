@@ -510,14 +510,20 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 				return ethcmn.Hash{}, err
 			}
 		}
-
-		delete(csdb.stateObjectsDirty, stateEntry.address)
 	}
 
 	// NOTE: Ethereum returns the trie merkle root here, but as commitment
 	// actually happens in the BaseApp at EndBlocker, we do not know the root at
 	// this time.
 	return ethcmn.Hash{}, nil
+}
+
+func (csdb *CommitStateDB) CommitState() {
+	//after all change committed, we commit stateobject data to disk and remove entry of state
+	for _, stateEntry := range csdb.stateObjects {
+		stateEntry.stateObject.Commit()
+		delete(csdb.stateObjectsDirty, stateEntry.address)
+	}
 }
 
 // Finalise finalizes the state objects (accounts) state by setting their state,

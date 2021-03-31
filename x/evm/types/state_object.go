@@ -298,15 +298,14 @@ func (so *stateObject) commitState() {
 		data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(state.Value[:]))
 		so.setError(tr.TryUpdate(state.Key[:], data))
 	}
-	so.commit()
-	so.commitRoot()
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
 }
 
-func (so *stateObject) commit() {
+func (so *stateObject) Commit() {
 	so.trie.Commit(nil)
 	so.root = so.trie.Hash()
+	so.commitRoot()
 }
 
 func (so *stateObject) commitRoot() {
