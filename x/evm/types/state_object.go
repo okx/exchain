@@ -200,7 +200,7 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 	if amt.IsZero() {
 		return
 	}
-	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Add(amt)
+	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
