@@ -17,7 +17,6 @@ const (
 
 // Parameter keys
 var (
-	ParamStoreKeyEVMDenom                    = []byte("EVMDenom")
 	ParamStoreKeyEnableCreate                = []byte("EnableCreate")
 	ParamStoreKeyEnableCall                  = []byte("EnableCall")
 	ParamStoreKeyExtraEIPs                   = []byte("EnableExtraEIPs")
