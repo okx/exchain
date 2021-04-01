@@ -1,25 +1,21 @@
 package websockets
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net"
 	"net/http"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
-
 	"github.com/tendermint/tendermint/libs/log"
-
-	"github.com/ethereum/go-ethereum/rpc"
-
-	context "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // Server defines a server that handles Ethereum websockets.
@@ -32,8 +28,14 @@ type Server struct {
 
 // NewServer creates a new websocket server instance.
 func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Server {
+	restServerAddr := viper.GetString(server.FlagListenAddr)
+	parts := strings.SplitN(restServerAddr, "://", 2)
+	if len(parts) != 2 {
+		panic(fmt.Errorf("invalid listening address %s (use fully formed addresses, including the tcp:// or unix:// prefix)", restServerAddr))
+	}
+
 	return &Server{
-		rpcAddr: viper.GetString("laddr"),
+		rpcAddr: "http://"+parts[1],
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx, log),
 		logger:  log.With("module", "websocket-server"),
@@ -167,47 +169,17 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 // tcpGetAndSendResponse connects to the rest-server over tcp, posts a JSON-RPC request, and sends the response
 // to the client over websockets
 func (s *Server) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
-	addr := strings.Split(s.rpcAddr, "tcp://")
-	if len(addr) != 2 {
-		return fmt.Errorf("invalid laddr %s", s.rpcAddr)
-	}
-
-	tcpConn, err := net.Dial("tcp", addr[1])
-	if err != nil {
-		return fmt.Errorf("cannot connect to %s; %s", s.rpcAddr, err)
-	}
-
-	buf := &bytes.Buffer{}
-	_, err = buf.Write(mb)
-	if err != nil {
-		return fmt.Errorf("failed to write message; %s", err)
-	}
-
-	req, err := http.NewRequest("POST", s.rpcAddr, buf)
+	req, err := http.NewRequest(http.MethodPost, s.rpcAddr, bytes.NewReader(mb))
 	if err != nil {
 		return fmt.Errorf("failed to request; %s", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json;")
-	err = req.Write(tcpConn)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to write to rest-server; %s", err)
 	}
 
-	respBytes, err := ioutil.ReadAll(tcpConn)
-	if err != nil {
-		return fmt.Errorf("error reading response from rest-server; %s", err)
-	}
-
-	respbuf := &bytes.Buffer{}
-	respbuf.Write(respBytes)
-	resp, err := http.ReadResponse(bufio.NewReader(respbuf), req)
-	if err != nil {
-		return fmt.Errorf("could not read response; %s", err)
-	}
-
 	defer resp.Body.Close()
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("could not read body from response; %s", err)
