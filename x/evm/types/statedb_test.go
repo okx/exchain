@@ -64,7 +64,6 @@ func (suite *StateDBTestSuite) TestParams() {
 	defaultParams.EnableCall = true
 	params := suite.stateDB.GetParams()
 	suite.Require().Equal(defaultParams, params)
-	params.EvmDenom = "ara"
 	suite.stateDB.SetParams(params)
 	newParams := suite.stateDB.GetParams()
 	suite.Require().Equal(newParams, params)

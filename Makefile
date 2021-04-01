@@ -7,7 +7,7 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-Version=v0.16.9
+Version=v0.17.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.1
@@ -16,8 +16,7 @@ ServerName=okexchaind
 ClientName=okexchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
-MercuryHeight=1300000
-              
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
@@ -41,7 +40,6 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
   -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
 
 
 ldflags += $(LDFLAGS)

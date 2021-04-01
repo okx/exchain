@@ -91,6 +91,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 		}
 	}
 	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(height))))
+
 	if e != nil {
 		return nil, e
 	}

@@ -48,7 +48,7 @@ func GetCmdSetWithdrawAddr(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Set the withdraw address for rewards associated with a delegator address.
 
 Example:
-$ %s tx distr set-withdraw-addr okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 --from mykey
+$ %s tx distr set-withdraw-addr ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02 --from mykey
 `,
 				version.ClientName,
 			),
@@ -122,7 +122,7 @@ Where proposal.json contains:
 {
   "title": "Community Pool Spend",
   "description": "Pay me some %s!",
-  "recipient": "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
+  "recipient": "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
   "amount": [
     {
       "denom": "%s",
