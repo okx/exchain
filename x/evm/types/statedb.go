@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/okex/okexchain/x/evm/state"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -35,6 +37,7 @@ type CommitStateDBParams struct {
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
 	BankKeeper    bank.Keeper
+	CacheDb       *state.CacheTrie
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -95,6 +98,8 @@ type CommitStateDB struct {
 	lock sync.Mutex
 
 	params *Params
+
+	cacheTrie *state.CacheTrie
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -103,7 +108,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper, cc *state.CacheTrie,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -121,6 +126,7 @@ func newCommitStateDB(
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
+		cacheTrie:            cc,
 	}
 }
 
@@ -144,6 +150,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accessList:           newAccessList(),
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
+		cacheTrie:            csdbParams.CacheDb,
 	}
 }
 
@@ -521,7 +528,27 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 func (csdb *CommitStateDB) CommitState() {
 	//after all change committed, we commit stateobject data to disk and remove entry of state
 	for _, stateEntry := range csdb.stateObjects {
-		stateEntry.stateObject.Commit()
+		//update all data into memory db
+		_, err := stateEntry.stateObject.Commit()
+		if err != nil {
+			panic(err)
+		}
+	}
+	for _, stateEntry := range csdb.stateObjects {
+		if stateEntry.stateObject.getRoot() == emptyRoot {
+			//if root equal with empty, that means nothing need to commit
+			continue
+		}
+		//commit root
+		stateEntry.stateObject.commitRoot()
+	}
+	for _, stateEntry := range csdb.stateObjects {
+		if stateEntry.stateObject.getRoot() == emptyRoot {
+			//if root equal with empty, that means nothing need to commit
+			continue
+		}
+		//save trie to cache and commit them in app.Commit
+		csdb.cacheTrie.Add(AddressStoragePrefix(stateEntry.stateObject.Address()), stateEntry.stateObject.trie)
 		delete(csdb.stateObjectsDirty, stateEntry.address)
 	}
 }

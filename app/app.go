@@ -538,6 +538,8 @@ func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
+	app.EvmKeeper.CacheTrie.Commit()
+	app.EvmKeeper.CacheTrie.Reset()
 	res := app.BaseApp.Commit()
 	return res
 }

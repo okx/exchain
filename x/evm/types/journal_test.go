@@ -19,6 +19,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/okex/okexchain/x/evm/state"
 	"github.com/okex/okexchain/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -121,7 +122,7 @@ func (suite *JournalTestSuite) setup() {
 	suite.Require().NoError(err)
 
 	cdc := newTestCodec()
-
+	cc := state.NewCacheTrie()
 	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
@@ -132,7 +133,7 @@ func (suite *JournalTestSuite) setup() {
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = newCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk).WithContext(suite.ctx)
+	suite.stateDB = newCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk, &cc).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
 

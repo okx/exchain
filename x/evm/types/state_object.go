@@ -302,16 +302,27 @@ func (so *stateObject) commitState() {
 	so.dirtyStorage = Storage{}
 }
 
-func (so *stateObject) Commit() {
-	so.trie.Commit(nil)
-	so.root = so.trie.Hash()
-	so.commitRoot()
+func (so *stateObject) Commit() (root ethcmn.Hash, err error) {
+	root = ethcmn.Hash{}
+	err = nil
+	if so.trie != nil {
+		root, err = so.trie.Commit(nil)
+		if err != nil {
+			return
+		}
+		so.root = root
+	}
+	return
 }
 
 func (so *stateObject) commitRoot() {
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	store.Set([]byte(rootKey), so.root.Bytes())
+}
+
+func (so *stateObject) getRoot() ethcmn.Hash {
+	return so.root
 }
 
 func (so *stateObject) loadRoot() {
@@ -346,8 +357,7 @@ func (so stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	evmDenom := sdk.DefaultBondDenom
-	balance := so.account.Balance(evmDenom).BigInt()
+	balance := so.account.Balance(sdk.DefaultBondDenom).BigInt()
 	if balance == nil {
 		return zeroBalance
 	}

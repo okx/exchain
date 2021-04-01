@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/okex/okexchain/x/evm/state"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -41,11 +43,12 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
-	TxCount int
-	Bloom   *big.Int
-	Bhash   ethcmn.Hash
-	LogSize uint
-	Watcher *watcher.Watcher
+	TxCount   int
+	Bloom     *big.Int
+	Bhash     ethcmn.Hash
+	LogSize   uint
+	Watcher   *watcher.Watcher
+	CacheTrie state.CacheTrie
 }
 
 // NewKeeper generates new evm module keeper
@@ -75,6 +78,7 @@ func NewKeeper(
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
+		CacheTrie:     state.NewCacheTrie(),
 	}
 }
 
@@ -86,6 +90,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
+		CacheDb:       &k.CacheTrie,
 	}
 }
 
