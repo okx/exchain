@@ -95,6 +95,10 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		panic(err)
 	}
 
+	//commit state and commit cacheTrie directly
+	csdb.CommitState()
+	k.CacheTrie.Commit()
+
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	return []abci.ValidatorUpdate{}
