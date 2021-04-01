@@ -17,6 +17,7 @@ import (
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
 
+	data.Params.MaxGasLimitPerTx = types.DefaultMaxGasLimitPerTx
 	k.SetParams(ctx, data.Params)
 
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
