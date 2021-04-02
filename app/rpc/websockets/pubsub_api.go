@@ -77,6 +77,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	}
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
+	api.logger.Debug("unsubscribe client", "ID", id)
 	return true
 }
 
@@ -102,7 +103,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
 				headerWithBlockHash, err := rpctypes.EthHeaderWithBlockHashFromTendermint(&data.Header)
 				if err != nil {
-					api.logger.Error("failed to get header with block hash", err)
+					api.logger.Error("failed to get header with block hash", "error", err)
 					continue
 				}
 
@@ -120,7 +121,9 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						api.logger.Error("error writing header")
+						api.logger.Error("failed to write header", "ID", sub.ID(), "error", err)
+					} else {
+						api.logger.Debug("successfully write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number)
 					}
 				}
 				api.filtersMu.Unlock()
@@ -128,11 +131,12 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				if err == websocket.ErrCloseSent {
 					api.unsubscribe(sub.ID())
 				}
-			case <-errCh:
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
 				return
@@ -237,21 +241,23 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						res.Params.Result = singleLog
 						err = f.conn.WriteJSON(res)
 						if err != nil {
-							api.logger.Error(fmt.Sprintf("failed to write header: %s", err))
+							api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
 							break
 						}
 					}
+					api.logger.Debug("successfully write logs", "ID", sub.ID(), "length", len(logs))
 				}
 				api.filtersMu.Unlock()
 
 				if err == websocket.ErrCloseSent {
 					api.unsubscribe(sub.ID())
 				}
-			case <-errCh:
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
 				return
@@ -372,7 +378,9 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						api.logger.Error(fmt.Sprintf("failed to write header: %s", err.Error()))
+						api.logger.Error("failed to write pending tx", "ID", sub.ID(), "error", err)
+					} else {
+						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash.String())
 					}
 				}
 				api.filtersMu.Unlock()
@@ -380,11 +388,12 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				if err == websocket.ErrCloseSent {
 					api.unsubscribe(sub.ID())
 				}
-			case <-errCh:
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
 				return
@@ -426,7 +435,8 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 
 				newStatus, err := api.clientCtx.Client.Status()
 				if err != nil {
-					api.logger.Error("error get sync status: %s", err.Error())
+					api.logger.Error(fmt.Sprintf("error get sync status: %s", err.Error()))
+					continue
 				}
 
 				if !newStatus.SyncInfo.CatchingUp {
@@ -453,7 +463,9 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						api.logger.Error("error writing syncing")
+						api.logger.Error("failed to write syncing status", "ID", sub.ID(), "error", err)
+					} else {
+						api.logger.Debug("successfully write syncing status", "ID", sub.ID())
 					}
 				}
 				api.filtersMu.Unlock()
@@ -462,11 +474,12 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 					api.unsubscribe(sub.ID())
 				}
 
-			case <-errCh:
+			case err := <-errCh:
 				api.filtersMu.Lock()
 				sub.Unsubscribe(api.events)
 				delete(api.filters, sub.ID())
 				api.filtersMu.Unlock()
+				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
 				return

@@ -35,7 +35,7 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 	}
 
 	return &Server{
-		rpcAddr: "http://"+parts[1],
+		rpcAddr: "http://" + parts[1],
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx, log),
 		logger:  log.With("module", "websocket-server"),
@@ -78,7 +78,7 @@ func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
 			Code:    big.NewInt(-32600),
 			Message: msg,
 		},
-		ID: nil,
+		ID: big.NewInt(1),
 	}
 	err := conn.WriteJSON(res)
 	if err != nil {
@@ -125,10 +125,10 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 
 			err = wsConn.WriteJSON(res)
 			if err != nil {
-				s.logger.Error("failed to write json response", err)
+				s.logger.Error("failed to write json response", "ID", id, "error", err)
 				continue
 			}
-
+			s.logger.Debug("successfully subscribe", "ID", id)
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -136,13 +136,13 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
-
-			if _, idok := ids[0].(string); !ok || !idok {
+			id, idok := ids[0].(string)
+			if !ok || !idok {
 				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
 
-			ok = s.api.unsubscribe(rpc.ID(ids[0].(string)))
+			ok = s.api.unsubscribe(rpc.ID(id))
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
 				ID:      1,
@@ -151,10 +151,10 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 
 			err = wsConn.WriteJSON(res)
 			if err != nil {
-				s.logger.Error("failed to write json response", err)
+				s.logger.Error("failed to write json response", "ID", id, "error", err)
 				continue
 			}
-
+			s.logger.Debug("successfully unsubscribe", "ID", id)
 			continue
 		}
 
