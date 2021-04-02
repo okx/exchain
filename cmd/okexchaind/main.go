@@ -2,7 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/snapshots"
+	"github.com/cosmos/cosmos-sdk/store"
+	"github.com/spf13/cast"
 	"io"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -98,6 +102,22 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
+	var cache sdk.MultiStorePersistentCache
+
+	if cast.ToBool(viper.Get(server.FlagInterBlockCache)) {
+		cache = store.NewCommitKVStoreCacheManager()
+	}
+
+	snapshotDir := filepath.Join(cast.ToString(viper.Get(flags.FlagHome)), "data", "snapshots")
+	snapshotDB, err := sdk.NewLevelDB("metadata", snapshotDir)
+	if err != nil {
+		panic(err)
+	}
+	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
+	if err != nil {
+		panic(err)
+	}
+
 	return app.NewOKExChainApp(
 		logger,
 		db,
@@ -108,6 +128,11 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
+		baseapp.SetMinRetainBlocks(uint64(viper.GetInt(server.FlagMinRetainBlocks))),
+		baseapp.SetInterBlockCache(cache),
+		baseapp.SetSnapshotStore(snapshotStore),
+		baseapp.SetSnapshotInterval(uint64(viper.GetInt(server.FlagStateSyncSnapshotInterval))),
+		baseapp.SetSnapshotKeepRecent(uint32(viper.GetInt(server.FlagStateSyncSnapshotKeepRecent))),
 	)
 }
 
