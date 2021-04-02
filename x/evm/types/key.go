@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/binary"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
@@ -28,6 +30,7 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
+	KeyPrefixPruningRoot                 = []byte{0x10}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -47,6 +50,12 @@ func BloomKey(height int64) []byte {
 // AddressStoragePrefix returns a prefix to iterate over a given account storage.
 func AddressStoragePrefix(address ethcmn.Address) []byte {
 	return append(KeyPrefixStorage, address.Bytes()...)
+}
+
+func PruningRootPrefix(height uint64) []byte {
+	key := make([]byte, 8)
+	binary.BigEndian.PutUint64(key, height)
+	return append(KeyPrefixPruningRoot, key...)
 }
 
 // getContractDeploymentWhitelistMemberKey builds the key for an approved contract deployer

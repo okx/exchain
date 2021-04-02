@@ -87,6 +87,7 @@ type stateObject struct {
 	deleted   bool
 	trie      ethstate.Trie
 	root      ethcmn.Hash
+	prevRoot  ethcmn.Hash
 }
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
@@ -316,9 +317,25 @@ func (so *stateObject) Commit() (root ethcmn.Hash, err error) {
 }
 
 func (so *stateObject) commitRoot() {
+	//root has no changed, do not need commit root
+	if so.prevRoot == so.root || so.root == emptyRoot {
+		return
+	}
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	store.Set([]byte(rootKey), so.root.Bytes())
+
+	so.commitPruningRoot()
+}
+
+func (so *stateObject) commitPruningRoot() {
+	//skip first commit
+	if so.prevRoot == emptyRoot {
+		return
+	}
+	ctx := so.stateDB.ctx
+	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), PruningRootPrefix(uint64(so.stateDB.ctx.BlockHeight())))
+	store.Set(so.Address().Bytes(), so.prevRoot.Bytes()) //save prev root
 }
 
 func (so *stateObject) getRoot() ethcmn.Hash {
@@ -337,6 +354,7 @@ func (so *stateObject) loadRoot() {
 	} else {
 		so.root = emptyRoot
 	}
+	so.prevRoot = so.root
 }
 
 // commitCode persists the state object's code to the KVStore.

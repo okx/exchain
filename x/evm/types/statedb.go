@@ -533,15 +533,10 @@ func (csdb *CommitStateDB) CommitState() {
 		if err != nil {
 			panic(err)
 		}
-	}
-	for _, stateEntry := range csdb.stateObjects {
-		if stateEntry.stateObject.getRoot() == emptyRoot {
-			//if root equal with empty, that means nothing need to commit
-			continue
-		}
 		//commit root
 		stateEntry.stateObject.commitRoot()
 	}
+
 	for _, stateEntry := range csdb.stateObjects {
 		if stateEntry.stateObject.getRoot() == emptyRoot {
 			//if root equal with empty, that means nothing need to commit

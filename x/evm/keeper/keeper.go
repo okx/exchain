@@ -82,6 +82,16 @@ func NewKeeper(
 	}
 }
 
+func (k Keeper) TryPruningTrie(ctx sdk.Context) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.PruningRootPrefix(uint64(ctx.BlockHeight()-1)))
+	it := store.Iterator(nil, nil)
+	defer it.Close()
+	for ; it.Valid(); it.Next() {
+		state.InstanceOfStateStore().PruningTrie(ethcmn.BytesToHash(it.Value()))
+		store.Delete(it.Key())
+	}
+}
+
 // Logger returns a module-specific logger.
 func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
