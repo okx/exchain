@@ -33,9 +33,15 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 	if len(parts) != 2 {
 		panic(fmt.Errorf("invalid listening address %s (use fully formed addresses, including the tcp:// or unix:// prefix)", restServerAddr))
 	}
+	url := parts[1]
+	urlParts := strings.SplitN(url, ":", 2)
+	if len(urlParts) != 2 {
+		panic(fmt.Errorf("invalid listening address %s (use ip:port as an url)", url))
+	}
+	port := urlParts[1]
 
 	return &Server{
-		rpcAddr: "http://" + parts[1],
+		rpcAddr: "http://localhost:" + port,
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx, log),
 		logger:  log.With("module", "websocket-server"),
