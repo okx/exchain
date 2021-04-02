@@ -226,6 +226,10 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				}
 
 				logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+				if len(logs) == 0 {
+					api.logger.Debug("no matched logs", "ID", sub.ID())
+					continue
+				}
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
@@ -244,8 +248,8 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 							api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
 							break
 						}
+						api.logger.Debug("successfully write log", "ID", sub.ID(), "txhash", singleLog.TxHash)
 					}
-					api.logger.Debug("successfully write logs", "ID", sub.ID(), "length", len(logs))
 				}
 				api.filtersMu.Unlock()
 
@@ -380,7 +384,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 					if err != nil {
 						api.logger.Error("failed to write pending tx", "ID", sub.ID(), "error", err)
 					} else {
-						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash.String())
+						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash)
 					}
 				}
 				api.filtersMu.Unlock()
