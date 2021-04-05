@@ -121,6 +121,7 @@ func (suite *JournalTestSuite) setup() {
 	suite.Require().NoError(err)
 
 	cdc := newTestCodec()
+	cs := NewCacheStorageStore()
 
 	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
 
@@ -132,7 +133,7 @@ func (suite *JournalTestSuite) setup() {
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
-	suite.stateDB = newCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk).WithContext(suite.ctx)
+	suite.stateDB = newCommitStateDB(suite.ctx, storeKey, evmSubspace, ak, sk, bk, cs).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())
 }
 

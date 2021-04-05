@@ -108,7 +108,7 @@ func (k Keeper) EmitAllWsItems(ctx sdk.Context) {
 
 	k.Logger.Debug("EmitAllWsItems", "eventCnt", len(k.wsChan))
 
-	// TODO: Add filter to reduce events to send
+	// TODO: Update filter to reduce events to send
 	allChannelNotifies := map[string]int64{}
 	updatedChannels := map[string]bool{}
 	for len(k.wsChan) > 0 {

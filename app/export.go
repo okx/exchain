@@ -102,7 +102,7 @@ func (app *OKExChainApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList
 	//	// donate any unwithdrawn outstanding reward fraction tokens to the community pool
 	//	scraps := app.DistrKeeper.GetValidatorOutstandingRewardsCoins(ctx, val.GetOperator())
 	//	feePool := app.DistrKeeper.GetFeePool(ctx)
-	//	feePool.CommunityPool = feePool.CommunityPool.Add(scraps...)
+	//	feePool.CommunityPool = feePool.CommunityPool.Update(scraps...)
 	//	app.DistrKeeper.SetFeePool(ctx, feePool)
 	//
 	//	app.DistrKeeper.Hooks().AfterValidatorCreated(ctx, val.GetOperator())

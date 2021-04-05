@@ -162,7 +162,7 @@ func markCurBlockToFutureExpireBlockList(ctx sdk.Context, keeper keeper.Keeper) 
 	curBlockHeight := ctx.BlockHeight()
 	feeParams := keeper.GetParams(ctx)
 
-	// Add current blockHeight to future Height
+	// Update current blockHeight to future Height
 	// which will solve expire orders in current block.
 	futureHeight := curBlockHeight + feeParams.OrderExpireBlocks
 

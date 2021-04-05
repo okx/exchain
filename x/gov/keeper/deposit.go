@@ -95,7 +95,7 @@ func (keeper Keeper) AddDeposit(
 	// try enter voting period according to proposal's total deposit
 	tryEnterVotingPeriod(ctx, keeper, &proposal, depositAmount, eventType)
 
-	// Add or update deposit object
+	// Update or update deposit object
 	updateDeposit(ctx, keeper, proposalID, depositorAddr, depositAmount)
 
 	ctx.EventManager().EmitEvent(

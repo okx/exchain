@@ -28,6 +28,7 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
+	KeyPrefixHeightStorages              = []byte{0x10}
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
@@ -67,4 +68,9 @@ func getContractBlockedListMemberKey(contractAddr sdk.AccAddress) []byte {
 // splitBlockedContractAddress splits the blocked contract address from a ContractBlockedListMemberKey
 func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 	return key[1:]
+}
+
+// AddressStoragePrefix returns a prefix to iterate over a given account storage.
+func HeightStoragesPrefix(height int64) []byte {
+	return append(KeyPrefixHeightStorages, sdk.Uint64ToBigEndian(uint64(height))...)
 }

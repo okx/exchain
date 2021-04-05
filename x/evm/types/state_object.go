@@ -76,6 +76,8 @@ type stateObject struct {
 	dirtyCode bool // true if the code was updated
 	suicided  bool
 	deleted   bool
+
+	storageStore sdk.CommitKVStore
 }
 
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
@@ -90,7 +92,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	return &stateObject{
+	so := &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
 		address:                 ethermintAccount.EthAddress(),
@@ -99,6 +101,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
 	}
+	so.loadStorage()
+	return so
 }
 
 // ----------------------------------------------------------------------------
@@ -236,8 +240,10 @@ func (so *stateObject) markSuicided() {
 // commitState commits all dirty storage to a KVStore and resets
 // the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
-	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	if so.storageStore == nil {
+		panic("should no happen")
+	}
+	store := so.storageStore
 
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
@@ -269,6 +275,25 @@ func (so *stateObject) commitState() {
 	}
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
+}
+
+func (so *stateObject) loadStorage() {
+	if so.storageStore != nil {
+		return
+	}
+
+	if store, ok := so.stateDB.cacheStorageStores.stores[so.address]; ok {
+		so.storageStore = store.store
+		return
+	}
+
+	commitID := GetStorageLatestCommitID(so.stateDB.ctx, so.stateDB.storeKey, so.address)
+	var err error
+	so.storageStore, err = LoadAccountStorageStore(so.address, commitID)
+	if err != nil {
+		so.setError(fmt.Errorf("can't create storage store: %v", err))
+		return
+	}
 }
 
 // commitCode persists the state object's code to the KVStore.
@@ -364,9 +389,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
 
-	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
+	rawValue := so.storageStore.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)

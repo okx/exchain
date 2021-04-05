@@ -28,7 +28,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec, childCmds []*cobra.Command) *co
 		submitEvidenceCmd.AddCommand(flags.PostCommands(childCmd)[0])
 	}
 
-	// TODO: Add tx commands.
+	// TODO: Update tx commands.
 
 	return cmd
 }

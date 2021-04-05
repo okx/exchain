@@ -30,11 +30,12 @@ type revision struct {
 }
 
 type CommitStateDBParams struct {
-	StoreKey      sdk.StoreKey
-	ParamSpace    params.Subspace
-	AccountKeeper AccountKeeper
-	SupplyKeeper  SupplyKeeper
-	BankKeeper    bank.Keeper
+	StoreKey           sdk.StoreKey
+	ParamSpace         params.Subspace
+	AccountKeeper      AccountKeeper
+	SupplyKeeper       SupplyKeeper
+	BankKeeper         bank.Keeper
+	CacheStorageStores *CacheStorageStores
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -95,6 +96,8 @@ type CommitStateDB struct {
 	lock sync.Mutex
 
 	params *Params
+
+	cacheStorageStores *CacheStorageStores
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -103,7 +106,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper, cs *CacheStorageStores,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -121,6 +124,7 @@ func newCommitStateDB(
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
+		cacheStorageStores:   cs,
 	}
 }
 
@@ -144,6 +148,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accessList:           newAccessList(),
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
+		cacheStorageStores:   csdbParams.CacheStorageStores,
 	}
 }
 
@@ -511,6 +516,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			}
 		}
 
+		csdb.cacheStorageStores.Update(stateEntry.address, stateEntry.stateObject.storageStore)
 		delete(csdb.stateObjectsDirty, stateEntry.address)
 	}
 

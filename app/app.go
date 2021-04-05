@@ -538,6 +538,12 @@ func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
+	err := app.EvmKeeper.UpdateStorageStores.Commit(app.BaseApp.GetDeliverStateCtx(), app.keys[evmtypes.StoreKey])
+	if err != nil {
+		panic(err)
+	}
+	app.EvmKeeper.UpdateStorageStores.Reset()
+	app.EvmKeeper.UpdateStorageStores.Prune(app.BaseApp.GetDeliverStateCtx(), app.keys[evmtypes.StoreKey], []int64{app.LastBlockHeight()})
 	res := app.BaseApp.Commit()
 	return res
 }

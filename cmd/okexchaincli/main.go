@@ -56,7 +56,7 @@ func main() {
 		Short: "Command line interface for interacting with okexchaind",
 	}
 
-	// Add --chain-id to persistent flags and mark it required
+	// Update --chain-id to persistent flags and mark it required
 	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
 		return client.InitConfig(rootCmd)
@@ -78,7 +78,7 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 	)
 
-	// Add flags and prefix all env exposed with OKEXCHAIN
+	// Update flags and prefix all env exposed with OKEXCHAIN
 	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
 
 	err := executor.Execute()

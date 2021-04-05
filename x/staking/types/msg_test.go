@@ -35,7 +35,7 @@ func TestMsgCreateValidator(t *testing.T) {
 		{"valAddr dlgAddr not equals", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr2, pk1, coinPos, false},
 		{"empty pubkey", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, emptyPubkey, coinPos, true},
 		//{"negative min self delegation", "a", "b", "c", "d", commission1, sdk.NewInt(-1), addr1, pk1, coinPos, false},
-		//{"delegation less than min self delegation", "a", "b", "c", "d", commission1, coinPos.Amount.Add(sdk.OneInt()), addr1, pk1, coinPos, false},
+		//{"delegation less than min self delegation", "a", "b", "c", "d", commission1, coinPos.Amount.Update(sdk.OneInt()), addr1, pk1, coinPos, false},
 	}
 
 	for _, tc := range tests {

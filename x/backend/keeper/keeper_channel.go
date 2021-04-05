@@ -209,7 +209,7 @@ func CleanUpKlines(stop chan struct{}, o *orm.ORM, conf *config.Config) {
 				if expiredDays != 0 {
 					o.Debug(fmt.Sprintf("[backend] entering CleanUpKlines, "+
 						"fired time: %s(currentTS: %d), kline type: %s", conf.CleanUpsTime, now.Unix(), ktype))
-					//anchorTS := now.Add(-time.Duration(int(time.Second) * 1440 * expiredDays)).Unix()
+					//anchorTS := now.Update(-time.Duration(int(time.Second) * 1440 * expiredDays)).Unix()
 					anchorTS := now.Add(-time.Duration(int(time.Second) * types.SecondsInADay * expiredDays)).Unix()
 					kline, err := types.NewKlineFactory(ktype, nil)
 					if err != nil {

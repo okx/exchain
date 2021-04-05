@@ -3,8 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,6 +15,7 @@ import (
 	"github.com/okex/okexchain/x/params"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
+	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -46,6 +45,8 @@ type Keeper struct {
 	Bhash   ethcmn.Hash
 	LogSize uint
 	Watcher *watcher.Watcher
+
+	UpdateStorageStores *types.CacheStorageStores
 }
 
 // NewKeeper generates new evm module keeper
@@ -63,29 +64,33 @@ func NewKeeper(
 		types.InitIndexer(db)
 	}
 
+	types.SetEvmStorageDB(nil)
+
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return &Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		accountKeeper: ak,
-		paramSpace:    paramSpace,
-		supplyKeeper:  sk,
-		bankKeeper:    bk,
-		TxCount:       0,
-		Bloom:         big.NewInt(0),
-		LogSize:       0,
-		Watcher:       watcher.NewWatcher(),
+		cdc:                 cdc,
+		storeKey:            storeKey,
+		accountKeeper:       ak,
+		paramSpace:          paramSpace,
+		supplyKeeper:        sk,
+		bankKeeper:          bk,
+		TxCount:             0,
+		Bloom:               big.NewInt(0),
+		LogSize:             0,
+		Watcher:             watcher.NewWatcher(),
+		UpdateStorageStores: types.NewCacheStorageStore(),
 	}
 }
 
 // Logger returns a module-specific logger.
 func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
-		StoreKey:      k.storeKey,
-		ParamSpace:    k.paramSpace,
-		AccountKeeper: k.accountKeeper,
-		SupplyKeeper:  k.supplyKeeper,
-		BankKeeper:    k.bankKeeper,
+		StoreKey:           k.storeKey,
+		ParamSpace:         k.paramSpace,
+		AccountKeeper:      k.accountKeeper,
+		SupplyKeeper:       k.supplyKeeper,
+		BankKeeper:         k.bankKeeper,
+		CacheStorageStores: k.UpdateStorageStores,
 	}
 }
 
