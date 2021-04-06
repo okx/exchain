@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/x/staking/exported"
-
 	"github.com/okex/okexchain/x/staking/types"
 )
 
