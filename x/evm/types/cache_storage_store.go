@@ -17,7 +17,8 @@ const storageDB = "storage"
 
 var evmStorageDB dbm.DB
 
-func SetEvmStorageDB(db dbm.DB) {
+// InitEvmStorageDB inits storage db for contract account
+func InitEvmStorageDB() {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, "data")
 	db, err := sdk.NewLevelDB(storageDB, dbPath)
@@ -25,10 +26,6 @@ func SetEvmStorageDB(db dbm.DB) {
 		panic(err)
 	}
 	evmStorageDB = db
-}
-
-func GetEvmStorageDB() dbm.DB {
-	return evmStorageDB
 }
 
 type StorageStore struct {
@@ -60,10 +57,6 @@ func (c *CacheStorageStores) Update(addr ethcmn.Address, store sdk.CommitKVStore
 	}
 }
 
-func (c *CacheStorageStores) GetStores() map[ethcmn.Address]*StorageStore {
-	return c.stores
-}
-
 func (c *CacheStorageStores) Reset() {
 	c.stores = make(map[ethcmn.Address]*StorageStore, 0)
 }
@@ -81,7 +74,7 @@ func (c *CacheStorageStores) Commit(ctx sdk.Context, storeKey sdk.StoreKey) erro
 	return SetCommitIDsByHeight(c, ctx, storeKey)
 }
 
-func (c *CacheStorageStores) Prune(ctx sdk.Context, storeKey sdk.StoreKey, pruHeights []int64) error {
+func Pruning(ctx sdk.Context, storeKey sdk.StoreKey, pruHeights []int64) error {
 	for _, height := range pruHeights {
 		commitIDs, err := GetCommitIDsByHeight(
 			ctx, storeKey, height,
@@ -166,7 +159,7 @@ func GetStorageLatestCommitID(ctx sdk.Context, storeKey sdk.StoreKey, addr ethcm
 
 func LoadAccountStorageStore(address ethcmn.Address, commitID sdk.CommitID) (sdk.CommitKVStore, error) {
 	prefix := "s/k:" + address.String() + "/"
-	db := dbm.NewPrefixDB(GetEvmStorageDB(), []byte(prefix))
+	db := dbm.NewPrefixDB(evmStorageDB, []byte(prefix))
 	store, err := iavl.LoadStoreWithInitialVersion(db, commitID, false, uint64(tmtypes.GetStartBlockHeight()))
 	if err != nil {
 		return nil, err

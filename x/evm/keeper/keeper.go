@@ -64,7 +64,7 @@ func NewKeeper(
 		types.InitIndexer(db)
 	}
 
-	types.SetEvmStorageDB(nil)
+	types.InitEvmStorageDB()
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return &Keeper{

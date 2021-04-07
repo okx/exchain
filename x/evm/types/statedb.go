@@ -97,6 +97,7 @@ type CommitStateDB struct {
 
 	params *Params
 
+	// cache storage stores of updated contract accounts
 	cacheStorageStores *CacheStorageStores
 }
 

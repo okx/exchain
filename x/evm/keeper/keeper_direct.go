@@ -15,6 +15,9 @@ func (k Keeper) SetCodeDirectly(ctx sdk.Context, hash, code []byte) {
 
 // SetStateDirectly commit one state into db with no cache
 func (k Keeper) SetStateDirectly(ctx sdk.Context, addr ethcmn.Address, key, value ethcmn.Hash) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
+	store, err := types.LoadAccountStorageStore(addr, sdk.CommitID{})
+	if err != nil {
+		panic(err)
+	}
 	store.Set(key.Bytes(), value.Bytes())
 }
