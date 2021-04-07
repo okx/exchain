@@ -5,6 +5,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
@@ -74,7 +75,26 @@ func (c *CacheStorageStores) Commit(ctx sdk.Context, storeKey sdk.StoreKey) erro
 	return SetCommitIDsByHeight(c, ctx, storeKey)
 }
 
-func Pruning(ctx sdk.Context, storeKey sdk.StoreKey, pruHeights []int64) error {
+func getPruningHeights(ctx sdk.Context) []int64 {
+	var pruneHeights []int64
+	previousHeight := ctx.BlockHeight() - 1
+	pruningOpts := storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))
+	if int64(pruningOpts.KeepRecent) < previousHeight {
+		pruneHeight := previousHeight - int64(pruningOpts.KeepRecent)
+		// We consider this height to be pruned iff:
+		//
+		// - KeepEvery is zero as that means that all heights should be pruned.
+		// - KeepEvery % (height - KeepRecent) != 0 as that means the height is not
+		// a 'snapshot' height.
+		if pruningOpts.KeepEvery == 0 || pruneHeight%int64(pruningOpts.KeepEvery) != 0 {
+			pruneHeights = append(pruneHeights, pruneHeight)
+		}
+	}
+	return pruneHeights
+}
+
+func Pruning(ctx sdk.Context, storeKey sdk.StoreKey) error {
+	pruHeights := getPruningHeights(ctx)
 	for _, height := range pruHeights {
 		commitIDs, err := GetCommitIDsByHeight(
 			ctx, storeKey, height,

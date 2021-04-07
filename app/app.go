@@ -543,7 +543,7 @@ func (app *OKExChainApp) Commit() abci.ResponseCommit {
 		panic(err)
 	}
 	app.EvmKeeper.UpdateStorageStores.Reset()
-	evmtypes.Pruning(app.BaseApp.GetDeliverStateCtx(), app.keys[evmtypes.StoreKey], []int64{app.LastBlockHeight()})
+	evmtypes.Pruning(app.BaseApp.GetDeliverStateCtx(), app.keys[evmtypes.StoreKey])
 	res := app.BaseApp.Commit()
 	return res
 }
