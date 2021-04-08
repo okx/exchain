@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -177,15 +178,15 @@ func FormatBlock(
 	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
 ) map[string]interface{} {
 	if len(header.DataHash) == 0 {
-		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
+		header.DataHash = common.Hash{}.Bytes()
 	}
 
 	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
 		"hash":             hexutil.Bytes(curBlockHash),
 		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
-		"nonce":            hexutil.Uint64(0), // PoW specific
-		"sha3Uncles":       common.Hash{},     // No uncles in Tendermint
+		"nonce":            ethtypes.BlockNonce{}, // PoW specific
+		"sha3Uncles":       common.Hash{},         // No uncles in Tendermint
 		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
@@ -201,11 +202,15 @@ func FormatBlock(
 		"uncles":           []string{},
 		"receiptsRoot":     common.Hash{},
 	}
-	switch transactions.(type) {
-	case []common.Hash:
-		ret["transactions"] = transactions.([]common.Hash)
-	case []*Transaction:
-		ret["transactions"] = transactions.([]*Transaction)
+	if !reflect.ValueOf(transactions).IsNil() {
+		switch transactions.(type) {
+		case []common.Hash:
+			ret["transactions"] = transactions.([]common.Hash)
+		case []*Transaction:
+			ret["transactions"] = transactions.([]*Transaction)
+		}
+	} else {
+		ret["transactions"] = []common.Hash{}
 	}
 	return ret
 }
