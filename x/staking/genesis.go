@@ -26,6 +26,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	ctx = ctx.WithBlockHeight(1 - sdk.ValidatorUpdateDelay)
 
 	data.Params.MaxValidators = uint16(1)
+	data.Params.Epoch = 1<<15 - 1
 	keeper.SetParams(ctx, data.Params)
 	keeper.SetLastTotalPower(ctx, data.LastTotalPower)
 
@@ -52,7 +53,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 
 	// don't need to run Tendermint updates if we exported
 	if data.Exported {
-		for _, lv := range data.LastValidatorPowers {
+		for _, lv := range data.LastValidatorPowers[:1] {
+			fmt.Println(lv.Address.String())
 			keeper.SetLastValidatorPower(ctx, lv.Address, lv.Power)
 			validator, found := keeper.GetValidator(ctx, lv.Address)
 			if !found {
