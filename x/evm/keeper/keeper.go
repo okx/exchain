@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/status-im/keycard-go/hexutils"
+
 	"github.com/okex/okexchain/x/evm/state"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -83,11 +85,21 @@ func NewKeeper(
 }
 
 func (k Keeper) TryPruningTrie(ctx sdk.Context) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.PruningRootPrefix(uint64(ctx.BlockHeight()-1)))
-	it := store.Iterator(nil, nil)
-	defer it.Close()
-	for ; it.Valid(); it.Next() {
-		state.InstanceOfStateStore().PruningTrie(ethcmn.BytesToHash(it.Value()))
+	var dirtyKeys = make(map[string]int, 0)
+	store := state.InstanceOfStateStore().GetDb().TrieDB().DiskDB()
+	it := store.NewIterator(state.PruningRootPrefix(uint64(ctx.BlockHeight()-2)), nil)
+	defer it.Release()
+
+	itDirty := store.NewIterator(state.PruningDirtyKeyPrefix(uint64(ctx.BlockHeight()-2)), nil)
+	defer itDirty.Release()
+
+	for itDirty.Next() {
+		dirtyKeys[hexutils.BytesToHex(itDirty.Value())] = 0
+		store.Delete(itDirty.Key())
+	}
+
+	for it.Next() {
+		state.InstanceOfStateStore().PruningTrie(ethcmn.BytesToHash(it.Value()), dirtyKeys)
 		store.Delete(it.Key())
 	}
 }

@@ -41,6 +41,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	//that can make sure latest block has been committed
 	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	k.CacheTrie.UpdateHeight(uint64(req.Header.GetHeight()))
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while

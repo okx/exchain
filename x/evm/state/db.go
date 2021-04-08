@@ -1,9 +1,10 @@
 package state
 
 import (
+	"fmt"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/status-im/keycard-go/hexutils"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -39,19 +40,49 @@ func (s stateStore) GetDb() state.Database {
 	return s.db
 }
 
-func (s stateStore) PruningTrie(root ethcmn.Hash) error {
+func (s stateStore) PruningTrie(root ethcmn.Hash, dirtyKeys map[string]int) error {
 	t, e := s.db.OpenTrie(root)
 	if e != nil {
 		return e
 	}
 	disk := s.db.TrieDB().DiskDB()
-	it := trie.NewIterator(t.NodeIterator(nil))
-	for it.Next() {
-		e := disk.Delete(it.Key)
+	it := t.NodeIterator(nil)
+	for it.Next(true) {
+		if !it.Leaf() {
+			continue
+		}
+		if len(dirtyKeys) > 0 {
+			_, ok := dirtyKeys[hexutils.BytesToHex(it.LeafKey())]
+			if ok {
+				fmt.Println("deleting hash key : " + hexutils.BytesToHex(it.Parent().Bytes()))
+				disk.Delete(it.Parent().Bytes())
+			}
+		}
+	}
+	return nil
+}
+
+func (s stateStore) PruningTrie2(dirtyKeys [][]byte) error {
+	disk := s.db.TrieDB().DiskDB()
+	for _, dk := range dirtyKeys {
+		_, err := disk.Get(dk)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		e := disk.Delete(dk)
 		if e != nil {
 			return e
 		}
 	}
-	e = disk.Delete(root.Bytes())
-	return e
+	return nil
+}
+
+func (s stateStore) getDirtyKeys() [][]byte {
+	return nil
+}
+
+func (s stateStore) CommitPruningRoot(height uint64, addr, root []byte) {
+	store := InstanceOfStateStore().GetDb().TrieDB().DiskDB()
+	prefix := PruningRootPrefix(height)
+	store.Put(append(prefix, addr...), root)
 }

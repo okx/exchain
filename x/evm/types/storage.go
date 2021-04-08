@@ -52,6 +52,7 @@ func (s Storage) Copy() Storage {
 type State struct {
 	Key   ethcmn.Hash `json:"key"`
 	Value ethcmn.Hash `json:"value"`
+	IsNew bool        `json:"-"`
 }
 
 // Validate performs a basic validation of the State fields.
@@ -68,6 +69,7 @@ func NewState(key, value ethcmn.Hash) State {
 	return State{
 		Key:   key,
 		Value: value,
+		IsNew: false,
 	}
 }
 

@@ -298,6 +298,9 @@ func (so *stateObject) commitState() {
 		// Encoding []byte cannot fail, ok to ignore the error.
 		data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(state.Value[:]))
 		so.setError(tr.TryUpdate(state.Key[:], data))
+		if !so.originStorage[idx].IsNew {
+			so.stateDB.cacheTrie.InsertDirtyKey(AddressStoragePrefix(so.Address()), state.Key[:])
+		}
 	}
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
@@ -333,9 +336,7 @@ func (so *stateObject) commitPruningRoot() {
 	if so.prevRoot == emptyRoot {
 		return
 	}
-	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), PruningRootPrefix(uint64(so.stateDB.ctx.BlockHeight())))
-	store.Set(so.Address().Bytes(), so.prevRoot.Bytes()) //save prev root
+	state.InstanceOfStateStore().CommitPruningRoot(uint64(so.stateDB.ctx.BlockHeight()), so.address.Bytes(), so.prevRoot.Bytes())
 }
 
 func (so *stateObject) getRoot() ethcmn.Hash {
@@ -465,6 +466,8 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 		}
 		value.SetBytes(content)
 		cache.Value.SetBytes(content)
+	} else {
+		cache.IsNew = true
 	}
 
 	so.originStorage = append(so.originStorage, cache)
