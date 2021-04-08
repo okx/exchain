@@ -20,7 +20,6 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
@@ -82,6 +81,7 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
+		client.PruningCmd(ctx),
 	)
 
 	// Tendermint node base commands
@@ -98,6 +98,11 @@ func main() {
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
+	pruningOpts, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		panic(err)
+	}
+
 	return app.NewOKExChainApp(
 		logger,
 		db,
@@ -105,7 +110,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		true,
 		map[int64]bool{},
 		0,
-		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))),
+		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
 	)
