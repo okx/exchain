@@ -40,7 +40,7 @@ func migrate(ctx *server.Context) {
 
 	// update latest block according to app version
 	blockState := store.BlockStoreStateJSON{
-		Base: version - 1,
+		Base:   version - 1,
 		Height: version,
 	}
 	blockState.Save(blockStoreDB)
@@ -107,7 +107,7 @@ func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byt
 	panicError(err)
 	state := tmstate.LoadState(stateStoreDB)
 
-	if len(valsUpdate) > 0{
+	if len(valsUpdate) > 0 {
 		vals, err := types.PB2TM.ValidatorUpdates(valsUpdate)
 		panicError(err)
 		state.Validators = types.NewValidatorSet(vals)
@@ -120,8 +120,8 @@ func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byt
 	panicError(err)
 
 	valInfo := &tmstate.ValidatorsInfo{
-		LastHeightChanged: height,
-		ValidatorSet: state.Validators,
+		LastHeightChanged: height + 1,
+		ValidatorSet:      state.Validators,
 	}
 
 	err = stateStoreDB.Set(calcValidatorsKey(height+1), valInfo.Bytes())
