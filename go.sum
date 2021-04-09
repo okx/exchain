@@ -518,6 +518,8 @@ github.com/okex/iavl v0.14.2-0.20210409065552-19f955dde187 h1:lYob6NIVP4o2uesk4B
 github.com/okex/iavl v0.14.2-0.20210409065552-19f955dde187/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/iavl v0.14.2-0.20210409142403-72ef6cb5c473 h1:uRpngHp/1ljympSHHVZPUgQNY5GvcfZmL5sfrBLULho=
 github.com/okex/iavl v0.14.2-0.20210409142403-72ef6cb5c473/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
+github.com/okex/iavl v0.14.2-0.20210409145920-d3fa09e91cd8 h1:ctEBMYwlRmiA/aYsnLIIDse34X6tHVbFsqSber78qXQ=
+github.com/okex/iavl v0.14.2-0.20210409145920-d3fa09e91cd8/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/tendermint v0.33.9-okexchain6 h1:qo/lf7oHfByifXFOYxJqRDbQd55JqREcIEHg/Fu30jE=
 github.com/okex/tendermint v0.33.9-okexchain6/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
