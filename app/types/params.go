@@ -4,5 +4,5 @@ const (
 	// DefaultGasPrice is default gas price for evm transactions
 	DefaultGasPrice = 20
 	// DefaultRPCGasLimit is default gas limit for RPC call operations
-	DefaultRPCGasLimit = 100000000000
+	DefaultRPCGasLimit = 30000000
 )

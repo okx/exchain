@@ -22,7 +22,7 @@ type (
 		OriginalSymbol      string         `json:"original_symbol" v2:"original_symbol"`             // e.g. "OKT"
 		WholeName           string         `json:"whole_name" v2:"whole_name"`                       // e.g. "OKT"
 		OriginalTotalSupply sdk.Dec        `json:"original_total_supply" v2:"original_total_supply"` // e.g. 1000000000.00000000
-		Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. okexchain1upyg3vl6vqaxqvzts69zpus2c027p7paw63s99
+		Owner               sdk.AccAddress `json:"owner" v2:"owner"`                                 // e.g. ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658
 		Mintable            bool           `json:"mintable" v2:"mintable"`                           // e.g. false
 	}
 )

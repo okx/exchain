@@ -60,31 +60,13 @@ func ErrOversizeAddrList(length int) sdk.EnvelopedErr {
 			))}
 }
 
-// ErrDeployerUnqualified returns an error when a deployer not in the whitelist tries to create a contract
-func ErrDeployerUnqualified(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
+// ErrUnauthorizedAccount returns an error when an account not in the whitelist tries to create a contract
+func ErrUnauthorizedAccount(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			14,
-			fmt.Sprintf("failed. unqualified deployer %s for a contract deployment", distributorAddr.String()))}
-}
-
-// ErrContractAlreadyExists returns an error when duplicated contract will be added into blocked list
-func ErrContractAlreadyExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{
-		Err: sdkerrors.New(
-			DefaultParamspace,
-			16,
-			fmt.Sprintf("failed. contract %s is already in the blocked list", contractAddr.String()))}
-}
-
-// ErrContractNotExists returns an error when a contract not in the blocked list will be deleted
-func ErrContractNotExists(contractAddr sdk.AccAddress) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{
-		Err: sdkerrors.New(
-			DefaultParamspace,
-			17,
-			fmt.Sprintf("failed. contract %s is not in the blocked list", contractAddr.String()))}
+			fmt.Sprintf("failed. unauthorized account %s for a contract deployment", ethcmn.BytesToAddress(distributorAddr)))}
 }
 
 // ErrCallBlockedContract returns an error when the blocked contract is invoked
@@ -92,7 +74,7 @@ func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			18,
+			15,
 			fmt.Sprintf("failed. the contract %s is not allowed to invoke", contractAddr.Hex()),
 		),
 	}

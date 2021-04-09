@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	addr           = "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+	addr           = "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
 	expectedOutput = `Address List:
-okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas
-okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas`
+ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc
+ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc`
 )
 
 func TestAddressList_String(t *testing.T) {

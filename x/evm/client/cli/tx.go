@@ -199,8 +199,8 @@ Where proposal.json contains:
   "title": "update contract proposal whitelist with a distributor address list",
   "description": "add a distributor address list into the whitelist",
   "distributor_addresses": [
-    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
-    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+    "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
+    "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
   ],
   "is_added": true,
   "deposit": [
@@ -260,8 +260,8 @@ Where proposal.json contains:
   "title": "update contract blocked list proposal with a contract address list",
   "description": "add a contract address list into the blocked list",
   "contract_addresses": [
-    "okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0",
-    "okexchain1qj5c07sm6jetjz8f509qtrxgh4psxkv32x0qas"
+    "ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02",
+    "ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc"
   ],
   "is_added": true,
   "deposit": [
