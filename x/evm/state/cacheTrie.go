@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -18,7 +19,9 @@ var (
 )
 
 type cacheKey struct {
-	T ethstate.Trie
+	T        ethstate.Trie
+	PrevRoot ethcmn.Hash
+
 	//Keys [][]byte
 	Keys map[string]int
 }
@@ -39,15 +42,14 @@ func (c *CacheTrie) UpdateHeight(h uint64) {
 	c.height = h
 }
 
-func (c *CacheTrie) Add(prefix []byte, trie ethstate.Trie) {
+func (c *CacheTrie) Add(prefix []byte, trie ethstate.Trie, prevRoot ethcmn.Hash) {
 	keys := hexutils.BytesToHex(prefix)
 	_, ok := c.tries[keys]
-	if ok && c.tries[keys].T != nil {
-		return
-	} else if !ok {
-		c.tries[keys] = &cacheKey{T: trie, Keys: make(map[string]int, 0)}
+	if !ok {
+		c.tries[keys] = &cacheKey{T: trie, PrevRoot: prevRoot, Keys: make(map[string]int, 0)}
 	} else {
 		c.tries[keys].T = trie
+		c.tries[keys].PrevRoot = prevRoot
 	}
 }
 
@@ -93,6 +95,7 @@ func (c *CacheTrie) Commit() {
 	}
 	trieDB := InstanceOfStateStore().GetDb().TrieDB()
 	for _, root := range roots {
+		fmt.Println("commit root hash :" + hexutils.BytesToHex(root.Bytes()))
 		e := trieDB.Commit(root, false, nil)
 		if e != nil {
 			panic(e)
@@ -100,6 +103,16 @@ func (c *CacheTrie) Commit() {
 	}
 	//save cached key which has been updated by contract
 	c.CommitDirtyKey()
+	for addr, v := range c.tries {
+		fmt.Println("CommitPruning Root new root :" + hexutils.BytesToHex(v.T.Hash().Bytes()))
+		fmt.Println("CommitPruning Root old root :" + hexutils.BytesToHex(v.PrevRoot.Bytes()))
+		c.CommitPruningRoot(hexutils.HexToBytes(addr), v.PrevRoot.Bytes())
+	}
+
+}
+
+func (c *CacheTrie) CommitPruningRoot(addr, prevRoot []byte) {
+	InstanceOfStateStore().CommitPruningRoot(c.height, addr, prevRoot)
 }
 
 func (c *CacheTrie) CommitDirtyKey() {

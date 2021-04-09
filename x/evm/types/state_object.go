@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/status-im/keycard-go/hexutils"
+
 	"github.com/okex/okexchain/x/evm/state"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -253,9 +255,13 @@ func (s *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 	if s.trie == nil {
 		var err error
 		s.trie, err = db.OpenStorageTrie(s.address.Hash(), s.root)
+
 		if err != nil {
+			fmt.Println("Failed to open root: " + hexutils.BytesToHex(s.root.Bytes()))
 			s.trie, _ = db.OpenStorageTrie(s.address.Hash(), ethcmn.Hash{})
 			s.setError(fmt.Errorf("can't create storage trie: %v", err))
+		} else {
+			fmt.Println("Success to open root: " + hexutils.BytesToHex(s.root.Bytes()))
 		}
 	}
 	return s.trie
@@ -299,7 +305,7 @@ func (so *stateObject) commitState() {
 		data, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(state.Value[:]))
 		so.setError(tr.TryUpdate(state.Key[:], data))
 		if !so.originStorage[idx].IsNew {
-			so.stateDB.cacheTrie.InsertDirtyKey(AddressStoragePrefix(so.Address()), state.Key[:])
+			so.stateDB.cacheTrie.InsertDirtyKey(so.Address().Bytes(), state.Key[:])
 		}
 	}
 	// clean storage as all entries are dirty
@@ -324,11 +330,10 @@ func (so *stateObject) commitRoot() {
 	if so.prevRoot == so.root || so.root == emptyRoot {
 		return
 	}
+	fmt.Println("Try to save root :" + hexutils.BytesToHex(so.root.Bytes()))
 	ctx := so.stateDB.ctx
 	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	store.Set([]byte(rootKey), so.root.Bytes())
-
-	so.commitPruningRoot()
 }
 
 func (so *stateObject) commitPruningRoot() {

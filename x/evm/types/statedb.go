@@ -543,7 +543,7 @@ func (csdb *CommitStateDB) CommitState() {
 			continue
 		}
 		//save trie to cache and commit them in app.Commit
-		csdb.cacheTrie.Add(AddressStoragePrefix(stateEntry.stateObject.Address()), stateEntry.stateObject.trie)
+		csdb.cacheTrie.Add(stateEntry.stateObject.Address().Bytes(), stateEntry.stateObject.trie, stateEntry.stateObject.prevRoot)
 		delete(csdb.stateObjectsDirty, stateEntry.address)
 	}
 }

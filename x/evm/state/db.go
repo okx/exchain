@@ -54,11 +54,12 @@ func (s stateStore) PruningTrie(root ethcmn.Hash, dirtyKeys map[string]int) erro
 		if len(dirtyKeys) > 0 {
 			_, ok := dirtyKeys[hexutils.BytesToHex(it.LeafKey())]
 			if ok {
-				fmt.Println("deleting hash key : " + hexutils.BytesToHex(it.Parent().Bytes()))
 				disk.Delete(it.Parent().Bytes())
 			}
 		}
 	}
+	fmt.Println("delRoot key : " + hexutils.BytesToHex(root.Bytes()))
+	disk.Delete(root.Bytes())
 	return nil
 }
 
