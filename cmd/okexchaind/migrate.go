@@ -75,9 +75,9 @@ func migrate(ctx *server.Context) {
 	if err != nil {
 		panicError(err)
 	}
-	chainApp.MigrateCommit()
+	commitID := chainApp.MigrateCommit()
 
-	updateValidators(dataDir, valsUpdate)
+	updateValidators(dataDir, valsUpdate, commitID.Hash)
 }
 
 func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
@@ -90,8 +90,8 @@ func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
 }
 
 
-////TODO: just for test
-func updateValidators(dataDir string, valsUpdate abci.ValidatorUpdates) {
+//TODO: just for test
+func updateValidators(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byte) {
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 	state := tmstate.LoadState(stateStoreDB)
@@ -100,6 +100,7 @@ func updateValidators(dataDir string, valsUpdate abci.ValidatorUpdates) {
 	panicError(err)
 	state.Validators = types.NewValidatorSet(vals)
 	state.NextValidators = types.NewValidatorSet(vals)
+	state.AppHash = appHash
 
 	err = stateStoreDB.SetSync([]byte("stateKey"), state.Bytes())
 	panicError(err)
