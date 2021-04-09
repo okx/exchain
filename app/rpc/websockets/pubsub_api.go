@@ -253,7 +253,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 							api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
 							break
 						}
-						api.logger.Debug("successfully write log", "ID", sub.ID(), "txhash", singleLog.TxHash)
+						api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
 					}
 				}
 				api.filtersMu.Unlock()
