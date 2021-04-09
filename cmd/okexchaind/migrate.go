@@ -31,23 +31,25 @@ func migrateCmd(ctx *server.Context) *cobra.Command {
 }
 
 func migrate(ctx *server.Context) {
+	chainApp := createApp(ctx, "data")
+	version := chainApp.LastCommitID().Version
+
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	blockStoreDB, err := openDB(blockStoreDB, dataDir)
 	panicError(err)
 	blockStore := store.NewBlockStore(blockStoreDB)
-	latestBlockHeight := blockStore.Height()
-	log.Println("latest block height", "height", latestBlockHeight)
+	//latestBlockHeight := blockStore.Height()
+	latestBlockHeight := version
+	log.Println("latest block height", latestBlockHeight)
 	block := blockStore.LoadBlock(latestBlockHeight)
 	req := abci.RequestBeginBlock{
 		Hash:   block.Hash(),
 		Header: types.TM2PB.Header(&block.Header),
 	}
 
-	chainApp := createApp(ctx, "data")
-	version := chainApp.LastCommitID().Version
-	if version != latestBlockHeight {
-		panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
-	}
+	//if version != latestBlockHeight {
+	//	panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
+	//}
 
 	deliverCtx := chainApp.DeliverStateCtx(req)
 
