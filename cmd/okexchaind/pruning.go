@@ -113,7 +113,7 @@ func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
 		return
 	}
 	fmt.Println(rs.GetStores())
-	log.Println(pruneHeights)
+	//log.Println(pruneHeights)
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL && key.Name() == "supply" {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
