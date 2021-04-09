@@ -44,6 +44,11 @@ func migrate(ctx *server.Context) {
 	}
 
 	chainApp := createApp(ctx, "data")
+	version := chainApp.LastCommitID().Version
+	if version != latestBlockHeight {
+		panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
+	}
+
 	deliverCtx := chainApp.DeliverStateCtx(req)
 
 	chainApp.EvmKeeper.SetParams(deliverCtx, evmtypes.DefaultParams())
