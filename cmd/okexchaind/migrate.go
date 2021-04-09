@@ -124,7 +124,7 @@ func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byt
 		ValidatorSet: state.Validators,
 	}
 
-	err = stateStoreDB.Set(calcValidatorsKey(height), valInfo.Bytes())
+	err = stateStoreDB.Set(calcValidatorsKey(height+1), valInfo.Bytes())
 	panicError(err)
 }
 
