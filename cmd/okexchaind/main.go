@@ -81,7 +81,8 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
-		client.PruningCmd(ctx),
+		PruningCmd(ctx),
+		CompactCmd(ctx),
 	)
 
 	// Tendermint node base commands
