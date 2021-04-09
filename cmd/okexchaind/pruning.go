@@ -54,8 +54,10 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			}
 			cms := app.GetCMS()
 			var pruneHeights []int64
-			for i := baseHeight; i < retainHeight; i++ {
-				pruneHeights = append(pruneHeights, i)
+			for i := int64(1121818); i < retainHeight; i++ {
+				if i%100 == 0 || i >= retainHeight-100 {
+					pruneHeights = append(pruneHeights, i)
+				}
 			}
 
 			wg.Add(1)
