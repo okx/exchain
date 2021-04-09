@@ -89,7 +89,7 @@ func migrate(ctx *server.Context) {
 	}
 	commitID := chainApp.MigrateCommit()
 
-	updateState(dataDir, valsUpdate, commitID.Hash)
+	updateState(dataDir, valsUpdate, commitID.Hash, version)
 }
 
 func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
@@ -102,7 +102,7 @@ func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
 }
 
 //TODO: just for test
-func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byte) {
+func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byte, height int64) {
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 	state := tmstate.LoadState(stateStoreDB)
@@ -118,4 +118,16 @@ func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byt
 
 	err = stateStoreDB.SetSync([]byte("stateKey"), state.Bytes())
 	panicError(err)
+
+	valInfo := &tmstate.ValidatorsInfo{
+		LastHeightChanged: height,
+		ValidatorSet: state.Validators,
+	}
+
+	err = stateStoreDB.Set(calcValidatorsKey(height), valInfo.Bytes())
+	panicError(err)
+}
+
+func calcValidatorsKey(height int64) []byte {
+	return []byte(fmt.Sprintf("validatorsKey:%v", height))
 }
