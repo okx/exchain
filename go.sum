@@ -504,6 +504,8 @@ github.com/okex/cosmos-sdk v0.39.3-0.20210329104904-f341de66a7d0 h1:cMq47Sh8+wUy
 github.com/okex/cosmos-sdk v0.39.3-0.20210329104904-f341de66a7d0/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/cosmos-sdk v0.39.3-0.20210409063746-6eb6e9b24584 h1:Rm6SuK9V5ur+ocyDPyIzZ6Qk1XtxDCwRT6Pe2LQaRJE=
 github.com/okex/cosmos-sdk v0.39.3-0.20210409063746-6eb6e9b24584/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
+github.com/okex/cosmos-sdk v0.39.3-0.20210409072448-89980c640ec2 h1:mxam1jpGndU/GJ4w1FasKWoxCY8Ro82rVAtAYyehzY4=
+github.com/okex/cosmos-sdk v0.39.3-0.20210409072448-89980c640ec2/go.mod h1:Y1C2roqCVZ6gSYG31X77x4NLcbSGS9VP1GIiAE1imcc=
 github.com/okex/iavl v0.14.1-okexchain2 h1:vhWUd07zSLAckgaZBVaj/MGAm1FQ6P0i8zTuW/xbMGU=
 github.com/okex/iavl v0.14.1-okexchain2/go.mod h1:QmfViflFiXzxKLQE4tAUuWQHq+RSuQFxablW5oJZ6sE=
 github.com/okex/iavl v0.14.2-0.20210409063727-18d5d05f611c h1:nIAeq+bHtp1EPKl1JAODsHSTZV1LS/q+9Dy+a1Uhxb0=
