@@ -63,21 +63,6 @@ func (s stateStore) PruningTrie(root ethcmn.Hash, dirtyKeys map[string]int) erro
 	return nil
 }
 
-func (s stateStore) PruningTrie2(dirtyKeys [][]byte) error {
-	disk := s.db.TrieDB().DiskDB()
-	for _, dk := range dirtyKeys {
-		_, err := disk.Get(dk)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		e := disk.Delete(dk)
-		if e != nil {
-			return e
-		}
-	}
-	return nil
-}
-
 func (s stateStore) getDirtyKeys() [][]byte {
 	return nil
 }
