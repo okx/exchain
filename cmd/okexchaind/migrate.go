@@ -37,9 +37,19 @@ func migrate(ctx *server.Context) {
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	blockStoreDB, err := openDB(blockStoreDB, dataDir)
 	panicError(err)
+
+	// update latest block according to app version
+	blockState := store.BlockStoreStateJSON{
+		Base: version - 1,
+		Height: version,
+	}
+	blockState.Save(blockStoreDB)
+
 	blockStore := store.NewBlockStore(blockStoreDB)
-	//latestBlockHeight := blockStore.Height()
-	latestBlockHeight := version
+	latestBlockHeight := blockStore.Height()
+	if version != latestBlockHeight {
+		panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
+	}
 	log.Println("latest block height", latestBlockHeight)
 	block := blockStore.LoadBlock(latestBlockHeight)
 	req := abci.RequestBeginBlock{
@@ -47,12 +57,7 @@ func migrate(ctx *server.Context) {
 		Header: types.TM2PB.Header(&block.Header),
 	}
 
-	//if version != latestBlockHeight {
-	//	panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
-	//}
-
 	deliverCtx := chainApp.DeliverStateCtx(req)
-
 	chainApp.EvmKeeper.SetParams(deliverCtx, evmtypes.DefaultParams())
 
 	stakingParams := stakingtypes.DefaultParams()
@@ -84,7 +89,7 @@ func migrate(ctx *server.Context) {
 	}
 	commitID := chainApp.MigrateCommit()
 
-	updateValidators(dataDir, valsUpdate, commitID.Hash)
+	updateState(dataDir, valsUpdate, commitID.Hash)
 }
 
 func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
@@ -96,17 +101,19 @@ func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
 	return exapp.(*app.OKExChainApp)
 }
 
-
 //TODO: just for test
-func updateValidators(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byte) {
+func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byte) {
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 	state := tmstate.LoadState(stateStoreDB)
 
-	vals, err := types.PB2TM.ValidatorUpdates(valsUpdate)
-	panicError(err)
-	state.Validators = types.NewValidatorSet(vals)
-	state.NextValidators = types.NewValidatorSet(vals)
+	if len(valsUpdate) > 0{
+		vals, err := types.PB2TM.ValidatorUpdates(valsUpdate)
+		panicError(err)
+		state.Validators = types.NewValidatorSet(vals)
+		state.NextValidators = types.NewValidatorSet(vals)
+	}
+
 	state.AppHash = appHash
 
 	err = stateStoreDB.SetSync([]byte("stateKey"), state.Bytes())
