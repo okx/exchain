@@ -42,7 +42,7 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			blockStore := store.NewBlockStore(blockStoreDB)
 			baseHeight := blockStore.Base()
 			size := blockStore.Size()
-			retainHeight := baseHeight + size - 1
+			retainHeight := baseHeight + size - 2
 			log.Printf("baseHeight:%d, size:%d, retainHeight:%d\n", baseHeight, size, retainHeight)
 
 			wg.Add(1)
@@ -110,14 +110,17 @@ func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
 	if len(pruneHeights) == 0 {
 		return
 	}
-
+	fmt.Println(rs.GetStores())
+	log.Println(pruneHeights)
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
+			log.Println(key)
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 
 			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
+				fmt.Println(err)
 				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
 					panic(err)
 				}
