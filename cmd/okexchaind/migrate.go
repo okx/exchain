@@ -59,13 +59,13 @@ func migrate(ctx *server.Context) {
 	evmParams := evmtypes.DefaultParams()
 	evmParams.EnableCall = true
 	evmParams.EnableCreate = true
-	log.Println("set evm params", evmParams)
+	log.Println("set evm params: \n", evmParams)
 	chainApp.EvmKeeper.SetParams(deliverCtx, evmParams)
 
 	stakingParams := stakingtypes.DefaultParams()
 	//stakingParams.MaxValidators = uint16(1)
 	//stakingParams.Epoch = 1<<15 - 1
-	log.Println("set evm params", stakingParams)
+	log.Println("set evm params: \n", stakingParams)
 	chainApp.StakingKeeper.SetParams(deliverCtx, stakingParams)
 
 	//TODO: just for test
@@ -93,10 +93,10 @@ func migrate(ctx *server.Context) {
 	commitID := chainApp.MigrateCommit()
 
 	evmParams = chainApp.EvmKeeper.GetParams(deliverCtx)
-	log.Println("get evm params after set", evmParams)
+	log.Println("get evm params after set: \n", evmParams)
 
 	stakingParams = chainApp.StakingKeeper.GetParams(deliverCtx)
-	log.Println("get evm params after set", stakingParams)
+	log.Println("get evm params after set: \n", stakingParams)
 
 	updateState(dataDir, nil, commitID.Hash, version)
 }
