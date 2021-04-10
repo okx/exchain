@@ -71,7 +71,7 @@ func main() {
 		),
 		genutilcli.CollectGenTxsCmd(ctx, cdc, auth.GenesisAccountIterator{}, app.DefaultNodeHome),
 		//genutilcli.MigrateGenesisCmd(ctx, cdc),
-		migrateCmd(ctx),
+		readDBCmd(ctx),
 		genutilcli.GenTxCmd(
 			ctx, cdc, app.ModuleBasics, staking.AppModuleBasic{}, auth.GenesisAccountIterator{},
 			app.DefaultNodeHome, app.DefaultCLIHome,
