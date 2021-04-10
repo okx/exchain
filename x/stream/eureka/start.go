@@ -8,10 +8,10 @@ import (
 )
 
 // StartEurekaClient start eureka client and register rest service in eureka
-func StartEurekaClient(logger log.Logger, url string, name string) {
-	ip, port, err := utils.ResolveRestIPAndPort()
+func StartEurekaClient(logger log.Logger, url string, name string, externalAddr string) {
+	ip, port, err := utils.ResolveIPAndPort(externalAddr)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
+		logger.Error(fmt.Sprintf("failed to resolve %s error: %s", externalAddr, err.Error()))
 		return
 	}
 

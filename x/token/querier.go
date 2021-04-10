@@ -1,7 +1,6 @@
 package token
 
 import (
-	"github.com/okex/okexchain/cmd/client"
 	"github.com/okex/okexchain/x/common"
 	"github.com/okex/okexchain/x/token/types"
 
@@ -173,7 +172,7 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	if !viper.GetBool(client.FlagOSSEnable) {
+	if !viper.GetBool(FlagOSSEnable) {
 		return []byte("This API is not enabled"), nil
 	}
 	// Note: very time-consuming
