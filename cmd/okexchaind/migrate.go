@@ -59,7 +59,7 @@ func migrate(ctx *server.Context) {
 	evmParams := evmtypes.DefaultParams()
 	evmParams.EnableCall = true
 	evmParams.EnableCreate = true
-	log.Println("set evm params: \n", evmParams)
+	log.Println("set evm params:\n", evmParams)
 	chainApp.EvmKeeper.SetParams(deliverCtx, evmParams)
 
 	stakingParams := stakingtypes.DefaultParams()
