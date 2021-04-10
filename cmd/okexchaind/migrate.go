@@ -2,11 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"path/filepath"
-
 	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/okexchain/app"
 	evmtypes "github.com/okex/okexchain/x/evm/types"
 	stakingtypes "github.com/okex/okexchain/x/staking/types"
@@ -15,6 +11,8 @@ import (
 	tmstate "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
 	"github.com/tendermint/tendermint/types"
+	"log"
+	"path/filepath"
 )
 
 func migrateCmd(ctx *server.Context) *cobra.Command {
@@ -39,14 +37,14 @@ func migrate(ctx *server.Context) {
 	panicError(err)
 
 	// update latest block according to app version
-	blockState := store.BlockStoreStateJSON{
-		Base:   version - 1,
-		Height: version,
-	}
-	blockState.Save(blockStoreDB)
+	//blockState := store.BlockStoreStateJSON{
+	//	Base:   version - 1,
+	//	Height: version,
+	//}
+	//blockState.Save(blockStoreDB)
 
 	blockStore := store.NewBlockStore(blockStoreDB)
-	latestBlockHeight := blockStore.Height()
+	latestBlockHeight := version
 	if version != latestBlockHeight {
 		panicError(fmt.Errorf("app version %d not equal to blockstore height %d", version, latestBlockHeight))
 	}
@@ -58,38 +56,49 @@ func migrate(ctx *server.Context) {
 	}
 
 	deliverCtx := chainApp.DeliverStateCtx(req)
-	chainApp.EvmKeeper.SetParams(deliverCtx, evmtypes.DefaultParams())
+	evmParams := evmtypes.DefaultParams()
+	evmParams.EnableCall = true
+	evmParams.EnableCreate = true
+	log.Println("set evm params", evmParams)
+	chainApp.EvmKeeper.SetParams(deliverCtx, evmParams)
 
 	stakingParams := stakingtypes.DefaultParams()
-	stakingParams.MaxValidators = uint16(1)
-	stakingParams.Epoch = 1<<15 - 1
+	//stakingParams.MaxValidators = uint16(1)
+	//stakingParams.Epoch = 1<<15 - 1
+	log.Println("set evm params", stakingParams)
 	chainApp.StakingKeeper.SetParams(deliverCtx, stakingParams)
 
 	//TODO: just for test
-	var lastValidatorPowers []stakingtypes.LastValidatorPower
-	var valsUpdate abci.ValidatorUpdates
-	chainApp.StakingKeeper.IterateLastValidatorPowers(deliverCtx, func(addr sdk.ValAddress, power int64) (stop bool) {
-		lastValidatorPowers = append(lastValidatorPowers, stakingtypes.LastValidatorPower{Address: addr, Power: power})
-		return false
-	})
-	for _, lv := range lastValidatorPowers[:1] {
-		log.Println(lv.Address.String())
-		chainApp.StakingKeeper.SetLastValidatorPower(deliverCtx, lv.Address, lv.Power)
-		validator, found := chainApp.StakingKeeper.GetValidator(deliverCtx, lv.Address)
-		if !found {
-			panic(fmt.Sprintf("validator %s not found", lv.Address))
-		}
-		update := validator.ABCIValidatorUpdate()
-		update.Power = lv.Power // keep the next-val-set offset, use the last power for the first block
-		valsUpdate = append(valsUpdate, update)
-	}
+	//var lastValidatorPowers []stakingtypes.LastValidatorPower
+	//var valsUpdate abci.ValidatorUpdates
+	//chainApp.StakingKeeper.IterateLastValidatorPowers(deliverCtx, func(addr sdk.ValAddress, power int64) (stop bool) {
+	//	lastValidatorPowers = append(lastValidatorPowers, stakingtypes.LastValidatorPower{Address: addr, Power: power})
+	//	return false
+	//})
+	//for _, lv := range lastValidatorPowers[:1] {
+	//	log.Println(lv.Address.String())
+	//	chainApp.StakingKeeper.SetLastValidatorPower(deliverCtx, lv.Address, lv.Power)
+	//	validator, found := chainApp.StakingKeeper.GetValidator(deliverCtx, lv.Address)
+	//	if !found {
+	//		panic(fmt.Sprintf("validator %s not found", lv.Address))
+	//	}
+	//	update := validator.ABCIValidatorUpdate()
+	//	update.Power = lv.Power // keep the next-val-set offset, use the last power for the first block
+	//	valsUpdate = append(valsUpdate, update)
+	//}
 
 	if err != nil {
 		panicError(err)
 	}
 	commitID := chainApp.MigrateCommit()
 
-	updateState(dataDir, valsUpdate, commitID.Hash, version)
+	evmParams = chainApp.EvmKeeper.GetParams(deliverCtx)
+	log.Println("get evm params after set", evmParams)
+
+	stakingParams = chainApp.StakingKeeper.GetParams(deliverCtx)
+	log.Println("get evm params after set", stakingParams)
+
+	updateState(dataDir, nil, commitID.Hash, version)
 }
 
 func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
@@ -107,25 +116,25 @@ func updateState(dataDir string, valsUpdate abci.ValidatorUpdates, appHash []byt
 	panicError(err)
 	state := tmstate.LoadState(stateStoreDB)
 
-	if len(valsUpdate) > 0 {
-		vals, err := types.PB2TM.ValidatorUpdates(valsUpdate)
-		panicError(err)
-		state.Validators = types.NewValidatorSet(vals)
-		state.NextValidators = types.NewValidatorSet(vals)
-	}
+	//if valsUpdate == nil || len(valsUpdate) > 0 {
+	//	vals, err := types.PB2TM.ValidatorUpdates(valsUpdate)
+	//	panicError(err)
+	//	state.Validators = types.NewValidatorSet(vals)
+	//	state.NextValidators = types.NewValidatorSet(vals)
+	//}
 
 	state.AppHash = appHash
 
 	err = stateStoreDB.SetSync([]byte("stateKey"), state.Bytes())
 	panicError(err)
 
-	valInfo := &tmstate.ValidatorsInfo{
-		LastHeightChanged: height + 1,
-		ValidatorSet:      state.Validators,
-	}
-
-	err = stateStoreDB.Set(calcValidatorsKey(height+1), valInfo.Bytes())
-	panicError(err)
+	//valInfo := &tmstate.ValidatorsInfo{
+	//	LastHeightChanged: height + 1,
+	//	ValidatorSet:      state.Validators,
+	//}
+	//
+	//err = stateStoreDB.Set(calcValidatorsKey(height+1), valInfo.Bytes())
+	//panicError(err)
 }
 
 func calcValidatorsKey(height int64) []byte {
