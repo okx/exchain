@@ -66,7 +66,7 @@ jobs:
             mkdir -p /tmp/logs /tmp/workspace/profiles
 
             excluded_packages_expr="(okexchain/x/.*/client)|(x/simulation)|(okexchain/app/rpc)"
-            included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order" "./x/farm" "./x/evm")
+            included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/ammswap" "./x/token" "./x/farm" "./x/evm")
             serial_exec_packages=("./app")
             norace_exec_packages=("./x/evm")
             for pkg in ${included_packages[@]}; do
