@@ -54,10 +54,10 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			}
 			cms := app.GetCMS()
 			var pruneHeights []int64
-			for i := int64(0); i < retainHeight; i++ {
-				//if i%100 == 0 || i >= retainHeight-100 {
-				pruneHeights = append(pruneHeights, i)
-				//}
+			for i := int64(1121818); i < retainHeight; i++ {
+				if i%100 == 0 || i >= retainHeight-100 {
+					pruneHeights = append(pruneHeights, i)
+				}
 			}
 
 			wg.Add(1)
@@ -115,7 +115,7 @@ func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
 	fmt.Println(rs.GetStores())
 	//log.Println(pruneHeights)
 	for key, store := range rs.GetStores() {
-		if store.GetStoreType() == types.StoreTypeIAVL && key.Name() == "supply" {
+		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
