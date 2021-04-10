@@ -44,7 +44,7 @@ require (
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/iavl v0.14.1
 	github.com/tendermint/tendermint v0.33.9
-	github.com/tendermint/tm-db v0.5.1
+	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
@@ -56,6 +56,6 @@ require (
 
 replace (
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210409021242-4988c98b2871
-	github.com/tendermint/iavl => github.com/okex/iavl v0.14.2-0.20210410024548-e867a269aa72
+	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6
 )
