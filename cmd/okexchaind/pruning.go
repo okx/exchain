@@ -54,11 +54,13 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			}
 			cms := app.GetCMS()
 			var pruneHeights []int64
+			pruneHeights = append(pruneHeights, int64(1121818))
 			for i := int64(1121818); i < retainHeight; i++ {
-				if i%100 == 0 || i >= retainHeight-100 {
+				if i%1000 == 0 {
 					pruneHeights = append(pruneHeights, i)
 				}
 			}
+			pruneHeights = append(pruneHeights, retainHeight-1)
 
 			wg.Add(1)
 			go pruneAppStates(cms.(*rootmulti.Store), pruneHeights)
