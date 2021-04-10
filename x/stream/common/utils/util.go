@@ -4,13 +4,10 @@ import (
 	"net"
 	"strconv"
 	"strings"
-
-	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/spf13/viper"
 )
 
-func ResolveRestIPAndPort() (string, int, error) {
-	laddr := strings.Split(viper.GetString(server.FlagExternalListenAddr), ":")
+func ResolveIPAndPort(addr string) (string, int, error) {
+	laddr := strings.Split(addr, ":")
 	ip := laddr[0]
 	if ip == "127.0.0.1" {
 		return GetLocalIP(), 26659, nil
