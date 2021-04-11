@@ -2,7 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/exchain/x/staking"
 )
 
 type OrderKeeper interface {

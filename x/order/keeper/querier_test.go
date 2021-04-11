@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/dex"
-	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/dex"
+	"github.com/okex/exchain/x/order/types"
 )
 
 func TestQueryOrder(t *testing.T) {

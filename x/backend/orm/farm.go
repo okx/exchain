@@ -1,6 +1,6 @@
 package orm
 
-import "github.com/okex/okexchain/x/backend/types"
+import "github.com/okex/exchain/x/backend/types"
 
 // AddClaimInfo insert farm claimed coins into db
 func (orm *ORM) AddClaimInfo(claimInfos []*types.ClaimInfo) (addedCnt int, err error) {

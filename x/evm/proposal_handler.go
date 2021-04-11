@@ -2,9 +2,9 @@ package evm
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/evm/types"
-	govTypes "github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/evm/types"
+	govTypes "github.com/okex/exchain/x/gov/types"
 )
 
 // NewManageContractDeploymentWhitelistProposalHandler handles "gov" type message in "evm"

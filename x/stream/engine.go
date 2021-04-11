@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/okexchain/x/stream/common/kline"
-	"github.com/okex/okexchain/x/stream/kafkaclient"
+	"github.com/okex/exchain/x/stream/common/kline"
+	"github.com/okex/exchain/x/stream/kafkaclient"
 
-	"github.com/okex/okexchain/x/stream/websocket"
+	"github.com/okex/exchain/x/stream/websocket"
 
 	"github.com/pkg/errors"
 
@@ -17,13 +17,13 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/okex/okexchain/x/backend"
-	"github.com/okex/okexchain/x/stream/analyservice"
-	"github.com/okex/okexchain/x/stream/common"
-	"github.com/okex/okexchain/x/stream/pulsarclient"
-	"github.com/okex/okexchain/x/stream/pushservice"
-	pushservicetypes "github.com/okex/okexchain/x/stream/pushservice/types"
-	"github.com/okex/okexchain/x/stream/types"
+	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/stream/analyservice"
+	"github.com/okex/exchain/x/stream/common"
+	"github.com/okex/exchain/x/stream/pulsarclient"
+	"github.com/okex/exchain/x/stream/pushservice"
+	pushservicetypes "github.com/okex/exchain/x/stream/pushservice/types"
+	"github.com/okex/exchain/x/stream/types"
 )
 
 type Kind byte
