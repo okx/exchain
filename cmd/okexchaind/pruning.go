@@ -7,16 +7,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/cosmos/cosmos-sdk/store/iavl"
-	"github.com/cosmos/cosmos-sdk/store/rootmulti"
-	"github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/okex/okexchain/app"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	iavltree "github.com/tendermint/iavl"
 	cfg "github.com/tendermint/tendermint/config"
-	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/node"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
@@ -73,18 +66,19 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-func getApp(logger tmlog.Logger, db dbm.DB, height int64) (*app.OKExChainApp, error) {
-	var ethermintApp *app.OKExChainApp
-
-	ethermintApp = app.NewOKExChainApp(logger, db, nil, false, map[int64]bool{}, 0)
-	if err := ethermintApp.LoadHeight(height); err != nil {
-		panic(err)
-	} else {
-		ethermintApp = app.NewOKExChainApp(logger, db, nil, true, map[int64]bool{}, 0)
-	}
-
-	return ethermintApp, nil
-}
+//
+//func getApp(logger tmlog.Logger, db dbm.DB, height int64) (*app.OKExChainApp, error) {
+//	var ethermintApp *app.OKExChainApp
+//
+//	ethermintApp = app.NewOKExChainApp(logger, db, nil, false, map[int64]bool{}, 0)
+//	if err := ethermintApp.LoadHeight(height); err != nil {
+//		panic(err)
+//	} else {
+//		ethermintApp = app.NewOKExChainApp(logger, db, nil, true, map[int64]bool{}, 0)
+//	}
+//
+//	return ethermintApp, nil
+//}
 
 func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stateDB, appDB dbm.DB, err error) {
 	blockStoreDB, err = dbProvider(&node.DBContext{"blockstore", config})
@@ -107,34 +101,34 @@ func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stat
 
 //pruneStores will batch delete a list of heights from each mounted sub-store.
 //Afterwards, pruneHeights is reset.
-func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
-	defer wg.Done()
-	log.Println("--------- pruning app start ---------")
-	if len(pruneHeights) == 0 {
-		return
-	}
-	fmt.Println(rs.GetStores())
-	//log.Println(pruneHeights)
-	for key, store := range rs.GetStores() {
-		if store.GetStoreType() == types.StoreTypeIAVL {
-			// If the store is wrapped with an inter-block cache, we must first unwrap
-			// it to get the underlying IAVL store.
-			store = rs.GetCommitKVStore(key)
-
-			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
-				fmt.Println(err)
-				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
-					panic(err)
-				}
-			}
-		}
-	}
-	log.Println("--------- pruning app end ---------")
-}
+//func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
+//	defer wg.Done()
+//	log.Println("--------- pruning app start ---------")
+//	if len(pruneHeights) == 0 {
+//		return
+//	}
+//	fmt.Println(rs.GetStores())
+//	//log.Println(pruneHeights)
+//	for key, store := range rs.GetStores() {
+//		if store.GetStoreType() == types.StoreTypeIAVL {
+//			// If the store is wrapped with an inter-block cache, we must first unwrap
+//			// it to get the underlying IAVL store.
+//			store = rs.GetCommitKVStore(key)
+//
+//			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
+//				fmt.Println(err)
+//				if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
+//					panic(err)
+//				}
+//			}
+//		}
+//	}
+//	log.Println("--------- pruning app end ---------")
+//}
 
 func pruneBlocks(blockStore *store.BlockStore, stateDB dbm.DB, retainHeight int64) {
 	//defer wg.Done()
-	log.Println("--------- pruning block start ---------")
+
 	base := blockStore.Base()
 	if retainHeight <= base {
 		return
@@ -150,5 +144,4 @@ func pruneBlocks(blockStore *store.BlockStore, stateDB dbm.DB, retainHeight int6
 
 	log.Printf("pruned blocks: %d, retainHeight: %d\n", pruned, retainHeight)
 	log.Printf("block store base: %d, block store size: %d\n", blockStore.Base(), blockStore.Size())
-	log.Println("--------- pruning block end ---------")
 }

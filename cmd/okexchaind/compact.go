@@ -44,8 +44,6 @@ func CompactCmd(ctx *server.Context) *cobra.Command {
 
 func compactDB(db dbm.DB) {
 	defer wg.Done()
-	log.Println("--------- compact start ---------")
 	err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
-	log.Println("--------- compact end ---------")
 	panicError(err)
 }
