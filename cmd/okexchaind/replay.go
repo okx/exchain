@@ -39,7 +39,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP(dataDirFlag, "d", ".okexchaind/data", "Directory of block data for replaying")
-	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb-check", "i", false, "ignore check of smb, only for debugging")
+	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	return cmd
 }
 
