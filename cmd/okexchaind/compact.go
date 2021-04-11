@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb/util"
 	dbm "github.com/tendermint/tm-db"
@@ -13,10 +14,9 @@ import (
 	"github.com/tendermint/tendermint/node"
 )
 
-//var wg sync.WaitGroup
+var wg sync.WaitGroup
 
-// CompactCmd dumps app state to JSON.
-func CompactCmd(ctx *server.Context) *cobra.Command {
+func compactCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "compact",
 		Short: "Compact the leveldb",
@@ -32,7 +32,6 @@ func CompactCmd(ctx *server.Context) *cobra.Command {
 			wg.Add(2)
 			go compactDB(blockStoreDB)
 			go compactDB(stateDB)
-			//go compactDB(appDB)
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 			return nil
