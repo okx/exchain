@@ -11,8 +11,8 @@ import (
 
 func exportAppCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "exportApp",
-		Short: "export current snapshot to new db",
+		Use:   "export-app",
+		Short: "export current latest version of application db to new db into export dir",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- export start ---------")
 			export(ctx)
@@ -22,6 +22,7 @@ func exportAppCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
+// export current latest version of application db to new db into export dir
 func export(ctx *server.Context) {
 	fromApp := createApp(ctx, "data")
 	toApp := createApp(ctx, "export")
