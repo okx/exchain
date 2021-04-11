@@ -34,7 +34,7 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 			log.Println("--------- pruning start ---------")
-			blockStoreDB, stateDB, appDB, err := initDBs(config, node.DefaultDBProvider)
+			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
@@ -45,25 +45,26 @@ func PruningCmd(ctx *server.Context) *cobra.Command {
 			retainHeight := baseHeight + size - 2
 			log.Printf("baseHeight:%d, size:%d, retainHeight:%d\n", baseHeight, size, retainHeight)
 
-			wg.Add(1)
-			go pruneBlocks(blockStore, stateDB, retainHeight)
+			//wg.Add(1)
+			//go pruneBlocks(blockStore, stateDB, retainHeight)
+			pruneBlocks(blockStore, stateDB, retainHeight)
+			//
+			//app, err := getApp(ctx.Logger, appDB, retainHeight)
+			//if err != nil {
+			//	return fmt.Errorf("error exporting state: %v", err)
+			//}
+			//cms := app.GetCMS()
+			//var pruneHeights []int64
+			//for i := int64(1121818); i < retainHeight; i++ {
+			//	//if i%100 == 0 || i >= retainHeight-100 {
+			//	pruneHeights = append(pruneHeights, i)
+			//	//}
+			//}
+			//
+			//wg.Add(1)
+			//go pruneAppStates(cms.(*rootmulti.Store), pruneHeights)
 
-			app, err := getApp(ctx.Logger, appDB, retainHeight)
-			if err != nil {
-				return fmt.Errorf("error exporting state: %v", err)
-			}
-			cms := app.GetCMS()
-			var pruneHeights []int64
-			for i := int64(1121818); i < retainHeight; i++ {
-				//if i%100 == 0 || i >= retainHeight-100 {
-				pruneHeights = append(pruneHeights, i)
-				//}
-			}
-
-			wg.Add(1)
-			go pruneAppStates(cms.(*rootmulti.Store), pruneHeights)
-
-			wg.Wait()
+			//wg.Wait()
 			log.Println("--------- pruning end ---------")
 			return nil
 		},
@@ -132,7 +133,7 @@ func pruneAppStates(rs *rootmulti.Store, pruneHeights []int64) {
 }
 
 func pruneBlocks(blockStore *store.BlockStore, stateDB dbm.DB, retainHeight int64) {
-	defer wg.Done()
+	//defer wg.Done()
 	log.Println("--------- pruning block start ---------")
 	base := blockStore.Base()
 	if retainHeight <= base {
