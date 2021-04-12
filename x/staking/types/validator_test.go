@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -132,7 +132,7 @@ func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	js, err := codec.Cdc.MarshalJSON(validator)
 	require.NoError(t, err)
 	require.NotEmpty(t, js)
-	require.Contains(t, string(js), "\"consensus_pubkey\":\"okexchainvalconspub")
+	require.Contains(t, string(js), "\"consensus_pubkey\":\"exvalconspub")
 	got := &Validator{}
 	err = codec.Cdc.UnmarshalJSON(js, got)
 	assert.NoError(t, err)

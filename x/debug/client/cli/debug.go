@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okexchain/x/debug/types"
+	"github.com/okex/exchain/x/debug/types"
 	"github.com/spf13/cobra"
 )
 

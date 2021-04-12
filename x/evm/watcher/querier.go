@@ -8,7 +8,7 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -91,6 +91,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 		}
 	}
 	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(height))))
+
 	if e != nil {
 		return nil, e
 	}

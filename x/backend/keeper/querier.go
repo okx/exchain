@@ -8,9 +8,9 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/backend/types"
-	"github.com/okex/okexchain/x/common"
-	orderTypes "github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/backend/types"
+	"github.com/okex/exchain/x/common"
+	orderTypes "github.com/okex/exchain/x/order/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 

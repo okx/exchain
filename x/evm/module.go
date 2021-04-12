@@ -13,9 +13,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/okex/okexchain/x/evm/client/cli"
-	"github.com/okex/okexchain/x/evm/keeper"
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/client/cli"
+	"github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 var _ module.AppModuleBasic = AppModuleBasic{}
@@ -61,7 +61,7 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetTxCmd Gets the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(cdc)
+	return nil
 }
 
 //____________________________________________________________________________

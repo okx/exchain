@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/order/types"
 )
 
 // nolint

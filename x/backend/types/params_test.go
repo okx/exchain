@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 	"testing"
 
 	"github.com/stretchr/testify/require"

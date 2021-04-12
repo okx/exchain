@@ -2,9 +2,9 @@ package farm
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/farm/keeper"
-	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/farm/keeper"
+	"github.com/okex/exchain/x/farm/types"
 )
 
 func handleMsgCreatePool(ctx sdk.Context, k keeper.Keeper, msg types.MsgCreatePool) (*sdk.Result, error) {

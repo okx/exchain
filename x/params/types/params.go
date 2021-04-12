@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/x/params/subspace"

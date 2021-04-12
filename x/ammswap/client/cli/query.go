@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/spf13/cobra"
 	"strings"
 )

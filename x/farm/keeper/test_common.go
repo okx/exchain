@@ -7,22 +7,20 @@ import (
 	"testing"
 	"time"
 
-	swap "github.com/okex/okexchain/x/ammswap"
-	"github.com/okex/okexchain/x/gov"
-	govkeeper "github.com/okex/okexchain/x/gov/keeper"
-	govtypes "github.com/okex/okexchain/x/gov/types"
-	stakingtypes "github.com/okex/okexchain/x/staking/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	swaptypes "github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/farm/types"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/token"
+	swap "github.com/okex/exchain/x/ammswap"
+	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/farm/types"
+	"github.com/okex/exchain/x/gov"
+	govkeeper "github.com/okex/exchain/x/gov/keeper"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -300,12 +298,12 @@ func initPoolsAndLockInfos(
 	pools = types.FarmPools{
 		types.NewFarmPool(
 			Addrs[2], pool1Name, sdk.NewDecCoinFromDec(pool1LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.NewDecCoin(stakingtypes.DefaultParams().BondDenom, sdk.NewInt(100)),
+			sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
 			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 		types.NewFarmPool(
 			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.NewDecCoin(stakingtypes.DefaultParams().BondDenom, sdk.NewInt(200)),
+			sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(200)),
 			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 	}

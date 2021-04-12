@@ -6,20 +6,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
-	"github.com/spf13/viper"
 	"net"
 	"os"
 	"path/filepath"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/spf13/cobra"
-	tmconfig "github.com/tendermint/tendermint/config"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	tmtypes "github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
@@ -35,12 +24,20 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/mint"
-	"github.com/okex/okexchain/x/genutil"
-	stakingtypes "github.com/okex/okexchain/x/staking/types"
-
-	"github.com/okex/okexchain/app/crypto/hd"
-	ethermint "github.com/okex/okexchain/app/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/app/crypto/hd"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/genutil"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	tmconfig "github.com/tendermint/tendermint/config"
+	tmcrypto "github.com/tendermint/tendermint/crypto"
+	tmos "github.com/tendermint/tendermint/libs/os"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
+	tmtypes "github.com/tendermint/tendermint/types"
+	tmtime "github.com/tendermint/tendermint/types/time"
 )
 
 var (
@@ -321,12 +318,6 @@ func initGenFiles(
 	authGenState.Accounts = genAccounts
 	appGenState[authtypes.ModuleName] = cdc.MustMarshalJSON(authGenState)
 
-	var stakingGenState stakingtypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[stakingtypes.ModuleName], &stakingGenState)
-
-	stakingGenState.Params.BondDenom = coinDenom
-	appGenState[stakingtypes.ModuleName] = cdc.MustMarshalJSON(stakingGenState)
-
 	var govGenState govtypes.GenesisState
 	cdc.MustUnmarshalJSON(appGenState[govtypes.ModuleName], &govGenState)
 
@@ -344,12 +335,6 @@ func initGenFiles(
 
 	crisisGenState.ConstantFee.Denom = coinDenom
 	appGenState[crisis.ModuleName] = cdc.MustMarshalJSON(crisisGenState)
-
-	var evmGenState evmtypes.GenesisState
-	cdc.MustUnmarshalJSON(appGenState[evmtypes.ModuleName], &evmGenState)
-
-	evmGenState.Params.EvmDenom = coinDenom
-	appGenState[evmtypes.ModuleName] = cdc.MustMarshalJSON(evmGenState)
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)
 	if err != nil {

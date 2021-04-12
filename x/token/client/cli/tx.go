@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/token/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

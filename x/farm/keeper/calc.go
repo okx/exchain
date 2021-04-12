@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/exchain/x/farm/types"
 )
 
 // CalculateAmountYieldedBetween is used for calculating how many tokens haven been yielded from
