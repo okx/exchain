@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params/subspace"
+	"github.com/okex/exchain/x/params/subspace"
 )
 
 // Parameter store key

@@ -3,8 +3,8 @@ package keeper
 import (
 	"testing"
 
-	swaptypes "github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/farm/types"
+	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/farm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"

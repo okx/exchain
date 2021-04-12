@@ -3,7 +3,7 @@ package perf
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common/monitor"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
 	"sync"
 	"time"

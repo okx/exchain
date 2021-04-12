@@ -12,7 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
-	"github.com/okex/okexchain/x/slashing/internal/types"
+	"github.com/okex/exchain/x/slashing/internal/types"
 )
 
 // Simulation parameter constants

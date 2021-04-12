@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/okex/okexchain/x/params"
+	"github.com/okex/exchain/x/params"
 )
 
 const (

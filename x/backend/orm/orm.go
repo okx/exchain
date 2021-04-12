@@ -18,8 +18,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/okex/okexchain/x/backend/types"
-	"github.com/okex/okexchain/x/token"
+	"github.com/okex/exchain/x/backend/types"
+	"github.com/okex/exchain/x/token"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/libs/log"
 )

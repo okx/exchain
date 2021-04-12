@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/token/types"
 
 	"encoding/json"
 	"strings"
@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 )
 
 // RegisterRoutes, a central function to define routes

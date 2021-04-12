@@ -2,7 +2,7 @@ package v0_11
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/token/legacy/v0_10"
+	"github.com/okex/exchain/x/token/legacy/v0_10"
 )
 
 const ModuleName = "token"

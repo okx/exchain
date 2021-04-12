@@ -13,7 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 )

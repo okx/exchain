@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/evm/types"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
 )
 

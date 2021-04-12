@@ -1,8 +1,8 @@
 package farm
 
 import (
-	"github.com/okex/okexchain/x/farm/keeper"
-	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/exchain/x/farm/keeper"
+	"github.com/okex/exchain/x/farm/types"
 )
 
 const (

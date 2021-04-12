@@ -2,7 +2,7 @@ package params
 
 import (
 	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/okex/okexchain/x/params/types"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // const

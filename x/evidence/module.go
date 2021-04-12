@@ -8,9 +8,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/okex/okexchain/x/evidence/client"
-	"github.com/okex/okexchain/x/evidence/client/cli"
-	"github.com/okex/okexchain/x/evidence/client/rest"
+	"github.com/okex/exchain/x/evidence/client"
+	"github.com/okex/exchain/x/evidence/client/cli"
+	"github.com/okex/exchain/x/evidence/client/rest"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"

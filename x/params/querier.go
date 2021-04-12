@@ -7,7 +7,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/params/types"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // NewQuerier returns all query handlers

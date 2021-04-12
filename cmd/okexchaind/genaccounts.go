@@ -18,10 +18,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
-	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/exchain/x/genutil"
 
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/app/crypto/hd"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/crypto/hd"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )

@@ -2,8 +2,8 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	swaptypes "github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/farm/types"
+	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/farm/types"
 )
 
 func (k Keeper) SetFarmPool(ctx sdk.Context, pool types.FarmPool) {

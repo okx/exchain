@@ -9,8 +9,8 @@ import (
 
 	appcfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/okexchain/x/backend"
-	"github.com/okex/okexchain/x/stream/common/kline"
+	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/stream/common/kline"
 	"github.com/segmentio/kafka-go"
 	"github.com/tendermint/tendermint/libs/log"
 )
