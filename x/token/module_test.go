@@ -1,14 +1,14 @@
 package token
 
 import (
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/common/version"
+	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

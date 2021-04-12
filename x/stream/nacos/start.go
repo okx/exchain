@@ -6,7 +6,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/okexchain/x/stream/common/utils"
+	"github.com/okex/exchain/x/stream/common/utils"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

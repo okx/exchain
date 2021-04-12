@@ -10,8 +10,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/evm/client/rest"
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/client/rest"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

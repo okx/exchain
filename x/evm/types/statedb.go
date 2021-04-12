@@ -14,8 +14,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/params"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/params"
 )
 
 var (

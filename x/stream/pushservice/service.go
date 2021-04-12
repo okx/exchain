@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/okex/okexchain/x/stream/pushservice/conn"
+	"github.com/okex/exchain/x/stream/pushservice/conn"
 
-	"github.com/okex/okexchain/x/backend"
+	"github.com/okex/exchain/x/backend"
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/okex/okexchain/x/stream/pushservice/types"
-	"github.com/okex/okexchain/x/token"
+	"github.com/okex/exchain/x/stream/pushservice/types"
+	"github.com/okex/exchain/x/token"
 )
 
 var _ types.Writer = (*PushService)(nil)

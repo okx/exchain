@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/evidence"
-	"github.com/okex/okexchain/x/evidence/internal/types"
+	"github.com/okex/exchain/x/evidence"
+	"github.com/okex/exchain/x/evidence/internal/types"
 
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"

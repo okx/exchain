@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	orderTypes "github.com/okex/okexchain/x/order/types"
+	orderTypes "github.com/okex/exchain/x/order/types"
 )
 
 const (

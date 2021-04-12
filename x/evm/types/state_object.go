@@ -13,7 +13,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/okexchain/app/types"
+	"github.com/okex/exchain/app/types"
 )
 
 var (
