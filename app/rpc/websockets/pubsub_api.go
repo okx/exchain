@@ -213,49 +213,51 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 		for {
 			select {
 			case event := <-ch:
-				dataTx, ok := event.Data.(tmtypes.EventDataTx)
-				if !ok {
-					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
-					return
-				}
-
-				var resultData evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
-				if err != nil {
-					return
-				}
-
-				logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
-				if len(logs) == 0 {
-					api.logger.Debug("no matched logs", "ID", sub.ID())
-					continue
-				}
-
-				api.filtersMu.Lock()
-				if f, found := api.filters[sub.ID()]; found {
-					// write to ws conn
-					res := &SubscriptionNotification{
-						Jsonrpc: "2.0",
-						Method:  "eth_subscription",
-						Params: &SubscriptionResult{
-							Subscription: sub.ID(),
-						},
+				go func(event coretypes.ResultEvent) {
+					dataTx, ok := event.Data.(tmtypes.EventDataTx)
+					if !ok {
+						err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
+						return
 					}
-					for _, singleLog := range logs {
-						res.Params.Result = singleLog
-						err = f.conn.WriteJSON(res)
-						if err != nil {
-							api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
-							break
+
+					var resultData evmtypes.ResultData
+					resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+					if err != nil {
+						return
+					}
+
+					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+					if len(logs) == 0 {
+						api.logger.Debug("no matched logs", "ID", sub.ID())
+						return
+					}
+
+					api.filtersMu.Lock()
+					if f, found := api.filters[sub.ID()]; found {
+						// write to ws conn
+						res := &SubscriptionNotification{
+							Jsonrpc: "2.0",
+							Method:  "eth_subscription",
+							Params: &SubscriptionResult{
+								Subscription: sub.ID(),
+							},
 						}
-						api.logger.Debug("successfully write log", "ID", sub.ID(), "txhash", singleLog.TxHash)
+						for _, singleLog := range logs {
+							res.Params.Result = singleLog
+							err = f.conn.WriteJSON(res)
+							if err != nil {
+								api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
+								break
+							}
+							api.logger.Debug("successfully write log", "ID", sub.ID(), "txhash", singleLog.TxHash)
+						}
 					}
-				}
-				api.filtersMu.Unlock()
+					api.filtersMu.Unlock()
 
-				if err == websocket.ErrCloseSent {
-					api.unsubscribe(sub.ID())
-				}
+					if err == websocket.ErrCloseSent {
+						api.unsubscribe(sub.ID())
+					}
+				}(event)
 			case err := <-errCh:
 				api.filtersMu.Lock()
 				sub.Unsubscribe(api.events)
