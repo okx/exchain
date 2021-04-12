@@ -2,6 +2,8 @@ package stream
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/spf13/viper"
 
 	"github.com/okex/okexchain/x/stream/eureka"
 	"github.com/okex/okexchain/x/stream/nacos"
@@ -24,6 +26,11 @@ const (
 	latestTaskKey         = "latest_stream_task"
 	distributeLock        = "stream_lock"
 	distributeLockTimeout = 30000
+
+	NacosTmrpcUrls        = "stream.tmrpc_nacos_urls"
+	NacosTmrpcNamespaceID = "stream.tmrpc_nacos_namespace_id"
+	NacosTmrpcAppName     = "stream.tmrpc_application_name"
+	RpcExternalAddr       = "rpc.external_laddr"
 )
 
 // Stream maintains the engines
@@ -70,12 +77,17 @@ func NewStream(orderKeeper types.OrderKeeper, tokenKeeper types.TokenKeeper, dex
 
 	// start eureka client for registering restful service
 	if cfg.BackendConfig.EnableBackend && se.cfg.EurekaServerUrl != "" {
-		eureka.StartEurekaClient(logger, se.cfg.EurekaServerUrl, se.cfg.RestApplicationName)
+		eureka.StartEurekaClient(logger, se.cfg.EurekaServerUrl, se.cfg.RestApplicationName, se.RestExternalAddr())
 	}
 
 	// start nacos client for registering restful service
 	if cfg.BackendConfig.EnableBackend && se.cfg.RestNacosUrls != "" {
-		nacos.StartNacosClient(logger, se.cfg.RestNacosUrls, se.cfg.RestNacosNamespaceId, se.cfg.RestApplicationName)
+		nacos.StartNacosClient(logger, se.cfg.RestNacosUrls, se.cfg.RestNacosNamespaceId, se.cfg.RestApplicationName, se.RestExternalAddr())
+	}
+
+	// start nacos client for tmrpc service
+	if se.NacosTmRpcUrls() != "" {
+		nacos.StartNacosClient(logger, se.NacosTmRpcUrls(), se.NacosTmRpcNamespaceID(), se.NacosTmRpcAppName(), se.RpcExternalAddr())
 	}
 
 	// Enable marketKeeper if KlineQueryConnect is set.
@@ -159,4 +171,24 @@ func newRedisLockServiceWithConf(redisURL string, redisPass string, workerID str
 
 	scheduler, err := distrlock.NewRedisDistributeStateService(redisURL, redisPass, logger, workerID)
 	return scheduler, err
+}
+
+func (s Stream) NacosTmRpcUrls() string {
+	return viper.GetString(NacosTmrpcUrls)
+}
+
+func (s Stream) NacosTmRpcNamespaceID() string {
+	return viper.GetString(NacosTmrpcNamespaceID)
+}
+
+func (s Stream) NacosTmRpcAppName() string {
+	return viper.GetString(NacosTmrpcAppName)
+}
+
+func (s Stream) RpcExternalAddr() string {
+	return viper.GetString(RpcExternalAddr)
+}
+
+func (s Stream) RestExternalAddr() string {
+	return viper.GetString(server.FlagExternalListenAddr)
 }

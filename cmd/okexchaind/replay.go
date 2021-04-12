@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/tendermint/tendermint/state"
 	"log"
 	"path/filepath"
 
@@ -38,6 +39,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP(dataDirFlag, "d", ".okexchaind/data", "Directory of block data for replaying")
+	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	return cmd
 }
 
