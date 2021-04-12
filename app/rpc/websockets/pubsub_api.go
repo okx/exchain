@@ -100,7 +100,11 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 		for {
 			select {
 			case event := <-headersCh:
-				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
+				data, ok := event.Data.(tmtypes.EventDataNewBlockHeader)
+				if !ok {
+					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", event.Data), "ID", sub.ID())
+					continue
+				}
 				headerWithBlockHash, err := rpctypes.EthHeaderWithBlockHashFromTendermint(&data.Header)
 				if err != nil {
 					api.logger.Error("failed to get header with block hash", "error", err)
@@ -216,19 +220,20 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				go func(event coretypes.ResultEvent) {
 					dataTx, ok := event.Data.(tmtypes.EventDataTx)
 					if !ok {
-						err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
+						api.logger.Error(fmt.Sprintf("invalid event data %T, expected EventDataTx", event.Data))
 						return
 					}
 
 					var resultData evmtypes.ResultData
 					resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 					if err != nil {
+						api.logger.Error("failed to decode result data", "error", err)
 						return
 					}
 
 					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 					if len(logs) == 0 {
-						api.logger.Debug("no matched logs", "ID", sub.ID())
+						api.logger.Debug("no matched logs", "ID", sub.ID(), "txhash", resultData.TxHash)
 						return
 					}
 
@@ -246,10 +251,10 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 							res.Params.Result = singleLog
 							err = f.conn.WriteJSON(res)
 							if err != nil {
-								api.logger.Error("failed to write log", "ID", sub.ID(), "error", err)
+								api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash, "error", err)
 								break
 							}
-							api.logger.Debug("successfully write log", "ID", sub.ID(), "txhash", singleLog.TxHash)
+							api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
 						}
 					}
 					api.filtersMu.Unlock()
@@ -367,7 +372,11 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 		for {
 			select {
 			case ev := <-txsCh:
-				data, _ := ev.Data.(tmtypes.EventDataTx)
+				data, ok := ev.Data.(tmtypes.EventDataTx)
+				if !ok {
+					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
+					continue
+				}
 				txHash := common.BytesToHash(data.Tx.Hash())
 
 				api.filtersMu.Lock()
