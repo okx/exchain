@@ -12,7 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/exchain/x/genutil"
 )
 
 const flagGenTxDir = "gentx-dir"

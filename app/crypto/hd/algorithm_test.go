@@ -15,8 +15,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 	"github.com/cosmos/cosmos-sdk/tests"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okex/exchain/app/types"
 )
 
 func TestEthermintKeygenFunc(t *testing.T) {

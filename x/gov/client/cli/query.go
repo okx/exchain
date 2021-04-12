@@ -13,10 +13,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/gov/client/utils"
+	"github.com/okex/exchain/x/gov/client/utils"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

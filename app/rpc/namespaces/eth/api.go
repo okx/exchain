@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/okexchain/x/evm/watcher"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	"github.com/okex/okexchain/app/crypto/hd"
-	"github.com/okex/okexchain/app/rpc/backend"
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/app/utils"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/rpc/backend"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"

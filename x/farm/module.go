@@ -12,10 +12,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/okex/okexchain/x/farm/client/cli"
-	"github.com/okex/okexchain/x/farm/client/rest"
-	"github.com/okex/okexchain/x/farm/keeper"
-	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/exchain/x/farm/client/cli"
+	"github.com/okex/exchain/x/farm/client/rest"
+	"github.com/okex/exchain/x/farm/keeper"
+	"github.com/okex/exchain/x/farm/types"
 )
 
 // Type check to ensure the interface is properly implemented

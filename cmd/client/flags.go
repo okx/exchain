@@ -1,10 +1,10 @@
 package client
 
 import (
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-	"github.com/okex/okexchain/x/evm/watcher"
-	"github.com/okex/okexchain/x/stream"
-	"github.com/okex/okexchain/x/token"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/stream"
+	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
 )
 

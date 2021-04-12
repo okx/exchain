@@ -4,10 +4,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/common/perf"
-	"github.com/okex/okexchain/x/evm/types"
-	"github.com/okex/okexchain/x/evm/watcher"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 

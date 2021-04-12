@@ -6,7 +6,7 @@ import (
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
 
-	"github.com/okex/okexchain/x/stream/common"
+	"github.com/okex/exchain/x/stream/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"

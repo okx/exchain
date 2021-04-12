@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/okexchain/x/stream/types"
+	"github.com/okex/exchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

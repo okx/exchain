@@ -23,8 +23,8 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/app/rpc/types"
-	"github.com/okex/okexchain/app/rpc/websockets"
+	"github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/app/rpc/websockets"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )

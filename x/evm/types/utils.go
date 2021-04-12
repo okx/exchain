@@ -9,7 +9,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 	"math/big"

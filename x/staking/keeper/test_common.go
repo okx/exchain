@@ -10,7 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -25,9 +25,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/okex/okexchain/x/params"
+	"github.com/okex/exchain/x/params"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	//distr "github.com/okex/okexchain/x/distribution"
+	//distr "github.com/okex/exchain/x/distribution"
 )
 
 // dummy addresses used for testing

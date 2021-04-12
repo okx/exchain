@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/server"
-	"github.com/okex/okexchain/app"
+	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
 )
 

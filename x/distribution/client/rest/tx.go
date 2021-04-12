@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	comm "github.com/okex/okexchain/x/common"
+	comm "github.com/okex/exchain/x/common"
 
 	"github.com/gorilla/mux"
 
@@ -13,8 +13,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
-	"github.com/okex/okexchain/x/distribution/client/common"
-	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/exchain/x/distribution/client/common"
+	"github.com/okex/exchain/x/distribution/types"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, _ string) {

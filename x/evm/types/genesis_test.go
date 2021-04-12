@@ -6,7 +6,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/stretchr/testify/require"
 )
 
