@@ -8,6 +8,6 @@ import (
 
 func TestGetBackendDBDir(t *testing.T) {
 	gopath := os.Getenv("GOPATH")
-	dir := gopath + "/src/github.com/okex/okexchain/x/backend/cases"
+	dir := gopath + "/src/github.com/okex/exchain/x/backend/cases"
 	require.Equal(t, dir, GetBackendDBDir())
 }

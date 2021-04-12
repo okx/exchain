@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	app "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/token/types"
+	app "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/token/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 

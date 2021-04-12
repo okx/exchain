@@ -1,11 +1,11 @@
 package dex
 
 import (
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/dex/types"
+	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

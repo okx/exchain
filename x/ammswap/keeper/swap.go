@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/ammswap/types"
+	"github.com/okex/exchain/x/ammswap/types"
 )
 
 // IsTokenExist check token is exist

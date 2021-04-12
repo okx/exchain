@@ -5,20 +5,20 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
-	"github.com/okex/okexchain/x/stream/eureka"
-	"github.com/okex/okexchain/x/stream/nacos"
-	"github.com/okex/okexchain/x/stream/websocket"
+	"github.com/okex/exchain/x/stream/eureka"
+	"github.com/okex/exchain/x/stream/nacos"
+	"github.com/okex/exchain/x/stream/websocket"
 
 	appCfg "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/google/uuid"
-	"github.com/okex/okexchain/x/stream/distrlock"
+	"github.com/okex/exchain/x/stream/distrlock"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	"github.com/okex/okexchain/x/backend"
-	"github.com/okex/okexchain/x/stream/common"
-	"github.com/okex/okexchain/x/stream/pushservice"
-	"github.com/okex/okexchain/x/stream/types"
+	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/stream/common"
+	"github.com/okex/exchain/x/stream/pushservice"
+	"github.com/okex/exchain/x/stream/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 
-	"github.com/okex/okexchain/x/common/perf"
-	"github.com/okex/okexchain/x/dex/types"
+	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/dex/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"

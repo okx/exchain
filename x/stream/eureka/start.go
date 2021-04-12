@@ -3,7 +3,7 @@ package eureka
 import (
 	"fmt"
 
-	"github.com/okex/okexchain/x/stream/common/utils"
+	"github.com/okex/exchain/x/stream/common/utils"
 	"github.com/tendermint/tendermint/libs/log"
 )
 

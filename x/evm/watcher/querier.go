@@ -8,7 +8,7 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
 )

@@ -1,7 +1,7 @@
 package orm
 
 import (
-	"github.com/okex/okexchain/x/backend/types"
+	"github.com/okex/exchain/x/backend/types"
 )
 
 // AddSwapInfo insert into swap token pairs details

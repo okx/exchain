@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	types2 "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"

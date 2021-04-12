@@ -9,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	"github.com/okex/okexchain/x/evm/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

@@ -12,9 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/x/evm/types"
-	"github.com/okex/okexchain/x/evm/watcher"
-	"github.com/okex/okexchain/x/params"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/params"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )

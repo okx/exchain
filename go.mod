@@ -1,4 +1,4 @@
-module github.com/okex/okexchain
+module github.com/okex/exchain
 
 go 1.14
 

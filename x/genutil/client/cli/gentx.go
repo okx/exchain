@@ -20,7 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okexchain/x/genutil"
+	"github.com/okex/exchain/x/genutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmos "github.com/tendermint/tendermint/libs/os"

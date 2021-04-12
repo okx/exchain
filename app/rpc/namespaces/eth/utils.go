@@ -10,14 +10,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethermint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"
 )
 

@@ -7,14 +7,14 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	swap "github.com/okex/okexchain/x/ammswap"
-	swaptypes "github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/farm/keeper"
-	"github.com/okex/okexchain/x/farm/types"
-	"github.com/okex/okexchain/x/token"
+	swap "github.com/okex/exchain/x/ammswap"
+	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/farm/keeper"
+	"github.com/okex/exchain/x/farm/types"
+	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

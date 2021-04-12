@@ -4,8 +4,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // Default parameter namespace

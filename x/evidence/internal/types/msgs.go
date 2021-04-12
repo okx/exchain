@@ -3,7 +3,7 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/okex/okexchain/x/evidence/exported"
+	"github.com/okex/exchain/x/evidence/exported"
 )
 
 // Message types for the evidence module

@@ -1,8 +1,8 @@
 package debug
 
 import (
-	"github.com/okex/okexchain/x/debug/keeper"
-	"github.com/okex/okexchain/x/debug/types"
+	"github.com/okex/exchain/x/debug/keeper"
+	"github.com/okex/exchain/x/debug/types"
 )
 
 const (

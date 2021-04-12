@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 	"io/ioutil"
 
 	"github.com/cosmos/cosmos-sdk/codec"
