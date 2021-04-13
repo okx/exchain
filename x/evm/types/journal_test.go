@@ -19,14 +19,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/okex/okexchain/x/params"
+	"github.com/okex/exchain/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/okexchain/app/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okex/exchain/app/types"
 )
 
 type JournalTestSuite struct {

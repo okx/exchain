@@ -24,19 +24,18 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
-	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/app/codec"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/cmd/client"
-	"github.com/okex/okexchain/x/genutil"
-	genutilcli "github.com/okex/okexchain/x/genutil/client/cli"
-	genutiltypes "github.com/okex/okexchain/x/genutil/types"
-	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/cmd/client"
+	"github.com/okex/exchain/x/genutil"
+	genutilcli "github.com/okex/exchain/x/genutil/client/cli"
+	genutiltypes "github.com/okex/exchain/x/genutil/types"
+	"github.com/okex/exchain/x/staking"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -86,6 +85,9 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
+		pruningCmd(ctx),
+		compactCmd(ctx),
+		exportAppCmd(ctx),
 	)
 
 	// Tendermint node base commands
@@ -114,6 +116,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		panic(err)
 	}
 	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
+	pruningOpts, err := server.GetPruningOptionsFromFlags()
 	if err != nil {
 		panic(err)
 	}
@@ -125,7 +128,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		true,
 		map[int64]bool{},
 		0,
-		baseapp.SetPruning(storetypes.NewPruningOptionsFromString(viper.GetString("pruning"))),
+		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
 		baseapp.SetMinRetainBlocks(uint64(viper.GetInt(server.FlagMinRetainBlocks))),

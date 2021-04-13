@@ -23,8 +23,8 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/app/rpc/types"
-	"github.com/okex/okexchain/app/rpc/websockets"
+	"github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/app/rpc/websockets"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )
@@ -1306,7 +1306,7 @@ func excuteInvalidMessage(t *testing.T, ws *websocket.Conn, message []byte) {
 	var res Response
 	require.NoError(t, json.Unmarshal(msg[:n], &res))
 	require.Equal(t, -32600, res.Error.Code)
-	require.Equal(t, 0, res.ID)
+	require.Equal(t, 1, res.ID)
 }
 
 func TestWebsocket_PendingTransaction(t *testing.T) {

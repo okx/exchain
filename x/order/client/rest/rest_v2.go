@@ -11,9 +11,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/order/keeper"
-	ordertype "github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/order/keeper"
+	ordertype "github.com/okex/exchain/x/order/types"
 )
 
 // nolint

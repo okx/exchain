@@ -13,12 +13,12 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/gov/client"
-	"github.com/okex/okexchain/x/gov/client/cli"
-	GovCli "github.com/okex/okexchain/x/gov/client/cli"
-	"github.com/okex/okexchain/x/gov/client/rest"
-	"github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/exchain/x/gov/client"
+	"github.com/okex/exchain/x/gov/client/cli"
+	GovCli "github.com/okex/exchain/x/gov/client/cli"
+	"github.com/okex/exchain/x/gov/client/rest"
+	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 var (

@@ -1,10 +1,10 @@
 package ammswap
 
 import (
-	"github.com/okex/okexchain/x/ammswap/keeper"
-	"github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/common/perf"
+	"github.com/okex/exchain/x/ammswap/keeper"
+	"github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/common/perf"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

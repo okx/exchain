@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okexchain/x/staking/exported"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )

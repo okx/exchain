@@ -1,7 +1,7 @@
 package types
 
 import (
-	stakingtypes "github.com/okex/okexchain/x/staking/types"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

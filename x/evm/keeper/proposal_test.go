@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/okexchain/x/evm/types"
-	govtypes "github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/exchain/x/evm/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 )
 

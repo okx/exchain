@@ -9,15 +9,22 @@ import (
 	"path"
 	"time"
 
-	"github.com/okex/okexchain/cmd/client"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethermint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
+)
+
+const (
+	FlagOSSEnable          = "oss-enable"
+	FlagOSSEndpoint        = "oss-endpoint"
+	FlagOSSAccessKeyID     = "oss-access-key-id"
+	FlagOSSAccessKeySecret = "oss-access-key-secret"
+	FlagOSSBucketName      = "oss-bucket-name"
+	FlagOSSObjectPath      = "oss-object-path"
 )
 
 var (
@@ -116,21 +123,21 @@ func uploadOSS(filePath string) {
 
 	startTime := time.Now()
 	// create OSSClient
-	ossClient, err := oss.New(viper.GetString(client.FlagOSSEndpoint), viper.GetString(client.FlagOSSAccessKeyID), viper.GetString(client.FlagOSSAccessKeySecret))
+	ossClient, err := oss.New(viper.GetString(FlagOSSEndpoint), viper.GetString(FlagOSSAccessKeyID), viper.GetString(FlagOSSAccessKeySecret))
 	if err != nil {
 		recodeLog(logWr, fmt.Sprintf("creates oss lcient error: %s", err))
 		return
 	}
 
 	// gets the bucket instance
-	bucket, err := ossClient.Bucket(viper.GetString(client.FlagOSSBucketName))
+	bucket, err := ossClient.Bucket(viper.GetString(FlagOSSBucketName))
 	if err != nil {
 		recodeLog(logWr, fmt.Sprintf("gets the bucket instance error: %s", err))
 		return
 	}
 
 	_, fileName := path.Split(filePath)
-	objectName := viper.GetString(client.FlagOSSObjectPath) + fmt.Sprintf("accounts-%s/", time.Now().Format("20060102")) + fileName
+	objectName := viper.GetString(FlagOSSObjectPath) + fmt.Sprintf("accounts-%s/", time.Now().Format("20060102")) + fileName
 	// multipart file upload
 	err = bucket.UploadFile(objectName, filePath, 100*1024, oss.Routines(3), oss.Checkpoint(true, ""))
 	if err != nil {

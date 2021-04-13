@@ -10,7 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 
-	"github.com/okex/okexchain/app/types"
+	"github.com/okex/exchain/app/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"

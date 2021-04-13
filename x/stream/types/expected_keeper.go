@@ -3,12 +3,12 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/okex/okexchain/x/ammswap"
-	ammswaptypes "github.com/okex/okexchain/x/ammswap/types"
-	"github.com/okex/okexchain/x/dex"
-	farmtypes "github.com/okex/okexchain/x/farm/types"
-	"github.com/okex/okexchain/x/order"
-	"github.com/okex/okexchain/x/token"
+	"github.com/okex/exchain/x/ammswap"
+	ammswaptypes "github.com/okex/exchain/x/ammswap/types"
+	"github.com/okex/exchain/x/dex"
+	farmtypes "github.com/okex/exchain/x/farm/types"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/token"
 	"github.com/willf/bitset"
 )
 
