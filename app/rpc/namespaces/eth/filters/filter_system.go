@@ -118,7 +118,7 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	case filters.LogsSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
 	case filters.BlocksSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event,100)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
 	default:
 		err = fmt.Errorf("invalid filter subscription type %d", sub.typ)
 	}
