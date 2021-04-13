@@ -125,7 +125,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						api.logger.Error("failed to write header", "ID", sub.ID(), "error", err)
+						api.logger.Error("failed to write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number, "error", err)
 					} else {
 						api.logger.Debug("successfully write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number)
 					}
