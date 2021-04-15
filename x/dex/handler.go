@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/common"
-
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/dex/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -17,6 +16,11 @@ import (
 // NewHandler handles all "dex" type messages.
 func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+		// disable dex tx handler
+		if sdk.HigherThanMercury(ctx.BlockHeight()) {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "dex message has been disabled")
+		}
+
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
 
