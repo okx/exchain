@@ -16,7 +16,7 @@ import (
 // NewHandler handles all "dex" type messages.
 func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		// disable order tx handler
+		// disable dex tx handler
 		if sdk.HigherThanMercury(ctx.BlockHeight()) {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "dex message is disabled")
 		}
