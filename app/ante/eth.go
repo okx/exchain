@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -259,6 +260,19 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				sdkerrors.ErrInvalidSequence,
 				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
 			)
+		} else {
+			res, err := baseapp.GetGlobalLocalClient().UserNumUnconfirmedTxs( common.BytesToAddress(address.Bytes()).String())
+			if err != nil {
+				return ctx, err
+			}
+
+			seqLowerLimit := seq - uint64(res.Count)
+			if msgEthTx.Data.AccountNonce < seqLowerLimit {
+				return ctx, sdkerrors.Wrapf(
+					sdkerrors.ErrInvalidSequence,
+					"invalid nonce; got %d, expected greater than %d", msgEthTx.Data.AccountNonce, seqLowerLimit,
+				)
+			}
 		}
 	} else {
 		if msgEthTx.Data.AccountNonce != seq {
