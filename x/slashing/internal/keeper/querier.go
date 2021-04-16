@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/okex/okexchain/x/slashing/internal/types"
+	"github.com/okex/exchain/x/slashing/internal/types"
 )
 
 // NewQuerier creates a new querier for slashing clients.

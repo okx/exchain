@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/okex/okexchain/x/params/subspace"
+	"github.com/okex/exchain/x/params/subspace"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -20,7 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	apptypes "github.com/okex/okexchain/app/types"
+	apptypes "github.com/okex/exchain/app/types"
 )
 
 const (

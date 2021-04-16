@@ -11,8 +11,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
-	ethermint "github.com/okex/okexchain/app/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	ethermint "github.com/okex/exchain/app/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler

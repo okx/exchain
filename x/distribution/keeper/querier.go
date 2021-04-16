@@ -3,10 +3,10 @@ package keeper
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	comm "github.com/okex/okexchain/x/common"
+	comm "github.com/okex/exchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/distribution/types"
+	"github.com/okex/exchain/x/distribution/types"
 )
 
 // NewQuerier creates a querier for distribution REST endpoints

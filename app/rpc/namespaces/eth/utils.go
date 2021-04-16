@@ -10,14 +10,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethermint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"
 )
 
@@ -221,7 +221,7 @@ func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
 	case sdkerror.ErrMempoolIsFull.ABCICode():
 		return common.Hash{}, sdkerror.ErrMempoolIsFull
 	case sdkerror.ErrTxTooLarge.ABCICode():
-		return common.Hash{}, sdkerror.ErrTxTooLarge
+		return common.Hash{}, sdkerror.Wrapf(sdkerror.ErrTxTooLarge, txRes.RawLog)
 	}
 	return common.Hash{}, fmt.Errorf(txRes.RawLog)
 }

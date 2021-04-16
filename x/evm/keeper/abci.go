@@ -11,7 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height

@@ -6,15 +6,15 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/okexchain/x/stream/common/utils"
+	"github.com/okex/exchain/x/stream/common/utils"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 // StartNacosClient start nacos client and register rest service in nacos
-func StartNacosClient(logger log.Logger, urls string, namespace string, name string) {
-	ip, port, err := utils.ResolveRestIPAndPort()
+func StartNacosClient(logger log.Logger, urls string, namespace string, name string, externalAddr string) {
+	ip, port, err := utils.ResolveIPAndPort(externalAddr)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to resolve rest.external_laddr: %s", err.Error()))
+		logger.Error(fmt.Sprintf("failed to resolve %s error: %s", externalAddr, err.Error()))
 		return
 	}
 
@@ -29,8 +29,9 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 			TimeoutMs:           5000,
 			ListenInterval:      10000,
 			NotLoadCacheAtStart: true,
-			LogDir:              "/dev/null",
 			NamespaceId:         namespace,
+			LogDir:              "/dev/null",
+			LogLevel:            "error",
 		},
 	})
 	if err != nil {

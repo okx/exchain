@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/order/types"
 )
 
 const minFee = "0.00000001"

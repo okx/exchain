@@ -2,7 +2,7 @@ package params
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okexchain/x/params/types"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // ModuleCdc is the codec of module

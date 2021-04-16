@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/okex/okexchain/x/evidence/internal/types"
+	"github.com/okex/exchain/x/evidence/internal/types"
 )
 
 // HandleDoubleSign implements an equivocation evidence handler. Assuming the

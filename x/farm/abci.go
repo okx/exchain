@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/farm/keeper"
-	"github.com/okex/okexchain/x/farm/types"
+	"github.com/okex/exchain/x/farm/keeper"
+	"github.com/okex/exchain/x/farm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 

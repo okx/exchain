@@ -7,8 +7,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/evm/types"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -17,6 +17,7 @@ import (
 func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, data GenesisState) []abci.ValidatorUpdate { // nolint: interfacer
 	logger := ctx.Logger().With("module", types.ModuleName)
 
+	data.Params.MaxGasLimitPerTx = types.DefaultMaxGasLimitPerTx
 	k.SetParams(ctx, data.Params)
 
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)

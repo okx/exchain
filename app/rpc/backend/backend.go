@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/okexchain/x/evm/watcher"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 

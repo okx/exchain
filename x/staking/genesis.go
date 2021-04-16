@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okexchain/x/staking/exported"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -24,6 +24,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	// slashing periods are correctly initialized for the validator set e.g. with a one-block offset - the first
 	// TM block is at height 1, so state updates applied from genesis.json are in block 0.
 	ctx = ctx.WithBlockHeight(1 - sdk.ValidatorUpdateDelay)
+
 	keeper.SetParams(ctx, data.Params)
 	keeper.SetLastTotalPower(ctx, data.LastTotalPower)
 

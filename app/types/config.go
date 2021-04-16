@@ -7,7 +7,7 @@ import (
 
 const (
 	// EthBech32Prefix defines the Bech32 prefix used for EthAccounts
-	EthBech32Prefix = "okexchain"
+	EthBech32Prefix = "ex"
 
 	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
 	Bech32PrefixAccAddr = EthBech32Prefix

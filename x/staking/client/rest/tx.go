@@ -9,8 +9,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {

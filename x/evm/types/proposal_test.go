@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	govtypes "github.com/okex/okexchain/x/gov/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -19,16 +19,16 @@ const (
  Type:                	ManageContractDeploymentWhitelist
  IsAdded:				true
  DistributorAddrs:
-						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
-						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpphf0s5`
+						ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm2k6w2
+						ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpxuz0nc`
 	expectedManageContractBlockedListProposalString = `ManageContractBlockedListProposal:
  Title:					default title
  Description:        	default description
  Type:                	ManageContractBlockedList
  IsAdded:				true
  ContractAddrs:
-						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx
-						okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpphf0s5`
+						ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm2k6w2
+						ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpxuz0nc`
 )
 
 type ProposalTestSuite struct {

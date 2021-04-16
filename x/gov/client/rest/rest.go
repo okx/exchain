@@ -11,8 +11,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	gcutils "github.com/okex/okexchain/x/gov/client/utils"
-	"github.com/okex/okexchain/x/gov/types"
+	gcutils "github.com/okex/exchain/x/gov/client/utils"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 // REST Variable names

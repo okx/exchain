@@ -17,8 +17,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 var (
@@ -112,11 +112,11 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
 	case filters.LogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
 	case filters.BlocksSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
 	default:

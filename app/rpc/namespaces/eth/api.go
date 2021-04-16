@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/okexchain/x/evm/watcher"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	"github.com/okex/okexchain/app/crypto/hd"
-	"github.com/okex/okexchain/app/rpc/backend"
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/app/utils"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/rpc/backend"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
@@ -527,7 +527,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 // Call performs a raw contract call.
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
-	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit))
+	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
@@ -543,7 +543,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
-	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int,
+	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int, isEstimate bool,
 ) (*sdk.SimulationResponse, error) {
 
 	clientCtx := api.clientCtx
@@ -564,7 +564,11 @@ func (api *PublicEthereumAPI) doCall(
 		addr = *args.From
 	}
 
-	nonce, _ := api.accountNonce(api.clientCtx, addr, true)
+	nonce := uint64(0)
+	if isEstimate && args.To == nil && args.Data != nil {
+		//only get real nonce when estimate gas and the action is contract deploy
+		nonce, _ = api.accountNonce(api.clientCtx, addr, true)
+	}
 
 	// Set default gas & gas price if none were set
 	// Change this to uint64(math.MaxUint64 / 2) if gas cap can be configured
@@ -650,7 +654,7 @@ func (api *PublicEthereumAPI) doCall(
 // param from the SDK.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	api.logger.Debug("eth_estimateGas", "args", args)
-	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit))
+	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}

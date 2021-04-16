@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -26,9 +26,9 @@ func TestStrToTransfers(t *testing.T) {
 	common.InitConfig()
 	//coinStr := `[{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1BNB,2BTC"},
 	//{"to": "cosmos18ragjd23yv4ctjg3vadh43q5zf8z0hafm4qjrf", "amount": "1OKB,2BTC"}]`
-	coinStr := `[{"to":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f","amount":"1` + common.NativeToken + `"}]`
-	coinStrError := `[{"to":"kochain1dfpljpe0g0206jch32fx95lyagq3z5ws2vgwx3","amount":"1` + common.NativeToken + `"}]`
-	addr, err := sdk.AccAddressFromBech32("okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f")
+	coinStr := `[{"to":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz","amount":"1` + common.NativeToken + `"}]`
+	coinStrError := `[{"to":"xe1qwuag8gx408m9ej038vzx50ntt0x4yrq38yf06","amount":"1` + common.NativeToken + `"}]`
+	addr, err := sdk.AccAddressFromBech32("ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz")
 	require.Nil(t, err)
 	_, err = StrToTransfers(coinStrError)
 	require.Error(t, err)
@@ -44,7 +44,7 @@ func TestStrToTransfers(t *testing.T) {
 	}
 	require.EqualValues(t, transfer, transfers)
 
-	coinStr = `[{"to":"okexchain1dfpljpe0g0206jch32fx95lyagq3z5ws850m6f",amount":"1"}]`
+	coinStr = `[{"to":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz",amount":"1"}]`
 	_, err = StrToTransfers(coinStr)
 	require.Error(t, err)
 }

@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/dex"
-	"github.com/okex/okexchain/x/order/keeper"
-	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/dex"
+	"github.com/okex/exchain/x/order/keeper"
+	"github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/types/time"
 )

@@ -3,12 +3,12 @@ package token
 import (
 	"fmt"
 
-	"github.com/okex/okexchain/x/common"
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common/perf"
-	"github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/common/version"
+	"github.com/okex/exchain/x/token/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
