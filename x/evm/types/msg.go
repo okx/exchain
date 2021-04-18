@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/tendermint/tendermint/mempool"
 
 	"github.com/okex/exchain/app/types"
 
@@ -453,4 +454,29 @@ func deriveChainID(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
+}
+
+// Return tx sender and gas price
+func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   "",
+		GasPrice: big.NewInt(0),
+		Nonce:    msg.Data.AccountNonce,
+	}
+
+	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return exTxInfo
+	}
+
+	// Verify signature and retrieve sender address
+	from, err := msg.VerifySig(chainIDEpoch)
+	if err != nil {
+		return exTxInfo
+	}
+
+	exTxInfo.Sender = from.String()
+	exTxInfo.GasPrice = msg.Data.Price
+
+	return exTxInfo
 }

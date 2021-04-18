@@ -39,6 +39,10 @@ type Backend interface {
 	// Used by pending transaction filter
 	PendingTransactions() ([]*rpctypes.Transaction, error)
 
+	UserPendingTransactionsCnt(address string) (int, error)
+
+	UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error)
+
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
@@ -230,6 +234,40 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 
 	transactions := make([]*rpctypes.Transaction, 0)
 	for _, tx := range pendingTxs.Txs {
+		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
+		if err != nil {
+			// ignore non Ethermint EVM transactions
+			continue
+		}
+
+		// TODO: check signer and reference against accounts the node manages
+		rpcTx, err := rpctypes.NewTransaction(ethTx, common.BytesToHash(tx.Hash()), common.Hash{}, 0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		transactions = append(transactions, rpcTx)
+	}
+
+	return transactions, nil
+}
+
+func (b *EthermintBackend) UserPendingTransactionsCnt(address string) (int, error) {
+	result, err := b.clientCtx.Client.UserNumUnconfirmedTxs(address)
+	if err != nil {
+		return 0, err
+	}
+	return result.Count, nil
+}
+
+func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error) {
+	result, err := b.clientCtx.Client.UserUnconfirmedTxs(address, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions := make([]*rpctypes.Transaction, len(result.Txs))
+	for _, tx := range result.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
 			// ignore non Ethermint EVM transactions
