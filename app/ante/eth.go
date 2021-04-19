@@ -264,6 +264,12 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				)
 			}
 		} else {
+			if baseapp.GetGlobalLocalClient() == nil {
+				return ctx, sdkerrors.Wrapf(
+					sdkerrors.ErrPanic,
+					"the global local client is nil",
+				)
+			}
 			res, _ := baseapp.GetGlobalLocalClient().UserNumUnconfirmedTxs(common.BytesToAddress(address.Bytes()).String())
 			checkTxModeNonce := seq + uint64(res.Count)
 
