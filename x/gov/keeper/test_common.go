@@ -2,10 +2,11 @@ package keeper
 
 import (
 	"bytes"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"strconv"
 	"testing"
 	"time"
+
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -115,7 +116,7 @@ func CreateTestInput(
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "okexchain"}, isCheckTx, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "exchain"}, isCheckTx, log.NewNopLogger())
 	ctx = ctx.WithConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{

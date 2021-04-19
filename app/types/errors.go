@@ -6,7 +6,7 @@ import (
 
 const (
 	// RootCodespace is the codespace for all errors defined in this package
-	RootCodespace = "okexchain"
+	RootCodespace = "exchain"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.

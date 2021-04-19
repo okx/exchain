@@ -13,7 +13,7 @@ import (
 	"github.com/okex/exchain/app"
 	ante "github.com/okex/exchain/app/ante"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okex/exchain/app/types"
+	exchain "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -26,7 +26,7 @@ type AnteTestSuite struct {
 	suite.Suite
 
 	ctx         sdk.Context
-	app         *app.OKExChainApp
+	app         *app.ExChainApp
 	anteHandler sdk.AnteHandler
 }
 
@@ -36,7 +36,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app = app.Setup(checkTx)
 	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "okexchain-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "exchain-3", Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
@@ -51,11 +51,11 @@ func newTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 }
 
 func newTestCoins() sdk.Coins {
-	return sdk.NewCoins(okexchain.NewPhotonCoinInt64(500000000))
+	return sdk.NewCoins(exchain.NewPhotonCoinInt64(500000000))
 }
 
 func newTestStdFee() auth.StdFee {
-	return auth.NewStdFee(220000, sdk.NewCoins(okexchain.NewPhotonCoinInt64(150)))
+	return auth.NewStdFee(220000, sdk.NewCoins(exchain.NewPhotonCoinInt64(150)))
 }
 
 // GenerateAddress generates an Ethereum address.
@@ -90,7 +90,7 @@ func newTestSDKTx(
 }
 
 func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
-	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
+	chainIDEpoch, err := exchain.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}

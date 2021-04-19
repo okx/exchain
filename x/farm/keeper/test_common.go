@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	TestChainID = "okexchain"
+	TestChainID = "exchain"
 )
 
 var (

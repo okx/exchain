@@ -2,7 +2,7 @@ go get go-sqlite3
 
 ## Unexpected
 
-1. github.com/okex/okexchain/vendor/github.com/mattn/go-sqlite3
+1. github.com/okex/exchain/vendor/github.com/mattn/go-sqlite3
 ../../vendor/github.com/mattn/go-sqlite3/backup.go:14:10: fatal error: 'stdlib.h' file not found
 #include <stdlib.h>
 

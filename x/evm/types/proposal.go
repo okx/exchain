@@ -19,8 +19,8 @@ const (
 func init() {
 	govtypes.RegisterProposalType(proposalTypeManageContractDeploymentWhitelist)
 	govtypes.RegisterProposalType(proposalTypeManageContractBlockedList)
-	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
-	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
+	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "exchain/evm/ManageContractDeploymentWhitelistProposal")
+	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "exchain/evm/ManageContractBlockedListProposal")
 }
 
 var (

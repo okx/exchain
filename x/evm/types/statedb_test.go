@@ -22,7 +22,7 @@ type StateDBTestSuite struct {
 	suite.Suite
 
 	ctx         sdk.Context
-	app         *app.OKExChainApp
+	app         *app.ExChainApp
 	stateDB     *types.CommitStateDB
 	address     ethcmn.Address
 	stateObject types.StateObject

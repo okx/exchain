@@ -2,8 +2,9 @@ package cli
 
 import (
 	"fmt"
-	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"strings"
+
+	client "github.com/cosmos/cosmos-sdk/client/flags"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -135,7 +136,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query all the modifiable parameters of gov proposal",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ okexchaincli query dex params
+$ exchaincli query dex params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -162,7 +163,7 @@ func GetCmdQueryProductsUnderDelisting(queryRoute string, cdc *codec.Codec) *cob
 		Long: strings.TrimSpace(`
 		Query all the products' names involved in dex delisting:
 
-$ okexchaincli query dex products-delisting`),
+$ exchaincli query dex products-delisting`),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryProductsDelisting), nil)

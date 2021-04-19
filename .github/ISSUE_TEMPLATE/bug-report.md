@@ -27,7 +27,7 @@ v    Please also ensure that this is not a duplicate issue :)
 
 ## Version
 
-<!-- git commit hash, output of `okexchaincli --version`, output of `okexchaind --version` -->
+<!-- git commit hash, output of `exchaincli --version`, output of `exchaind --version` -->
 
 ## Steps to Reproduce
 

@@ -23,8 +23,8 @@ const (
 	Bech32PrefixConsPub = EthBech32Prefix + sdk.PrefixValidator + sdk.PrefixConsensus + sdk.PrefixPublic
 
 	// Bip44CoinType satisfies EIP84. See https://github.com/ethereum/EIPs/issues/84 for more info.
-	Bip44CoinType        = 996
-	BIP44HDPathOKExChain = "m/44'/996'/0'/0/0"
+	Bip44CoinType      = 996
+	BIP44HDPathExChain = "m/44'/996'/0'/0/0"
 )
 
 var (
@@ -42,5 +42,5 @@ func SetBech32Prefixes(config *sdk.Config) {
 // SetBip44CoinType sets the global coin type to be used in hierarchical deterministic wallets.
 func SetBip44CoinType(config *sdk.Config) {
 	config.SetCoinType(Bip44CoinType)
-	config.SetFullFundraiserPath(BIP44HDPathOKExChain)
+	config.SetFullFundraiserPath(BIP44HDPathExChain)
 }

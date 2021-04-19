@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	okexchain "github.com/okex/exchain/app/types"
+	exchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ const (
 
 func init() {
 	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
+	exchain.SetBech32Prefixes(config)
 }
 
 func TestParseManageContractDeploymentWhitelistProposalJSON(t *testing.T) {

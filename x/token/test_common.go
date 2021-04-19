@@ -16,7 +16,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-// CreateParam create okexchain parm for test
+// CreateParam create exchain parm for test
 func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStoreKey, []byte) {
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)

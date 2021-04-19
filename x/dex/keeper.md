@@ -5,9 +5,9 @@ KVStoreKey的name是"token_pair"
 |       key                |          value           |   number(key) |    value details    | Value size |         Clean up         |      备注       |
 | :----------------------: | :----------------------: | :----------: | :-----------------: | :--------: | :----------------------: | :-------------: |
 |    0x01+$trading_pair   | struct x/dex.TokenPair    |   币对数      | TokenPair结构体如下 |    <1k     | 有接口删除上交易所的币对 | 存的交易币对的详细信息 |
-| "tokenPairNumberKey"     |        uint64            |      1        |  dex运营方在okexchain发行的币对数量  |  <1k |                | 存的okexchain交易币对的数量 |
-|     0x02+$owner_addr     |        WithdrawInfo      |  在途赎回数   |  dex运营方在okexchain发行的币对数量  |  <1k |                | 存的okexchain交易币对的数量 |
-|     0x03+$trading_pair   |        product lock      |   币对数      |  dex运营方在okexchain发行的币对数量  |  <1k |                | 存的okexchain交易币对的数量 |
+| "tokenPairNumberKey"     |        uint64            |      1        |  dex运营方在exchain发行的币对数量  |  <1k |                | 存的exchain交易币对的数量 |
+|     0x02+$owner_addr     |        WithdrawInfo      |  在途赎回数   |  dex运营方在exchain发行的币对数量  |  <1k |                | 存的exchain交易币对的数量 |
+|     0x03+$trading_pair   |        product lock      |   币对数      |  dex运营方在exchain发行的币对数量  |  <1k |                | 存的exchain交易币对的数量 |
 
 tokenPair的value是经过Codec.MustMarshalBinaryBare序列化后的[]byte，tokenPair的结构体如下:
 

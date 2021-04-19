@@ -21,7 +21,7 @@ import (
 )
 
 func TestGenerateTx(t *testing.T) {
-	txbldr := auth.NewTxBuilder(auth.DefaultTxEncoder(auth.ModuleCdc), 1, 2, 3, 4, false, "okexchain", "memo", nil, nil)
+	txbldr := auth.NewTxBuilder(auth.DefaultTxEncoder(auth.ModuleCdc), 1, 2, 3, 4, false, "exchain", "memo", nil, nil)
 	testInput := orderKeeper.CreateTestInput(t)
 	keeper := testInput.OrderKeeper
 

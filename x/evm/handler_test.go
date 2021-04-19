@@ -40,7 +40,7 @@ type EvmTestSuite struct {
 	handler    sdk.Handler
 	govHandler govtypes.Handler
 	querier    sdk.Querier
-	app        *app.OKExChainApp
+	app        *app.ExChainApp
 	stateDB    *types.CommitStateDB
 	codec      *codec.Codec
 }
@@ -900,7 +900,7 @@ type EvmContractBlockedListTestSuite struct {
 
 	ctx     sdk.Context
 	handler sdk.Handler
-	app     *app.OKExChainApp
+	app     *app.ExChainApp
 	stateDB *types.CommitStateDB
 
 	// global data for test

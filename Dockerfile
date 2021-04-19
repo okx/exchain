@@ -1,19 +1,19 @@
 # Simple usage with a mounted data directory:
-# > docker build -t okexchain .
-# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okexchaind:/root/.okexchaind -v ~/.okexchaincli:/root/.okexchaincli okexchain okexchaind init mynode
-# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.okexchaind:/root/.okexchaind -v ~/.okexchaincli:/root/.okexchaincli okexchain okexchaind start
+# > docker build -t exchain .
+# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind init mynode
+# > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind start
 FROM golang:alpine AS build-env
 
 # Install minimum necessary dependencies, remove packages
 RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
 
 # Set working directory for the build
-WORKDIR /go/src/github.com/okex/okexchain
+WORKDIR /go/src/github.com/okex/exchain
 
 # Add source files
 COPY . .
 
-# Build OKExChain
+# Build ExChain
 RUN GOPROXY=http://goproxy.cn make install
 
 # Final image
@@ -22,8 +22,8 @@ FROM alpine:edge
 WORKDIR /root
 
 # Copy over binaries from the build-env
-COPY --from=build-env /go/bin/okexchaind /usr/bin/okexchaind
-COPY --from=build-env /go/bin/okexchaincli /usr/bin/okexchaincli
+COPY --from=build-env /go/bin/exchaind /usr/bin/exchaind
+COPY --from=build-env /go/bin/exchaincli /usr/bin/exchaincli
 
-# Run okexchaind by default, omit entrypoint to ease using container with okexchaincli
-CMD ["okexchaind"]
+# Run exchaind by default, omit entrypoint to ease using container with exchaincli
+CMD ["exchaind"]

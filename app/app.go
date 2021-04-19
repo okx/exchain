@@ -19,9 +19,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/app/ante"
-	okexchaincodec "github.com/okex/exchain/app/codec"
+	exchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/refund"
-	okexchain "github.com/okex/exchain/app/types"
+	exchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
@@ -56,18 +56,18 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
-	okexchain.SetBip44CoinType(config)
+	exchain.SetBech32Prefixes(config)
+	exchain.SetBip44CoinType(config)
 }
 
-const appName = "OKExChain"
+const appName = "ExChain"
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.okexchaincli")
+	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.okexchaind")
+	DefaultNodeHome = os.ExpandEnv("$HOME/.exchaind")
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
@@ -122,12 +122,12 @@ var (
 	}
 )
 
-var _ simapp.App = (*OKExChainApp)(nil)
+var _ simapp.App = (*ExChainApp)(nil)
 
-// OKExChainApp implements an extended ABCI application. It is an application
+// ExChainApp implements an extended ABCI application. It is an application
 // that may process transactions through Ethereum's EVM running atop of
 // Tendermint consensus.
-type OKExChainApp struct {
+type ExChainApp struct {
 	*bam.BaseApp
 	cdc *codec.Codec
 
@@ -169,8 +169,8 @@ type OKExChainApp struct {
 	sm *module.SimulationManager
 }
 
-// NewOKExChainApp returns a reference to a new initialized OKExChain application.
-func NewOKExChainApp(
+// NewExChainApp returns a reference to a new initialized ExChain application.
+func NewExChainApp(
 	logger log.Logger,
 	db dbm.DB,
 	traceStore io.Writer,
@@ -178,17 +178,17 @@ func NewOKExChainApp(
 	skipUpgradeHeights map[int64]bool,
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
-) *OKExChainApp {
+) *ExChainApp {
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
-		logger.Error(fmt.Sprintf("the config of OKExChain was parsed error : %s", err.Error()))
+		logger.Error(fmt.Sprintf("the config of ExChain was parsed error : %s", err.Error()))
 		panic(err)
 	}
 
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
+	cdc := exchaincodec.MakeCodec(ModuleBasics)
 
-	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
+	// NOTE we use custom ExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -203,7 +203,7 @@ func NewOKExChainApp(
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
-	app := &OKExChainApp{
+	app := &ExChainApp{
 		BaseApp:        bApp,
 		cdc:            cdc,
 		invCheckPeriod: invCheckPeriod,
@@ -230,9 +230,9 @@ func NewOKExChainApp(
 	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
 	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 
-	// use custom OKExChain account for contracts
+	// use custom ExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], exchain.ProtoAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -426,19 +426,19 @@ func NewOKExChainApp(
 }
 
 // Name returns the name of the App
-func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
+func (app *ExChainApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker updates every begin block
-func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+func (app *ExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	return app.mm.BeginBlock(ctx, req)
 }
 
 // EndBlocker updates every end block
-func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+func (app *ExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	return app.mm.EndBlock(ctx, req)
 }
 
-func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+func (app *ExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
@@ -451,7 +451,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	return resp
 }
 
-func (app *OKExChainApp) syncTx(txBytes []byte) {
+func (app *ExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
 		if stdTx, ok := tx.(auth.StdTx); ok {
@@ -467,19 +467,19 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 }
 
 // InitChainer updates at chain initialization
-func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+func (app *ExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
 // LoadHeight loads state at a particular height
-func (app *OKExChainApp) LoadHeight(height int64) error {
+func (app *ExChainApp) LoadHeight(height int64) error {
 	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 }
 
 // ModuleAccountAddrs returns all the app's module account addresses.
-func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
+func (app *ExChainApp) ModuleAccountAddrs() map[string]bool {
 	modAccAddrs := make(map[string]bool)
 	for acc := range maccPerms {
 		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
@@ -489,34 +489,34 @@ func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
 }
 
 // SimulationManager implements the SimulationApp interface
-func (app *OKExChainApp) SimulationManager() *module.SimulationManager {
+func (app *ExChainApp) SimulationManager() *module.SimulationManager {
 	return app.sm
 }
 
 // GetKey returns the KVStoreKey for the provided store key.
 //
 // NOTE: This is solely to be used for testing purposes.
-func (app *OKExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
+func (app *ExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
 	return app.keys[storeKey]
 }
 
-// Codec returns OKExChain's codec.
+// Codec returns ExChain's codec.
 //
 // NOTE: This is solely to be used for testing purposes as it may be desirable
 // for modules to register their own custom testing types.
-func (app *OKExChainApp) Codec() *codec.Codec {
+func (app *ExChainApp) Codec() *codec.Codec {
 	return app.cdc
 }
 
 // GetSubspace returns a param subspace for a given module name.
 //
 // NOTE: This is solely to be used for testing purposes.
-func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
+func (app *ExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
 }
 
 // BeginBlock implements the Application interface
-func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+func (app *ExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
@@ -525,7 +525,7 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 }
 
 // EndBlock implements the Application interface
-func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+func (app *ExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
@@ -534,7 +534,7 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 }
 
 // Commit implements the Application interface
-func (app *OKExChainApp) Commit() abci.ResponseCommit {
+func (app *ExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())

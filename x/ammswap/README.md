@@ -1,4 +1,4 @@
 
-## OKExChain PoolSwap Module
+## ExChain PoolSwap Module
 
-OKExChain PoolSwap Protocol.
+ExChain PoolSwap Protocol.

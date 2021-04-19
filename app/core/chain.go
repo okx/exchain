@@ -14,12 +14,12 @@ import (
 
 // ChainContext implements Ethereum's core.ChainContext and consensus.Engine
 // interfaces. It is needed in order to apply and process Ethereum
-// transactions. There should only be a single implementation in OKExChain. For
-// the purposes of OKExChain, it should be support retrieving headers and
+// transactions. There should only be a single implementation in ExChain. For
+// the purposes of ExChain, it should be support retrieving headers and
 // consensus parameters from  the current blockchain to be used during
 // transaction processing.
 //
-// NOTE: OKExChain will distribute the fees out to validators, so the structure
+// NOTE: ExChain will distribute the fees out to validators, so the structure
 // and functionality of this is a WIP and subject to change.
 type ChainContext struct {
 	Coinbase        ethcmn.Address
@@ -62,7 +62,7 @@ func (cc *ChainContext) GetHeader(_ ethcmn.Hash, number uint64) *ethtypes.Header
 // for returned the address of the validtor to receive any fees. This function
 // is only invoked if the given author in the ApplyTransaction call is nil.
 //
-// NOTE: OKExChain will distribute the fees out to validators, so the structure
+// NOTE: ExChain will distribute the fees out to validators, so the structure
 // and functionality of this is a WIP and subject to change.
 func (cc *ChainContext) Author(_ *ethtypes.Header) (ethcmn.Address, error) {
 	return cc.Coinbase, nil
