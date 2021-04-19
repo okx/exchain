@@ -266,10 +266,9 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		} else {
 			res, _ := baseapp.GetGlobalLocalClient().UserNumUnconfirmedTxs(common.BytesToAddress(address.Bytes()).String())
 			checkTxModeNonce := seq + uint64(res.Count)
-			fmt.Println("CheckTx - seq is: ", seq, ", pending tx is: ", res.Count, ", checkTxNonce is: ", checkTxModeNonce)
 
 			if baseapp.IsMempoolEnableSort() {
-				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce{
+				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
 					return ctx, sdkerrors.Wrapf(
 						sdkerrors.ErrInvalidSequence,
 						"invalid nonce; got %d, expected in the range of [%d, %d]",
