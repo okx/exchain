@@ -2,8 +2,9 @@ package ante
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"math/big"
+
+	"github.com/cosmos/cosmos-sdk/baseapp"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -255,22 +256,19 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
-		if msgEthTx.Data.AccountNonce > seq {
+		if msgEthTx.Data.AccountNonce < seq {
 			return ctx, sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidSequence,
-				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+				"invalid nonce; got %d, expected greater or equal to %d", msgEthTx.Data.AccountNonce, seq,
 			)
-		} else {
-			res, err := baseapp.GetGlobalLocalClient().UserNumUnconfirmedTxs( common.BytesToAddress(address.Bytes()).String())
-			if err != nil {
-				return ctx, err
-			}
+		} else if msgEthTx.Data.AccountNonce > seq {
+			res, _ := baseapp.GetGlobalLocalClient().UserNumUnconfirmedTxs(common.BytesToAddress(address.Bytes()).String())
+			seqUpperLimit := seq + uint64(res.Count)
 
-			seqLowerLimit := seq - uint64(res.Count)
-			if msgEthTx.Data.AccountNonce < seqLowerLimit {
+			if msgEthTx.Data.AccountNonce > seqUpperLimit {
 				return ctx, sdkerrors.Wrapf(
 					sdkerrors.ErrInvalidSequence,
-					"invalid nonce; got %d, expected greater than %d", msgEthTx.Data.AccountNonce, seqLowerLimit,
+					"invalid nonce; got %d, expected litter or equal to %d", msgEthTx.Data.AccountNonce, seqUpperLimit,
 				)
 			}
 		}
