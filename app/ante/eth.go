@@ -264,7 +264,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				)
 			}
 		} else {
-			cnt:= baseapp.GetGlobalMempool().ReapUserTxsCnt(common.BytesToAddress(address.Bytes()).String())
+			cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
 			checkTxModeNonce := seq + uint64(cnt)
 
 			if baseapp.IsMempoolEnableSort() {
