@@ -8,7 +8,9 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/okex/okexchain/app/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+
+	"github.com/okex/exchain/app/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -20,9 +22,10 @@ import (
 )
 
 var (
-	_ sdk.Msg = MsgEthermint{}
-	_ sdk.Msg = MsgEthereumTx{}
-	_ sdk.Tx  = MsgEthereumTx{}
+	_ sdk.Msg    = MsgEthermint{}
+	_ sdk.Msg    = MsgEthereumTx{}
+	_ sdk.Tx     = MsgEthereumTx{}
+	_ ante.FeeTx = MsgEthereumTx{}
 )
 
 var big8 = big.NewInt(8)
@@ -121,6 +124,22 @@ type MsgEthereumTx struct {
 	// caches
 	size atomic.Value
 	from atomic.Value
+}
+
+func (msg MsgEthereumTx) GetFee() sdk.Coins {
+	fee := make(sdk.Coins, 1)
+	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
+	return fee
+}
+
+func (msg MsgEthereumTx) FeePayer() sdk.AccAddress {
+
+	_, err := msg.VerifySig(msg.ChainID())
+	if err != nil {
+		return nil
+	}
+
+	return msg.From()
 }
 
 // sigCache is used to cache the derived sender and contains the signer used

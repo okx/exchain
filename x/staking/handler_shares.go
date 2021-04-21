@@ -4,8 +4,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/staking/keeper"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/keeper"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper) (*sdk.Result, error) {
@@ -258,7 +258,6 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 }
 
 func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*sdk.Result, error) {
-
 	if msg.Amount.Denom != k.BondDenom(ctx) {
 		return ErrBadDenom().Result()
 	}

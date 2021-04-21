@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/token/types"
 )
 
 // default owner of okt
-const DefaultTokenOwner = "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
+const DefaultTokenOwner = "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"
 
 // all state that must be provided in genesis file
 type GenesisState struct {

@@ -10,10 +10,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
-	"github.com/okex/okexchain/app"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/evm/keeper"
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/app"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

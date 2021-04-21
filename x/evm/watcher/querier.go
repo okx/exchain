@@ -6,9 +6,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/spf13/viper"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -29,7 +29,7 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore(), sw: viper.GetBool(FlagFastQuery)}
+	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
@@ -44,6 +44,9 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	e = json.Unmarshal(b, &receipt)
 	if e != nil {
 		return nil, e
+	}
+	if receipt.Logs == nil {
+		receipt.Logs = []*ethtypes.Log{}
 	}
 	return &receipt, nil
 }
@@ -88,6 +91,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 		}
 	}
 	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(height))))
+
 	if e != nil {
 		return nil, e
 	}

@@ -7,17 +7,17 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-Version=v0.16.8.3
+Version=v0.17.3
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
-Iavl=v0.14.1
+Iavl=v0.14.3
 Name=okexchain
 ServerName=okexchaind
 ClientName=okexchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
-MercuryHeight=1300000
-              
+MercuryHeight=2500000
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)

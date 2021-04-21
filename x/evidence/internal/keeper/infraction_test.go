@@ -4,9 +4,9 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/evidence/internal/types"
-	"github.com/okex/okexchain/x/staking"
-	stakingtypes "github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/evidence/internal/types"
+	"github.com/okex/exchain/x/staking"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 
 	"github.com/tendermint/tendermint/crypto"
 )

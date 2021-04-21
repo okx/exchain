@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // GetQueryCmd returns the cli query commands for staking module
@@ -185,7 +185,7 @@ func GetCmdQueryProxy(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query the addresses of delegators by a specific proxy
 
 Example:
-$ %s query staking proxy okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query staking proxy ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
 `,
 				version.ClientName,
 			),
@@ -240,7 +240,7 @@ func GetCmdQueryDelegator(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query the information of delegations and all shares recently added by a delegator
 
 Example:
-$ %s query staking delegator okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query staking delegator ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
 `,
 				version.ClientName,
 			),

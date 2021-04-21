@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	types2 "github.com/okex/okexchain/x/evm/types"
+	types2 "github.com/okex/exchain/x/evm/types"
 	"github.com/tendermint/tendermint/abci/types"
 )
 
@@ -23,8 +23,12 @@ type Watcher struct {
 	sw            bool
 }
 
+func IsWatcherEnabled() bool {
+	return viper.GetBool(FlagFastQuery)
+}
+
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: viper.GetBool(FlagFastQuery)}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
 }
 
 func (w Watcher) enabled() bool {

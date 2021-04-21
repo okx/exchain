@@ -8,11 +8,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
-	"github.com/okex/okexchain/app/utils"
-	"github.com/okex/okexchain/x/evm/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/app/utils"
+	"github.com/okex/exchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -47,10 +45,34 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryHeightToHash(ctx, path, keeper)
 		case types.QuerySection:
 			return querySection(ctx, path, keeper)
+		case types.QueryContractDeploymentWhitelist:
+			return queryContractDeploymentWhitelist(ctx, keeper)
+		case types.QueryContractBlockedList:
+			return queryContractBlockedList(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
 	}
+}
+
+func queryContractBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	blockedList := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractBlockedList()
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, blockedList)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
+}
+
+func queryContractDeploymentWhitelist(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	whitelist := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractDeploymentWhitelist()
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {

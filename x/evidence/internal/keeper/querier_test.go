@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"strings"
 
-	"github.com/okex/okexchain/x/evidence/exported"
-	"github.com/okex/okexchain/x/evidence/internal/types"
+	"github.com/okex/exchain/x/evidence/exported"
+	"github.com/okex/exchain/x/evidence/internal/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )

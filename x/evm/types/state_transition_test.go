@@ -3,17 +3,14 @@ package types_test
 import (
 	"math/big"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/evm/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/evm/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func (suite *StateDBTestSuite) TestGetHashFn() {
@@ -185,7 +182,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"call disabled",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, true, false)
+				params := types.NewParams(true, false, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -206,7 +203,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"create disabled",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, false, true)
+				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -251,7 +248,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"state transition simulation",
 			func() {
-				params := types.NewParams(ethermint.NativeToken, false, true)
+				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{

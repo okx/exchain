@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"math/big"
 	"strconv"
@@ -8,8 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	"github.com/okex/okexchain/x/evm/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -106,33 +107,36 @@ type TransactionReceipt struct {
 	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
 	Logs              []*ethtypes.Log `json:"logs"`
 	TransactionHash   string          `json:"transactionHash"`
-	ContractAddress   string          `json:"contractAddress"`
+	ContractAddress   *common.Address `json:"contractAddress"`
 	GasUsed           hexutil.Uint64  `json:"gasUsed"`
 	BlockHash         string          `json:"blockHash"`
 	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
 	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
 	From              string          `json:"from"`
-	To                string          `json:"to"`
+	To                *common.Address `json:"to"`
 }
 
 func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-	toAddr := ""
-	if tx.To() != nil {
-		toAddr = tx.To().String()
-	}
+
 	tr := TransactionReceipt{
 		Status:            hexutil.Uint64(status),
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
 		TransactionHash:   txHash.String(),
-		ContractAddress:   data.ContractAddress.String(),
+		ContractAddress:   &data.ContractAddress,
 		GasUsed:           hexutil.Uint64(GasUsed),
 		BlockHash:         blockHash.String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
 		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
-		To:                toAddr,
+		To:                tx.To(),
+	}
+
+	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
+	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+		//set to nil to keep sync with ethereum rpc
+		tr.ContractAddress = nil
 	}
 	jsTr, e := json.Marshal(tr)
 	if e != nil {
@@ -154,11 +158,38 @@ type MsgBlock struct {
 	block     string
 }
 
+// A BlockNonce is a 64-bit hash which proves (combined with the
+// mix-hash) that a sufficient amount of computation has been carried
+// out on a block.
+type BlockNonce [8]byte
+
+// EncodeNonce converts the given integer to a block nonce.
+func EncodeNonce(i uint64) BlockNonce {
+	var n BlockNonce
+	binary.BigEndian.PutUint64(n[:], i)
+	return n
+}
+
+// Uint64 returns the integer value of a block nonce.
+func (n BlockNonce) Uint64() uint64 {
+	return binary.BigEndian.Uint64(n[:])
+}
+
+// MarshalText encodes n as a hex string with 0x prefix.
+func (n BlockNonce) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(n[:]).MarshalText()
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (n *BlockNonce) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
+}
+
 type EthBlock struct {
 	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
-	Nonce            uint64         `json:"nonce"`
+	Nonce            BlockNonce     `json:"nonce"`
 	Sha3Uncles       common.Hash    `json:"sha3Uncles"`
 	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
 	TransactionsRoot common.Hash    `json:"transactionsRoot"`
@@ -182,7 +213,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
-		Nonce:            0,
+		Nonce:            BlockNonce{},
 		Sha3Uncles:       common.Hash{},
 		LogsBloom:        blockBloom,
 		TransactionsRoot: common.BytesToHash(header.DataHash),

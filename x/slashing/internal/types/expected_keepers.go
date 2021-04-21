@@ -5,8 +5,8 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	"github.com/okex/okexchain/x/params"
-	stakingexported "github.com/okex/okexchain/x/staking/exported"
+	"github.com/okex/exchain/x/params"
+	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
 // AccountKeeper expected account keeper

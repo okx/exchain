@@ -20,4 +20,6 @@ var (
 
 	// ErrVMExecution returns an error resulting from an error in EVM execution.
 	ErrVMExecution = sdkerrors.Register(RootCodespace, 4, "error while executing evm transaction")
+
+	ErrInvalidMsgType = sdkerrors.Register(RootCodespace, 5, "invalid message type")
 )

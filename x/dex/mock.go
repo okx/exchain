@@ -8,8 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
-	"github.com/okex/okexchain/x/common"
-	ordertypes "github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/common"
+	ordertypes "github.com/okex/exchain/x/order/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
