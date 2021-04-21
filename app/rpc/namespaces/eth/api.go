@@ -744,21 +744,11 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// check if the tx is on the mempool
-		pendingTxs, pendingErr := api.PendingTransactions()
+		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
 		if pendingErr != nil {
 			return nil, err
 		}
-
-		if len(pendingTxs) != 0 {
-			for _, tx := range pendingTxs {
-				if tx != nil && hash == tx.Hash {
-					return tx, nil
-				}
-			}
-		}
-
-		// Return nil for transaction when not found
-		return nil, nil
+		return pendingTx, nil
 	}
 
 	// Can either cache or just leave this out if not necessary
@@ -950,6 +940,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 func (api *PublicEthereumAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_pendingTransactions")
 	return api.backend.PendingTransactions()
+}
+
+func (api *PublicEthereumAPI) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+	api.logger.Debug("eth_pendingTransactionsByHash")
+	return api.backend.PendingTransactionsByHash(target)
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
