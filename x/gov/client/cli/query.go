@@ -15,8 +15,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/okex/okexchain/x/gov/client/utils"
 
-	"github.com/okex/okexchain/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/okexchain/x/gov/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -304,7 +304,7 @@ func getCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details for a single vote on a proposal given its identifier.
 
 Example:
-$ %s query gov vote 1 okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query gov vote 1 ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
 `,
 				version.ClientName,
 			),
