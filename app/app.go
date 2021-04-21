@@ -414,7 +414,6 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
-	app.SetMempoolHandler(NewMempoolHandler(app.AccountKeeper))
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 
 	if loadLatest {
@@ -586,24 +585,6 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 				return err
 			}
 		}
-		return nil
-	}
-}
-
-func NewMempoolHandler(ak auth.AccountKeeper) sdk.MempoolHandler {
-	return func(ctx sdk.Context, address string, pendingTxs int) error {
-		addr, err := sdk.AccAddressFromBech32(address)
-		if err != nil {
-			return err
-		}
-		acc := ak.GetAccount(ctx, addr)
-
-		if err := acc.SetSequence(acc.GetSequence() + uint64(pendingTxs)); err != nil {
-			return err
-		}
-
-		ak.SetAccount(ctx, acc)
-
 		return nil
 	}
 }
