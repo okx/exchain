@@ -61,7 +61,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
-		Short:             "OKExChain App Daemon (server)",
+		Short:             "ExChain App Daemon (server)",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
 	// CLI commands to initialize the chain

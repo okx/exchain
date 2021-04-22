@@ -22,9 +22,9 @@ func GetCmdDestroyValidator(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "destroy-validator [flags]",
 		Args:  cobra.NoArgs,
-		Short: "deregister the validator from the OKExChain and unbond the min self delegation",
+		Short: "deregister the validator from the ExChain and unbond the min self delegation",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Deregister the validator from the OKExChain and unbond the min self delegation.
+			fmt.Sprintf(`Deregister the validator from the ExChain and unbond the min self delegation.
 
 Example:
 $ %s tx staking destroy-validator --from mykey
