@@ -17,9 +17,7 @@ import (
 func NewHandler(k IKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		// disable dex tx handler
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "dex message has been disabled")
-		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Dex messages are not allowd.")
 
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
