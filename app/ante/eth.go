@@ -256,7 +256,11 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
-		if baseapp.IsMempoolEnableRecheck() {
+		// will be checkTx and RecheckTx mode
+		if ctx.IsReCheckTx() {
+			// recheckTx mode
+
+			// sequence must strictly increasing
 			if msgEthTx.Data.AccountNonce != seq {
 				return ctx, sdkerrors.Wrapf(
 					sdkerrors.ErrInvalidSequence,
@@ -264,8 +268,17 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				)
 			}
 		} else {
-			cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
-			checkTxModeNonce := seq + uint64(cnt)
+			// checkTx mode
+			checkTxModeNonce := seq
+
+			if !baseapp.IsMempoolEnableRecheck() {
+				// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
+				// to add pending txs len in the mempool.
+				// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
+				// will also reset checkState), so we will need to add pending txs len to get the right nonce
+				cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+				checkTxModeNonce = seq + uint64(cnt)
+			}
 
 			if baseapp.IsMempoolEnableSort() {
 				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
@@ -286,6 +299,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 			}
 		}
 	} else {
+		// only deliverTx mode
 		if msgEthTx.Data.AccountNonce != seq {
 			return ctx, sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidSequence,
@@ -397,7 +411,12 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if ctx.IsCheckTx() && !baseapp.IsMempoolEnableRecheck() {
+	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
+	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
+	// when mempool is not in enableRecheck mode, we should not increment the nonce
+
+	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
+	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() {
 		return next(ctx, tx, simulate)
 	}
 
