@@ -52,8 +52,8 @@ func main() {
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "okexchaincli",
-		Short: "Command line interface for interacting with okexchaind",
+		Use:   "exchaincli",
+		Short: "Command line interface for interacting with exchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
