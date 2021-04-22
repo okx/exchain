@@ -48,7 +48,7 @@ func GetCmdQueryValidator(storeName string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details about an individual validator.
 
 Example:
-$ %s query staking validator okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
+$ %s query staking validator exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
 `,
 				version.ClientName,
 			),
@@ -353,7 +353,7 @@ func GetCmdQueryValidatorShares(queryRoute string, cdc *codec.Codec) *cobra.Comm
 			fmt.Sprintf(`Query all shares added to a validator.
 
 Example:
-$ %s query staking shares-added-to okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
+$ %s query staking shares-added-to exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
 `,
 				version.ClientName,
 			),

@@ -65,11 +65,11 @@ func CmdSetLogLevel(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-loglevel",
 		Args:  cobra.ExactArgs(1),
-		Short: "Set the okexchaind log level",
+		Short: "Set the exchaind log level",
 		Long: strings.TrimSpace(`
-$ okexchaincli debug set-loglevel "main:info,state:info"
+$ exchaincli debug set-loglevel "main:info,state:info"
 
-$ okexchaincli debug set-loglevel "upgrade:error"
+$ exchaincli debug set-loglevel "upgrade:error"
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -82,7 +82,7 @@ $ okexchaincli debug set-loglevel "upgrade:error"
 				return err
 			}
 
-			fmt.Println("Succeed to set the okexchaind log level.")
+			fmt.Println("Succeed to set the exchaind log level.")
 			return nil
 		},
 	}
