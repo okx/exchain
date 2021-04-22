@@ -64,7 +64,7 @@ func GetCmdQueryValidatorCommission(queryRoute string, cdc *codec.Codec) *cobra.
 			fmt.Sprintf(`Query available rewards by a specified validator address.
 
 Example:
-$ %s query distr commission exchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
+$ %s query distr commission exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg
 `,
 				version.ClientName,
 			),

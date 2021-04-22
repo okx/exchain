@@ -120,10 +120,10 @@ func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 		Short: fmt.Sprintf("add shares to one or more validators by all deposited %s", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
 			fmt.Sprintf("Add shares to one or more validators by all deposited %s.\n\nExample:\n$ %s tx staking add-shares "+
-				"okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg,"+
-				"okexchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42dnwst5,"+
-				"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8,"+
-				"okexchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6tr3mk6 --from mykey\n",
+				"exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg,"+
+				"exvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42dnwst5,"+
+				"exvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8,"+
+				"exvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6tr3mk6 --from mykey\n",
 				sdk.DefaultBondDenom, version.ClientName),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
