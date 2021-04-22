@@ -123,9 +123,14 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
+			reqId, ok := msg["id"].(float64)
+			if !ok {
+				s.sendErrResponse(wsConn, "invaild id in request message")
+				continue
+			}
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
-				ID:      1,
+				ID:      reqId,
 				Result:  id,
 			}
 
