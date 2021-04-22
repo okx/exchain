@@ -34,9 +34,7 @@ func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		// disable order tx handler
-		if sdk.HigherThanMercury(ctx.BlockHeight()) {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "order message has been disabled")
-		}
+		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Order messages are not allowd.")
 
 		gas := CalculateGas(msg, keeper.GetParams(ctx))
 
