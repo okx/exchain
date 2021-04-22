@@ -7,13 +7,14 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-Version=v0.17.3
+
+Version=v0.18.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
-Name=okexchain
-ServerName=okexchaind
-ClientName=okexchaincli
+Name=exchain
+ServerName=exchaind
+ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
 MercuryHeight=2500000
@@ -52,15 +53,15 @@ BUILD_TESTNET_FLAGS := $(BUILD_FLAGS)
 
 all: install
 
-install: okexchain
+install: exchain
 
-okexchain:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
+exchain:
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
 
 testnet:
-	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
-	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
 
 test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./app/...
@@ -98,32 +99,32 @@ go.sum: go.mod
 	@go mod tidy
 
 cli:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaincli
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
 
 server:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/okexchaind
+	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
 
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
 
 build:
 ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/okexchaind.exe ./cmd/okexchaind
-	go build $(BUILD_FLAGS) -o build/okexchaincli.exe ./cmd/okexchaincli
+	go build $(BUILD_FLAGS) -o build/exchaind.exe ./cmd/exchaind
+	go build $(BUILD_FLAGS) -o build/exchaincli.exe ./cmd/exchaincli
 else
-	go build $(BUILD_FLAGS) -o build/okexchaind ./cmd/okexchaind
-	go build $(BUILD_FLAGS) -o build/okexchaincli ./cmd/okexchaincli
+	go build $(BUILD_FLAGS) -o build/exchaind ./cmd/exchaind
+	go build $(BUILD_FLAGS) -o build/exchaincli ./cmd/exchaincli
 endif
 
 build-linux:
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
-build-docker-okexchainnode:
+build-docker-exchainnode:
 	$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
 localnet-start: localnet-stop
-	@if ! [ -f build/node0/okexchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okexchaind:Z okexchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
+	@if ! [ -f build/node0/exchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/exchaind:Z exchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
 # Stop testnet

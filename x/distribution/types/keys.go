@@ -15,7 +15,7 @@ const (
 	// QuerierRoute is the querier route for distribution
 	QuerierRoute = ModuleName
 
-	// ShortUseByCli added for okexchaincli
+	// ShortUseByCli added for exchaincli
 	ShortUseByCli = "distr"
 )
 
