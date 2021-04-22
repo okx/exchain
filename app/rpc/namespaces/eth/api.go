@@ -252,7 +252,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	}
 
 	// update the address balance with the pending transactions value (if applicable)
-	pendingTxs, err := api.backend.PendingTransactions()
+	pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
 	if err != nil {
 		return nil, err
 	}
@@ -352,11 +352,11 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 			return nil
 		}
 		// get the pending transaction count
-		pendingTxs, err := api.backend.PendingTransactions()
+		pendingCnt, err := api.backend.PendingTransactionCnt()
 		if err != nil {
 			return nil
 		}
-		txs = len(resBlock.Block.Txs) + len(pendingTxs)
+		txs = len(resBlock.Block.Txs) + pendingCnt
 	case rpctypes.LatestBlockNumber:
 		height, err = api.backend.LatestBlockNumber()
 		if err != nil {
@@ -1164,22 +1164,11 @@ func (api *PublicEthereumAPI) accountNonce(
 
 	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
 	// to manually add them.
-	pendingTxs, err := api.backend.PendingTransactions()
+	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
 	if err != nil {
 		return 0, err
 	}
-
-	// add the uncommitted txs to the nonce counter
-	if len(pendingTxs) != 0 {
-		for i := range pendingTxs {
-			if pendingTxs[i] == nil {
-				continue
-			}
-			if pendingTxs[i].From == address {
-				nonce++
-			}
-		}
-	}
+	nonce += uint64(pendingTxs)
 
 	return nonce, nil
 }

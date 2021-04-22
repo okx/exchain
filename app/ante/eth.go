@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -253,11 +255,43 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
-	if msgEthTx.Data.AccountNonce != seq {
-		return ctx, sdkerrors.Wrapf(
-			sdkerrors.ErrInvalidSequence,
-			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-		)
+	if ctx.IsCheckTx() {
+		if baseapp.IsMempoolEnableRecheck() {
+			if msgEthTx.Data.AccountNonce != seq {
+				return ctx, sdkerrors.Wrapf(
+					sdkerrors.ErrInvalidSequence,
+					"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+				)
+			}
+		} else {
+			cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+			checkTxModeNonce := seq + uint64(cnt)
+
+			if baseapp.IsMempoolEnableSort() {
+				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
+					return ctx, sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected in the range of [%d, %d]",
+						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
+					)
+				}
+			} else {
+				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
+					return ctx, sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected %d",
+						msgEthTx.Data.AccountNonce, checkTxModeNonce,
+					)
+				}
+			}
+		}
+	} else {
+		if msgEthTx.Data.AccountNonce != seq {
+			return ctx, sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
 	}
 
 	return next(ctx, tx, simulate)
@@ -363,6 +397,10 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	if ctx.IsCheckTx() && !baseapp.IsMempoolEnableRecheck() {
+		return next(ctx, tx, simulate)
+	}
+
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
 	gasMeter := ctx.GasMeter()
@@ -377,6 +415,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		acc := issd.ak.GetAccount(ctx, addr)
+
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 			panic(err)
 		}

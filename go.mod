@@ -39,7 +39,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.9
@@ -54,7 +54,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.0.0-20210418004230-26125dd4b59d
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210421050557-06f04ee3a7f2
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210421134119-da5a23ea5a80
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210422023625-ee6d66cc543f
 )
