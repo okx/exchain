@@ -12,9 +12,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	extypes "github.com/cosmos/cosmos-sdk/x/genutil"
+	v017 "github.com/okex/exchain/x/genutil/client/legacy/v0_17"
 )
 
 var migrationMap = extypes.MigrationMap{
+	"v017": v017.Migrate,
 }
 
 const (
