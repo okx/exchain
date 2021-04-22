@@ -47,7 +47,7 @@ func GetCmdSwapTokenPair(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query pool info by token name.
 
 Example:
-$ okexchaincli query swap pool eth-355
+$ exchaincli query swap pool eth-355
 
 `),
 		),
@@ -148,7 +148,7 @@ func GetCmdAllSwapTokenPairs(queryRoute string, cdc *codec.Codec) *cobra.Command
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`Query infomation of all pools.
 Example:
-$ okexchaincli query swap pools
+$ exchaincli query swap pools
 `),
 		),
 		Args:  cobra.NoArgs,
@@ -179,7 +179,7 @@ func GetCmdRedeemableAssets(queryRoute string, cdc *codec.Codec) *cobra.Command 
 		Long: 	strings.TrimSpace(
 			fmt.Sprintf(`Query redeemable assets by specifying pool token amount.
 Example:
-$ okexchaincli query swap redeemable-assets eth xxb 1
+$ exchaincli query swap redeemable-assets eth xxb 1
 `),
 		),
 		Args:  cobra.ExactArgs(3),
