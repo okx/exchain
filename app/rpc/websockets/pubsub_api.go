@@ -132,7 +132,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				}
 				api.filtersMu.Unlock()
 
-				if err == websocket.ErrCloseSent {
+				if err != nil {
 					api.unsubscribe(sub.ID())
 				}
 			case err := <-errCh:
@@ -259,7 +259,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					}
 					api.filtersMu.Unlock()
 
-					if err == websocket.ErrCloseSent {
+					if err != nil {
 						api.unsubscribe(sub.ID())
 					}
 				}(event)
@@ -400,7 +400,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				}
 				api.filtersMu.Unlock()
 
-				if err == websocket.ErrCloseSent {
+				if err != nil {
 					api.unsubscribe(sub.ID())
 				}
 			case err := <-errCh:
@@ -485,7 +485,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 				}
 				api.filtersMu.Unlock()
 
-				if err == websocket.ErrCloseSent {
+				if err != nil {
 					api.unsubscribe(sub.ID())
 				}
 
