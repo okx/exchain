@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
 	apptypes "github.com/okex/okexchain/app/types"
+	"github.com/stretchr/testify/require"
 )
 
 func initConfig() {
@@ -18,7 +18,7 @@ func initConfig() {
 
 func TestHasSufCoins(t *testing.T) {
 	initConfig()
-	addr, err := sdk.AccAddressFromBech32("okexchain18mxjm0knqjpkaxk2zd2jr67pgrd8c0ct0tycvl")
+	addr, err := sdk.AccAddressFromBech32("ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658")
 	require.Nil(t, err)
 
 	availDecCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
@@ -54,7 +54,7 @@ func TestBlackHoleAddress(t *testing.T) {
 	addr := BlackHoleAddress()
 	a := addr.String()
 	fmt.Println(a)
-	require.Equal(t, addr.String(), "okexchain1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqupa6dx")
+	require.Equal(t, addr.String(), "ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm2k6w2")
 }
 
 func TestGetFixedLengthRandomString(t *testing.T) {

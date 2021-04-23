@@ -357,7 +357,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				return destroyPoolMsg
 			},
 			verification: verification,
-			expectedErr:  types.ErrInvalidPoolOwner("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgpq6kh8f", "abc"),
+			expectedErr:  types.ErrInvalidPoolOwner("ex15ky9du8a2wlstz6fpx3p4mqpjyrm5cgp83ahy9", "abc"),
 		},
 		{
 			caseName: "failed. insufficient fee coins",
@@ -374,7 +374,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 			},
 			getMsg:       normalGetDestroyPoolMsg,
 			verification: verification,
-			expectedErr: errors.New("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000okt < 1.000000000000000000fff"),
+			expectedErr:  errors.New("insufficient coins: insufficient funds: insufficient account funds; 10.000000000000000000okt < 1.000000000000000000fff"),
 		},
 		{
 			caseName: "failed. the pool is not finished and can not be destroyed",
@@ -706,7 +706,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  types.ErrNoLockInfoFound("okexchain15ky9du8a2wlstz6fpx3p4mqpjyrm5cgqavzz6m", "abc"),
+			expectedErr:  types.ErrNoLockInfoFound("ex15ky9du8a2wlstz6fpx3p4mqpjyrm5cgq68fzeh", "abc"),
 		},
 		{
 			caseName: "failed. The coin name should be %s, not %s",
@@ -807,7 +807,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr: errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; " + "10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
+			expectedErr:  errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; "+"10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
 		},
 		{
 			caseName: "success. lock and unlock without provide before",

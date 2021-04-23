@@ -227,7 +227,7 @@ func GetCmdBindProxy(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Bind proxy relationship.
 
 Example:
-$ %s tx staking proxy bind okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 --from mykey
+$ %s tx staking proxy bind ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02 --from mykey
 `,
 				version.ClientName),
 		),

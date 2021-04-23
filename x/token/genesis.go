@@ -10,7 +10,7 @@ import (
 )
 
 // default owner of okt
-const DefaultTokenOwner = "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
+const DefaultTokenOwner = "ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658"
 
 // all state that must be provided in genesis file
 type GenesisState struct {
