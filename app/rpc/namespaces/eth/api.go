@@ -908,6 +908,10 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 	if len(data.Logs) == 0 {
 		data.Logs = []*ethtypes.Log{}
 	}
+	contractAddr := &data.ContractAddress
+	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
+		contractAddr = nil
+	}
 
 	receipt := map[string]interface{}{
 		// Consensus fields: These fields are defined by the Yellow Paper
@@ -919,7 +923,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		// Implementation fields: These fields are added by geth when processing a transaction.
 		// They are stored in the chain database.
 		"transactionHash": hash,
-		"contractAddress": data.ContractAddress,
+		"contractAddress": contractAddr,
 		"gasUsed":         hexutil.Uint64(tx.TxResult.GasUsed),
 
 		// Inclusion information: These fields provide information about the inclusion of the
