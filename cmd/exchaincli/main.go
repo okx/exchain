@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/dex"
 
 	"github.com/spf13/cobra"
 
@@ -52,8 +54,8 @@ func main() {
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "okexchaincli",
-		Short: "Command line interface for interacting with okexchaind",
+		Use:   "exchaincli",
+		Short: "Command line interface for interacting with exchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
@@ -133,7 +135,10 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	var cmdsToRemove []*cobra.Command
 
 	for _, cmd := range txCmd.Commands() {
-		if cmd.Use == auth.ModuleName || cmd.Use == bank.ModuleName {
+		if cmd.Use == auth.ModuleName ||
+			cmd.Use == order.ModuleName||
+			cmd.Use == dex.ModuleName||
+			cmd.Use == bank.ModuleName {
 			cmdsToRemove = append(cmdsToRemove, cmd)
 		}
 	}
