@@ -2,5 +2,5 @@ package types
 
 const (
 	// TestTokenPairOwner defines owner of token pair, just for test
-	TestTokenPairOwner = "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
+	TestTokenPairOwner = "ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658"
 )
