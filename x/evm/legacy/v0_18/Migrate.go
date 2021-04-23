@@ -13,8 +13,8 @@ const (
 // Migrate adds contract
 func Migrate(oldGenState v0_16.GenesisState) GenesisState {
 	params := Params{
-		EnableCreate:                      oldGenState.Params.EnableCreate,
-		EnableCall:                        oldGenState.Params.EnableCall,
+		EnableCreate:                      false,
+		EnableCall:                        false,
 		ExtraEIPs:                         oldGenState.Params.ExtraEIPs,
 		EnableContractDeploymentWhitelist: true,
 		EnableContractBlockedList:         true,
