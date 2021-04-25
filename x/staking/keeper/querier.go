@@ -39,6 +39,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryProxy(ctx, req, k)
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
+		case types.QueryValidatorTotalSharesToken:
+			return queryValidatorTotalSharesToken(ctx, req, k)
 		default:
 			return nil, types.ErrUnknownStakingQueryType()
 		}
@@ -178,6 +180,22 @@ func queryValidatorAllShares(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 
 	sharesResponses := k.GetValidatorAllShares(ctx, params.ValidatorAddr)
 	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, sharesResponses)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return resp, nil
+}
+
+func queryValidatorTotalSharesToken(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryValidatorParams
+
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	totalSharesTokens:=k.GetTotalSharesTokens(ctx, params.ValidatorAddr)
+	resp, err := codec.MarshalJSONIndent(types.ModuleCdc, totalSharesTokens)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}

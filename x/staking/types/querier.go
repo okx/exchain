@@ -6,17 +6,18 @@ import (
 
 // query endpoints supported by the staking Querier
 const (
-	QueryValidators          = "validators"
-	QueryValidator           = "validator"
-	QueryUnbondingDelegation = "unbondingDelegation"
-	QueryPool                = "pool"
-	QueryParameters          = "parameters"
-	QueryAddress             = "address"
-	QueryForAddress          = "validatorAddress"
-	QueryForAccAddress       = "validatorAccAddress"
-	QueryProxy               = "proxy"
-	QueryValidatorAllShares  = "validatorAllShares"
-	QueryDelegator           = "delegator"
+	QueryValidators                = "validators"
+	QueryValidator                 = "validator"
+	QueryUnbondingDelegation       = "unbondingDelegation"
+	QueryPool                      = "pool"
+	QueryParameters                = "parameters"
+	QueryAddress                   = "address"
+	QueryForAddress                = "validatorAddress"
+	QueryForAccAddress             = "validatorAccAddress"
+	QueryProxy                     = "proxy"
+	QueryValidatorAllShares        = "validatorAllShares"
+	QueryDelegator                 = "delegator"
+	QueryValidatorTotalSharesToken = "validatorTotalSharesToken"
 )
 
 // QueryDelegatorParams defines the params for the following queries:

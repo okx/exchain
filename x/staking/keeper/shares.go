@@ -31,6 +31,37 @@ func (k Keeper) DeleteShares(ctx sdk.Context, valAddr sdk.ValAddress, delAddr sd
 	ctx.KVStore(k.storeKey).Delete(types.GetSharesKey(valAddr, delAddr))
 }
 
+// GetValidatorAllShares returns total shares tokens on a specific validator and it's useful for querier
+// ONLY FOR PATCH !!
+func (k Keeper) GetTotalSharesTokens(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+	store := ctx.KVStore(k.storeKey)
+
+	totalSharesTokens := sdk.ZeroDec()
+	iterator := sdk.KVStorePrefixIterator(store, types.GetSharesToValidatorsKey(valAddr))
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// 1. get the delegator address
+		delAddr := sdk.AccAddress(iterator.Key()[1+sdk.AddrLen:])
+
+		// 2. get the delegation info
+		delegator, found := k.GetDelegator(ctx, delAddr)
+		if !found {
+			continue
+		}
+
+		// 3. add delegated token of target delegator
+		totalSharesTokens = totalSharesTokens.Add(delegator.Tokens)
+
+		// 4. add proxy's delegated tokens of target delegator
+		if delegator.IsProxy {
+			totalSharesTokens = totalSharesTokens.Add(delegator.TotalDelegatedTokens)
+		}
+	}
+
+	return totalSharesTokens
+}
+
 // GetValidatorAllShares returns all shares added to a specific validator and it's useful for querier
 func (k Keeper) GetValidatorAllShares(ctx sdk.Context, valAddr sdk.ValAddress) types.SharesResponses {
 	store := ctx.KVStore(k.storeKey)
