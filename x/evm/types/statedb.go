@@ -95,6 +95,8 @@ type CommitStateDB struct {
 	lock sync.Mutex
 
 	params *Params
+
+	codeCache map[ethcmn.Address][]byte
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -121,6 +123,7 @@ func newCommitStateDB(
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
+		codeCache:            make(map[ethcmn.Address][]byte, 0),
 	}
 }
 
@@ -144,6 +147,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accessList:           newAccessList(),
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
+		codeCache:            make(map[ethcmn.Address][]byte, 0),
 	}
 }
 
@@ -151,6 +155,14 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	csdb.ctx = ctx
 	return csdb
+}
+
+func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) []byte {
+	code, ok := csdb.codeCache[addr]
+	if ok {
+		return code
+	}
+	return nil
 }
 
 // ----------------------------------------------------------------------------
@@ -216,6 +228,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if so != nil {
 		so.SetCode(ethcrypto.Keccak256Hash(code), code)
 	}
+	csdb.codeCache[addr] = code
 }
 
 // ----------------------------------------------------------------------------
