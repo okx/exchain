@@ -1,58 +1,58 @@
 version: '3'
 
 services:
-  okexchaindnode0:
-    container_name: okexchaindnode0
-    image: "okexchain/node"
+  exchaindnode0:
+    container_name: exchaindnode0
+    image: "exchain/node"
     ports:
       - "26656-26657:26656-26657"
     environment:
       - ID=0
-      - LOG=${LOG:-okexchaind.log}
+      - LOG=${LOG:-exchaind.log}
     volumes:
-      - ./build:/okexchaind:Z
+      - ./build:/exchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
 
-  okexchaindnode1:
-    container_name: okexchaindnode1
-    image: "okexchain/node"
+  exchaindnode1:
+    container_name: exchaindnode1
+    image: "exchain/node"
     ports:
       - "26659-26660:26656-26657"
     environment:
       - ID=1
-      - LOG=${LOG:-okexchaind.log}
+      - LOG=${LOG:-exchaind.log}
     volumes:
-      - ./build:/okexchaind:Z
+      - ./build:/exchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
 
-  okexchaindnode2:
-    container_name: okexchaindnode2
-    image: "okexchain/node"
+  exchaindnode2:
+    container_name: exchaindnode2
+    image: "exchain/node"
     environment:
       - ID=2
-      - LOG=${LOG:-okexchaind.log}
+      - LOG=${LOG:-exchaind.log}
     ports:
       - "26661-26662:26656-26657"
     volumes:
-      - ./build:/okexchaind:Z
+      - ./build:/exchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
 
-  okexchaindnode3:
-    container_name: okexchaindnode3
-    image: "okexchain/node"
+  exchaindnode3:
+    container_name: exchaindnode3
+    image: "exchain/node"
     environment:
       - ID=3
-      - LOG=${LOG:-okexchaind.log}
+      - LOG=${LOG:-exchaind.log}
     ports:
       - "26663-26664:26656-26657"
     volumes:
-      - ./build:/okexchaind:Z
+      - ./build:/exchaind:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5

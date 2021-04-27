@@ -79,7 +79,7 @@ func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
-$ %s tx distr withdraw-rewards okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
 `,
 				version.ClientName,
 			),

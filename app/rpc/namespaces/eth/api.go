@@ -252,7 +252,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	}
 
 	// update the address balance with the pending transactions value (if applicable)
-	pendingTxs, err := api.backend.PendingTransactions()
+	pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
 	if err != nil {
 		return nil, err
 	}
@@ -352,11 +352,11 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 			return nil
 		}
 		// get the pending transaction count
-		pendingTxs, err := api.backend.PendingTransactions()
+		pendingCnt, err := api.backend.PendingTransactionCnt()
 		if err != nil {
 			return nil
 		}
-		txs = len(resBlock.Block.Txs) + len(pendingTxs)
+		txs = len(resBlock.Block.Txs) + pendingCnt
 	case rpctypes.LatestBlockNumber:
 		height, err = api.backend.LatestBlockNumber()
 		if err != nil {
@@ -744,21 +744,11 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 	tx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
 	if err != nil {
 		// check if the tx is on the mempool
-		pendingTxs, pendingErr := api.PendingTransactions()
+		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
 		if pendingErr != nil {
 			return nil, err
 		}
-
-		if len(pendingTxs) != 0 {
-			for _, tx := range pendingTxs {
-				if tx != nil && hash == tx.Hash {
-					return tx, nil
-				}
-			}
-		}
-
-		// Return nil for transaction when not found
-		return nil, nil
+		return pendingTx, nil
 	}
 
 	// Can either cache or just leave this out if not necessary
@@ -918,6 +908,10 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 	if len(data.Logs) == 0 {
 		data.Logs = []*ethtypes.Log{}
 	}
+	contractAddr := &data.ContractAddress
+	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
+		contractAddr = nil
+	}
 
 	receipt := map[string]interface{}{
 		// Consensus fields: These fields are defined by the Yellow Paper
@@ -929,7 +923,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		// Implementation fields: These fields are added by geth when processing a transaction.
 		// They are stored in the chain database.
 		"transactionHash": hash,
-		"contractAddress": data.ContractAddress,
+		"contractAddress": contractAddr,
 		"gasUsed":         hexutil.Uint64(tx.TxResult.GasUsed),
 
 		// Inclusion information: These fields provide information about the inclusion of the
@@ -950,6 +944,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 func (api *PublicEthereumAPI) PendingTransactions() ([]*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_pendingTransactions")
 	return api.backend.PendingTransactions()
+}
+
+func (api *PublicEthereumAPI) PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error) {
+	api.logger.Debug("eth_pendingTransactionsByHash")
+	return api.backend.PendingTransactionsByHash(target)
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
@@ -1169,22 +1168,11 @@ func (api *PublicEthereumAPI) accountNonce(
 
 	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
 	// to manually add them.
-	pendingTxs, err := api.backend.PendingTransactions()
+	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
 	if err != nil {
 		return 0, err
 	}
-
-	// add the uncommitted txs to the nonce counter
-	if len(pendingTxs) != 0 {
-		for i := range pendingTxs {
-			if pendingTxs[i] == nil {
-				continue
-			}
-			if pendingTxs[i].From == address {
-				nonce++
-			}
-		}
-	}
+	nonce += uint64(pendingTxs)
 
 	return nonce, nil
 }
