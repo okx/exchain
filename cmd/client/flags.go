@@ -10,7 +10,7 @@ import (
 
 const (
 	FlagPersonalAPI       = "personal-api"
-	FlagGetLogsHeightSpan = "height-span"
+	FlagGetLogsHeightSpan = "logs-height-span"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
