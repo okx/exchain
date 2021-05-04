@@ -173,7 +173,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		senderAccAddr := st.Sender.Bytes()
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
 			if sdk.HigherThanMercury(ctx.BlockHeight()) {
-				if !IsContractReadonly(st.Payload) {
+				isReadonly, err := IsContractReadonly(st.Payload)
+				//if disassemble failed, we also denied this deploy request
+				if !isReadonly || err != nil {
 					return exeRes, resData, ErrDeployReadonly()
 				}
 			} else {
