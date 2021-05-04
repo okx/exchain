@@ -978,7 +978,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
 	for i, k := range storageKeys {
-		data := append(evmtypes.AddressStoragePrefix(address), GetStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
+		data := append(evmtypes.AddressStoragePrefix(address), getStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
 		// Get value for key
 		req := abci.RequestQuery{
 			Path:   fmt.Sprintf("store/%s/key", evmtypes.StoreKey),
@@ -993,7 +993,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		}
 
 		var value evmtypes.QueryResStorage
-		clientCtx.Codec.MustUnmarshalJSON(vRes.GetValue(), &value)
+		value.Value = vRes.GetValue()
 
 		// check for proof
 		proof := vRes.GetProof()
@@ -1003,7 +1003,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		}
 
 		storageProofs[i] = rpctypes.StorageResult{
-			Key:   string(vRes.GetKey()),
+			Key:   k,
 			Value: (*hexutil.Big)(common.BytesToHash(value.Value).Big()),
 			Proof: []string{proofStr},
 		}

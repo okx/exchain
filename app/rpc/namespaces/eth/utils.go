@@ -227,7 +227,7 @@ func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
 	return common.Hash{}, fmt.Errorf(txRes.RawLog)
 }
 
-func GetStorageByAddressKey(addr common.Address, key []byte) common.Hash {
+func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
 	prefix := addr.Bytes()
 	compositeKey := make([]byte, len(prefix)+len(key))
 
