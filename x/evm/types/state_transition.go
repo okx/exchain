@@ -172,9 +172,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		// check whether the deployer address is in the whitelist if the whitelist is enabled
 		senderAccAddr := st.Sender.Bytes()
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
-			if !IsContractReadonly(st.Payload) {
-				return exeRes, resData, ErrDeployReadonly()
+			if sdk.HigherThanMercury(ctx.BlockHeight()) {
+				if !IsContractReadonly(st.Payload) {
+					return exeRes, resData, ErrDeployReadonly()
+				}
+			} else {
+				return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr)
 			}
+
 		}
 
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
