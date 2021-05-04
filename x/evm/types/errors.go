@@ -79,3 +79,12 @@ func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
 		),
 	}
 }
+
+// ErrDeployReadonly returns an error when the target contract include opcode SSTORE\CREATE\CREATE2
+func ErrDeployReadonly() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			16,
+			fmt.Sprintf("failed. Only read-only contracts can be deployed"))}
+}
