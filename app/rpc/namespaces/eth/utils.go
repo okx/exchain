@@ -13,6 +13,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/core/vm"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -224,4 +225,14 @@ func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
 		return common.Hash{}, sdkerror.Wrapf(sdkerror.ErrTxTooLarge, txRes.RawLog)
 	}
 	return common.Hash{}, fmt.Errorf(txRes.RawLog)
+}
+
+func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
+	prefix := addr.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+
+	return ethcrypto.Keccak256Hash(compositeKey)
 }
