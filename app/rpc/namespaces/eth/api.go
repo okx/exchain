@@ -27,7 +27,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -978,20 +977,26 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
-	opts := client.ABCIQueryOptions{Height: int64(block), Prove: true}
 	for i, k := range storageKeys {
+		data := append(evmtypes.AddressStoragePrefix(address), getStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
 		// Get value for key
-		vPath := fmt.Sprintf("custom/%s/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorage, address, k)
-		vRes, err := api.clientCtx.Client.ABCIQueryWithOptions(vPath, nil, opts)
+		req := abci.RequestQuery{
+			Path:   fmt.Sprintf("store/%s/key", evmtypes.StoreKey),
+			Data:   data,
+			Height: int64(block),
+			Prove:  true,
+		}
+
+		vRes, err := clientCtx.QueryABCI(req)
 		if err != nil {
 			return nil, err
 		}
 
 		var value evmtypes.QueryResStorage
-		clientCtx.Codec.MustUnmarshalJSON(vRes.Response.GetValue(), &value)
+		value.Value = vRes.GetValue()
 
 		// check for proof
-		proof := vRes.Response.GetProof()
+		proof := vRes.GetProof()
 		proofStr := new(merkle.Proof).String()
 		if proof != nil {
 			proofStr = proof.String()
