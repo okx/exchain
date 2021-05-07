@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -24,6 +25,8 @@ type Server struct {
 	wsAddr  string // listen address of ws server
 	api     *PubSubAPI
 	logger  log.Logger
+	connPool chan struct{}
+	poolLock *sync.Mutex
 }
 
 // NewServer creates a new websocket server instance.
@@ -45,6 +48,8 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx, log),
 		logger:  log.With("module", "websocket-server"),
+		connPool: make(chan struct{}, 11), // todo: replace the constant variable with a flag
+		poolLock: new(sync.Mutex),
 	}
 }
 
@@ -62,6 +67,13 @@ func (s *Server) Start() {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.poolLock.Lock()
+	defer s.poolLock.Unlock()
+	if len(s.connPool) >= cap(s.connPool) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -74,7 +86,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.readLoop(wsConn)
+	s.connPool <- struct{}{}
+	go s.readLoop(wsConn)
 }
 
 func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
@@ -93,11 +106,19 @@ func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
 }
 
 func (s *Server) readLoop(wsConn *websocket.Conn) {
+	subIds := make(map[rpc.ID]struct{})
 	for {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
 			_ = wsConn.Close()
-			s.logger.Error(fmt.Sprintf("failed to read message: %s", err))
+			s.logger.Error("failed to read message, close the websocket connection.", "error",err)
+			for id := range subIds {
+				s.api.unsubscribe(id)
+				delete(subIds, id)
+			}
+			s.poolLock.Lock()
+			<-s.connPool
+			s.poolLock.Unlock()
 			return
 		}
 
@@ -140,6 +161,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
+			subIds[id] = struct{}{}
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -166,6 +188,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
+			delete(subIds, rpc.ID(id))
 			continue
 		}
 

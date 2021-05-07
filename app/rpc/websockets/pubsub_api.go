@@ -143,6 +143,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Error("close the unsubscribed ch") // todo: optimize log
 				return
 			}
 		}
