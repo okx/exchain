@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/spf13/viper"
 	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -33,6 +35,9 @@ var (
 type EventSystem struct {
 	ctx    context.Context
 	client rpcclient.Client
+
+	// channel length when subscribing
+	length int
 
 	// light client mode
 	lightMode bool
@@ -75,6 +80,7 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 	es := &EventSystem{
 		ctx:           context.Background(),
 		client:        client,
+		length:        viper.GetInt(server.FlagWsSubChannelLength),
 		lightMode:     false,
 		index:         index,
 		install:       make(chan *Subscription),
@@ -112,11 +118,11 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
 	case filters.LogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, 1000)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
 	case filters.BlocksSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
 	default:
