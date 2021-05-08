@@ -3,6 +3,8 @@ package watcher
 import (
 	"encoding/binary"
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/app/types"
 	"math/big"
 	"strconv"
 
@@ -22,6 +24,8 @@ const (
 	prefixCode         = "0x4"
 	prefixBlockInfo    = "0x5"
 	prefixLatestHeight = "0x6"
+	prefixAccount      = "0x7"
+	prefixState        = "0x8"
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -282,4 +286,54 @@ func (b MsgLatestHeight) GetKey() string {
 
 func (b MsgLatestHeight) GetValue() string {
 	return b.height
+}
+
+type MsgAccount struct {
+	addr string
+	accountValue string
+}
+
+func NewMsgAccount(acc *types2.EthAccount) *MsgAccount {
+	jsonAcc, err := json.Marshal(acc)
+	if err != nil {
+		return nil
+	}
+	return &MsgAccount{
+		addr: acc.Address.String(),
+		accountValue: string(jsonAcc),
+	}
+}
+
+func GetMsgAccountKey(addr string) string {
+	return prefixAccount + addr
+}
+
+func (msgAccount * MsgAccount) GetKey() string {
+	return GetMsgAccountKey(msgAccount.addr)
+}
+
+func (msgAccount * MsgAccount) GetValue() string {
+	return msgAccount.accountValue
+}
+
+type MsgState struct {
+	addr string
+	key string
+	value string
+}
+
+func NewMsgState(addr sdk.AccAddress, key, value []byte) *MsgState {
+	return &MsgState{
+		addr: addr.String(),
+		key: string(key),
+		value: string(value),
+	}
+}
+
+func (msgState * MsgState) GetKey() string {
+	return prefixState + msgState.addr + msgState.key
+}
+
+func (msgState * MsgState) GetValue() string {
+	return msgState.value
 }

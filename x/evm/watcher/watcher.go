@@ -1,6 +1,8 @@
 package watcher
 
 import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"math/big"
 
 	"github.com/spf13/viper"
@@ -101,6 +103,26 @@ func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
 		return
 	}
 	w.blockTxs = append(w.blockTxs, txHash)
+}
+
+func (w *Watcher) SaveAccount(account *ethermint.EthAccount) {
+	if !w.enabled() {
+		return
+	}
+	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveState(addr sdk.AccAddress, key, value []byte) {
+	if !w.enabled() {
+		return
+	}
+	wMsg := NewMsgState(addr, key, value)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
 }
 
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {

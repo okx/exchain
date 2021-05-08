@@ -35,6 +35,12 @@ type CommitStateDBParams struct {
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
 	BankKeeper    bank.Keeper
+	Watcher       Watcher
+}
+
+type Watcher interface {
+	SaveAccount(account *ethermint.EthAccount)
+	SaveState(addr sdk.AccAddress, key, value []byte)
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -54,6 +60,7 @@ type CommitStateDB struct {
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
 	bankKeeper    bank.Keeper
+	Watcher       Watcher
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -105,7 +112,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -114,6 +121,7 @@ func newCommitStateDB(
 		accountKeeper:        ak,
 		supplyKeeper:         sk,
 		bankKeeper:           bk,
+		Watcher:              watcher,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -136,6 +144,8 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accountKeeper: csdbParams.AccountKeeper,
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
+		Watcher:       csdbParams.Watcher,
+
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -612,6 +622,9 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	}
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	if !csdb.ctx.IsCheckTx() {
+		csdb.Watcher.SaveAccount(so.account)
+	}
 	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
 }
