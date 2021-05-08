@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/app/types"
 	"strconv"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -180,4 +182,31 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 		}
 	}
 	return nil, errors.New("no such transaction in target block")
+}
+
+func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var acc types.EthAccount
+	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.String())))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(b, &acc)
+	if e != nil {
+		return nil, e
+	}
+	return &acc, nil
+}
+
+func (q Querier) GetState(addr sdk.AccAddress, key []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	b, e := q.store.Get([]byte(GetMsgStateKey(addr.String(), string(key))))
+	if e != nil {
+		return nil, e
+	}
+	return b, nil
 }

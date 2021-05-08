@@ -329,9 +329,12 @@ func NewMsgState(addr sdk.AccAddress, key, value []byte) *MsgState {
 		value: string(value),
 	}
 }
+func GetMsgStateKey(addr, key string) string {
+	return prefixState + addr + key
+}
 
 func (msgState * MsgState) GetKey() string {
-	return prefixState + msgState.addr + msgState.key
+	return GetMsgStateKey(msgState.addr, msgState.key)
 }
 
 func (msgState * MsgState) GetValue() string {
