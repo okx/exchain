@@ -37,7 +37,7 @@ type EventSystem struct {
 	client rpcclient.Client
 
 	// channel length when subscribing
-	length int
+	channelLength int
 
 	// light client mode
 	lightMode bool
@@ -80,7 +80,7 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 	es := &EventSystem{
 		ctx:           context.Background(),
 		client:        client,
-		length:        viper.GetInt(server.FlagWsSubChannelLength),
+		channelLength: viper.GetInt(server.FlagWsSubChannelLength),
 		lightMode:     false,
 		index:         index,
 		install:       make(chan *Subscription),
@@ -118,11 +118,11 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.LogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.length)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.BlocksSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
 	default:
