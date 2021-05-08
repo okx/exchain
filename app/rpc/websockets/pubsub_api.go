@@ -70,6 +70,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	defer api.filtersMu.Unlock()
 
 	if api.filters[id] == nil {
+		api.logger.Debug("client doesn't exist in filters", "ID", id)
 		return false
 	}
 	if api.filters[id].sub != nil {
@@ -77,7 +78,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	}
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
-	api.logger.Debug("unsubscribe client", "ID", id)
+	api.logger.Debug("close client channel & delete client from filters", "ID", id)
 	return true
 }
 

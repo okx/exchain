@@ -48,7 +48,7 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 		wsAddr:  wsAddr,
 		api:     NewAPI(clientCtx, log),
 		logger:  log.With("module", "websocket-server"),
-		connPool: make(chan struct{}, 11), // todo: replace the constant variable with a flag
+		connPool: make(chan struct{}, 50000), // todo: replace the constant variable with a flag
 		poolLock: new(sync.Mutex),
 	}
 }
@@ -112,13 +112,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 		if err != nil {
 			_ = wsConn.Close()
 			s.logger.Error("failed to read message, close the websocket connection.", "error",err)
-			for id := range subIds {
-				s.api.unsubscribe(id)
-				delete(subIds, id)
-			}
-			s.poolLock.Lock()
-			<-s.connPool
-			s.poolLock.Unlock()
+			s.closeWsConnection(subIds)
 			return
 		}
 
@@ -226,4 +220,14 @@ func (s *Server) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
 	}
 
 	return conn.WriteJSON(wsSend)
+}
+
+func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
+	for id := range subIds {
+		s.api.unsubscribe(id)
+		delete(subIds, id)
+	}
+	s.poolLock.Lock()
+	<-s.connPool
+	s.poolLock.Unlock()
 }
