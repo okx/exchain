@@ -23,6 +23,11 @@ import (
 const (
 	flagUnlockKey = "unlock-key"
 	flagWebsocket = "wsport"
+
+	FlagPersonalAPI    = "personal-api"
+	FlagRateLimitApi   = "rpc.rate-limit-api"
+	FlagRateLimitCount = "rpc.rate-limit-count"
+	FlagRateLimitBurst = "rpc.rate-limit-burst"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.
