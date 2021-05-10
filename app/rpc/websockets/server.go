@@ -55,7 +55,7 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 		wsAddr:       wsAddr,
 		api:          NewAPI(clientCtx, log),
 		logger:       log.With("module", "websocket-server"),
-		connPool:     make(chan struct{}, viper.GetInt(server.FlagWsMaxConnections)), // todo: replace the constant variable with a flag
+		connPool:     make(chan struct{}, viper.GetInt(server.FlagWsMaxConnections)),
 		connPoolLock: new(sync.Mutex),
 		currentConnNum: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: monitor.XNameSpace,
