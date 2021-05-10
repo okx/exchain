@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"golang.org/x/time/rate"
 
 	"github.com/okex/exchain/x/evm/watcher"
 
@@ -60,10 +61,11 @@ type EthermintBackend struct {
 	bloomRequests     chan chan *bloombits.Retrieval
 	closeBloomHandler chan struct{}
 	wrappedBackend    *watcher.Querier
+	rateLimiters      map[string]*rate.Limiter
 }
 
 // New creates a new EthermintBackend instance
-func New(clientCtx clientcontext.CLIContext, log log.Logger) *EthermintBackend {
+func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[string]*rate.Limiter) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:               context.Background(),
 		clientCtx:         clientCtx,
@@ -72,6 +74,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger) *EthermintBackend {
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		closeBloomHandler: make(chan struct{}),
 		wrappedBackend:    watcher.NewQuerier(),
+		rateLimiters:      rateLimiters,
 	}
 }
 
@@ -422,4 +425,11 @@ func (b *EthermintBackend) GetBlockHashByHeight(height rpctypes.BlockNumber) (co
 // Close
 func (b *EthermintBackend) Close() {
 	close(b.closeBloomHandler)
+}
+
+func (b *EthermintBackend) GetRateLimiter(apiName string) *rate.Limiter {
+	if b.rateLimiters == nil {
+		return nil
+	}
+	return b.rateLimiters[apiName]
 }

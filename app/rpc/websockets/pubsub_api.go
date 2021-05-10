@@ -70,6 +70,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	defer api.filtersMu.Unlock()
 
 	if api.filters[id] == nil {
+		api.logger.Debug("client doesn't exist in filters", "ID", id)
 		return false
 	}
 	if api.filters[id].sub != nil {
@@ -77,7 +78,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	}
 	close(api.filters[id].unsubscribed)
 	delete(api.filters, id)
-	api.logger.Debug("unsubscribe client", "ID", id)
+	api.logger.Debug("close client channel & delete client from filters", "ID", id)
 	return true
 }
 
@@ -143,6 +144,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("NewHeads channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -271,6 +273,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -411,6 +414,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("PendingTransactions channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -497,6 +501,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("Syncing channel is closed", "ID", sub.ID())
 				return
 			}
 		}
