@@ -144,7 +144,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
-				api.logger.Error("close the unsubscribed ch") // todo: optimize log
+				api.logger.Debug("NewHeads channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -273,6 +273,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -413,6 +414,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("PendingTransactions channel is closed", "ID", sub.ID())
 				return
 			}
 		}
@@ -499,6 +501,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				return
 			case <-unsubscribed:
+				api.logger.Debug("Syncing channel is closed", "ID", sub.ID())
 				return
 			}
 		}
