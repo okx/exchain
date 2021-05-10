@@ -228,7 +228,14 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	if err == nil {
+		balance := acc.Balance(sdk.DefaultBondDenom).BigInt()
+		if balance == nil {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
+		return (*hexutil.Big)(balance), nil
+	}
 	clientCtx := api.clientCtx
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -1153,7 +1160,10 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
 	from := sdk.AccAddress(address.Bytes())
-
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	if err == nil {
+		return acc.Sequence, nil
+	}
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
 
