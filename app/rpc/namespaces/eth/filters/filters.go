@@ -10,10 +10,11 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/cmd/client"
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
+
+const FlagGetLogsHeightSpan = "logs-height-span"
 
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
@@ -115,7 +116,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		return nil, fmt.Errorf("from and to block height must greater than %d", tmtypes.GetStartBlockHeight())
 	}
 
-	heightSpan := viper.GetInt64(client.FlagGetLogsHeightSpan)
+	heightSpan := viper.GetInt64(FlagGetLogsHeightSpan)
 	if heightSpan == 0 {
 		return nil, fmt.Errorf("the node connected does not support logs filter")
 	} else if heightSpan > 0 && f.criteria.ToBlock.Int64()-f.criteria.FromBlock.Int64() > heightSpan {
