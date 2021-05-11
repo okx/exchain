@@ -7,8 +7,10 @@ import (
 	"sync"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
+
+	"github.com/cosmos/cosmos-sdk/store/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -31,10 +33,11 @@ type revision struct {
 
 type CommitStateDBParams struct {
 	StoreKey      sdk.StoreKey
-	ParamSpace    params.Subspace
+	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
-	BankKeeper    bank.Keeper
+	BankKeeper    BankKeeper
+	Ada           DbAdapter
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -50,10 +53,10 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
-	paramSpace    params.Subspace
+	paramSpace    Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
-	bankKeeper    bank.Keeper
+	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -97,6 +100,25 @@ type CommitStateDB struct {
 	params *Params
 
 	codeCache map[ethcmn.Address][]byte
+
+	dbAdapter DbAdapter
+}
+
+type StoreProxy interface {
+	Set(key, value []byte)
+	Get(key []byte) []byte
+	Delete(key []byte)
+}
+
+type DbAdapter interface {
+	NewStore(parent types.KVStore, prefix []byte) StoreProxy
+}
+
+type DefaultPrefixDb struct {
+}
+
+func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProxy {
+	return prefix.NewStore(parent, Prefix)
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -105,7 +127,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -124,6 +146,7 @@ func newCommitStateDB(
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		dbAdapter:            DefaultPrefixDb{},
 	}
 }
 
@@ -148,7 +171,12 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		dbAdapter:            csdbParams.Ada,
 	}
+}
+
+func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
+	csdb.dbAdapter = dba
 }
 
 // WithContext returns a Database with an updated SDK context
@@ -171,7 +199,7 @@ func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) []byte {
 
 // SetHeightHash sets the block header hash associated with a given height.
 func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
 }
@@ -333,7 +361,7 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	bz := store.Get(key)
 	if len(bz) == 0 {

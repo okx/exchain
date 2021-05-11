@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-const MsgFunctionDisable = "fast query function disabled"
+const MsgFunctionDisable = "fast query function has been disabled"
 
 type Querier struct {
 	store *WatchStore
