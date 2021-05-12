@@ -68,7 +68,8 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			}
 		}
 	}
-
+	params := k.GetParams(ctx)
+	k.Watcher.SaveParams(params)
 
 	return []abci.ValidatorUpdate{}
 }

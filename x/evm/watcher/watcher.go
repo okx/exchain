@@ -162,6 +162,16 @@ func (w *Watcher) SaveLatestHeight(height uint64) {
 	}
 }
 
+func (w *Watcher) SaveParams(params types2.Params) {
+	if !w.enabled() {
+		return
+	}
+	wMsg := NewMsgParams(params)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
 func (w *Watcher) Commit() {
 	if !w.enabled() {
 		return

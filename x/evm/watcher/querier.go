@@ -4,12 +4,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strconv"
 
 	"github.com/status-im/keycard-go/hexutils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/exchain/app/types"
+
+	"strconv"
+
+	types2 "github.com/okex/exchain/x/evm/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -228,4 +231,17 @@ func (q Querier) GetState(addr string, key []byte) ([]byte, error) {
 		return nil, e
 	}
 	return b, nil
+}
+
+func (q Querier) GetParams() (*types2.Params, error) {
+	b, e := q.store.Get([]byte(prefixParams))
+	if e != nil {
+		return nil, e
+	}
+	var params types2.Params
+	e = json.Unmarshal(b, &params)
+	if e != nil {
+		return nil, e
+	}
+	return &params, nil
 }

@@ -28,6 +28,7 @@ const (
 	prefixAccount      = "0x7"
 	prefixState        = "0x8"
 	prefixCodeHash     = "0x9"
+	prefixParams       = "0x10"
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -359,6 +360,7 @@ func NewMsgState(addr sdk.AccAddress, key, value []byte) *MsgState {
 		value: string(value),
 	}
 }
+
 func GetMsgStateKey(addr, key string) string {
 	return prefixState + addr + key
 }
@@ -369,4 +371,26 @@ func (msgState *MsgState) GetKey() string {
 
 func (msgState *MsgState) GetValue() string {
 	return msgState.value
+}
+
+type MsgParams struct {
+	types.Params
+}
+
+func NewMsgParams(params types.Params) *MsgParams {
+	return &MsgParams{
+		params,
+	}
+}
+
+func (msgState *MsgParams) GetKey() string {
+	return prefixParams
+}
+
+func (msgState *MsgParams) GetValue() string {
+	jsonValue, err := json.Marshal(msgState)
+	if err != nil {
+		panic(err)
+	}
+	return string(jsonValue)
 }
