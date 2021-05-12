@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -250,6 +251,9 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "unknown address") {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
 		return nil, err
 	}
 
