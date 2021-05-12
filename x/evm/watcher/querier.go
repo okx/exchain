@@ -4,9 +4,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"strconv"
+
+	"github.com/status-im/keycard-go/hexutils"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/exchain/app/types"
-	"strconv"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -119,6 +122,22 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	return hex.DecodeString(codeInfo.Code)
 }
 
+func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var codeInfo CodeInfo
+	info, e := q.store.Get([]byte(prefixCodeHash + hexutils.BytesToHex(codeHash)))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(info, &codeInfo)
+	if e != nil {
+		return nil, e
+	}
+	return hex.DecodeString(codeInfo.Code)
+}
+
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if !q.enabled() {
 		return 0, errors.New(MsgFunctionDisable)
@@ -200,11 +219,11 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	return &acc, nil
 }
 
-func (q Querier) GetState(addr sdk.AccAddress, key []byte) ([]byte, error) {
+func (q Querier) GetState(addr string, key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get([]byte(GetMsgStateKey(addr.String(), string(key))))
+	b, e := q.store.Get([]byte(GetMsgStateKey(addr, string(key))))
 	if e != nil {
 		return nil, e
 	}

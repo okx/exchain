@@ -46,6 +46,11 @@ type Watcher interface {
 	SaveState(addr sdk.AccAddress, key, value []byte)
 }
 
+type CacheCode struct {
+	CodeHash []byte
+	Code     []byte
+}
+
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
 // a trie and database for querying and persistence, the Keeper uses KVStores
 // and an account mapper is used to facilitate state transitions.
@@ -106,7 +111,7 @@ type CommitStateDB struct {
 
 	params *Params
 
-	codeCache map[ethcmn.Address][]byte
+	codeCache map[ethcmn.Address]CacheCode
 
 	dbAdapter DbAdapter
 }
@@ -115,6 +120,7 @@ type StoreProxy interface {
 	Set(key, value []byte)
 	Get(key []byte) []byte
 	Delete(key []byte)
+	Has(key []byte) bool
 }
 
 type DbAdapter interface {
@@ -153,7 +159,7 @@ func newCommitStateDB(
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            DefaultPrefixDb{},
 	}
 }
@@ -169,7 +175,6 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
 
-
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -180,7 +185,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accessList:           newAccessList(),
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            csdbParams.Ada,
 	}
 }
@@ -195,12 +200,18 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	return csdb
 }
 
-func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) []byte {
+func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 	code, ok := csdb.codeCache[addr]
 	if ok {
-		return code
+		return &code
 	}
 	return nil
+}
+
+func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode) bool) {
+	for addr, v := range csdb.codeCache {
+		cb(addr, v)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -263,10 +274,14 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 // SetCode sets the code for a given account.
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so := csdb.GetOrNewStateObject(addr)
+	hash := ethcrypto.Keccak256Hash(code)
 	if so != nil {
-		so.SetCode(ethcrypto.Keccak256Hash(code), code)
+		so.SetCode(hash, code)
+		csdb.codeCache[addr] = CacheCode{
+			CodeHash: hash.Bytes(),
+			Code:     code,
+		}
 	}
-	csdb.codeCache[addr] = code
 }
 
 // ----------------------------------------------------------------------------

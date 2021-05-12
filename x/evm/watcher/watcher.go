@@ -1,9 +1,10 @@
 package watcher
 
 import (
+	"math/big"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethermint "github.com/okex/exchain/app/types"
-	"math/big"
 
 	"github.com/spf13/viper"
 
@@ -70,6 +71,16 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 		return
 	}
 	wMsg := NewMsgCode(addr, code, w.height)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
+	if !w.enabled() {
+		return
+	}
+	wMsg := NewMsgCodeByHash(hash, code, w.height)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}

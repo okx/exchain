@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
+
 	"github.com/okex/exchain/x/evm/watcher"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
@@ -56,7 +58,8 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
-	watcherBackend * watcher.Watcher
+	watcherBackend *watcher.Watcher
+	evmFactory     simulation.EvmFactory
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -81,6 +84,7 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
+		evmFactory:     simulation.EvmFactory{ChainId: clientCtx.ChainID},
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -624,6 +628,13 @@ func (api *PublicEthereumAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 	msgs = append(msgs, msg)
 
+	sim := api.evmFactory.BuildSimulator()
+	if sim != nil {
+		r, e := sim.DoCall(msg)
+		if e == nil {
+			return r, nil
+		}
+	}
 	// convert the pending transactions into ethermint msgs
 	if blockNum == rpctypes.PendingBlockNumber {
 		pendingMsgs, err := api.pendingMsgs()

@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -13,13 +14,14 @@ import (
 )
 
 type EvmFactory struct {
-	chainId string
+	ChainId string
 }
 
 func (ef EvmFactory) BuildSimulator() *EvmSimulator {
+	keeper := ef.makeEvmKeeper()
 	return &EvmSimulator{
-		handler: evm.NewHandler(ef.makeEvmKeeper()),
-		ctx:     ef.makeContext(),
+		handler: evm.NewHandler(keeper),
+		ctx:     ef.makeContext(keeper),
 	}
 }
 
@@ -28,7 +30,12 @@ type EvmSimulator struct {
 	ctx     sdk.Context
 }
 
-func (es *EvmSimulator) doCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			panic(e)
+		}
+	}()
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
@@ -43,20 +50,24 @@ func (es *EvmSimulator) doCall(msg evmtypes.MsgEthermint) (*sdk.SimulationRespon
 }
 
 func (ef EvmFactory) makeEvmKeeper() *evm.Keeper {
-	return evm.NewSimulateKeeper(nil, sdk.NewKVStoreKey(evm.StoreKey), SubspaceProxy{}, AccountKeeperProxy{}, SupplyKeeperProxy{}, BankKeeperProxy{}, InternalDba{})
+	module := evm.AppModuleBasic{}
+	cdc := codec.New()
+	module.RegisterCodec(cdc)
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), SubspaceProxy{}, AccountKeeperProxy{}, SupplyKeeperProxy{}, BankKeeperProxy{}, InternalDba{})
 }
 
-func (ef EvmFactory) makeContext() sdk.Context {
+func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	storeKey := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
-	return sdk.NewContext(cms, abci.Header{ChainID: ef.chainId}, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+	cms.LoadLatestVersion()
+	ctx := sdk.NewContext(cms, abci.Header{ChainID: ef.ChainId}, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+	return ctx
 }
