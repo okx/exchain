@@ -107,6 +107,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
+		Watcher:       k.Watcher,
 		Ada:           k.Ada,
 	}
 }

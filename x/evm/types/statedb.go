@@ -36,8 +36,14 @@ type CommitStateDBParams struct {
 	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
+	Watcher       Watcher
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
+}
+
+type Watcher interface {
+	SaveAccount(account *ethermint.EthAccount)
+	SaveState(addr sdk.AccAddress, key, value []byte)
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -56,6 +62,7 @@ type CommitStateDB struct {
 	paramSpace    Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
+	Watcher       Watcher
 	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
@@ -127,7 +134,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -136,6 +143,7 @@ func newCommitStateDB(
 		accountKeeper:        ak,
 		supplyKeeper:         sk,
 		bankKeeper:           bk,
+		Watcher:              watcher,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -159,6 +167,8 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accountKeeper: csdbParams.AccountKeeper,
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
+		Watcher:       csdbParams.Watcher,
+
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -640,6 +650,9 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	}
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	if !csdb.ctx.IsCheckTx() {
+		csdb.Watcher.SaveAccount(so.account)
+	}
 	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
 }

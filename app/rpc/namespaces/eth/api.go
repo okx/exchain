@@ -56,6 +56,7 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
+	watcherBackend * watcher.Watcher
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -79,6 +80,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
+		watcherBackend: watcher.NewWatcher(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -228,24 +230,36 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	if err == nil {
+		balance := acc.Balance(sdk.DefaultBondDenom).BigInt()
+		if balance == nil {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
+		return (*hexutil.Big)(balance), nil
+	}
 	clientCtx := api.clientCtx
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
+	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResBalance
-	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	val, err := utils.UnmarshalBigInt(out.Balance)
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
 		return nil, err
 	}
 
+	var account ethermint.EthAccount
+	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
+		return nil, err
+	}
+
+	val := account.Balance(sdk.DefaultBondDenom).BigInt()
+	api.watcherBackend.SaveAccount(&account)
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -1153,7 +1167,13 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
 	from := sdk.AccAddress(address.Bytes())
-
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	fmt.Println("account", acc)
+	fmt.Println("error", err)
+	if err == nil {
+		fmt.Println("sequence", acc.Sequence)
+		return acc.Sequence, nil
+	}
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
 
