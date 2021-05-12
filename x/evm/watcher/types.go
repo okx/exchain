@@ -3,10 +3,11 @@ package watcher
 import (
 	"encoding/binary"
 	"encoding/json"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	types2 "github.com/okex/exchain/app/types"
 	"math/big"
 	"strconv"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/app/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -26,7 +27,8 @@ const (
 	prefixLatestHeight = "0x6"
 	prefixAccount      = "0x7"
 	prefixState        = "0x8"
-	prefixParams       = "0x9"
+	prefixCodeHash     = "0x9"
+	prefixParams       = "0x10"
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -98,6 +100,34 @@ func (m MsgCode) GetKey() string {
 }
 
 func (m MsgCode) GetValue() string {
+	return m.Code
+}
+
+type MsgCodeByHash struct {
+	Key  string
+	Code string
+}
+
+func NewMsgCodeByHash(hash []byte, code []byte, height uint64) *MsgCode {
+	codeInfo := CodeInfo{
+		Height: height,
+		Code:   hexutils.BytesToHex(code),
+	}
+	jsCode, e := json.Marshal(codeInfo)
+	if e != nil {
+		return nil
+	}
+	return &MsgCode{
+		Key:  hexutils.BytesToHex(hash),
+		Code: string(jsCode),
+	}
+}
+
+func (m MsgCodeByHash) GetKey() string {
+	return prefixCode + m.Key
+}
+
+func (m MsgCodeByHash) GetValue() string {
 	return m.Code
 }
 
@@ -290,7 +320,7 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	addr string
+	addr         string
 	accountValue string
 }
 
@@ -300,7 +330,7 @@ func NewMsgAccount(acc *types2.EthAccount) *MsgAccount {
 		return nil
 	}
 	return &MsgAccount{
-		addr: acc.Address.String(),
+		addr:         acc.Address.String(),
 		accountValue: string(jsonAcc),
 	}
 }
@@ -309,24 +339,24 @@ func GetMsgAccountKey(addr string) string {
 	return prefixAccount + addr
 }
 
-func (msgAccount * MsgAccount) GetKey() string {
+func (msgAccount *MsgAccount) GetKey() string {
 	return GetMsgAccountKey(msgAccount.addr)
 }
 
-func (msgAccount * MsgAccount) GetValue() string {
+func (msgAccount *MsgAccount) GetValue() string {
 	return msgAccount.accountValue
 }
 
 type MsgState struct {
-	addr string
-	key string
+	addr  string
+	key   string
 	value string
 }
 
 func NewMsgState(addr sdk.AccAddress, key, value []byte) *MsgState {
 	return &MsgState{
-		addr: addr.String(),
-		key: string(key),
+		addr:  addr.String(),
+		key:   string(key),
 		value: string(value),
 	}
 }
@@ -335,11 +365,11 @@ func GetMsgStateKey(addr, key string) string {
 	return prefixState + addr + key
 }
 
-func (msgState * MsgState) GetKey() string {
+func (msgState *MsgState) GetKey() string {
 	return GetMsgStateKey(msgState.addr, msgState.key)
 }
 
-func (msgState * MsgState) GetValue() string {
+func (msgState *MsgState) GetValue() string {
 	return msgState.value
 }
 
@@ -353,14 +383,16 @@ func NewMsgParams(params types.Params) *MsgParams {
 	}
 }
 
-func (msgState * MsgParams) GetKey() string {
+
+func (msgState *MsgParams) GetKey() string {
 	return prefixParams
 }
 
-func (msgState * MsgParams) GetValue() string {
+func (msgState *MsgParams) GetValue() string {
 	jsonValue, err := json.Marshal(msgState)
 	if err != nil {
 		panic(err)
 	}
 	return string(jsonValue)
+
 }

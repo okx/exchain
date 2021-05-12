@@ -106,10 +106,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		k.LogSize = st.Csdb.GetLogSize()
 		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
-			code := st.Csdb.GetCacheCode(resultData.ContractAddress)
-			if code != nil {
-				k.Watcher.SaveContractCode(resultData.ContractAddress, code)
-			}
+			st.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
+				k.Watcher.SaveContractCode(addr, c.Code)
+				k.Watcher.SaveContractCodeByHash(c.CodeHash, c.Code)
+				return true
+			})
 		}
 	}
 
