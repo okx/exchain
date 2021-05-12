@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"log"
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -33,9 +34,19 @@ func initDb() (*leveldb.DB, error) {
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
-	w.db.Put(key, value, nil)
+	err := w.db.Put(key, value, nil)
+	if err != nil {
+		log.Println("watchdb error: ", err.Error())
+	}
 }
 
 func (w WatchStore) Get(key []byte) ([]byte, error) {
 	return w.db.Get(key, nil)
+}
+
+func (w WatchStore) Delete(key []byte) {
+	err := w.db.Delete(key, nil)
+	if err != nil {
+		log.Printf("watchdb error: " + err.Error())
+	}
 }

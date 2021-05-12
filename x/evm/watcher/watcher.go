@@ -4,13 +4,12 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ethermint "github.com/okex/exchain/app/types"
 
-	"github.com/spf13/viper"
-
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	types2 "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 )
 
@@ -116,7 +115,7 @@ func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
 	w.blockTxs = append(w.blockTxs, txHash)
 }
 
-func (w *Watcher) SaveAccount(account *ethermint.EthAccount) {
+func (w *Watcher) SaveAccount(account auth.Account) {
 	if !w.enabled() {
 		return
 	}
@@ -124,6 +123,10 @@ func (w *Watcher) SaveAccount(account *ethermint.EthAccount) {
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
+}
+
+func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
+	w.store.Delete([]byte(GetMsgAccountKey(addr.String())))
 }
 
 func (w *Watcher) SaveState(addr sdk.AccAddress, key, value []byte) {

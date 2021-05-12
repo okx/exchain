@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/status-im/keycard-go/hexutils"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/exchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	types2 "github.com/okex/exchain/x/evm/types"
+	"github.com/status-im/keycard-go/hexutils"
 	"strconv"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -205,11 +203,11 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 	return nil, errors.New("no such transaction in target block")
 }
 
-func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+func (q Querier) GetAccount(addr sdk.AccAddress) (auth.Account, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
+	var acc auth.Account
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.String())))
 	if e != nil {
 		return nil, e
@@ -218,7 +216,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if e != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) GetState(addr string, key []byte) ([]byte, error) {

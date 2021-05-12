@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
 	"sort"
 	"sync"
@@ -42,7 +43,7 @@ type CommitStateDBParams struct {
 }
 
 type Watcher interface {
-	SaveAccount(account *ethermint.EthAccount)
+	SaveAccount(account auth.Account)
 	SaveState(addr sdk.AccAddress, key, value []byte)
 }
 
