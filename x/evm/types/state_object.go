@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -237,7 +236,7 @@ func (so *stateObject) markSuicided() {
 // the dirty storage slice to the empty state.
 func (so *stateObject) commitState() {
 	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 
 	for _, state := range so.dirtyStorage {
 		// NOTE: key is already prefixed from GetStorageByAddressKey
@@ -278,7 +277,7 @@ func (so *stateObject) commitState() {
 // commitCode persists the state object's code to the KVStore.
 func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	store.Set(so.CodeHash(), so.code)
 }
 
@@ -327,7 +326,7 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	}
 
 	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	code := store.Get(so.CodeHash())
 
 	if len(code) == 0 {
@@ -369,7 +368,7 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	state := NewState(prefixKey, ethcmn.Hash{})
 
 	ctx := so.stateDB.ctx
-	store := prefix.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	rawValue := store.Get(prefixKey.Bytes())
 
 	if len(rawValue) > 0 {

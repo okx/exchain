@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -33,9 +32,9 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 	// Account Keeper for fetching accounts
 	accountKeeper types.AccountKeeper
-	paramSpace    params.Subspace
+	paramSpace    types.Subspace
 	supplyKeeper  types.SupplyKeeper
-	bankKeeper    bank.Keeper
+	bankKeeper    types.BankKeeper
 	govKeeper     GovKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
@@ -46,11 +45,12 @@ type Keeper struct {
 	Bhash   ethcmn.Hash
 	LogSize uint
 	Watcher *watcher.Watcher
+	Ada     types.DbAdapter
 }
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk bank.Keeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
 ) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -75,6 +75,27 @@ func NewKeeper(
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
+		Ada:           types.DefaultPrefixDb{},
+	}
+}
+
+// NewKeeper generates new evm module keeper
+func NewSimulateKeeper(
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+) *Keeper {
+	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
+	return &Keeper{
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: ak,
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
+		TxCount:       0,
+		Bloom:         big.NewInt(0),
+		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
+		Ada:           ada,
 	}
 }
 
@@ -87,6 +108,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
 		Watcher:       k.Watcher,
+		Ada:           k.Ada,
 	}
 }
 
