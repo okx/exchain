@@ -262,6 +262,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 		return nil, err
 	}
 
+
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
 	api.watcherBackend.SaveAccount(&account)
 	api.watcherBackend.Commit()
