@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -250,6 +251,9 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "unknown address") {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
 		return nil, err
 	}
 
@@ -258,8 +262,10 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 		return nil, err
 	}
 
+
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
 	api.watcherBackend.SaveAccount(&account)
+	api.watcherBackend.Commit()
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -1168,25 +1174,22 @@ func (api *PublicEthereumAPI) accountNonce(
 	// Get nonce (sequence) from sender account
 	from := sdk.AccAddress(address.Bytes())
 	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
-	fmt.Println("account", acc)
-	fmt.Println("error", err)
 	if err == nil {
-		fmt.Println("sequence", acc.Sequence)
 		return acc.Sequence, nil
 	}
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
 
-	if err := accRet.EnsureExists(from); err != nil {
+	account, err := accRet.GetAccount(from)
+	if err != nil {
 		// account doesn't exist yet, return 0
 		return 0, nil
 	}
 
-	_, nonce, err := accRet.GetAccountNumberSequence(from)
-	if err != nil {
-		return 0, err
-	}
-
+	nonce := account.GetSequence()
+	ethAcc := account.(*ethermint.EthAccount)
+	api.watcherBackend.SaveAccount(ethAcc)
+	api.watcherBackend.Commit()
 	if !pending {
 		return nonce, nil
 	}
