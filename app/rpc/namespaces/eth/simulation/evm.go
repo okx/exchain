@@ -35,11 +35,6 @@ type EvmSimulator struct {
 }
 
 func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
-	defer func() {
-		if e := recover(); e != nil {
-			panic(e)
-		}
-	}()
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
