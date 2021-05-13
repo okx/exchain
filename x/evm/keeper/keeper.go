@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/store"
@@ -65,7 +66,7 @@ func NewKeeper(
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
-	return &Keeper{
+	k := &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		accountKeeper: ak,
@@ -78,6 +79,8 @@ func NewKeeper(
 		Watcher:       watcher.NewWatcher(),
 		Ada:           types.DefaultPrefixDb{},
 	}
+	ak.SetObserverKeeper(k)
+	return k
 }
 
 // NewKeeper generates new evm module keeper
@@ -98,6 +101,10 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(),
 		Ada:           ada,
 	}
+}
+
+func (k Keeper) OnAccountUpdated(acc auth.Account) {
+	k.Watcher.DeleteAccount(acc.GetAddress())
 }
 
 // Logger returns a module-specific logger.

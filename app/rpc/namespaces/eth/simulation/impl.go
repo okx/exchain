@@ -28,6 +28,9 @@ func NewAccountKeeperProxy() AccountKeeperProxy {
 	}
 }
 
+func (a AccountKeeperProxy) SetObserverKeeper(observer auth.ObserverI) {
+}
+
 func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
 	acc := types.EthAccount{
 		BaseAccount: &auth.BaseAccount{},
@@ -51,12 +54,12 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	if ok {
 		return acc
 	}
-	acc, e := a.q.GetAccount(addr)
+	account, e := a.q.GetAccount(addr)
 	if e != nil {
 		//query account from chain
 		return nil
 	}
-	return acc
+	return account
 }
 
 func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account) {
@@ -226,3 +229,4 @@ func (s CodeStore) Delete(key []byte) {
 func (s CodeStore) Has(key []byte) bool {
 	return false
 }
+

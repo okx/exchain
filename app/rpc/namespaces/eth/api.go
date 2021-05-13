@@ -237,7 +237,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
 	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
 	if err == nil {
-		balance := acc.Balance(sdk.DefaultBondDenom).BigInt()
+		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
 		if balance == nil {
 			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 		}
@@ -1186,7 +1186,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	from := sdk.AccAddress(address.Bytes())
 	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
 	if err == nil {
-		return acc.Sequence, nil
+		return acc.GetSequence(), nil
 	}
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
@@ -1198,8 +1198,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	nonce := account.GetSequence()
-	ethAcc := account.(*ethermint.EthAccount)
-	api.watcherBackend.SaveAccount(ethAcc)
+	api.watcherBackend.SaveAccount(account)
 	api.watcherBackend.Commit()
 	if !pending {
 		return nonce, nil

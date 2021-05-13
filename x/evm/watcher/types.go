@@ -3,12 +3,12 @@ package watcher
 import (
 	"encoding/binary"
 	"encoding/json"
+
 	"math/big"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	types2 "github.com/okex/exchain/app/types"
-
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -324,13 +324,13 @@ type MsgAccount struct {
 	accountValue string
 }
 
-func NewMsgAccount(acc *types2.EthAccount) *MsgAccount {
+func NewMsgAccount(acc auth.Account) *MsgAccount {
 	jsonAcc, err := json.Marshal(acc)
 	if err != nil {
 		return nil
 	}
 	return &MsgAccount{
-		addr:         acc.Address.String(),
+		addr: acc.GetAddress().String(),
 		accountValue: string(jsonAcc),
 	}
 }
@@ -383,12 +383,13 @@ func NewMsgParams(params types.Params) *MsgParams {
 	}
 }
 
-func (msgState *MsgParams) GetKey() string {
+
+func (msgParams *MsgParams) GetKey() string {
 	return prefixParams
 }
 
-func (msgState *MsgParams) GetValue() string {
-	jsonValue, err := json.Marshal(msgState)
+func (msgParams *MsgParams) GetValue() string {
+	jsonValue, err := json.Marshal(msgParams)
 	if err != nil {
 		panic(err)
 	}
