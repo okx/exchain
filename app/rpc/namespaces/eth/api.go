@@ -693,7 +693,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	gas := estimatedGas + 1000
+	gas := estimatedGas + (estimatedGas / 10 * 3)
 
 	return hexutil.Uint64(gas), nil
 }
