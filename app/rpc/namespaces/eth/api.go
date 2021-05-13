@@ -314,8 +314,8 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
-	pending := blockNum == rpctypes.PendingBlockNumber
-
+	//pending := blockNum == rpctypes.PendingBlockNumber
+	pending := false
 	// pass the given block height to the context if the height is not pending or latest
 	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -642,41 +642,41 @@ func (api *PublicEthereumAPI) doCall(
 		}
 	}
 	// convert the pending transactions into ethermint msgs
-	if blockNum == rpctypes.PendingBlockNumber {
-		pendingMsgs, err := api.pendingMsgs()
-		if err != nil {
-			return nil, err
-		}
-		msgs = append(msgs, pendingMsgs...)
-	}
+	//if blockNum == rpctypes.PendingBlockNumber {
+	//	pendingMsgs, err := api.pendingMsgs()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	msgs = append(msgs, pendingMsgs...)
+	//}
 
 	// Generate tx to be used to simulate (signature isn't needed)
-	var stdSig authtypes.StdSignature
-	stdSigs := []authtypes.StdSignature{stdSig}
+	//var stdSig authtypes.StdSignature
+	//stdSigs := []authtypes.StdSignature{stdSig}
 
-	tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
-	if err := tx.ValidateBasic(); err != nil {
-		return nil, err
-	}
+	//tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
+	//if err := tx.ValidateBasic(); err != nil {
+	//	return nil, err
+	//}
+	//
+	//txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	//txBytes, err := txEncoder(tx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//// Transaction simulation through query
+	//res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//var simResponse sdk.SimulationResponse
+	//if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+	//	return nil, err
+	//}
 
-	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Transaction simulation through query
-	res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	var simResponse sdk.SimulationResponse
-	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-		return nil, err
-	}
-
-	return &simResponse, nil
+	//return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
