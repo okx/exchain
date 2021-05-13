@@ -635,48 +635,50 @@ func (api *PublicEthereumAPI) doCall(
 	msgs = append(msgs, msg)
 
 	sim := api.evmFactory.BuildSimulator()
+	//only worked when fast-query has been enabled
 	if sim != nil {
 		r, e := sim.DoCall(msg)
 		if e == nil {
 			return r, nil
 		}
 	}
-	// convert the pending transactions into ethermint msgs
-	//if blockNum == rpctypes.PendingBlockNumber {
-	//	pendingMsgs, err := api.pendingMsgs()
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	msgs = append(msgs, pendingMsgs...)
-	//}
 
-	// Generate tx to be used to simulate (signature isn't needed)
-	//var stdSig authtypes.StdSignature
-	//stdSigs := []authtypes.StdSignature{stdSig}
+	//convert the pending transactions into ethermint msgs
+	if blockNum == rpctypes.PendingBlockNumber {
+		pendingMsgs, err := api.pendingMsgs()
+		if err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, pendingMsgs...)
+	}
 
-	//tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
-	//if err := tx.ValidateBasic(); err != nil {
-	//	return nil, err
-	//}
-	//
-	//txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
-	//txBytes, err := txEncoder(tx)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// Transaction simulation through query
-	//res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//var simResponse sdk.SimulationResponse
-	//if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-	//	return nil, err
-	//}
+	//Generate tx to be used to simulate (signature isn't needed)
+	var stdSig authtypes.StdSignature
+	stdSigs := []authtypes.StdSignature{stdSig}
 
-	//return &simResponse, nil
+	tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
+	if err := tx.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Transaction simulation through query
+	res, _, err := clientCtx.QueryWithData("app/simulate", txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var simResponse sdk.SimulationResponse
+	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+		return nil, err
+	}
+
+	return &simResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
