@@ -53,7 +53,7 @@ func (ef EvmFactory) makeEvmKeeper() *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), SubspaceProxy{}, AccountKeeperProxy{}, SupplyKeeperProxy{}, BankKeeperProxy{}, InternalDba{})
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(), SupplyKeeperProxy{}, BankKeeperProxy{}, InternalDba{})
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {

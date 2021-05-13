@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	tmtypes "github.com/tendermint/tendermint/types"
 	"math/big"
+
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -54,6 +55,8 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
+	params := k.GetParams(ctx)
+	k.Watcher.SaveParams(params)
 
 	k.Watcher.SaveBlock(bloom)
 	k.Watcher.Commit()
@@ -68,8 +71,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			}
 		}
 	}
-	params := k.GetParams(ctx)
-	k.Watcher.SaveParams(params)
 
 	return []abci.ValidatorUpdate{}
 }

@@ -18,7 +18,14 @@ import (
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeperProxy struct {
 	cachedAcc map[string]*types.EthAccount
-	q         watcher.Querier
+	q         *watcher.Querier
+}
+
+func NewAccountKeeperProxy() AccountKeeperProxy {
+	return AccountKeeperProxy{
+		cachedAcc: make(map[string]*types.EthAccount, 0),
+		q:         watcher.NewQuerier(),
+	}
 }
 
 func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
@@ -73,9 +80,20 @@ func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderM
 }
 
 type SubspaceProxy struct {
+	q *watcher.Querier
+}
+
+func NewSubspaceProxy() SubspaceProxy {
+	return SubspaceProxy{
+		q: watcher.NewQuerier(),
+	}
 }
 
 func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
+	pr, e := p.q.GetParams()
+	if e == nil {
+		ps = pr
+	}
 
 }
 func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {

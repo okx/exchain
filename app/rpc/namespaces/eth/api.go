@@ -266,7 +266,6 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 		return nil, err
 	}
 
-
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
 	api.watcherBackend.SaveAccount(&account)
 	api.watcherBackend.Commit()
@@ -623,14 +622,15 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// Set destination address for call
-	var toAddr sdk.AccAddress
+	var toAddr *sdk.AccAddress
 	if args.To != nil {
-		toAddr = sdk.AccAddress(args.To.Bytes())
+		pTemp := sdk.AccAddress(args.To.Bytes())
+		toAddr = &pTemp
 	}
 
 	var msgs []sdk.Msg
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(nonce, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := evmtypes.NewMsgEthermint(nonce, toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 	msgs = append(msgs, msg)
 
