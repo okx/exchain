@@ -51,6 +51,8 @@ require (
 	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
+	github.com/sdming/goh v0.0.0-20130319082738-7071d6d7ab1f
+
 )
 
 replace (
