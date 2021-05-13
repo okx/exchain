@@ -266,7 +266,10 @@ func (so *stateObject) commitState() {
 		so.originStorage[idx].Value = state.Value
 		store.Set(state.Key.Bytes(), state.Value.Bytes())
 		if !so.stateDB.ctx.IsCheckTx() {
-			so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
+			if so.stateDB.Watcher.Enabled() {
+				so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
+
+			}
 		}
 
 	}

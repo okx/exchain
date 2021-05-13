@@ -8,7 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	types2 "github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 )
@@ -33,7 +33,7 @@ func NewWatcher() *Watcher {
 	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
 }
 
-func (w Watcher) enabled() bool {
+func (w *Watcher) Enabled() bool {
 	return w.sw
 }
 
@@ -42,7 +42,7 @@ func (w *Watcher) Enable(sw bool) {
 }
 
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	w.batch = []WatchMessage{}
@@ -54,8 +54,8 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.blockTxs = []common.Hash{}
 }
 
-func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, index uint64) {
-	if !w.enabled() {
+func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgEthTx(&msg, txHash, w.blockHash, w.height, index)
@@ -66,7 +66,7 @@ func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, i
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgCode(addr, code, w.height)
@@ -76,7 +76,7 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 }
 
 func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgCodeByHash(hash, code, w.height)
@@ -85,8 +85,8 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *types2.ResultData, gasUsed uint64) {
-	if !w.enabled() {
+func (w *Watcher) SaveTransactionReceipt(status uint32, msg evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+	if !w.Enabled() {
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
@@ -97,7 +97,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx
 }
 
 func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	if len(w.cumulativeGas) == 0 {
@@ -109,14 +109,14 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 }
 
 func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	w.blockTxs = append(w.blockTxs, txHash)
 }
 
 func (w *Watcher) SaveAccount(account auth.Account) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgAccount(account)
@@ -126,11 +126,14 @@ func (w *Watcher) SaveAccount(account auth.Account) {
 }
 
 func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
 	w.store.Delete([]byte(GetMsgAccountKey(addr.String())))
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgState(addr, key, value)
@@ -140,7 +143,7 @@ func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
 }
 
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
@@ -156,7 +159,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgLatestHeight(height)
@@ -165,8 +168,8 @@ func (w *Watcher) SaveLatestHeight(height uint64) {
 	}
 }
 
-func (w *Watcher) SaveParams(params types2.Params) {
-	if !w.enabled() {
+func (w *Watcher) SaveParams(params evmtypes.Params) {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgParams(params)
@@ -175,8 +178,56 @@ func (w *Watcher) SaveParams(params types2.Params) {
 	}
 }
 
+func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractBlockedListItem(addr)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) HasContractBlockedList(addr sdk.AccAddress) bool {
+	if !w.Enabled() {
+		return false
+	}
+	return w.store.Has(evmtypes.GetContractBlockedListMemberKey(addr))
+}
+
+func (w *Watcher) HasContractDeploymentWhitelist(addr sdk.AccAddress) bool {
+	if !w.Enabled() {
+		return false
+	}
+	return w.store.Has(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
+}
+
+func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	w.store.Delete(evmtypes.GetContractBlockedListMemberKey(addr))
+}
+
+func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	w.store.Delete(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
+}
+
 func (w *Watcher) Commit() {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	//hold it in temp

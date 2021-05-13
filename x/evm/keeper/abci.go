@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/okex/exchain/x/evm/watcher"
 	"math/big"
 
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -55,11 +56,14 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
-	params := k.GetParams(ctx)
-	k.Watcher.SaveParams(params)
+	if watcher.IsWatcherEnabled() {
+		params := k.GetParams(ctx)
+		k.Watcher.SaveParams(params)
 
-	k.Watcher.SaveBlock(bloom)
-	k.Watcher.Commit()
+		k.Watcher.SaveBlock(bloom)
+		k.Watcher.Commit()
+	}
+
 
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.

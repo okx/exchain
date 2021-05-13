@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/binary"
 	"encoding/json"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
@@ -400,4 +401,40 @@ func (msgParams *MsgParams) GetValue() string {
 		panic(err)
 	}
 	return string(jsonValue)
+}
+
+type MsgContractBlockedListItem struct {
+	addr sdk.AccAddress
+}
+
+func NewMsgContractBlockedListItem(addr sdk.AccAddress) *MsgContractBlockedListItem {
+	return &MsgContractBlockedListItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgContractBlockedListItem) GetKey() string {
+	return hexutils.BytesToHex(types.GetContractBlockedListMemberKey(msgItem.addr))
+}
+
+func (msgItem *MsgContractBlockedListItem) GetValue() string {
+	return ""
+}
+
+type MsgContractDeploymentWhitelistItem struct {
+	addr sdk.AccAddress
+}
+
+func NewMsgContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgContractDeploymentWhitelistItem {
+	return &MsgContractDeploymentWhitelistItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() string {
+	return hexutils.BytesToHex(types.GetContractDeploymentWhitelistMemberKey(msgItem.addr))
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
+	return ""
 }

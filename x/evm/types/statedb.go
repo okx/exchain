@@ -46,6 +46,13 @@ type CommitStateDBParams struct {
 type Watcher interface {
 	SaveAccount(account auth.Account)
 	SaveState(addr ethcmn.Address, key, value []byte)
+	Enabled() bool
+	SaveContractBlockedListItem(addr sdk.AccAddress)
+	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
+	HasContractBlockedList(addr sdk.AccAddress) bool
+	HasContractDeploymentWhitelist(addr sdk.AccAddress) bool
+	DeleteContractBlockedList(addr sdk.AccAddress)
+	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
 }
 
 type CacheCode struct {
@@ -668,7 +675,9 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if !csdb.ctx.IsCheckTx() {
-		csdb.Watcher.SaveAccount(so.account)
+		if csdb.Watcher.Enabled() {
+			csdb.Watcher.SaveAccount(so.account)
+		}
 	}
 	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
@@ -988,17 +997,27 @@ func (csdb *CommitStateDB) GetLogSize() uint {
 
 // SetContractDeploymentWhitelistMember sets the target address list into whitelist store
 func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.SaveContractDeploymentWhitelistItem(addrList[i])
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Set(getContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
+		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 	}
 }
 
 // DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
 func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.DeleteContractDeploymentWhitelist(GetContractDeploymentWhitelistMemberKey(addrList[i]))
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Delete(getContractDeploymentWhitelistMemberKey(addrList[i]))
+		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 	}
 }
 
@@ -1017,22 +1036,42 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
-	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractDeploymentWhitelistMemberKey(deployerAddr))
+	if csdb.Watcher.Enabled() {
+		res := csdb.Watcher.HasContractDeploymentWhitelist(deployerAddr)
+		if res {
+			return res
+		}
+	}
+	res := csdb.ctx.KVStore(csdb.storeKey).Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
+	if res {
+		csdb.Watcher.SaveContractDeploymentWhitelistItem(deployerAddr)
+	}
+	return res
 }
 
 // SetContractBlockedList sets the target address list into blocked list store
 func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.SaveContractBlockedListItem(addrList[i])
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Set(getContractBlockedListMemberKey(addrList[i]), []byte(""))
+		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 	}
 }
 
 // DeleteContractBlockedList deletes the target address list from blocked list store
 func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.DeleteContractBlockedList(GetContractBlockedListMemberKey(addrList[i]))
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Delete(getContractBlockedListMemberKey(addrList[i]))
+		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
 	}
 }
 
@@ -1051,5 +1090,15 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
-	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
+	if csdb.Watcher.Enabled() {
+		res := csdb.Watcher.HasContractBlockedList(contractAddr)
+		if res {
+			return res
+		}
+	}
+	res := csdb.ctx.KVStore(csdb.storeKey).Has(GetContractBlockedListMemberKey(contractAddr))
+	if res {
+		csdb.Watcher.SaveContractBlockedListItem(contractAddr)
+	}
+	return res
 }
