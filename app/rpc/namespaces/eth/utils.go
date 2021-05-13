@@ -42,7 +42,7 @@ func ParseGasPrice() *hexutil.Big {
 	}
 
 	//return the default gas price : DefaultGasPrice
-	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
+	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2 + 1).BigInt())
 }
 
 type cosmosError struct {
