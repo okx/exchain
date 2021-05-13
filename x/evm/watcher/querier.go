@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/okex/exchain/app/types"
+
+	"strconv"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	types2 "github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
-	"strconv"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -203,11 +205,11 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 	return nil, errors.New("no such transaction in target block")
 }
 
-func (q Querier) GetAccount(addr sdk.AccAddress) (auth.Account, error) {
+func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc auth.Account
+	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.String())))
 	if e != nil {
 		return nil, e
@@ -216,21 +218,25 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (auth.Account, error) {
 	if e != nil {
 		return nil, e
 	}
-	return acc, nil
+	return &acc, nil
 }
 
-func (q Querier) GetState(addr string, key []byte) ([]byte, error) {
+func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get([]byte(GetMsgStateKey(addr, string(key))))
+	b, e := q.store.Get([]byte(GetMsgStateKey(addr, key)))
 	if e != nil {
 		return nil, e
 	}
-	return b, nil
+	ret := hexutils.HexToBytes(string(b))
+	return ret, nil
 }
 
 func (q Querier) GetParams() (*types2.Params, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
 	b, e := q.store.Get([]byte(prefixParams))
 	if e != nil {
 		return nil, e

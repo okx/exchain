@@ -7,12 +7,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/status-im/keycard-go/hexutils"
 )
 
 // AccountKeeper defines the expected account keeper interface
@@ -38,7 +38,7 @@ func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccA
 	}
 	acc.SetAddress(addr)
 	a.cachedAcc[addr.String()] = &acc
-	return acc
+	return &acc
 }
 
 func (a AccountKeeperProxy) GetAllAccounts(ctx sdk.Context) (accounts []authexported.Account) {
@@ -95,7 +95,13 @@ func NewSubspaceProxy() SubspaceProxy {
 func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	pr, e := p.q.GetParams()
 	if e == nil {
-		ps = pr
+		evmParam := ps.(*evmtypes.Params)
+		evmParam.MaxGasLimitPerTx = pr.MaxGasLimitPerTx
+		evmParam.EnableCall = pr.EnableCall
+		evmParam.EnableContractBlockedList = pr.EnableContractBlockedList
+		evmParam.EnableCreate = pr.EnableCreate
+		evmParam.ExtraEIPs = pr.ExtraEIPs
+		evmParam.EnableContractDeploymentWhitelist = pr.EnableContractDeploymentWhitelist
 	}
 
 }
@@ -126,8 +132,8 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 	if Prefix == nil {
 		return nil
 	}
-	if len(Prefix) > 1 {
-		return StateStore{addr: hexutils.BytesToHex(Prefix[1:]), q: watcher.NewQuerier()}
+	if len(Prefix) >= 21 {
+		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), q: watcher.NewQuerier()}
 	}
 	cdc := newCdc()
 	switch Prefix[0] {
@@ -140,7 +146,7 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 }
 
 type StateStore struct {
-	addr string
+	addr common.Address
 	q    *watcher.Querier
 }
 
@@ -151,8 +157,11 @@ func (s StateStore) Set(key, value []byte) {
 
 func (s StateStore) Get(key []byte) []byte {
 	//include code and state
-	s.q.GetState(s.addr, key)
-	return nil
+	b, e := s.q.GetState(s.addr, key)
+	if e != nil {
+		return nil
+	}
+	return b
 }
 
 func (s StateStore) Has(key []byte) bool {
@@ -229,4 +238,3 @@ func (s CodeStore) Delete(key []byte) {
 func (s CodeStore) Has(key []byte) bool {
 	return false
 }
-

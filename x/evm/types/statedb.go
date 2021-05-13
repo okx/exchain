@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 
@@ -44,7 +45,7 @@ type CommitStateDBParams struct {
 
 type Watcher interface {
 	SaveAccount(account auth.Account)
-	SaveState(addr sdk.AccAddress, key, value []byte)
+	SaveState(addr ethcmn.Address, key, value []byte)
 }
 
 type CacheCode struct {

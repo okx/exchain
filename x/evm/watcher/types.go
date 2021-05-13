@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"math/big"
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -108,7 +109,7 @@ type MsgCodeByHash struct {
 	Code string
 }
 
-func NewMsgCodeByHash(hash []byte, code []byte, height uint64) *MsgCode {
+func NewMsgCodeByHash(hash []byte, code []byte, height uint64) *MsgCodeByHash {
 	codeInfo := CodeInfo{
 		Height: height,
 		Code:   hexutils.BytesToHex(code),
@@ -117,14 +118,14 @@ func NewMsgCodeByHash(hash []byte, code []byte, height uint64) *MsgCode {
 	if e != nil {
 		return nil
 	}
-	return &MsgCode{
+	return &MsgCodeByHash{
 		Key:  hexutils.BytesToHex(hash),
 		Code: string(jsCode),
 	}
 }
 
 func (m MsgCodeByHash) GetKey() string {
-	return prefixCode + m.Key
+	return prefixCodeHash + m.Key
 }
 
 func (m MsgCodeByHash) GetValue() string {
@@ -330,7 +331,7 @@ func NewMsgAccount(acc auth.Account) *MsgAccount {
 		return nil
 	}
 	return &MsgAccount{
-		addr: acc.GetAddress().String(),
+		addr:         acc.GetAddress().String(),
 		accountValue: string(jsonAcc),
 	}
 }
@@ -348,21 +349,27 @@ func (msgAccount *MsgAccount) GetValue() string {
 }
 
 type MsgState struct {
-	addr  string
-	key   string
+	addr  common.Address
+	key   []byte
 	value string
 }
 
-func NewMsgState(addr sdk.AccAddress, key, value []byte) *MsgState {
+func NewMsgState(addr common.Address, key, value []byte) *MsgState {
 	return &MsgState{
-		addr:  addr.String(),
-		key:   string(key),
-		value: string(value),
+		addr:  addr,
+		key:   key,
+		value: hexutils.BytesToHex(value),
 	}
 }
 
-func GetMsgStateKey(addr, key string) string {
-	return prefixState + addr + key
+func GetMsgStateKey(addr common.Address, key []byte) string {
+	prefix := addr.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+
+	return ethcrypto.Keccak256Hash(compositeKey).String()
 }
 
 func (msgState *MsgState) GetKey() string {
@@ -382,7 +389,6 @@ func NewMsgParams(params types.Params) *MsgParams {
 		params,
 	}
 }
-
 
 func (msgParams *MsgParams) GetKey() string {
 	return prefixParams

@@ -129,7 +129,7 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.store.Delete([]byte(GetMsgAccountKey(addr.String())))
 }
 
-func (w *Watcher) SaveState(addr sdk.AccAddress, key, value []byte) {
+func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
 	if !w.enabled() {
 		return
 	}
