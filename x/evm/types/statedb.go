@@ -1043,7 +1043,7 @@ func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bo
 		}
 	}
 	res := csdb.ctx.KVStore(csdb.storeKey).Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
-	if res {
+	if csdb.Watcher.Enabled() && res {
 		csdb.Watcher.SaveContractDeploymentWhitelistItem(deployerAddr)
 	}
 	return res
@@ -1097,7 +1097,7 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 		}
 	}
 	res := csdb.ctx.KVStore(csdb.storeKey).Has(GetContractBlockedListMemberKey(contractAddr))
-	if res {
+	if csdb.Watcher.Enabled() && res {
 		csdb.Watcher.SaveContractBlockedListItem(contractAddr)
 	}
 	return res
