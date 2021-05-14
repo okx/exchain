@@ -18,8 +18,8 @@ type EvmFactory struct {
 	ChainId string
 }
 
-func (ef EvmFactory) BuildSimulator() *EvmSimulator {
-	keeper := ef.makeEvmKeeper()
+func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
+	keeper := ef.makeEvmKeeper(qoc)
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
@@ -48,11 +48,11 @@ func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationRespon
 	}, nil
 }
 
-func (ef EvmFactory) makeEvmKeeper() *evm.Keeper {
+func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(), SupplyKeeperProxy{}, BankKeeperProxy{}, InternalDba{})
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, BankKeeperProxy{}, NewInternalDba(qoc))
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
