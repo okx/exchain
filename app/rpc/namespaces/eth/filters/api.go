@@ -2,7 +2,9 @@ package filters
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"golang.org/x/time/rate"
 	"sync"
 	"time"
 
@@ -22,6 +24,8 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
+var ErrServerBusy = errors.New("server is too busy")
+
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
@@ -33,6 +37,7 @@ type Backend interface {
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
 	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
+	GetRateLimiter(apiName string) *rate.Limiter
 }
 
 // consider a filter inactive if it has not been polled for within deadline
@@ -109,6 +114,10 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+	rateLimiter := api.backend.GetRateLimiter("eth_newPendingTransactionFilter")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", ErrServerBusy.Error()))
+	}
 	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		// wrap error on the ID
@@ -197,6 +206,10 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
+	rateLimiter := api.backend.GetRateLimiter("eth_newBlockFilter")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return rpc.ID(fmt.Sprintf("error creating block filter: %s", ErrServerBusy.Error()))
+	}
 	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		// wrap error on the ID
@@ -357,6 +370,10 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
+	rateLimiter := api.backend.GetRateLimiter("eth_newFilter")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return rpc.ID(""), ErrServerBusy
+	}
 	var (
 		filterID = rpc.ID("")
 		err      error
@@ -370,7 +387,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	filterID = logsSub.ID()
 
 	api.filtersMu.Lock()
-	api.filters[filterID] = &filter{typ: filters.LogsSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: logsSub}
+	api.filters[filterID] = &filter{typ: filters.LogsSubscription, crit: criteria, deadline: time.NewTimer(deadline), logs: make([]*ethtypes.Log, 0), s: logsSub}
 	api.filtersMu.Unlock()
 
 	go func(eventCh <-chan coretypes.ResultEvent) {
@@ -414,6 +431,10 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCriteria) ([]*ethtypes.Log, error) {
+	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, ErrServerBusy
+	}
 	var filter *Filter
 	if crit.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
@@ -509,6 +530,10 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getfilterchanges
 func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
+	rateLimiter := api.backend.GetRateLimiter("eth_getFilterChanges")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, ErrServerBusy
+	}
 	api.filtersMu.Lock()
 	defer api.filtersMu.Unlock()
 

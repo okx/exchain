@@ -8,12 +8,17 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/okex/exchain/x/common/monitor"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -24,6 +29,11 @@ type Server struct {
 	wsAddr  string // listen address of ws server
 	api     *PubSubAPI
 	logger  log.Logger
+
+	connPool       chan struct{}
+	connPoolLock   *sync.Mutex
+	currentConnNum metrics.Gauge
+	maxConnNum     metrics.Gauge
 }
 
 // NewServer creates a new websocket server instance.
@@ -41,10 +51,24 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 	port := urlParts[1]
 
 	return &Server{
-		rpcAddr: "http://localhost:" + port,
-		wsAddr:  wsAddr,
-		api:     NewAPI(clientCtx, log),
-		logger:  log.With("module", "websocket-server"),
+		rpcAddr:      "http://localhost:" + port,
+		wsAddr:       wsAddr,
+		api:          NewAPI(clientCtx, log),
+		logger:       log.With("module", "websocket-server"),
+		connPool:     make(chan struct{}, viper.GetInt(server.FlagWsMaxConnections)),
+		connPoolLock: new(sync.Mutex),
+		currentConnNum: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: monitor.XNameSpace,
+			Subsystem: "websocket",
+			Name:      "connection_number",
+			Help:      "the number of current websocket client connections",
+		}, nil),
+		maxConnNum: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: monitor.XNameSpace,
+			Subsystem: "websocket",
+			Name:      "connection_capacity",
+			Help:      "the capacity number of websocket client connections",
+		}, nil),
 	}
 }
 
@@ -52,6 +76,8 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 func (s *Server) Start() {
 	ws := mux.NewRouter()
 	ws.Handle("/", s)
+	s.maxConnNum.Set(float64(viper.GetInt(server.FlagWsMaxConnections)))
+	s.currentConnNum.Set(0)
 
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%s", s.wsAddr), ws)
@@ -62,6 +88,13 @@ func (s *Server) Start() {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.connPoolLock.Lock()
+	defer s.connPoolLock.Unlock()
+	if len(s.connPool) >= cap(s.connPool) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -70,11 +103,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.logger.Error("websocket upgrade failed; error:", err)
+		s.logger.Error("websocket upgrade failed", " error", err)
 		return
 	}
 
-	s.readLoop(wsConn)
+	s.connPool <- struct{}{}
+	s.currentConnNum.Set(float64(len(s.connPool)))
+	go s.readLoop(wsConn)
 }
 
 func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
@@ -93,11 +128,13 @@ func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
 }
 
 func (s *Server) readLoop(wsConn *websocket.Conn) {
+	subIds := make(map[rpc.ID]struct{})
 	for {
 		_, mb, err := wsConn.ReadMessage()
 		if err != nil {
 			_ = wsConn.Close()
-			s.logger.Error(fmt.Sprintf("failed to read message: %s", err))
+			s.logger.Error("failed to read message, close the websocket connection.", "error", err)
+			s.closeWsConnection(subIds)
 			return
 		}
 
@@ -140,6 +177,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
+			subIds[id] = struct{}{}
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -166,6 +204,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
+			delete(subIds, rpc.ID(id))
 			continue
 		}
 
@@ -203,4 +242,15 @@ func (s *Server) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
 	}
 
 	return conn.WriteJSON(wsSend)
+}
+
+func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
+	for id := range subIds {
+		s.api.unsubscribe(id)
+		delete(subIds, id)
+	}
+	s.connPoolLock.Lock()
+	defer s.connPoolLock.Unlock()
+	<-s.connPool
+	s.currentConnNum.Set(float64(len(s.connPool)))
 }
