@@ -49,8 +49,6 @@ type Watcher interface {
 	Enabled() bool
 	SaveContractBlockedListItem(addr sdk.AccAddress)
 	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
-	HasContractBlockedList(addr sdk.AccAddress) bool
-	HasContractDeploymentWhitelist(addr sdk.AccAddress) bool
 	DeleteContractBlockedList(addr sdk.AccAddress)
 	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
 }
@@ -1036,10 +1034,8 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
-	if csdb.Watcher.Enabled() {
-		return csdb.Watcher.HasContractDeploymentWhitelist(deployerAddr)
-	}
-	return csdb.ctx.KVStore(csdb.storeKey).Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey),KeyPrefixContractDeploymentWhitelist)
+	return bs.Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
 }
 
 // SetContractBlockedList sets the target address list into blocked list store
@@ -1083,8 +1079,6 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
-	if csdb.Watcher.Enabled() {
-		return csdb.Watcher.HasContractBlockedList(contractAddr)
-	}
-	return csdb.ctx.KVStore(csdb.storeKey).Has(GetContractBlockedListMemberKey(contractAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey),KeyPrefixContractBlockedList)
+	return bs.Has(GetContractBlockedListMemberKey(contractAddr))
 }

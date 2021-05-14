@@ -198,20 +198,6 @@ func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) HasContractBlockedList(addr sdk.AccAddress) bool {
-	if !w.Enabled() {
-		return false
-	}
-	return w.store.Has(evmtypes.GetContractBlockedListMemberKey(addr))
-}
-
-func (w *Watcher) HasContractDeploymentWhitelist(addr sdk.AccAddress) bool {
-	if !w.Enabled() {
-		return false
-	}
-	return w.store.Has(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
-}
-
 func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
