@@ -1034,8 +1034,8 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey),KeyPrefixContractDeploymentWhitelist)
-	return bs.Has(GetContractDeploymentWhitelistMemberKey(deployerAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
+	return bs.Has(deployerAddr)
 }
 
 // SetContractBlockedList sets the target address list into blocked list store
@@ -1079,6 +1079,6 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey),KeyPrefixContractBlockedList)
-	return bs.Has(GetContractBlockedListMemberKey(contractAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	return bs.Has(contractAddr)
 }

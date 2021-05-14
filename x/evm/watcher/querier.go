@@ -248,12 +248,12 @@ func (q Querier) HasContractBlockedList(key []byte) bool {
 	if !q.enabled() {
 		return false
 	}
-	return q.store.Has(key)
+	return q.store.Has([]byte(prefixBlackList + hexutils.BytesToHex(key)))
 }
 
 func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	if !q.enabled() {
 		return false
 	}
-	return q.store.Has(key)
+	return q.store.Has([]byte(prefixWhiteList + hexutils.BytesToHex(key)))
 }
