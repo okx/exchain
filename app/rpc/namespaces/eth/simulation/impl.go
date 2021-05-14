@@ -6,14 +6,25 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/dex"
+	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/staking"
+	"github.com/okex/exchain/x/token"
 )
 
 type QueryOnChainProxy interface {
@@ -118,10 +129,36 @@ func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {
 }
 
 type BankKeeperProxy struct {
+	blacklistedAddrs map[string]bool
+}
+
+func NewBankKeeperProxy() BankKeeperProxy {
+	modAccAddrs := make(map[string]bool)
+	maccPerms := map[string][]string{
+		auth.FeeCollectorName:     nil,
+		distr.ModuleName:          nil,
+		mint.ModuleName:           {supply.Minter},
+		staking.BondedPoolName:    {supply.Burner, supply.Staking},
+		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
+		gov.ModuleName:            nil,
+		token.ModuleName:          {supply.Minter, supply.Burner},
+		dex.ModuleName:            nil,
+		order.ModuleName:          nil,
+		backend.ModuleName:        nil,
+		ammswap.ModuleName:        {supply.Minter, supply.Burner},
+		farm.ModuleName:           nil,
+		farm.YieldFarmingAccount:  nil,
+		farm.MintFarmingAccount:   {supply.Burner},
+	}
+
+	for acc := range maccPerms {
+		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
+	}
+	return BankKeeperProxy{blacklistedAddrs: modAccAddrs}
 }
 
 func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
-	return false
+	return b.blacklistedAddrs[addr.String()]
 }
 
 type InternalDba struct {
