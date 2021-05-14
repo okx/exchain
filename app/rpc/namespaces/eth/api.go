@@ -334,6 +334,10 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
+	res, e := api.wrappedBackend.GetState(address, hexutils.HexToBytes(key))
+	if e == nil {
+		return res, nil
+	}
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
 	if err != nil {
 		return nil, err
@@ -341,6 +345,9 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	api.watcherBackend.SaveState(address, hexutils.HexToBytes(key), out.Value)
+	api.watcherBackend.Commit()
 	return out.Value, nil
 }
 
