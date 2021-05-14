@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -56,6 +57,9 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
+
+	disOrderTxCache map[string]map[uint64][]byte
+	txCacheMtx sync.RWMutex
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -84,6 +88,8 @@ func NewAPI(
 	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
+
+	api.disOrderTxCache = make(map[string]map[uint64][]byte)
 
 	return api
 }
@@ -509,6 +515,26 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
+	from, err := tx.VerifySig(api.chainIDEpoch)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	curNonce, err := api.accountNonce(api.clientCtx, from, true)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	checkTxCache(api, tx.From().String(), curNonce)
+
+	curNonce, err = api.accountNonce(api.clientCtx, from, true)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	if checkNonce(api, txBytes, tx.Data.AccountNonce, tx.From().String(), curNonce) {
+		// TODO: save the tx into db
+		return common.BytesToHash((tmtypes.Tx)(txBytes).Hash()), err
+	}
+
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// If error is encountered on the node, the broadcast will not return an error
 	res, err := api.clientCtx.BroadcastTx(txBytes)
@@ -519,8 +545,77 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	if res.Code != abci.CodeTypeOK {
 		return CheckError(res)
 	}
+
+	curNonce, _ = api.accountNonce(api.clientCtx, from, true)
+	checkTxCache(api, tx.From().String(), curNonce)
+
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
+}
+
+func checkNonce(api *PublicEthereumAPI, txBytes []byte, txNonce uint64, sender string, nonce uint64) bool {
+	misOrder := false
+
+	if txNonce > nonce {
+		api.txCacheMtx.Lock()
+		defer api.txCacheMtx.Unlock()
+
+		api.logger.Debug("MisOrder tx for", "sender", sender, "expected", nonce, "got", txNonce)
+
+		if _, ok := api.disOrderTxCache[sender]; !ok {
+			api.disOrderTxCache[sender] = make(map[uint64][]byte)
+		}
+		api.disOrderTxCache[sender][txNonce] = txBytes
+
+		misOrder = true
+	}
+
+	return misOrder
+}
+
+func checkTxCache(api *PublicEthereumAPI, sender string, nextNonce uint64) {
+	api.txCacheMtx.Lock()
+	defer api.txCacheMtx.Unlock()
+
+	if txCacheMap, ok := api.disOrderTxCache[sender]; ok && len(txCacheMap) > 0{
+		nonceKeys := make([]uint64, 0, len(txCacheMap))
+		for k := range txCacheMap {
+			if k < nextNonce {
+				delete(txCacheMap, k)
+			} else {
+				nonceKeys = append(nonceKeys, k)
+			}
+		}
+
+		if len(nonceKeys) > 0 {
+			sort.Slice(nonceKeys, func(i, j int) bool { return nonceKeys[i] < nonceKeys[j] })
+
+			for _, k := range nonceKeys {
+				if k != nextNonce{
+					return
+				}
+
+				txBytes := txCacheMap[k]
+				res, err := api.clientCtx.BroadcastTx(txBytes)
+				if err != nil {
+					api.logger.Error("Failed to resend tx", "sender", sender, "nonce", k, "tx", txBytes, "error", err)
+					return
+				}
+
+				if res.Code != abci.CodeTypeOK {
+					_, err =  CheckError(res)
+					api.logger.Error("Failed to resend tx2", "sender", sender, "nonce", k, "tx", txBytes, "error", err)
+
+					return
+				}
+
+				delete(txCacheMap, k)
+				nextNonce += 1
+
+				// TODO: delete tx from db
+			}
+		}
+	}
 }
 
 // Call performs a raw contract call.
