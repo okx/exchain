@@ -44,6 +44,10 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
+const (
+	FlagGasLimitBuffer = "gas-limit-buffer"
+)
+
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthereumAPI struct {
 	ctx            context.Context
@@ -660,7 +664,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	gas := estimatedGas + 1000
+	upperPercentage := viper.GetUint64(FlagGasLimitBuffer)
+	gasBuffer := estimatedGas / 100 * upperPercentage
+	gas := estimatedGas + gasBuffer
 
 	return hexutil.Uint64(gas), nil
 }
