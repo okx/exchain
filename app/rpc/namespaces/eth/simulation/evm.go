@@ -52,7 +52,7 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, BankKeeperProxy{}, NewInternalDba(qoc))
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc))
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
