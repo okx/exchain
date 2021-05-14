@@ -31,6 +31,8 @@ const (
 	prefixState        = "0x8"
 	prefixCodeHash     = "0x9"
 	prefixParams       = "0x10"
+	prefixWhiteList    = "0x11"
+	prefixBlackList    = "0x12"
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -414,7 +416,7 @@ func NewMsgContractBlockedListItem(addr sdk.AccAddress) *MsgContractBlockedListI
 }
 
 func (msgItem *MsgContractBlockedListItem) GetKey() string {
-	return hexutils.BytesToHex(types.GetContractBlockedListMemberKey(msgItem.addr))
+	return prefixBlackList + hexutils.BytesToHex(msgItem.addr)
 }
 
 func (msgItem *MsgContractBlockedListItem) GetValue() string {
@@ -432,7 +434,7 @@ func NewMsgContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgContractDepl
 }
 
 func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() string {
-	return hexutils.BytesToHex(types.GetContractDeploymentWhitelistMemberKey(msgItem.addr))
+	return prefixWhiteList + hexutils.BytesToHex(msgItem.addr)
 }
 
 func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {

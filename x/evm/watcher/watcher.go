@@ -23,6 +23,7 @@ type Watcher struct {
 	gasUsed       uint64
 	blockTxs      []common.Hash
 	sw            bool
+	firstUse      bool
 }
 
 func IsWatcherEnabled() bool {
@@ -30,7 +31,15 @@ func IsWatcherEnabled() bool {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true}
+}
+
+func (w *Watcher) IsFirstUse() bool {
+	return w.firstUse
+}
+
+func (w *Watcher) Used() {
+	w.firstUse = false
 }
 
 func (w *Watcher) Enabled() bool {
@@ -196,20 +205,6 @@ func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
-}
-
-func (w *Watcher) HasContractBlockedList(addr sdk.AccAddress) bool {
-	if !w.Enabled() {
-		return false
-	}
-	return w.store.Has(evmtypes.GetContractBlockedListMemberKey(addr))
-}
-
-func (w *Watcher) HasContractDeploymentWhitelist(addr sdk.AccAddress) bool {
-	if !w.Enabled() {
-		return false
-	}
-	return w.store.Has(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
 }
 
 func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {

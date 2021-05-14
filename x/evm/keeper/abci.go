@@ -16,8 +16,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-var firstUse = true
-
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
@@ -78,7 +76,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		}
 	}
 
-	if firstUse && watcher.IsWatcherEnabled() {
+	if k.Watcher.IsFirstUse() && watcher.IsWatcherEnabled() {
 		store := ctx.KVStore(k.storeKey)
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
@@ -92,7 +90,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key())
 		}
 
-		firstUse = false
+		k.Watcher.Used()
 	}
 	return []abci.ValidatorUpdate{}
 }

@@ -194,6 +194,10 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 			return nil
 		}
 		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), ocProxy: i.ocProxy}
+	case evmtypes.KeyPrefixContractBlockedList[0]:
+		return ContractBlockedListStore{watcher.NewQuerier()}
+	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
+		return ContractDeploymentWhitelist{watcher.NewQuerier()}
 	}
 	return CodeStore{q: watcher.NewQuerier()}
 }
@@ -290,4 +294,48 @@ func (s CodeStore) Delete(key []byte) {
 
 func (s CodeStore) Has(key []byte) bool {
 	return false
+}
+
+type ContractBlockedListStore struct {
+	q *watcher.Querier
+}
+
+func (s ContractBlockedListStore) Set(key, value []byte) {
+	//just ignore all set opt
+	return
+}
+
+func (s ContractBlockedListStore) Get(key []byte) []byte {
+	//include code and state
+	return nil
+}
+
+func (s ContractBlockedListStore) Delete(key []byte) {
+	return
+}
+
+func (s ContractBlockedListStore) Has(key []byte) bool {
+	return s.q.HasContractBlockedList(key)
+}
+
+type ContractDeploymentWhitelist struct {
+	q *watcher.Querier
+}
+
+func (s ContractDeploymentWhitelist) Set(key, value []byte) {
+	//just ignore all set opt
+	return
+}
+
+func (s ContractDeploymentWhitelist) Get(key []byte) []byte {
+	//include code and state
+	return nil
+}
+
+func (s ContractDeploymentWhitelist) Delete(key []byte) {
+	return
+}
+
+func (s ContractDeploymentWhitelist) Has(key []byte) bool {
+	return s.q.HasContractDeploymentWhitelist(key)
 }
