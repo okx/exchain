@@ -4,20 +4,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-
-	"github.com/okex/exchain/app/types"
-
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	types2 "github.com/okex/exchain/x/evm/types"
-	"github.com/status-im/keycard-go/hexutils"
-
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/app/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/status-im/keycard-go/hexutils"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
@@ -233,7 +228,7 @@ func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
 	return ret, nil
 }
 
-func (q Querier) GetParams() (*types2.Params, error) {
+func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -241,10 +236,11 @@ func (q Querier) GetParams() (*types2.Params, error) {
 	if e != nil {
 		return nil, e
 	}
-	var params types2.Params
+	var params evmtypes.Params
 	e = json.Unmarshal(b, &params)
 	if e != nil {
 		return nil, e
 	}
 	return &params, nil
 }
+

@@ -79,7 +79,10 @@ func NewKeeper(
 		Watcher:       watcher.NewWatcher(),
 		Ada:           types.DefaultPrefixDb{},
 	}
-	ak.SetObserverKeeper(k)
+	if k.Watcher.Enabled() {
+		ak.SetObserverKeeper(k)
+	}
+
 	return k
 }
 
@@ -104,7 +107,7 @@ func NewSimulateKeeper(
 }
 
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
-	k.Watcher.DeleteAccount(acc.GetAddress())
+	k.Watcher.SaveAccount(acc)
 }
 
 // Logger returns a module-specific logger.

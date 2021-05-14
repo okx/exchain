@@ -53,3 +53,12 @@ func (w WatchStore) Delete(key []byte) {
 		log.Printf("watchdb error: " + err.Error())
 	}
 }
+
+func (w WatchStore) Has(key []byte) bool {
+	res, err := w.db.Has(key, nil)
+	if err != nil {
+		log.Println("watchdb error: " + err.Error())
+		return false
+	}
+	return res
+}
