@@ -520,13 +520,12 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
-	curNonce, err := api.accountNonce(api.clientCtx, from, true)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	checkTxCache(api, tx.From().String(), curNonce)
+	defer func() {
+		curNonce, _ := api.accountNonce(api.clientCtx, from, true)
+		checkTxCache(api, tx.From().String(), curNonce)
+	}()
 
-	curNonce, err = api.accountNonce(api.clientCtx, from, true)
+	curNonce, err := api.accountNonce(api.clientCtx, from, true)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -545,9 +544,6 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	if res.Code != abci.CodeTypeOK {
 		return CheckError(res)
 	}
-
-	curNonce, _ = api.accountNonce(api.clientCtx, from, true)
-	checkTxCache(api, tx.From().String(), curNonce)
 
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
