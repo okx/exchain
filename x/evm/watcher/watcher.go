@@ -23,6 +23,7 @@ type Watcher struct {
 	gasUsed       uint64
 	blockTxs      []common.Hash
 	sw            bool
+	firstUse      bool
 }
 
 func IsWatcherEnabled() bool {
@@ -30,7 +31,15 @@ func IsWatcherEnabled() bool {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true}
+}
+
+func (w *Watcher) IsFirstUse() bool {
+	return w.firstUse
+}
+
+func (w *Watcher) Used() {
+	w.firstUse = false
 }
 
 func (w *Watcher) Enabled() bool {
