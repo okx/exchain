@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/status-im/keycard-go/hexutils"
+
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -295,6 +297,35 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	return (*hexutil.Big)(val), nil
 }
 
+// GetBalance returns the provided account's balance up to the provided block number.
+func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	if err == nil {
+		return acc, nil
+	}
+	clientCtx := api.clientCtx
+
+	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
+	if err != nil {
+		return nil, err
+	}
+
+	var account ethermint.EthAccount
+	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
+		return nil, err
+	}
+
+	api.watcherBackend.SaveAccount(&account)
+	api.watcherBackend.Commit()
+
+	return &account, nil
+}
+
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
@@ -306,6 +337,26 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+	return out.Value, nil
+}
+
+// GetStorageAt returns the contract storage at the given address, block number, and key.
+func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
+	clientCtx := api.clientCtx
+	res, e := api.wrappedBackend.GetState(address, key)
+	if e == nil {
+		return res, nil
+	}
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), hexutils.BytesToHex(key)), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out evmtypes.QueryResStorage
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	api.watcherBackend.SaveState(address, key, out.Value)
+	api.watcherBackend.Commit()
 	return out.Value, nil
 }
 
@@ -634,7 +685,7 @@ func (api *PublicEthereumAPI) doCall(
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 	msgs = append(msgs, msg)
 
-	sim := api.evmFactory.BuildSimulator()
+	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
 		r, e := sim.DoCall(msg)

@@ -8,6 +8,7 @@ import (
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm"
@@ -15,15 +16,22 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 )
 
+type QueryOnChainProxy interface {
+	GetAccount(address common.Address) (*types.EthAccount, error)
+	GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error)
+}
+
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeperProxy struct {
 	cachedAcc map[string]*types.EthAccount
+	ocProxy   QueryOnChainProxy
 	q         *watcher.Querier
 }
 
-func NewAccountKeeperProxy() AccountKeeperProxy {
+func NewAccountKeeperProxy(qoc QueryOnChainProxy) AccountKeeperProxy {
 	return AccountKeeperProxy{
 		cachedAcc: make(map[string]*types.EthAccount, 0),
+		ocProxy:   qoc,
 		q:         watcher.NewQuerier(),
 	}
 }
@@ -54,7 +62,7 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	if ok {
 		return acc
 	}
-	account, e := a.q.GetAccount(addr)
+	account, e := a.ocProxy.GetAccount(common.BytesToAddress(addr.Bytes()))
 	if e != nil {
 		//query account from chain
 		return nil
@@ -118,6 +126,7 @@ func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 
 type InternalDba struct {
 	dbPrefix []byte
+	ocProxy  QueryOnChainProxy
 }
 
 func newCdc() *codec.Codec {
@@ -125,6 +134,10 @@ func newCdc() *codec.Codec {
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
 	return cdc
+}
+
+func NewInternalDba(qoc QueryOnChainProxy) InternalDba {
+	return InternalDba{ocProxy: qoc}
 }
 
 func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.StoreProxy {
@@ -143,14 +156,14 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		if len(Prefix) < 21 {
 			return nil
 		}
-		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), q: watcher.NewQuerier()}
+		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), ocProxy: i.ocProxy}
 	}
 	return CodeStore{q: watcher.NewQuerier()}
 }
 
 type StateStore struct {
-	addr common.Address
-	q    *watcher.Querier
+	addr    common.Address
+	ocProxy QueryOnChainProxy
 }
 
 func (s StateStore) Set(key, value []byte) {
@@ -160,7 +173,7 @@ func (s StateStore) Set(key, value []byte) {
 
 func (s StateStore) Get(key []byte) []byte {
 	//include code and state
-	b, e := s.q.GetState(s.addr, key)
+	b, e := s.ocProxy.GetStorageAtInternal(s.addr, key)
 	if e != nil {
 		return nil
 	}

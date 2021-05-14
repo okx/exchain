@@ -3,8 +3,9 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
+
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/cosmos/cosmos-sdk/store"
 
@@ -127,6 +128,8 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey: k.storeKey,
+		Watcher:  k.Watcher,
+		Ada:      k.Ada,
 	}
 }
 
