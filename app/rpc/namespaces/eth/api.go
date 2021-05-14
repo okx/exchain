@@ -314,8 +314,8 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
-	pending := blockNum == rpctypes.PendingBlockNumber
-
+	//pending := blockNum == rpctypes.PendingBlockNumber
+	pending := false
 	// pass the given block height to the context if the height is not pending or latest
 	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -635,13 +635,15 @@ func (api *PublicEthereumAPI) doCall(
 	msgs = append(msgs, msg)
 
 	sim := api.evmFactory.BuildSimulator()
+	//only worked when fast-query has been enabled
 	if sim != nil {
 		r, e := sim.DoCall(msg)
 		if e == nil {
 			return r, nil
 		}
 	}
-	// convert the pending transactions into ethermint msgs
+
+	//convert the pending transactions into ethermint msgs
 	if blockNum == rpctypes.PendingBlockNumber {
 		pendingMsgs, err := api.pendingMsgs()
 		if err != nil {
@@ -650,7 +652,7 @@ func (api *PublicEthereumAPI) doCall(
 		msgs = append(msgs, pendingMsgs...)
 	}
 
-	// Generate tx to be used to simulate (signature isn't needed)
+	//Generate tx to be used to simulate (signature isn't needed)
 	var stdSig authtypes.StdSignature
 	stdSigs := []authtypes.StdSignature{stdSig}
 
@@ -691,7 +693,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	gas := estimatedGas + 1000
+	gas := estimatedGas + (estimatedGas / 10 * 3)
 
 	return hexutil.Uint64(gas), nil
 }

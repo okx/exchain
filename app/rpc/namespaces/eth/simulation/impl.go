@@ -132,15 +132,18 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 	if Prefix == nil {
 		return nil
 	}
-	if len(Prefix) >= 21 {
-		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), q: watcher.NewQuerier()}
-	}
+
 	cdc := newCdc()
 	switch Prefix[0] {
 	case evmtypes.KeyPrefixChainConfig[0]:
 		return ConfigStore{defaultConfig: cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())}
 	case evmtypes.KeyPrefixBloom[0]:
 		return BloomStore{}
+	case evmtypes.KeyPrefixStorage[0]:
+		if len(Prefix) < 21 {
+			return nil
+		}
+		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), q: watcher.NewQuerier()}
 	}
 	return CodeStore{q: watcher.NewQuerier()}
 }

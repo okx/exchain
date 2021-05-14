@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -19,6 +20,9 @@ type EvmFactory struct {
 
 func (ef EvmFactory) BuildSimulator() *EvmSimulator {
 	keeper := ef.makeEvmKeeper()
+	if !watcher.IsWatcherEnabled() {
+		return nil
+	}
 	return &EvmSimulator{
 		handler: evm.NewHandler(keeper),
 		ctx:     ef.makeContext(keeper),
@@ -31,11 +35,6 @@ type EvmSimulator struct {
 }
 
 func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthermint) (*sdk.SimulationResponse, error) {
-	defer func() {
-		if e := recover(); e != nil {
-			panic(e)
-		}
-	}()
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
