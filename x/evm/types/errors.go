@@ -66,7 +66,7 @@ func ErrUnauthorizedAccount(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			14,
-			fmt.Sprintf("failed. unauthorized account %s for a contract deployment", ethcmn.BytesToAddress(distributorAddr)))}
+			fmt.Sprintf("failed. the account %s is not allowed to deploy a contract", ethcmn.BytesToAddress(distributorAddr)))}
 }
 
 // ErrCallBlockedContract returns an error when the blocked contract is invoked
