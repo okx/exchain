@@ -3,9 +3,12 @@ package eth
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,6 +59,7 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
+	txPool		   *TxPool
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -79,11 +83,14 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
+		txPool:			NewTxPool(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
+
+	go api.txPool.DoBroadcastTx(clientCtx)
 
 	return api
 }
@@ -502,12 +509,41 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, nil
 	}
 
+	// send chanData to txPool
+	{
+		// Get sender address
+		chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
+		if err != nil {
+			return common.Hash{}, nil
+		}
+		from, err := tx.VerifySig(chainIDEpoch)
+		if err != nil {
+			return common.Hash{}, nil
+		}
+
+		currentNonce, err := api.GetTransactionCount(from, rpctypes.PendingBlockNumber)
+		if err != nil {
+			return common.Hash{}, nil
+		}
+
+		chanData := ChanData{
+			address:		&from,
+			tx:				tx,
+			currentNonce:	currentNonce,
+		}
+
+		api.txPool.SetData(&chanData)
+	}
+
+
 	// Encode transaction by default Tx encoder
 	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
+
+	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// If error is encountered on the node, the broadcast will not return an error
