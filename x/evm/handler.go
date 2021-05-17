@@ -112,6 +112,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 				return true
 			})
 		}
+		//save state and account data into batch
+		k.Watcher.Finalize()
 	}
 
 	// log successful execution
