@@ -92,6 +92,21 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
+	defer func() {
+		if e := recover(); e != nil {
+			k.Watcher.Reset()
+			panic(e)
+		}
+		if !st.Simulate {
+			if err != nil {
+				k.Watcher.Reset()
+			} else {
+				//save state and account data into batch
+				k.Watcher.Finalize()
+			}
+		}
+	}()
+
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		if !st.Simulate {

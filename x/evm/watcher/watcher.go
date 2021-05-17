@@ -19,6 +19,7 @@ type Watcher struct {
 	blockHash     common.Hash
 	header        types.Header
 	batch         []WatchMessage
+	staleBatch    []WatchMessage
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
@@ -80,7 +81,7 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 	}
 	wMsg := NewMsgCode(addr, code, w.height)
 	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
@@ -90,7 +91,7 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 	wMsg := NewMsgCodeByHash(hash, code, w.height)
 	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
@@ -130,7 +131,7 @@ func (w *Watcher) SaveAccount(account auth.Account) {
 	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
@@ -147,7 +148,7 @@ func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
 	}
 	wMsg := NewMsgState(addr, key, value)
 	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
@@ -219,6 +220,20 @@ func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
 		return
 	}
 	w.store.Delete(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
+}
+
+func (w *Watcher) Finalize() {
+	if !w.Enabled() {
+		return
+	}
+	w.batch = append(w.batch, w.staleBatch...)
+}
+
+func (w *Watcher) Reset() {
+	if !w.Enabled() {
+		return
+	}
+	w.staleBatch = []WatchMessage{}
 }
 
 func (w *Watcher) Commit() {
