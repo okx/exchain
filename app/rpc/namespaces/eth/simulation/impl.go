@@ -198,8 +198,10 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return ContractBlockedListStore{watcher.NewQuerier()}
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
 		return ContractDeploymentWhitelist{watcher.NewQuerier()}
+	case evmtypes.KeyPrefixCode[0]:
+		return CodeStore{q: watcher.NewQuerier()}
 	}
-	return CodeStore{q: watcher.NewQuerier()}
+	return nil
 }
 
 type StateStore struct {
