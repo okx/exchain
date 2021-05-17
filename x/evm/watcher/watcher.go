@@ -229,6 +229,13 @@ func (w *Watcher) Finalize() {
 	w.batch = append(w.batch, w.staleBatch...)
 }
 
+func (w *Watcher) Reset() {
+	if !w.Enabled() {
+		return
+	}
+	w.staleBatch = []WatchMessage{}
+}
+
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
