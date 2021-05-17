@@ -139,7 +139,7 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete([]byte(GetMsgAccountKey(addr.String())))
+	w.store.Delete([]byte(GetMsgAccountKey(addr.Bytes())))
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
@@ -244,7 +244,7 @@ func (w *Watcher) Commit() {
 	batch := w.batch
 	go func() {
 		for _, b := range batch {
-			w.store.Set([]byte(b.GetKey()), []byte(b.GetValue()))
+			w.store.Set(b.GetKey(), []byte(b.GetValue()))
 		}
 	}()
 }

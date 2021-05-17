@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/x/evm/watcher"
 	"math/big"
+
+	"github.com/okex/exchain/x/evm/watcher"
 
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -64,7 +65,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.Commit()
 	}
 
-
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
@@ -76,7 +76,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		}
 	}
 
-	if k.Watcher.IsFirstUse() && watcher.IsWatcherEnabled() {
+	if watcher.IsWatcherEnabled() && k.Watcher.IsFirstUse() {
 		store := ctx.KVStore(k.storeKey)
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
