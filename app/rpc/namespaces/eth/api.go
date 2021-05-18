@@ -510,7 +510,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
-		return common.Hash{}, nil
+		return common.Hash{}, err
 	}
 
 	// send chanData to txPool
@@ -518,16 +518,16 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		// Get sender address
 		chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 		if err != nil {
-			return common.Hash{}, nil
+			return common.Hash{}, err
 		}
 		from, err := tx.VerifySig(chainIDEpoch)
 		if err != nil {
-			return common.Hash{}, nil
+			return common.Hash{}, err
 		}
 
 		currentNonce, err := api.GetTransactionCount(from, rpctypes.PendingBlockNumber)
 		if err != nil {
-			return common.Hash{}, nil
+			return common.Hash{}, err
 		}
 
 		chanData := ChanData{
