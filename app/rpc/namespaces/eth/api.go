@@ -547,19 +547,6 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
-
-	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
-	// If error is encountered on the node, the broadcast will not return an error
-	res, err := api.clientCtx.BroadcastTx(txBytes)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if res.Code != abci.CodeTypeOK {
-		return CheckError(res)
-	}
-	// Return transaction hash
-	return common.HexToHash(res.TxHash), nil
 }
 
 // Call performs a raw contract call.
