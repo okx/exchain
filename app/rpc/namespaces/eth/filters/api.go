@@ -387,7 +387,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	filterID = logsSub.ID()
 
 	api.filtersMu.Lock()
-	api.filters[filterID] = &filter{typ: filters.LogsSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: logsSub}
+	api.filters[filterID] = &filter{typ: filters.LogsSubscription, crit: criteria, deadline: time.NewTimer(deadline), logs: make([]*ethtypes.Log, 0), s: logsSub}
 	api.filtersMu.Unlock()
 
 	go func(eventCh <-chan coretypes.ResultEvent) {
