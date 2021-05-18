@@ -330,11 +330,11 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 
 func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
-	res, e := api.wrappedBackend.MustGetState(address, key)
-	if e == nil {
+	res, err := api.wrappedBackend.MustGetState(address, key)
+	if err == nil {
 		return res, nil
 	}
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key), nil)
+	res, _, err = clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key), nil)
 	if err != nil {
 		return nil, err
 	}

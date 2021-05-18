@@ -34,16 +34,16 @@ type QueryOnChainProxy interface {
 
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeperProxy struct {
-	cachedAcc map[string]*types.EthAccount
-	ocProxy   QueryOnChainProxy
-	q         *watcher.Querier
+	cachedAcc         map[string]*types.EthAccount
+	queryOnChainProxy QueryOnChainProxy
+	q                 *watcher.Querier
 }
 
 func NewAccountKeeperProxy(qoc QueryOnChainProxy) AccountKeeperProxy {
 	return AccountKeeperProxy{
-		cachedAcc: make(map[string]*types.EthAccount, 0),
-		ocProxy:   qoc,
-		q:         watcher.NewQuerier(),
+		cachedAcc:         make(map[string]*types.EthAccount, 0),
+		queryOnChainProxy: qoc,
+		q:                 watcher.NewQuerier(),
 	}
 }
 
@@ -73,7 +73,7 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	if ok {
 		return acc
 	}
-	account, e := a.ocProxy.GetAccount(common.BytesToAddress(addr.Bytes()))
+	account, e := a.queryOnChainProxy.GetAccount(common.BytesToAddress(addr.Bytes()))
 	if e != nil {
 		//query account from chain
 		return nil
@@ -112,8 +112,8 @@ func NewSubspaceProxy() SubspaceProxy {
 }
 
 func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
-	pr, e := p.q.GetParams()
-	if e == nil {
+	pr, err := p.q.GetParams()
+	if err == nil {
 		evmParam := ps.(*evmtypes.Params)
 		evmParam.MaxGasLimitPerTx = pr.MaxGasLimitPerTx
 		evmParam.EnableCall = pr.EnableCall
