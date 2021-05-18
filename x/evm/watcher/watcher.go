@@ -227,6 +227,27 @@ func (w *Watcher) Finalize() {
 		return
 	}
 	w.batch = append(w.batch, w.staleBatch...)
+	w.Reset()
+}
+
+func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgState(addr, key, value)
+	if wMsg != nil {
+		w.store.Set(append(prefixRpcDb, wMsg.GetKey()...), []byte(wMsg.GetValue()))
+	}
+}
+
+func (w *Watcher) CommitAccountToRpcDb(account auth.Account) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		w.store.Set(append(prefixRpcDb, wMsg.GetKey()...), []byte(wMsg.GetValue()))
+	}
 }
 
 func (w *Watcher) Reset() {

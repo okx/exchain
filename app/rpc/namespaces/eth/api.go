@@ -241,7 +241,7 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
 		if balance == nil {
@@ -273,8 +273,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	}
 
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
-	api.watcherBackend.SaveAccount(&account)
-	api.watcherBackend.Commit()
+	api.watcherBackend.CommitAccountToRpcDb(account)
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -303,7 +302,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		return acc, nil
 	}
@@ -324,21 +323,18 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 		return nil, err
 	}
 
-	api.watcherBackend.SaveAccount(&account)
-	api.watcherBackend.Commit()
+	api.watcherBackend.CommitAccountToRpcDb(account)
 
 	return &account, nil
 }
 
-// GetStorageAt returns the contract storage at the given address, block number, and key.
-func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
+func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
-	res, e := api.wrappedBackend.GetState(address, hexutils.HexToBytes(key))
+	res, e := api.wrappedBackend.MustGetState(address, key)
 	if e == nil {
 		return res, nil
 	}
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -346,29 +342,18 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 
-	api.watcherBackend.SaveState(address, hexutils.HexToBytes(key), out.Value)
-	api.watcherBackend.Commit()
+	api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
 	return out.Value, nil
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
+func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+	return api.getStorageAt(address, hexutils.HexToBytes(key), blockNum)
+}
+
+// GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
-	clientCtx := api.clientCtx
-	res, e := api.wrappedBackend.GetState(address, key)
-	if e == nil {
-		return res, nil
-	}
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), hexutils.BytesToHex(key)), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var out evmtypes.QueryResStorage
-	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-
-	api.watcherBackend.SaveState(address, key, out.Value)
-	api.watcherBackend.Commit()
-	return out.Value, nil
+	return api.getStorageAt(address, key, 0)
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -1250,7 +1235,7 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
 	from := sdk.AccAddress(address.Bytes())
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		return acc.GetSequence(), nil
 	}
@@ -1264,8 +1249,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	nonce := account.GetSequence()
-	api.watcherBackend.SaveAccount(account)
-	api.watcherBackend.Commit()
+	api.watcherBackend.CommitAccountToRpcDb(account)
 	if !pending {
 		return nonce, nil
 	}

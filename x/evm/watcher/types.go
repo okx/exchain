@@ -29,11 +29,12 @@ var (
 	prefixBlockInfo    = []byte{0x05}
 	prefixLatestHeight = []byte{0x06}
 	prefixAccount      = []byte{0x07}
-	prefixState        = []byte{0x08}
+	PrefixState        = []byte{0x08}
 	prefixCodeHash     = []byte{0x09}
 	prefixParams       = []byte{0x10}
 	prefixWhiteList    = []byte{0x11}
 	prefixBlackList    = []byte{0x12}
+	prefixRpcDb        = []byte{0x13}
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -373,7 +374,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
 
-	return ethcrypto.Keccak256Hash(compositeKey).Bytes()
+	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
 }
 
 func (msgState *MsgState) GetKey() []byte {

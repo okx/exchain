@@ -200,6 +200,14 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	acc, e := q.GetAccount(addr)
+	if e != nil {
+		acc, e = q.GetAccountFromRdb(addr)
+	}
+	return acc, e
+}
+
 func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
@@ -216,11 +224,47 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	return &acc, nil
 }
 
+func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var acc types.EthAccount
+	b, e := q.store.Get(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(b, &acc)
+	if e != nil {
+		return nil, e
+	}
+	return &acc, nil
+}
+
+func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
+	b, e := q.GetState(addr, key)
+	if e != nil {
+		b, e = q.GetStateFromRdb(addr, key)
+	}
+	return b, e
+}
+
 func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get([]byte(GetMsgStateKey(addr, key)))
+	b, e := q.store.Get(GetMsgStateKey(addr, key))
+	if e != nil {
+		return nil, e
+	}
+	ret := hexutils.HexToBytes(string(b))
+	return ret, nil
+}
+
+func (q Querier) GetStateFromRdb(addr common.Address, key []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	b, e := q.store.Get(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
 	if e != nil {
 		return nil, e
 	}
@@ -232,7 +276,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get([]byte(prefixParams))
+	b, e := q.store.Get(prefixParams)
 	if e != nil {
 		return nil, e
 	}
