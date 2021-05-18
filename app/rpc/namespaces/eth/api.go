@@ -63,7 +63,7 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
-	txPool		   *TxPool
+	txPool         *TxPool
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -87,7 +87,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
-		txPool:			NewTxPool(),
+		txPool:         NewTxPool(),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -531,14 +531,13 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		}
 
 		chanData := ChanData{
-			address:		&from,
-			tx:				tx,
-			currentNonce:	currentNonce,
+			address:      &from,
+			tx:           tx,
+			currentNonce: currentNonce,
 		}
 
 		api.txPool.SetData(&chanData)
 	}
-
 
 	// Encode transaction by default Tx encoder
 	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)

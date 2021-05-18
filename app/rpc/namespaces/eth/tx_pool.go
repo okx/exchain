@@ -10,9 +10,9 @@ import (
 )
 
 type TxPool struct {
-	addressTxsPool	map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
-	txChan			chan *ChanData
-	mu				sync.Mutex
+	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
+	txChan         chan *ChanData
+	mu             sync.Mutex
 }
 
 // data struct for transmitting of chan to txPool
@@ -67,10 +67,10 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 				for index < txsLen {
 
 					/*
-					// the tx nonce has in txPool, drop duplicate tx
-					if txNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
-						return
-					}
+						// the tx nonce has in txPool, drop duplicate tx
+						if txNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
+							return
+						}
 					*/
 
 					// find the index to insert
@@ -82,7 +82,7 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 
 				// update txPool
 				if index >= txsLen {
-					pool.addressTxsPool[address] =append(pool.addressTxsPool[address], chanData.tx)
+					pool.addressTxsPool[address] = append(pool.addressTxsPool[address], chanData.tx)
 				} else {
 					tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
 					copy(tmpTx, pool.addressTxsPool[address][index:])
