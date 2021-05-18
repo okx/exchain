@@ -202,6 +202,7 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
+	//todo delete account from rdb if we get Account from H db successfully
 	if e != nil {
 		acc, e = q.GetAccountFromRdb(addr)
 	}

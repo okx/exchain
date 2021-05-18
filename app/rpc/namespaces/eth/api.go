@@ -10,8 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/status-im/keycard-go/hexutils"
-
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -348,7 +346,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	return api.getStorageAt(address, hexutils.HexToBytes(key), blockNum)
+	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum)
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
@@ -684,10 +682,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		r, e := sim.DoCall(msg)
-		if e == nil {
-			return r, nil
-		}
+		return sim.DoCall(msg)
 	}
 
 	//convert the pending transactions into ethermint msgs
