@@ -3,6 +3,7 @@ package watcher
 import (
 	"log"
 	"path/filepath"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
@@ -16,17 +17,18 @@ type WatchStore struct {
 }
 
 var gWatchStore *WatchStore = nil
+var once sync.Once
 
 func InstanceOfWatchStore() *WatchStore {
-	if gWatchStore == nil {
+	once.Do(func() {
 		if IsWatcherEnabled() {
 			db, e := initDb()
-			if e == nil {
-				gWatchStore = &WatchStore{db: db}
+			if e != nil {
+				panic(e)
 			}
+			gWatchStore = &WatchStore{db: db}
 		}
-
-	}
+	})
 	return gWatchStore
 }
 
