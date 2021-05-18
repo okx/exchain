@@ -46,82 +46,88 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 			if hexutil.Uint64(txNonce) == currentNonce {
 				needInsert = false
 				// do broadcast
-				txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
-				txBytes, err := txEncoder(chanData.tx)
-				if err != nil {
+				if err := pool.doBroadcast(clientCtx, chanData.tx); err != nil {
 					break
 				}
-				_, err = clientCtx.BroadcastTx(txBytes)
-				if err != nil {
-					break
-				}
-
-				// update currentNonce
 				currentNonce++
 			}
 			// map need lock
 			pool.mu.Lock()
-			txsLen := len(pool.addressTxsPool[address])
 			if needInsert {
-				index := 0
-				for index < txsLen {
-
-					/*
-						// the tx nonce has in txPool, drop duplicate tx
-						if txNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
-							return
-						}
-					*/
-
-					// find the index to insert
-					if txNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
-						break
-					}
-					index++
-				}
-
-				// update txPool
-				if index >= txsLen {
-					pool.addressTxsPool[address] = append(pool.addressTxsPool[address], chanData.tx)
-				} else {
-					tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
-					copy(tmpTx, pool.addressTxsPool[address][index:])
-
-					pool.addressTxsPool[address] =
-						append(append(pool.addressTxsPool[address][:index], chanData.tx), tmpTx...)
-				}
-
+				pool.doInsert(txNonce, address, chanData.tx)
 			} else {
-				var err error
-				i := 0
-				for i < txsLen {
-					if hexutil.Uint64(pool.addressTxsPool[address][i].Data.AccountNonce) != currentNonce {
-						break
-					}
-					// do broadcast
-					txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
-					var txBytes []byte
-					txBytes, err = txEncoder(pool.addressTxsPool[address][i])
-					if err != nil {
-						break
-					}
-					_, err = clientCtx.BroadcastTx(txBytes)
-					if err != nil {
-						break
-					}
-
-					// update currentNonce
-					currentNonce++
-					i++
-				}
-
-				// update txPool
-				if err == nil && i != 0 {
-					pool.addressTxsPool[address] = pool.addressTxsPool[address][i:]
-				}
+				pool.doNoInsert(clientCtx, currentNonce, address, chanData.tx)
 			}
 			pool.mu.Unlock()
 
 		} // end select
+	}
+}
+
+func (pool *TxPool) doBroadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return err
+	}
+	_, err = clientCtx.BroadcastTx(txBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes.MsgEthereumTx) {
+	txsLen := len(pool.addressTxsPool[address])
+	if index >= txsLen {
+		pool.addressTxsPool[address] = append(pool.addressTxsPool[address], tx)
+	} else {
+		tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
+		copy(tmpTx, pool.addressTxsPool[address][index:])
+
+		pool.addressTxsPool[address] =
+			append(append(pool.addressTxsPool[address][:index], tx), tmpTx...)
+	}
+}
+
+func (pool *TxPool) doInsert(txNonce uint64, address common.Address, tx *evmtypes.MsgEthereumTx) {
+	index := 0
+	txsLen := len(pool.addressTxsPool[address])
+	for index < txsLen {
+		// the tx nonce has in txPool, drop duplicate tx
+		if txNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
+			return
+		}
+		// find the index to insert
+		if txNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
+			break
+		}
+		index++
+	}
+
+	// update txPool
+	pool.updateTxPool(index, address, tx)
+}
+
+func (pool *TxPool) doNoInsert(clientCtx clientcontext.CLIContext, currentNonce hexutil.Uint64,
+	address common.Address, tx *evmtypes.MsgEthereumTx) {
+	i := 0
+	txsLen := len(pool.addressTxsPool[address])
+	for i < txsLen {
+		if hexutil.Uint64(pool.addressTxsPool[address][i].Data.AccountNonce) != currentNonce {
+			break
+		}
+		// do broadcast
+		if err := pool.doBroadcast(clientCtx, tx); err != nil {
+			return
+		}
+		// update currentNonce
+		currentNonce++
+		i++
+	}
+
+	// update txPool
+	if i != 0 {
+		pool.addressTxsPool[address] = pool.addressTxsPool[address][i:]
 	}
 }
