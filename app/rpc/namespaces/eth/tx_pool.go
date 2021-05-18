@@ -12,7 +12,7 @@ import (
 type TxPool struct {
 	addressTxsPool	map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
 	txChan			chan *ChanData
-	mu				sync.RWMutex
+	mu				sync.Mutex
 }
 
 // data struct for transmitting of chan to txPool
@@ -60,7 +60,7 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 				currentNonce++
 			}
 			// map need lock
-			pool.mu.RLock()
+			pool.mu.Lock()
 			txsLen := len(pool.addressTxsPool[address])
 			if needInsert {
 				index := 0
@@ -82,19 +82,13 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 
 				// update txPool
 				if index >= txsLen {
-					pool.mu.RUnlock()
-					pool.mu.Lock()
 					pool.addressTxsPool[address] =append(pool.addressTxsPool[address], chanData.tx)
-					pool.mu.Unlock()
 				} else {
 					tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
 					copy(tmpTx, pool.addressTxsPool[address][index:])
 
-					pool.mu.RUnlock()
-					pool.mu.Lock()
 					pool.addressTxsPool[address] =
 						append(append(pool.addressTxsPool[address][:index], chanData.tx), tmpTx...)
-					pool.mu.Unlock()
 				}
 
 			} else {
@@ -122,13 +116,11 @@ func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
 				}
 
 				// update txPool
-				pool.mu.RUnlock()
 				if err == nil && i != 0 {
-					pool.mu.Lock()
 					pool.addressTxsPool[address] = pool.addressTxsPool[address][i:]
-					pool.mu.Unlock()
 				}
 			}
+			pool.mu.Unlock()
 
 		} // end select
 	}
