@@ -8,6 +8,8 @@ import (
 	"sync"
 )
 
+const FlagEnableTxPool = "enable-tx-pool"
+
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
 	mu             sync.Mutex
@@ -105,7 +107,6 @@ func (pool *TxPool) continueBroadcast(clientCtx clientcontext.CLIContext, curren
 
 	return nil
 }
-
 
 func (pool *TxPool) doBroadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
 	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)

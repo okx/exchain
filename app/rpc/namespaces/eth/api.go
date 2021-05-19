@@ -511,8 +511,15 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 
+	// Encode transaction by default Tx encoder
+	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
 	// send chanData to txPool
-	{
+	if viper.GetBool(FlagEnableTxPool) {
 		// Get sender address
 		chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 		if err != nil {
@@ -531,16 +538,22 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		if err = api.txPool.CacheAndBroadcastTx(api.clientCtx, from, uint64(*currentNonce), tx); err != nil {
 			return common.Hash{}, err
 		}
+
+		return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
 	}
 
-	// Encode transaction by default Tx encoder
-	txEncoder := authclient.GetTxEncoder(api.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
+	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
+	// If error is encountered on the node, the broadcast will not return an error
+	res, err := api.clientCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
+	if res.Code != abci.CodeTypeOK {
+		return CheckError(res)
+	}
+	// Return transaction hash
+	return common.HexToHash(res.TxHash), nil
 }
 
 // Call performs a raw contract call.
