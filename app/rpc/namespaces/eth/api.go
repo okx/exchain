@@ -530,12 +530,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			return common.Hash{}, err
 		}
 
-		currentNonce, err := api.GetTransactionCount(from, rpctypes.PendingBlockNumber)
-		if err != nil {
-			return common.Hash{}, err
-		}
-
-		if err = api.txPool.CacheAndBroadcastTx(api.clientCtx, from, uint64(*currentNonce), tx); err != nil {
+		if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
 			return common.Hash{}, err
 		}
 

@@ -1,10 +1,11 @@
 package eth
 
 import (
-	"errors"
+	"fmt"
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"sync"
 )
@@ -24,24 +25,29 @@ func NewTxPool() *TxPool {
 	return pool
 }
 
-func (pool *TxPool) CacheAndBroadcastTx(clientCtx clientcontext.CLIContext, address common.Address,
-	currentNonce uint64, tx *evmtypes.MsgEthereumTx) error {
-	if tx.Data.AccountNonce < currentNonce {
-		return errors.New("AccountNonce of tx is less than currentNonce in memPool")
-	}
-
+func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// map need lock
 	pool.mu.Lock()
-	if err := pool.insertTx(address, tx); err != nil {
-		pool.mu.Unlock()
+	defer pool.mu.Unlock()
+
+	// get currentNonce
+	pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+	if err != nil {
+		return err
+	}
+	currentNonce := uint64(*pCurrentNonce)
+
+	if tx.Data.AccountNonce < currentNonce {
+		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
+	}
+
+	if err = pool.insertTx(address, tx); err != nil {
 		return err
 	}
 
-	if err := pool.continueBroadcast(clientCtx, currentNonce, address); err != nil {
-		pool.mu.Unlock()
+	if err = pool.continueBroadcast(api.clientCtx, currentNonce, address); err != nil {
 		return err
 	}
-	pool.mu.Unlock()
 
 	return nil
 }
@@ -64,7 +70,7 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 	for index < len(pool.addressTxsPool[address]) {
 		// the tx nonce has in txPool, drop duplicate tx
 		if tx.Data.AccountNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
-			return errors.New("duplicate tx, this AccountNonce of tx has been send")
+			return fmt.Errorf("duplicate tx, this AccountNonce of tx has been send. AccountNonce[%d]", tx.Data.AccountNonce)
 		}
 		// find the index to insert
 		if tx.Data.AccountNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
