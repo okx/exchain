@@ -38,7 +38,7 @@ func (pool *TxPool) CacheAndBroadcastTx(clientCtx clientcontext.CLIContext, addr
 	// map need lock
 	pool.mu.Lock()
 	if needInsert {
-		pool.insertTx(txNonce, address, tx)
+		pool.insertTx(address, tx)
 	}
 	err := pool.continueBroadcast(clientCtx, currentNonce, address)
 	pool.mu.Unlock()
@@ -64,16 +64,15 @@ func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes
 }
 
 // insert the tx into the txPool
-func (pool *TxPool) insertTx(txNonce uint64, address common.Address, tx *evmtypes.MsgEthereumTx) {
+func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) {
 	index := 0
-	txsLen := len(pool.addressTxsPool[address])
-	for index < txsLen {
+	for index < len(pool.addressTxsPool[address]) {
 		// the tx nonce has in txPool, drop duplicate tx
-		if txNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
+		if tx.Data.AccountNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
 			return
 		}
 		// find the index to insert
-		if txNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
+		if tx.Data.AccountNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
 			break
 		}
 		index++

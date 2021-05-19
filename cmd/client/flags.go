@@ -32,4 +32,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(token.FlagOSSAccessKeySecret, "", "The OSS access key secret")
 	cmd.Flags().String(token.FlagOSSBucketName, "", "The OSS bucket name")
 	cmd.Flags().String(token.FlagOSSObjectPath, "", "The OSS object path")
+
+	cmd.Flags().Bool(eth.FlagEnableTxPool, false, "Enable the function of txPool to support concurrency call eth_sendRawTransaction")
 }
