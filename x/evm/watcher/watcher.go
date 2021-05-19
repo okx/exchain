@@ -250,6 +250,16 @@ func (w *Watcher) CommitAccountToRpcDb(account auth.Account) {
 	}
 }
 
+func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgCodeByHash(hash, code, w.height)
+	if wMsg != nil {
+		w.store.Set(wMsg.GetKey(), []byte(wMsg.GetValue()))
+	}
+}
+
 func (w *Watcher) Reset() {
 	if !w.Enabled() {
 		return

@@ -463,6 +463,15 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	return nil
 }
 
+// GetCode returns the code for a given code hash.
+func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
+	ctx := csdb.ctx
+	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
+	code := store.Get(hash.Bytes())
+
+	return code
+}
+
 // GetCodeSize returns the code size for a given account.
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 	so := csdb.getStateObject(addr)
@@ -495,6 +504,15 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	}
 
 	return ethcmn.Hash{}
+}
+
+// GetStateByKey retrieves a value from the given account's storage store.
+func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+	ctx := csdb.ctx
+	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
+	data := store.Get(hash.Bytes())
+
+	return ethcmn.BytesToHash(data)
 }
 
 // GetCommittedState retrieves a value from the given account's committed

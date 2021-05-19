@@ -326,13 +326,20 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 	return &account, nil
 }
 
-func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	res, err := api.wrappedBackend.MustGetState(address, key)
 	if err == nil {
 		return res, nil
 	}
-	res, _, err = clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key), nil)
+	var queryStr = ""
+	if !directlyKey {
+		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	} else {
+		queryStr = fmt.Sprintf("custom/%s/storageKey/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	}
+
+	res, _, err = clientCtx.QueryWithData(queryStr, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -346,12 +353,12 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum)
+	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
-	return api.getStorageAt(address, key, 0)
+	return api.getStorageAt(address, key, 0, true)
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -472,6 +479,26 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 
 	var out evmtypes.QueryResCode
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+	return out.Code, nil
+}
+
+// GetCode returns the contract code at the given address and block number.
+func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
+	code, err := api.wrappedBackend.GetCodeByHash(hash.Bytes())
+	if err == nil {
+		return code, nil
+	}
+	clientCtx := api.clientCtx
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCodeByHash, hash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out evmtypes.QueryResCode
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	api.watcherBackend.CommitCodeHashToDb(hash.Bytes(), out.Code)
+
 	return out.Code, nil
 }
 

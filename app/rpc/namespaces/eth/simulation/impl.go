@@ -30,6 +30,7 @@ import (
 type QueryOnChainProxy interface {
 	GetAccount(address common.Address) (*types.EthAccount, error)
 	GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error)
+	GetCodeByHash(hash common.Hash) (hexutil.Bytes, error)
 }
 
 // AccountKeeper defines the expected account keeper interface
@@ -199,7 +200,7 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
 		return ContractDeploymentWhitelist{watcher.NewQuerier()}
 	case evmtypes.KeyPrefixCode[0]:
-		return CodeStore{q: watcher.NewQuerier()}
+		return CodeStore{q: watcher.NewQuerier(), ocProxy: i.ocProxy}
 	}
 	return nil
 }
@@ -273,7 +274,8 @@ func (s BloomStore) Has(key []byte) bool {
 }
 
 type CodeStore struct {
-	q *watcher.Querier
+	q       *watcher.Querier
+	ocProxy QueryOnChainProxy
 }
 
 func (s CodeStore) Set(key, value []byte) {
@@ -283,7 +285,7 @@ func (s CodeStore) Set(key, value []byte) {
 
 func (s CodeStore) Get(key []byte) []byte {
 	//include code and state
-	b, e := s.q.GetCodeByHash(key)
+	b, e := s.ocProxy.GetCodeByHash(common.BytesToHash(key))
 	if e != nil {
 		return nil
 	}
