@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"errors"
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,34 +26,28 @@ func NewTxPool() *TxPool {
 
 func (pool *TxPool) CacheAndBroadcastTx(clientCtx clientcontext.CLIContext, address common.Address,
 	currentNonce uint64, tx *evmtypes.MsgEthereumTx) error {
-	needInsert := true
-	txNonce := tx.Data.AccountNonce
-	if txNonce == currentNonce {
-		needInsert = false
-		// do broadcast
-		if err := pool.doBroadcast(clientCtx, tx); err != nil {
-			return err
-		}
-		currentNonce++
+	if tx.Data.AccountNonce < currentNonce {
+		return errors.New("AccountNonce of tx is less than currentNonce in memPool")
 	}
+
 	// map need lock
 	pool.mu.Lock()
-	if needInsert {
-		pool.insertTx(address, tx)
-	}
-	err := pool.continueBroadcast(clientCtx, currentNonce, address)
-	pool.mu.Unlock()
-
-	if err != nil {
+	if err := pool.insertTx(address, tx); err != nil {
+		pool.mu.Unlock()
 		return err
 	}
+
+	if err := pool.continueBroadcast(clientCtx, currentNonce, address); err != nil {
+		pool.mu.Unlock()
+		return err
+	}
+	pool.mu.Unlock()
 
 	return nil
 }
 
 func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes.MsgEthereumTx) {
-	txsLen := len(pool.addressTxsPool[address])
-	if index >= txsLen {
+	if index >= len(pool.addressTxsPool[address]) {
 		pool.addressTxsPool[address] = append(pool.addressTxsPool[address], tx)
 	} else {
 		tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
@@ -64,12 +59,12 @@ func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes
 }
 
 // insert the tx into the txPool
-func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) {
+func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	index := 0
 	for index < len(pool.addressTxsPool[address]) {
 		// the tx nonce has in txPool, drop duplicate tx
 		if tx.Data.AccountNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
-			return
+			return errors.New("duplicate tx, this AccountNonce of tx has been send")
 		}
 		// find the index to insert
 		if tx.Data.AccountNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
@@ -80,13 +75,14 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 
 	// update txPool
 	pool.updateTxPool(index, address, tx)
+
+	return nil
 }
 
 // iterate through the txPool map, check if need to continue broadcast tx and do it
 func (pool *TxPool) continueBroadcast(clientCtx clientcontext.CLIContext, currentNonce uint64, address common.Address) error {
 	i := 0
-	txsLen := len(pool.addressTxsPool[address])
-	for i < txsLen {
+	for i < len(pool.addressTxsPool[address]) {
 		if pool.addressTxsPool[address][i].Data.AccountNonce != currentNonce {
 			break
 		}

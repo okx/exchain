@@ -519,7 +519,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	// send chanData to txPool
-	if viper.GetBool(FlagEnableTxPool) {
+	if !viper.GetBool(FlagEnableTxPool) {
 		// Get sender address
 		chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 		if err != nil {
