@@ -4,76 +4,47 @@ import (
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"sync"
 )
 
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
-	txChan         chan *ChanData
 	mu             sync.Mutex
-}
-
-// data struct for transmitting of chan to txPool
-type ChanData struct {
-	address      *common.Address
-	tx           *evmtypes.MsgEthereumTx
-	currentNonce *hexutil.Uint64
 }
 
 func NewTxPool() *TxPool {
 	pool := &TxPool{
 		addressTxsPool: make(map[common.Address][]*evmtypes.MsgEthereumTx),
-		txChan:         make(chan *ChanData),
 	}
 
 	return pool
 }
 
-func (pool *TxPool) SetData(chanData *ChanData) {
-	pool.txChan <- chanData
-}
-
-func (pool *TxPool) DoBroadcastTx(clientCtx clientcontext.CLIContext) {
-	for {
-		select {
-		case chanData := <-pool.txChan:
-			address := *(chanData.address)
-			txNonce := chanData.tx.Data.AccountNonce
-			currentNonce := *(chanData.currentNonce)
-			needInsert := true
-			if hexutil.Uint64(txNonce) == currentNonce {
-				needInsert = false
-				// do broadcast
-				if err := pool.doBroadcast(clientCtx, chanData.tx); err != nil {
-					break
-				}
-				currentNonce++
-			}
-			// map need lock
-			pool.mu.Lock()
-			if needInsert {
-				pool.doInsert(txNonce, address, chanData.tx)
-			} else {
-				pool.doNoInsert(clientCtx, currentNonce, address, chanData.tx)
-			}
-			pool.mu.Unlock()
-
-		} // end select
+func (pool *TxPool) CacheAndBroadcastTx(clientCtx clientcontext.CLIContext, address common.Address,
+	currentNonce uint64, tx *evmtypes.MsgEthereumTx) error {
+	needInsert := true
+	txNonce := tx.Data.AccountNonce
+	if txNonce == currentNonce {
+		needInsert = false
+		// do broadcast
+		if err := pool.doBroadcast(clientCtx, tx); err != nil {
+			return err
+		}
+		currentNonce++
 	}
-}
+	// map need lock
+	pool.mu.Lock()
+	if needInsert {
+		pool.insertTx(txNonce, address, tx)
+	}
+	err := pool.continueBroadcast(clientCtx, currentNonce, address)
+	pool.mu.Unlock()
 
-func (pool *TxPool) doBroadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
-	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}
-	_, err = clientCtx.BroadcastTx(txBytes)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -90,7 +61,8 @@ func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes
 	}
 }
 
-func (pool *TxPool) doInsert(txNonce uint64, address common.Address, tx *evmtypes.MsgEthereumTx) {
+// insert the tx into the txPool
+func (pool *TxPool) insertTx(txNonce uint64, address common.Address, tx *evmtypes.MsgEthereumTx) {
 	index := 0
 	txsLen := len(pool.addressTxsPool[address])
 	for index < txsLen {
@@ -109,17 +81,17 @@ func (pool *TxPool) doInsert(txNonce uint64, address common.Address, tx *evmtype
 	pool.updateTxPool(index, address, tx)
 }
 
-func (pool *TxPool) doNoInsert(clientCtx clientcontext.CLIContext, currentNonce hexutil.Uint64,
-	address common.Address, tx *evmtypes.MsgEthereumTx) {
+// iterate through the txPool map, check if need to continue broadcast tx and do it
+func (pool *TxPool) continueBroadcast(clientCtx clientcontext.CLIContext, currentNonce uint64, address common.Address) error {
 	i := 0
 	txsLen := len(pool.addressTxsPool[address])
 	for i < txsLen {
-		if hexutil.Uint64(pool.addressTxsPool[address][i].Data.AccountNonce) != currentNonce {
+		if pool.addressTxsPool[address][i].Data.AccountNonce != currentNonce {
 			break
 		}
 		// do broadcast
-		if err := pool.doBroadcast(clientCtx, tx); err != nil {
-			return
+		if err := pool.doBroadcast(clientCtx, pool.addressTxsPool[address][i]); err != nil {
+			return err
 		}
 		// update currentNonce
 		currentNonce++
@@ -130,4 +102,20 @@ func (pool *TxPool) doNoInsert(clientCtx clientcontext.CLIContext, currentNonce 
 	if i != 0 {
 		pool.addressTxsPool[address] = pool.addressTxsPool[address][i:]
 	}
+
+	return nil
+}
+
+
+func (pool *TxPool) doBroadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
+	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
+	txBytes, err := txEncoder(tx)
+	if err != nil {
+		return err
+	}
+	_, err = clientCtx.BroadcastTx(txBytes)
+	if err != nil {
+		return err
+	}
+	return nil
 }

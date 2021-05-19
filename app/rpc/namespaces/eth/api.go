@@ -94,8 +94,6 @@ func NewAPI(
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
 
-	go api.txPool.DoBroadcastTx(clientCtx)
-
 	return api
 }
 
@@ -530,13 +528,9 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			return common.Hash{}, err
 		}
 
-		chanData := ChanData{
-			address:      &from,
-			tx:           tx,
-			currentNonce: currentNonce,
+		if err = api.txPool.CacheAndBroadcastTx(api.clientCtx, from, uint64(*currentNonce), tx); err != nil {
+			return common.Hash{}, err
 		}
-
-		api.txPool.SetData(&chanData)
 	}
 
 	// Encode transaction by default Tx encoder
