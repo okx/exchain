@@ -124,7 +124,7 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var codeInfo CodeInfo
-	info, e := q.store.Get([]byte(append(prefixCodeHash, codeHash...)))
+	info, e := q.store.Get(append(prefixCodeHash, codeHash...))
 	if e != nil {
 		return nil, e
 	}
