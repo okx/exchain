@@ -4,6 +4,7 @@ import (
 	"fmt"
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -18,21 +19,25 @@ import (
 )
 
 const (
-	FlagEnableTxPool = "enable-tx-pool"
+	FlagEnableTxPool  = "enable-tx-pool"
 	TxPoolSliceMaxLen = "tx-pool-cap"
-	txPoolDb = "tx_pool"
+	txPoolDb          = "tx_pool"
 )
-var txNum int
+
+var broadcastErrors = map[uint32]*sdkerrors.Error{
+	sdkerrors.ErrTxInMempoolCache.ABCICode(): sdkerrors.ErrTxInMempoolCache,
+	sdkerrors.ErrMempoolIsFull.ABCICode():    sdkerrors.ErrMempoolIsFull,
+	sdkerrors.ErrTxTooLarge.ABCICode():       sdkerrors.ErrTxTooLarge,
+}
 
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
-	clientCtx		clientcontext.CLIContext
-	db				db.DB
+	clientCtx      clientcontext.CLIContext
+	db             db.DB
 	mu             sync.Mutex
 }
 
 func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
-	txNum = 0
 	db, err := initDb()
 	if err != nil {
 		panic(err)
@@ -40,8 +45,8 @@ func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
 
 	pool := &TxPool{
 		addressTxsPool: make(map[common.Address][]*evmtypes.MsgEthereumTx),
-		clientCtx: clientCtx,
-		db:	db,
+		clientCtx:      clientCtx,
+		db:             db,
 	}
 
 	itr, err := db.Iterator(nil, nil)
@@ -102,7 +107,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
 	}
 
-	if tx.Data.AccountNonce > currentNonce + viper.GetUint64(TxPoolSliceMaxLen) {
+	if tx.Data.AccountNonce > currentNonce+viper.GetUint64(TxPoolSliceMaxLen) {
 		return fmt.Errorf("AccountNonce of tx is bigger than txPool capacity, please try later: AccountNonce[%d]", tx.Data.AccountNonce)
 	}
 
@@ -115,9 +120,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return err
 	}
 
-	if err = pool.continueBroadcast(currentNonce, address); err != nil {
-		return err
-	}
+	pool.continueBroadcast(api, currentNonce, address)
 
 	return nil
 }
@@ -146,7 +149,7 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 	for index < len(pool.addressTxsPool[address]) {
 		// the tx nonce has in txPool, drop duplicate tx
 		if tx.Data.AccountNonce == pool.addressTxsPool[address][index].Data.AccountNonce {
-			return fmt.Errorf("duplicate tx, this AccountNonce of tx has been send. AccountNonce[%d]", tx.Data.AccountNonce)
+			return fmt.Errorf("duplicate tx, this AccountNonce of tx has been in txPool. AccountNonce[%d]", tx.Data.AccountNonce)
 		}
 		// find the index to insert
 		if tx.Data.AccountNonce < pool.addressTxsPool[address][index].Data.AccountNonce {
@@ -159,25 +162,28 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 }
 
 // iterate through the txPool map, check if need to continue broadcast tx and do it
-func (pool *TxPool) continueBroadcast(currentNonce uint64, address common.Address) error {
+func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint64, address common.Address) {
 	i := 0
 	txsLen := len(pool.addressTxsPool[address])
+	var err error
 	for i < txsLen {
 		if pool.addressTxsPool[address][i].Data.AccountNonce != currentNonce {
 			break
 		}
 		// do broadcast
-		if err := pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
-			return err
+		if err = pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
+			break
 		}
-		txNum++
 		// update DB
-		if err := pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce); err != nil {
-			return err
+		if err = pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce); err != nil {
+			break
 		}
 		// update currentNonce
 		currentNonce++
 		i++
+	}
+	if err != nil {
+		api.logger.Error(err.Error())
 	}
 
 	// update txPool
@@ -186,8 +192,6 @@ func (pool *TxPool) continueBroadcast(currentNonce uint64, address common.Addres
 		copy(tmp, pool.addressTxsPool[address][i:])
 		pool.addressTxsPool[address] = tmp
 	}
-
-	return nil
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
@@ -196,9 +200,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	if err != nil {
 		return err
 	}
-	_, err = pool.clientCtx.BroadcastTx(txBytes)
-	if err != nil {
-		return err
+	res, err := pool.clientCtx.BroadcastTx(txBytes)
+	if res.Code != sdk.CodeOK {
+		return broadcastErrors[res.Code]
 	}
 	return nil
 }
