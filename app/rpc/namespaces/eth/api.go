@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 
 	"github.com/okex/exchain/x/evm/watcher"
 
@@ -60,6 +63,8 @@ type PublicEthereumAPI struct {
 	keyringLock    sync.Mutex
 	gasPrice       *hexutil.Big
 	wrappedBackend *watcher.Querier
+	watcherBackend *watcher.Watcher
+	evmFactory     simulation.EvmFactory
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -83,6 +88,8 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
+		watcherBackend: watcher.NewWatcher(),
+		evmFactory:     simulation.EvmFactory{ChainId: clientCtx.ChainID},
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -232,24 +239,39 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
 	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
-
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	if err == nil {
+		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+		if balance == nil {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
+		return (*hexutil.Big)(balance), nil
+	}
 	clientCtx := api.clientCtx
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/balance/%s", evmtypes.ModuleName, address.Hex()), nil)
+	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResBalance
-	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	val, err := utils.UnmarshalBigInt(out.Balance)
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
+		if strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "unknown address") {
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
 		return nil, err
 	}
 
+	var account ethermint.EthAccount
+	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
+		return nil, err
+	}
+
+	val := account.Balance(sdk.DefaultBondDenom).BigInt()
+	api.watcherBackend.CommitAccountToRpcDb(account)
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -276,18 +298,67 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	return (*hexutil.Big)(val), nil
 }
 
-// GetStorageAt returns the contract storage at the given address, block number, and key.
-func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "block number", blockNum)
+// GetBalance returns the provided account's balance up to the provided block number.
+func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	if err == nil {
+		return acc, nil
+	}
+	clientCtx := api.clientCtx
+
+	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
+	if err != nil {
+		return nil, err
+	}
+
+	var account ethermint.EthAccount
+	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
+		return nil, err
+	}
+
+	api.watcherBackend.CommitAccountToRpcDb(account)
+
+	return &account, nil
+}
+
+func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
-	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/storage/%s/%s", evmtypes.ModuleName, address.Hex(), key), nil)
+	res, err := api.wrappedBackend.MustGetState(address, key)
+	if err == nil {
+		return res, nil
+	}
+	var queryStr = ""
+	if !directlyKey {
+		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	} else {
+		queryStr = fmt.Sprintf("custom/%s/storageKey/%s/%X", evmtypes.ModuleName, address.Hex(), key)
+	}
+
+	res, _, err = clientCtx.QueryWithData(queryStr, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
 	return out.Value, nil
+}
+
+// GetStorageAt returns the contract storage at the given address, block number, and key.
+func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
+}
+
+// GetStorageAt returns the contract storage at the given address, block number, and key.
+func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
+	return api.getStorageAt(address, key, 0, true)
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
@@ -295,8 +366,8 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
-	pending := blockNum == rpctypes.PendingBlockNumber
-
+	//pending := blockNum == rpctypes.PendingBlockNumber
+	pending := false
 	// pass the given block height to the context if the height is not pending or latest
 	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -408,6 +479,26 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 
 	var out evmtypes.QueryResCode
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+	return out.Code, nil
+}
+
+// GetCode returns the contract code at the given address and block number.
+func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
+	code, err := api.wrappedBackend.GetCodeByHash(hash.Bytes())
+	if err == nil {
+		return code, nil
+	}
+	clientCtx := api.clientCtx
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCodeByHash, hash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out evmtypes.QueryResCode
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	api.watcherBackend.CommitCodeHashToDb(hash.Bytes(), out.Code)
+
 	return out.Code, nil
 }
 
@@ -603,18 +694,25 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	// Set destination address for call
-	var toAddr sdk.AccAddress
+	var toAddr *sdk.AccAddress
 	if args.To != nil {
-		toAddr = sdk.AccAddress(args.To.Bytes())
+		pTemp := sdk.AccAddress(args.To.Bytes())
+		toAddr = &pTemp
 	}
 
 	var msgs []sdk.Msg
 	// Create new call message
-	msg := evmtypes.NewMsgEthermint(nonce, &toAddr, sdk.NewIntFromBigInt(value), gas,
+	msg := evmtypes.NewMsgEthermint(nonce, toAddr, sdk.NewIntFromBigInt(value), gas,
 		sdk.NewIntFromBigInt(gasPrice), data, sdk.AccAddress(addr.Bytes()))
 	msgs = append(msgs, msg)
 
-	// convert the pending transactions into ethermint msgs
+	sim := api.evmFactory.BuildSimulator(api)
+	//only worked when fast-query has been enabled
+	if sim != nil {
+		return sim.DoCall(msg)
+	}
+
+	//convert the pending transactions into ethermint msgs
 	if blockNum == rpctypes.PendingBlockNumber {
 		pendingMsgs, err := api.pendingMsgs()
 		if err != nil {
@@ -623,7 +721,7 @@ func (api *PublicEthereumAPI) doCall(
 		msgs = append(msgs, pendingMsgs...)
 	}
 
-	// Generate tx to be used to simulate (signature isn't needed)
+	//Generate tx to be used to simulate (signature isn't needed)
 	var stdSig authtypes.StdSignature
 	stdSigs := []authtypes.StdSignature{stdSig}
 
@@ -1159,20 +1257,21 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
 	from := sdk.AccAddress(address.Bytes())
-
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	if err == nil {
+		return acc.GetSequence(), nil
+	}
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
 
-	if err := accRet.EnsureExists(from); err != nil {
+	account, err := accRet.GetAccount(from)
+	if err != nil {
 		// account doesn't exist yet, return 0
 		return 0, nil
 	}
 
-	_, nonce, err := accRet.GetAccountNumberSequence(from)
-	if err != nil {
-		return 0, err
-	}
-
+	nonce := account.GetSequence()
+	api.watcherBackend.CommitAccountToRpcDb(account)
 	if !pending {
 		return nonce, nil
 	}

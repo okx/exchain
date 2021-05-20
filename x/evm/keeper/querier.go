@@ -29,8 +29,12 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryBlockNumber(ctx, keeper)
 		case types.QueryStorage:
 			return queryStorage(ctx, path, keeper)
+		case types.QueryStorageByKey:
+			return queryStorageByKey(ctx, path, keeper)
 		case types.QueryCode:
 			return queryCode(ctx, path, keeper)
+		case types.QueryCodeByHash:
+			return queryCodeByHash(ctx, path, keeper)
 		case types.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
 		case types.QueryBloom:
@@ -125,6 +129,23 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	return bz, nil
 }
 
+func queryStorageByKey(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 3 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 3 parameters is required")
+	}
+
+	addr := ethcmn.HexToAddress(path[1])
+	key := ethcmn.HexToHash(path[2])
+	val := keeper.GetStateByKey(ctx, addr, key)
+	res := types.QueryResStorage{Value: val.Bytes()}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return bz, nil
+}
+
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	if len(path) < 2 {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
@@ -133,6 +154,23 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 
 	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
+	res := types.QueryResCode{Code: code}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return bz, nil
+}
+
+func queryCodeByHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	hash := ethcmn.HexToHash(path[1])
+	code := keeper.GetCodeByHash(ctx, hash)
 	res := types.QueryResCode{Code: code}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {

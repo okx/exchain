@@ -261,7 +261,7 @@ func NewOKExChainApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
+		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
@@ -337,7 +337,7 @@ func NewOKExChainApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
+		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
 		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
