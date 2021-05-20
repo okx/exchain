@@ -34,4 +34,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(token.FlagOSSObjectPath, "", "The OSS object path")
 
 	cmd.Flags().Bool(eth.FlagEnableTxPool, false, "Enable the function of txPool to support concurrency call eth_sendRawTransaction")
+	cmd.Flags().Uint64(eth.TxPoolSliceMaxLen, 10000, "Set the txPool slice max length")
 }

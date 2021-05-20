@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
@@ -48,9 +49,31 @@ func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
 	defer itr.Close()
 	for ; itr.Valid(); itr.Next() {
 		key := string(itr.Key())
-		value := itr.Value()
-		tmp := strings.Split(key, "|")
+		txBytes := itr.Value()
 
+		tmp := strings.Split(key, "|")
+		if len(tmp) != 2 {
+			continue
+		}
+		address := tmp[0]
+		txNonce, err := strconv.Atoi(tmp[1])
+		if err != nil {
+			panic(err)
+		}
+
+		tx := new(evmtypes.MsgEthereumTx)
+		if err = rlp.DecodeBytes(txBytes, tx); err != nil {
+			// Return nil is for when gasLimit overflows uint64
+			panic(err)
+		}
+		if int(tx.Data.AccountNonce) != txNonce {
+			panic(fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce))
+		}
+		pool.mu.Lock()
+		if err = pool.insertTx(common.HexToAddress(address), tx); err != nil {
+			panic(err)
+		}
+		pool.mu.Unlock()
 	}
 
 	return pool
@@ -177,11 +200,16 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 
 func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	key := []byte(address.Hex() + "|" + strconv.Itoa(int(tx.Data.AccountNonce)))
+
+	txBytes, err := rlp.EncodeToBytes(tx)
+
+	/*
 	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}
+	*/
 	ok, err := pool.db.Has(key)
 	if err != nil {
 		return err
