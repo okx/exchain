@@ -22,6 +22,7 @@ const (
 	TxPoolSliceMaxLen = "tx-pool-cap"
 	txPoolDb = "tx_pool"
 )
+var txNum int
 
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
@@ -31,6 +32,7 @@ type TxPool struct {
 }
 
 func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
+	txNum = 0
 	db, err := initDb()
 	if err != nil {
 		panic(err)
@@ -69,11 +71,10 @@ func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
 		if int(tx.Data.AccountNonce) != txNonce {
 			panic(fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce))
 		}
-		pool.mu.Lock()
+
 		if err = pool.insertTx(common.HexToAddress(address), tx); err != nil {
 			panic(err)
 		}
-		pool.mu.Unlock()
 	}
 
 	return pool
@@ -87,8 +88,8 @@ func initDb() (db.DB, error) {
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// map need lock
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	//pool.mu.Lock()
+	//defer pool.mu.Unlock()
 
 	// get currentNonce
 	pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
@@ -106,6 +107,11 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 	}
 
 	if err = pool.insertTx(address, tx); err != nil {
+		return err
+	}
+
+	// update DB
+	if err = pool.writeTxInDB(address, tx); err != nil {
 		return err
 	}
 
@@ -148,11 +154,6 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 		}
 		index++
 	}
-
-	// update DB
-	if err := pool.writeTxInDB(address, tx); err != nil {
-		return err
-	}
 	// update txPool
 	return pool.update(index, address, tx)
 }
@@ -160,7 +161,8 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 // iterate through the txPool map, check if need to continue broadcast tx and do it
 func (pool *TxPool) continueBroadcast(currentNonce uint64, address common.Address) error {
 	i := 0
-	for i < len(pool.addressTxsPool[address]) {
+	txsLen := len(pool.addressTxsPool[address])
+	for i < txsLen {
 		if pool.addressTxsPool[address][i].Data.AccountNonce != currentNonce {
 			break
 		}
@@ -168,6 +170,7 @@ func (pool *TxPool) continueBroadcast(currentNonce uint64, address common.Addres
 		if err := pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
 			return err
 		}
+		txNum++
 		// update DB
 		if err := pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce); err != nil {
 			return err
@@ -179,7 +182,9 @@ func (pool *TxPool) continueBroadcast(currentNonce uint64, address common.Addres
 
 	// update txPool
 	if i != 0 {
-		pool.addressTxsPool[address] = pool.addressTxsPool[address][i:]
+		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), viper.GetUint64(TxPoolSliceMaxLen))
+		copy(tmp, pool.addressTxsPool[address][i:])
+		pool.addressTxsPool[address] = tmp
 	}
 
 	return nil
@@ -202,14 +207,10 @@ func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereum
 	key := []byte(address.Hex() + "|" + strconv.Itoa(int(tx.Data.AccountNonce)))
 
 	txBytes, err := rlp.EncodeToBytes(tx)
-
-	/*
-	txEncoder := authclient.GetTxEncoder(pool.clientCtx.Codec)
-	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err
 	}
-	*/
+
 	ok, err := pool.db.Has(key)
 	if err != nil {
 		return err
@@ -222,7 +223,7 @@ func (pool *TxPool) writeTxInDB(address common.Address, tx *evmtypes.MsgEthereum
 }
 
 func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
-	key := []byte(address.Hex() + strconv.Itoa(int(txNonce)))
+	key := []byte(address.Hex() + "|" + strconv.Itoa(int(txNonce)))
 	ok, err := pool.db.Has(key)
 	if err != nil {
 		return err

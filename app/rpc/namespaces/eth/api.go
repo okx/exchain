@@ -530,9 +530,13 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			return common.Hash{}, err
 		}
 
+		api.txPool.mu.Lock()
 		if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
+			api.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
+			api.txPool.mu.Unlock()
 			return common.Hash{}, err
 		}
+		api.txPool.mu.Unlock()
 
 		return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
 	}
