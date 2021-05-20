@@ -94,8 +94,12 @@ func NewAPI(
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
 
+	go api.txPool.broadcastPeriod(api)
+
 	return api
 }
+
+
 
 // GetKeyringInfo checks if the keyring is present on the client context. If not, it creates a new
 // instance and sets it to the client context for later usage.

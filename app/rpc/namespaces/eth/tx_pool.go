@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -92,10 +93,6 @@ func initDb() (db.DB, error) {
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
-	// map need lock
-	//pool.mu.Lock()
-	//defer pool.mu.Unlock()
-
 	// get currentNonce
 	pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
 	if err != nil {
@@ -237,4 +234,21 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 	}
 
 	return pool.db.Delete(key)
+}
+
+func (pool *TxPool)broadcastPeriod(api *PublicEthereumAPI) {
+	for {
+		pool.mu.Lock()
+		for address, _ := range pool.addressTxsPool {
+			pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+			if err != nil {
+				continue
+			}
+			currentNonce := uint64(*pCurrentNonce)
+
+			pool.continueBroadcast(api, currentNonce, address)
+		}
+		pool.mu.Unlock()
+		time.Sleep(time.Second*5)
+	}
 }
