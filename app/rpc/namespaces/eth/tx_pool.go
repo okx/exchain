@@ -10,7 +10,10 @@ import (
 	"sync"
 )
 
-const FlagEnableTxPool = "enable-tx-pool"
+const (
+	FlagEnableTxPool = "enable-tx-pool"
+	TxPoolSliceMaxLen = 2000
+)
 
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
@@ -52,16 +55,28 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 	return nil
 }
 
-func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) {
-	if index >= len(pool.addressTxsPool[address]) {
+func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) error {
+	txsLen := len(pool.addressTxsPool[address])
+	var err error
+	if index >= txsLen {
+		if txsLen > TxPoolSliceMaxLen {
+			return fmt.Errorf("TxPool is full, the last tx:nonce[%d] has been dropped", tx.Data.AccountNonce)
+		}
 		pool.addressTxsPool[address] = append(pool.addressTxsPool[address], tx)
 	} else {
-		tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]))
-		copy(tmpTx, pool.addressTxsPool[address][index:])
+		endIndex := txsLen
+		if txsLen > TxPoolSliceMaxLen {
+			endIndex = txsLen - 1
+			err = fmt.Errorf("TxPool is full, the last tx:nonce[%d] has been dropped", pool.addressTxsPool[address][endIndex].Data.AccountNonce)
+		}
+		tmpTx := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:endIndex]))
+		copy(tmpTx, pool.addressTxsPool[address][index:endIndex])
 
 		pool.addressTxsPool[address] =
 			append(append(pool.addressTxsPool[address][:index], tx), tmpTx...)
 	}
+
+	return err
 }
 
 // insert the tx into the txPool
@@ -80,9 +95,7 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 	}
 
 	// update txPool
-	pool.update(index, address, tx)
-
-	return nil
+	return pool.update(index, address, tx)
 }
 
 // iterate through the txPool map, check if need to continue broadcast tx and do it
