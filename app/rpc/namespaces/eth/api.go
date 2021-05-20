@@ -87,7 +87,7 @@ func NewAPI(
 		nonceLock:      nonceLock,
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
-		txPool:         NewTxPool(),
+		txPool:         NewTxPool(clientCtx),
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
