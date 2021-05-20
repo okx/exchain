@@ -1,18 +1,21 @@
 package watcher
 
 import (
-	"github.com/sdming/goh"
-	"github.com/sdming/goh/Hbase"
+	"context"
+	"fmt"
+	"github.com/silenceper/pool"
+	"github.com/tsuna/gohbase"
+	"github.com/tsuna/gohbase/hrpc"
+	"time"
 )
 
 const (
 	FlagFastQuery = "fast-query"
 	TableName     = "infura-testnet"
-	Column        = "Data:data"
 )
 
 type WatchStore struct {
-	db *goh.HClient
+	db pool.Pool
 }
 
 var gWatchStore *WatchStore = nil
@@ -27,28 +30,60 @@ func InstanceOfWatchStore() *WatchStore {
 	return gWatchStore
 }
 
-func initDb() (*goh.HClient, error) {
+func initDb() (pool.Pool, error) {
 	//todo getFrom config
-	client, err := goh.NewTcpClient("127.0.0.1:9090", goh.TBinaryProtocol, false)
-	if err != nil {
-		panic(err)
+	factory := func() (interface{}, error) { return gohbase.NewClient("10.0.240.21:21811"), nil }
+	close := func(v interface{}) error { v.(gohbase.Client).Close(); return nil }
+
+	//pool config
+	poolConfig := &pool.Config{
+		InitialCap:  5,
+		MaxIdle:     200,
+		MaxCap:      2000,
+		Factory:     factory,
+		Close:       close,
+		IdleTimeout: 15 * time.Second,
 	}
-	if err = client.Open(); err != nil {
-		panic(err)
-	}
-	return client, nil
+	return pool.NewChannelPool(poolConfig)
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
-	mutations := make([]*Hbase.Mutation, 1)
-	mutations[0] = goh.NewMutation(Column, value)
-	w.db.MutateRow(TableName, key, mutations, nil)
+	v, err := w.db.Get()
+	if v == nil || err != nil {
+		fmt.Println("db get error:", err)
+	}
+	client, _ := v.(gohbase.Client)
+	defer w.db.Put(client)
+
+	values := map[string]map[string][]byte{
+		"Data": map[string][]byte{
+			"data": value,
+		}}
+
+	mutate, err := hrpc.NewPut(context.Background(), []byte(TableName), key, values)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	_, err = client.Put(mutate)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (w WatchStore) Get(key []byte) ([]byte, error) {
-	data, err := w.db.Get(TableName, key, Column, nil)
-	if data == nil || len(data) == 0 {
-		return nil, err
+	v, err := w.db.Get()
+	if v == nil || err != nil {
+		fmt.Println("db get error:", err)
+		return []byte{}, err
 	}
-	return data[0].Value, err
+	client, _ := v.(gohbase.Client)
+	defer w.db.Put(client)
+
+	getRequest, _ := hrpc.NewGet(context.Background(), []byte(TableName), key)
+	result, err := client.Get(getRequest)
+	if err != nil || len(result.Cells) == 0 {
+		return []byte{}, err
+	}
+	return result.Cells[0].Value, err
 }

@@ -29,7 +29,8 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	//todo sw = false
+	return &Querier{store: InstanceOfWatchStore(), sw: false}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {

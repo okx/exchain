@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	"github.com/okex/exchain/x/stream/distrlock"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
@@ -171,7 +172,10 @@ func (w *Watcher) Commit() {
 		latestHeight = "0"
 	}
 	latestHeightNum, _ := strconv.Atoi(latestHeight)
-	if uint64(latestHeightNum) < w.height {
+	//todo dle
+	fmt.Println(latestHeightNum)
+	//if uint64(latestHeightNum) < w.height {
+	if true {
 		w.scheduler.SetDistState(latestHeightKey, strconv.FormatUint(w.height, 10))
 		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
 		// set data
