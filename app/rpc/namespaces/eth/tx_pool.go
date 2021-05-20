@@ -22,6 +22,7 @@ import (
 const (
 	FlagEnableTxPool  = "enable-tx-pool"
 	TxPoolSliceMaxLen = "tx-pool-cap"
+	BroadcastPeriodSecond = "broadcast-period-second"
 	txPoolDb          = "tx_pool"
 )
 
@@ -249,6 +250,6 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 			pool.continueBroadcast(api, currentNonce, address)
 		}
 		pool.mu.Unlock()
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
 	}
 }
