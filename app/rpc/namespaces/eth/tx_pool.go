@@ -52,7 +52,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 	return nil
 }
 
-func (pool *TxPool) updateTxPool(index int, address common.Address, tx *evmtypes.MsgEthereumTx) {
+func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) {
 	if index >= len(pool.addressTxsPool[address]) {
 		pool.addressTxsPool[address] = append(pool.addressTxsPool[address], tx)
 	} else {
@@ -80,7 +80,7 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 	}
 
 	// update txPool
-	pool.updateTxPool(index, address, tx)
+	pool.update(index, address, tx)
 
 	return nil
 }
@@ -93,7 +93,7 @@ func (pool *TxPool) continueBroadcast(clientCtx clientcontext.CLIContext, curren
 			break
 		}
 		// do broadcast
-		if err := pool.doBroadcast(clientCtx, pool.addressTxsPool[address][i]); err != nil {
+		if err := pool.broadcast(clientCtx, pool.addressTxsPool[address][i]); err != nil {
 			return err
 		}
 		// update currentNonce
@@ -109,7 +109,7 @@ func (pool *TxPool) continueBroadcast(clientCtx clientcontext.CLIContext, curren
 	return nil
 }
 
-func (pool *TxPool) doBroadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
+func (pool *TxPool) broadcast(clientCtx clientcontext.CLIContext, tx *evmtypes.MsgEthereumTx) error {
 	txEncoder := authclient.GetTxEncoder(clientCtx.Codec)
 	txBytes, err := txEncoder(tx)
 	if err != nil {
