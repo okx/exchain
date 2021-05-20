@@ -236,7 +236,7 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 	return pool.db.Delete(key)
 }
 
-func (pool *TxPool)broadcastPeriod(api *PublicEthereumAPI) {
+func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
 		pool.mu.Lock()
 		for address, _ := range pool.addressTxsPool {
@@ -249,6 +249,6 @@ func (pool *TxPool)broadcastPeriod(api *PublicEthereumAPI) {
 			pool.continueBroadcast(api, currentNonce, address)
 		}
 		pool.mu.Unlock()
-		time.Sleep(time.Second*5)
+		time.Sleep(time.Second * 10)
 	}
 }
