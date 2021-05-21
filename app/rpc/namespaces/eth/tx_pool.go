@@ -160,7 +160,9 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return err
 	}
 
-	return pool.continueBroadcast(api, currentNonce, address)
+	_ = pool.continueBroadcast(api, currentNonce, address)
+
+	return nil
 }
 
 func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) error {
@@ -221,12 +223,14 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		}
 	}
 	if err != nil {
-		err = fmt.Errorf(
-			"%s, nonce %d of tx has been dropped, please send again",
-			err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce,
-		)
+		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
+			i++
+			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
+				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+		} else {
+			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+		}
 		api.logger.Error(err.Error())
-		i++
 	}
 
 	// update txPool
@@ -290,6 +294,7 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 
 func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
+		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
 		pool.mu.Lock()
 		for address, _ := range pool.addressTxsPool {
 			pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
@@ -301,6 +306,19 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 			pool.continueBroadcast(api, currentNonce, address)
 		}
 		pool.mu.Unlock()
-		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
 	}
+}
+
+func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
+	pool.mu.Lock()
+	for address, _ := range pool.addressTxsPool {
+		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		if err != nil {
+			continue
+		}
+		currentNonce := uint64(*pCurrentNonce)
+
+		err = pool.continueBroadcast(api, currentNonce, address)
+	}
+	pool.mu.Unlock()
 }
