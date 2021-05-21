@@ -139,7 +139,8 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete([]byte(GetMsgAccountKey(addr.Bytes())))
+	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+	w.store.Delete(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
