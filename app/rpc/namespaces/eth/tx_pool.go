@@ -160,9 +160,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return err
 	}
 
-	pool.continueBroadcast(api, currentNonce, address)
-
-	return nil
+	return pool.continueBroadcast(api, currentNonce, address)
 }
 
 func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) error {
@@ -202,7 +200,7 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 }
 
 // iterate through the txPool map, check if need to continue broadcast tx and do it
-func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint64, address common.Address) {
+func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint64, address common.Address) error {
 	i := 0
 	txsLen := len(pool.addressTxsPool[address])
 	var err error
@@ -223,7 +221,9 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		i++
 	}
 	if err != nil {
+		err = fmt.Errorf("nonce[%d] of tx broadcast error: %s", pool.addressTxsPool[address][i].Data.AccountNonce, err.Error())
 		api.logger.Error(err.Error())
+		i++
 	}
 
 	// update txPool
@@ -232,6 +232,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		copy(tmp, pool.addressTxsPool[address][i:])
 		pool.addressTxsPool[address] = tmp
 	}
+
+	return err
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
@@ -244,6 +246,8 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	if res.Code != sdk.CodeOK {
 		if broadcastErrors[res.Code] == nil {
 			return fmt.Errorf("broadcast tx failed, code : %d", res.Code)
+		} else {
+			return fmt.Errorf("broadcast tx failed, err:%s", broadcastErrors[res.Code].Error())
 		}
 	}
 	return nil

@@ -99,7 +99,6 @@ func NewAPI(
 
 	if viper.GetBool(FlagEnableTxPool) {
 		api.txPool = NewTxPool(clientCtx, api)
-		go api.txPool.broadcastPeriod(api)
 	}
 
 	return api
