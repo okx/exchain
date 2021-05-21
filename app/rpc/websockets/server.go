@@ -154,17 +154,18 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
+			reqId, ok := msg["id"].(float64)
+			if !ok {
+				s.sendErrResponse(wsConn, "invaild id in request message")
+				continue
+			}
+
 			id, err := s.api.subscribe(wsConn, params)
 			if err != nil {
 				s.sendErrResponse(wsConn, err.Error())
 				continue
 			}
 
-			reqId, ok := msg["id"].(float64)
-			if !ok {
-				s.sendErrResponse(wsConn, "invaild id in request message")
-				continue
-			}
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
 				ID:      reqId,
@@ -191,10 +192,16 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
+			reqId, ok := msg["id"].(float64)
+			if !ok {
+				s.sendErrResponse(wsConn, "invaild id in request message")
+				continue
+			}
+
 			ok = s.api.unsubscribe(rpc.ID(id))
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
-				ID:      1,
+				ID:      reqId,
 				Result:  ok,
 			}
 
