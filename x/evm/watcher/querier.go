@@ -232,7 +232,9 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var acc types.EthAccount
-	b, e := q.store.Get(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
+	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
+
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
