@@ -205,6 +205,8 @@ func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) 
 	//todo delete account from rdb if we get Account from H db successfully
 	if e != nil {
 		acc, e = q.GetAccountFromRdb(addr)
+	} else {
+		q.DeleteAccountFromRdb(addr)
 	}
 	return acc, e
 }
@@ -230,7 +232,9 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var acc types.EthAccount
-	b, e := q.store.Get(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
+	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
+
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
@@ -241,10 +245,16 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	return &acc, nil
 }
 
+func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
+	q.store.Delete(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
+}
+
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	b, e := q.GetState(addr, key)
 	if e != nil {
 		b, e = q.GetStateFromRdb(addr, key)
+	} else {
+		q.DeleteStateFromRdb(addr, key)
 	}
 	return b, e
 }
@@ -271,6 +281,10 @@ func (q Querier) GetStateFromRdb(addr common.Address, key []byte) ([]byte, error
 	}
 	ret := hexutils.HexToBytes(string(b))
 	return ret, nil
+}
+
+func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
+	q.store.Delete(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
 }
 
 func (q Querier) GetParams() (*evmtypes.Params, error) {

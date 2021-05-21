@@ -93,6 +93,16 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	defer func() {
+		if !st.Simulate {
+			currentGasMeter := ctx.GasMeter()
+			pm := k.GenerateCSDBParams()
+			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			if sendAcc != nil {
+				pm.Watcher.SaveAccount(sendAcc, true)
+			}
+			ctx.WithGasMeter(currentGasMeter)
+		}
 		if e := recover(); e != nil {
 			k.Watcher.Reset()
 			panic(e)

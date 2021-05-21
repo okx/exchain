@@ -44,7 +44,7 @@ type CommitStateDBParams struct {
 }
 
 type Watcher interface {
-	SaveAccount(account auth.Account)
+	SaveAccount(account auth.Account, isDirectly bool)
 	SaveState(addr ethcmn.Address, key, value []byte)
 	Enabled() bool
 	SaveContractBlockedListItem(addr sdk.AccAddress)
@@ -692,7 +692,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.Watcher.Enabled() {
-			csdb.Watcher.SaveAccount(so.account)
+			csdb.Watcher.SaveAccount(so.account, false)
 		}
 	}
 	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)

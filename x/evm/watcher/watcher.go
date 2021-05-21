@@ -125,13 +125,18 @@ func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
 	w.blockTxs = append(w.blockTxs, txHash)
 }
 
-func (w *Watcher) SaveAccount(account auth.Account) {
+func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
+		if isDirectly {
+			w.batch = append(w.batch, wMsg)
+		} else {
+			w.staleBatch = append(w.staleBatch, wMsg)
+		}
+
 	}
 }
 
@@ -139,7 +144,9 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete([]byte(GetMsgAccountKey(addr.Bytes())))
+	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
+	w.store.Delete(key)
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
@@ -246,7 +253,8 @@ func (w *Watcher) CommitAccountToRpcDb(account auth.Account) {
 	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
-		w.store.Set(append(prefixRpcDb, wMsg.GetKey()...), []byte(wMsg.GetValue()))
+		key := append(prefixRpcDb, wMsg.GetKey()...)
+		w.store.Set(key, []byte(wMsg.GetValue()))
 	}
 }
 
