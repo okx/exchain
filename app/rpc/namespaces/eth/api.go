@@ -65,6 +65,7 @@ type PublicEthereumAPI struct {
 	wrappedBackend *watcher.Querier
 	watcherBackend *watcher.Watcher
 	evmFactory     simulation.EvmFactory
+	txPool         *TxPool
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -94,6 +95,11 @@ func NewAPI(
 
 	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
+	}
+
+	if viper.GetBool(FlagEnableTxPool) {
+		api.txPool = NewTxPool(clientCtx, api)
+		go api.txPool.broadcastPeriod(api)
 	}
 
 	return api
@@ -366,8 +372,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
-	//pending := blockNum == rpctypes.PendingBlockNumber
-	pending := false
+	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
 	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -594,7 +599,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
 		// Return nil is for when gasLimit overflows uint64
-		return common.Hash{}, nil
+		return common.Hash{}, err
 	}
 
 	// Encode transaction by default Tx encoder
@@ -602,6 +607,11 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return common.Hash{}, err
+	}
+
+	// send chanData to txPool
+	if viper.GetBool(FlagEnableTxPool) {
+		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
