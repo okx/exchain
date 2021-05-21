@@ -204,24 +204,27 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	i := 0
 	txsLen := len(pool.addressTxsPool[address])
 	var err error
-	for i < txsLen {
-		if pool.addressTxsPool[address][i].Data.AccountNonce != currentNonce {
+	for ; i < txsLen; i++ {
+		if pool.addressTxsPool[address][i].Data.AccountNonce == currentNonce {
+			// do broadcast
+			if err = pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
+				// delete the tx when broadcast failed
+				pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce)
+				break
+			}
+			// update currentNonce
+			currentNonce++
+		} else if pool.addressTxsPool[address][i].Data.AccountNonce < currentNonce {
+			continue
+		} else {
 			break
 		}
-		// do broadcast
-		if err = pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
-			break
-		}
-		// update DB
-		if err = pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce); err != nil {
-			break
-		}
-		// update currentNonce
-		currentNonce++
-		i++
 	}
 	if err != nil {
-		err = fmt.Errorf("nonce[%d] of tx broadcast error: %s", pool.addressTxsPool[address][i].Data.AccountNonce, err.Error())
+		err = fmt.Errorf(
+			"%s, nonce %d of tx has been dropped, please send again",
+			err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce,
+		)
 		api.logger.Error(err.Error())
 		i++
 	}
