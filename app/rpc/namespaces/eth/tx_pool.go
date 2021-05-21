@@ -1,7 +1,14 @@
 package eth
 
 import (
+	"encoding/hex"
 	"fmt"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -9,14 +16,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	db "github.com/tendermint/tm-db"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
+	"github.com/tendermint/tendermint/crypto/tmhash"
+	tmdb "github.com/tendermint/tm-db"
 )
 
 const (
@@ -35,7 +39,7 @@ var broadcastErrors = map[uint32]*sdkerrors.Error{
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
 	clientCtx      clientcontext.CLIContext
-	db             db.DB
+	db             tmdb.DB
 	mu             sync.Mutex
 }
 
@@ -58,7 +62,7 @@ func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPo
 	return pool
 }
 
-func openDB() (db.DB, error) {
+func openDB() (tmdb.DB, error) {
 	rootDir := viper.GetString("home")
 	dataDir := filepath.Join(rootDir, "data")
 	return sdk.NewLevelDB(txPoolDb, dataDir)
@@ -107,6 +111,28 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 	}
 
 	return nil
+}
+
+func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
+	// Get sender address
+	chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	from, err := tx.VerifySig(chainIDEpoch)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	api.txPool.mu.Lock()
+	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
+		api.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
+		api.txPool.mu.Unlock()
+		return common.Hash{}, err
+	}
+	api.txPool.mu.Unlock()
+
+	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {

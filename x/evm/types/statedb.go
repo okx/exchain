@@ -6,9 +6,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/x/auth"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
+
+	"github.com/cosmos/cosmos-sdk/store/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -31,10 +35,27 @@ type revision struct {
 
 type CommitStateDBParams struct {
 	StoreKey      sdk.StoreKey
-	ParamSpace    params.Subspace
+	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
-	BankKeeper    bank.Keeper
+	Watcher       Watcher
+	BankKeeper    BankKeeper
+	Ada           DbAdapter
+}
+
+type Watcher interface {
+	SaveAccount(account auth.Account)
+	SaveState(addr ethcmn.Address, key, value []byte)
+	Enabled() bool
+	SaveContractBlockedListItem(addr sdk.AccAddress)
+	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
+	DeleteContractBlockedList(addr sdk.AccAddress)
+	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
+}
+
+type CacheCode struct {
+	CodeHash []byte
+	Code     []byte
 }
 
 // CommitStateDB implements the Geth state.StateDB interface. Instead of using
@@ -50,10 +71,11 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
-	paramSpace    params.Subspace
+	paramSpace    Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
-	bankKeeper    bank.Keeper
+	Watcher       Watcher
+	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -96,7 +118,27 @@ type CommitStateDB struct {
 
 	params *Params
 
-	codeCache map[ethcmn.Address][]byte
+	codeCache map[ethcmn.Address]CacheCode
+
+	dbAdapter DbAdapter
+}
+
+type StoreProxy interface {
+	Set(key, value []byte)
+	Get(key []byte) []byte
+	Delete(key []byte)
+	Has(key []byte) bool
+}
+
+type DbAdapter interface {
+	NewStore(parent types.KVStore, prefix []byte) StoreProxy
+}
+
+type DefaultPrefixDb struct {
+}
+
+func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProxy {
+	return prefix.NewStore(parent, Prefix)
 }
 
 // newCommitStateDB returns a reference to a newly initialized CommitStateDB
@@ -105,7 +147,7 @@ type CommitStateDB struct {
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk bank.Keeper,
+	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
@@ -114,6 +156,7 @@ func newCommitStateDB(
 		accountKeeper:        ak,
 		supplyKeeper:         sk,
 		bankKeeper:           bk,
+		Watcher:              watcher,
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
@@ -123,7 +166,8 @@ func newCommitStateDB(
 		validRevisions:       []revision{},
 		accessList:           newAccessList(),
 		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:            DefaultPrefixDb{},
 	}
 }
 
@@ -136,6 +180,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accountKeeper: csdbParams.AccountKeeper,
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
+		Watcher:       csdbParams.Watcher,
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -147,8 +192,13 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		accessList:           newAccessList(),
 		logSize:              0,
 		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address][]byte, 0),
+		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:            csdbParams.Ada,
 	}
+}
+
+func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
+	csdb.dbAdapter = dba
 }
 
 // WithContext returns a Database with an updated SDK context
@@ -157,12 +207,18 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 	return csdb
 }
 
-func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) []byte {
+func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 	code, ok := csdb.codeCache[addr]
 	if ok {
-		return code
+		return &code
 	}
 	return nil
+}
+
+func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode) bool) {
+	for addr, v := range csdb.codeCache {
+		cb(addr, v)
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -171,7 +227,7 @@ func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) []byte {
 
 // SetHeightHash sets the block header hash associated with a given height.
 func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
 }
@@ -225,10 +281,14 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 // SetCode sets the code for a given account.
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so := csdb.GetOrNewStateObject(addr)
+	hash := ethcrypto.Keccak256Hash(code)
 	if so != nil {
-		so.SetCode(ethcrypto.Keccak256Hash(code), code)
+		so.SetCode(hash, code)
+		csdb.codeCache[addr] = CacheCode{
+			CodeHash: hash.Bytes(),
+			Code:     code,
+		}
 	}
-	csdb.codeCache[addr] = code
 }
 
 // ----------------------------------------------------------------------------
@@ -333,7 +393,7 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	bz := store.Get(key)
 	if len(bz) == 0 {
@@ -403,6 +463,15 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	return nil
 }
 
+// GetCode returns the code for a given code hash.
+func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
+	ctx := csdb.ctx
+	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
+	code := store.Get(hash.Bytes())
+
+	return code
+}
+
 // GetCodeSize returns the code size for a given account.
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 	so := csdb.getStateObject(addr)
@@ -435,6 +504,15 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	}
 
 	return ethcmn.Hash{}
+}
+
+// GetStateByKey retrieves a value from the given account's storage store.
+func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+	ctx := csdb.ctx
+	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
+	data := store.Get(hash.Bytes())
+
+	return ethcmn.BytesToHash(data)
 }
 
 // GetCommittedState retrieves a value from the given account's committed
@@ -612,6 +690,11 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	}
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	if !csdb.ctx.IsCheckTx() {
+		if csdb.Watcher.Enabled() {
+			csdb.Watcher.SaveAccount(so.account)
+		}
+	}
 	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
 	return nil
 }
@@ -930,17 +1013,27 @@ func (csdb *CommitStateDB) GetLogSize() uint {
 
 // SetContractDeploymentWhitelistMember sets the target address list into whitelist store
 func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.SaveContractDeploymentWhitelistItem(addrList[i])
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Set(getContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
+		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 	}
 }
 
 // DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
 func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.DeleteContractDeploymentWhitelist(GetContractDeploymentWhitelistMemberKey(addrList[i]))
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Delete(getContractDeploymentWhitelistMemberKey(addrList[i]))
+		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 	}
 }
 
@@ -959,22 +1052,33 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
-	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractDeploymentWhitelistMemberKey(deployerAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
+	return bs.Has(deployerAddr)
 }
 
 // SetContractBlockedList sets the target address list into blocked list store
 func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.SaveContractBlockedListItem(addrList[i])
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Set(getContractBlockedListMemberKey(addrList[i]), []byte(""))
+		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 	}
 }
 
 // DeleteContractBlockedList deletes the target address list from blocked list store
 func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
+	if csdb.Watcher.Enabled() {
+		for i := 0; i < len(addrList); i++ {
+			csdb.Watcher.DeleteContractBlockedList(GetContractBlockedListMemberKey(addrList[i]))
+		}
+	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
-		store.Delete(getContractBlockedListMemberKey(addrList[i]))
+		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
 	}
 }
 
@@ -993,5 +1097,6 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
-	return csdb.ctx.KVStore(csdb.storeKey).Has(getContractBlockedListMemberKey(contractAddr))
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	return bs.Has(contractAddr)
 }

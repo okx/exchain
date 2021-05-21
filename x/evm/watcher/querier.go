@@ -6,14 +6,16 @@ import (
 	"errors"
 	"strconv"
 
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/app/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/status-im/keycard-go/hexutils"
 )
 
-const MsgFunctionDisable = "fast query function disabled"
+const MsgFunctionDisable = "fast query function has been disabled"
 
 type Querier struct {
 	store *WatchStore
@@ -37,7 +39,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var receipt TransactionReceipt
-	b, e := q.store.Get([]byte(prefixReceipt + hash.String()))
+	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
 	}
@@ -56,7 +58,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var block EthBlock
-	b, e := q.store.Get([]byte(prefixBlock + hash.String()))
+	b, e := q.store.Get(append(prefixBlock, hash.Bytes()...))
 	if e != nil {
 		return nil, e
 	}
@@ -90,7 +92,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 			return nil, err
 		}
 	}
-	hash, e := q.store.Get([]byte(prefixBlockInfo + strconv.Itoa(int(height))))
+	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
 
 	if e != nil {
 		return nil, e
@@ -103,7 +105,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var codeInfo CodeInfo
-	info, e := q.store.Get([]byte(prefixCode + contractAddr.String()))
+	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
 	if e != nil {
 		return nil, e
 	}
@@ -117,11 +119,27 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	return hex.DecodeString(codeInfo.Code)
 }
 
+func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var codeInfo CodeInfo
+	info, e := q.store.Get(append(prefixCodeHash, codeHash...))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(info, &codeInfo)
+	if e != nil {
+		return nil, e
+	}
+	return hex.DecodeString(codeInfo.Code)
+}
+
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if !q.enabled() {
 		return 0, errors.New(MsgFunctionDisable)
 	}
-	height, e := q.store.Get([]byte(prefixLatestHeight + KeyLatestHeight))
+	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
 	if e != nil {
 		return 0, e
 	}
@@ -134,7 +152,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var tx rpctypes.Transaction
-	transaction, e := q.store.Get([]byte(prefixTx + hash.String()))
+	transaction, e := q.store.Get(append(prefixTx, hash.Bytes()...))
 	if e != nil {
 		return nil, e
 	}
@@ -180,4 +198,107 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 		}
 	}
 	return nil, errors.New("no such transaction in target block")
+}
+
+func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	acc, e := q.GetAccount(addr)
+	//todo delete account from rdb if we get Account from H db successfully
+	if e != nil {
+		acc, e = q.GetAccountFromRdb(addr)
+	}
+	return acc, e
+}
+
+func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var acc types.EthAccount
+	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(b, &acc)
+	if e != nil {
+		return nil, e
+	}
+	return &acc, nil
+}
+
+func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var acc types.EthAccount
+	b, e := q.store.Get(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(b, &acc)
+	if e != nil {
+		return nil, e
+	}
+	return &acc, nil
+}
+
+func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
+	b, e := q.GetState(addr, key)
+	if e != nil {
+		b, e = q.GetStateFromRdb(addr, key)
+	}
+	return b, e
+}
+
+func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	b, e := q.store.Get(GetMsgStateKey(addr, key))
+	if e != nil {
+		return nil, e
+	}
+	ret := hexutils.HexToBytes(string(b))
+	return ret, nil
+}
+
+func (q Querier) GetStateFromRdb(addr common.Address, key []byte) ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	b, e := q.store.Get(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
+	if e != nil {
+		return nil, e
+	}
+	ret := hexutils.HexToBytes(string(b))
+	return ret, nil
+}
+
+func (q Querier) GetParams() (*evmtypes.Params, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	b, e := q.store.Get(prefixParams)
+	if e != nil {
+		return nil, e
+	}
+	var params evmtypes.Params
+	e = json.Unmarshal(b, &params)
+	if e != nil {
+		return nil, e
+	}
+	return &params, nil
+}
+
+func (q Querier) HasContractBlockedList(key []byte) bool {
+	if !q.enabled() {
+		return false
+	}
+	return q.store.Has(append(prefixBlackList, key...))
+}
+
+func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
+	if !q.enabled() {
+		return false
+	}
+	return q.store.Has(append(prefixWhiteList, key...))
 }

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/x/auth"
+
+	"github.com/cosmos/cosmos-sdk/store"
+
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -33,9 +35,9 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 	// Account Keeper for fetching accounts
 	accountKeeper types.AccountKeeper
-	paramSpace    params.Subspace
+	paramSpace    types.Subspace
 	supplyKeeper  types.SupplyKeeper
-	bankKeeper    bank.Keeper
+	bankKeeper    types.BankKeeper
 	govKeeper     GovKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
@@ -46,11 +48,12 @@ type Keeper struct {
 	Bhash   ethcmn.Hash
 	LogSize uint
 	Watcher *watcher.Watcher
+	Ada     types.DbAdapter
 }
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk bank.Keeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
 ) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -64,6 +67,31 @@ func NewKeeper(
 	}
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
+	k := &Keeper{
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: ak,
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
+		TxCount:       0,
+		Bloom:         big.NewInt(0),
+		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
+		Ada:           types.DefaultPrefixDb{},
+	}
+	if k.Watcher.Enabled() {
+		ak.SetObserverKeeper(k)
+	}
+
+	return k
+}
+
+// NewKeeper generates new evm module keeper
+func NewSimulateKeeper(
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+) *Keeper {
+	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	return &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
@@ -75,7 +103,12 @@ func NewKeeper(
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
+		Ada:           ada,
 	}
+}
+
+func (k Keeper) OnAccountUpdated(acc auth.Account) {
+	k.Watcher.DeleteAccount(acc.GetAddress())
 }
 
 // Logger returns a module-specific logger.
@@ -86,6 +119,8 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
+		Watcher:       k.Watcher,
+		Ada:           k.Ada,
 	}
 }
 
@@ -93,6 +128,8 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey: k.storeKey,
+		Watcher:  k.Watcher,
+		Ada:      k.Ada,
 	}
 }
 
@@ -109,7 +146,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 // GetBlockHash gets block height from block consensus hash
 func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := store.Get(hash)
 	if len(bz) == 0 {
 		return 0, false
@@ -121,7 +158,7 @@ func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
 
 // SetBlockHash sets the mapping from block consensus hash to block height
 func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
 }
@@ -148,7 +185,7 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) 
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	has := store.Has(types.BloomKey(height))
 	if !has {
 		return ethtypes.Bloom{}
@@ -158,9 +195,13 @@ func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
 	return ethtypes.BytesToBloom(bz)
 }
 
+func (k Keeper) GetStoreKey() store.StoreKey {
+	return k.storeKey
+}
+
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
 }
 
@@ -181,7 +222,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 
 // GetChainConfig gets block height from block consensus hash
 func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
 	if len(bz) == 0 {
@@ -195,7 +236,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
+	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)

@@ -1,8 +1,11 @@
 package keeper
 
 import (
-	tmtypes "github.com/tendermint/tendermint/types"
 	"math/big"
+
+	"github.com/okex/exchain/x/evm/watcher"
+
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -54,9 +57,13 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
+	if watcher.IsWatcherEnabled() {
+		params := k.GetParams(ctx)
+		k.Watcher.SaveParams(params)
 
-	k.Watcher.SaveBlock(bloom)
-	k.Watcher.Commit()
+		k.Watcher.SaveBlock(bloom)
+		k.Watcher.Commit()
+	}
 
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.
@@ -69,6 +76,21 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		}
 	}
 
+	if watcher.IsWatcherEnabled() && k.Watcher.IsFirstUse() {
+		store := ctx.KVStore(k.storeKey)
+		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
+		defer iteratorBlockedList.Close()
+		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {
+			k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key())
+		}
 
+		iteratorDeploymentWhitelist := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractDeploymentWhitelist)
+		defer iteratorDeploymentWhitelist.Close()
+		for ; iteratorDeploymentWhitelist.Valid(); iteratorDeploymentWhitelist.Next() {
+			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key())
+		}
+
+		k.Watcher.Used()
+	}
 	return []abci.ValidatorUpdate{}
 }
