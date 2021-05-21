@@ -90,13 +90,12 @@ func NewAPI(
 		txPool:         nil,
 	}
 
-	api.txPool = NewTxPool(clientCtx, api)
-
 	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
 	}
 
 	if viper.GetBool(FlagEnableTxPool) {
+		api.txPool = NewTxPool(clientCtx, api)
 		go api.txPool.broadcastPeriod(api)
 	}
 
