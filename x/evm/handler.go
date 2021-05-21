@@ -93,7 +93,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	defer func() {
-		if !st.Simulate {
+		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
 			pm := k.GenerateCSDBParams()
 			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
