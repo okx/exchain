@@ -242,7 +242,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	}
 	res, err := pool.clientCtx.BroadcastTx(txBytes)
 	if res.Code != sdk.CodeOK {
-		return broadcastErrors[res.Code]
+		if broadcastErrors[res.Code] == nil {
+			return fmt.Errorf("broadcast tx failed, code : %d", res.Code)
+		}
 	}
 	return nil
 }
