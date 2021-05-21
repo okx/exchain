@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	FlagEnableTxPool  = "enable-tx-pool"
-	TxPoolSliceMaxLen = "tx-pool-cap"
+	FlagEnableTxPool      = "enable-tx-pool"
+	TxPoolSliceMaxLen     = "tx-pool-cap"
 	BroadcastPeriodSecond = "broadcast-period-second"
-	txPoolDb          = "tx_pool"
+	txPoolDb              = "tx_pool"
 )
 
 var broadcastErrors = map[uint32]*sdkerrors.Error{
@@ -39,8 +39,8 @@ type TxPool struct {
 	mu             sync.Mutex
 }
 
-func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
-	db, err := initDb()
+func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPool {
+	db, err := openDB()
 	if err != nil {
 		panic(err)
 	}
@@ -51,9 +51,23 @@ func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
 		db:             db,
 	}
 
-	itr, err := db.Iterator(nil, nil)
-	if err != nil {
+	if err = pool.initDB(api); err != nil {
 		panic(err)
+	}
+
+	return pool
+}
+
+func openDB() (db.DB, error) {
+	rootDir := viper.GetString("home")
+	dataDir := filepath.Join(rootDir, "data")
+	return sdk.NewLevelDB(txPoolDb, dataDir)
+}
+
+func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
+	itr, err := pool.db.Iterator(nil, nil)
+	if err != nil {
+		return err
 	}
 	defer itr.Close()
 	for ; itr.Valid(); itr.Next() {
@@ -64,33 +78,35 @@ func NewTxPool(clientCtx clientcontext.CLIContext) *TxPool {
 		if len(tmp) != 2 {
 			continue
 		}
-		address := tmp[0]
+		address := common.HexToAddress(tmp[0])
 		txNonce, err := strconv.Atoi(tmp[1])
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		tx := new(evmtypes.MsgEthereumTx)
 		if err = rlp.DecodeBytes(txBytes, tx); err != nil {
-			// Return nil is for when gasLimit overflows uint64
-			panic(err)
+			return err
 		}
 		if int(tx.Data.AccountNonce) != txNonce {
-			panic(fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce))
+			return fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce)
 		}
 
-		if err = pool.insertTx(common.HexToAddress(address), tx); err != nil {
-			panic(err)
+		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		if err != nil {
+			return err
+		}
+		currentNonce := int(*pCurrentNonce)
+		if txNonce < currentNonce {
+			continue
+		}
+
+		if err = pool.insertTx(address, tx); err != nil {
+			return err
 		}
 	}
 
-	return pool
-}
-
-func initDb() (db.DB, error) {
-	rootDir := viper.GetString("home")
-	dataDir := filepath.Join(rootDir, "data")
-	return sdk.NewLevelDB(txPoolDb, dataDir)
+	return nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
