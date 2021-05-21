@@ -371,8 +371,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
 
 	clientCtx := api.clientCtx
-	//pending := blockNum == rpctypes.PendingBlockNumber
-	pending := false
+	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
 	if !pending && blockNum != rpctypes.LatestBlockNumber {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
