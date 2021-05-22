@@ -15,7 +15,12 @@ import (
 )
 
 type EvmFactory struct {
-	ChainId string
+	ChainId        string
+	WrappedQuerier *watcher.Querier
+}
+
+func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
+	return EvmFactory{ChainId: chainId, WrappedQuerier: q}
 }
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
@@ -67,6 +72,7 @@ func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	cms.LoadLatestVersion()
-	ctx := sdk.NewContext(cms, abci.Header{ChainID: ef.ChainId}, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
+	ctx := sdk.NewContext(cms, abci.Header{ChainID: ef.ChainId, Height: int64(latest)}, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
 	return ctx
 }
