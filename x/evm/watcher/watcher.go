@@ -43,7 +43,7 @@ func IsWatcherEnabled() bool {
 func NewWatcher() *Watcher {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	//todo get from config
-	scheduler, error := distrlock.NewRedisDistributeStateService("redis://18.167.164.175:6379", "", logger, lockerID)
+	scheduler, error := distrlock.NewRedisDistributeStateService("redis://127.0.0.1:6379", "", logger, lockerID)
 	if error != nil {
 		panic("evm NewWatcher init scheduler error")
 	}

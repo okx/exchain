@@ -32,7 +32,7 @@ func InstanceOfWatchStore() *WatchStore {
 
 func initDb() (pool.Pool, error) {
 	//todo getFrom config
-	factory := func() (interface{}, error) { return gohbase.NewClient("18.167.164.175:21811"), nil }
+	factory := func() (interface{}, error) { return gohbase.NewClient("127.0.0.1:21811"), nil }
 	close := func(v interface{}) error { v.(gohbase.Client).Close(); return nil }
 
 	//pool config
