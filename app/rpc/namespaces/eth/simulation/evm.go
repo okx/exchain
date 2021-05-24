@@ -1,11 +1,14 @@
 package simulation
 
 import (
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -25,12 +28,44 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := ef.makeEvmKeeper(qoc)
+
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
+	timestamp := time.Now()
+
+	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
+	hash, e := ef.WrappedQuerier.GetBlockHashByNumber(latest)
+	if e != nil {
+		hash = common.HexToHash("0x000000000000000000000000000000").Bytes()
+	} else {
+		hash = common.HexToHash(string(hash)).Bytes()
+	}
+
+	block, e := ef.WrappedQuerier.GetBlockByHash(common.BytesToHash(hash), false)
+
+	if e == nil {
+		timestamp = time.Unix(int64(block.Timestamp), 0)
+	}
+	req := abci.RequestBeginBlock{
+		Header: abci.Header{
+			ChainID: ef.ChainId,
+			LastBlockId: abci.BlockID{
+				Hash: hash,
+			},
+			Height: int64(latest),
+			Time:   timestamp,
+		},
+		Hash: hash,
+	}
+
+	ctx := ef.makeContext(keeper, req.Header)
+
+	keeper.BeginBlock(ctx, req)
+
 	return &EvmSimulator{
 		handler: evm.NewHandler(keeper),
-		ctx:     ef.makeContext(keeper),
+		ctx:     ctx,
 	}
 }
 
@@ -60,7 +95,7 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc))
 }
 
-func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
+func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
@@ -72,7 +107,7 @@ func (ef EvmFactory) makeContext(k *evm.Keeper) sdk.Context {
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	cms.LoadLatestVersion()
-	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
-	ctx := sdk.NewContext(cms, abci.Header{ChainID: ef.ChainId, Height: int64(latest)}, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+
+	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger()).WithGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
 	return ctx
 }

@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"encoding/binary"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -201,8 +203,55 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return ContractDeploymentWhitelist{watcher.NewQuerier()}
 	case evmtypes.KeyPrefixCode[0]:
 		return CodeStore{q: watcher.NewQuerier(), ocProxy: i.ocProxy}
+	case evmtypes.KeyPrefixHeightHash[0]:
+		return HeightHashStore{watcher.NewQuerier()}
+	case evmtypes.KeyPrefixBlockHash[0]:
+		return BlockHashStore{}
 	}
 	return nil
+}
+
+type HeightHashStore struct {
+	q *watcher.Querier
+}
+
+func (s HeightHashStore) Set(key, value []byte) {
+	//just ignore all set opt
+	return
+}
+
+func (s HeightHashStore) Get(key []byte) []byte {
+	h, _ := s.q.GetBlockHashByNumber(binary.BigEndian.Uint64(key))
+	return common.HexToHash(string(h)).Bytes()
+}
+
+func (s HeightHashStore) Has(key []byte) bool {
+	return false
+}
+
+func (s HeightHashStore) Delete(key []byte) {
+	return
+}
+
+type BlockHashStore struct {
+}
+
+func (s BlockHashStore) Set(key, value []byte) {
+	//just ignore all set opt
+	return
+}
+
+func (s BlockHashStore) Get(key []byte) []byte {
+
+	return nil
+}
+
+func (s BlockHashStore) Has(key []byte) bool {
+	return false
+}
+
+func (s BlockHashStore) Delete(key []byte) {
+	return
 }
 
 type StateStore struct {
