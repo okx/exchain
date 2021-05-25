@@ -80,23 +80,23 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	return &block, nil
 }
 
-func (q Querier) GetBlockHashByNumber(number uint64) ([]byte, error) {
+func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return common.Hash{}, errors.New(MsgFunctionDisable)
 	}
 	var height = number
 	var err error
 	if height == 0 {
 		height, err = q.GetLatestBlockNumber()
 		if err != nil {
-			return nil, err
+			return common.Hash{}, err
 		}
 	}
 	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
 	if e != nil {
-		return nil, e
+		return common.Hash{}, e
 	}
-	return hash, e
+	return common.HexToHash(string(hash)), e
 }
 
 func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error) {

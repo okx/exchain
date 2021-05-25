@@ -37,12 +37,10 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	latest, _ := ef.WrappedQuerier.GetLatestBlockNumber()
 	hash, e := ef.WrappedQuerier.GetBlockHashByNumber(latest)
 	if e != nil {
-		hash = common.HexToHash("0x000000000000000000000000000000").Bytes()
-	} else {
-		hash = common.HexToHash(string(hash)).Bytes()
+		hash = common.HexToHash("0x000000000000000000000000000000")
 	}
 
-	block, e := ef.WrappedQuerier.GetBlockByHash(common.BytesToHash(hash), false)
+	block, e := ef.WrappedQuerier.GetBlockByHash(hash, false)
 
 	if e == nil {
 		timestamp = time.Unix(int64(block.Timestamp), 0)
@@ -51,12 +49,12 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 		Header: abci.Header{
 			ChainID: ef.ChainId,
 			LastBlockId: abci.BlockID{
-				Hash: hash,
+				Hash: hash.Bytes(),
 			},
 			Height: int64(latest),
 			Time:   timestamp,
 		},
-		Hash: hash,
+		Hash: hash.Bytes(),
 	}
 
 	ctx := ef.makeContext(keeper, req.Header)
