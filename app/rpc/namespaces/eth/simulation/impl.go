@@ -1,6 +1,8 @@
 package simulation
 
 import (
+	"encoding/binary"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -201,8 +203,53 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return ContractDeploymentWhitelist{watcher.NewQuerier()}
 	case evmtypes.KeyPrefixCode[0]:
 		return CodeStore{q: watcher.NewQuerier(), ocProxy: i.ocProxy}
+	case evmtypes.KeyPrefixHeightHash[0]:
+		return HeightHashStore{watcher.NewQuerier()}
+	case evmtypes.KeyPrefixBlockHash[0]:
+		return BlockHashStore{}
 	}
 	return nil
+}
+
+type HeightHashStore struct {
+	q *watcher.Querier
+}
+
+func (s HeightHashStore) Set(key, value []byte) {
+	//just ignore all set opt
+}
+
+func (s HeightHashStore) Get(key []byte) []byte {
+	h, _ := s.q.GetBlockHashByNumber(binary.BigEndian.Uint64(key))
+	return h.Bytes()
+}
+
+func (s HeightHashStore) Has(key []byte) bool {
+	return false
+}
+
+func (s HeightHashStore) Delete(key []byte) {
+	return
+}
+
+type BlockHashStore struct {
+}
+
+func (s BlockHashStore) Set(key, value []byte) {
+	//just ignore all set opt
+}
+
+func (s BlockHashStore) Get(key []byte) []byte {
+
+	return nil
+}
+
+func (s BlockHashStore) Has(key []byte) bool {
+	return false
+}
+
+func (s BlockHashStore) Delete(key []byte) {
+	return
 }
 
 type StateStore struct {
@@ -212,7 +259,6 @@ type StateStore struct {
 
 func (s StateStore) Set(key, value []byte) {
 	//just ignore all set opt
-	return
 }
 
 func (s StateStore) Get(key []byte) []byte {
@@ -258,7 +304,6 @@ type BloomStore struct {
 
 func (s BloomStore) Set(key, value []byte) {
 	//just ignore all set opt
-	return
 }
 
 func (s BloomStore) Get(key []byte) []byte {
@@ -280,7 +325,6 @@ type CodeStore struct {
 
 func (s CodeStore) Set(key, value []byte) {
 	//just ignore all set opt
-	return
 }
 
 func (s CodeStore) Get(key []byte) []byte {
@@ -306,7 +350,6 @@ type ContractBlockedListStore struct {
 
 func (s ContractBlockedListStore) Set(key, value []byte) {
 	//just ignore all set opt
-	return
 }
 
 func (s ContractBlockedListStore) Get(key []byte) []byte {
@@ -328,7 +371,6 @@ type ContractDeploymentWhitelist struct {
 
 func (s ContractDeploymentWhitelist) Set(key, value []byte) {
 	//just ignore all set opt
-	return
 }
 
 func (s ContractDeploymentWhitelist) Get(key []byte) []byte {
