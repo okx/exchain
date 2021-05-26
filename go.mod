@@ -34,6 +34,7 @@ require (
 	github.com/segmentio/kafka-go v0.2.2
 	github.com/shirou/gopsutil v2.20.9+incompatible // indirect
 	github.com/shopspring/decimal v1.2.0
+	github.com/silenceper/pool v0.0.0-20200429081406-a659d818d9aa
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
@@ -44,6 +45,7 @@ require (
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
+	github.com/tsuna/gohbase v0.0.0-20201006203713-f1ffe9f66b83
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
@@ -52,6 +54,9 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
+	modernc.org/mathutil v1.4.0 // indirect
+	modernc.org/strutil v1.1.1 // indirect
+
 )
 
 replace (

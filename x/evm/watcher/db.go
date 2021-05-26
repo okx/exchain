@@ -1,30 +1,47 @@
 package watcher
 
 import (
-	"log"
-	"path/filepath"
-	"sync"
-
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb"
+	"sync"
 )
 
-const FlagFastQuery = "fast-query"
+const (
+	FlagFastQuery     = "fast-query"
+	FlagWatcherDBType = "watcher-db-type"
+	FlagHbaseDBUrl    = "hbase-db-url"
+
+	DBTypeLevel = "levelDB"
+	DBTypeHbase = "hbaseDB"
+)
 
 type WatchStore struct {
-	db *leveldb.DB
+	db OperateDB
+}
+
+type OperateDB interface {
+	Set(key []byte, value []byte)
+	Get(key []byte) ([]byte, error)
+	Delete(key []byte)
+	Has(key []byte) bool
 }
 
 var gWatchStore *WatchStore = nil
 var once sync.Once
+var db OperateDB
 
 func InstanceOfWatchStore() *WatchStore {
 	once.Do(func() {
 		if IsWatcherEnabled() {
-			db, e := initDb()
-			if e != nil {
-				panic(e)
+			// set db by FlagWatcherDB
+			dbType := viper.GetString(FlagWatcherDBType)
+			if dbType == DBTypeLevel {
+				db = initLevelDB(viper.GetString(flags.FlagHome))
+			} else if dbType == DBTypeHbase {
+				db = initHbaseDB(viper.GetString(FlagHbaseDBUrl))
+			}
+			if db == nil {
+				panic("db has not been initialized")
 			}
 			gWatchStore = &WatchStore{db: db}
 		}
@@ -32,35 +49,18 @@ func InstanceOfWatchStore() *WatchStore {
 	return gWatchStore
 }
 
-func initDb() (*leveldb.DB, error) {
-	homeDir := viper.GetString(flags.FlagHome)
-	dbPath := filepath.Join(homeDir, "data/watch.db")
-	return leveldb.OpenFile(dbPath, nil)
+func (w *WatchStore) Set(key []byte, value []byte) {
+	w.db.Set(key, value)
 }
 
-func (w WatchStore) Set(key []byte, value []byte) {
-	err := w.db.Put(key, value, nil)
-	if err != nil {
-		log.Println("watchdb error: ", err.Error())
-	}
+func (w *WatchStore) Get(key []byte) ([]byte, error) {
+	return w.db.Get(key)
 }
 
-func (w WatchStore) Get(key []byte) ([]byte, error) {
-	return w.db.Get(key, nil)
+func (w *WatchStore) Delete(key []byte) {
+	w.db.Delete(key)
 }
 
-func (w WatchStore) Delete(key []byte) {
-	err := w.db.Delete(key, nil)
-	if err != nil {
-		log.Printf("watchdb error: " + err.Error())
-	}
-}
-
-func (w WatchStore) Has(key []byte) bool {
-	res, err := w.db.Has(key, nil)
-	if err != nil {
-		log.Println("watchdb error: " + err.Error())
-		return false
-	}
-	return res
+func (w *WatchStore) Has(key []byte) bool {
+	return w.db.Has(key)
 }
