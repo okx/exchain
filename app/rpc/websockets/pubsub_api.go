@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -25,7 +23,7 @@ import (
 type PubSubAPI struct {
 	clientCtx context.CLIContext
 	events    *rpcfilters.EventSystem
-	filtersMu sync.Mutex
+	filtersMu *sync.RWMutex
 	filters   map[rpc.ID]*wsSubscription
 	logger    log.Logger
 }
@@ -35,12 +33,13 @@ func NewAPI(clientCtx context.CLIContext, log log.Logger) *PubSubAPI {
 	return &PubSubAPI{
 		clientCtx: clientCtx,
 		events:    rpcfilters.NewEventSystem(clientCtx.Client),
+		filtersMu: new(sync.RWMutex),
 		filters:   make(map[rpc.ID]*wsSubscription),
 		logger:    log.With("module", "websocket-client"),
 	}
 }
 
-func (api *PubSubAPI) subscribe(conn *websocket.Conn, params []interface{}) (rpc.ID, error) {
+func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, error) {
 	method, ok := params[0].(string)
 	if !ok {
 		return "0", fmt.Errorf("invalid parameters")
@@ -82,7 +81,7 @@ func (api *PubSubAPI) unsubscribe(id rpc.ID) bool {
 	return true
 }
 
-func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
+func (api *PubSubAPI) subscribeNewHeads(conn *wsConn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		return "", fmt.Errorf("error creating block filter: %s", err.Error())
@@ -112,7 +111,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 					continue
 				}
 
-				api.filtersMu.Lock()
+				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
 					res := &SubscriptionNotification{
@@ -131,7 +130,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 						api.logger.Debug("successfully write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number)
 					}
 				}
-				api.filtersMu.Unlock()
+				api.filtersMu.RUnlock()
 
 				if err != nil {
 					api.unsubscribe(sub.ID())
@@ -153,7 +152,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	return sub.ID(), nil
 }
 
-func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rpc.ID, error) {
+func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, error) {
 	crit := filters.FilterCriteria{}
 
 	if extra != nil {
@@ -239,7 +238,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 						return
 					}
 
-					api.filtersMu.Lock()
+					api.filtersMu.RLock()
 					if f, found := api.filters[sub.ID()]; found {
 						// write to ws conn
 						res := &SubscriptionNotification{
@@ -259,7 +258,7 @@ func (api *PubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 							api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
 						}
 					}
-					api.filtersMu.Unlock()
+					api.filtersMu.RUnlock()
 
 					if err != nil {
 						api.unsubscribe(sub.ID())
@@ -356,7 +355,7 @@ func isHex(str string) bool {
 	return true
 }
 
-func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID, error) {
+func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		return "", fmt.Errorf("error creating block filter: %s", err.Error())
@@ -382,7 +381,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 				}
 				txHash := common.BytesToHash(data.Tx.Hash())
 
-				api.filtersMu.Lock()
+				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
 					res := &SubscriptionNotification{
@@ -401,7 +400,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash)
 					}
 				}
-				api.filtersMu.Unlock()
+				api.filtersMu.RUnlock()
 
 				if err != nil {
 					api.unsubscribe(sub.ID())
@@ -423,7 +422,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 	return sub.ID(), nil
 }
 
-func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
+func (api *PubSubAPI) subscribeSyncing(conn *wsConn) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribeNewHeads()
 	if err != nil {
 		return "", fmt.Errorf("error creating block filter: %s", err.Error())
@@ -468,7 +467,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 					}
 				}
 
-				api.filtersMu.Lock()
+				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
 					res := &SubscriptionNotification{
@@ -487,7 +486,7 @@ func (api *PubSubAPI) subscribeSyncing(conn *websocket.Conn) (rpc.ID, error) {
 						api.logger.Debug("successfully write syncing status", "ID", sub.ID())
 					}
 				}
-				api.filtersMu.Unlock()
+				api.filtersMu.RUnlock()
 
 				if err != nil {
 					api.unsubscribe(sub.ID())
