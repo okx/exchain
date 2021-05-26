@@ -19,18 +19,19 @@ import (
 )
 
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	staleBatch    []WatchMessage
-	cumulativeGas map[uint64]uint64
-	gasUsed       uint64
-	blockTxs      []common.Hash
-	sw            bool
-	firstUse      bool
-	scheduler     streamTypes.IDistributeStateService
+	store           *WatchStore
+	height          uint64
+	blockHash       common.Hash
+	header          types.Header
+	batch           []WatchMessage
+	staleBatch      []WatchMessage
+	cumulativeGas   map[uint64]uint64
+	gasUsed         uint64
+	blockTxs        []common.Hash
+	sw              bool
+	firstUse        bool
+	enableScheduler bool
+	scheduler       streamTypes.IDistributeStateService
 }
 
 const (
@@ -46,16 +47,17 @@ func IsWatcherEnabled() bool {
 
 func NewWatcher() *Watcher {
 	var scheduler streamTypes.IDistributeStateService
-	if IsWatcherEnabled() {
+
+	if IsWatcherEnabled() && viper.GetString(FlagWatcherDBType) == DBTypeHbase {
 		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 		var err error
-		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagFastQuery), "", logger, lockerID)
+		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagWatcherDisLockUrl), "", logger, lockerID)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, scheduler: scheduler}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, enableScheduler: viper.GetString(FlagWatcherDBType) == DBTypeHbase, scheduler: scheduler}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -299,7 +301,28 @@ func (w *Watcher) Reset() {
 }
 
 func (w *Watcher) Commit() {
-	if w.sw {
+	if !w.sw {
+		return
+	}
+
+	if w.enableScheduler {
+		w.CommitScheduler()
+	} else {
+		//hold it in temp
+		batch := w.batch
+		go func() {
+			for _, b := range batch {
+				w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			}
+		}()
+	}
+}
+
+func (w *Watcher) CommitScheduler() {
+	if !w.sw {
+		return
+	}
+	if !w.enableScheduler {
 		return
 	}
 
@@ -315,6 +338,7 @@ func (w *Watcher) Commit() {
 	latestHeight, err := w.scheduler.GetDistState(latestHeightKey)
 	if err != nil {
 		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		return
 	}
 
 	// maybe first get latestHeightKey
