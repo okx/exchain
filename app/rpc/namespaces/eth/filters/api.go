@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/app/rpc/monitor"
 	"golang.org/x/time/rate"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/bloombits"
-
+	"github.com/go-kit/kit/metrics"
+	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -62,10 +64,12 @@ type PublicFilterAPI struct {
 	events    *EventSystem
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
+	logger    log.Logger
+	Metrics   map[string]metrics.Counter
 }
 
 // NewAPI returns a new PublicFilterAPI instance.
-func NewAPI(clientCtx clientcontext.CLIContext, backend Backend) *PublicFilterAPI {
+func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend Backend) *PublicFilterAPI {
 	// DO NOT start the client to subscribe to Tendermint events
 	//err := clientCtx.Client.Start()
 	//if err != nil {
@@ -77,6 +81,7 @@ func NewAPI(clientCtx clientcontext.CLIContext, backend Backend) *PublicFilterAP
 		backend:   backend,
 		filters:   make(map[rpc.ID]*filter),
 		events:    NewEventSystem(clientCtx.Client),
+		logger:    log.With("module", "json-rpc", "namespace", "eth"),
 	}
 
 	go api.timeoutLoop()
@@ -114,6 +119,9 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
+	monitor := monitor.GetMonitor("eth_newPendingTransactionFilter", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	rateLimiter := api.backend.GetRateLimiter("eth_newPendingTransactionFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", ErrServerBusy.Error()))
@@ -206,6 +214,9 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
+	monitor := monitor.GetMonitor("eth_newBlockFilter", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	rateLimiter := api.backend.GetRateLimiter("eth_newBlockFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", ErrServerBusy.Error()))
@@ -370,6 +381,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
+	monitor := monitor.GetMonitor("eth_newFilter", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", criteria)
 	rateLimiter := api.backend.GetRateLimiter("eth_newFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(""), ErrServerBusy
@@ -430,27 +444,30 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 // GetLogs returns logs matching the given argument that are stored within the state.
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
-func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCriteria) ([]*ethtypes.Log, error) {
+func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
+	monitor := monitor.GetMonitor("eth_getBalance", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", criteria)
 	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return nil, ErrServerBusy
 	}
 	var filter *Filter
-	if crit.BlockHash != nil {
+	if criteria.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, crit)
+		filter = NewBlockFilter(api.backend, criteria)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()
-		if crit.FromBlock != nil {
-			begin = crit.FromBlock.Int64()
+		if criteria.FromBlock != nil {
+			begin = criteria.FromBlock.Int64()
 		}
 		end := rpc.LatestBlockNumber.Int64()
-		if crit.ToBlock != nil {
-			end = crit.ToBlock.Int64()
+		if criteria.ToBlock != nil {
+			end = criteria.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter = NewRangeFilter(api.backend, begin, end, crit.Addresses, crit.Topics)
+		filter = NewRangeFilter(api.backend, begin, end, criteria.Addresses, criteria.Topics)
 	}
 
 	// Run the filter and return all the logs
@@ -466,6 +483,9 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, crit filters.FilterCrit
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_uninstallfilter
 func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
+	monitor := monitor.GetMonitor("eth_uninstallFilter", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("id", id)
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
 	if found {
@@ -530,6 +550,9 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getfilterchanges
 func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
+	monitor := monitor.GetMonitor("eth_getFilterChanges", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("id", id)
 	rateLimiter := api.backend.GetRateLimiter("eth_getFilterChanges")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return nil, ErrServerBusy
