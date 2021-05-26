@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	FlagFastQuery     = "fast-query"
-	FlagWatcherDBType = "watcher-db-type"
-	FlagHbaseDBUrl    = "hbase-db-url"
+	FlagFastQuery         = "fast-query"
+	FlagWatcherDisLockUrl = "watcher-dis-lock-url"
+	FlagWatcherDBType     = "watcher-db-type"
+	FlagHbaseDBUrl        = "hbase-db-url"
 
 	DBTypeLevel = "levelDB"
 	DBTypeHbase = "hbaseDB"

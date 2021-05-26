@@ -1,7 +1,11 @@
 package watcher
 
 import (
+	"github.com/okex/exchain/x/stream/distrlock"
+	"github.com/tendermint/tendermint/libs/log"
 	"math/big"
+	"os"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -9,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	streamTypes "github.com/okex/exchain/x/stream/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 )
@@ -25,14 +30,32 @@ type Watcher struct {
 	blockTxs      []common.Hash
 	sw            bool
 	firstUse      bool
+	scheduler     streamTypes.IDistributeStateService
 }
+
+const (
+	lockerID              = "evm_lock_id"
+	distributeLock        = "evm_watcher_lock"
+	distributeLockTimeout = 1000
+	latestHeightKey       = "latest_Height_key"
+)
 
 func IsWatcherEnabled() bool {
 	return viper.GetBool(FlagFastQuery)
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true}
+	var scheduler streamTypes.IDistributeStateService
+	if IsWatcherEnabled() {
+		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+		var err error
+		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagFastQuery), "", logger, lockerID)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, scheduler: scheduler}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -276,14 +299,37 @@ func (w *Watcher) Reset() {
 }
 
 func (w *Watcher) Commit() {
-	if !w.Enabled() {
+	if w.sw {
 		return
 	}
+
 	//hold it in temp
 	batch := w.batch
-	go func() {
-		for _, b := range batch {
-			w.store.Set(b.GetKey(), []byte(b.GetValue()))
-		}
-	}()
+	// auto garbage collection
+	w.batch = nil
+
+	locked, err := w.scheduler.FetchDistLock(distributeLock, lockerID, distributeLockTimeout)
+	if !locked || err != nil {
+		return
+	}
+	latestHeight, err := w.scheduler.GetDistState(latestHeightKey)
+	if err != nil {
+		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+	}
+
+	// maybe first get latestHeightKey
+	if len(latestHeight) == 0 {
+		latestHeight = "0"
+	}
+	latestHeightNum, _ := strconv.Atoi(latestHeight)
+	if uint64(latestHeightNum) < w.height {
+		w.scheduler.SetDistState(latestHeightKey, strconv.FormatUint(w.height, 10))
+		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		// set data
+		go func() {
+			for _, b := range batch {
+				w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			}
+		}()
+	}
 }
