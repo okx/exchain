@@ -244,6 +244,11 @@ func (so *stateObject) commitState() {
 		// delete empty values from the store
 		if (state.Value == ethcmn.Hash{}) {
 			store.Delete(state.Key.Bytes())
+			if !so.stateDB.ctx.IsCheckTx() {
+				if so.stateDB.Watcher.Enabled() {
+					so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), ethcmn.Hash{}.Bytes())
+				}
+			}
 		}
 
 		delete(so.keyToDirtyStorageIndex, state.Key)
