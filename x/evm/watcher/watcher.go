@@ -50,7 +50,7 @@ func IsWatcherEnabled() bool {
 func NewWatcher() *Watcher {
 	var scheduler streamTypes.IDistributeStateService
 
-	if IsWatcherEnabled() && viper.GetString(FlagWatcherDBType) == DBTypeHbase {
+	if IsWatcherEnabled() && viper.GetString(FlagWatcherDBType) != DBTypeLevel {
 		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 		var err error
 		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagWatcherDisLockUrl), viper.GetString(FlagWatcherDisLockUrlPassword), logger, lockerID)
