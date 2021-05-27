@@ -359,6 +359,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "blockNum", blockNum)
 	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
@@ -390,22 +391,20 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
 	api.logger.Debug("eth_getBlockTransactionCountByHash", "hash", hash)
-	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+
+	block, err := api.backend.GetBlockByHash(hash, true)
 	if err != nil {
 		return nil
 	}
-
-	var out evmtypes.QueryResBlockNumber
-	if err := api.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+	ethBlock, b := block.(*watcher.EthBlock)
+	if !b {
 		return nil
 	}
-
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
-	if err != nil {
+	transactions, b := ethBlock.Transactions.([]rpctypes.Transaction)
+	if !b {
 		return nil
 	}
-
-	n := hexutil.Uint(len(resBlock.Block.Txs))
+	n := hexutil.Uint(len(transactions))
 	return &n
 }
 
@@ -415,44 +414,42 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 
 	var (
 		height  int64
-		err     error
 		txCount hexutil.Uint
 		txs     int
 	)
 
 	switch blockNum {
-	case rpctypes.PendingBlockNumber:
-		height, err = api.backend.LatestBlockNumber()
+	case rpctypes.PendingBlockNumber, rpctypes.LatestBlockNumber:
+		num, err := api.backend.BlockNumber()
 		if err != nil {
 			return nil
 		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
-		if err != nil {
-			return nil
-		}
+		height = int64(num)
+	default:
+		height = blockNum.Int64()
+	}
+
+	block, err := api.backend.GetBlockByNumber(rpctypes.NewBlockNumber(big.NewInt(height)), true)
+	if err != nil {
+		return nil
+	}
+	ethBlock, b := block.(*watcher.EthBlock)
+	if !b {
+		return nil
+	}
+	transactions, b := ethBlock.Transactions.([]rpctypes.Transaction)
+	if !b {
+		return nil
+	}
+	txs += len(transactions)
+
+	if blockNum == rpctypes.PendingBlockNumber {
 		// get the pending transaction count
 		pendingCnt, err := api.backend.PendingTransactionCnt()
 		if err != nil {
 			return nil
 		}
-		txs = len(resBlock.Block.Txs) + pendingCnt
-	case rpctypes.LatestBlockNumber:
-		height, err = api.backend.LatestBlockNumber()
-		if err != nil {
-			return nil
-		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
-		if err != nil {
-			return nil
-		}
-		txs = len(resBlock.Block.Txs)
-	default:
-		height = blockNum.Int64()
-		resBlock, err := api.clientCtx.Client.Block(&height)
-		if err != nil {
-			return nil
-		}
-		txs = len(resBlock.Block.Txs)
+		txs += pendingCnt
 	}
 
 	txCount = hexutil.Uint(txs)
@@ -884,20 +881,23 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
 	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
-	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+
+	block, err := api.backend.GetBlockByHash(hash, true)
 	if err != nil {
+		return nil, err
+	}
+	ethBlock, b := block.(*watcher.EthBlock)
+	if !b {
 		return nil, nil
 	}
-
-	var out evmtypes.QueryResBlockNumber
-	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
-	if err != nil {
+	txs, b := ethBlock.Transactions.([]rpctypes.Transaction)
+	if !b {
 		return nil, nil
 	}
-
-	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
+	if uint64(idx) >= uint64(len(txs)) {
+		return nil, nil
+	}
+	return &(txs[idx]), nil
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
@@ -930,10 +930,11 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 		return pendingTxs[int(idx)], nil
 
 	case rpctypes.LatestBlockNumber:
-		height, err = api.backend.LatestBlockNumber()
+		num, err := api.backend.BlockNumber()
 		if err != nil {
 			return nil, err
 		}
+		height = int64(num)
 
 	default:
 		height = blockNum.Int64()
