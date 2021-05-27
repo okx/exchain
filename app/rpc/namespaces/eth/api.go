@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-kit/kit/metrics"
 	"math/big"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
-
 	"github.com/okex/exchain/x/evm/watcher"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
@@ -66,6 +67,7 @@ type PublicEthereumAPI struct {
 	watcherBackend *watcher.Watcher
 	evmFactory     simulation.EvmFactory
 	txPool         *TxPool
+	Metrics        map[string]metrics.Counter
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -160,8 +162,9 @@ func (api *PublicEthereumAPI) ChainId() (hexutil.Uint, error) { // nolint
 // Syncing returns whether or not the current node is syncing with other peers. Returns false if not, or a struct
 // outlining the state of the sync if it is.
 func (api *PublicEthereumAPI) Syncing() (interface{}, error) {
-	api.logger.Debug("eth_syncing")
-
+	monitor := monitor.GetMonitor("eth_syncing", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	status, err := api.clientCtx.Client.Status()
 	if err != nil {
 		return false, err
@@ -211,13 +214,17 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 
 // GasPrice returns the current gas price based on Ethermint's gas price oracle.
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
-	api.logger.Debug("eth_gasPrice")
+	monitor := monitor.GetMonitor("eth_gasPrice", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	return api.gasPrice
 }
 
 // Accounts returns the list of accounts available to this node.
 func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
-	api.logger.Debug("eth_accounts")
+	monitor := monitor.GetMonitor("eth_accounts", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	api.keyringLock.Lock()
 	defer api.keyringLock.Unlock()
 
@@ -238,13 +245,17 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 
 // BlockNumber returns the current block number.
 func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
-	api.logger.Debug("eth_blockNumber")
+	monitor := monitor.GetMonitor("eth_blockNumber", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	return api.backend.BlockNumber()
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
-	api.logger.Debug("eth_getBalance", "address", address, "block number", blockNum)
+	monitor := monitor.GetMonitor("eth_getBalance", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("address", address, "block number", blockNum)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
@@ -359,7 +370,9 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getStorageAt", "address", address, "key", key, "blockNum", blockNum)
+	monitor := monitor.GetMonitor("eth_getStorageAt", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("address", address, "key", key, "block number", blockNum)
 	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
@@ -370,8 +383,9 @@ func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key [
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
-	api.logger.Debug("eth_getTransactionCount", "address", address, "block number", blockNum)
-
+	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("address", address, "block number", blockNum)
 	clientCtx := api.clientCtx
 	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
@@ -390,66 +404,73 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
-	api.logger.Debug("eth_getBlockTransactionCountByHash", "hash", hash)
-
-	block, err := api.backend.GetBlockByHash(hash, true)
+	monitor := monitor.GetMonitor("eth_getBlockTransactionCountByHash", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("hash", hash)
+	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil
 	}
-	ethBlock, b := block.(*watcher.EthBlock)
-	if !b {
+
+	var out evmtypes.QueryResBlockNumber
+	if err := api.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
 		return nil
 	}
-	transactions, b := ethBlock.Transactions.([]rpctypes.Transaction)
-	if !b {
+
+	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	if err != nil {
 		return nil
 	}
-	n := hexutil.Uint(len(transactions))
+
+	n := hexutil.Uint(len(resBlock.Block.Txs))
 	return &n
 }
 
 // GetBlockTransactionCountByNumber returns the number of transactions in the block identified by its height.
 func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes.BlockNumber) *hexutil.Uint {
-	api.logger.Debug("eth_getBlockTransactionCountByNumber", "block number", blockNum)
-
+	monitor := monitor.GetMonitor("eth_getBlockTransactionCountByNumber", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("block number", blockNum)
 	var (
 		height  int64
+		err     error
 		txCount hexutil.Uint
 		txs     int
 	)
 
 	switch blockNum {
-	case rpctypes.PendingBlockNumber, rpctypes.LatestBlockNumber:
-		num, err := api.backend.BlockNumber()
+	case rpctypes.PendingBlockNumber:
+		height, err = api.backend.LatestBlockNumber()
 		if err != nil {
 			return nil
 		}
-		height = int64(num)
-	default:
-		height = blockNum.Int64()
-	}
-
-	block, err := api.backend.GetBlockByNumber(rpctypes.NewBlockNumber(big.NewInt(height)), true)
-	if err != nil {
-		return nil
-	}
-	ethBlock, b := block.(*watcher.EthBlock)
-	if !b {
-		return nil
-	}
-	transactions, b := ethBlock.Transactions.([]rpctypes.Transaction)
-	if !b {
-		return nil
-	}
-	txs += len(transactions)
-
-	if blockNum == rpctypes.PendingBlockNumber {
+		resBlock, err := api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil
+		}
 		// get the pending transaction count
 		pendingCnt, err := api.backend.PendingTransactionCnt()
 		if err != nil {
 			return nil
 		}
-		txs += pendingCnt
+		txs = len(resBlock.Block.Txs) + pendingCnt
+	case rpctypes.LatestBlockNumber:
+		height, err = api.backend.LatestBlockNumber()
+		if err != nil {
+			return nil
+		}
+		resBlock, err := api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil
+		}
+		txs = len(resBlock.Block.Txs)
+	default:
+		height = blockNum.Int64()
+		resBlock, err := api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil
+		}
+		txs = len(resBlock.Block.Txs)
 	}
 
 	txCount = hexutil.Uint(txs)
@@ -468,7 +489,9 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 
 // GetCode returns the contract code at the given address and block number.
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_getCode", "address", address, "block number", blockNumber)
+	monitor := monitor.GetMonitor("eth_getCode", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("address", address, "block number", blockNumber)
 	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
 		return code, nil
@@ -512,7 +535,9 @@ func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtype
 
 // Sign signs the provided data using the private key of address via Geth's signature standard.
 func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_sign", "address", address, "data", data)
+	monitor := monitor.GetMonitor("eth_sign", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("address", address, "data", data)
 	// TODO: Change this functionality to find an unlocked account by address
 
 	key, exist := rpctypes.GetKeyByAddress(api.keys, address)
@@ -533,7 +558,9 @@ func (api *PublicEthereumAPI) Sign(address common.Address, data hexutil.Bytes) (
 
 // SendTransaction sends an Ethereum transaction.
 func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.Hash, error) {
-	api.logger.Debug("eth_sendTransaction", "args", args)
+	monitor := monitor.GetMonitor("eth_sendTransaction", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
 	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
@@ -590,7 +617,9 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 
 // SendRawTransaction send a raw Ethereum transaction.
 func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
-	api.logger.Debug("eth_sendRawTransaction", "data", data)
+	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("data", data)
 	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
@@ -627,7 +656,9 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 
 // Call performs a raw contract call.
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
-	api.logger.Debug("eth_call", "args", args, "block number", blockNr)
+	monitor := monitor.GetMonitor("eth_call", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
@@ -761,7 +792,9 @@ func (api *PublicEthereumAPI) doCall(
 // It adds 1,000 gas to the returned value instead of using the gas adjustment
 // param from the SDK.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
-	api.logger.Debug("eth_estimateGas", "args", args)
+	monitor := monitor.GetMonitor("eth_estimateGas", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", args)
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -778,8 +811,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 // GetBlockByHash returns the block identified by hash.
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (interface{}, error) {
-	api.logger.Debug("eth_getBlockByHash", "hash", hash, "full", fullTx)
-
+	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("hash", hash, "full", fullTx)
 	block, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
@@ -789,8 +823,9 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (int
 
 // GetBlockByNumber returns the block identified by number.
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
-	api.logger.Debug("eth_getBlockByNumber", "number", blockNum, "full", fullTx)
-
+	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 	var blockTxs interface{}
 	if blockNum != rpctypes.PendingBlockNumber {
 		return api.backend.GetBlockByNumber(blockNum, fullTx)
@@ -846,7 +881,9 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 
 // GetTransactionByHash returns the transaction identified by hash.
 func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByHash", "hash", hash)
+	monitor := monitor.GetMonitor("eth_getTransactionByHash", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("hash", hash)
 	rawTx, err := api.wrappedBackend.GetTransactionByHash(hash)
 	if err == nil {
 		return rawTx, nil
@@ -880,24 +917,23 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByBlockHashAndIndex", "hash", hash, "index", idx)
-
-	block, err := api.backend.GetBlockByHash(hash, true)
+	monitor := monitor.GetMonitor("eth_getTransactionByBlockHashAndIndex", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("hash", hash, "index", idx)
+	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return nil, err
-	}
-	ethBlock, b := block.(*watcher.EthBlock)
-	if !b {
 		return nil, nil
 	}
-	txs, b := ethBlock.Transactions.([]rpctypes.Transaction)
-	if !b {
+
+	var out evmtypes.QueryResBlockNumber
+	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	if err != nil {
 		return nil, nil
 	}
-	if uint64(idx) >= uint64(len(txs)) {
-		return nil, nil
-	}
-	return &(txs[idx]), nil
+
+	return api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 }
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
@@ -930,11 +966,10 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 		return pendingTxs[int(idx)], nil
 
 	case rpctypes.LatestBlockNumber:
-		num, err := api.backend.BlockNumber()
+		height, err = api.backend.LatestBlockNumber()
 		if err != nil {
 			return nil, err
 		}
-		height = int64(num)
 
 	default:
 		height = blockNum.Int64()
@@ -968,7 +1003,9 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 
 // GetTransactionReceipt returns the transaction receipt identified by hash.
 func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
-	api.logger.Debug("eth_getTransactionReceipt", "hash", hash)
+	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("hash", hash)
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
 	if e == nil {
 		return res, nil
