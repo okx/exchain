@@ -11,10 +11,12 @@ const (
 	FlagWatcherDisLockUrl         = "watcher-dis-lock-url"
 	FlagWatcherDisLockUrlPassword = "watcher-dis-lock-password"
 	FlagWatcherDBType             = "watcher-db-type"
-	FlagHbaseDBUrl                = "hbase-db-url"
+	FlagWatcherDBUrl              = "watcher-db-url"
+	FlagWatcherDBPassword         = "watcher-db-password"
 
 	DBTypeLevel = "levelDB"
 	DBTypeHbase = "hbaseDB"
+	DBTypeRedis = "redisDB"
 )
 
 type WatchStore struct {
@@ -40,7 +42,9 @@ func InstanceOfWatchStore() *WatchStore {
 			if dbType == DBTypeLevel {
 				db = initLevelDB(viper.GetString(flags.FlagHome))
 			} else if dbType == DBTypeHbase {
-				db = initHbaseDB(viper.GetString(FlagHbaseDBUrl))
+				db = initHbaseDB(viper.GetString(FlagWatcherDBUrl))
+			} else if dbType == DBTypeRedis {
+				db = initRedisDB(viper.GetString(FlagWatcherDBUrl), viper.GetString(FlagWatcherDBPassword))
 			}
 			if db == nil {
 				panic("db has not been initialized")

@@ -9,6 +9,7 @@ import (
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
+	sdkcdc "github.com/cosmos/cosmos-sdk/codec"
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -18,7 +19,6 @@ import (
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/spf13/cobra"
-	sdkcdc "github.com/cosmos/cosmos-sdk/codec"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/libs/cli"
@@ -163,7 +163,8 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrl, "redis://127.0.0.1:6379", "config watcher dis lock url")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
-	cmd.Flags().String(watcher.FlagHbaseDBUrl, "", "config watcher hbase db url")
+	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
+	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
 
 	return cmd
 }
