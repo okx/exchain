@@ -18,7 +18,7 @@ const (
 )
 
 type WatchStore struct {
-	db OperateDB
+	OperateDB
 }
 
 type OperateDB interface {
@@ -30,11 +30,11 @@ type OperateDB interface {
 
 var gWatchStore *WatchStore = nil
 var once sync.Once
-var db OperateDB
 
 func InstanceOfWatchStore() *WatchStore {
 	once.Do(func() {
 		if IsWatcherEnabled() {
+			var db OperateDB
 			// set db by FlagWatcherDB
 			dbType := viper.GetString(FlagWatcherDBType)
 			if dbType == DBTypeLevel {
@@ -45,24 +45,8 @@ func InstanceOfWatchStore() *WatchStore {
 			if db == nil {
 				panic("db has not been initialized")
 			}
-			gWatchStore = &WatchStore{db: db}
+			gWatchStore = &WatchStore{db}
 		}
 	})
 	return gWatchStore
-}
-
-func (w *WatchStore) Set(key []byte, value []byte) {
-	w.db.Set(key, value)
-}
-
-func (w *WatchStore) Get(key []byte) ([]byte, error) {
-	return w.db.Get(key)
-}
-
-func (w *WatchStore) Delete(key []byte) {
-	w.db.Delete(key)
-}
-
-func (w *WatchStore) Has(key []byte) bool {
-	return w.db.Has(key)
 }
