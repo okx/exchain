@@ -4,16 +4,21 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/go-kit/kit/metrics"
+	"github.com/okex/exchain/app/rpc/monitor"
 	ethermint "github.com/okex/exchain/app/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicNetAPI struct {
 	networkVersion uint64
+	logger         log.Logger
+	Metrics        map[string]metrics.Counter
 }
 
 // NewAPI creates an instance of the public Net Web3 API.
-func NewAPI(clientCtx context.CLIContext) *PublicNetAPI {
+func NewAPI(clientCtx context.CLIContext, log log.Logger) *PublicNetAPI {
 	// parse the chainID from a integer string
 	chainIDEpoch, err := ethermint.ParseChainID(clientCtx.ChainID)
 	if err != nil {
@@ -22,10 +27,14 @@ func NewAPI(clientCtx context.CLIContext) *PublicNetAPI {
 
 	return &PublicNetAPI{
 		networkVersion: chainIDEpoch.Uint64(),
+		logger:         log.With("module", "json-rpc", "namespace", "net"),
 	}
 }
 
 // Version returns the current ethereum protocol version.
 func (api *PublicNetAPI) Version() string {
+	monitor := monitor.GetMonitor("net_version", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	return fmt.Sprintf("%d", api.networkVersion)
 }

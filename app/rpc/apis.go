@@ -1,14 +1,20 @@
 package rpc
 
 import (
+	"fmt"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	"golang.org/x/time/rate"
+	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -49,7 +55,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 		{
 			Namespace: Web3Namespace,
 			Version:   apiVersion,
-			Service:   web3.NewAPI(),
+			Service:   web3.NewAPI(log),
 			Public:    true,
 		},
 		{
@@ -61,13 +67,13 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 		{
 			Namespace: EthNamespace,
 			Version:   apiVersion,
-			Service:   filters.NewAPI(clientCtx, ethBackend),
+			Service:   filters.NewAPI(clientCtx, log, ethBackend),
 			Public:    true,
 		},
 		{
 			Namespace: NetNamespace,
 			Version:   apiVersion,
-			Service:   net.NewAPI(clientCtx),
+			Service:   net.NewAPI(clientCtx, log),
 			Public:    true,
 		},
 	}
@@ -79,6 +85,12 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 			Service:   personal.NewAPI(ethAPI, log),
 			Public:    false,
 		})
+	}
+
+	if viper.GetBool(FlagEnableMonitor) {
+		for _, api := range apis {
+			makeMonitorMetrics(api.Namespace, api.Service)
+		}
 	}
 	return apis
 }
@@ -96,4 +108,54 @@ func getRateLimiter() map[string]*rate.Limiter {
 		rateLimiters[api] = rate.NewLimiter(rate.Limit(rateLimitCount), rateLimitBurst)
 	}
 	return rateLimiters
+}
+
+func makeMonitorMetrics(namespace string, service interface{}) {
+	receiver := reflect.ValueOf(service)
+	if !hasMetricsField(receiver.Elem()) {
+		return
+	}
+	metricsVal := receiver.Elem().FieldByName(MetricsFieldName)
+
+	monitorMetrics := make(map[string]metrics.Counter)
+	typ := receiver.Type()
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		if method.PkgPath != "" {
+			continue // method not exported
+		}
+		methodName := formatMethodName(method.Name)
+		name := fmt.Sprintf("%s_%s", namespace, methodName)
+		monitorMetrics[name] = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: MetricsNamespace,
+			Subsystem: MetricsSubsystem,
+			Name:      name,
+			Help:      fmt.Sprintf("Number of %s method.", name),
+		}, nil)
+	}
+
+	if metricsVal.CanSet() && metricsVal.Type() == reflect.ValueOf(monitorMetrics).Type() {
+		metricsVal.Set(reflect.ValueOf(monitorMetrics))
+	}
+}
+
+// formatMethodName converts to first character of name to lowercase.
+func formatMethodName(name string) string {
+	ret := []rune(name)
+	if len(ret) > 0 {
+		ret[0] = unicode.ToLower(ret[0])
+	}
+	return string(ret)
+}
+
+func hasMetricsField(receiver reflect.Value) bool {
+	if receiver.Kind() != reflect.Struct {
+		return false
+	}
+	for i := 0; i < receiver.NumField(); i++ {
+		if receiver.Type().Field(i).Name == MetricsFieldName {
+			return true
+		}
+	}
+	return false
 }
