@@ -51,7 +51,7 @@ func NewWatcher() *Watcher {
 	if IsWatcherEnabled() && viper.GetString(FlagWatcherDBType) == DBTypeHbase {
 		logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 		var err error
-		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagWatcherDisLockUrl), "", logger, lockerID)
+		scheduler, err = distrlock.NewRedisDistributeStateService(viper.GetString(FlagWatcherDisLockUrl), viper.GetString(FlagWatcherDisLockUrlPassword), logger, lockerID)
 		if err != nil {
 			panic(err)
 		}
