@@ -28,6 +28,13 @@ const (
 	FlagRateLimitApi   = "rpc.rate-limit-api"
 	FlagRateLimitCount = "rpc.rate-limit-count"
 	FlagRateLimitBurst = "rpc.rate-limit-burst"
+	FlagEnableMonitor  = "rpc.enable-monitor"
+
+	MetricsNamespace = "x"
+	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
+	MetricsSubsystem = "rpc"
+
+	MetricsFieldName = "Metrics"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.
