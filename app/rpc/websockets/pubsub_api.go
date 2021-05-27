@@ -136,11 +136,10 @@ func (api *PubSubAPI) subscribeNewHeads(conn *wsConn) (rpc.ID, error) {
 					api.unsubscribe(sub.ID())
 				}
 			case err := <-errCh:
-				api.filtersMu.Lock()
-				sub.Unsubscribe(api.events)
-				delete(api.filters, sub.ID())
-				api.filtersMu.Unlock()
-				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
 				return
 			case <-unsubscribed:
 				api.logger.Debug("NewHeads channel is closed", "ID", sub.ID())
@@ -265,11 +264,10 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 					}
 				}(event)
 			case err := <-errCh:
-				api.filtersMu.Lock()
-				sub.Unsubscribe(api.events)
-				delete(api.filters, sub.ID())
-				api.filtersMu.Unlock()
-				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
 				return
 			case <-unsubscribed:
 				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
@@ -406,11 +404,10 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 					api.unsubscribe(sub.ID())
 				}
 			case err := <-errCh:
-				api.filtersMu.Lock()
-				sub.Unsubscribe(api.events)
-				delete(api.filters, sub.ID())
-				api.filtersMu.Unlock()
-				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
 				return
 			case <-unsubscribed:
 				api.logger.Debug("PendingTransactions channel is closed", "ID", sub.ID())
@@ -493,11 +490,10 @@ func (api *PubSubAPI) subscribeSyncing(conn *wsConn) (rpc.ID, error) {
 				}
 
 			case err := <-errCh:
-				api.filtersMu.Lock()
-				sub.Unsubscribe(api.events)
-				delete(api.filters, sub.ID())
-				api.filtersMu.Unlock()
-				api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
 				return
 			case <-unsubscribed:
 				api.logger.Debug("Syncing channel is closed", "ID", sub.ID())
