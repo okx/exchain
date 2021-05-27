@@ -3,6 +3,7 @@ package filters
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/server"
@@ -42,7 +43,8 @@ type EventSystem struct {
 	// light client mode
 	lightMode bool
 
-	index filterIndex
+	index      filterIndex
+	indexMux   *sync.RWMutex
 
 	// Channels
 	install   chan *Subscription // install filter for event notification
@@ -67,6 +69,7 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 		channelLength: viper.GetInt(server.FlagWsSubChannelLength),
 		lightMode:     false,
 		index:         index,
+		indexMux:      new(sync.RWMutex),
 		install:       make(chan *Subscription),
 		uninstall:     make(chan *Subscription),
 	}
@@ -275,6 +278,7 @@ func (es *EventSystem) eventLoop() {
 	for {
 		select {
 		case f := <-es.install:
+			es.indexMux.Lock()
 			if f.typ == filters.MinedAndPendingLogsSubscription {
 				// the type are logs and pending logs subscriptions
 				es.index[filters.LogsSubscription][f.id] = f
@@ -282,9 +286,11 @@ func (es *EventSystem) eventLoop() {
 			} else {
 				es.index[f.typ][f.id] = f
 			}
+			es.indexMux.Unlock()
 			close(f.installed)
 
 		case f := <-es.uninstall:
+			es.indexMux.Lock()
 			if f.typ == filters.MinedAndPendingLogsSubscription {
 				// the type are logs and pending logs subscriptions
 				delete(es.index[filters.LogsSubscription], f.id)
@@ -292,6 +298,7 @@ func (es *EventSystem) eventLoop() {
 			} else {
 				delete(es.index[f.typ], f.id)
 			}
+			es.indexMux.Unlock()
 			close(f.err)
 		}
 	}
