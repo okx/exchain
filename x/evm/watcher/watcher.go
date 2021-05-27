@@ -1,11 +1,13 @@
 package watcher
 
 import (
+	"fmt"
 	"github.com/okex/exchain/x/stream/distrlock"
 	"github.com/tendermint/tendermint/libs/log"
 	"math/big"
 	"os"
 	"strconv"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -330,14 +332,16 @@ func (w *Watcher) CommitScheduler() {
 	batch := w.batch
 	// auto garbage collection
 	w.batch = nil
-
+	start := time.Now()
 	locked, err := w.scheduler.FetchDistLock(distributeLock, lockerID, distributeLockTimeout)
 	if !locked || err != nil {
+		fmt.Println(time.Since(start))
 		return
 	}
 	latestHeight, err := w.scheduler.GetDistState(latestHeightKey)
 	if err != nil {
 		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		fmt.Println(time.Since(start))
 		return
 	}
 
@@ -350,10 +354,15 @@ func (w *Watcher) CommitScheduler() {
 		w.scheduler.SetDistState(latestHeightKey, strconv.FormatUint(w.height, 10))
 		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
 		// set data
+		fmt.Println("hbase to write")
+		fmt.Println(time.Since(start))
 		go func() {
 			for _, b := range batch {
 				w.store.Set(b.GetKey(), []byte(b.GetValue()))
 			}
 		}()
+	} else {
+		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		fmt.Println(time.Since(start))
 	}
 }
