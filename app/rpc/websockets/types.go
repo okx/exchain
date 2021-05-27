@@ -3,8 +3,6 @@ package websockets
 import (
 	"math/big"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/ethereum/go-ethereum/rpc"
 
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
@@ -41,5 +39,5 @@ type ErrorMessageJSON struct {
 type wsSubscription struct {
 	sub          *rpcfilters.Subscription
 	unsubscribed chan struct{} // closed when unsubscribing
-	conn         *websocket.Conn
+	conn         *wsConn
 }
