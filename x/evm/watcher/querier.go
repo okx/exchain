@@ -69,6 +69,9 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := []rpctypes.Transaction{}
+		if len(txsHash) == 0 {
+			block.TransactionsRoot = ethtypes.EmptyRootHash
+		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {
@@ -77,7 +80,29 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 		}
 		block.Transactions = txList
 	}
+	block.UncleHash = ethtypes.EmptyUncleHash
+	block.ReceiptsRoot = ethtypes.EmptyRootHash
+
 	return &block, nil
+}
+
+func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
+	if !q.enabled() {
+		return common.Hash{}, errors.New(MsgFunctionDisable)
+	}
+	var height = number
+	var err error
+	if height == 0 {
+		height, err = q.GetLatestBlockNumber()
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
+	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	if e != nil {
+		return common.Hash{}, e
+	}
+	return common.HexToHash(string(hash)), e
 }
 
 func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error) {

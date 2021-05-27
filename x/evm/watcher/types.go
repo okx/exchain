@@ -231,7 +231,7 @@ type EthBlock struct {
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
 	Nonce            BlockNonce     `json:"nonce"`
-	Sha3Uncles       common.Hash    `json:"sha3Uncles"`
+	UncleHash        common.Hash    `json:"sha3Uncles"`
 	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
 	TransactionsRoot common.Hash    `json:"transactionsRoot"`
 	StateRoot        common.Hash    `json:"stateRoot"`
@@ -244,7 +244,7 @@ type EthBlock struct {
 	GasLimit         hexutil.Uint64 `json:"gasLimit"`
 	GasUsed          *hexutil.Big   `json:"gasUsed"`
 	Timestamp        hexutil.Uint64 `json:"timestamp"`
-	Uncles           []string       `json:"uncles"`
+	Uncles           []common.Hash  `json:"uncles"`
 	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
 	Transactions     interface{}    `json:"transactions"`
 }
@@ -255,7 +255,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
 		Nonce:            BlockNonce{},
-		Sha3Uncles:       common.Hash{},
+		UncleHash:        common.Hash{},
 		LogsBloom:        blockBloom,
 		TransactionsRoot: common.BytesToHash(header.DataHash),
 		StateRoot:        common.BytesToHash(header.AppHash),
@@ -268,7 +268,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		GasLimit:         hexutil.Uint64(gasLimit),
 		GasUsed:          (*hexutil.Big)(gasUsed),
 		Timestamp:        hexutil.Uint64(header.Time.Unix()),
-		Uncles:           []string{},
+		Uncles:           []common.Hash{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
