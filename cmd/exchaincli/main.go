@@ -2,34 +2,36 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/order"
-	"github.com/okex/exchain/x/dex"
-
-	"github.com/spf13/cobra"
-
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/okex/exchain/app/rpc"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/client/lcd"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
 	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	tokencmd "github.com/okex/exchain/x/token/client/cli"
+	"github.com/spf13/cobra"
+	sdkcdc "github.com/cosmos/cosmos-sdk/codec"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/tendermint/tendermint/libs/cli"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/rpc"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
+	"github.com/okex/exchain/x/dex"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/order"
+	tokencmd "github.com/okex/exchain/x/token/client/cli"
 )
 
 var (
@@ -71,7 +73,7 @@ func main() {
 		queryCmd(cdc),
 		txCmd(cdc),
 		client.ValidateChainID(
-			rpc.ServeCmd(cdc),
+			ServeCmd(cdc),
 		),
 		flags.LineBreak,
 		client.KeyCommands(),
@@ -136,8 +138,8 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 	for _, cmd := range txCmd.Commands() {
 		if cmd.Use == auth.ModuleName ||
-			cmd.Use == order.ModuleName||
-			cmd.Use == dex.ModuleName||
+			cmd.Use == order.ModuleName ||
+			cmd.Use == dex.ModuleName ||
 			cmd.Use == bank.ModuleName {
 			cmdsToRemove = append(cmdsToRemove, cmd)
 		}
@@ -146,4 +148,22 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	txCmd.RemoveCommand(cmdsToRemove...)
 
 	return txCmd
+}
+
+// ServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
+// Cosmos rest-server endpoints
+func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
+	cmd := lcd.ServeCommand(cdc, client.RegisterRoutes)
+	cmd.Flags().String(rpc.FlagUnlockKey, "", "Select a key to unlock on the RPC server")
+	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
+
+	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
+	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
+	cmd.Flags().String(watcher.FlagWatcherDisLockUrl, "redis://127.0.0.1:6379", "config watcher dis lock url")
+	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
+	cmd.Flags().String(watcher.FlagHbaseDBUrl, "", "config watcher hbase db url")
+
+	return cmd
 }
