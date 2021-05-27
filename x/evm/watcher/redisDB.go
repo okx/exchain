@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"encoding/hex"
 	"github.com/go-redis/redis"
 )
 
@@ -18,19 +19,19 @@ func initRedisDB(dbUrl string, dbPassword string) *RedisDB {
 }
 
 func (db *RedisDB) Set(key []byte, value []byte) {
-	db.db.Set(string(key), string(value), 0).Result()
+	db.db.Set(hex.EncodeToString(key), hex.EncodeToString(value), 0).Result()
 }
 
 func (db *RedisDB) Get(key []byte) ([]byte, error) {
-	result, err := db.db.Get(string(key)).Result()
+	result, err := db.db.Get(hex.EncodeToString(key)).Result()
 	return []byte(result), err
 }
 
 func (db *RedisDB) Delete(key []byte) {
-	db.db.Del(string(key)).Result()
+	db.db.Del(hex.EncodeToString(key)).Result()
 }
 
 func (db *RedisDB) Has(key []byte) bool {
-	result, _ := db.db.Exists(string(key)).Result()
+	result, _ := db.db.Exists(hex.EncodeToString(key)).Result()
 	return result > 0
 }
