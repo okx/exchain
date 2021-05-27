@@ -59,7 +59,7 @@ func NewWatcher() *Watcher {
 		}
 	}
 
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, enableScheduler: viper.GetString(FlagWatcherDBType) == DBTypeHbase, scheduler: scheduler}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, enableScheduler: viper.GetString(FlagWatcherDBType) != DBTypeLevel, scheduler: scheduler}
 }
 
 func (w *Watcher) IsFirstUse() bool {
