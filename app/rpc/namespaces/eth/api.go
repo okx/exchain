@@ -149,7 +149,9 @@ func (api *PublicEthereumAPI) SetKeys(keys []ethsecp256k1.PrivKey) {
 
 // ProtocolVersion returns the supported Ethereum protocol version.
 func (api *PublicEthereumAPI) ProtocolVersion() hexutil.Uint {
-	api.logger.Debug("eth_protocolVersion")
+	monitor := monitor.GetMonitor("eth_protocolVersion", api.logger)
+	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd()
 	return hexutil.Uint(ethermint.ProtocolVersion)
 }
 
