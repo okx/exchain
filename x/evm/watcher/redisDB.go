@@ -24,7 +24,11 @@ func (db *RedisDB) Set(key []byte, value []byte) {
 
 func (db *RedisDB) Get(key []byte) ([]byte, error) {
 	result, err := db.db.Get(hex.EncodeToString(key)).Result()
-	return []byte(result), err
+	if err != nil {
+		return nil, err
+	}
+	bz, err := hex.DecodeString(result)
+	return bz, err
 }
 
 func (db *RedisDB) Delete(key []byte) {
