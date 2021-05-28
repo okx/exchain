@@ -86,8 +86,12 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 			//decrease blockNumber to make sure every block has been executed in local
 			ublockNumber--
 		}
+		//todo del
+		fmt.Println("get From db ", ublockNumber)
 		return hexutil.Uint64(ublockNumber), err
 	}
+	//todo del
+	fmt.Println("get From rpc ", err)
 	blockNumber, err := b.LatestBlockNumber()
 	if err != nil {
 		return hexutil.Uint64(0), err
