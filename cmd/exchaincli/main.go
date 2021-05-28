@@ -169,7 +169,6 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(server.FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(server.FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(server.FlagWsSubChannelLength, 100, "the length of subscription channel")
-	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	return cmd
