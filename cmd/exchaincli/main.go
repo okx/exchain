@@ -165,7 +165,6 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(server.FlagRestPathPrefix, "exchain", "Path prefix for registering rest api route.")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(server.FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
-	cmd.Flags().Int(server.FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
 	cmd.Flags().String(server.FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
 	cmd.Flags().String(server.FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(server.FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
