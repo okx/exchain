@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/rpc"
-
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
@@ -154,17 +152,26 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 // Cosmos rest-server endpoints
 func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, client.RegisterRoutes)
-	cmd.Flags().String(rpc.FlagUnlockKey, "", "Select a key to unlock on the RPC server")
-	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
-	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
-
-	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
 	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrl, "redis://127.0.0.1:6379", "config watcher dis lock url")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
 	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
 	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
+
+	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
+	cmd.Flags().String(server.FlagUlockKey, "", "Select the keys to unlock on the RPC server")
+	cmd.Flags().String(server.FlagUlockKeyHome, "", "The keybase home path")
+	cmd.Flags().String(server.FlagRestPathPrefix, "exchain", "Path prefix for registering rest api route.")
+	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
+	cmd.Flags().String(server.FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
+	cmd.Flags().Int(server.FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
+	cmd.Flags().String(server.FlagExternalListenAddr, "127.0.0.1:26659", "Set the rest-server external ip and port, when it is launched by Docker")
+	cmd.Flags().String(server.FlagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().Int(server.FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
+	cmd.Flags().Int(server.FlagWsSubChannelLength, 100, "the length of subscription channel")
+	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
+	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	return cmd
 }
