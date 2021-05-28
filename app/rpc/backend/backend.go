@@ -108,8 +108,12 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error) {
 	ethBlock, err := b.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
+		//todo del
+		fmt.Println("eth_getBlockByNumber get from db ", blockNum)
 		return ethBlock, nil
 	}
+	//todo del
+	fmt.Println("eth_getBlockByNumber get from rpc ", err)
 	height := blockNum.Int64()
 	if height <= 0 {
 		// get latest block height
