@@ -445,7 +445,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
-	monitor := monitor.GetMonitor("eth_getBalance", api.logger)
+	monitor := monitor.GetMonitor("eth_getLogs", api.logger)
 	monitor.OnBegin(api.Metrics)
 	defer monitor.OnEnd("args", criteria)
 	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
