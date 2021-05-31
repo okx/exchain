@@ -93,12 +93,12 @@ func (i *Indexer) StoredSection() uint64 {
 }
 
 func (i *Indexer) IsProcessing() bool {
-	return i.processing == 1
+	return atomic.LoadUint32(&i.processing) == 1
 }
 
 func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	if atomic.SwapUint32(&i.processing, 1) == 1 {
-		ctx.Logger().Error("matcher already running")
+		ctx.Logger().Error("matcher is already running")
 		return
 	}
 	defer atomic.StoreUint32(&i.processing, 0)
