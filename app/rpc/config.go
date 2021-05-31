@@ -32,6 +32,14 @@ const (
 	MetricsSubsystem = "rpc"
 
 	MetricsFieldName = "Metrics"
+
+	// rest-server flags for nacos config
+	FlagRestServerServiceEnable    = "rpc.rest-server-service-enable"
+	FlagRestServerNacosUrls        = "rpc.rest-server-nacos-urls"
+	FlagRestServerNacosNamespaceId = "rpc.rest-server-nacos-namespace-id"
+	FlagRestServerNacosClusters    = "rpc.rest-server-nacos-clusters"
+	FlagRestServerNacosServiceName = "rpc.rest-server-nacos-service-name"
+	FlagRestServerNacosGroupName   = "rpc.rest-server-nacos-group-name"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.

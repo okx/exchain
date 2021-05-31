@@ -16,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/app/rpc"
 	"github.com/spf13/cobra"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
@@ -158,6 +159,14 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
 	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
 	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
+
+	// rest-server flags for nacos config
+	cmd.Flags().Bool(rpc.FlagRestServerServiceEnable, false, "Rpc`s rest-server service enable config")
+	cmd.Flags().String(rpc.FlagRestServerNacosUrls, "", "Rpc`s nacos server urls for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosNamespaceId, "", "Rpc`s nacos name space id for getting rest-server service info")
+	cmd.Flags().StringArray(rpc.FlagRestServerNacosClusters, []string{}, "Rpc`s nacos clusters array list for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosServiceName, "", "Rpc`s nacos service name for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosGroupName, "", "Rpc`s nacos group name for getting rest-server service info")
 
 	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
 	cmd.Flags().String(server.FlagUlockKey, "", "Select the keys to unlock on the RPC server")

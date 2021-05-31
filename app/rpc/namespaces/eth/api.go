@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/metrics"
 	"math/big"
-	"strings"
 	"sync"
 	"time"
 
@@ -264,8 +263,11 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 		if balance == nil {
 			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 		}
+		//todo del
+		fmt.Println("GetBalance get from db ", balance)
 		return (*hexutil.Big)(balance), nil
 	}
+	fmt.Println("GetBalance get from rest ", err)
 	clientCtx := api.clientCtx
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
@@ -278,10 +280,8 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "unknown address") {
-			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
-		}
-		return nil, err
+		api.saveZeroAccount(address)
+		return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 	}
 
 	var account ethermint.EthAccount
@@ -1309,8 +1309,12 @@ func (api *PublicEthereumAPI) accountNonce(
 	from := sdk.AccAddress(address.Bytes())
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
+		//todo del
+		fmt.Println("eth_getTransactionCount get from db ")
 		return acc.GetSequence(), nil
 	}
+	//todo del
+	fmt.Println("eth_getTransactionCount get from rpc ", err)
 	// use a the given client context in case its wrapped with a custom height
 	accRet := authtypes.NewAccountRetriever(clientCtx)
 
@@ -1335,4 +1339,11 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce += uint64(pendingTxs)
 
 	return nonce, nil
+}
+
+func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
+	zeroAccount := ethermint.EthAccount{BaseAccount: &auth.BaseAccount{}}
+	zeroAccount.SetAddress(address.Bytes())
+	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
+	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
 }
