@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/metrics"
 	"math/big"
-	"strings"
 	"sync"
 	"time"
 
@@ -282,10 +281,8 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
-		if strings.Contains(err.Error(), "does not exist") && strings.Contains(err.Error(), "unknown address") {
-			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
-		}
-		return nil, err
+		api.saveZeroAccount(address)
+		return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 	}
 
 	var account ethermint.EthAccount
@@ -1339,4 +1336,11 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce += uint64(pendingTxs)
 
 	return nonce, nil
+}
+
+func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
+	zeroAccount := ethermint.EthAccount{BaseAccount: &auth.BaseAccount{}}
+	zeroAccount.SetAddress(address.Bytes())
+	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
+	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
 }
