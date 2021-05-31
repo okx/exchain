@@ -114,7 +114,7 @@ func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 		Coinbase:    common.BytesToAddress(header.ProposerAddress),
 		Root:        common.BytesToHash(header.AppHash),
 		TxHash:      common.BytesToHash(header.DataHash),
-		ReceiptHash: common.Hash{},
+		ReceiptHash: ethtypes.EmptyRootHash,
 		Difficulty:  nil,
 		Number:      big.NewInt(header.Height),
 		Time:        uint64(header.Time.Unix()),
@@ -258,11 +258,13 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	}
 
 	header = &EthHeaderWithBlockHash{
-		ParentHash: common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
-		Coinbase:   common.BytesToAddress(tmHeader.ProposerAddress),
-		Root:       common.BytesToHash(tmHeader.AppHash),
-		TxHash:     common.BytesToHash(tmHeader.DataHash),
-		Number:     (*hexutil.Big)(big.NewInt(tmHeader.Height)),
+		ParentHash:  common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
+		UncleHash:   ethtypes.EmptyUncleHash,
+		Coinbase:    common.BytesToAddress(tmHeader.ProposerAddress),
+		Root:        common.BytesToHash(tmHeader.AppHash),
+		TxHash:      common.BytesToHash(tmHeader.DataHash),
+		ReceiptHash: ethtypes.EmptyRootHash,
+		Number:      (*hexutil.Big)(big.NewInt(tmHeader.Height)),
 		// difficulty is not available for DPOS
 		Difficulty: defaultDifficulty,
 		GasLimit:   defaultGasLimit,
