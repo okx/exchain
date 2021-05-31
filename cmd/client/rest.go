@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	evmclient "github.com/okex/exchain/x/evm/client"
+	"github.com/okex/exchain/x/stream/nacos"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
@@ -49,6 +50,11 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
+
+	// start nacos client for registering rest-server service
+	if viper.GetBool(rpc.FlagRestServerServiceEnable) && viper.GetString(rpc.FlagRestServerNacosUrls) != "" {
+		nacos.StartNacosClient(rs.Logger(), viper.GetString(rpc.FlagRestServerNacosUrls), viper.GetString(rpc.FlagRestServerNacosNamespaceId), viper.GetString(rpc.FlagRestServerNacosServiceName), viper.GetString(server.FlagExternalListenAddr))
+	}
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
