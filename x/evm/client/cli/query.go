@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -32,6 +34,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryParams(moduleName, cdc),
 		GetCmdQueryContractDeploymentWhitelist(moduleName, cdc),
 		GetCmdQueryContractBlockedList(moduleName, cdc),
+		GetCmdGetBlockBloom(moduleName, cdc),
 	)...)
 	return evmQueryCmd
 }
@@ -207,6 +210,33 @@ $ exchaincli query evm params
 			var params types.Params
 			cdc.MustUnmarshalJSON(bz, &params)
 			return cliCtx.PrintOutput(params)
+		},
+	}
+}
+
+func GetCmdGetBlockBloom(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "bloom [height]",
+		Short: "Gets bloom for block height",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := context.NewCLIContext().WithCodec(cdc)
+
+			height, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "could not parse block height")
+			}
+
+			res, _, err := clientCtx.Query(
+				fmt.Sprintf("custom/%s/%s/%d", queryRoute, types.QueryBloom, height))
+
+			if err != nil {
+				return fmt.Errorf("could not resolve: %s", err)
+			}
+
+			var out types.QueryBloomFilter
+			cdc.MustUnmarshalJSON(res, &out)
+			return clientCtx.PrintOutput(hex.EncodeToString(out.Bloom.Bytes()))
 		},
 	}
 }

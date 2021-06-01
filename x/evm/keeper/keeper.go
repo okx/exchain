@@ -186,12 +186,11 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash common.Hash) 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
-	has := store.Has(types.BloomKey(height))
-	if !has {
-		return ethtypes.Bloom{}
-	}
 
 	bz := store.Get(types.BloomKey(height))
+	if bz == nil {
+		return ethtypes.Bloom{}
+	}
 	return ethtypes.BytesToBloom(bz)
 }
 
