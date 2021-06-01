@@ -126,6 +126,12 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 				bloom ethtypes.Bloom
 				hash  common.Hash
 			)
+
+			select {
+			case <-i.update:
+				ctx = ctx.WithBlockHeight(ctx.BlockHeight()+1)
+			default:
+			}
 			// the initial height is 1 but it on ethereum is 0. so set the bloom and hash of the block 0 to empty.
 			if number == uint64(tmtypes.GetStartBlockHeight()) {
 				bloom = ethtypes.Bloom{}
@@ -215,4 +221,8 @@ func (i *Indexer) removeSectionHead(section uint64) {
 	binary.BigEndian.PutUint64(data[:], section)
 
 	i.backend.db.Delete(append([]byte("shead"), data[:]...))
+}
+
+func (i *Indexer) NotifyNewHeight() {
+	i.update <- struct{}{}
 }
