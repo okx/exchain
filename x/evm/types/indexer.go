@@ -229,7 +229,7 @@ func (i *Indexer) NotifyNewHeight(ctx sdk.Context) {
 }
 
 func (i *Indexer) updateCtx(oldCtx sdk.Context) sdk.Context {
-	var newCtx sdk.Context
+	newCtx := oldCtx
 
 	select {
 	case newCtx = <-i.update:
