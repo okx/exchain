@@ -155,12 +155,18 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-
+	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
+	if ok {
+		data, ok := cacheCode.([]byte)
+		if ok {
+			return data, nil
+		}
+	}
 	code, e := q.store.Get(append(prefixCodeHash, codeHash...))
 	if e != nil {
 		return nil, e
 	}
-
+	q.lru.Add(common.BytesToHash(codeHash), code)
 	return code, nil
 }
 
