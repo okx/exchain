@@ -169,11 +169,27 @@ type InternalDba struct {
 	ocProxy  QueryOnChainProxy
 }
 
-func newCdc() *codec.Codec {
+var gSimulateCdc *codec.Codec = nil
+var gSimulateChainConfig []byte = nil
+
+func instanceOfCdc() *codec.Codec {
+	if gSimulateCdc != nil {
+		return gSimulateCdc
+	}
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return cdc
+	gSimulateCdc = cdc
+	return gSimulateCdc
+}
+
+func instanceOfChainConfig() []byte {
+	if gSimulateChainConfig != nil {
+		return gSimulateChainConfig
+	}
+	cdc := instanceOfCdc()
+	gSimulateChainConfig = cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())
+	return gSimulateChainConfig
 }
 
 func NewInternalDba(qoc QueryOnChainProxy) InternalDba {
@@ -186,10 +202,9 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return nil
 	}
 
-	cdc := newCdc()
 	switch Prefix[0] {
 	case evmtypes.KeyPrefixChainConfig[0]:
-		return ConfigStore{defaultConfig: cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())}
+		return ConfigStore{defaultConfig: instanceOfChainConfig()}
 	case evmtypes.KeyPrefixBloom[0]:
 		return BloomStore{}
 	case evmtypes.KeyPrefixStorage[0]:
