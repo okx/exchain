@@ -29,19 +29,19 @@ import (
 )
 
 const (
-	// bloomServiceThreads is the number of goroutines used globally by an Ethereum
+	// BloomServiceThreads is the number of goroutines used globally by an Ethereum
 	// instance to service bloombits lookups for all running filters.
 	BloomServiceThreads = 16
 
-	// bloomFilterThreads is the number of goroutines used locally per filter to
+	// BloomFilterThreads is the number of goroutines used locally per filter to
 	// multiplex requests onto the global servicing goroutines.
 	BloomFilterThreads = 3
 
-	// bloomRetrievalBatch is the maximum number of bloom bit retrievals to service
+	// BloomRetrievalBatch is the maximum number of bloom bit retrievals to service
 	// in a single batch.
 	BloomRetrievalBatch = 16
 
-	// bloomRetrievalWait is the maximum time to wait for enough bloom bit requests
+	// BloomRetrievalWait is the maximum time to wait for enough bloom bit requests
 	// to accumulate request an entire batch (avoiding hysteresis).
 	BloomRetrievalWait = time.Duration(0)
 
