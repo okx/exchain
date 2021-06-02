@@ -11,6 +11,7 @@ import (
 )
 
 const FlagFastQuery = "fast-query"
+const FlagFastQueryLru = "fast-lru"
 
 type WatchStore struct {
 	db *leveldb.DB
