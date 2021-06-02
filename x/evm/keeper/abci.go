@@ -72,7 +72,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			if types.GetIndexer().IsProcessing() {
 				// notify new height
 				go func() {
-					indexer.NotifyNewHeight()
+					indexer.NotifyNewHeight(ctx)
 				}()
 			} else {
 				interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
