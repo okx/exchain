@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/hashicorp/golang-lru/simplelru"
+	lru "github.com/hashicorp/golang-lru"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,7 +22,7 @@ const MsgFunctionDisable = "fast query function has been disabled"
 type Querier struct {
 	store *WatchStore
 	sw    bool
-	lru   *simplelru.LRU
+	lru   *lru.Cache
 }
 
 func (q Querier) enabled() bool {
@@ -34,7 +34,7 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	lru, e := simplelru.NewLRU(GetWatchLruSize(), nil)
+	lru, e := lru.New(GetWatchLruSize())
 	if e != nil {
 		panic(errors.New("Failed to init LRU Cause " + e.Error()))
 	}
