@@ -2,6 +2,8 @@ package simulation
 
 import (
 	"encoding/binary"
+	"github.com/okex/exchain/x/evm"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
@@ -19,7 +21,6 @@ import (
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
@@ -169,26 +170,28 @@ type InternalDba struct {
 	ocProxy  QueryOnChainProxy
 }
 
-var gSimulateCdc *codec.Codec = nil
-var gSimulateChainConfig []byte = nil
+var (
+	gSimulateCdc         *codec.Codec
+	cdcOnce              sync.Once
+	gSimulateChainConfig []byte
+	configOnce           sync.Once
+)
 
 func instanceOfCdc() *codec.Codec {
-	if gSimulateCdc != nil {
-		return gSimulateCdc
-	}
-	module := evm.AppModuleBasic{}
-	cdc := codec.New()
-	module.RegisterCodec(cdc)
-	gSimulateCdc = cdc
+	cdcOnce.Do(func() {
+		module := evm.AppModuleBasic{}
+		cdc := codec.New()
+		module.RegisterCodec(cdc)
+		gSimulateCdc = cdc
+	})
 	return gSimulateCdc
 }
 
 func instanceOfChainConfig() []byte {
-	if gSimulateChainConfig != nil {
-		return gSimulateChainConfig
-	}
-	cdc := instanceOfCdc()
-	gSimulateChainConfig = cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())
+	configOnce.Do(func() {
+		cdc := instanceOfCdc()
+		gSimulateChainConfig = cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())
+	})
 	return gSimulateChainConfig
 }
 
