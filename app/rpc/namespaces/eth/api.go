@@ -226,6 +226,10 @@ func (api *PublicEthereumAPI) Accounts() ([]common.Address, error) {
 	monitor := monitor.GetMonitor("eth_accounts", api.logger)
 	monitor.OnBegin(api.Metrics)
 	defer monitor.OnEnd()
+	return api.accounts()
+}
+
+func (api *PublicEthereumAPI) accounts() ([]common.Address, error) {
 	api.keyringLock.Lock()
 	defer api.keyringLock.Unlock()
 
@@ -690,7 +694,7 @@ func (api *PublicEthereumAPI) doCall(
 	var addr common.Address
 
 	if args.From == nil {
-		addrs, err := api.Accounts()
+		addrs, err := api.accounts()
 		if err == nil && len(addrs) > 0 {
 			addr = addrs[0]
 		}

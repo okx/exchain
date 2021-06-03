@@ -114,18 +114,10 @@ type MsgCodeByHash struct {
 	Code string
 }
 
-func NewMsgCodeByHash(hash []byte, code []byte, height uint64) *MsgCodeByHash {
-	codeInfo := CodeInfo{
-		Height: height,
-		Code:   hexutils.BytesToHex(code),
-	}
-	jsCode, e := json.Marshal(codeInfo)
-	if e != nil {
-		return nil
-	}
+func NewMsgCodeByHash(hash []byte, code []byte) *MsgCodeByHash {
 	return &MsgCodeByHash{
 		Key:  hash,
-		Code: string(jsCode),
+		Code: string(code),
 	}
 }
 

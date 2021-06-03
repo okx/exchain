@@ -2,6 +2,8 @@ package simulation
 
 import (
 	"encoding/binary"
+	"github.com/okex/exchain/x/evm"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	store "github.com/cosmos/cosmos-sdk/store/types"
@@ -19,7 +21,6 @@ import (
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
@@ -169,11 +170,29 @@ type InternalDba struct {
 	ocProxy  QueryOnChainProxy
 }
 
-func newCdc() *codec.Codec {
-	module := evm.AppModuleBasic{}
-	cdc := codec.New()
-	module.RegisterCodec(cdc)
-	return cdc
+var (
+	gSimulateCdc         *codec.Codec
+	cdcOnce              sync.Once
+	gSimulateChainConfig []byte
+	configOnce           sync.Once
+)
+
+func instanceOfCdc() *codec.Codec {
+	cdcOnce.Do(func() {
+		module := evm.AppModuleBasic{}
+		cdc := codec.New()
+		module.RegisterCodec(cdc)
+		gSimulateCdc = cdc
+	})
+	return gSimulateCdc
+}
+
+func instanceOfChainConfig() []byte {
+	configOnce.Do(func() {
+		cdc := instanceOfCdc()
+		gSimulateChainConfig = cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())
+	})
+	return gSimulateChainConfig
 }
 
 func NewInternalDba(qoc QueryOnChainProxy) InternalDba {
@@ -186,10 +205,9 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return nil
 	}
 
-	cdc := newCdc()
 	switch Prefix[0] {
 	case evmtypes.KeyPrefixChainConfig[0]:
-		return ConfigStore{defaultConfig: cdc.MustMarshalBinaryBare(evmtypes.DefaultChainConfig())}
+		return ConfigStore{defaultConfig: instanceOfChainConfig()}
 	case evmtypes.KeyPrefixBloom[0]:
 		return BloomStore{}
 	case evmtypes.KeyPrefixStorage[0]:

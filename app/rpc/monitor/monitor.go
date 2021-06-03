@@ -33,5 +33,6 @@ func (m *Monitor) OnBegin(metrics map[string]metrics.Counter) {
 
 func (m *Monitor) OnEnd(args ...interface{}) {
 	now := time.Now().UnixNano()
-	m.logger.Debug(fmt.Sprintf("RPC: Method<%s>, Interval<%dms>, Params<%v>", m.method, (now-m.lastTimestamp)/1000, args))
+	unit := int64(1e6)
+	m.logger.Debug(fmt.Sprintf("RPC: Method<%s>, Interval<%dms>, Params<%v>", m.method, (now-m.lastTimestamp)/unit, args))
 }

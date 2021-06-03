@@ -8,6 +8,7 @@ import (
 
 const (
 	FlagFastQuery                 = "fast-query"
+	FlagFastQueryLru              = "fast-lru"
 	FlagWatcherDisLockUrl         = "watcher-dis-lock-url"
 	FlagWatcherDisLockUrlPassword = "watcher-dis-lock-password"
 	FlagWatcherDBType             = "watcher-db-type"

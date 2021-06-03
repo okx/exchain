@@ -18,6 +18,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
 	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db db url")
 	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db db password")
+	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, true, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, -1, "config the block height span for get logs")

@@ -47,6 +47,10 @@ func IsWatcherEnabled() bool {
 	return viper.GetBool(FlagFastQuery)
 }
 
+func GetWatchLruSize() int {
+	return viper.GetInt(FlagFastQueryLru)
+}
+
 func NewWatcher() *Watcher {
 	var scheduler streamTypes.IDistributeStateService
 
@@ -116,7 +120,7 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgCodeByHash(hash, code, w.height)
+	wMsg := NewMsgCodeByHash(hash, code)
 	if wMsg != nil {
 		w.staleBatch = append(w.staleBatch, wMsg)
 	}
@@ -289,7 +293,7 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgCodeByHash(hash, code, w.height)
+	wMsg := NewMsgCodeByHash(hash, code)
 	if wMsg != nil {
 		w.store.Set(wMsg.GetKey(), []byte(wMsg.GetValue()))
 	}

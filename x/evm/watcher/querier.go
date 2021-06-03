@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strconv"
 
+	lru "github.com/hashicorp/golang-lru"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -20,6 +22,7 @@ const MsgFunctionDisable = "fast query function has been disabled"
 type Querier struct {
 	store *WatchStore
 	sw    bool
+	lru   *lru.Cache
 }
 
 func (q Querier) enabled() bool {
@@ -31,7 +34,11 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	lru, e := lru.New(GetWatchLruSize())
+	if e != nil {
+		panic(errors.New("Failed to init LRU Cause " + e.Error()))
+	}
+	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
@@ -148,16 +155,19 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var codeInfo CodeInfo
-	info, e := q.store.Get(append(prefixCodeHash, codeHash...))
+	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
+	if ok {
+		data, ok := cacheCode.([]byte)
+		if ok {
+			return data, nil
+		}
+	}
+	code, e := q.store.Get(append(prefixCodeHash, codeHash...))
 	if e != nil {
 		return nil, e
 	}
-	e = json.Unmarshal(info, &codeInfo)
-	if e != nil {
-		return nil, e
-	}
-	return hex.DecodeString(codeInfo.Code)
+	q.lru.Add(common.BytesToHash(codeHash), code)
+	return code, nil
 }
 
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
