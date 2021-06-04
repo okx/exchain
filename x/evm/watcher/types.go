@@ -42,14 +42,24 @@ var (
 	TransactionFailed  = uint32(0)
 )
 
+const (
+	TypeOthers = uint32(1)
+	TypeState  = uint32(2)
+)
+
 type WatchMessage interface {
 	GetKey() []byte
 	GetValue() string
+	GetType() uint32
 }
 
 type MsgEthTx struct {
 	Key       []byte
 	JsonEthTx string
+}
+
+func (m MsgEthTx) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
@@ -79,6 +89,10 @@ func (m MsgEthTx) GetValue() string {
 type MsgCode struct {
 	Key  []byte
 	Code string
+}
+
+func (m MsgCode) GetType() uint32 {
+	return TypeOthers
 }
 
 type CodeInfo struct {
@@ -114,6 +128,10 @@ type MsgCodeByHash struct {
 	Code string
 }
 
+func (m MsgCodeByHash) GetType() uint32 {
+	return TypeOthers
+}
+
 func NewMsgCodeByHash(hash []byte, code []byte) *MsgCodeByHash {
 	return &MsgCodeByHash{
 		Key:  hash,
@@ -132,6 +150,10 @@ func (m MsgCodeByHash) GetValue() string {
 type MsgTransactionReceipt struct {
 	txHash  []byte
 	receipt string
+}
+
+func (m MsgTransactionReceipt) GetType() uint32 {
+	return TypeOthers
 }
 
 type TransactionReceipt struct {
@@ -189,6 +211,10 @@ func (m MsgTransactionReceipt) GetValue() string {
 type MsgBlock struct {
 	blockHash []byte
 	block     string
+}
+
+func (m MsgBlock) GetType() uint32 {
+	return TypeOthers
 }
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
@@ -284,6 +310,10 @@ type MsgBlockInfo struct {
 	hash   string
 }
 
+func (b MsgBlockInfo) GetType() uint32 {
+	return TypeOthers
+}
+
 func NewMsgBlockInfo(height uint64, blockHash common.Hash) *MsgBlockInfo {
 	return &MsgBlockInfo{
 		height: []byte(strconv.Itoa(int(height))),
@@ -303,6 +333,10 @@ type MsgLatestHeight struct {
 	height string
 }
 
+func (b MsgLatestHeight) GetType() uint32 {
+	return TypeOthers
+}
+
 func NewMsgLatestHeight(height uint64) *MsgLatestHeight {
 	return &MsgLatestHeight{
 		height: strconv.Itoa(int(height)),
@@ -320,6 +354,10 @@ func (b MsgLatestHeight) GetValue() string {
 type MsgAccount struct {
 	addr         []byte
 	accountValue string
+}
+
+func (msgAccount *MsgAccount) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
@@ -348,14 +386,18 @@ func (msgAccount *MsgAccount) GetValue() string {
 type MsgState struct {
 	addr  common.Address
 	key   []byte
-	value string
+	value []byte
+}
+
+func (msgState *MsgState) GetType() uint32 {
+	return TypeState
 }
 
 func NewMsgState(addr common.Address, key, value []byte) *MsgState {
 	return &MsgState{
 		addr:  addr,
 		key:   key,
-		value: hexutils.BytesToHex(value),
+		value: value,
 	}
 }
 
@@ -374,11 +416,15 @@ func (msgState *MsgState) GetKey() []byte {
 }
 
 func (msgState *MsgState) GetValue() string {
-	return msgState.value
+	return string(msgState.value)
 }
 
 type MsgParams struct {
 	types.Params
+}
+
+func (msgParams *MsgParams) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgParams(params types.Params) *MsgParams {
@@ -403,6 +449,10 @@ type MsgContractBlockedListItem struct {
 	addr sdk.AccAddress
 }
 
+func (msgItem *MsgContractBlockedListItem) GetType() uint32 {
+	return TypeOthers
+}
+
 func NewMsgContractBlockedListItem(addr sdk.AccAddress) *MsgContractBlockedListItem {
 	return &MsgContractBlockedListItem{
 		addr: addr,
@@ -419,6 +469,10 @@ func (msgItem *MsgContractBlockedListItem) GetValue() string {
 
 type MsgContractDeploymentWhitelistItem struct {
 	addr sdk.AccAddress
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgContractDeploymentWhitelistItem {

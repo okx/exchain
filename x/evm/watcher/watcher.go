@@ -3,6 +3,8 @@ package watcher
 import (
 	"math/big"
 
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -288,6 +290,9 @@ func (w *Watcher) Commit() {
 	go func() {
 		for _, b := range batch {
 			w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			if b.GetType() == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+			}
 		}
 	}()
 }
