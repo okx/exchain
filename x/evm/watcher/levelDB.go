@@ -1,6 +1,8 @@
 package watcher
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"log"
 	"path/filepath"
@@ -27,7 +29,10 @@ func (db *LevelDB) Set(key []byte, value []byte) {
 }
 
 func (db *LevelDB) Get(key []byte) ([]byte, error) {
-	return db.db.Get(key, nil)
+	// todo del
+	result, err := db.db.Get(key, nil)
+	fmt.Print(fmt.Sprintf("levelDB get key(%s) , value (%+v), err (%+v)", hex.EncodeToString(key), hex.EncodeToString(result), err))
+	return result, err
 }
 
 func (db *LevelDB) Delete(key []byte) {
