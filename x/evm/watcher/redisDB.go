@@ -40,6 +40,7 @@ func (db *RedisDB) Get(key []byte) ([]byte, error) {
 	result, err := redis.String(conn.Do("GET", hex.EncodeToString(key)))
 	if nil != err {
 		db.logger.Error(fmt.Sprintf("redis: trying to get key(%s) , err(%+v)", hex.EncodeToString(key), err))
+		return nil, err
 	}
 	// todo del
 	db.logger.Info(fmt.Sprintf("redis get key(%s) , value (%+v)", hex.EncodeToString(key), result))
