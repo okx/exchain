@@ -42,8 +42,6 @@ func (db *RedisDB) Get(key []byte) ([]byte, error) {
 		db.logger.Error(fmt.Sprintf("redis: trying to get key(%s) , err(%+v)", hex.EncodeToString(key), err))
 		return nil, err
 	}
-	// todo del
-	db.logger.Info(fmt.Sprintf("redis get key(%s) , value (%+v)", hex.EncodeToString(key), result))
 	return hex.DecodeString(result)
 }
 
