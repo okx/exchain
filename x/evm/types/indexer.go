@@ -103,8 +103,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			ctx.Logger().Error("panic height", ctx.BlockHeight())
-			panic(r)
+			ctx.Logger().Error("ProcessSection panic height", ctx.BlockHeight(), r)
 		}
 	}()
 	defer atomic.StoreUint32(&i.processing, 0)
@@ -183,7 +182,7 @@ func (i *Indexer) setValidSections(sections uint64) {
 	i.storedSections = sections // needed if new > old
 }
 
-// loadValidSections reads the number of valid sections from the index database
+// GetValidSections reads the number of valid sections from the index database
 // and caches is into the local state.
 func (i *Indexer) GetValidSections() uint64 {
 	data, _ := i.backend.db.Get([]byte("count"))
@@ -193,7 +192,7 @@ func (i *Indexer) GetValidSections() uint64 {
 	return 0
 }
 
-// SectionHead retrieves the last block hash of a processed section from the
+// sectionHead retrieves the last block hash of a processed section from the
 // index database.
 func (i *Indexer) sectionHead(section uint64) common.Hash {
 	var data [8]byte

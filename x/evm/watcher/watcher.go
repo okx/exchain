@@ -12,10 +12,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	streamTypes "github.com/okex/exchain/x/stream/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
+	"sync"
 )
 
 type Watcher struct {
@@ -42,12 +44,25 @@ const (
 	latestHeightKey       = "latest_Height_key"
 )
 
+var (
+	watcherEnable  = false
+	watcherLruSize = 1000
+	onceEnable     sync.Once
+	onceLru        sync.Once
+)
+
 func IsWatcherEnabled() bool {
-	return viper.GetBool(FlagFastQuery)
+	onceEnable.Do(func() {
+		watcherEnable = viper.GetBool(FlagFastQuery)
+	})
+	return watcherEnable
 }
 
 func GetWatchLruSize() int {
-	return viper.GetInt(FlagFastQueryLru)
+	onceLru.Do(func() {
+		watcherLruSize = viper.GetInt(FlagFastQueryLru)
+	})
+	return watcherLruSize
 }
 
 func NewWatcher() *Watcher {
@@ -370,6 +385,9 @@ func (w *Watcher) CommitScheduler() {
 		go func() {
 			for _, b := range batch {
 				w.store.Set(b.GetKey(), []byte(b.GetValue()))
+				if b.GetType() == TypeState {
+					state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+				}
 			}
 		}()
 	} else {
