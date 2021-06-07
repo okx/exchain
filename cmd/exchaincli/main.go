@@ -159,7 +159,6 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
 	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
 	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
-	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 
 	// rest-server flags for nacos config
 	cmd.Flags().Bool(rpc.FlagRestServerServiceEnable, false, "Rpc`s rest-server service enable config")

@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"os"
+	"time"
 )
 
 type RedisDB struct {
@@ -34,13 +35,17 @@ func (db *RedisDB) Set(key []byte, value []byte) {
 }
 
 func (db *RedisDB) Get(key []byte) ([]byte, error) {
+	start := time.Now()
 	conn := db.db.Get()
 	defer conn.Close()
 
 	result, err := redis.String(conn.Do("GET", hex.EncodeToString(key)))
 	if nil != err {
 		db.logger.Error(fmt.Sprintf("redis: trying to get key(%s) , err(%+v)", hex.EncodeToString(key), err))
+		return nil, err
 	}
+	//todo del
+	db.logger.Info(fmt.Sprintf("redis get key(%s) , value(%s), time(%s)", hex.EncodeToString(key), result, time.Since(start)))
 	return hex.DecodeString(result)
 }
 
