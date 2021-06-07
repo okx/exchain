@@ -675,7 +675,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
 
-	return (hexutil.Bytes)(data.Ret), nil
+	return data.Ret, nil
 }
 
 // DoCall performs a simulated call operation through the evmtypes. It returns the
