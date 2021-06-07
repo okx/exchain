@@ -28,7 +28,6 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
 	"github.com/okex/exchain/x/dex"
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/order"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
 )
@@ -153,20 +152,15 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 // Cosmos rest-server endpoints
 func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, client.RegisterRoutes)
-	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
-	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
-	cmd.Flags().String(watcher.FlagWatcherDisLockUrl, "redis://127.0.0.1:6379", "config watcher dis lock url")
-	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
-	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
-	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
+	client.RegisterEthRpcFlag(cmd)
 
 	// rest-server flags for nacos config
-	cmd.Flags().Bool(rpc.FlagRestServerServiceEnable, false, "Rpc`s rest-server service enable config")
-	cmd.Flags().String(rpc.FlagRestServerNacosUrls, "", "Rpc`s nacos server urls for getting rest-server service info")
-	cmd.Flags().String(rpc.FlagRestServerNacosNamespaceId, "", "Rpc`s nacos name space id for getting rest-server service info")
-	cmd.Flags().StringArray(rpc.FlagRestServerNacosClusters, []string{}, "Rpc`s nacos clusters array list for getting rest-server service info")
-	cmd.Flags().String(rpc.FlagRestServerNacosServiceName, "", "Rpc`s nacos service name for getting rest-server service info")
-	cmd.Flags().String(rpc.FlagRestServerNacosGroupName, "", "Rpc`s nacos group name for getting rest-server service info")
+	cmd.Flags().Bool(rpc.FlagRestServerServiceEnable, false, "Rpc's rest-server service enable config")
+	cmd.Flags().String(rpc.FlagRestServerNacosUrls, "", "Rpc's nacos server urls for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosNamespaceId, "", "Rpc's nacos name space id for getting rest-server service info")
+	cmd.Flags().StringArray(rpc.FlagRestServerNacosClusters, []string{}, "Rpc's nacos clusters array list for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosServiceName, "", "Rpc's nacos service name for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerNacosGroupName, "", "Rpc's nacos group name for getting rest-server service info")
 
 	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
 	cmd.Flags().String(server.FlagUlockKey, "", "Select the keys to unlock on the RPC server")
