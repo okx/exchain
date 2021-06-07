@@ -2,12 +2,17 @@ package watcher
 
 import (
 	"math/big"
+	"sync"
 
-	"github.com/spf13/viper"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	types2 "github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 )
 
@@ -17,21 +22,48 @@ type Watcher struct {
 	blockHash     common.Hash
 	header        types.Header
 	batch         []WatchMessage
+	staleBatch    []WatchMessage
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
 	sw            bool
+	firstUse      bool
 }
 
+var (
+	watcherEnable  = false
+	watcherLruSize = 1000
+	onceEnable     sync.Once
+	onceLru        sync.Once
+)
+
 func IsWatcherEnabled() bool {
-	return viper.GetBool(FlagFastQuery)
+	onceEnable.Do(func() {
+		watcherEnable = viper.GetBool(FlagFastQuery)
+	})
+	return watcherEnable
+}
+
+func GetWatchLruSize() int {
+	onceLru.Do(func() {
+		watcherLruSize = viper.GetInt(FlagFastQueryLru)
+	})
+	return watcherLruSize
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true}
 }
 
-func (w Watcher) enabled() bool {
+func (w *Watcher) IsFirstUse() bool {
+	return w.firstUse
+}
+
+func (w *Watcher) Used() {
+	w.firstUse = false
+}
+
+func (w *Watcher) Enabled() bool {
 	return w.sw
 }
 
@@ -40,7 +72,7 @@ func (w *Watcher) Enable(sw bool) {
 }
 
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	w.batch = []WatchMessage{}
@@ -52,8 +84,8 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.blockTxs = []common.Hash{}
 }
 
-func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, index uint64) {
-	if !w.enabled() {
+func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgEthTx(&msg, txHash, w.blockHash, w.height, index)
@@ -64,17 +96,27 @@ func (w *Watcher) SaveEthereumTx(msg types2.MsgEthereumTx, txHash common.Hash, i
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgCode(addr, code, w.height)
 	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *types2.ResultData, gasUsed uint64) {
-	if !w.enabled() {
+func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgCodeByHash(hash, code)
+	if wMsg != nil {
+		w.staleBatch = append(w.staleBatch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveTransactionReceipt(status uint32, msg evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+	if !w.Enabled() {
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
@@ -85,7 +127,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg types2.MsgEthereumTx
 }
 
 func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	if len(w.cumulativeGas) == 0 {
@@ -97,14 +139,48 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 }
 
 func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	w.blockTxs = append(w.blockTxs, txHash)
 }
 
+func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		if isDirectly {
+			w.batch = append(w.batch, wMsg)
+		} else {
+			w.staleBatch = append(w.staleBatch, wMsg)
+		}
+
+	}
+}
+
+func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
+	w.store.Delete(key)
+}
+
+func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgState(addr, key, value)
+	if wMsg != nil {
+		w.staleBatch = append(w.staleBatch, wMsg)
+	}
+}
+
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
@@ -120,7 +196,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgLatestHeight(height)
@@ -129,15 +205,108 @@ func (w *Watcher) SaveLatestHeight(height uint64) {
 	}
 }
 
+func (w *Watcher) SaveParams(params evmtypes.Params) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgParams(params)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractBlockedListItem(addr)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	w.store.Delete(evmtypes.GetContractBlockedListMemberKey(addr))
+}
+
+func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
+	if !w.Enabled() {
+		return
+	}
+	w.store.Delete(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
+}
+
+func (w *Watcher) Finalize() {
+	if !w.Enabled() {
+		return
+	}
+	w.batch = append(w.batch, w.staleBatch...)
+	w.Reset()
+}
+
+func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgState(addr, key, value)
+	if wMsg != nil {
+		w.store.Set(append(prefixRpcDb, wMsg.GetKey()...), []byte(wMsg.GetValue()))
+	}
+}
+
+func (w *Watcher) CommitAccountToRpcDb(account auth.Account) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgAccount(account)
+	if wMsg != nil {
+		key := append(prefixRpcDb, wMsg.GetKey()...)
+		w.store.Set(key, []byte(wMsg.GetValue()))
+	}
+}
+
+func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgCodeByHash(hash, code)
+	if wMsg != nil {
+		w.store.Set(wMsg.GetKey(), []byte(wMsg.GetValue()))
+	}
+}
+
+func (w *Watcher) Reset() {
+	if !w.Enabled() {
+		return
+	}
+	w.staleBatch = []WatchMessage{}
+}
+
 func (w *Watcher) Commit() {
-	if !w.enabled() {
+	if !w.Enabled() {
 		return
 	}
 	//hold it in temp
 	batch := w.batch
 	go func() {
 		for _, b := range batch {
-			w.store.Set([]byte(b.GetKey()), []byte(b.GetValue()))
+			w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			if b.GetType() == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+			}
 		}
 	}()
 }

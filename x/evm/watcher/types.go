@@ -3,9 +3,15 @@ package watcher
 import (
 	"encoding/binary"
 	"encoding/json"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"math/big"
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -15,28 +21,45 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-const (
-	prefixTx           = "0x1"
-	prefixBlock        = "0x2"
-	prefixReceipt      = "0x3"
-	prefixCode         = "0x4"
-	prefixBlockInfo    = "0x5"
-	prefixLatestHeight = "0x6"
+var (
+	prefixTx           = []byte{0x01}
+	prefixBlock        = []byte{0x02}
+	prefixReceipt      = []byte{0x03}
+	prefixCode         = []byte{0x04}
+	prefixBlockInfo    = []byte{0x05}
+	prefixLatestHeight = []byte{0x06}
+	prefixAccount      = []byte{0x07}
+	PrefixState        = []byte{0x08}
+	prefixCodeHash     = []byte{0x09}
+	prefixParams       = []byte{0x10}
+	prefixWhiteList    = []byte{0x11}
+	prefixBlackList    = []byte{0x12}
+	prefixRpcDb        = []byte{0x13}
 
 	KeyLatestHeight = "LatestHeight"
 
-	TransactionSuccess = 1
-	TransactionFailed  = 0
+	TransactionSuccess = uint32(1)
+	TransactionFailed  = uint32(0)
+)
+
+const (
+	TypeOthers = uint32(1)
+	TypeState  = uint32(2)
 )
 
 type WatchMessage interface {
-	GetKey() string
+	GetKey() []byte
 	GetValue() string
+	GetType() uint32
 }
 
 type MsgEthTx struct {
-	Key       string
+	Key       []byte
 	JsonEthTx string
+}
+
+func (m MsgEthTx) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
@@ -49,14 +72,14 @@ func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height,
 		return nil
 	}
 	msg := MsgEthTx{
-		Key:       txHash.String(),
+		Key:       txHash.Bytes(),
 		JsonEthTx: string(jsTx),
 	}
 	return &msg
 }
 
-func (m MsgEthTx) GetKey() string {
-	return prefixTx + m.Key
+func (m MsgEthTx) GetKey() []byte {
+	return append(prefixTx, m.Key...)
 }
 
 func (m MsgEthTx) GetValue() string {
@@ -64,8 +87,12 @@ func (m MsgEthTx) GetValue() string {
 }
 
 type MsgCode struct {
-	Key  string
+	Key  []byte
 	Code string
+}
+
+func (m MsgCode) GetType() uint32 {
+	return TypeOthers
 }
 
 type CodeInfo struct {
@@ -83,22 +110,50 @@ func NewMsgCode(contractAddr common.Address, code []byte, height uint64) *MsgCod
 		return nil
 	}
 	return &MsgCode{
-		Key:  contractAddr.String(),
+		Key:  contractAddr.Bytes(),
 		Code: string(jsCode),
 	}
 }
 
-func (m MsgCode) GetKey() string {
-	return prefixCode + m.Key
+func (m MsgCode) GetKey() []byte {
+	return append(prefixCode, m.Key...)
 }
 
 func (m MsgCode) GetValue() string {
 	return m.Code
 }
 
+type MsgCodeByHash struct {
+	Key  []byte
+	Code string
+}
+
+func (m MsgCodeByHash) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgCodeByHash(hash []byte, code []byte) *MsgCodeByHash {
+	return &MsgCodeByHash{
+		Key:  hash,
+		Code: string(code),
+	}
+}
+
+func (m MsgCodeByHash) GetKey() []byte {
+	return append(prefixCodeHash, m.Key...)
+}
+
+func (m MsgCodeByHash) GetValue() string {
+	return m.Code
+}
+
 type MsgTransactionReceipt struct {
-	txHash  string
+	txHash  []byte
 	receipt string
+}
+
+func (m MsgTransactionReceipt) GetType() uint32 {
+	return TypeOthers
 }
 
 type TransactionReceipt struct {
@@ -142,11 +197,11 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 	if e != nil {
 		return nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.String(), receipt: string(jsTr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), receipt: string(jsTr)}
 }
 
-func (m MsgTransactionReceipt) GetKey() string {
-	return prefixReceipt + m.txHash
+func (m MsgTransactionReceipt) GetKey() []byte {
+	return append(prefixReceipt, m.txHash...)
 }
 
 func (m MsgTransactionReceipt) GetValue() string {
@@ -154,8 +209,12 @@ func (m MsgTransactionReceipt) GetValue() string {
 }
 
 type MsgBlock struct {
-	blockHash string
+	blockHash []byte
 	block     string
+}
+
+func (m MsgBlock) GetType() uint32 {
+	return TypeOthers
 }
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
@@ -190,7 +249,7 @@ type EthBlock struct {
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
 	Nonce            BlockNonce     `json:"nonce"`
-	Sha3Uncles       common.Hash    `json:"sha3Uncles"`
+	UncleHash        common.Hash    `json:"sha3Uncles"`
 	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
 	TransactionsRoot common.Hash    `json:"transactionsRoot"`
 	StateRoot        common.Hash    `json:"stateRoot"`
@@ -203,7 +262,7 @@ type EthBlock struct {
 	GasLimit         hexutil.Uint64 `json:"gasLimit"`
 	GasUsed          *hexutil.Big   `json:"gasUsed"`
 	Timestamp        hexutil.Uint64 `json:"timestamp"`
-	Uncles           []string       `json:"uncles"`
+	Uncles           []common.Hash  `json:"uncles"`
 	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
 	Transactions     interface{}    `json:"transactions"`
 }
@@ -214,7 +273,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
 		Nonce:            BlockNonce{},
-		Sha3Uncles:       common.Hash{},
+		UncleHash:        common.Hash{},
 		LogsBloom:        blockBloom,
 		TransactionsRoot: common.BytesToHash(header.DataHash),
 		StateRoot:        common.BytesToHash(header.AppHash),
@@ -227,7 +286,7 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		GasLimit:         hexutil.Uint64(gasLimit),
 		GasUsed:          (*hexutil.Big)(gasUsed),
 		Timestamp:        hexutil.Uint64(header.Time.Unix()),
-		Uncles:           []string{},
+		Uncles:           []common.Hash{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
@@ -235,11 +294,11 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 	if e != nil {
 		return nil
 	}
-	return &MsgBlock{blockHash: blockHash.String(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
 }
 
-func (m MsgBlock) GetKey() string {
-	return prefixBlock + m.blockHash
+func (m MsgBlock) GetKey() []byte {
+	return append(prefixBlock, m.blockHash...)
 }
 
 func (m MsgBlock) GetValue() string {
@@ -247,19 +306,23 @@ func (m MsgBlock) GetValue() string {
 }
 
 type MsgBlockInfo struct {
-	height string
+	height []byte
 	hash   string
+}
+
+func (b MsgBlockInfo) GetType() uint32 {
+	return TypeOthers
 }
 
 func NewMsgBlockInfo(height uint64, blockHash common.Hash) *MsgBlockInfo {
 	return &MsgBlockInfo{
-		height: strconv.Itoa(int(height)),
+		height: []byte(strconv.Itoa(int(height))),
 		hash:   blockHash.String(),
 	}
 }
 
-func (b MsgBlockInfo) GetKey() string {
-	return prefixBlockInfo + b.height
+func (b MsgBlockInfo) GetKey() []byte {
+	return append(prefixBlockInfo, b.height...)
 }
 
 func (b MsgBlockInfo) GetValue() string {
@@ -270,16 +333,158 @@ type MsgLatestHeight struct {
 	height string
 }
 
+func (b MsgLatestHeight) GetType() uint32 {
+	return TypeOthers
+}
+
 func NewMsgLatestHeight(height uint64) *MsgLatestHeight {
 	return &MsgLatestHeight{
 		height: strconv.Itoa(int(height)),
 	}
 }
 
-func (b MsgLatestHeight) GetKey() string {
-	return prefixLatestHeight + KeyLatestHeight
+func (b MsgLatestHeight) GetKey() []byte {
+	return append(prefixLatestHeight, KeyLatestHeight...)
 }
 
 func (b MsgLatestHeight) GetValue() string {
 	return b.height
+}
+
+type MsgAccount struct {
+	addr         []byte
+	accountValue string
+}
+
+func (msgAccount *MsgAccount) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgAccount(acc auth.Account) *MsgAccount {
+	jsonAcc, err := json.Marshal(acc)
+	if err != nil {
+		return nil
+	}
+	return &MsgAccount{
+		addr:         acc.GetAddress().Bytes(),
+		accountValue: string(jsonAcc),
+	}
+}
+
+func GetMsgAccountKey(addr []byte) []byte {
+	return append(prefixAccount, addr...)
+}
+
+func (msgAccount *MsgAccount) GetKey() []byte {
+	return GetMsgAccountKey(msgAccount.addr)
+}
+
+func (msgAccount *MsgAccount) GetValue() string {
+	return msgAccount.accountValue
+}
+
+type MsgState struct {
+	addr  common.Address
+	key   []byte
+	value []byte
+}
+
+func (msgState *MsgState) GetType() uint32 {
+	return TypeState
+}
+
+func NewMsgState(addr common.Address, key, value []byte) *MsgState {
+	return &MsgState{
+		addr:  addr,
+		key:   key,
+		value: value,
+	}
+}
+
+func GetMsgStateKey(addr common.Address, key []byte) []byte {
+	prefix := addr.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+
+	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+}
+
+func (msgState *MsgState) GetKey() []byte {
+	return GetMsgStateKey(msgState.addr, msgState.key)
+}
+
+func (msgState *MsgState) GetValue() string {
+	return string(msgState.value)
+}
+
+type MsgParams struct {
+	types.Params
+}
+
+func (msgParams *MsgParams) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgParams(params types.Params) *MsgParams {
+	return &MsgParams{
+		params,
+	}
+}
+
+func (msgParams *MsgParams) GetKey() []byte {
+	return prefixParams
+}
+
+func (msgParams *MsgParams) GetValue() string {
+	jsonValue, err := json.Marshal(msgParams)
+	if err != nil {
+		panic(err)
+	}
+	return string(jsonValue)
+}
+
+type MsgContractBlockedListItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgContractBlockedListItem) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgContractBlockedListItem(addr sdk.AccAddress) *MsgContractBlockedListItem {
+	return &MsgContractBlockedListItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgContractBlockedListItem) GetKey() []byte {
+	return append(prefixBlackList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgContractBlockedListItem) GetValue() string {
+	return ""
+}
+
+type MsgContractDeploymentWhitelistItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetType() uint32 {
+	return TypeOthers
+}
+
+func NewMsgContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgContractDeploymentWhitelistItem {
+	return &MsgContractDeploymentWhitelistItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() []byte {
+	return append(prefixWhiteList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
+	return ""
 }

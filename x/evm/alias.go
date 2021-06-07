@@ -15,8 +15,9 @@ const (
 
 // nolint
 var (
-	NewKeeper = keeper.NewKeeper
-	TxDecoder = types.TxDecoder
+	NewKeeper         = keeper.NewKeeper
+	TxDecoder         = types.TxDecoder
+	NewSimulateKeeper = keeper.NewSimulateKeeper
 )
 
 //nolint

@@ -1,7 +1,9 @@
 package watcher
 
 import (
+	"log"
 	"path/filepath"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
@@ -9,20 +11,25 @@ import (
 )
 
 const FlagFastQuery = "fast-query"
+const FlagFastQueryLru = "fast-lru"
 
 type WatchStore struct {
 	db *leveldb.DB
 }
 
 var gWatchStore *WatchStore = nil
+var once sync.Once
 
 func InstanceOfWatchStore() *WatchStore {
-	if gWatchStore == nil && IsWatcherEnabled() {
-		db, e := initDb()
-		if e == nil {
+	once.Do(func() {
+		if IsWatcherEnabled() {
+			db, e := initDb()
+			if e != nil {
+				panic(e)
+			}
 			gWatchStore = &WatchStore{db: db}
 		}
-	}
+	})
 	return gWatchStore
 }
 
@@ -33,9 +40,28 @@ func initDb() (*leveldb.DB, error) {
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
-	w.db.Put(key, value, nil)
+	err := w.db.Put(key, value, nil)
+	if err != nil {
+		log.Println("watchdb error: ", err.Error())
+	}
 }
 
 func (w WatchStore) Get(key []byte) ([]byte, error) {
 	return w.db.Get(key, nil)
+}
+
+func (w WatchStore) Delete(key []byte) {
+	err := w.db.Delete(key, nil)
+	if err != nil {
+		log.Printf("watchdb error: " + err.Error())
+	}
+}
+
+func (w WatchStore) Has(key []byte) bool {
+	res, err := w.db.Has(key, nil)
+	if err != nil {
+		log.Println("watchdb error: " + err.Error())
+		return false
+	}
+	return res
 }

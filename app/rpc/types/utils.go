@@ -110,11 +110,11 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 	return &ethtypes.Header{
 		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
-		UncleHash:   common.Hash{},
+		UncleHash:   ethtypes.EmptyUncleHash,
 		Coinbase:    common.BytesToAddress(header.ProposerAddress),
 		Root:        common.BytesToHash(header.AppHash),
 		TxHash:      common.BytesToHash(header.DataHash),
-		ReceiptHash: common.Hash{},
+		ReceiptHash: ethtypes.EmptyRootHash,
 		Difficulty:  nil,
 		Number:      big.NewInt(header.Height),
 		Time:        uint64(header.Time.Unix()),
@@ -180,13 +180,16 @@ func FormatBlock(
 	if len(header.DataHash) == 0 {
 		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
 	}
-
+	parentHash := header.LastBlockID.Hash
+	if parentHash == nil {
+		parentHash = ethtypes.EmptyRootHash.Bytes()
+	}
 	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
 		"hash":             hexutil.Bytes(curBlockHash),
-		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
-		"nonce":            ethtypes.BlockNonce{}, // PoW specific
-		"sha3Uncles":       common.Hash{},         // No uncles in Tendermint
+		"parentHash":       hexutil.Bytes(parentHash),
+		"nonce":            ethtypes.BlockNonce{},   // PoW specific
+		"sha3Uncles":       ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
@@ -199,8 +202,8 @@ func FormatBlock(
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
-		"uncles":           []string{},
-		"receiptsRoot":     common.Hash{},
+		"uncles":           []common.Hash{},
+		"receiptsRoot":     ethtypes.EmptyRootHash,
 	}
 	if !reflect.ValueOf(transactions).IsNil() {
 		switch transactions.(type) {
@@ -255,11 +258,13 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	}
 
 	header = &EthHeaderWithBlockHash{
-		ParentHash: common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
-		Coinbase:   common.BytesToAddress(tmHeader.ProposerAddress),
-		Root:       common.BytesToHash(tmHeader.AppHash),
-		TxHash:     common.BytesToHash(tmHeader.DataHash),
-		Number:     (*hexutil.Big)(big.NewInt(tmHeader.Height)),
+		ParentHash:  common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
+		UncleHash:   ethtypes.EmptyUncleHash,
+		Coinbase:    common.BytesToAddress(tmHeader.ProposerAddress),
+		Root:        common.BytesToHash(tmHeader.AppHash),
+		TxHash:      common.BytesToHash(tmHeader.DataHash),
+		ReceiptHash: ethtypes.EmptyRootHash,
+		Number:      (*hexutil.Big)(big.NewInt(tmHeader.Height)),
 		// difficulty is not available for DPOS
 		Difficulty: defaultDifficulty,
 		GasLimit:   defaultGasLimit,

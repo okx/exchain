@@ -101,7 +101,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	wsConn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Error("websocket upgrade failed", " error", err)
 		return
@@ -109,10 +109,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	s.connPool <- struct{}{}
 	s.currentConnNum.Set(float64(len(s.connPool)))
-	go s.readLoop(wsConn)
+	go s.readLoop(&wsConn{
+		mux:  new(sync.Mutex),
+		conn: conn,
+	})
 }
 
-func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
+func (s *Server) sendErrResponse(conn *wsConn, msg string) {
 	res := &ErrorResponseJSON{
 		Jsonrpc: "2.0",
 		Error: &ErrorMessageJSON{
@@ -127,7 +130,32 @@ func (s *Server) sendErrResponse(conn *websocket.Conn, msg string) {
 	}
 }
 
-func (s *Server) readLoop(wsConn *websocket.Conn) {
+type wsConn struct {
+	conn *websocket.Conn
+	mux  *sync.Mutex
+}
+
+func (w *wsConn) WriteJSON(v interface{}) error {
+	w.mux.Lock()
+	defer w.mux.Unlock()
+
+	return w.conn.WriteJSON(v)
+}
+
+func (w *wsConn) Close() error {
+	w.mux.Lock()
+	defer w.mux.Unlock()
+
+	return w.conn.Close()
+}
+
+func (w *wsConn) ReadMessage() (messageType int, p []byte, err error) {
+	// not protected by write mutex
+
+	return w.conn.ReadMessage()
+}
+
+func (s *Server) readLoop(wsConn *wsConn) {
 	subIds := make(map[rpc.ID]struct{})
 	for {
 		_, mb, err := wsConn.ReadMessage()
@@ -154,17 +182,18 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
+			reqId, ok := msg["id"].(float64)
+			if !ok {
+				s.sendErrResponse(wsConn, "invaild id in request message")
+				continue
+			}
+
 			id, err := s.api.subscribe(wsConn, params)
 			if err != nil {
 				s.sendErrResponse(wsConn, err.Error())
 				continue
 			}
 
-			reqId, ok := msg["id"].(float64)
-			if !ok {
-				s.sendErrResponse(wsConn, "invaild id in request message")
-				continue
-			}
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
 				ID:      reqId,
@@ -191,10 +220,16 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 				continue
 			}
 
+			reqId, ok := msg["id"].(float64)
+			if !ok {
+				s.sendErrResponse(wsConn, "invaild id in request message")
+				continue
+			}
+
 			ok = s.api.unsubscribe(rpc.ID(id))
 			res := &SubscriptionResponseJSON{
 				Jsonrpc: "2.0",
-				ID:      1,
+				ID:      reqId,
 				Result:  ok,
 			}
 
@@ -218,7 +253,7 @@ func (s *Server) readLoop(wsConn *websocket.Conn) {
 
 // tcpGetAndSendResponse connects to the rest-server over tcp, posts a JSON-RPC request, and sends the response
 // to the client over websockets
-func (s *Server) tcpGetAndSendResponse(conn *websocket.Conn, mb []byte) error {
+func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
 	req, err := http.NewRequest(http.MethodPost, s.rpcAddr, bytes.NewReader(mb))
 	if err != nil {
 		return fmt.Errorf("failed to request; %s", err)
