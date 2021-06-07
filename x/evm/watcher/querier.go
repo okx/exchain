@@ -331,7 +331,7 @@ func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 }
 
 func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
-	if q.enabled() {
+	if !q.enabled() {
 		return
 	}
 	q.store.Delete(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
