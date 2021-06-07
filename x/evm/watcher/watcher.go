@@ -2,12 +2,6 @@ package watcher
 
 import (
 	"fmt"
-	"math/big"
-	"os"
-	"strconv"
-	"sync"
-	"time"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,6 +13,11 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
+	"math/big"
+	"os"
+	"strconv"
+	"sync"
+	"time"
 )
 
 type Watcher struct {
@@ -36,6 +35,7 @@ type Watcher struct {
 	enableScheduler bool
 	scheduler       streamTypes.IDistributeStateService
 }
+
 const (
 	lockerID              = "evm_lock_id"
 	distributeLock        = "evm_watcher_lock"
