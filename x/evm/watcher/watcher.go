@@ -1,11 +1,16 @@
 package watcher
 
 import (
-	"fmt"
+	"math/big"
+	"os"
+	"strconv"
+	"sync"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/stream/distrlock"
@@ -13,11 +18,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
-	"math/big"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type Watcher struct {
@@ -34,6 +34,7 @@ type Watcher struct {
 	firstUse        bool
 	enableScheduler bool
 	scheduler       streamTypes.IDistributeStateService
+	logger          log.Logger
 }
 
 const (
@@ -76,7 +77,13 @@ func NewWatcher() *Watcher {
 		}
 	}
 
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, enableScheduler: viper.GetString(FlagWatcherDBType) != DBTypeLevel, scheduler: scheduler}
+	return &Watcher{
+		store:           InstanceOfWatchStore(),
+		sw:              IsWatcherEnabled(),
+		firstUse:        true,
+		enableScheduler: viper.GetString(FlagWatcherDBType) != DBTypeLevel,
+		scheduler:       scheduler,
+		logger:          log.NewTMLogger(log.NewSyncWriter(os.Stdout))}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -349,16 +356,15 @@ func (w *Watcher) CommitScheduler() {
 	batch := w.batch
 	// auto garbage collection
 	w.batch = nil
-	start := time.Now()
 	locked, err := w.scheduler.FetchDistLock(distributeLock, lockerID, distributeLockTimeout)
 	if !locked || err != nil {
-		fmt.Println(time.Since(start))
+		logger.Error("CommitScheduler FetchDistLock error", err)
 		return
 	}
 	latestHeight, err := w.scheduler.GetDistState(latestHeightKey)
 	if err != nil {
+		logger.Error("CommitScheduler GetDistState error", err)
 		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
-		fmt.Println(time.Since(start))
 		return
 	}
 
@@ -368,11 +374,14 @@ func (w *Watcher) CommitScheduler() {
 	}
 	latestHeightNum, _ := strconv.Atoi(latestHeight)
 	if uint64(latestHeightNum) < w.height {
-		w.scheduler.SetDistState(latestHeightKey, strconv.FormatUint(w.height, 10))
-		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
-		// set data
-		fmt.Println("hbase to write")
-		fmt.Println(time.Since(start))
+		err = w.scheduler.SetDistState(latestHeightKey, strconv.FormatUint(w.height, 10))
+		if err != nil {
+			logger.Error("CommitScheduler SetDistState error", err)
+		}
+		b, err := w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		if !b || err != nil {
+			logger.Error("CommitScheduler ReleaseDistLock error", err)
+		}
 		go func() {
 			for _, b := range batch {
 				w.store.Set(b.GetKey(), []byte(b.GetValue()))
@@ -382,7 +391,9 @@ func (w *Watcher) CommitScheduler() {
 			}
 		}()
 	} else {
-		w.scheduler.ReleaseDistLock(distributeLock, lockerID)
-		fmt.Println(time.Since(start))
+		b, err := w.scheduler.ReleaseDistLock(distributeLock, lockerID)
+		if !b || err != nil {
+			logger.Error("CommitScheduler ReleaseDistLock error", err)
+		}
 	}
 }
