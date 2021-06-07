@@ -2,6 +2,9 @@ package watcher
 
 import (
 	"math/big"
+	"sync"
+
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -27,8 +30,25 @@ type Watcher struct {
 	firstUse      bool
 }
 
+var (
+	watcherEnable  = false
+	watcherLruSize = 1000
+	onceEnable     sync.Once
+	onceLru        sync.Once
+)
+
 func IsWatcherEnabled() bool {
-	return viper.GetBool(FlagFastQuery)
+	onceEnable.Do(func() {
+		watcherEnable = viper.GetBool(FlagFastQuery)
+	})
+	return watcherEnable
+}
+
+func GetWatchLruSize() int {
+	onceLru.Do(func() {
+		watcherLruSize = viper.GetInt(FlagFastQueryLru)
+	})
+	return watcherLruSize
 }
 
 func NewWatcher() *Watcher {
@@ -89,7 +109,7 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgCodeByHash(hash, code, w.height)
+	wMsg := NewMsgCodeByHash(hash, code)
 	if wMsg != nil {
 		w.staleBatch = append(w.staleBatch, wMsg)
 	}
@@ -262,7 +282,7 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgCodeByHash(hash, code, w.height)
+	wMsg := NewMsgCodeByHash(hash, code)
 	if wMsg != nil {
 		w.store.Set(wMsg.GetKey(), []byte(wMsg.GetValue()))
 	}
@@ -284,6 +304,9 @@ func (w *Watcher) Commit() {
 	go func() {
 		for _, b := range batch {
 			w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			if b.GetType() == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+			}
 		}
 	}()
 }

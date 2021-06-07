@@ -6,13 +6,16 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+
+	lru "github.com/hashicorp/golang-lru"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/status-im/keycard-go/hexutils"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
@@ -20,6 +23,7 @@ const MsgFunctionDisable = "fast query function has been disabled"
 type Querier struct {
 	store *WatchStore
 	sw    bool
+	lru   *lru.Cache
 }
 
 func (q Querier) enabled() bool {
@@ -31,7 +35,11 @@ func (q *Querier) Enable(sw bool) {
 }
 
 func NewQuerier() *Querier {
-	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled()}
+	lru, e := lru.New(GetWatchLruSize())
+	if e != nil {
+		panic(errors.New("Failed to init LRU Cause " + e.Error()))
+	}
+	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
@@ -69,6 +77,9 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := []rpctypes.Transaction{}
+		if len(txsHash) == 0 {
+			block.TransactionsRoot = ethtypes.EmptyRootHash
+		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {
@@ -77,7 +88,29 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 		}
 		block.Transactions = txList
 	}
+	block.UncleHash = ethtypes.EmptyUncleHash
+	block.ReceiptsRoot = ethtypes.EmptyRootHash
+
 	return &block, nil
+}
+
+func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
+	if !q.enabled() {
+		return common.Hash{}, errors.New(MsgFunctionDisable)
+	}
+	var height = number
+	var err error
+	if height == 0 {
+		height, err = q.GetLatestBlockNumber()
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
+	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	if e != nil {
+		return common.Hash{}, e
+	}
+	return common.HexToHash(string(hash)), e
 }
 
 func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error) {
@@ -123,16 +156,19 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var codeInfo CodeInfo
-	info, e := q.store.Get(append(prefixCodeHash, codeHash...))
+	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
+	if ok {
+		data, ok := cacheCode.([]byte)
+		if ok {
+			return data, nil
+		}
+	}
+	code, e := q.store.Get(append(prefixCodeHash, codeHash...))
 	if e != nil {
 		return nil, e
 	}
-	e = json.Unmarshal(info, &codeInfo)
-	if e != nil {
-		return nil, e
-	}
-	return hex.DecodeString(codeInfo.Code)
+	q.lru.Add(common.BytesToHash(codeHash), code)
+	return code, nil
 }
 
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
@@ -250,37 +286,45 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 }
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
-	b, e := q.GetState(addr, key)
+	orgKey := GetMsgStateKey(addr, key)
+	realKey := common.BytesToHash(orgKey)
+	data := state.GetStateFromLru(realKey)
+	if data != nil {
+		return data, nil
+	}
+	b, e := q.GetState(orgKey)
 	if e != nil {
-		b, e = q.GetStateFromRdb(addr, key)
+		b, e = q.GetStateFromRdb(orgKey)
 	} else {
 		q.DeleteStateFromRdb(addr, key)
+	}
+	if e == nil {
+		state.SetStateToLru(realKey, b)
 	}
 	return b, e
 }
 
-func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
+func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(GetMsgStateKey(addr, key))
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
-	ret := hexutils.HexToBytes(string(b))
-	return ret, nil
+	return b, nil
 }
 
-func (q Querier) GetStateFromRdb(addr common.Address, key []byte) ([]byte, error) {
+func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
+	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
 		return nil, e
 	}
-	ret := hexutils.HexToBytes(string(b))
-	return ret, nil
+
+	return b, nil
 }
 
 func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
