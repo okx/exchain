@@ -157,7 +157,6 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().String(watcher.FlagWatcherDBType, watcher.DBTypeLevel, "config watcher db")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrl, "redis://127.0.0.1:6379", "config watcher dis lock url")
 	cmd.Flags().String(watcher.FlagWatcherDisLockUrlPassword, "", "config watcher dis lock password")
-	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().String(watcher.FlagWatcherDBUrl, "", "config watcher db url")
 	cmd.Flags().String(watcher.FlagWatcherDBPassword, "", "config watcher db password")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")

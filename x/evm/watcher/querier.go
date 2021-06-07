@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+
 	lru "github.com/hashicorp/golang-lru"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,7 +16,6 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/status-im/keycard-go/hexutils"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
@@ -285,37 +286,45 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 }
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
-	b, e := q.GetState(addr, key)
+	orgKey := GetMsgStateKey(addr, key)
+	realKey := common.BytesToHash(orgKey)
+	data := state.GetStateFromLru(realKey)
+	if data != nil {
+		return data, nil
+	}
+	b, e := q.GetState(orgKey)
 	if e != nil {
-		b, e = q.GetStateFromRdb(addr, key)
+		b, e = q.GetStateFromRdb(orgKey)
 	} else {
 		q.DeleteStateFromRdb(addr, key)
+	}
+	if e == nil {
+		state.SetStateToLru(realKey, b)
 	}
 	return b, e
 }
 
-func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
+func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(GetMsgStateKey(addr, key))
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
-	ret := hexutils.HexToBytes(string(b))
-	return ret, nil
+	return b, nil
 }
 
-func (q Querier) GetStateFromRdb(addr common.Address, key []byte) ([]byte, error) {
+func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
+	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
 		return nil, e
 	}
-	ret := hexutils.HexToBytes(string(b))
-	return ret, nil
+
+	return b, nil
 }
 
 func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
