@@ -1,12 +1,9 @@
 package watcher
 
 import (
-	"encoding/hex"
-	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"log"
 	"path/filepath"
-	"time"
 )
 
 type LevelDB struct {
@@ -30,10 +27,7 @@ func (db *LevelDB) Set(key []byte, value []byte) {
 }
 
 func (db *LevelDB) Get(key []byte) ([]byte, error) {
-	start := time.Now()
 	result, err := db.db.Get(key, nil)
-	//todo del
-	log.Println(fmt.Sprintf("levelDB get key(%s) , value(%s), time(%s)", hex.EncodeToString(key), hex.EncodeToString(result), time.Since(start)))
 	return result, err
 }
 
