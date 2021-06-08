@@ -40,6 +40,7 @@ const (
 	FlagRestServerNacosClusters    = "rpc.rest-server-nacos-clusters"
 	FlagRestServerNacosServiceName = "rpc.rest-server-nacos-service-name"
 	FlagRestServerNacosGroupName   = "rpc.rest-server-nacos-group-name"
+	FlagRestServerProfLaddr        = "rpc.rest-server-prof-laddr"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.

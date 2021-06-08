@@ -161,6 +161,7 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().StringArray(rpc.FlagRestServerNacosClusters, []string{}, "Rpc's nacos clusters array list for getting rest-server service info")
 	cmd.Flags().String(rpc.FlagRestServerNacosServiceName, "", "Rpc's nacos service name for getting rest-server service info")
 	cmd.Flags().String(rpc.FlagRestServerNacosGroupName, "", "Rpc's nacos group name for getting rest-server service info")
+	cmd.Flags().String(rpc.FlagRestServerProfLaddr, "0.0.0.0:6060", "Node listen address. (0.0.0.0:0 means any interface, any port) (default 0.0.0.0:6060)")
 
 	cmd.Flags().String(server.FlagListenAddr, "tcp://0.0.0.0:26659", "The address for the rest-server to listen on. (0.0.0.0:0 means any interface, any port)")
 	cmd.Flags().String(server.FlagUlockKey, "", "Select the keys to unlock on the RPC server")

@@ -2,9 +2,6 @@ package client
 
 import (
 	"fmt"
-	evmclient "github.com/okex/exchain/x/evm/client"
-	"github.com/okex/exchain/x/stream/nacos"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -21,6 +18,7 @@ import (
 	dist "github.com/okex/exchain/x/distribution"
 	distr "github.com/okex/exchain/x/distribution"
 	distrest "github.com/okex/exchain/x/distribution/client/rest"
+	evmclient "github.com/okex/exchain/x/evm/client"
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
@@ -28,9 +26,12 @@ import (
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
+	"github.com/okex/exchain/x/stream/nacos"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
 	"github.com/spf13/viper"
+	"net/http"
+	_ "net/http/pprof"
 )
 
 // RegisterRoutes registers the routes from the different modules for the LCD.
@@ -54,6 +55,11 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	// start nacos client for registering rest-server service
 	if viper.GetBool(rpc.FlagRestServerServiceEnable) && viper.GetString(rpc.FlagRestServerNacosUrls) != "" {
 		nacos.StartNacosClient(rs.Logger(), viper.GetString(rpc.FlagRestServerNacosUrls), viper.GetString(rpc.FlagRestServerNacosNamespaceId), viper.GetString(rpc.FlagRestServerNacosServiceName), viper.GetString(server.FlagExternalListenAddr))
+	}
+	if viper.GetString(rpc.FlagRestServerProfLaddr) != "" {
+		go func() {
+			http.ListenAndServe(rpc.FlagRestServerProfLaddr, nil)
+		}()
 	}
 }
 
