@@ -58,7 +58,10 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	}
 	if viper.GetString(rpc.FlagRestServerProfLaddr) != "" {
 		go func() {
-			http.ListenAndServe(rpc.FlagRestServerProfLaddr, nil)
+			err := http.ListenAndServe(viper.GetString(rpc.FlagRestServerProfLaddr), nil)
+			if err != nil {
+				panic(err)
+			}
 		}()
 	}
 }
