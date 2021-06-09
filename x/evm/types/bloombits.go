@@ -91,13 +91,13 @@ func (b *bloomIndexer) Commit() error {
 		if err != nil {
 			return err
 		}
-		WriteBloomBits(batch, uint(i), b.section, b.head, bitutil.CompressBytes(bits))
+		batch.Set(BloomBitsKey(uint(i), b.section, b.head), bitutil.CompressBytes(bits))
 	}
 	return batch.Write()
 }
 
-// bloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash
-func bloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
+// BloomBitsKey = bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash
+func BloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
 	key := append(append(bloomBitsPrefix, make([]byte, 10)...), hash.Bytes()...)
 
 	binary.BigEndian.PutUint16(key[1:], uint16(bit))
@@ -109,11 +109,5 @@ func bloomBitsKey(bit uint, section uint64, hash common.Hash) []byte {
 // ReadBloomBits retrieves the compressed bloom bit vector belonging to the given
 // section and bit index from the.
 func ReadBloomBits(db ethdb.KeyValueReader, bit uint, section uint64, head common.Hash) ([]byte, error) {
-	return db.Get(bloomBitsKey(bit, section, head))
-}
-
-// WriteBloomBits stores the compressed bloom bits vector belonging to the given
-// section and bit index.
-func WriteBloomBits(batch dbm.Batch, bit uint, section uint64, head common.Hash, bits []byte) {
-	batch.Set(bloomBitsKey(bit, section, head), bits)
+	return db.Get(BloomBitsKey(bit, section, head))
 }

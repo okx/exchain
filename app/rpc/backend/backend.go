@@ -3,24 +3,21 @@ package backend
 import (
 	"context"
 	"fmt"
-	"golang.org/x/time/rate"
-
-	"github.com/okex/exchain/x/evm/watcher"
-
-	"github.com/tendermint/tendermint/libs/log"
-
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	"golang.org/x/time/rate"
 )
 
 // Backend implements the functionality needed to filter changes.
@@ -158,8 +155,12 @@ func (b *EthermintBackend) HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethty
 		if err != nil {
 			return nil, err
 		}
-
 		height = int64(num)
+	}
+
+	ethBlock, err := b.wrappedBackend.GetBlockByNumber(uint64(height), false)
+	if err == nil {
+		return ethBlock.EthHeader(), err
 	}
 
 	resBlock, err := b.clientCtx.Client.Block(&height)
@@ -318,34 +319,27 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*rpcty
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.
 func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
-	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
+	resBlock, err := b.GetBlockByHash(blockHash, false)
 	if err != nil {
 		return nil, err
 	}
 
-	var out evmtypes.QueryResBlockNumber
-	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
-
-	block, err := b.clientCtx.Client.Block(&out.Number)
-	if err != nil {
-		return nil, err
+	var txHashes []common.Hash
+	if block, ok := resBlock.(watcher.EthBlock); ok {
+		txHashes = block.Transactions.([]common.Hash)
+	} else {
+		block := resBlock.(map[string]interface{})
+		txHashes = block["transactions"].([]common.Hash)
 	}
 
 	var blockLogs = [][]*ethtypes.Log{}
-	for _, tx := range block.Block.Txs {
+	for _, txHash := range txHashes {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
+		receipt, err := b.wrappedBackend.GetTransactionReceipt(txHash)
 		if err != nil {
 			continue
 		}
-		execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
-		if err != nil {
-			continue
-		}
-
-		blockLogs = append(blockLogs, execRes.Logs)
+		blockLogs = append(blockLogs, receipt.Logs)
 	}
 
 	return blockLogs, nil
@@ -375,9 +369,9 @@ func (b *EthermintBackend) ServiceFilter(ctx context.Context, session *bloombits
 	}
 }
 
-// startBloomHandlers starts a batch of goroutines to accept bloom bit database
+// StartBloomHandlers starts a batch of goroutines to accept bloom bit database
 // retrievals from possibly a range of filters and serving the data to satisfy.
-func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db dbm.DB) {
+func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db ethdb.KeyValueReader) {
 	for i := 0; i < evmtypes.BloomServiceThreads; i++ {
 		go func() {
 			for {
@@ -394,7 +388,15 @@ func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db dbm.DB) {
 						if err != nil {
 							task.Error = err
 						}
-						if compVector, err := evmtypes.ReadBloomBits(db, task.Bit, section, hash); err == nil {
+						bitsKey := evmtypes.BloomBitsKey(task.Bit, section, hash)
+						var compVector []byte
+						if filters.IsClientRestServer() {
+							compVector, _, err = b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s",
+								evmtypes.ModuleName, evmtypes.QueryBloomBits, hexutil.Encode(bitsKey)))
+						} else {
+							compVector, err = evmtypes.ReadBloomBits(db, task.Bit, section, hash)
+						}
+						if err == nil {
 							if blob, err := bitutil.DecompressBytes(compVector, int(sectionSize/8)); err == nil {
 								task.Bitsets[i] = blob
 							} else {
@@ -413,12 +415,17 @@ func (b *EthermintBackend) StartBloomHandlers(sectionSize uint64, db dbm.DB) {
 
 // GetBlockHashByHeight returns the block hash by height.
 func (b *EthermintBackend) GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error) {
-	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryHeightToHash, height))
+	hash, err := b.wrappedBackend.GetBlockHashByNumber(uint64(height))
+	if err == nil {
+		return hash, nil
+	}
+	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d",
+		evmtypes.ModuleName, evmtypes.QueryHeightToHash, height))
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	hash := common.BytesToHash(res)
+	hash = common.BytesToHash(res)
 	return hash, nil
 }
 

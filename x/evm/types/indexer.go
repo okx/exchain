@@ -10,12 +10,14 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 )
 
 var (
 	indexer           *Indexer
 	enableBloomFilter bool
+	once              sync.Once
 )
 
 type Keeper interface {
@@ -32,11 +34,10 @@ func init() {
 }
 
 func GetEnableBloomFilter() bool {
+	once.Do(func() {
+		enableBloomFilter = viper.GetBool(FlagEnableBloomFilter)
+	})
 	return enableBloomFilter
-}
-
-func SetEnableBloomFilter(enable bool) {
-	enableBloomFilter = enable
 }
 
 // Indexer does a post-processing job for equally sized sections of the

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -151,6 +152,7 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 // ServeCmd creates a CLI command to start Cosmos REST server with web3 RPC API and
 // Cosmos rest-server endpoints
 func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
+	filters.SetClientRestServer()
 	cmd := lcd.ServeCommand(cdc, client.RegisterRoutes)
 	client.RegisterEthRpcFlag(cmd)
 

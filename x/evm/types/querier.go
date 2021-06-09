@@ -25,6 +25,7 @@ const (
 	QuerySection                     = "section"
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
 	QueryContractBlockedList         = "contract-blocked-list"
+	QueryBloomBits                   = "bloomBits"
 )
 
 // QueryResBalance is response type for balance query

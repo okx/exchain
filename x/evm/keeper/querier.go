@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -53,6 +54,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractDeploymentWhitelist(ctx, keeper)
 		case types.QueryContractBlockedList:
 			return queryContractBlockedList(ctx, keeper)
+		case types.QueryBloomBits:
+			return queryBloomBits(ctx, path, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -323,4 +326,22 @@ func querySection(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	}
 
 	return res, nil
+}
+
+func queryBloomBits(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if !types.GetEnableBloomFilter() {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"disable bloom filter")
+	}
+
+	if len(path) != 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"wrong parameters, need two parameters")
+	}
+
+	res, err := hexutil.Decode(path[1])
+	if err != nil {
+		return nil, err
+	}
+	return types.GetIndexer().GetDB().Get(res)
 }

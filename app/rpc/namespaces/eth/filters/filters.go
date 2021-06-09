@@ -16,6 +16,8 @@ import (
 
 const FlagGetLogsHeightSpan = "logs-height-span"
 
+var isClientRestServer = false
+
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
 	backend  Backend
@@ -94,16 +96,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	}
 
 	// Figure out the limits of the filter range
-	header, err := f.backend.HeaderByNumber(rpctypes.LatestBlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	if header == nil || header.Number == nil {
-		return nil, nil
-	}
-
-	head := header.Number.Int64()
+	head, err := f.backend.LatestBlockNumber()
 	if f.criteria.FromBlock.Int64() == -1 {
 		f.criteria.FromBlock = big.NewInt(head)
 	}
@@ -289,4 +282,12 @@ Logs:
 		ret = append(ret, log)
 	}
 	return ret
+}
+
+func SetClientRestServer() {
+	isClientRestServer = true
+}
+
+func IsClientRestServer() bool {
+	return isClientRestServer
 }

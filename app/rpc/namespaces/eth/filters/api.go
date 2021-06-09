@@ -31,6 +31,7 @@ var ErrServerBusy = errors.New("server is too busy")
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
 	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (interface{}, error)
+	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)

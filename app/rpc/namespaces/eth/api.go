@@ -510,7 +510,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 	return out.Code, nil
 }
 
-// GetCode returns the contract code at the given address and block number.
+// GetCodeByHash returns the contract code at the given address and block number.
 func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
 	code, err := api.wrappedBackend.GetCodeByHash(hash.Bytes())
 	if err == nil {
@@ -532,6 +532,10 @@ func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, er
 
 // GetTransactionLogs returns the logs given a transaction hash.
 func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
+	res, e := api.wrappedBackend.GetTransactionReceipt(txHash)
+	if e == nil {
+		return res.Logs, nil
+	}
 	api.logger.Debug("eth_getTransactionLogs", "hash", txHash)
 	return api.backend.GetTransactionLogs(txHash)
 }
