@@ -326,7 +326,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var txHashes []common.Hash
-	if block, ok := resBlock.(watcher.EthBlock); ok {
+	if block, ok := resBlock.(*watcher.EthBlock); ok {
 		txHashes = block.Transactions.([]common.Hash)
 	} else {
 		block := resBlock.(map[string]interface{})
