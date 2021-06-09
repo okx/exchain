@@ -337,10 +337,21 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	for _, txHash := range txHashes {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
 		receipt, err := b.wrappedBackend.GetTransactionReceipt(txHash)
-		if err != nil {
-			continue
+		var logs []*ethtypes.Log
+		if err == nil {
+			logs = receipt.Logs
+		} else {
+			txRes, err := b.clientCtx.Client.Tx(txHash.Bytes(), !b.clientCtx.TrustNode)
+			if err != nil {
+				continue
+			}
+			execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
+			if err != nil {
+				continue
+			}
+			logs = execRes.Logs
 		}
-		blockLogs = append(blockLogs, receipt.Logs)
+		blockLogs = append(blockLogs, logs)
 	}
 
 	return blockLogs, nil

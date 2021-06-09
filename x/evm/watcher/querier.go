@@ -47,6 +47,14 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var receipt TransactionReceipt
+	res, ok := q.lru.Get(hash)
+	if ok {
+		receipt, ok = res.(TransactionReceipt)
+		if ok {
+			return &receipt, nil
+		}
+	}
+
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -58,6 +66,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if receipt.Logs == nil {
 		receipt.Logs = []*ethtypes.Log{}
 	}
+	q.lru.Add(hash, receipt)
 	return &receipt, nil
 }
 
