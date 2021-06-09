@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
@@ -348,7 +349,19 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 // BloomStatus returns the BloomBitsBlocks and the number of processed sections maintained
 // by the chain indexer.
 func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
-	sections := evmtypes.GetIndexer().StoredSection()
+	var sections uint64
+	if filters.IsClientRestServer() {
+		res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QuerySection))
+		if err != nil {
+			b.logger.Error("query section failed from node")
+		}
+		err = json.Unmarshal(res, &sections)
+		if err != nil {
+			b.logger.Error("unmarshal sections failed")
+		}
+	} else {
+		sections = evmtypes.GetIndexer().StoredSection()
+	}
 	return evmtypes.BloomBitsBlocks, sections
 }
 
