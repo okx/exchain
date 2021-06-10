@@ -256,7 +256,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 }
 
 func (b *EthermintBackend) PendingTransactionCnt() (int, error) {
-	result, err := b.clientCtx.Client.UnconfirmedTxs(-1)
+	result, err := b.clientCtx.Client.NumUnconfirmedTxs()
 	if err != nil {
 		return 0, err
 	}
