@@ -82,7 +82,7 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		return nil, err
 	}
 
-	transactions, gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+	txHashes, gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	if fullTx {
 		blockTxs = ethTxs
 	} else {
-		blockTxs = transactions
+		blockTxs = txHashes
 	}
 
 	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, blockTxs, bloom), nil
