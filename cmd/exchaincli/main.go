@@ -106,7 +106,7 @@ func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 		authcmd.GetAccountCmd(cdc),
 		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
-		authcmd.QueryTxCmd(cdc),
+		queryTxCmd(cdc),
 		flags.LineBreak,
 	)
 
