@@ -199,8 +199,12 @@ func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 	return &MsgTransactionReceipt{txHash: txHash.Bytes(), receipt: string(jsTr)}
 }
 
+func GetMsgTransactionReceiptKey(txHash []byte) []byte {
+	return append(prefixReceipt, txHash...)
+}
+
 func (m MsgTransactionReceipt) GetKey() []byte {
-	return append(prefixReceipt, m.txHash...)
+	return GetMsgTransactionReceiptKey(m.txHash)
 }
 
 func (m MsgTransactionReceipt) GetValue() string {

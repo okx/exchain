@@ -59,6 +59,7 @@ type EthermintBackend struct {
 	bloomRequests     chan chan *bloombits.Retrieval
 	closeBloomHandler chan struct{}
 	wrappedBackend    *watcher.Querier
+	watcherBackend    *watcher.Watcher
 	rateLimiters      map[string]*rate.Limiter
 }
 
@@ -72,6 +73,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		closeBloomHandler: make(chan struct{}),
 		wrappedBackend:    watcher.NewQuerier(),
+		watcherBackend:    watcher.NewWatcher(),
 		rateLimiters:      rateLimiters,
 	}
 }
@@ -336,20 +338,57 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, txHash := range txHashes {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		receipt, err := b.wrappedBackend.GetTransactionReceipt(txHash)
+		receipt, err := b.wrappedBackend.MustGetTransactionReceipt(txHash)
 		var logs []*ethtypes.Log
 		if err == nil {
 			logs = receipt.Logs
 		} else {
-			txRes, err := b.clientCtx.Client.Tx(txHash.Bytes(), !b.clientCtx.TrustNode)
+			tx, err := b.clientCtx.Client.Tx(txHash.Bytes(), !b.clientCtx.TrustNode)
 			if err != nil {
-				continue
+				// Return nil for transaction when not found
+				return nil, nil
 			}
-			execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
+
+			// Query block for consensus hash
+			block, err := b.clientCtx.Client.Block(&tx.Height)
 			if err != nil {
-				continue
+				return nil, err
 			}
-			logs = execRes.Logs
+
+			blockHash := common.BytesToHash(block.Block.Hash())
+
+			// Convert tx bytes to eth transaction
+			ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx.Tx)
+			if err != nil {
+				return nil, err
+			}
+
+			cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
+			if tx.Index != 0 {
+				cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(b.clientCtx.Codec, block.Block, int(tx.Index))
+			}
+
+			// Set status codes based on tx result
+			var status uint32
+			if tx.TxResult.IsOK() {
+				status = 1
+			} else {
+				status = 0
+			}
+
+			txData := tx.TxResult.GetData()
+
+			data, err := evmtypes.DecodeResultData(txData)
+			if err != nil {
+				status = 0 // transaction failed
+			}
+
+			if len(data.Logs) == 0 {
+				data.Logs = []*ethtypes.Log{}
+			}
+			b.watcherBackend.CommitTransactionReceiptToRpcDb(status, ethTx, txHash, blockHash, uint64(tx.Index),
+				uint64(block.Block.Height), &data, cumulativeGasUsed, uint64(tx.TxResult.GasUsed))
+			logs = data.Logs
 		}
 		blockLogs = append(blockLogs, logs)
 	}

@@ -42,19 +42,21 @@ func NewQuerier() *Querier {
 	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru}
 }
 
+func (q Querier) MustGetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
+	receipt, e := q.GetTransactionReceipt(hash)
+	if e != nil {
+		receipt, e = q.GetTransactionReceiptFromRdb(hash)
+	} else {
+		q.DeleteTransactionReceiptFromRdb(hash)
+	}
+	return receipt, e
+}
+
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var receipt TransactionReceipt
-	res, ok := q.lru.Get(hash)
-	if ok {
-		receipt, ok = res.(TransactionReceipt)
-		if ok {
-			return &receipt, nil
-		}
-	}
-
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -66,8 +68,29 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if receipt.Logs == nil {
 		receipt.Logs = []*ethtypes.Log{}
 	}
-	q.lru.Add(hash, receipt)
 	return &receipt, nil
+}
+
+func (q Querier) GetTransactionReceiptFromRdb(hash common.Hash) (*TransactionReceipt, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var receipt TransactionReceipt
+	key := append(prefixRpcDb, GetMsgTransactionReceiptKey(hash.Bytes())...)
+
+	b, e := q.store.Get(key)
+	if e != nil {
+		return nil, e
+	}
+	e = json.Unmarshal(b, &receipt)
+	if e != nil {
+		return nil, e
+	}
+	return &receipt, nil
+}
+
+func (q Querier) DeleteTransactionReceiptFromRdb(hash common.Hash) {
+	q.store.Delete(append(prefixRpcDb, GetMsgTransactionReceiptKey(hash.Bytes())...))
 }
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error) {

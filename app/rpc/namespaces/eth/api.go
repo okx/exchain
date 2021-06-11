@@ -532,7 +532,7 @@ func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, er
 
 // GetTransactionLogs returns the logs given a transaction hash.
 func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
-	res, e := api.wrappedBackend.GetTransactionReceipt(txHash)
+	res, e := api.wrappedBackend.MustGetTransactionReceipt(txHash)
 	if e == nil {
 		return res.Logs, nil
 	}
@@ -1013,7 +1013,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger)
 	monitor.OnBegin(api.Metrics)
 	defer monitor.OnEnd("hash", hash)
-	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
+	res, e := api.wrappedBackend.MustGetTransactionReceipt(hash)
 	if e == nil {
 		return res, nil
 	}

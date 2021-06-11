@@ -319,6 +319,17 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 	}
 }
 
+func (w *Watcher) CommitTransactionReceiptToRpcDb(status uint32, tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *evmtypes.ResultData, cumulativeGas, gasUsed uint64) {
+	if !w.Enabled() {
+		return
+	}
+	wMsg := NewMsgTransactionReceipt(status, tx, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	if wMsg != nil {
+		key := append(prefixRpcDb, wMsg.GetKey()...)
+		w.store.Set(key, []byte(wMsg.GetValue()))
+	}
+}
+
 func (w *Watcher) Reset() {
 	if !w.Enabled() {
 		return
@@ -334,13 +345,7 @@ func (w *Watcher) Commit() {
 	if w.enableScheduler {
 		w.CommitScheduler()
 	} else {
-		//hold it in temp
-		batch := w.batch
-		go func() {
-			for _, b := range batch {
-				w.store.Set(b.GetKey(), []byte(b.GetValue()))
-			}
-		}()
+		w.CommitDirectly()
 	}
 }
 
@@ -352,10 +357,6 @@ func (w *Watcher) CommitScheduler() {
 		return
 	}
 
-	//hold it in temp
-	batch := w.batch
-	// auto garbage collection
-	w.batch = nil
 	locked, err := w.scheduler.FetchDistLock(distributeLock, lockerID, distributeLockTimeout)
 	if !locked || err != nil {
 		logger.Error("CommitScheduler FetchDistLock error", err)
@@ -382,18 +383,22 @@ func (w *Watcher) CommitScheduler() {
 		if !b || err != nil {
 			logger.Error("CommitScheduler ReleaseDistLock error", err)
 		}
-		go func() {
-			for _, b := range batch {
-				w.store.Set(b.GetKey(), []byte(b.GetValue()))
-				if b.GetType() == TypeState {
-					state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
-				}
-			}
-		}()
+		w.CommitDirectly()
 	} else {
 		b, err := w.scheduler.ReleaseDistLock(distributeLock, lockerID)
 		if !b || err != nil {
 			logger.Error("CommitScheduler ReleaseDistLock error", err)
 		}
 	}
+}
+
+func (w *Watcher) CommitDirectly() {
+	go func() {
+		for _, b := range w.batch {
+			w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			if b.GetType() == TypeState {
+				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+			}
+		}
+	}()
 }
