@@ -667,19 +667,12 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	return common.HexToHash(res.TxHash), nil
 }
 
-func sha256Code(message []byte) common.Hash {
-	hash := sha256.New()
-	hash.Write(message)
-	bytes := hash.Sum(nil)
-	return common.BytesToHash(bytes)
-}
-
 func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 	latest, e := api.wrappedBackend.GetLatestBlockNumber()
 	if e != nil {
 		return common.Hash{}
 	}
-	return sha256Code([]byte(args.String() + strconv.Itoa(int(latest))))
+	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
 }
 
 // Call performs a raw contract call.
