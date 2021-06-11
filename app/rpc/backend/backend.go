@@ -43,6 +43,7 @@ type Backend interface {
 	PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
 	UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error)
+	PendingAddressList() ([]string, error)
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
@@ -295,6 +296,14 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 	}
 
 	return transactions, nil
+}
+
+func (b *EthermintBackend) PendingAddressList() ([]string, error) {
+	res, err := b.clientCtx.Client.GetAddressList()
+	if err != nil {
+		return nil, err
+	}
+	return res.Addresses, nil
 }
 
 // PendingTransactions returns the transaction that is in the transaction pool
