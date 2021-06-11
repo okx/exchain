@@ -686,6 +686,7 @@ func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger)
 	monitor.OnBegin(api.Metrics)
+	defer monitor.OnEnd("args", args, "block number", blockNr)
 	key := api.buildKey(args)
 	cacheData, ok := api.cacheCall.Get(key)
 	if ok {
@@ -694,7 +695,6 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 			return ret, nil
 		}
 	}
-	defer monitor.OnEnd("args", args, "block number", blockNr)
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
