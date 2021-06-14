@@ -17,7 +17,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -60,8 +59,7 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
-	if enable := viper.GetBool(types.FlagEnableBloomFilter); enable {
-		types.SetEnableBloomFilter(enable)
+	if enable := types.GetEnableBloomFilter(); enable {
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}

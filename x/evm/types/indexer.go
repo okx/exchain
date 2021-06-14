@@ -10,12 +10,14 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 )
 
 var (
 	indexer           *Indexer
 	enableBloomFilter bool
+	once              sync.Once
 )
 
 type Keeper interface {
@@ -32,11 +34,10 @@ func init() {
 }
 
 func GetEnableBloomFilter() bool {
+	once.Do(func() {
+		enableBloomFilter = viper.GetBool(FlagEnableBloomFilter)
+	})
 	return enableBloomFilter
-}
-
-func SetEnableBloomFilter(enable bool) {
-	enableBloomFilter = enable
 }
 
 // Indexer does a post-processing job for equally sized sections of the
@@ -51,8 +52,8 @@ func SetEnableBloomFilter(enable bool) {
 type Indexer struct {
 	backend bloomIndexer // Background processor generating the index data content
 
-	update chan struct{} // Notification channel that headers should be processed
-	quit   chan struct{} // Quit channel to tear down running goroutines
+	update chan sdk.Context // Notification channel that headers should be processed
+	quit   chan struct{}    // Quit channel to tear down running goroutines
 
 	storedSections uint64 // Number of sections successfully indexed into the database
 	processing     uint32 // Atomic flag whether indexer is processing or not
@@ -65,7 +66,7 @@ func InitIndexer(db dbm.DB) {
 
 	indexer = &Indexer{
 		backend: initBloomIndexer(db),
-		update:  make(chan struct{}),
+		update:  make(chan sdk.Context),
 		quit:    make(chan struct{}),
 	}
 	indexer.setValidSections(indexer.GetValidSections())
@@ -93,14 +94,19 @@ func (i *Indexer) StoredSection() uint64 {
 }
 
 func (i *Indexer) IsProcessing() bool {
-	return i.processing == 1
+	return atomic.LoadUint32(&i.processing) == 1
 }
 
 func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	if atomic.SwapUint32(&i.processing, 1) == 1 {
-		ctx.Logger().Error("matcher already running")
+		ctx.Logger().Error("matcher is already running")
 		return
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			ctx.Logger().Error("ProcessSection panic height", ctx.BlockHeight(), r)
+		}
+	}()
 	defer atomic.StoreUint32(&i.processing, 0)
 	knownSection := interval / BloomBitsBlocks
 	for i.storedSections < knownSection {
@@ -126,6 +132,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 				bloom ethtypes.Bloom
 				hash  common.Hash
 			)
+			ctx = i.updateCtx(ctx)
 			// the initial height is 1 but it on ethereum is 0. so set the bloom and hash of the block 0 to empty.
 			if number == uint64(tmtypes.GetStartBlockHeight()) {
 				bloom = ethtypes.Bloom{}
@@ -176,7 +183,7 @@ func (i *Indexer) setValidSections(sections uint64) {
 	i.storedSections = sections // needed if new > old
 }
 
-// loadValidSections reads the number of valid sections from the index database
+// GetValidSections reads the number of valid sections from the index database
 // and caches is into the local state.
 func (i *Indexer) GetValidSections() uint64 {
 	data, _ := i.backend.db.Get([]byte("count"))
@@ -186,7 +193,7 @@ func (i *Indexer) GetValidSections() uint64 {
 	return 0
 }
 
-// SectionHead retrieves the last block hash of a processed section from the
+// sectionHead retrieves the last block hash of a processed section from the
 // index database.
 func (i *Indexer) sectionHead(section uint64) common.Hash {
 	var data [8]byte
@@ -215,4 +222,19 @@ func (i *Indexer) removeSectionHead(section uint64) {
 	binary.BigEndian.PutUint64(data[:], section)
 
 	i.backend.db.Delete(append([]byte("shead"), data[:]...))
+}
+
+func (i *Indexer) NotifyNewHeight(ctx sdk.Context) {
+	i.update <- ctx
+}
+
+func (i *Indexer) updateCtx(oldCtx sdk.Context) sdk.Context {
+	newCtx := oldCtx
+
+	select {
+	case newCtx = <-i.update:
+	default:
+	}
+
+	return newCtx
 }

@@ -2,14 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/order"
-	"github.com/okex/exchain/x/dex"
-
-	"github.com/spf13/cobra"
-
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/libs/cli"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -22,14 +14,19 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	tokencmd "github.com/okex/exchain/x/token/client/cli"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
+	"github.com/okex/exchain/x/dex"
+	"github.com/okex/exchain/x/order"
+	tokencmd "github.com/okex/exchain/x/token/client/cli"
+	"github.com/spf13/cobra"
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/tendermint/tendermint/libs/cli"
 )
 
 var (
@@ -136,8 +133,8 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 
 	for _, cmd := range txCmd.Commands() {
 		if cmd.Use == auth.ModuleName ||
-			cmd.Use == order.ModuleName||
-			cmd.Use == dex.ModuleName||
+			cmd.Use == order.ModuleName ||
+			cmd.Use == dex.ModuleName ||
 			cmd.Use == bank.ModuleName {
 			cmdsToRemove = append(cmdsToRemove, cmd)
 		}
