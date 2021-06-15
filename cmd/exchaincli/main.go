@@ -1,7 +1,21 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
+	"strings"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/x/dex"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/order"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/tendermint/tendermint/libs/cli"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -20,13 +34,7 @@ import (
 	"github.com/okex/exchain/app/rpc"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
-	"github.com/okex/exchain/x/dex"
-	"github.com/okex/exchain/x/order"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
-	"github.com/spf13/cobra"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/libs/cli"
 )
 
 var (
@@ -97,7 +105,7 @@ func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 		authcmd.GetAccountCmd(cdc),
 		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
-		authcmd.QueryTxCmd(cdc),
+		queryTxCmd(cdc),
 		flags.LineBreak,
 	)
 
@@ -143,4 +151,45 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	txCmd.RemoveCommand(cmdsToRemove...)
 
 	return txCmd
+}
+
+// queryTxCmd implements the default command for a tx query.
+func queryTxCmd(cdc *sdkcodec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tx [hash]",
+		Short: "Query for a transaction by hash in a committed block",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			output, err := utils.QueryTx(cliCtx, args[0])
+			if err != nil {
+				ss := strings.Split(output.TxHash, "/")
+				if len(ss) != 2 {
+					return err
+				}
+				txBytes, err := hex.DecodeString(ss[1])
+				var tx evmtypes.MsgEthereumTx
+				err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+				if err != nil {
+					return err
+				}
+				output.TxHash = ss[0]
+				output.Tx = tx
+			}
+
+			if output.Empty() {
+				return fmt.Errorf("no transaction found with hash %s", args[0])
+			}
+
+			return cliCtx.PrintOutput(output)
+		},
+	}
+
+	cmd.Flags().StringP(flags.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	viper.BindPFlag(flags.FlagNode, cmd.Flags().Lookup(flags.FlagNode))
+	cmd.Flags().Bool(flags.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+	viper.BindPFlag(flags.FlagTrustNode, cmd.Flags().Lookup(flags.FlagTrustNode))
+
+	return cmd
 }
