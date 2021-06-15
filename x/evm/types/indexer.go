@@ -102,11 +102,6 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 		ctx.Logger().Error("matcher is already running")
 		return
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			ctx.Logger().Error("ProcessSection panic height", ctx.BlockHeight(), r)
-		}
-	}()
 	defer atomic.StoreUint32(&i.processing, 0)
 	knownSection := interval / BloomBitsBlocks
 	for i.storedSections < knownSection {
