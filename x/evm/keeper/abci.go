@@ -69,9 +69,16 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
 		if indexer := types.GetIndexer(); indexer != nil {
-			interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
-			if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks && !types.GetIndexer().IsProcessing() {
-				go types.GetIndexer().ProcessSection(ctx, k, interval)
+			if types.GetIndexer().IsProcessing() {
+				// notify new height
+				go func() {
+					indexer.NotifyNewHeight(ctx)
+				}()
+			} else {
+				interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
+				if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks {
+					go types.GetIndexer().ProcessSection(ctx, k, interval)
+				}
 			}
 		}
 	}
