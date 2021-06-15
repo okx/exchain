@@ -28,8 +28,8 @@ func TestIndexer_ProcessSection(t *testing.T) {
 
 	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks))
 
-	require.Equal(t, uint64(2), indexer.StoredSection())
-	require.Equal(t, uint64(2), indexer.GetValidSections())
+	require.Equal(t, uint64(blocks)/BloomBitsBlocks, indexer.StoredSection())
+	require.Equal(t, uint64(blocks)/BloomBitsBlocks, indexer.GetValidSections())
 	require.Equal(t, common.Hash{0x01}, indexer.sectionHead(0))
 	require.Equal(t, common.Hash{0x01}, indexer.sectionHead(1))
 }
