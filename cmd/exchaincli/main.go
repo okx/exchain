@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	"strings"
 
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
@@ -17,17 +19,21 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
 	"github.com/okex/exchain/x/dex"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/libs/cli"
@@ -101,7 +107,7 @@ func queryCmd(cdc *sdkcodec.Codec) *cobra.Command {
 		authcmd.GetAccountCmd(cdc),
 		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
-		authcmd.QueryTxCmd(cdc),
+		queryTxCmd(cdc),
 		flags.LineBreak,
 	)
 
@@ -177,5 +183,46 @@ func ServeCmd(cdc *sdkcdc.Codec) *cobra.Command {
 	cmd.Flags().Int(server.FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
+	return cmd
+}
+
+// queryTxCmd implements the default command for a tx query.
+func
+queryTxCmd(cdc *sdkcodec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tx [hash]",
+		Short: "Query for a transaction by hash in a committed block",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			output, err := utils.QueryTx(cliCtx, args[0])
+			if err != nil {
+				ss := strings.Split(output.TxHash, "/")
+				if len(ss) != 2 {
+					return err
+				}
+				txBytes, err := hex.DecodeString(ss[1])
+				var tx evmtypes.MsgEthereumTx
+				err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+				if err != nil {
+					return err
+				}
+				output.TxHash = ss[0]
+				output.Tx = tx
+			}
+
+			if output.Empty() {
+				return fmt.Errorf("no transaction found with hash %s", args[0])
+			}
+
+			return cliCtx.PrintOutput(output)
+		},
+	}
+
+	cmd.Flags().StringP(flags.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	viper.BindPFlag(flags.FlagNode, cmd.Flags().Lookup(flags.FlagNode))
+	cmd.Flags().Bool(flags.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+	viper.BindPFlag(flags.FlagTrustNode, cmd.Flags().Lookup(flags.FlagTrustNode))
 	return cmd
 }

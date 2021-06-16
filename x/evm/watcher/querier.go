@@ -314,6 +314,9 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 }
 
 func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
+	if !q.enabled() {
+		return
+	}
 	q.store.Delete(append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...))
 }
 
@@ -360,6 +363,9 @@ func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 }
 
 func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
+	if !q.enabled() {
+		return
+	}
 	q.store.Delete(append(prefixRpcDb, GetMsgStateKey(addr, key)...))
 }
 
