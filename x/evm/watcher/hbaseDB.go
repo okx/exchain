@@ -71,7 +71,10 @@ func (db *HbaseDB) Get(key []byte) ([]byte, error) {
 	defer db.db.Put(client)
 
 	getRequest, _ := hrpc.NewGet(context.Background(), []byte(TableName), key)
+	//todo del
+	fromTime := time.Now()
 	result, err := client.Get(getRequest)
+	fmt.Println("HbaseDB get spend time ", time.Since(fromTime))
 	if err != nil || len(result.Cells) == 0 {
 		return []byte{}, err
 	}

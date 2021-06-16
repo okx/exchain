@@ -1,9 +1,11 @@
 package watcher
 
 import (
+	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"log"
 	"path/filepath"
+	"time"
 )
 
 type LevelDB struct {
@@ -27,7 +29,10 @@ func (db *LevelDB) Set(key []byte, value []byte) {
 }
 
 func (db *LevelDB) Get(key []byte) ([]byte, error) {
+	//todo del
+	fromTime := time.Now()
 	result, err := db.db.Get(key, nil)
+	fmt.Println("LevelDB get spend time ", time.Since(fromTime))
 	return result, err
 }
 
