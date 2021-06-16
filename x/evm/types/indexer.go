@@ -105,7 +105,6 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64) {
 	defer func() {
 		if r := recover(); r != nil {
 			ctx.Logger().Error("ProcessSection panic height", ctx.BlockHeight(), r)
-			panic(r)
 		}
 	}()
 	defer atomic.StoreUint32(&i.processing, 0)
