@@ -5,10 +5,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/okex/exchain/x/evm/watcher"
-
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -173,10 +169,6 @@ type OKExChainApp struct {
 	sm *module.SimulationManager
 }
 
-func (a OKExChainApp) OnAccountUpdated(acc exported.Account) {
-	a.EvmKeeper.OnAccountUpdated(acc)
-}
-
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
 func NewOKExChainApp(
 	logger log.Logger,
@@ -242,16 +234,13 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
-	if watcher.IsWatcherEnabled() {
-		app.AccountKeeper.SetObserverKeeper(app)
-	}
 
 	app.BankKeeper = bank.NewBaseKeeper(
-		app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
+		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		cdc, keys[supply.StoreKey], app.AccountKeeper, app.BankKeeper, maccPerms,
+		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 	stakingKeeper := staking.NewKeeper(
 		cdc, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
@@ -277,7 +266,7 @@ func NewOKExChainApp(
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, appConfig.BackendConfig.EnableBackend, app.AccountKeeper)
+		app.cdc, appConfig.BackendConfig.EnableBackend, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)

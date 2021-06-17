@@ -78,6 +78,9 @@ func NewKeeper(
 		Watcher:       watcher.NewWatcher(),
 		Ada:           types.DefaultPrefixDb{},
 	}
+	if k.Watcher.Enabled() {
+		ak.SetObserverKeeper(k)
+	}
 
 	return k
 }
