@@ -5,6 +5,10 @@ import (
 	"io"
 	"os"
 
+	"github.com/okex/exchain/x/evm/watcher"
+
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -169,6 +173,10 @@ type OKExChainApp struct {
 	sm *module.SimulationManager
 }
 
+func (a OKExChainApp) OnAccountUpdated(acc exported.Account) {
+	a.EvmKeeper.OnAccountUpdated(acc)
+}
+
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
 func NewOKExChainApp(
 	logger log.Logger,
@@ -234,6 +242,10 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	if watcher.IsWatcherEnabled() {
+		app.AccountKeeper.SetObserverKeeper(app)
+	}
+
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
