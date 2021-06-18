@@ -13,22 +13,27 @@ import (
 type RedisDB struct {
 	db     *redis.Pool
 	logger log.Logger
+	exTime string
 }
 
-func initRedisDB(dbUrl string, dbPassword string) *RedisDB {
+func initRedisDB(dbUrl string, dbPassword string, exTime string) *RedisDB {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	pool, err := common.NewPool(dbUrl, dbPassword, logger)
 	if err != nil {
 		panic(err)
 	}
-	return &RedisDB{db: pool, logger: logger}
+	return &RedisDB{db: pool, logger: logger, exTime: exTime}
 }
 
 func (db *RedisDB) Set(key []byte, value []byte) {
 	conn := db.db.Get()
 	defer conn.Close()
 
-	_, err := redis.String(conn.Do("SET", hex.EncodeToString(key), hex.EncodeToString(value)))
+	args := []string{hex.EncodeToString(key), hex.EncodeToString(value)}
+	if len(db.exTime) > 0 {
+		args = append(args, "EX", db.exTime)
+	}
+	_, err := redis.String(conn.Do("SET", args))
 	if nil != err {
 		db.logger.Error(fmt.Sprintf("redis: trying to set key(%s) with value(%s), err(%+v)", hex.EncodeToString(key), hex.EncodeToString(value), err))
 	}
