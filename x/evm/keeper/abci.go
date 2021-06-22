@@ -58,14 +58,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
-	if watcher.IsWatcherEnabled() {
-		params := k.GetParams(ctx)
-		k.Watcher.SaveParams(params)
-
-		k.Watcher.SaveBlock(bloom)
-		k.Watcher.Commit()
-	}
-
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
@@ -89,16 +81,25 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
 		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {
-			k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key())
+			k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
 		}
 
 		iteratorDeploymentWhitelist := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractDeploymentWhitelist)
 		defer iteratorDeploymentWhitelist.Close()
 		for ; iteratorDeploymentWhitelist.Valid(); iteratorDeploymentWhitelist.Next() {
-			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key())
+			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key()[1:])
 		}
 
 		k.Watcher.Used()
 	}
+
+	if watcher.IsWatcherEnabled() {
+		params := k.GetParams(ctx)
+		k.Watcher.SaveParams(params)
+
+		k.Watcher.SaveBlock(bloom)
+		k.Watcher.Commit()
+	}
+
 	return []abci.ValidatorUpdate{}
 }
