@@ -85,10 +85,7 @@ func NewAPI(
 	if err != nil {
 		panic(err)
 	}
-	callCache, err := lru.New(CacheOfEthCallLru)
-	if err != nil {
-		panic(err)
-	}
+
 	api := &PublicEthereumAPI{
 		ctx:            context.Background(),
 		clientCtx:      clientCtx,
@@ -100,9 +97,16 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
-		cacheCall:      callCache,
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
+
+	if viper.GetBool(watcher.FlagFastQuery) {
+		callCache, err := lru.New(CacheOfEthCallLru)
+		if err != nil {
+			panic(err)
+		}
+		api.cacheCall = callCache
+	}
 
 	if err := api.GetKeyringInfo(); err != nil {
 		api.logger.Error("failed to get keybase info", "error", err)
@@ -675,18 +679,40 @@ func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
 }
 
+func (api *PublicEthereumAPI) getCallCache(key common.Hash) ([]byte, bool) {
+	if api.cacheCall == nil {
+		return nil, false
+	}
+	nilKey := common.Hash{}
+	if key == nilKey {
+		return nil, false
+	}
+	cacheData, ok := api.cacheCall.Get(key)
+	if ok {
+		ret, ok := cacheData.([]byte)
+		if ok {
+			return ret, true
+		}
+	}
+	return nil, false
+}
+
+func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
+	if api.cacheCall == nil {
+		return
+	}
+	api.cacheCall.Add(key, data)
+}
+
 // Call performs a raw contract call.
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger)
 	monitor.OnBegin(api.Metrics)
 	defer monitor.OnEnd("args", args, "block number", blockNr)
 	key := api.buildKey(args)
-	cacheData, ok := api.cacheCall.Get(key)
+	cacheData, ok := api.getCallCache(key)
 	if ok {
-		ret, ok := cacheData.([]byte)
-		if ok {
-			return ret, nil
-		}
+		return cacheData, nil
 	}
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
 	if err != nil {
@@ -697,7 +723,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
-	api.cacheCall.Add(key, data.Ret)
+	api.addCallCache(key, data.Ret)
 	return data.Ret, nil
 }
 
