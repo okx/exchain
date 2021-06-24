@@ -100,7 +100,7 @@ func NewAPI(
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
-	if viper.GetBool(watcher.FlagFastQuery) {
+	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
 		if err != nil {
 			panic(err)
