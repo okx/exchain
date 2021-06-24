@@ -72,7 +72,7 @@ type PublicEthereumAPI struct {
 	evmFactory     simulation.EvmFactory
 	txPool         *TxPool
 	Metrics        map[string]metrics.Counter
-	cacheCall      *lru.Cache
+	callCache      *lru.Cache
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -105,7 +105,7 @@ func NewAPI(
 		if err != nil {
 			panic(err)
 		}
-		api.cacheCall = callCache
+		api.callCache = callCache
 	}
 
 	if err := api.GetKeyringInfo(); err != nil {
@@ -679,15 +679,15 @@ func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
 }
 
-func (api *PublicEthereumAPI) getCallCache(key common.Hash) ([]byte, bool) {
-	if api.cacheCall == nil {
+func (api *PublicEthereumAPI) getFromCallCache(key common.Hash) ([]byte, bool) {
+	if api.callCache == nil {
 		return nil, false
 	}
 	nilKey := common.Hash{}
 	if key == nilKey {
 		return nil, false
 	}
-	cacheData, ok := api.cacheCall.Get(key)
+	cacheData, ok := api.callCache.Get(key)
 	if ok {
 		ret, ok := cacheData.([]byte)
 		if ok {
@@ -698,10 +698,10 @@ func (api *PublicEthereumAPI) getCallCache(key common.Hash) ([]byte, bool) {
 }
 
 func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
-	if api.cacheCall == nil {
+	if api.callCache == nil {
 		return
 	}
-	api.cacheCall.Add(key, data)
+	api.callCache.Add(key, data)
 }
 
 // Call performs a raw contract call.
@@ -710,7 +710,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	monitor.OnBegin(api.Metrics)
 	defer monitor.OnEnd("args", args, "block number", blockNr)
 	key := api.buildKey(args)
-	cacheData, ok := api.getCallCache(key)
+	cacheData, ok := api.getFromCallCache(key)
 	if ok {
 		return cacheData, nil
 	}
