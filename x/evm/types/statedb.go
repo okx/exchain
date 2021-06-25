@@ -47,7 +47,6 @@ type Watcher interface {
 	SaveAccount(account auth.Account, isDirectly bool)
 	SaveState(addr ethcmn.Address, key, value []byte)
 	Enabled() bool
-	Enable(sw bool)
 	SaveContractBlockedListItem(addr sdk.AccAddress)
 	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
 	DeleteContractBlockedList(addr sdk.AccAddress)
