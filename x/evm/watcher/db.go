@@ -12,7 +12,7 @@ import (
 
 const FlagFastQuery = "fast-query"
 const FlagFastQueryLru = "fast-lru"
-
+const WatchDbDir = "data"
 type WatchStore struct {
 	db *leveldb.DB
 }
@@ -35,7 +35,7 @@ func InstanceOfWatchStore() *WatchStore {
 
 func initDb() (*leveldb.DB, error) {
 	homeDir := viper.GetString(flags.FlagHome)
-	dbPath := filepath.Join(homeDir, "data/watch.db")
+	dbPath := filepath.Join(homeDir, WatchDbDir + "/watch.db")
 	return leveldb.OpenFile(dbPath, nil)
 }
 
