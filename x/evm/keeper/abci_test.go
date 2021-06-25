@@ -77,6 +77,7 @@ func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
 	res2 := querier.HasContractBlockedList(suite.address.Bytes())
 	os.RemoveAll(watcher.WatchDbDir)
+
 	suite.Require().True(res1)
 	suite.Require().True(res2)
 }
