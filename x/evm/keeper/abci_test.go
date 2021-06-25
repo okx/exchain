@@ -79,7 +79,6 @@ func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	os.RemoveAll(watcher.WatchDbDir)
 	suite.Require().True(res1)
 	suite.Require().True(res2)
-
 }
 
 func (suite *KeeperTestSuite) TestResetCache() {
