@@ -20,6 +20,7 @@ import (
 )
 
 func TestOKExChainAppExport(t *testing.T) {
+
 	db := dbm.NewMemDB()
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
