@@ -101,4 +101,5 @@ func (suite *KeeperTestSuite) TestResetCache() {
 	suite.Require().Zero(suite.app.EvmKeeper.TxCount)
 	suite.Require().Zero(len(suite.stateDB.WithContext(suite.ctx).Preimages()))
 	suite.Require().Zero(suite.stateDB.GetRefund())
+
 }
