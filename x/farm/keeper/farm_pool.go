@@ -48,7 +48,7 @@ func (k Keeper) GetFarmPoolNamesForAccount(ctx sdk.Context, accAddr sdk.AccAddre
 }
 
 // getAccountsLockedTo gets all addresses of accounts that have locked coins in a pool
-func (k Keeper) getAccountsLockedTo(ctx sdk.Context, poolName string) (lockerAddrList types.AccAddrList) {
+func (k Keeper) GetAccountsLockedTo(ctx sdk.Context, poolName string) (lockerAddrList types.AccAddrList) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, append(types.Pool2AddressPrefix, []byte(poolName)...))
 	defer iterator.Close()

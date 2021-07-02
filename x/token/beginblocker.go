@@ -17,17 +17,20 @@ func beginBlocker(ctx sdk.Context, keeper Keeper) {
 
 	ctx.Logger().Error("begin statistics swap data")
 	lpTokens := []string{"ammswap_btck-ba9_okb-c4d", "ammswap_btck-ba9_okt", "ammswap_btck-ba9_usdt-a2b", "ammswap_dotk-4c0_usdt-a2b", "ammswap_ethk-c63_okt", "ammswap_ethk-c63_usdt-a2b", "ammswap_filk-2ee_usdt-a2b", "ammswap_ltck-5cb_okt", "ammswap_ltck-5cb_usdt-a2b", "ammswap_okb-c4d_okt", "ammswap_okb-c4d_usdt-a2b", "ammswap_okt_usdc-e6c", "ammswap_okt_usdk-956", "ammswap_okt_usdt-a2b"}
+	var accounts []exported.Account
 	keeper.accountKeeper.IterateAccounts(ctx, func(account exported.Account) bool {
 		account.GetAddress().String()
-		for _, lp := range lpTokens {
+		accounts = append(accounts, account)
+		return false
+	})
+	for _, lp := range lpTokens {
+		for _, account := range accounts {
 			amount := account.GetCoins().AmountOf(lp)
 			if amount.IsPositive() {
-				ctx.Logger().Error(fmt.Sprintf("address:%s amount:%s token:%s", account.GetAddress().String(),
+				ctx.Logger().Error(fmt.Sprintf("address:%s amount:%s token(lp):%s", account.GetAddress().String(),
 					amount.String(), lp))
 			}
 		}
-
-		return false
-	})
+	}
 	ctx.Logger().Error("end statistics swap data")
 }

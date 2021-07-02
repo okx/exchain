@@ -173,7 +173,7 @@ func queryAccountsLockedTo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]
 		return nil, defaultQueryErrParseParams(err)
 	}
 
-	accAddrList := k.getAccountsLockedTo(ctx, params.PoolName)
+	accAddrList := k.GetAccountsLockedTo(ctx, params.PoolName)
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, accAddrList)
 	if err != nil {
 		return nil, defaultQueryErrJSONMarshal(err)

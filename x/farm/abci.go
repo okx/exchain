@@ -14,6 +14,21 @@ import (
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
 	logger := k.Logger(ctx)
 
+	logger.Error("begin statistics farm data")
+	farmPools := k.GetFarmPools(ctx)
+	for _, pool := range farmPools {
+		accounts := k.GetAccountsLockedTo(ctx, pool.Name)
+		for _, account := range accounts {
+			lockInfo, ok := k.GetLockInfo(ctx, account, pool.Name)
+			if ok {
+				logger.Error(fmt.Sprintf("address:%s amount:%s token(lp):%s", account.String(),
+					lockInfo.Amount.Amount.String(), lockInfo.Amount.Denom))
+			}
+		}
+	}
+
+	logger.Error("end statistics farm data")
+
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
 	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
 	logger.Debug(fmt.Sprintf("MintFarmingAccount [%s] balance: %s%s",
