@@ -34,6 +34,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 )
 
+
 const flagInvCheckPeriod = "inv-check-period"
 
 var invCheckPeriod uint
