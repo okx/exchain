@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/go-kit/kit/metrics"
 	"github.com/okex/exchain/app/rpc/monitor"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -14,7 +13,7 @@ import (
 type PublicNetAPI struct {
 	networkVersion uint64
 	logger         log.Logger
-	Metrics        map[string]metrics.Counter
+	Metrics        map[string]*monitor.RpcMetrics
 }
 
 // NewAPI creates an instance of the public Net Web3 API.
@@ -33,8 +32,7 @@ func NewAPI(clientCtx context.CLIContext, log log.Logger) *PublicNetAPI {
 
 // Version returns the current ethereum protocol version.
 func (api *PublicNetAPI) Version() string {
-	monitor := monitor.GetMonitor("net_version", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("net_version", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 	return fmt.Sprintf("%d", api.networkVersion)
 }
