@@ -125,7 +125,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		}
 
 		if totalLP == nil {
-			k.Logger(ctx).Error(fmt.Sprintf("address:%s has no lp", userAccount))
+			logger.Error(fmt.Sprintf("address:%s has no lp", userAccount))
 			continue
 		}
 
@@ -142,11 +142,52 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 				sumCoins = sumCoins.Add(coin0, coin1)
 			}
 		}
-		k.Logger(ctx).Error(fmt.Sprintf("address:%s sum amount:%s total lp:%s", userAccount,
+		logger.Error(fmt.Sprintf("address:%s sum amount:%s total lp:%s", userAccount,
 			sumCoins.String(), totalLP.String()))
 	}
 
 	logger.Error("end statistics farm data")
+
+	ctx.Logger().Error("begin statistics swap data")
+	for _, userAccount := range userAccounts {
+		addr, err := sdk.AccAddressFromBech32(userAccount)
+		if err != nil {
+			panic(fmt.Sprintf("user account error:%s", err.Error()))
+		}
+
+		var totalLP sdk.SysCoins
+		account := k.SwapKeeper().AccountKeeper.GetAccount(ctx, addr)
+		coins := account.GetCoins()
+		for _, coin := range coins {
+			if !strings.HasPrefix(coin.Denom, swap.PoolTokenPrefix) {
+				continue
+			}
+			totalLP = append(totalLP, coin)
+		}
+
+		if totalLP == nil {
+			logger.Error(fmt.Sprintf("address:%s has no lp", userAccount))
+			continue
+		}
+
+		var sumCoins sdk.SysCoins
+		for _, lp := range totalLP {
+			tokens := strings.SplitN(strings.SplitN(lp.Denom, swap.PoolTokenPrefix, 2)[1], "_", 2)
+			coin0, coin1, err := k.SwapKeeper().GetRedeemableAssets(ctx, tokens[0], tokens[1], lp.Amount)
+			if err != nil {
+				panic(fmt.Sprintf("GetRedeemableAssets error:%s", err.Error()))
+			}
+			if sumCoins == nil {
+				sumCoins = append(sumCoins, coin0, coin1)
+			} else {
+				sumCoins = sumCoins.Add(coin0, coin1)
+			}
+		}
+		logger.Error(fmt.Sprintf("address:%s sum amount:%s total lp:%s", account.String(),
+			sumCoins.String(), totalLP.String()))
+	}
+
+	ctx.Logger().Error("end statistics swap data")
 
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
 	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
