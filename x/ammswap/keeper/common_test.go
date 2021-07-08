@@ -87,6 +87,7 @@ func getTestInputWithBalance(t *testing.T, numGenAccs int, balance int64) (mockA
 	mockApp.swapKeeper = NewKeeper(
 		mockApp.supplyKeeper,
 		mockApp.tokenKeeper,
+		auth.AccountKeeper{},
 		mockApp.Cdc,
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(types.DefaultParamspace),

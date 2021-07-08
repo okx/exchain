@@ -1,9 +1,13 @@
 package token
 
-import "testing"
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
 
 func TestBeginBlocker(t *testing.T) {
-	ctx, kpr, _, _ := CreateParam(t, false)
-
-	beginBlocker(ctx, kpr)
+	s := "ammswap_ltck-5cb_okt"
+	items := strings.SplitN(strings.SplitN(s, "ammswap_", 2)[1], "_", 2)
+	fmt.Println(items)
 }

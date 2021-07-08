@@ -87,6 +87,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 	mockApp.swapKeeper = NewKeeper(
 		mockApp.supplyKeeper,
 		mockApp.tokenKeeper,
+		auth.AccountKeeper{},
 		mockApp.Cdc,
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(DefaultParamspace),

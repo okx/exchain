@@ -140,6 +140,7 @@ func getMockApp(t *testing.T, numGenAccs int, enableBackend bool, dbDir string) 
 	mockApp.swapKeeper = ammswap.NewKeeper(
 		mockApp.supplyKeeper,
 		mockApp.tokenKeeper,
+		auth.AccountKeeper{},
 		mockApp.Cdc,
 		mockApp.keySwap,
 		mockApp.ParamsKeeper.Subspace(ammswap.DefaultParamspace),

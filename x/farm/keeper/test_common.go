@@ -181,7 +181,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	tk := token.NewKeeper(bk, pk.Subspace(token.DefaultParamspace), auth.FeeCollectorName, sk, keyToken, keyLock, cdc, false, ak)
 
 	// 1.6 init swap keeper
-	swapKeeper := swap.NewKeeper(sk, tk, cdc, keySwap, pk.Subspace(swaptypes.DefaultParamspace))
+	swapKeeper := swap.NewKeeper(sk, tk, auth.AccountKeeper{}, cdc, keySwap, pk.Subspace(swaptypes.DefaultParamspace))
 
 	// 1.7 init farm keeper
 	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)

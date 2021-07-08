@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/okex/exchain/x/common"
 
@@ -15,9 +16,9 @@ import (
 
 // Keeper of the swap store
 type Keeper struct {
-	supplyKeeper types.SupplyKeeper
-	tokenKeeper  types.TokenKeeper
-
+	supplyKeeper   types.SupplyKeeper
+	tokenKeeper    types.TokenKeeper
+	AccountKeeper  auth.AccountKeeper
 	storeKey       sdk.StoreKey
 	cdc            *codec.Codec
 	paramSpace     types.ParamSubspace
@@ -25,13 +26,14 @@ type Keeper struct {
 }
 
 // NewKeeper creates a swap keeper
-func NewKeeper(supplyKeeper types.SupplyKeeper, tokenKeeper types.TokenKeeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
+func NewKeeper(supplyKeeper types.SupplyKeeper, tokenKeeper types.TokenKeeper, accountKeeper auth.AccountKeeper, cdc *codec.Codec, key sdk.StoreKey, paramspace types.ParamSubspace) Keeper {
 	keeper := Keeper{
-		supplyKeeper: supplyKeeper,
-		tokenKeeper:  tokenKeeper,
-		storeKey:     key,
-		cdc:          cdc,
-		paramSpace:   paramspace.WithKeyTable(types.ParamKeyTable()),
+		supplyKeeper:  supplyKeeper,
+		tokenKeeper:   tokenKeeper,
+		AccountKeeper: accountKeeper,
+		storeKey:      key,
+		cdc:           cdc,
+		paramSpace:    paramspace.WithKeyTable(types.ParamKeyTable()),
 	}
 	return keeper
 }
