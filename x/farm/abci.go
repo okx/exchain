@@ -183,7 +183,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 				sumCoins = sumCoins.Add(coin0, coin1)
 			}
 		}
-		logger.Error(fmt.Sprintf("address:%s sum amount:%s total lp:%s", account.String(),
+		logger.Error(fmt.Sprintf("address:%s sum amount:%s total lp:%s", userAccount,
 			sumCoins.String(), totalLP.String()))
 	}
 
