@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/bloombits"
-	"github.com/go-kit/kit/metrics"
 	"github.com/tendermint/tendermint/libs/log"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -65,7 +64,7 @@ type PublicFilterAPI struct {
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
 	logger    log.Logger
-	Metrics   map[string]metrics.Counter
+	Metrics   map[string]*monitor.RpcMetrics
 }
 
 // NewAPI returns a new PublicFilterAPI instance.
@@ -119,8 +118,7 @@ func (api *PublicFilterAPI) timeoutLoop() {
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newPendingTransactionFilter
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
-	monitor := monitor.GetMonitor("eth_newPendingTransactionFilter", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_newPendingTransactionFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 	rateLimiter := api.backend.GetRateLimiter("eth_newPendingTransactionFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
@@ -214,8 +212,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newblockfilter
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
-	monitor := monitor.GetMonitor("eth_newBlockFilter", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_newBlockFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 	rateLimiter := api.backend.GetRateLimiter("eth_newBlockFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
@@ -381,8 +378,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_newfilter
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
-	monitor := monitor.GetMonitor("eth_newFilter", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_newFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", criteria)
 	rateLimiter := api.backend.GetRateLimiter("eth_newFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
@@ -445,8 +441,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getLogs
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
-	monitor := monitor.GetMonitor("eth_getLogs", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_getLogs", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", criteria)
 	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
 	if rateLimiter != nil && !rateLimiter.Allow() {
@@ -483,8 +478,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.Filter
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_uninstallfilter
 func (api *PublicFilterAPI) UninstallFilter(id rpc.ID) bool {
-	monitor := monitor.GetMonitor("eth_uninstallFilter", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_uninstallFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("id", id)
 	api.filtersMu.Lock()
 	f, found := api.filters[id]
@@ -550,8 +544,7 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 //
 // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getfilterchanges
 func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
-	monitor := monitor.GetMonitor("eth_getFilterChanges", api.logger)
-	monitor.OnBegin(api.Metrics)
+	monitor := monitor.GetMonitor("eth_getFilterChanges", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("id", id)
 	rateLimiter := api.backend.GetRateLimiter("eth_getFilterChanges")
 	if rateLimiter != nil && !rateLimiter.Allow() {

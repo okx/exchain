@@ -2,10 +2,13 @@ package rpc
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+	"unicode"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -13,12 +16,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	"golang.org/x/time/rate"
-	"reflect"
-	"strings"
-	"unicode"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
+	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/rpc/namespaces/net"
@@ -125,7 +126,7 @@ func makeMonitorMetrics(namespace string, service interface{}) {
 	}
 	metricsVal := receiver.Elem().FieldByName(MetricsFieldName)
 
-	monitorMetrics := make(map[string]metrics.Counter)
+	monitorMetrics := make(map[string]*monitor.RpcMetrics)
 	typ := receiver.Type()
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
@@ -134,12 +135,22 @@ func makeMonitorMetrics(namespace string, service interface{}) {
 		}
 		methodName := formatMethodName(method.Name)
 		name := fmt.Sprintf("%s_%s", namespace, methodName)
-		monitorMetrics[name] = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
-			Namespace: MetricsNamespace,
-			Subsystem: MetricsSubsystem,
-			Name:      name,
-			Help:      fmt.Sprintf("Number of %s method.", name),
-		}, nil)
+		monitorMetrics[name] = &monitor.RpcMetrics{
+			Counter: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+				Namespace: MetricsNamespace,
+				Subsystem: MetricsSubsystem,
+				Name:      fmt.Sprintf("%s_count", name),
+				Help:      fmt.Sprintf("Total request number of %s method.", name),
+			}, nil),
+			Histogram: prometheus.NewHistogramFrom(stdprometheus.HistogramOpts{
+				Namespace: MetricsNamespace,
+				Subsystem: MetricsSubsystem,
+				Name:      fmt.Sprintf("%s_duration", name),
+				Help:      fmt.Sprintf("Request duration of %s method.", name),
+				Buckets:   []float64{.001, .005, .01, .025, .05, .1, .3, .5, 1, 3, 5, 10},
+			}, nil),
+		}
+
 	}
 
 	if metricsVal.CanSet() && metricsVal.Type() == reflect.ValueOf(monitorMetrics).Type() {
