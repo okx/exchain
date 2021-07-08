@@ -1,6 +1,8 @@
 package keeper_test
 
 import (
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/spf13/viper"
 	"math/big"
 	"testing"
 	"time"
@@ -41,7 +43,7 @@ type KeeperTestSuite struct {
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-
+	viper.Set(watcher.FlagFastQuery, true)
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)

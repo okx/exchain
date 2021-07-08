@@ -28,6 +28,7 @@ type Watcher struct {
 	blockTxs      []common.Hash
 	sw            bool
 	firstUse      bool
+	delayEraseKey [][]byte
 }
 
 var (
@@ -52,7 +53,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true}
+	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -166,7 +167,20 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	}
 	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
-	w.store.Delete(key)
+	w.delayEraseKey = append(w.delayEraseKey, key)
+}
+
+func (w *Watcher) ExecuteDelayEraseKey() {
+	if !w.Enabled() {
+		return
+	}
+	if len(w.delayEraseKey) <= 0 {
+		return
+	}
+	for _, k := range w.delayEraseKey {
+		w.store.Delete(k)
+	}
+	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
