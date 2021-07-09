@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics/prometheus"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
@@ -33,6 +34,7 @@ const (
 	EthNamespace      = "eth"
 	PersonalNamespace = "personal"
 	NetNamespace      = "net"
+	TxpoolNamespace   = "txpool"
 
 	apiVersion = "1.0"
 )
@@ -75,6 +77,12 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 			Namespace: NetNamespace,
 			Version:   apiVersion,
 			Service:   net.NewAPI(clientCtx, log),
+			Public:    true,
+		},
+		{
+			Namespace: TxpoolNamespace,
+			Version:   apiVersion,
+			Service:   txpool.NewAPI(clientCtx, log, ethBackend),
 			Public:    true,
 		},
 	}
