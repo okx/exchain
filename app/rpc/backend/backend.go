@@ -43,6 +43,7 @@ type Backend interface {
 	PendingTransactionsByHash(target common.Hash) (*rpctypes.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
 	UserPendingTransactions(address string, limit int) ([]*rpctypes.Transaction, error)
+	PendingAddressList() ([]string, error)
 
 	// Used by log filter
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
@@ -235,7 +236,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 		return nil, err
 	}
 
-	transactions := make([]*rpctypes.Transaction, 0)
+	transactions := make([]*rpctypes.Transaction, 0, len(pendingTxs.Txs))
 	for _, tx := range pendingTxs.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -256,7 +257,7 @@ func (b *EthermintBackend) PendingTransactions() ([]*rpctypes.Transaction, error
 }
 
 func (b *EthermintBackend) PendingTransactionCnt() (int, error) {
-	result, err := b.clientCtx.Client.UnconfirmedTxs(-1)
+	result, err := b.clientCtx.Client.NumUnconfirmedTxs()
 	if err != nil {
 		return 0, err
 	}
@@ -276,8 +277,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 	if err != nil {
 		return nil, err
 	}
-
-	transactions := make([]*rpctypes.Transaction, len(result.Txs))
+	transactions := make([]*rpctypes.Transaction, 0, len(result.Txs))
 	for _, tx := range result.Txs {
 		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
 		if err != nil {
@@ -295,6 +295,14 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 	}
 
 	return transactions, nil
+}
+
+func (b *EthermintBackend) PendingAddressList() ([]string, error) {
+	res, err := b.clientCtx.Client.GetAddressList()
+	if err != nil {
+		return nil, err
+	}
+	return res.Addresses, nil
 }
 
 // PendingTransactions returns the transaction that is in the transaction pool
