@@ -3,8 +3,8 @@ The Infrastructure of Decentralized Exchange
 
 ![banner](./docs/images/okexchain-image.jpg)
 
-[![version](https://img.shields.io/github/tag/okex/okexchain.svg)](https://github.com/okex/okexchain/releases/latest)
-[![CircleCI](https://circleci.com/gh/okex/okexchain/tree/master.svg?style=shield)](https://circleci.com/gh/okex/okexchain/tree/master)
+[![version](https://img.shields.io/github/tag/okex/exchain.svg)](https://github.com/okex/exchain/releases/latest)
+[![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)
 [![codecov](https://codecov.io/gh/okex/okexchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okexchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okex/okexchain)](https://goreportcard.com/report/github.com/okex/okexchain)
 [![license](https://img.shields.io/github/license/okex/okexchain.svg)](https://github.com/okex/okexchain/blob/master/LICENSE)
