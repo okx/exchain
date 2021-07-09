@@ -7,9 +7,9 @@ The Infrastructure of Decentralized Exchange
 [![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)
 [![codecov](https://codecov.io/gh/okex/okexchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okexchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okex/okexchain)](https://goreportcard.com/report/github.com/okex/okexchain)
-[![license](https://img.shields.io/github/license/okex/okexchain.svg)](https://github.com/okex/okexchain/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/okex/exchain.svg)](https://github.com/okex/exchain/blob/dev/LICENSE)
 [![LoC](https://tokei.rs/b1/github/okex/okexchain)](https://github.com/okex/okexchain)
-[![GolangCI](https://golangci.com/badges/github.com/okex/okexchain.svg)](https://golangci.com/r/github.com/okex/okexchain)
+[![GolangCI](https://golangci.com/badges/github.com/okex/exchain.svg)](https://golangci.com/r/github.com/okex/exchain)
 
 This repository hosts `ExChain`, the implementation of the ExChain based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
