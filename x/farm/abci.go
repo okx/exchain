@@ -1,8 +1,10 @@
 package farm
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"os"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,6 +18,19 @@ import (
 // according to the value of locked token in pool
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
 	logger := k.Logger(ctx)
+	file, err := os.Create("swap_farm_data.csv")
+	if err != nil {
+		panic(fmt.Sprintf("create file field:%s", err.Error()))
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	farmHeader := []string{"Farm data", "", ""}
+	if err := writer.Write(farmHeader); err != nil {
+		panic(fmt.Sprintf("write file field:%s", err.Error()))
+	}
 
 	logger.Error("begin statistics farm data")
 	farmPools := k.GetFarmPools(ctx)
@@ -328,11 +343,24 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		}
 		logger.Error(fmt.Sprintf("address:%s farm总量（换算单币之和）:%s farm 总量（lp总量）:%s", userAccount,
 			sumCoins.String(), totalLP.String()))
+		for _, lp := range totalLP {
+			if err := writer.Write([]string{userAccount, lp.Amount.String(), lp.Denom}); err != nil {
+				panic(fmt.Sprintf("write file field:%s", err.Error()))
+			}
+		}
+
 	}
 
 	logger.Error("end statistics farm data")
 
 	ctx.Logger().Error("begin statistics swap data")
+	swapHeaders := [][]string{{"", "", ""}, {"", "", ""}, {"", "", ""}, {"Swap data", "", ""}}
+	for _, swapHeader := range swapHeaders {
+		if err := writer.Write(swapHeader); err != nil {
+			panic(fmt.Sprintf("write file field:%s", err.Error()))
+		}
+	}
+
 	// all accounts
 	k.SwapKeeper().AccountKeeper.IterateAccounts(ctx, func(account exported.Account) bool {
 		var totalLP sdk.SysCoins
@@ -364,10 +392,15 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		}
 		logger.Error(fmt.Sprintf("address:%s swap总量（换算单币之和）:%s swap 总量（lp总量）:%s", account.GetAddress().String(),
 			sumCoins.String(), totalLP.String()))
+		for _, lp := range totalLP {
+			if err := writer.Write([]string{account.GetAddress().String(), lp.Amount.String(), lp.Denom}); err != nil {
+				panic(fmt.Sprintf("write file field:%s", err.Error()))
+			}
+		}
 		return false
 	})
 	ctx.Logger().Error("end statistics swap data")
-
+	panic("stop")
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
 	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
 	logger.Debug(fmt.Sprintf("MintFarmingAccount [%s] balance: %s%s",
@@ -422,7 +455,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	}
 
 	// 3.liquidate native token minted at current block for yield farming
-	err := k.SupplyKeeper().SendCoinsFromModuleToModule(ctx, MintFarmingAccount, YieldFarmingAccount, yieldedNativeToken)
+	err = k.SupplyKeeper().SendCoinsFromModuleToModule(ctx, MintFarmingAccount, YieldFarmingAccount, yieldedNativeToken)
 	if err != nil {
 		panic("should not happen")
 	}
