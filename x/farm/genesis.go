@@ -21,6 +21,7 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
 
 	for _, lockInfo := range data.LockInfos {
 		k.SetLockInfo(ctx, lockInfo)
+		k.SetAddressInFarmPool(ctx, lockInfo.PoolName, lockInfo.Owner)
 	}
 
 	for _, historical := range data.PoolHistoricalRewards {
