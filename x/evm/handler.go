@@ -15,7 +15,6 @@ import (
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
-
 		var handlerFun func() (*sdk.Result, error)
 		var name string
 		switch msg := msg.(type) {
