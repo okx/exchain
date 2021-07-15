@@ -3,7 +3,6 @@ package ewasm
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/holiman/uint256"
@@ -212,35 +211,45 @@ func (host *hostContext) GetBlockHash(number int64) evmc.Hash {
 }
 
 func (host *hostContext) EmitLog(addr evmc.Address, topics []evmc.Hash, data []byte) {
+	var tmpTopic []common.Hash
+	if len(topics) > 0 {
+		for _, v := range topics {
+			tmpTopic = append(tmpTopic, common.Hash(v))
+		}
+	}
+
 	host.env.StateDB.AddLog(&types.Log{
 		Address:     common.Address(addr),
-		Topics:      topics,
+		Topics:      tmpTopic,
 		Data:        data,
 		BlockNumber: host.env.Context.BlockNumber.Uint64(),
 	})
 }
 
 func (host *hostContext) Call(kind evmc.CallKind,
-	destination evmc.Address, sender evmc.Address, value *big.Int, input []byte, gas int64, depth int,
-	static bool, salt *big.Int) (output []byte, gasLeft int64, createAddr evmc.Address, err error) {
+	destination evmc.Address, sender evmc.Address, value evmc.Hash, input []byte, gas int64, depth int,
+	static bool, salt evmc.Hash) (output []byte, gasLeft int64, createAddr evmc.Address, err error) {
 
 	gasU := uint64(gas)
 	var gasLeftU uint64
+	valueInBig := common.Hash(value).Big()
 
 	switch kind {
 	case evmc.Call:
 		if static {
 			output, gasLeftU, err = host.env.StaticCall(host.contract, common.Address(destination), input, gasU)
 		} else {
-			output, gasLeftU, err = host.env.Call(host.contract, common.Address(destination), input, gasU, value)
+			output, gasLeftU, err = host.env.Call(host.contract, common.Address(destination), input, gasU, valueInBig)
 		}
 	case evmc.DelegateCall:
 		output, gasLeftU, err = host.env.DelegateCall(host.contract, common.Address(destination), input, gasU)
 	case evmc.CallCode:
-		output, gasLeftU, err = host.env.CallCode(host.contract, common.Address(destination), input, gasU, value)
+		output, gasLeftU, err = host.env.CallCode(host.contract, common.Address(destination), input, gasU, valueInBig)
 	case evmc.Create:
 		var createOutput []byte
-		createOutput, createAddr, gasLeftU, err = host.env.Create(host.contract, input, gasU, value)
+		var tmpAddr common.Address
+		createOutput, tmpAddr, gasLeftU, err = host.env.Create(host.contract, input, gasU, valueInBig)
+		createAddr = evmc.Address(tmpAddr)
 		isHomestead := host.env.ChainConfig().IsHomestead(host.env.Context.BlockNumber)
 		if !isHomestead && err == vm.ErrCodeStoreOutOfGas {
 			err = nil
@@ -254,8 +263,10 @@ func (host *hostContext) Call(kind evmc.CallKind,
 	case evmc.Create2:
 		var createOutput []byte
 		var tmpSalt uint256.Int
-		tmpSalt.SetFromBig(salt)
-		createOutput, createAddr, gasLeftU, err = host.env.Create2(host.contract, input, gasU, value, &tmpSalt)
+		tmpSalt.SetFromBig(common.Hash(salt).Big())
+		var tmpAddr common.Address
+		createOutput, tmpAddr, gasLeftU, err = host.env.Create2(host.contract, input, gasU, valueInBig, &tmpSalt)
+		createAddr = evmc.Address(tmpAddr)
 		if err == vm.ErrExecutionReverted {
 			// Assign return buffer from REVERT.
 			// TODO: Bad API design: return data buffer and the code is returned in the same place. In worst case
