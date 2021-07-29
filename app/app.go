@@ -243,7 +243,7 @@ func NewOKExChainApp(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 	stakingKeeper := staking.NewKeeper(
-		cdc, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		cdc, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName], stakingMetrics,
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
@@ -252,7 +252,7 @@ func NewOKExChainApp(
 	)
 	app.DistrKeeper = distr.NewKeeper(
 		cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
-		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
+		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(), distrMetrics,
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
 		cdc, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],

@@ -4,8 +4,11 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/params"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -22,13 +25,16 @@ type Keeper struct {
 	blacklistedAddrs map[string]bool
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
+
+	metric              *monitor.DistrMetric
+	monitoredValidators []string
 }
 
 // NewKeeper creates a new distribution Keeper instance
 func NewKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace,
 	sk types.StakingKeeper, supplyKeeper types.SupplyKeeper, feeCollectorName string,
-	blacklistedAddrs map[string]bool,
+	blacklistedAddrs map[string]bool, metrics *monitor.DistrMetric,
 ) Keeper {
 
 	// ensure distribution module account is set
@@ -42,13 +48,15 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:         key,
-		cdc:              cdc,
-		paramSpace:       paramSpace,
-		stakingKeeper:    sk,
-		supplyKeeper:     supplyKeeper,
-		feeCollectorName: feeCollectorName,
-		blacklistedAddrs: blacklistedAddrs,
+		storeKey:            key,
+		cdc:                 cdc,
+		paramSpace:          paramSpace,
+		stakingKeeper:       sk,
+		supplyKeeper:        supplyKeeper,
+		feeCollectorName:    feeCollectorName,
+		blacklistedAddrs:    blacklistedAddrs,
+		metric:              metrics,
+		monitoredValidators: viper.GetStringSlice(server.FlagMonitoredValidators),
 	}
 }
 

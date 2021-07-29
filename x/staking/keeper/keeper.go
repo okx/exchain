@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/staking/exported"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -28,11 +31,13 @@ type Keeper struct {
 	paramstore         params.Subspace
 	validatorCache     map[string]cachedValidator
 	validatorCacheList *list.List
+	metric              *monitor.StakingMetric
+	monitoredValidators []string
 }
 
 // NewKeeper creates a new staking Keeper instance
 func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
-	paramstore params.Subspace) Keeper {
+	paramstore params.Subspace, metrics *monitor.StakingMetric) Keeper {
 
 	// ensure bonded and not bonded module accounts are set
 	if addr := supplyKeeper.GetModuleAddress(types.BondedPoolName); addr == nil {
@@ -51,6 +56,8 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, supplyKeeper types.SupplyKeep
 		hooks:              nil,
 		validatorCache:     make(map[string]cachedValidator, aminoCacheSize),
 		validatorCacheList: list.New(),
+		metric:              metrics,
+		monitoredValidators: viper.GetStringSlice(server.FlagMonitoredValidators),
 	}
 }
 
