@@ -262,7 +262,7 @@ func InitTestnet(
 			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
 		)
 
-		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
+		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo, 0) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
 		txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
 
 		signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)

@@ -800,7 +800,7 @@ func (api *PublicEthereumAPI) doCall(
 	var stdSig authtypes.StdSignature
 	stdSigs := []authtypes.StdSignature{stdSig}
 
-	tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "")
+	tx := authtypes.NewStdTx(msgs, authtypes.StdFee{}, stdSigs, "", nonce)
 	if err := tx.ValidateBasic(); err != nil {
 		return nil, err
 	}

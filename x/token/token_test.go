@@ -310,7 +310,7 @@ func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKe
 		}
 	}
 
-	return auth.NewStdTx(msgs, fee, sigs, memo)
+	return auth.NewStdTx(msgs, fee, sigs, memo, seq[0])
 }
 
 func createTokenMsg(t *testing.T, app *MockDexApp, ctx sdk.Context, account *testAccount, tokenMsg sdk.Msg) auth.StdTx {

@@ -46,7 +46,7 @@ func TestGenerateTx(t *testing.T) {
 		},
 	}
 	txSigMsg, _ := txbldr.BuildSignMsg([]sdk.Msg{sendMsg})
-	tx := auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
+	tx := auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "", 0)
 	ctx0, _, _, _ := tokenKeeper.CreateParam(t, false)
 	GenerateTx(&tx, "", ctx0, keeper, time.Now().Unix())
 
@@ -60,7 +60,7 @@ func TestGenerateTx(t *testing.T) {
 		},
 	}
 	txSigMsg, _ = txbldr.BuildSignMsg([]sdk.Msg{orderNewMsg})
-	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
+	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "", 0)
 	var tmpBitset bitset.BitSet
 	tmpBitset.Set(1)
 	keeper.AddTxHandlerMsgResult(tmpBitset)
@@ -76,7 +76,7 @@ func TestGenerateTx(t *testing.T) {
 		},
 	}
 	txSigMsg, _ = txbldr.BuildSignMsg([]sdk.Msg{orderCancelMsg})
-	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "")
+	tx = auth.NewStdTx(txSigMsg.Msgs, txSigMsg.Fee, sigs, "", 0)
 
 	ctx := testInput.Ctx.WithBlockHeight(10)
 	or := &order.Order{

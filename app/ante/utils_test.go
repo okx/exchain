@@ -86,7 +86,7 @@ func newTestSDKTx(
 		}
 	}
 
-	return auth.NewStdTx(msgs, fee, sigs, "")
+	return auth.NewStdTx(msgs, fee, sigs, "", seqs[0])
 }
 
 func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
