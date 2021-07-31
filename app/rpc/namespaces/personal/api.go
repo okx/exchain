@@ -72,7 +72,7 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 			return common.BytesToAddress(info.GetAddress().Bytes()), nil
 		}
 	}
-	privKeyName := fmt.Sprintf("personal_%d", len(list))
+	privKeyName := fmt.Sprintf("personal_%s", uuid.New())
 	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	if err := api.ethAPI.ClientCtx().Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
