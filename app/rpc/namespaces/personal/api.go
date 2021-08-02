@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
@@ -71,7 +72,7 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 			return common.BytesToAddress(info.GetAddress().Bytes()), nil
 		}
 	}
-	privKeyName := fmt.Sprintf("personal_%d", len(list))
+	privKeyName := fmt.Sprintf("personal_%s", uuid.New())
 	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	if err := api.ethAPI.ClientCtx().Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
@@ -132,7 +133,7 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
 	api.logger.Debug("personal_newAccount")
 
-	name := "key_" + time.Now().UTC().Format(time.RFC3339)
+	name := "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String()
 	info, _, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1, "")
 	if err != nil {
 		return common.Address{}, err

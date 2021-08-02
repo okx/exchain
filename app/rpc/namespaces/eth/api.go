@@ -70,6 +70,7 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
+	gasLimitBuffer uint64
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -94,6 +95,7 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
+		gasLimitBuffer: viper.GetUint64(FlagGasLimitBuffer),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -838,8 +840,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	upperPercentage := viper.GetUint64(FlagGasLimitBuffer)
-	gasBuffer := estimatedGas / 100 * upperPercentage
+	gasBuffer := estimatedGas / 100 * api.gasLimitBuffer
 	gas := estimatedGas + gasBuffer
 
 	return hexutil.Uint64(gas), nil
