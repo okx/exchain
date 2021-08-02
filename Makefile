@@ -40,7 +40,7 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
+  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
 
