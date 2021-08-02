@@ -25,10 +25,11 @@ const (
 	flagWebsocket = "wsport"
 
 	FlagPersonalAPI    = "personal-api"
-	FlagRateLimitApi   = "rpc.rate-limit-api"
+	FlagRateLimitAPI   = "rpc.rate-limit-api"
 	FlagRateLimitCount = "rpc.rate-limit-count"
 	FlagRateLimitBurst = "rpc.rate-limit-burst"
 	FlagEnableMonitor  = "rpc.enable-monitor"
+	FlagDisableAPI     = "rpc.disable-api"
 
 	MetricsNamespace = "x"
 	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
