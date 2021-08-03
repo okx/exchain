@@ -2,6 +2,8 @@ package nacos
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
@@ -50,6 +52,7 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 		Ephemeral:   true,
 		Metadata: map[string]string{
 			"preserved.register.source": "GO",
+			"app_registry_tag":          strconv.FormatInt(time.Now().Unix(), 10),
 		},
 	})
 	if err != nil {

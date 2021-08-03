@@ -43,7 +43,8 @@ const (
 func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
 	rateLimiters := getRateLimiter()
-	ethBackend := backend.New(clientCtx, log, rateLimiters)
+	disableAPI := getDisableAPI()
+	ethBackend := backend.New(clientCtx, log, rateLimiters, disableAPI)
 	ethAPI := eth.NewAPI(clientCtx, log, ethBackend, nonceLock, keys...)
 	if evmtypes.GetEnableBloomFilter() {
 		server.TrapSignal(func() {
@@ -105,7 +106,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 }
 
 func getRateLimiter() map[string]*rate.Limiter {
-	rateLimitApi := viper.GetString(FlagRateLimitApi)
+	rateLimitApi := viper.GetString(FlagRateLimitAPI)
 	rateLimitCount := viper.GetInt(FlagRateLimitCount)
 	rateLimitBurst := viper.GetInt(FlagRateLimitBurst)
 	if rateLimitApi == "" || rateLimitCount == 0 {
@@ -117,6 +118,16 @@ func getRateLimiter() map[string]*rate.Limiter {
 		rateLimiters[api] = rate.NewLimiter(rate.Limit(rateLimitCount), rateLimitBurst)
 	}
 	return rateLimiters
+}
+
+func getDisableAPI() map[string]bool {
+	disableAPI := viper.GetString(FlagDisableAPI)
+	apiMap := make(map[string]bool)
+	apis := strings.Split(disableAPI, ",")
+	for _, api := range apis {
+		apiMap[api] = true
+	}
+	return apiMap
 }
 
 func makeMonitorMetrics(namespace string, service interface{}) {
