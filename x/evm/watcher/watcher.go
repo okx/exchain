@@ -253,7 +253,7 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	wMsg := NewMsgContractBlockedListItem(addr)
 	if wMsg != nil {
 		w.store.Delete(wMsg.GetKey())
 	}
