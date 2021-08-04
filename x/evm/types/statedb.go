@@ -1028,7 +1028,7 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
 	if csdb.Watcher.Enabled() {
 		for i := 0; i < len(addrList); i++ {
-			csdb.Watcher.DeleteContractDeploymentWhitelist(GetContractDeploymentWhitelistMemberKey(addrList[i]))
+			csdb.Watcher.DeleteContractDeploymentWhitelist(addrList[i])
 		}
 	}
 	store := csdb.ctx.KVStore(csdb.storeKey)
