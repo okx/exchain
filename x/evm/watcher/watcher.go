@@ -253,14 +253,20 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(evmtypes.GetContractBlockedListMemberKey(addr))
+	wMsg := NewMsgContractBlockedListItem(addr)
+	if wMsg != nil {
+		w.store.Delete(wMsg.GetKey())
+	}
 }
 
 func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(evmtypes.GetContractDeploymentWhitelistMemberKey(addr))
+	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	if wMsg != nil {
+		w.store.Delete(wMsg.GetKey())
+	}
 }
 
 func (w *Watcher) Finalize() {
