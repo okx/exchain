@@ -51,7 +51,7 @@ import (
 const (
 	FlagGasLimitBuffer = "gas-limit-buffer"
 	CacheOfEthCallLru  = 40960
-	FlagGasPriceIndex  = "Q3"
+	FlagGasPriceIndex  = "gas-price-index"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
