@@ -324,3 +324,13 @@ func (w *Watcher) Commit() {
 		}
 	}()
 }
+
+func (w *Watcher) UpdateGasPriceIndex(gpIndex []byte) {
+	if !w.Enabled() {
+		return
+	}
+
+	if gpIndex != nil {
+		w.store.Set(prefixGpIdx, gpIndex)
+	}
+}

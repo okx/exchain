@@ -35,6 +35,7 @@ var (
 	prefixWhiteList    = []byte{0x11}
 	prefixBlackList    = []byte{0x12}
 	prefixRpcDb        = []byte{0x13}
+	prefixGpIdx        = []byte{0x14}
 
 	KeyLatestHeight = "LatestHeight"
 

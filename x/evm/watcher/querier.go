@@ -366,3 +366,11 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	}
 	return q.store.Has(append(prefixWhiteList, key...))
 }
+
+func (q Querier) GetGasPriceIndex() ([]byte, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+
+	return q.store.Get(prefixGpIdx)
+}

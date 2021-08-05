@@ -1,8 +1,10 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
@@ -34,6 +36,7 @@ import (
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	"github.com/okex/exchain/x/genutil"
@@ -167,6 +170,9 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
+
+	blockGasPrice  []*big.Int
+	watcherBackend *watcher.Watcher
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -210,6 +216,7 @@ func NewOKExChainApp(
 		keys:           keys,
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
+		watcherBackend: watcher.NewWatcher(),
 	}
 
 	// init params keeper and subspaces
@@ -437,6 +444,12 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+	gpIndex := CalBlockGasPriceIndex(app.blockGasPrice)
+	if data, err := json.Marshal(gpIndex); err == nil {
+		app.watcherBackend.UpdateGasPriceIndex(data)
+	}
+	app.blockGasPrice = app.blockGasPrice[:0]
+
 	return app.mm.EndBlock(ctx, req)
 }
 
@@ -448,6 +461,10 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
+	}
+
+	if tx, err := evm.TxDecoder(app.Codec())(req.Tx); err == nil {
+		app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
 	}
 
 	return resp
