@@ -6,18 +6,18 @@ import (
 	"os"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/viper"
-
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	cmserver "github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/rpc/pendingtx"
 	"github.com/okex/exchain/app/rpc/websockets"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -30,6 +30,8 @@ const (
 	FlagRateLimitBurst = "rpc.rate-limit-burst"
 	FlagEnableMonitor  = "rpc.enable-monitor"
 	FlagDisableAPI     = "rpc.disable-api"
+	FlagKafkaAddr      = "pendingtx.kafka-addr"
+	FlagKafkaTopic     = "pendingtx.kafka-topic"
 
 	MetricsNamespace = "x"
 	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
@@ -87,6 +89,15 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	websocketAddr := viper.GetString(flagWebsocket)
 	ws := websockets.NewServer(rs.CliCtx, rs.Logger(), websocketAddr)
 	ws.Start()
+
+	// pending tx watcher
+	kafkaAddr := viper.GetString(FlagKafkaAddr)
+	kafkaTopic := viper.GetString(FlagKafkaTopic)
+	if kafkaAddr != "" && kafkaTopic != "" {
+		kafkaClient := pendingtx.NewKafkaClient(kafkaAddr, kafkaTopic)
+		ptw := pendingtx.NewWatcher(rs.CliCtx, rs.Logger(), kafkaClient)
+		ptw.Start()
+	}
 }
 
 func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {
