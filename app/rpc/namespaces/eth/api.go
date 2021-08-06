@@ -72,7 +72,6 @@ type PublicEthereumAPI struct {
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
 	gasLimitBuffer uint64
-	gasPriceIndex  string
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
