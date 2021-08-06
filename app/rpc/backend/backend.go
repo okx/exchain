@@ -2,9 +2,7 @@ package backend
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/tendermint/tendermint/libs/log"
 	"golang.org/x/time/rate"
@@ -26,8 +24,6 @@ import (
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
 type Backend interface {
-	SuggestPrice() app.GasPriceIndex
-
 	// Used by block filter; also used for polling
 	BlockNumber() (hexutil.Uint64, error)
 	LatestBlockNumber() (int64, error)
@@ -81,17 +77,6 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		rateLimiters:      rateLimiters,
 		disableAPI:        disableAPI,
 	}
-}
-
-func (b *EthermintBackend) SuggestPrice() app.GasPriceIndex {
-	if jsonData, err := b.wrappedBackend.GetGasPriceIndex(); err == nil {
-		var gpIndex app.GasPriceIndex
-		if err = json.Unmarshal(jsonData, &gpIndex); err == nil {
-			return gpIndex
-		}
-	}
-
-	return app.GasPriceIndex{}
 }
 
 // BlockNumber returns the current block number.

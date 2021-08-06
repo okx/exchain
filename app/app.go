@@ -1,8 +1,8 @@
 package app
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"os"
@@ -36,7 +36,6 @@ import (
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	"github.com/okex/exchain/x/genutil"
@@ -63,7 +62,10 @@ func init() {
 	okexchain.SetBip44CoinType(config)
 }
 
-const appName = "OKExChain"
+const (
+	appName = "OKExChain"
+	EnableGasPriceSuggest = "enable-gas-price-suggest"
+)
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
@@ -123,6 +125,8 @@ var (
 		farm.YieldFarmingAccount:  nil,
 		farm.MintFarmingAccount:   {supply.Burner},
 	}
+
+	GlobalGpIndex = GasPriceIndex{}
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -171,8 +175,8 @@ type OKExChainApp struct {
 	// simulation manager
 	sm *module.SimulationManager
 
-	blockGasPrice  []*big.Int
-	watcherBackend *watcher.Watcher
+	blockGasPrice   []*big.Int
+	enableGpSuggest bool
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -210,13 +214,13 @@ func NewOKExChainApp(
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
 	app := &OKExChainApp{
-		BaseApp:        bApp,
-		cdc:            cdc,
-		invCheckPeriod: invCheckPeriod,
-		keys:           keys,
-		tkeys:          tkeys,
-		subspaces:      make(map[string]params.Subspace),
-		watcherBackend: watcher.NewWatcher(),
+		BaseApp:         bApp,
+		cdc:             cdc,
+		invCheckPeriod:  invCheckPeriod,
+		keys:            keys,
+		tkeys:           tkeys,
+		subspaces:       make(map[string]params.Subspace),
+		enableGpSuggest: viper.GetBool(EnableGasPriceSuggest),
 	}
 
 	// init params keeper and subspaces
@@ -444,11 +448,10 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	gpIndex := CalBlockGasPriceIndex(app.blockGasPrice)
-	if data, err := json.Marshal(gpIndex); err == nil {
-		app.watcherBackend.UpdateGasPriceIndex(data)
+	if app.enableGpSuggest {
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice)
+		app.blockGasPrice = app.blockGasPrice[:0]
 	}
-	app.blockGasPrice = app.blockGasPrice[:0]
 
 	return app.mm.EndBlock(ctx, req)
 }
@@ -463,8 +466,11 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		app.syncTx(req.Tx)
 	}
 
-	if tx, err := evm.TxDecoder(app.Codec())(req.Tx); err == nil {
-		app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+	if app.enableGpSuggest {
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		if err == nil {
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+		}
 	}
 
 	return resp
