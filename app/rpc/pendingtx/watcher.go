@@ -3,7 +3,6 @@ package pendingtx
 import (
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
@@ -74,7 +73,6 @@ func (w *Watcher) Start() {
 				go func(hash, tx []byte) {
 					err = w.sender.Send(hash, tx)
 					if err != nil {
-						debug.PrintStack()
 						w.logger.Error("failed to send pendingtx", "hash", txHash.String(), "error", err)
 					}
 				}(txHash.Bytes(), txBytes)
