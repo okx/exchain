@@ -21,9 +21,11 @@ func CalBlockGasPriceIndex(blockGasPrice []*big.Int, weight int) GasPriceIndex {
 	})
 
 	idx := int(math.Round(float64(weight) / 100.0 * float64(num)))
-	gpIndex := GasPriceIndex{
-		RecommendGp: blockGasPrice[idx-1],
+	if idx > 0 {
+		idx -= 1
 	}
 
-	return gpIndex
+	return GasPriceIndex{
+		RecommendGp: blockGasPrice[idx],
+	}
 }
