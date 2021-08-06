@@ -3,11 +3,9 @@ package backend
 import (
 	"context"
 	"fmt"
-	"golang.org/x/time/rate"
-
 	"github.com/okex/exchain/x/evm/watcher"
-
 	"github.com/tendermint/tendermint/libs/log"
+	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"

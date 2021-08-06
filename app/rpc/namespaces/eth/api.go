@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/app"
 	"math/big"
 	"strconv"
 	"sync"
@@ -49,8 +50,9 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer = "gas-limit-buffer"
-	CacheOfEthCallLru  = 40960
+	FlagGasLimitBuffer    = "gas-limit-buffer"
+	CacheOfEthCallLru     = 40960
+	FlagGasPriceIndex     = "gas-price-index"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -71,6 +73,7 @@ type PublicEthereumAPI struct {
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
 	gasLimitBuffer uint64
+	gasPriceIndex  string
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -96,6 +99,7 @@ func NewAPI(
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
 		gasLimitBuffer: viper.GetUint64(FlagGasLimitBuffer),
+		gasPriceIndex:  viper.GetString(FlagGasPriceIndex),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -228,6 +232,27 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
+
+	gpIndex := app.GlobalGpIndex
+	gp := gpIndex.Q3
+	switch api.gasPriceIndex {
+	case "Min":
+		gp = gpIndex.Min
+	case "Q1":
+		gp = gpIndex.Q1
+	case "Q2":
+		gp = gpIndex.Q2
+	case "Q3":
+		gp = gpIndex.Q3
+	case "Max":
+		gp = gpIndex.Max
+	default:
+	}
+
+	if gp != nil {
+		return (*hexutil.Big)(gp)
+	}
+
 	return api.gasPrice
 }
 

@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
+	"math/big"
 	"os"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
@@ -60,7 +62,10 @@ func init() {
 	okexchain.SetBip44CoinType(config)
 }
 
-const appName = "OKExChain"
+const (
+	appName = "OKExChain"
+	EnableDynamicGp = "enable-dynamic-gp"
+)
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
@@ -120,6 +125,8 @@ var (
 		farm.YieldFarmingAccount:  nil,
 		farm.MintFarmingAccount:   {supply.Burner},
 	}
+
+	GlobalGpIndex = GasPriceIndex{}
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -167,6 +174,9 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
+
+	blockGasPrice   []*big.Int
+	enableGpSuggest bool
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -204,12 +214,13 @@ func NewOKExChainApp(
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
 	app := &OKExChainApp{
-		BaseApp:        bApp,
-		cdc:            cdc,
-		invCheckPeriod: invCheckPeriod,
-		keys:           keys,
-		tkeys:          tkeys,
-		subspaces:      make(map[string]params.Subspace),
+		BaseApp:         bApp,
+		cdc:             cdc,
+		invCheckPeriod:  invCheckPeriod,
+		keys:            keys,
+		tkeys:           tkeys,
+		subspaces:       make(map[string]params.Subspace),
+		enableGpSuggest: viper.GetBool(EnableDynamicGp),
 	}
 
 	// init params keeper and subspaces
@@ -437,6 +448,11 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+	if app.enableGpSuggest {
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice)
+		app.blockGasPrice = app.blockGasPrice[:0]
+	}
+
 	return app.mm.EndBlock(ctx, req)
 }
 
@@ -448,6 +464,13 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
+	}
+
+	if app.enableGpSuggest {
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		if err == nil {
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+		}
 	}
 
 	return resp
