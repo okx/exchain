@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/app"
 	"math/big"
 	"strconv"
 	"sync"
@@ -49,8 +50,8 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer = "gas-limit-buffer"
-	CacheOfEthCallLru  = 40960
+	FlagGasLimitBuffer    = "gas-limit-buffer"
+	CacheOfEthCallLru     = 40960
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -228,6 +229,11 @@ func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
 func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
+
+	if app.GlobalGpIndex.RecommendGp != nil {
+		return (*hexutil.Big)(app.GlobalGpIndex.RecommendGp)
+	}
+
 	return api.gasPrice
 }
 
