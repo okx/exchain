@@ -64,6 +64,7 @@ func init() {
 
 const (
 	appName = "OKExChain"
+	DynamicGpWeight = "dynamic-gp-weight"
 	EnableDynamicGp = "enable-dynamic-gp"
 )
 
@@ -177,6 +178,7 @@ type OKExChainApp struct {
 
 	blockGasPrice   []*big.Int
 	enableGpSuggest bool
+	dynamicGpWeight int
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -222,6 +224,14 @@ func NewOKExChainApp(
 		subspaces:       make(map[string]params.Subspace),
 		enableGpSuggest: viper.GetBool(EnableDynamicGp),
 	}
+
+	gpWeight := viper.GetInt(DynamicGpWeight)
+	if gpWeight == 0 {
+		gpWeight = 1
+	} else if gpWeight > 100 {
+		gpWeight = 100
+	}
+	app.dynamicGpWeight = gpWeight
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -449,7 +459,7 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	if app.enableGpSuggest {
-		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice)
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, app.dynamicGpWeight)
 		app.blockGasPrice = app.blockGasPrice[:0]
 	}
 
