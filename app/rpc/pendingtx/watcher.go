@@ -51,29 +51,30 @@ func (w *Watcher) Start() {
 					continue
 				}
 				txHash := common.BytesToHash(data.Tx.Hash())
-				fmt.Println("txHash=", txHash.String())
+				w.logger.Debug("receive tx from mempool", "txHash=", txHash.String())
+
 				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx)
 				if err != nil {
-					w.logger.Debug("invalid tx", "error", err)
+					w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
 					continue
 				}
 
 				tx, err := rpctypes.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
 				if err != nil {
-					w.logger.Error("invalid tx", "error", err)
+					w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
 					continue
 				}
 				txBytes, err := json.Marshal(tx)
 				if err != nil {
-					w.logger.Error("failed to marshal result to JSON", "error", err)
+					w.logger.Error("failed to marshal transaction to JSON", "hash", txHash.String(), "error", err)
 					continue
 				}
-				fmt.Println(string(txBytes))
 
 				go func(hash, tx []byte) {
+					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
 					err = w.sender.Send(hash, tx)
 					if err != nil {
-						w.logger.Error("failed to send pendingtx", "hash", txHash.String(), "error", err)
+						w.logger.Error("failed to send pending tx", "hash", txHash.String(), "error", err)
 					}
 				}(txHash.Bytes(), txBytes)
 			}
