@@ -64,7 +64,7 @@ func init() {
 
 const (
 	appName = "OKExChain"
-	EnableGasPriceSuggest = "enable-gas-price-suggest"
+	EnableDynamicGp = "enable-dynamic-gp"
 )
 
 var (
@@ -220,7 +220,7 @@ func NewOKExChainApp(
 		keys:            keys,
 		tkeys:           tkeys,
 		subspaces:       make(map[string]params.Subspace),
-		enableGpSuggest: viper.GetBool(EnableGasPriceSuggest),
+		enableGpSuggest: viper.GetBool(EnableDynamicGp),
 	}
 
 	// init params keeper and subspaces
