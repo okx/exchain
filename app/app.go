@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"os"
@@ -48,6 +47,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
@@ -63,7 +63,7 @@ func init() {
 }
 
 const (
-	appName = "OKExChain"
+	appName         = "OKExChain"
 	DynamicGpWeight = "dynamic-gp-weight"
 	EnableDynamicGp = "enable-dynamic-gp"
 )
@@ -226,7 +226,7 @@ func NewOKExChainApp(
 	}
 
 	gpWeight := viper.GetInt(DynamicGpWeight)
-	if gpWeight == 0 {
+	if gpWeight <= 0 {
 		gpWeight = 1
 	} else if gpWeight > 100 {
 		gpWeight = 100
