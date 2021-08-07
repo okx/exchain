@@ -16,7 +16,7 @@ Name=exchain
 ServerName=exchaind
 ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
-GenesisHeight=0
+GenesisHeight=2322600
 MercuryHeight=0
 
 # process linker flags
