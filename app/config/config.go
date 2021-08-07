@@ -1,11 +1,11 @@
-package oec
+package config
 
 import "sync"
 
 
 type OecConfig struct {
-	tpb uint64
-	maxOpen uint64
+	tpb int64
+	maxOpen int64
 }
 
 func NewOecConfig() *OecConfig {
@@ -26,19 +26,19 @@ func GetOecConfig() *OecConfig {
 }
 
 
-func (c *OecConfig) GetTpb() uint64 {
+func (c *OecConfig) GetTpb() int64 {
 	return c.tpb
 }
 
-func (c *OecConfig) SetTpb(tpb uint64) {
+func (c *OecConfig) SetTpb(tpb int64) {
 	c.tpb = tpb
 }
 
-func (c *OecConfig) GetMaxOpen() uint64 {
+func (c *OecConfig) GetMaxOpen() int64 {
 	return c.maxOpen
 }
 
-func (c *OecConfig) SetMaxOpen(m uint64) {
+func (c *OecConfig) SetMaxOpen(m int64) {
 	c.maxOpen = m
 }
 
