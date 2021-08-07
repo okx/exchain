@@ -26,6 +26,7 @@ import (
 )
 
 var ErrServerBusy = errors.New("server is too busy")
+var ErrMethodNotAllowed = errors.New("the method is not allowed")
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
@@ -39,6 +40,7 @@ type Backend interface {
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
 	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
 	GetRateLimiter(apiName string) *rate.Limiter
+	IsDisabled(apiName string) bool
 }
 
 // consider a filter inactive if it has not been polled for within deadline
@@ -120,6 +122,9 @@ func (api *PublicFilterAPI) timeoutLoop() {
 func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	monitor := monitor.GetMonitor("eth_newPendingTransactionFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
+	if api.backend.IsDisabled("eth_newPendingTransactionFilter") {
+		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", ErrMethodNotAllowed.Error()))
+	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newPendingTransactionFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", ErrServerBusy.Error()))
@@ -214,6 +219,9 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	monitor := monitor.GetMonitor("eth_newBlockFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
+	if api.backend.IsDisabled("eth_newBlockFilter") {
+		return rpc.ID(fmt.Sprintf("error creating block filter: %s", ErrMethodNotAllowed.Error()))
+	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newBlockFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(fmt.Sprintf("error creating block filter: %s", ErrServerBusy.Error()))
@@ -380,6 +388,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, error) {
 	monitor := monitor.GetMonitor("eth_newFilter", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", criteria)
+	if api.backend.IsDisabled("eth_newFilter") {
+		return rpc.ID(""), ErrMethodNotAllowed
+	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return rpc.ID(""), ErrServerBusy
@@ -443,6 +454,9 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.FilterCriteria) ([]*ethtypes.Log, error) {
 	monitor := monitor.GetMonitor("eth_getLogs", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", criteria)
+	if api.backend.IsDisabled("eth_getLogs") {
+		return nil, ErrMethodNotAllowed
+	}
 	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return nil, ErrServerBusy
@@ -546,6 +560,9 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	monitor := monitor.GetMonitor("eth_getFilterChanges", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("id", id)
+	if api.backend.IsDisabled("eth_getFilterChanges") {
+		return nil, ErrMethodNotAllowed
+	}
 	rateLimiter := api.backend.GetRateLimiter("eth_getFilterChanges")
 	if rateLimiter != nil && !rateLimiter.Allow() {
 		return nil, ErrServerBusy

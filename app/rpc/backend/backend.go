@@ -3,11 +3,9 @@ package backend
 import (
 	"context"
 	"fmt"
-	"golang.org/x/time/rate"
-
 	"github.com/okex/exchain/x/evm/watcher"
-
 	"github.com/tendermint/tendermint/libs/log"
+	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -63,10 +61,11 @@ type EthermintBackend struct {
 	closeBloomHandler chan struct{}
 	wrappedBackend    *watcher.Querier
 	rateLimiters      map[string]*rate.Limiter
+	disableAPI        map[string]bool
 }
 
 // New creates a new EthermintBackend instance
-func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[string]*rate.Limiter) *EthermintBackend {
+func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[string]*rate.Limiter, disableAPI map[string]bool) *EthermintBackend {
 	return &EthermintBackend{
 		ctx:               context.Background(),
 		clientCtx:         clientCtx,
@@ -76,6 +75,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		closeBloomHandler: make(chan struct{}),
 		wrappedBackend:    watcher.NewQuerier(),
 		rateLimiters:      rateLimiters,
+		disableAPI:        disableAPI,
 	}
 }
 
@@ -440,4 +440,11 @@ func (b *EthermintBackend) GetRateLimiter(apiName string) *rate.Limiter {
 		return nil
 	}
 	return b.rateLimiters[apiName]
+}
+
+func (b *EthermintBackend) IsDisabled(apiName string) bool {
+	if b.disableAPI == nil {
+		return false
+	}
+	return b.disableAPI[apiName]
 }

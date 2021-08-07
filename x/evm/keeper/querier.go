@@ -153,7 +153,8 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	code := keeper.GetCode(ctx, addr)
+	so := keeper.GetOrNewStateObject(ctx, addr)
+	code := keeper.GetCodeByHash(ctx, ethcmn.BytesToHash(so.CodeHash()))
 	res := types.QueryResCode{Code: code}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {

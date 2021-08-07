@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
+	"math/big"
 	"os"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
@@ -60,7 +62,11 @@ func init() {
 	okexchain.SetBip44CoinType(config)
 }
 
-const appName = "OKExChain"
+const (
+	appName = "OKExChain"
+	DynamicGpWeight = "dynamic-gp-weight"
+	EnableDynamicGp = "enable-dynamic-gp"
+)
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
@@ -120,6 +126,8 @@ var (
 		farm.YieldFarmingAccount:  nil,
 		farm.MintFarmingAccount:   {supply.Burner},
 	}
+
+	GlobalGpIndex = GasPriceIndex{}
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -167,6 +175,10 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
+
+	blockGasPrice   []*big.Int
+	enableGpSuggest bool
+	dynamicGpWeight int
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -204,13 +216,22 @@ func NewOKExChainApp(
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
 	app := &OKExChainApp{
-		BaseApp:        bApp,
-		cdc:            cdc,
-		invCheckPeriod: invCheckPeriod,
-		keys:           keys,
-		tkeys:          tkeys,
-		subspaces:      make(map[string]params.Subspace),
+		BaseApp:         bApp,
+		cdc:             cdc,
+		invCheckPeriod:  invCheckPeriod,
+		keys:            keys,
+		tkeys:           tkeys,
+		subspaces:       make(map[string]params.Subspace),
+		enableGpSuggest: viper.GetBool(EnableDynamicGp),
 	}
+
+	gpWeight := viper.GetInt(DynamicGpWeight)
+	if gpWeight == 0 {
+		gpWeight = 1
+	} else if gpWeight > 100 {
+		gpWeight = 100
+	}
+	app.dynamicGpWeight = gpWeight
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -416,6 +437,7 @@ func NewOKExChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -436,6 +458,11 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+	if app.enableGpSuggest {
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, app.dynamicGpWeight)
+		app.blockGasPrice = app.blockGasPrice[:0]
+	}
+
 	return app.mm.EndBlock(ctx, req)
 }
 
@@ -447,6 +474,13 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
+	}
+
+	if app.enableGpSuggest {
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		if err == nil {
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+		}
 	}
 
 	return resp
@@ -587,5 +621,13 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 			}
 		}
 		return nil
+	}
+}
+
+func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) uint64 {
+		return ak.GetAccount(ctx, addr).GetSequence()
 	}
 }
