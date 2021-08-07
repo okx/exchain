@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/tendermint/tendermint/state"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/server"
@@ -32,6 +34,12 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Use:   "replay",
 		Short: "Replay blocks from local db",
 		Run: func(cmd *cobra.Command, args []string) {
+			go func() {
+				err := http.ListenAndServe("localhost:6060", nil)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}()
 			log.Println("--------- replay start ---------")
 			dataDir := viper.GetString(dataDirFlag)
 			replayBlock(ctx, dataDir)
