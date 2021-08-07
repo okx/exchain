@@ -1,8 +1,8 @@
 package oec
 
 import (
-	"github.com/okex/exchain/x/config/cm"
-	"github.com/okex/exchain/x/config/tm"
+	"github.com/okex/exchain/app/config/cm"
+	"github.com/okex/exchain/app/config/tm"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
