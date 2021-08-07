@@ -35,7 +35,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Short: "Replay blocks from local db",
 		Run: func(cmd *cobra.Command, args []string) {
 			go func() {
-				err := http.ListenAndServe("localhost:6060", nil)
+				err := http.ListenAndServe("0.0.0.0:26661", nil)
 				if err != nil {
 					fmt.Println(err)
 				}
