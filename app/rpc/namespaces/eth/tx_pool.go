@@ -125,12 +125,11 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	}
 
 	api.txPool.mu.Lock()
+	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
 		api.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
-		api.txPool.mu.Unlock()
 		return common.Hash{}, err
 	}
-	api.txPool.mu.Unlock()
 
 	return common.HexToHash(strings.ToUpper(hex.EncodeToString(tmhash.Sum(txBytes)))), nil
 }
@@ -295,22 +294,26 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
 		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
-		pool.mu.Lock()
-		for address, _ := range pool.addressTxsPool {
-			pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
-			if err != nil {
-				continue
-			}
-			currentNonce := uint64(*pCurrentNonce)
-
-			pool.continueBroadcast(api, currentNonce, address)
+		pool.broadcastPeriodCore(api)
+	}
+}
+func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	for address, _ := range pool.addressTxsPool {
+		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		if err != nil {
+			continue
 		}
-		pool.mu.Unlock()
+		currentNonce := uint64(*pCurrentNonce)
+
+		pool.continueBroadcast(api, currentNonce, address)
 	}
 }
 
 func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 	pool.mu.Lock()
+	defer pool.mu.Unlock()
 	for address, _ := range pool.addressTxsPool {
 		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
 		if err != nil {
@@ -320,5 +323,4 @@ func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 
 		err = pool.continueBroadcast(api, currentNonce, address)
 	}
-	pool.mu.Unlock()
 }
