@@ -295,7 +295,6 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
 		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
 		pool.mu.Lock()
-		defer pool.mu.Unlock()
 		for address, _ := range pool.addressTxsPool {
 			pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
 			if err != nil {
@@ -305,6 +304,7 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 
 			pool.continueBroadcast(api, currentNonce, address)
 		}
+		pool.mu.Unlock()
 	}
 }
 
