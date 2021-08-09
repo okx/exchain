@@ -223,9 +223,9 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	}
 	if err != nil {
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
-			i++
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+			i++
 		} else {
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 		}
