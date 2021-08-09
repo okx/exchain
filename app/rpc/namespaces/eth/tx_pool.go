@@ -223,10 +223,16 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	}
 	if err != nil {
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
-			i++
+			if i >= txsLen {
+				return fmt.Errorf("index out of range")
+			}
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+			i++
 		} else {
+			if i >= txsLen {
+				return fmt.Errorf("index out of range")
+			}
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 		}
 		api.logger.Error(err.Error())
@@ -234,6 +240,9 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 
 	// update txPool
 	if i != 0 {
+		if i > txsLen {
+			return fmt.Errorf("index out of range")
+		}
 		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), viper.GetUint64(TxPoolSliceMaxLen))
 		copy(tmp, pool.addressTxsPool[address][i:])
 		pool.addressTxsPool[address] = tmp
