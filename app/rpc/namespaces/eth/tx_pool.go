@@ -294,17 +294,20 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
 		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
-		pool.mu.Lock()
-		for address, _ := range pool.addressTxsPool {
-			pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
-			if err != nil {
-				continue
-			}
-			currentNonce := uint64(*pCurrentNonce)
-
-			pool.continueBroadcast(api, currentNonce, address)
+		pool.broadcastPeriodCore(api)
+	}
+}
+func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	for address, _ := range pool.addressTxsPool {
+		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		if err != nil {
+			continue
 		}
-		pool.mu.Unlock()
+		currentNonce := uint64(*pCurrentNonce)
+
+		pool.continueBroadcast(api, currentNonce, address)
 	}
 }
 
