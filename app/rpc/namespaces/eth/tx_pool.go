@@ -230,17 +230,11 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	if err != nil {
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
 			// tx has err, and err is not mempoolfull, the tx should be dropped
-			if i >= txsLen {
-				return fmt.Errorf("index out of range")
-			}
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			i++
 		} else {
 			// tx has err, and err is mempoolfull, the tx should be in txpool, waiting for broadcast next time
-			if i >= txsLen {
-				return fmt.Errorf("index out of range")
-			}
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 		}
 		api.logger.Error(err.Error())
@@ -248,9 +242,6 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 
 	// update txPool
 	if i != 0 {
-		if i > txsLen {
-			return fmt.Errorf("index out of range")
-		}
 		// drop [0:i] txs in txpool
 		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), txPoolSliceMaxLen)
 		copy(tmp, pool.addressTxsPool[address][i:])
