@@ -57,9 +57,10 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			retainHeight := baseHeight + size - 2
 			log.Printf("baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
-			wg.Add(2)
-			pruneBlocksAndStates(blockStore, stateDB, baseHeight, retainHeight)
-			pruneApp(appDB, baseHeight, retainHeight)
+			wg.Add(3)
+			go pruneBlocks(blockStore, baseHeight, retainHeight)
+			go pruneStates(stateDB, baseHeight, retainHeight)
+			go pruneApp(appDB, baseHeight, retainHeight)
 			wg.Wait()
 			log.Println("--------- pruning end ---------")
 			return nil
@@ -88,11 +89,11 @@ func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stat
 	return
 }
 
-// pruneBlocksAndState deletes blocks and states between the given heights (including from, excluding to).
-func pruneBlocksAndStates(blockStore *store.BlockStore, stateDB dbm.DB, from, to int64) {
+// pruneBlocks deletes blocks between the given heights (including from, excluding to).
+func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 	defer wg.Done()
 
-	log.Printf("Prune blocks and states [%d,%d)", from, to)
+	log.Printf("Prune blocks [%d,%d)", from, to)
 	if to <= from {
 		return
 	}
@@ -101,13 +102,23 @@ func pruneBlocksAndStates(blockStore *store.BlockStore, stateDB dbm.DB, from, to
 	if err != nil {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
-	err = sm.PruneStates(stateDB, from, to)
-	if err != nil {
-		panic(fmt.Errorf("failed to prune state database: %w", err))
-	}
 
 	log.Printf("pruned blocks: %d, retainHeight: %d\n", pruned, to)
 	log.Printf("new block store base: %d, block store size: %d\n", blockStore.Base(), blockStore.Size())
+}
+
+// pruneStates deletes states between the given heights (including from, excluding to).
+func pruneStates(stateDB dbm.DB, from, to int64) {
+	defer wg.Done()
+
+	log.Printf("Prune states [%d,%d)", from, to)
+	if to <= from {
+		return
+	}
+
+	if err := sm.PruneStates(stateDB, from, to); err != nil {
+		panic(fmt.Errorf("failed to prune state database: %w", err))
+	}
 }
 
 // pruneApp deletes app states between the given heights (including from, excluding to).
