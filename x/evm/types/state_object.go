@@ -333,6 +333,10 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 		return nil
 	}
 
+	if code, ok := GlobalContractCode.Load(so.address); ok {
+		return code.([]byte)
+	}
+
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	code := store.Get(so.CodeHash())

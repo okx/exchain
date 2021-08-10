@@ -2,7 +2,6 @@ package evm
 
 import (
 	"encoding/json"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -26,6 +27,8 @@ var (
 	_ ethvm.StateDB = (*CommitStateDB)(nil)
 
 	zeroBalance = sdk.ZeroInt().BigInt()
+
+	GlobalContractCode sync.Map
 )
 
 type revision struct {
@@ -282,6 +285,9 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so := csdb.GetOrNewStateObject(addr)
 	hash := ethcrypto.Keccak256Hash(code)
+
+	GlobalContractCode.Store(addr, code)
+
 	if so != nil {
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
@@ -701,6 +707,10 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
+	if !bytes.Equal(so.CodeHash(), emptyCodeHash) {
+		GlobalContractCode.Delete(so.address)
+	}
+
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 }
