@@ -234,7 +234,6 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			pool.dropTxs(i + 1, address)
 		} else {
-			// tx has err, and err is mempoolfull, the tx should be in txpool, waiting for broadcast next time
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			pool.dropTxs(i, address)
 		}
