@@ -233,22 +233,23 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			i++
+			pool.dropTxs(i, address)
 		} else {
 			// tx has err, and err is mempoolfull, the tx should be in txpool, waiting for broadcast next time
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
+			pool.dropTxs(i, address)
 		}
 		api.logger.Error(err.Error())
 	}
 
-	// update txPool
-	if i != 0 {
-		// drop [0:i] txs in txpool
-		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), txPoolSliceMaxLen)
-		copy(tmp, pool.addressTxsPool[address][i:])
-		pool.addressTxsPool[address] = tmp
-	}
-
 	return err
+}
+
+// drop [0:index) txs in txpool
+func (pool *TxPool)dropTxs(index int, address common.Address) {
+	tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]), txPoolSliceMaxLen)
+	copy(tmp, pool.addressTxsPool[address][index:])
+	pool.addressTxsPool[address] = tmp
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
