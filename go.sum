@@ -507,6 +507,8 @@ github.com/okex/tendermint v0.33.9-exchain6 h1:g2pinlQENrKwryRHwRCLOQygQ5Mq37vqx
 github.com/okex/tendermint v0.33.9-exchain6/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20210810011904-37041d878f06 h1:vJjvRBm2djrA0tjyb59O5GqIS85pmFjmkdUpRVtWaL8=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20210810011904-37041d878f06/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20210810033511-5f025f9d9596 h1:vZubdRSceY1YUW77AisfTrEjI2gRKOIzxXhs3lbCB3Y=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20210810033511-5f025f9d9596/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
