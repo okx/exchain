@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -65,7 +64,14 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 		}
 	}()
 
-	return next(ctx, tx, simulate)
+	// replace basicGasMeter with 0 consumption and limit of gasTx.GetGas() to prevent the consumption is
+	//	larger than the gas limit within the infiniteGasMeter among the check in the whole ChainAnteDecorators
+	defer func() {
+		newCtx = newCtx.WithGasMeter(sdk.NewGasMeter(gasTx.GetGas()))
+	}()
+
+	newCtx, err = next(ctx, tx, simulate)
+	return
 }
 
 // EthMempoolFeeDecorator validates that sufficient fees have been provided that
@@ -276,7 +282,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				// to add pending txs len in the mempool.
 				// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
-				cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+				cnt := baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
 				checkTxModeNonce = seq + uint64(cnt)
 			}
 
