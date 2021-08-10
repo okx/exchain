@@ -36,6 +36,9 @@ var broadcastErrors = map[uint32]*sdkerrors.Error{
 	sdkerrors.ErrTxTooLarge.ABCICode():       sdkerrors.ErrTxTooLarge,
 }
 
+var txPoolSliceMaxLen uint64
+
+
 type TxPool struct {
 	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
 	clientCtx      clientcontext.CLIContext
@@ -48,6 +51,8 @@ func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPo
 	if err != nil {
 		panic(err)
 	}
+
+	txPoolSliceMaxLen = viper.GetUint64(TxPoolSliceMaxLen)
 
 	pool := &TxPool{
 		addressTxsPool: make(map[common.Address][]*evmtypes.MsgEthereumTx),
@@ -146,7 +151,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
 	}
 
-	if tx.Data.AccountNonce > currentNonce+viper.GetUint64(TxPoolSliceMaxLen) {
+	if tx.Data.AccountNonce > currentNonce + txPoolSliceMaxLen {
 		return fmt.Errorf("AccountNonce of tx is bigger than txPool capacity, please try later: AccountNonce[%d]", tx.Data.AccountNonce)
 	}
 
@@ -182,7 +187,7 @@ func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEt
 func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// if this is the first time to insertTx, make the cap of txPool be TxPoolSliceMaxLen
 	if _, ok := pool.addressTxsPool[address]; !ok {
-		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, viper.GetUint64(TxPoolSliceMaxLen))
+		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, txPoolSliceMaxLen)
 	}
 	index := 0
 	for index < len(pool.addressTxsPool[address]) {
@@ -221,8 +226,10 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			break
 		}
 	}
+	// i is the start index of txs that don't need to be dropped
 	if err != nil {
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
+			// tx has err, and err is not mempoolfull, the tx should be dropped
 			if i >= txsLen {
 				return fmt.Errorf("index out of range")
 			}
@@ -230,6 +237,7 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			i++
 		} else {
+			// tx has err, and err is mempoolfull, the tx should be in txpool, waiting for broadcast next time
 			if i >= txsLen {
 				return fmt.Errorf("index out of range")
 			}
@@ -243,7 +251,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		if i > txsLen {
 			return fmt.Errorf("index out of range")
 		}
-		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), viper.GetUint64(TxPoolSliceMaxLen))
+		// drop [0:i] txs in txpool
+		tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][i:]), txPoolSliceMaxLen)
 		copy(tmp, pool.addressTxsPool[address][i:])
 		pool.addressTxsPool[address] = tmp
 	}
