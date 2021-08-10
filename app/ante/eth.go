@@ -65,7 +65,7 @@ func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 	}()
 
 	// replace basicGasMeter with 0 consumption and limit of gasTx.GetGas() to prevent the consumption is
-	//	larger than the gas limit within the infiniteGasMeter among the check in the whole ChainAnteDecorators
+	// larger than the gas limit within the infiniteGasMeter among the check in the whole ChainAnteDecorators
 	defer func() {
 		newCtx = newCtx.WithGasMeter(sdk.NewGasMeter(gasTx.GetGas()))
 	}()
