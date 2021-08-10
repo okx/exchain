@@ -4,8 +4,18 @@ import (
 	"fmt"
 	"log"
 
+	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
+	cmstore "github.com/cosmos/cosmos-sdk/store"
+	"github.com/cosmos/cosmos-sdk/store/iavl"
+	"github.com/cosmos/cosmos-sdk/store/rootmulti"
+	"github.com/cosmos/cosmos-sdk/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/mint"
+	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
@@ -13,6 +23,19 @@ import (
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
 	dbm "github.com/tendermint/tm-db"
+
+	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/dex"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/evidence"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/slashing"
+	"github.com/okex/exchain/x/staking"
+	"github.com/okex/exchain/x/token"
 )
 
 func pruningCmd(ctx *server.Context) *cobra.Command {
@@ -23,7 +46,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 			log.Println("--------- pruning start ---------")
-			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
+			blockStoreDB, stateDB, appDB, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
@@ -32,10 +55,12 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			baseHeight := blockStore.Base()
 			size := blockStore.Size()
 			retainHeight := baseHeight + size - 2
-			log.Printf("baseHeight:%d, size:%d, retainHeight:%d\n", baseHeight, size, retainHeight)
+			log.Printf("baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
-			pruneBlocks(blockStore, stateDB, retainHeight)
-
+			wg.Add(2)
+			pruneBlocksAndStates(blockStore, stateDB, baseHeight, retainHeight)
+			pruneApp(appDB, baseHeight, retainHeight)
+			wg.Wait()
 			log.Println("--------- pruning end ---------")
 			return nil
 		},
@@ -63,20 +88,102 @@ func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stat
 	return
 }
 
-func pruneBlocks(blockStore *store.BlockStore, stateDB dbm.DB, retainHeight int64) {
-	base := blockStore.Base()
-	if retainHeight <= base {
+// pruneBlocksAndState deletes blocks and states between the given heights (including from, excluding to).
+func pruneBlocksAndStates(blockStore *store.BlockStore, stateDB dbm.DB, from, to int64) {
+	defer wg.Done()
+
+	log.Printf("Prune blocks and states [%d,%d)", from, to)
+	if to <= from {
 		return
 	}
-	pruned, err := blockStore.PruneBlocks(retainHeight)
+
+	pruned, err := blockStore.PruneBlocks(to)
 	if err != nil {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
-	err = sm.PruneStates(stateDB, base, retainHeight)
+	err = sm.PruneStates(stateDB, from, to)
 	if err != nil {
 		panic(fmt.Errorf("failed to prune state database: %w", err))
 	}
 
-	log.Printf("pruned blocks: %d, retainHeight: %d\n", pruned, retainHeight)
-	log.Printf("block store base: %d, block store size: %d\n", blockStore.Base(), blockStore.Size())
+	log.Printf("pruned blocks: %d, retainHeight: %d\n", pruned, to)
+	log.Printf("new block store base: %d, block store size: %d\n", blockStore.Base(), blockStore.Size())
+}
+
+// pruneApp deletes app states between the given heights (including from, excluding to).
+func pruneApp(appDB dbm.DB, from, to int64) {
+	defer wg.Done()
+
+	log.Printf("Prune app store [%d,%d)", from, to)
+	if to <= from {
+		return
+	}
+
+	rs := initAppStore(appDB)
+
+	latestV := rs.GetLatestVersion()
+	if to > latestV {
+		return
+	}
+
+	pruneHeights := make([]int64, to-from)
+	for i := 0; i < len(pruneHeights); i++ {
+		pruneHeights[i] = from + int64(i)
+	}
+	log.Printf("Prune app store: LatestVersion=%d,PruneHeights=[%d...%d]", latestV, pruneHeights[0], pruneHeights[len(pruneHeights)-1])
+
+	for key, store := range rs.GetStores() {
+		if store.GetStoreType() == types.StoreTypeIAVL {
+			// If the store is wrapped with an inter-block cache, we must first unwrap
+			// it to get the underlying IAVL store.
+			store = rs.GetCommitKVStore(key)
+
+			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
+				//if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
+				//	panic(err)
+				//}
+				log.Printf("failed to delete version: %s", err)
+			}
+		}
+	}
+
+	versions := make([]int64, latestV-to+1)
+	for i := 0; i < len(versions); i++ {
+		versions[i] = to + int64(i)
+	}
+
+	rs.FlushPruneHeights(make([]int64, 0), versions)
+}
+
+func initAppStore(appDB dbm.DB) *rootmulti.Store {
+	cms := cmstore.NewCommitMultiStore(appDB)
+
+	keys := sdk.NewKVStoreKeys(
+		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
+		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
+	)
+	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
+
+	for _, key := range keys {
+		cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
+
+	}
+	for _, key := range tkeys {
+		cms.MountStoreWithDB(key, sdk.StoreTypeTransient, nil)
+	}
+
+	err := cms.LoadLatestVersion()
+	if err != nil {
+		panic(err)
+	}
+
+	rs, ok := cms.(*rootmulti.Store)
+	if !ok {
+		panic("cms of from app is not rootmulti store")
+	}
+
+	return rs
 }
