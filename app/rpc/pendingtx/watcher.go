@@ -1,7 +1,6 @@
 package pendingtx
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
@@ -22,7 +21,7 @@ type Watcher struct {
 }
 
 type Sender interface {
-	Send(hash, tx []byte) error
+	Send(hash []byte, tx *rpctypes.Transaction) error
 }
 
 func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Watcher {
@@ -64,19 +63,14 @@ func (w *Watcher) Start() {
 					w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
 					continue
 				}
-				txBytes, err := json.Marshal(tx)
-				if err != nil {
-					w.logger.Error("failed to marshal transaction to JSON", "hash", txHash.String(), "error", err)
-					continue
-				}
 
-				go func(hash, tx []byte) {
+				go func(hash []byte, tx *rpctypes.Transaction) {
 					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
 					err = w.sender.Send(hash, tx)
 					if err != nil {
 						w.logger.Error("failed to send pending tx", "hash", txHash.String(), "error", err)
 					}
-				}(txHash.Bytes(), txBytes)
+				}(txHash.Bytes(), tx)
 			}
 		}
 	}(sub.Event(), sub.Err())
