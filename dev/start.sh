@@ -24,13 +24,10 @@ killbyname exchaind
 killbyname exchaincli
 
 # remove existing daemon and client
-rm -rf ~/.ethermint*
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-
 make install
-
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
@@ -63,7 +60,6 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
 exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okt --home $HOME_SERVER
-#exit
 
 # Sign genesis transaction
 exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER
@@ -71,7 +67,6 @@ exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER
 # Collect genesis tx
 exchaind collect-gentxs --home $HOME_SERVER
 
-#exit
 # Run this to ensure everything worked and that the genesis file is setup correctly
 exchaind validate-genesis --home $HOME_SERVER
 
@@ -80,7 +75,6 @@ exchaincli config keyring-backend test
 
 exchaind start --pruning=nothing --rpc.unsafe \
   --local-rpc-port 26657 \
-  --netstat 26657,26659 \
   --log_level $LOG_LEVEL \
   --consensus.timeout_commit 3s \
   --trace --home $HOME_SERVER --chain-id $CHAINID \
