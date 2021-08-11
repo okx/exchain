@@ -286,7 +286,9 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	so := csdb.GetOrNewStateObject(addr)
 	hash := ethcrypto.Keccak256Hash(code)
 
-	GlobalContractCode.Store(addr, code)
+	if !csdb.ctx.IsCheckTx() {
+		GlobalContractCode.Store(addr, code)
+	}
 
 	if so != nil {
 		so.SetCode(hash, code)

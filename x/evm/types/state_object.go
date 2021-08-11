@@ -89,7 +89,10 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 
 	if !db.ctx.IsCheckTx() {
 		if obj, ok := GlobalContractObjs.Load(ethermintAccount.EthAddress()); ok {
-			return obj.(*stateObject)
+			so := obj.(*stateObject)
+			so.stateDB = db
+
+			return so
 		}
 	}
 
@@ -348,8 +351,10 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 		return nil
 	}
 
-	if code, ok := GlobalContractCode.Load(so.address); ok {
-		return code.([]byte)
+	if !so.stateDB.ctx.IsCheckTx() {
+		if code, ok := GlobalContractCode.Load(so.address); ok {
+			return code.([]byte)
+		}
 	}
 
 	ctx := so.stateDB.ctx
