@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -19,6 +20,8 @@ var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
+
+	GlobalContractObjs sync.Map
 )
 
 // StateObject interface for interacting with state object
@@ -84,12 +87,18 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
+	if !db.ctx.IsCheckTx() {
+		if obj, ok := GlobalContractObjs.Load(ethermintAccount.EthAddress()); ok {
+			return obj.(*stateObject)
+		}
+	}
+
 	// set empty code hash
 	if ethermintAccount.CodeHash == nil {
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	return &stateObject{
+	obj := &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
 		address:                 ethermintAccount.EthAddress(),
@@ -98,6 +107,12 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
 	}
+
+	if !db.ctx.IsCheckTx() {
+		GlobalContractObjs.Store(obj.address, obj)
+	}
+
+	return obj
 }
 
 // ----------------------------------------------------------------------------

@@ -707,8 +707,11 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
-	if !bytes.Equal(so.CodeHash(), emptyCodeHash) {
-		GlobalContractCode.Delete(so.address)
+	if !so.stateDB.ctx.IsCheckTx() {
+		if !bytes.Equal(so.CodeHash(), emptyCodeHash) {
+			GlobalContractCode.Delete(so.address)
+		}
+		GlobalContractObjs.Delete(so.address)
 	}
 
 	so.deleted = true
@@ -957,7 +960,7 @@ func (csdb *CommitStateDB) setError(err error) {
 
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
-func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
+func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) *stateObject {
 	if idx, found := csdb.addressToObjectIndex[addr]; found {
 		// prefer 'live' (cached) objects
 		if so := csdb.stateObjects[idx].stateObject; so != nil {
