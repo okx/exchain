@@ -24,14 +24,15 @@ func compactCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 			log.Println("--------- compact start ---------")
-			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
+			blockStoreDB, stateDB, appDB, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
 
-			wg.Add(2)
+			wg.Add(3)
 			go compactDB(blockStoreDB)
 			go compactDB(stateDB)
+			go compactDB(appDB)
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 			return nil
