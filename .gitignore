@@ -71,3 +71,4 @@ contract_tests/*
 dev/cache/*
 result.txt
 ethermint
+_cache_evm
