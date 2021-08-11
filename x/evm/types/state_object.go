@@ -91,6 +91,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		if obj, ok := GlobalContractObjs.Load(ethermintAccount.EthAddress()); ok {
 			so := obj.(*stateObject)
 			so.stateDB = db
+			so.account = ethermintAccount
 
 			return so
 		}
