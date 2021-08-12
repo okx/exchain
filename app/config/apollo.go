@@ -10,7 +10,7 @@ import (
 	"github.com/apolloconfig/agollo/v4/env/config"
 )
 
-func NewApollo(log log.Logger) {
+func NewApollo(log log.Logger) *agollo.Client {
 	c := &config.AppConfig{
 		AppID:          "okexchain",
 		Cluster:        "dev",
@@ -29,18 +29,19 @@ func NewApollo(log log.Logger) {
 		panic(err)
 	}
 	fmt.Println("初始化Apollo配置成功")
+	return client
 
 	//Use your apollo key to test
-	cache := client.GetConfigCache(c.NamespaceName)
-	fmt.Println(cache.EntryCount())
-	cache.Range(func(key, value interface{}) bool {
-		fmt.Println("key : ", key, ", value :", value)
-		return true
-	})
-	//ss:=client.GetConfig(c.NamespaceName)
-
-	c2 := &CustomChangeListener{}
-	client.AddChangeListener(c2)
+	//cache := client.GetConfigCache(c.NamespaceName)
+	//fmt.Println(cache.EntryCount())
+	//cache.Range(func(key, value interface{}) bool {
+	//	fmt.Println("key : ", key, ", value :", value)
+	//	return true
+	//})
+	////ss := client.GetConfig(c.NamespaceName)
+	////ss.GetValue()
+	//c2 := &CustomChangeListener{}
+	//client.AddChangeListener(c2)
 }
 
 type CustomChangeListener struct {
