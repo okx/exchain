@@ -341,7 +341,11 @@ func (p *performance) OnCommitEnter(height int64) uint64 {
 }
 
 func (p *performance) OnCommitExit(height int64, seq uint64, l log.Logger) {
+
 	logger := p.logger
+	if logger == nil {
+		return
+	}
 
 	p.sanityCheckApp(height, seq)
 	// by millisecond
