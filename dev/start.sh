@@ -8,7 +8,6 @@ HOME_SERVER=$CURDIR/"_cache_evm"
 
 set -e
 set -o errexit
-set -x
 set -a
 set -m
 
@@ -22,6 +21,8 @@ killbyname() {
 
 killbyname exchaind
 killbyname exchaincli
+
+set -x # activate debugging
 
 # remove existing daemon and client
 rm -rf ~/.exchain*
@@ -53,9 +54,6 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["crisis"]["constant_fee"][
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
-# Enable faucet
-cat $HOME_SERVER/config/genesis.json | jq '.app_state["faucet"]["enable_faucet"]=true' >  \
-    $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
@@ -71,6 +69,7 @@ exchaind collect-gentxs --home $HOME_SERVER
 exchaind validate-genesis --home $HOME_SERVER
 
 LOG_LEVEL=main:info,state:error,distr:error,auth:error,mint:error,farm:error
+#LOG_LEVEL=main:info,state:error,distr:error,auth:error,mint:error,farm:error,perf:info
 exchaincli config keyring-backend test
 
 exchaind start --pruning=nothing --rpc.unsafe \
