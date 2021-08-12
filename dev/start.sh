@@ -27,7 +27,7 @@ killbyname exchaincli
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-make install
+(cd .. && make install)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
