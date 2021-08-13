@@ -40,6 +40,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().StringP(dataDirFlag, "d", ".exchaind/data", "Directory of block data for replaying")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
+	cmd.Flags().Int32(server.FlagStateDelta, 0, "sync through state delta")
 	return cmd
 }
 
