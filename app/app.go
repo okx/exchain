@@ -503,6 +503,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+
+	perf.GetPerf().InitChainer(app.Logger())
+
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
