@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v0.18.14
+Version=v0.18.17
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -40,7 +40,7 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
+  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
 
