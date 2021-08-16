@@ -93,7 +93,6 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolP(flagApp, "a", true, "Pruning application DB")
 	cmd.Flags().Int64P(flagStart, "s", -1, "Pruning from the start height")
 	cmd.Flags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
-
 	return cmd
 }
 

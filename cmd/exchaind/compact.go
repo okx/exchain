@@ -29,16 +29,23 @@ func compactCmd(ctx *server.Context) *cobra.Command {
 				return err
 			}
 
-			wg.Add(3)
-			go compactDB(blockStoreDB)
-			go compactDB(stateDB)
-			go compactDB(appDB)
+			if viper.GetBool(flagBlock) {
+				wg.Add(2)
+				go compactDB(blockStoreDB)
+				go compactDB(stateDB)
+			}
+			if viper.GetBool(flagApp) {
+				wg.Add(1)
+				go compactDB(appDB)
+			}
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 			return nil
 		},
 	}
 
+	cmd.Flags().BoolP(flagBlock, "b", true, "Pruning block and state DB")
+	cmd.Flags().BoolP(flagApp, "a", true, "Pruning application DB")
 	return cmd
 }
 
