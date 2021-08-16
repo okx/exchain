@@ -731,13 +731,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
-
-	if args.From == nil {
-		addrs, err := api.accounts()
-		if err == nil && len(addrs) > 0 {
-			addr = addrs[0]
-		}
-	} else {
+	if args.From != nil {
 		addr = *args.From
 	}
 
