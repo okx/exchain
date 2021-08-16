@@ -151,23 +151,29 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 func pruneApp(appDB dbm.DB, from, to int64) {
 	defer wg.Done()
 
-	log.Printf("Prune app store [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
 
 	rs := initAppStore(appDB)
-
 	latestV := rs.GetLatestVersion()
 	if to > latestV {
 		return
 	}
-
-	pruneHeights := make([]int64, to-from)
-	for i := 0; i < len(pruneHeights); i++ {
-		pruneHeights[i] = from + int64(i)
+	versions := rs.GetVersions()
+	if len(versions) == 0 {
+		return
 	}
-	log.Printf("Prune app store: LatestVersion=%d,PruneHeights=[%d...%d]", latestV, pruneHeights[0], pruneHeights[len(pruneHeights)-1])
+	pruneHeights := rs.GetPruningHeights()
+
+	for _, v := range versions {
+		if v >= to {
+			break
+		}
+		pruneHeights = append(pruneHeights, v)
+		versions = versions[1:]
+	}
+	log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, versions, pruneHeights)
 
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
@@ -176,20 +182,13 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 			store = rs.GetCommitKVStore(key)
 
 			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
-				//if errCause := errors.Cause(err); errCause != nil && errCause != iavltree.ErrVersionDoesNotExist {
-				//	panic(err)
-				//}
 				log.Printf("failed to delete version: %s", err)
 			}
 		}
 	}
 
-	versions := make([]int64, latestV-to+1)
-	for i := 0; i < len(versions); i++ {
-		versions[i] = to + int64(i)
-	}
-
-	rs.FlushPruneHeights(make([]int64, 0), versions)
+	pruneHeights = make([]int64, 0)
+	rs.FlushPruneHeights(pruneHeights, versions)
 	log.Println("Prune app store end!")
 }
 
