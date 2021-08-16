@@ -35,17 +35,33 @@ type OecConfig struct {
 	dynamicGpWeight int
 }
 
+var oecConfig *OecConfig
+var once sync.Once
+
+func GetOecConfig() *OecConfig {
+	once.Do(func() {
+		oecConfig = NewOecConfig()
+	})
+	return oecConfig
+}
+
 func NewOecConfig() *OecConfig {
 	c := &OecConfig{}
-	loadFromConfig(c)
+	c.loadFromConfig()
 	fmt.Printf("%+v\n", c)
-	loadFromApollo(c)
+	c.loadFromApollo()
 	fmt.Printf("%+v\n", c)
 
+	//go func() {
+	//	for {
+	//		time.Sleep(5 * time.Second)
+	//		fmt.Printf("%+v\n", c)
+	//	}
+	//}()
 	return c
 }
 
-func loadFromConfig(c *OecConfig) {
+func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool("mempool.recheck"))
 	c.SetMempoolForceRecheckGap(viper.GetInt64("mempool.force_recheck_gap"))
 	c.SetMempoolSize(viper.GetInt("mempool.size"))
@@ -59,79 +75,69 @@ func loadFromConfig(c *OecConfig) {
 	c.SetDynamicGpWeight(viper.GetInt("dynamic-gp-weight"))
 }
 
-func loadFromApollo(c *OecConfig) {
-	client := NewApollo(nil)
-	cache := client.GetConfigCache("rpc-node")
-	cache.Range(func(key, value interface{}) bool {
-		k, v := key.(string), value.(string)
-		switch k {
-		case "mempool.recheck":
-			r, err := strconv.ParseBool(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetMempoolRecheck(r)
-		case "mempool.force_recheck_gap":
-			r, err := strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				panic(err)
-			}
-			c.SetMempoolForceRecheckGap(r)
-		case "mempool.size":
-			r, err := strconv.Atoi(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetMempoolSize(r)
-		case "log_level":
-			c.SetLogLevel(v)
-		case "rpc.disable-api":
-			c.SetRpcDisableApi(v)
-		case "rpc.rate-limit-api":
-			c.SetRpcRateLimitApi(v)
-		case "rpc.rate-limit-burst":
-			r, err := strconv.Atoi(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetRpcRateLimitBurst(r)
-		case "rpc.rate-limit-count":
-			r, err := strconv.Atoi(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetRpcRateLimitCount(r)
-		case "gas-limit-buffer":
-			r, err := strconv.ParseUint(v, 10, 64)
-			if err != nil {
-				panic(err)
-			}
-			c.SetGasLimitBuffer(r)
-		case "enable-dynamic-gp":
-			r, err := strconv.ParseBool(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetEnableDynamicGp(r)
-		case "dynamic-gp-weight":
-			r, err := strconv.Atoi(v)
-			if err != nil {
-				panic(err)
-			}
-			c.SetDynamicGpWeight(r)
-		}
-		return true
-	})
+func (c *OecConfig) loadFromApollo() {
+	client := NewApolloClient(c)
+	client.LoadConfig()
 }
 
-var oecConfig *OecConfig
-var once sync.Once
-
-func GetOecConfig() *OecConfig {
-	once.Do(func() {
-		oecConfig = NewOecConfig()
-	})
-	return oecConfig
+func (c *OecConfig) update(key, value interface{}) {
+	k, v := key.(string), value.(string)
+	switch k {
+	case "mempool.recheck":
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetMempoolRecheck(r)
+	case "mempool.force_recheck_gap":
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		c.SetMempoolForceRecheckGap(r)
+	case "mempool.size":
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetMempoolSize(r)
+	case "log_level":
+		c.SetLogLevel(v)
+	case "rpc.disable-api":
+		c.SetRpcDisableApi(v)
+	case "rpc.rate-limit-api":
+		c.SetRpcRateLimitApi(v)
+	case "rpc.rate-limit-burst":
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetRpcRateLimitBurst(r)
+	case "rpc.rate-limit-count":
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetRpcRateLimitCount(r)
+	case "gas-limit-buffer":
+		r, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		c.SetGasLimitBuffer(r)
+	case "enable-dynamic-gp":
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetEnableDynamicGp(r)
+	case "dynamic-gp-weight":
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			panic(err)
+		}
+		c.SetDynamicGpWeight(r)
+	}
 }
 
 func (c *OecConfig) GetMempoolRecheck() bool {
