@@ -353,7 +353,7 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 	}
 
 	if !so.stateDB.ctx.IsCheckTx() {
-		if code, ok := GlobalContractCode.Load(so.address); ok {
+		if code, ok := GlobalContractCode.Load(ethcmn.BytesToHash(so.CodeHash())); ok {
 			return code.([]byte)
 		}
 	}

@@ -287,7 +287,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	hash := ethcrypto.Keccak256Hash(code)
 
 	if !csdb.ctx.IsCheckTx() {
-		GlobalContractCode.Store(addr, code)
+		GlobalContractCode.Store(hash, code)
 	}
 
 	if so != nil {
@@ -711,7 +711,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	if !so.stateDB.ctx.IsCheckTx() {
 		if !bytes.Equal(so.CodeHash(), emptyCodeHash) {
-			GlobalContractCode.Delete(so.address)
+			GlobalContractCode.Delete(ethcmn.BytesToHash(so.CodeHash()))
 		}
 		GlobalContractObjs.Delete(so.address)
 	}
