@@ -25,7 +25,7 @@ import (
 
 const (
 	FlagEnableTxPool      = "enable-tx-pool"
-	TxPoolSliceMaxLen     = "tx-pool-cap"
+	TxPoolCap             = "tx-pool-cap"
 	BroadcastPeriodSecond = "broadcast-period-second"
 	txPoolDb              = "tx_pool"
 )
@@ -36,14 +36,13 @@ var broadcastErrors = map[uint32]*sdkerrors.Error{
 	sdkerrors.ErrTxTooLarge.ABCICode():       sdkerrors.ErrTxTooLarge,
 }
 
-var txPoolSliceMaxLen uint64
-
-
 type TxPool struct {
-	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
-	clientCtx      clientcontext.CLIContext
-	db             tmdb.DB
-	mu             sync.Mutex
+	addressTxsPool    map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
+	clientCtx         clientcontext.CLIContext
+	db                tmdb.DB
+	mu                sync.Mutex
+	cap               uint64
+	broadcastInterval time.Duration
 }
 
 func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPool {
@@ -51,13 +50,13 @@ func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPo
 	if err != nil {
 		panic(err)
 	}
-
-	txPoolSliceMaxLen = viper.GetUint64(TxPoolSliceMaxLen)
-
+	interval := time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond))
 	pool := &TxPool{
-		addressTxsPool: make(map[common.Address][]*evmtypes.MsgEthereumTx),
-		clientCtx:      clientCtx,
-		db:             db,
+		addressTxsPool:    make(map[common.Address][]*evmtypes.MsgEthereumTx),
+		clientCtx:         clientCtx,
+		db:                db,
+		cap:               viper.GetUint64(TxPoolCap),
+		broadcastInterval: interval,
 	}
 
 	if err = pool.initDB(api); err != nil {
@@ -151,7 +150,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
 	}
 
-	if tx.Data.AccountNonce > currentNonce + txPoolSliceMaxLen {
+	if tx.Data.AccountNonce > currentNonce+pool.cap {
 		return fmt.Errorf("AccountNonce of tx is bigger than txPool capacity, please try later: AccountNonce[%d]", tx.Data.AccountNonce)
 	}
 
@@ -187,7 +186,7 @@ func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEt
 func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// if this is the first time to insertTx, make the cap of txPool be TxPoolSliceMaxLen
 	if _, ok := pool.addressTxsPool[address]; !ok {
-		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, txPoolSliceMaxLen)
+		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, pool.cap)
 	}
 	index := 0
 	for index < len(pool.addressTxsPool[address]) {
@@ -232,7 +231,7 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			// tx has err, and err is not mempoolfull, the tx should be dropped
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
-			pool.dropTxs(i + 1, address)
+			pool.dropTxs(i+1, address)
 		} else {
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			pool.dropTxs(i, address)
@@ -244,8 +243,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 }
 
 // drop [0:index) txs in txpool
-func (pool *TxPool)dropTxs(index int, address common.Address) {
-	tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]), txPoolSliceMaxLen)
+func (pool *TxPool) dropTxs(index int, address common.Address) {
+	tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]), pool.cap)
 	copy(tmp, pool.addressTxsPool[address][index:])
 	pool.addressTxsPool[address] = tmp
 }
@@ -301,7 +300,7 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 
 func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
-		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
+		time.Sleep(pool.broadcastInterval)
 		pool.broadcastPeriodCore(api)
 	}
 }
