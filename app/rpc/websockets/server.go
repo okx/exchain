@@ -167,9 +167,10 @@ func (s *Server) readLoop(wsConn *wsConn) {
 		}
 
 		var msg map[string]interface{}
-		err = json.Unmarshal(mb, &msg)
-		if err != nil {
-			s.sendErrResponse(wsConn, "invalid request")
+		if err = json.Unmarshal(mb, &msg); err != nil {
+			if err = s.batchCall(mb, wsConn); err != nil {
+				s.sendErrResponse(wsConn, "invalid request")
+			}
 			continue
 		}
 
@@ -288,4 +289,25 @@ func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
 	defer s.connPoolLock.Unlock()
 	<-s.connPool
 	s.currentConnNum.Set(float64(len(s.connPool)))
+}
+
+func (s *Server) batchCall(mb []byte, wsConn *wsConn) error {
+	var msgs []interface{}
+	if err := json.Unmarshal(mb, &msgs); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(msgs); i++ {
+		b, err := json.Marshal(msgs[i])
+		if err != nil {
+			s.sendErrResponse(wsConn, err.Error())
+			continue
+		}
+
+		err = s.tcpGetAndSendResponse(wsConn, b)
+		if err != nil {
+			s.sendErrResponse(wsConn, err.Error())
+		}
+	}
+	return nil
 }

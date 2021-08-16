@@ -50,8 +50,8 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer    = "gas-limit-buffer"
-	CacheOfEthCallLru     = 40960
+	FlagGasLimitBuffer = "gas-limit-buffer"
+	CacheOfEthCallLru  = 40960
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -609,6 +609,11 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	// send chanData to txPool
+	if api.txPool != nil {
+		return broadcastTxByTxPool(api, tx, txBytes)
+	}
+
 	// Broadcast transaction in sync mode (default)
 	// NOTE: If error is encountered on the node, the broadcast will not return an error
 	res, err := api.clientCtx.BroadcastTx(txBytes)
@@ -644,7 +649,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	// send chanData to txPool
-	if viper.GetBool(FlagEnableTxPool) {
+	if api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -731,13 +736,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
-
-	if args.From == nil {
-		addrs, err := api.accounts()
-		if err == nil && len(addrs) > 0 {
-			addr = addrs[0]
-		}
-	} else {
+	if args.From != nil {
 		addr = *args.From
 	}
 
@@ -933,7 +932,8 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		// check if the tx is on the mempool
 		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
 		if pendingErr != nil {
-			return nil, err
+			//to keep consistent with rpc of ethereum, should be return nil
+			return nil, nil
 		}
 		return pendingTx, nil
 	}
@@ -1245,15 +1245,13 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 		gasPrice = ParseGasPrice().ToInt()
 	}
 
-	// get the nonce from the account retriever and the pending transactions
-	nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if args.Nonce != nil {
-		if nonce != (uint64)(*args.Nonce) {
-			return nil, fmt.Errorf(fmt.Sprintf("invalid nonce; got %d, expected %d", (uint64)(*args.Nonce), nonce))
+	if args.Nonce != nil && (uint64)(*args.Nonce) > 0 {
+		nonce = (uint64)(*args.Nonce)
+	} else {
+		// get the nonce from the account retriever and the pending transactions
+		nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
+		if err != nil {
+			return nil, err
 		}
 	}
 
