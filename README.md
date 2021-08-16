@@ -23,7 +23,7 @@ Refer to the [documentation](https://okexchain-docs.readthedocs.io/en/latest/ind
   
 ___
 - [Join the testnet](https://github.com/okex/testnet/blob/main/README.md)
-- [如何启动测试网网节点](https://forum.okt.club/d/179)
+- [如何启动测试网节点](https://forum.okt.club/d/179)
 
 
 
