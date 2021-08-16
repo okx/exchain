@@ -91,10 +91,10 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	ws.Start()
 
 	// pending tx watcher
-	kafkaAddr := viper.GetString(FlagKafkaAddr)
+	kafkaAddrs := viper.GetString(FlagKafkaAddr)
 	kafkaTopic := viper.GetString(FlagKafkaTopic)
-	if kafkaAddr != "" && kafkaTopic != "" {
-		kafkaClient := pendingtx.NewKafkaClient(kafkaAddr, kafkaTopic)
+	if kafkaAddrs != "" && kafkaTopic != "" {
+		kafkaClient := pendingtx.NewKafkaClient(strings.Split(kafkaAddrs, ","), kafkaTopic)
 		ptw := pendingtx.NewWatcher(rs.CliCtx, rs.Logger(), kafkaClient)
 		ptw.Start()
 	}

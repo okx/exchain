@@ -13,11 +13,11 @@ type KafkaClient struct {
 	*kafka.Writer
 }
 
-func NewKafkaClient(addr, topic string) *KafkaClient {
+func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 	return &KafkaClient{
 		Topic: topic,
 		Writer: kafka.NewWriter(kafka.WriterConfig{
-			Brokers:  []string{addr},
+			Brokers:  addrs,
 			Topic:    topic,
 			Balancer: &kafka.LeastBytes{},
 		}),
