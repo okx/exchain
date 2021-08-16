@@ -44,8 +44,8 @@ func compactCmd(ctx *server.Context) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolP(flagBlock, "b", true, "Pruning block and state DB")
-	cmd.Flags().BoolP(flagApp, "a", true, "Pruning application DB")
+	cmd.Flags().BoolP(flagBlock, "b", true, "Compact block and state DB")
+	cmd.Flags().BoolP(flagApp, "a", true, "Compact application DB")
 	return cmd
 }
 
