@@ -46,14 +46,11 @@ baseLdflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
 baseLdflags += $(LDFLAGS)
 baseLdflags := $(strip $(baseLdflags))
 
-ldflags = $(baseLdflags)
-ldflags += -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight)
+ldflags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight)
 
-ldTestnetFlags = $(baseLdflags)
-ldTestnetFlags += -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818
+ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818
 
-ldMainnetFlags = $(baseLdflags)
-ldMainnetFlags += -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
+ldMainnetFlags += $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
