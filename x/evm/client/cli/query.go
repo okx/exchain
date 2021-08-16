@@ -36,6 +36,15 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	return evmQueryCmd
 }
 
+func add0xPrefix(al types.AddressList)[]string{
+    var res []string;
+    for i := 0; i < len(al); i++ {
+        res = append(res, fmt.Sprintf("0x%v", al[i].String()));
+    }
+
+    return res
+}
+
 // GetCmdQueryContractBlockedList gets the contract blocked list query command.
 func GetCmdQueryContractBlockedList(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
@@ -61,7 +70,7 @@ $ %s query evm contract-blocked-list
 
 			var blockedList types.AddressList
 			cdc.MustUnmarshalJSON(bz, &blockedList)
-			return cliCtx.PrintOutput(blockedList)
+			return cliCtx.PrintOutput(add0xPrefix(blockedList))
 		},
 	}
 }
