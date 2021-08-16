@@ -38,6 +38,13 @@ import (
 	"github.com/okex/exchain/x/token"
 )
 
+const (
+	flagBlock = "block"
+	flagApp   = "app"
+	flagStart = "start"
+	flagEnd   = "end"
+)
+
 func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pruning",
@@ -55,17 +62,37 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			baseHeight := blockStore.Base()
 			size := blockStore.Size()
 			retainHeight := baseHeight + size - 2
-			log.Printf("baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
+			log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
-			wg.Add(3)
-			go pruneBlocks(blockStore, baseHeight, retainHeight)
-			go pruneStates(stateDB, baseHeight, retainHeight)
-			go pruneApp(appDB, baseHeight, retainHeight)
+			start := viper.GetInt64(flagStart)
+			if start < baseHeight || start >= retainHeight {
+				start = baseHeight
+			}
+			end := viper.GetInt64(flagEnd)
+			if end <= start || end >= retainHeight || end <= baseHeight {
+				end = retainHeight
+			}
+			log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+
+			if viper.GetBool(flagBlock) {
+				wg.Add(2)
+				go pruneBlocks(blockStore, start, end)
+				go pruneStates(stateDB, start, end)
+			}
+			if viper.GetBool(flagApp) {
+				wg.Add(1)
+				go pruneApp(appDB, start, end)
+			}
 			wg.Wait()
 			log.Println("--------- pruning end ---------")
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolP(flagBlock, "b", true, "Pruning block and state DB")
+	cmd.Flags().BoolP(flagApp, "a", true, "Pruning application DB")
+	cmd.Flags().Int64P(flagStart, "s", -1, "Pruning from the start height")
+	cmd.Flags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
 
 	return cmd
 }
@@ -93,7 +120,7 @@ func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stat
 func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 	defer wg.Done()
 
-	log.Printf("Prune blocks [%d,%d)", from, to)
+	log.Printf("Prune blocks [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
@@ -103,15 +130,14 @@ func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
 
-	log.Printf("pruned blocks: %d, retainHeight: %d\n", pruned, to)
-	log.Printf("new block store base: %d, block store size: %d\n", blockStore.Base(), blockStore.Size())
+	log.Printf("Prune blocks end: pruned: %d, new base: %d, block len:%d\n", pruned, blockStore.Base(), blockStore.Size())
 }
 
 // pruneStates deletes states between the given heights (including from, excluding to).
 func pruneStates(stateDB dbm.DB, from, to int64) {
 	defer wg.Done()
 
-	log.Printf("Prune states [%d,%d)", from, to)
+	log.Printf("Prune states [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
@@ -119,13 +145,14 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 	if err := sm.PruneStates(stateDB, from, to); err != nil {
 		panic(fmt.Errorf("failed to prune state database: %w", err))
 	}
+	log.Println("Prune states end!")
 }
 
 // pruneApp deletes app states between the given heights (including from, excluding to).
 func pruneApp(appDB dbm.DB, from, to int64) {
 	defer wg.Done()
 
-	log.Printf("Prune app store [%d,%d)", from, to)
+	log.Printf("Prune app store [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
@@ -164,6 +191,7 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	}
 
 	rs.FlushPruneHeights(make([]int64, 0), versions)
+	log.Println("Prune app store end!")
 }
 
 func initAppStore(appDB dbm.DB) *rootmulti.Store {
