@@ -932,7 +932,8 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		// check if the tx is on the mempool
 		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
 		if pendingErr != nil {
-			return nil, err
+			//to keep consistent with rpc of ethereum, should be return nil
+			return nil, nil
 		}
 		return pendingTx, nil
 	}
