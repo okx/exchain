@@ -39,9 +39,13 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 func add0xPrefix(al types.AddressList)[]string{
     var res []string;
     for i := 0; i < len(al); i++ {
-        res = append(res, fmt.Sprintf("0x%v", al[i].String()));
+        // decode from bech32 when using cosmos address
+        str, err := accountToHex(al[i].String());
+        if err != nil {
+            continue
+        }
+        res = append(res, str)
     }
-
     return res
 }
 
