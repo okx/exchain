@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v0.18.13
+Version=v0.18.18
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -33,23 +33,30 @@ build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
 
-ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
+baseLdflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
 	-X $(GithubTop)/cosmos/cosmos-sdk/version.Name=$(Name) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags) \
-  -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
+  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
 
+baseLdflags += $(LDFLAGS)
+baseLdflags := $(strip $(baseLdflags))
 
-ldflags += $(LDFLAGS)
-ldflags := $(strip $(ldflags))
+ldflags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight)
+
+ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818
+
+ldMainnetFlags += $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
+
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-BUILD_TESTNET_FLAGS := $(BUILD_FLAGS)
+BUILD_TESTNET_FLAGS := -ldflags '$(ldTestnetFlags)'  -gcflags "all=-N -l"
+BUILD_MAINNET_FLAGS := -ldflags '$(ldMainnetFlags)'  -gcflags "all=-N -l"
+
 
 all: install
 
@@ -59,9 +66,13 @@ exchain:
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
 	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
 
+mainnet:
+	go install -v $(BUILD_MAINNET_FLAGS) -tags "" ./cmd/exchaind
+	go install -v $(BUILD_MAINNET_FLAGS) -tags "" ./cmd/exchaincli
+
 testnet:
-	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
-	go install -v $(BUILD_TESTNET_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "" ./cmd/exchaind
+	go install -v $(BUILD_TESTNET_FLAGS) -tags "" ./cmd/exchaincli
 
 test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./app/...
