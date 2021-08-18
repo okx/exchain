@@ -26,7 +26,6 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/rpc"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
@@ -71,9 +70,6 @@ func main() {
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		client.ValidateChainID(
-			rpc.ServeCmd(cdc),
-		),
 		flags.LineBreak,
 		client.KeyCommands(),
 		flags.LineBreak,
