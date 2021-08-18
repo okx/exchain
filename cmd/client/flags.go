@@ -39,8 +39,11 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(token.FlagOSSObjectPath, "", "The OSS object path")
 
 	cmd.Flags().Bool(eth.FlagEnableTxPool, false, "Enable the function of txPool to support concurrency call eth_sendRawTransaction")
-	cmd.Flags().Uint64(eth.TxPoolSliceMaxLen, 10000, "Set the txPool slice max length")
+	cmd.Flags().Uint64(eth.TxPoolCap, 10000, "Set the txPool slice max length")
 	cmd.Flags().Int(eth.BroadcastPeriodSecond, 10, "every BroadcastPeriodSecond second check the txPool, and broadcast when it's eligible")
 
 	cmd.Flags().Bool(rpc.FlagEnableMonitor, false, "Enable the rpc monitor and register rpc metrics to prometheus")
+
+	cmd.Flags().String(rpc.FlagKafkaAddr, "", "The address of kafka cluster to consume pending txs")
+	cmd.Flags().String(rpc.FlagKafkaTopic, "", "The topic that the kafka writer will produce messages to")
 }
