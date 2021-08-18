@@ -503,11 +503,15 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getCode", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNumber)
-	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
+	height := blockNumber.Int64()
+	if blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber {
+		height, _ = api.backend.LatestBlockNumber()
+	}
+	code, err := api.wrappedBackend.GetCode(address, uint64(height))
 	if err == nil {
 		return code, nil
 	}
-	clientCtx := api.clientCtx.WithHeight(blockNumber.Int64())
+	clientCtx := api.clientCtx.WithHeight(height)
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
