@@ -133,9 +133,9 @@ func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	return fee
 }
 
-func (msg MsgEthereumTx) FeePayer() sdk.AccAddress {
+func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
-	_, err := msg.VerifySig(msg.ChainID())
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
 	if err != nil {
 		return nil
 	}
@@ -343,11 +343,15 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Address, error) {
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
+		if sdk.HigherThanMars(height) {
+			return ethcmn.Address{}, errors.New("deprecated support for homestead Signer")
+		}
+
 		signer = ethtypes.HomesteadSigner{}
 	}
 
@@ -470,7 +474,7 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 
 	// Verify signature and retrieve sender address
-	from, err := msg.VerifySig(chainIDEpoch)
+	from, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return exTxInfo
 	}

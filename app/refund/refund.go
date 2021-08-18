@@ -57,7 +57,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (err error) {
 		return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be a FeeTx")
 	}
 
-	feePayer := feeTx.FeePayer()
+	feePayer := feeTx.FeePayer(ctx)
 	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
 	if feePayerAcc == nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)

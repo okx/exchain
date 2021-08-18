@@ -18,6 +18,7 @@ ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
 MercuryHeight=0
+MarsHeight=5000000
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -42,6 +43,7 @@ baseLdflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
+  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MARS_HEIGHT=$(MarsHeight) \
 
 baseLdflags += $(LDFLAGS)
 baseLdflags := $(strip $(baseLdflags))
