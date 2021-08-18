@@ -50,7 +50,7 @@ ldflags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockH
 
 ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818
 
-ldMainnetFlags += $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
+ldMainnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
