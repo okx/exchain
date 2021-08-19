@@ -1,11 +1,12 @@
 package config
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
 
+	cmconfig "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/spf13/viper"
+	tmconfig "github.com/tendermint/tendermint/config"
 )
 
 type OecConfig struct {
@@ -35,6 +36,8 @@ type OecConfig struct {
 	dynamicGpWeight int
 }
 
+const FlagEnableDynamic = "config.enable-dynamic"
+
 var oecConfig *OecConfig
 var once sync.Once
 
@@ -48,17 +51,19 @@ func GetOecConfig() *OecConfig {
 func NewOecConfig() *OecConfig {
 	c := &OecConfig{}
 	c.loadFromConfig()
-	fmt.Printf("%+v\n", c)
-	c.loadFromApollo()
-	fmt.Printf("%+v\n", c)
 
-	//go func() {
-	//	for {
-	//		time.Sleep(5 * time.Second)
-	//		fmt.Printf("%+v\n", c)
-	//	}
-	//}()
+	if viper.GetBool(FlagEnableDynamic) {
+		c.loadFromApollo()
+	}
+
 	return c
+}
+
+func RegisterDynamicConfig() {
+	// set the dynamic config
+	oecConfig := GetOecConfig()
+	cmconfig.SetDynamicConfig(oecConfig)
+	tmconfig.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -161,6 +166,9 @@ func (c *OecConfig) GetMempoolSize() int {
 }
 
 func (c *OecConfig) SetMempoolSize(value int) {
+	if value < 0 {
+		return
+	}
 	c.mempoolSize = value
 }
 
@@ -222,5 +230,10 @@ func (c *OecConfig) GetDynamicGpWeight() int {
 	return c.dynamicGpWeight
 }
 func (c *OecConfig) SetDynamicGpWeight(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
 	c.dynamicGpWeight = value
 }

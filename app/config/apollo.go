@@ -2,11 +2,16 @@ package config
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/apolloconfig/agollo/v4"
 	"github.com/apolloconfig/agollo/v4/env/config"
 	"github.com/apolloconfig/agollo/v4/storage"
 )
+
+const FlagApollo = "config.apollo"
 
 type ApolloClient struct {
 	Namespace string
@@ -15,12 +20,18 @@ type ApolloClient struct {
 }
 
 func NewApolloClient(oecConf *OecConfig) *ApolloClient {
+	// IP|Cluster|AppID|NamespaceName
+	params := strings.Split(viper.GetString(FlagApollo), "|")
+	if len(params) != 4 {
+		panic("failed init apollo: invalid connection config")
+	}
+
 	c := &config.AppConfig{
-		AppID:          "okexchain",
-		Cluster:        "dev",
-		IP:             "http://service-apollo-config-server-dev.apollo-dev.svc.base.local:8080",
-		NamespaceName:  "rpc-node",
-		IsBackupConfig: true,
+		IP:             params[0],
+		Cluster:        params[1],
+		AppID:          params[2],
+		NamespaceName:  params[3],
+		IsBackupConfig: false,
 		//Secret:         "",
 	}
 
@@ -32,7 +43,7 @@ func NewApolloClient(oecConf *OecConfig) *ApolloClient {
 	}
 
 	apc := &ApolloClient{
-		"rpc-node",
+		params[3],
 		client,
 		oecConf,
 	}
@@ -47,11 +58,14 @@ func (a *ApolloClient) LoadConfig() {
 		a.oecConf.update(key, value)
 		return true
 	})
+	cache.Clear()
 }
 
 func (c *OecConfig) OnChange(changeEvent *storage.ChangeEvent) {
 	for key, value := range changeEvent.Changes {
-		c.update(key, value.NewValue)
+		if value.ChangeType != storage.DELETED {
+			c.update(key, value.NewValue)
+		}
 	}
 }
 

@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
@@ -46,4 +47,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().String(rpc.FlagKafkaAddr, "", "The address of kafka cluster to consume pending txs")
 	cmd.Flags().String(rpc.FlagKafkaTopic, "", "The topic that the kafka writer will produce messages to")
+
+	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
+	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|Cluster|AppID|NamespaceName) for dynamic configuration")
 }
