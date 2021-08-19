@@ -49,11 +49,16 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pruning",
 		Short: "Pruning blocks",
+	}
+
+	pruningAppStateCmd := &cobra.Command{
+		Use:   "state",
+		Short: "Pruning application state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 			log.Println("--------- pruning start ---------")
-			blockStoreDB, stateDB, appDB, err := initDBs(config, node.DefaultDBProvider)
+			blockStoreDB, _, appDB, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
@@ -74,25 +79,55 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			}
 			log.Printf("Pruning info: start=%d, end=%d\n", start, end)
 
-			if viper.GetBool(flagBlock) {
-				wg.Add(2)
-				go pruneBlocks(blockStore, start, end)
-				go pruneStates(stateDB, start, end)
-			}
-			if viper.GetBool(flagApp) {
-				wg.Add(1)
-				go pruneApp(appDB, start, end)
-			}
-			wg.Wait()
+            wg.Add(1)
+			go pruneApp(appDB, start, end)
+            wg.Wait()
 			log.Println("--------- pruning end ---------")
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolP(flagBlock, "b", true, "Pruning block and state DB")
-	cmd.Flags().BoolP(flagApp, "a", true, "Pruning application DB")
-	cmd.Flags().Int64P(flagStart, "s", -1, "Pruning from the start height")
-	cmd.Flags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
+	pruningBlockStateCmd := &cobra.Command{
+		Use:   "block",
+		Short: "Pruning blocks and states",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+			log.Println("--------- pruning start ---------")
+			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
+			if err != nil {
+				return err
+			}
+
+			blockStore := store.NewBlockStore(blockStoreDB)
+			baseHeight := blockStore.Base()
+			size := blockStore.Size()
+			retainHeight := baseHeight + size - 2
+			log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
+
+			start := viper.GetInt64(flagStart)
+			if start < baseHeight || start >= retainHeight {
+				start = baseHeight
+			}
+			end := viper.GetInt64(flagEnd)
+			if end <= start || end >= retainHeight || end <= baseHeight {
+				end = retainHeight
+			}
+			log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+
+            wg.Add(2)
+			go pruneBlocks(blockStore, start, end)
+			go pruneStates(stateDB, start, end)
+            wg.Wait()
+			log.Println("--------- pruning end ---------")
+			return nil
+		},
+	}
+
+	cmd.PersistentFlags().Int64P(flagStart, "s", -1, "Pruning from the start height")
+	cmd.PersistentFlags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
+
+    cmd.AddCommand(pruningAppStateCmd, pruningBlockStateCmd)
 	return cmd
 }
 
@@ -135,7 +170,6 @@ func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 // pruneStates deletes states between the given heights (including from, excluding to).
 func pruneStates(stateDB dbm.DB, from, to int64) {
 	defer wg.Done()
-
 	log.Printf("Prune states [%d,%d)...", from, to)
 	if to <= from {
 		return
@@ -149,8 +183,7 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 
 // pruneApp deletes app states between the given heights (including from, excluding to).
 func pruneApp(appDB dbm.DB, from, to int64) {
-	defer wg.Done()
-
+    defer wg.Done()
 	if to <= from {
 		return
 	}
@@ -166,14 +199,16 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	}
 	pruneHeights := rs.GetPruningHeights()
 
+    // remained heights
+    newVersion :=make([]int64, 0)
 	for _, v := range versions {
-		if v >= to {
-			break
+		if v >= to || v< from {
+            newVersion = append(newVersion, v)
+			continue
 		}
 		pruneHeights = append(pruneHeights, v)
-		versions = versions[1:]
 	}
-	log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, versions, pruneHeights)
+	log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, newVersion, pruneHeights)
 
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
@@ -188,7 +223,7 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	}
 
 	pruneHeights = make([]int64, 0)
-	rs.FlushPruneHeights(pruneHeights, versions)
+	rs.FlushPruneHeights(pruneHeights, newVersion)
 	log.Println("Prune app store end!")
 }
 
