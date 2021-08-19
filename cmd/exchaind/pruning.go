@@ -124,7 +124,7 @@ func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 		return
 	}
 
-	pruned, err := blockStore.PruneBlocks(to)
+	pruned, err := blockStore.PruneRange(from, to)
 	if err != nil {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
