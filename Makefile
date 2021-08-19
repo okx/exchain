@@ -18,7 +18,6 @@ ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
 MercuryHeight=0
-MarsHeight=5000000
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -41,18 +40,18 @@ baseLdflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MARS_HEIGHT=$(MarsHeight) \
+  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" 
 
 baseLdflags += $(LDFLAGS)
 baseLdflags := $(strip $(baseLdflags))
 
 ldflags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight)
 
-ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818
+ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=1121818 \
+   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=5300000
 
-ldMainnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600
+ldMainnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600 \
+  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=5000000
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
