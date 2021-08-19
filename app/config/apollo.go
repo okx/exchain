@@ -20,17 +20,17 @@ type ApolloClient struct {
 }
 
 func NewApolloClient(oecConf *OecConfig) *ApolloClient {
-	// IP|Cluster|AppID|NamespaceName
+	// IP|AppID|NamespaceName
 	params := strings.Split(viper.GetString(FlagApollo), "|")
-	if len(params) != 4 {
+	if len(params) != 3 {
 		panic("failed init apollo: invalid connection config")
 	}
 
 	c := &config.AppConfig{
 		IP:             params[0],
-		Cluster:        params[1],
-		AppID:          params[2],
-		NamespaceName:  params[3],
+		AppID:          params[1],
+		NamespaceName:  params[2],
+		Cluster:        "default",
 		IsBackupConfig: false,
 		//Secret:         "",
 	}
@@ -43,7 +43,7 @@ func NewApolloClient(oecConf *OecConfig) *ApolloClient {
 	}
 
 	apc := &ApolloClient{
-		params[3],
+		params[2],
 		client,
 		oecConf,
 	}
@@ -52,13 +52,15 @@ func NewApolloClient(oecConf *OecConfig) *ApolloClient {
 	return apc
 }
 
-func (a *ApolloClient) LoadConfig() {
+func (a *ApolloClient) LoadConfig() (loaded bool) {
 	cache := a.GetConfigCache(a.Namespace)
 	cache.Range(func(key, value interface{}) bool {
+		loaded = true
+
 		a.oecConf.update(key, value)
 		return true
 	})
-	cache.Clear()
+	return
 }
 
 func (c *OecConfig) OnChange(changeEvent *storage.ChangeEvent) {

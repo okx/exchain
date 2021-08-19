@@ -53,7 +53,10 @@ func NewOecConfig() *OecConfig {
 	c.loadFromConfig()
 
 	if viper.GetBool(FlagEnableDynamic) {
-		c.loadFromApollo()
+		loaded := c.loadFromApollo()
+		if !loaded {
+			panic("failed to connect apollo or no config items in apollo")
+		}
 	}
 
 	return c
@@ -80,9 +83,9 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetDynamicGpWeight(viper.GetInt("dynamic-gp-weight"))
 }
 
-func (c *OecConfig) loadFromApollo() {
+func (c *OecConfig) loadFromApollo() bool {
 	client := NewApolloClient(c)
-	client.LoadConfig()
+	return client.LoadConfig()
 }
 
 func (c *OecConfig) update(key, value interface{}) {

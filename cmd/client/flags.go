@@ -49,5 +49,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagKafkaTopic, "", "The topic that the kafka writer will produce messages to")
 
 	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
-	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|Cluster|AppID|NamespaceName) for dynamic configuration")
+	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 }

@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	cm "github.com/cosmos/cosmos-sdk/server/config"
 	tm "github.com/tendermint/tendermint/config"
@@ -11,13 +12,19 @@ import (
 func TestConfig(t *testing.T) {
 	c := GetOecConfig()
 
-	tm.SetConfig(c)
-	cm.SetConfig(c)
-	require.Equal(t, int64(5000), cm.DynamicConfig.GetMaxOpen())
-	require.Equal(t, int64(300), tm.DynamicConfig.GetTpb())
+	tm.SetDynamicConfig(c)
+	cm.SetDynamicConfig(c)
+	require.Equal(t, false, cm.DynamicConfig.GetMempoolRecheck())
+	require.Equal(t, 0, tm.DynamicConfig.GetMempoolSize())
 
-	c.SetMaxOpen(3000)
-	c.SetTpb(150)
-	require.Equal(t, int64(3000), cm.DynamicConfig.GetMaxOpen())
-	require.Equal(t, int64(150), tm.DynamicConfig.GetTpb())
+	c.SetMempoolRecheck(true)
+	c.SetMempoolSize(150)
+	require.Equal(t, true, cm.DynamicConfig.GetMempoolRecheck())
+	require.Equal(t, 150, tm.DynamicConfig.GetMempoolSize())
+}
+
+func TestApollo(t *testing.T) {
+	oecConf := GetOecConfig()
+	client := NewApolloClient(oecConf)
+	client.LoadConfig()
 }
