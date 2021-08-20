@@ -324,9 +324,7 @@ func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 		}
 		currentNonce := uint64(*pCurrentNonce)
 
-		if err = pool.continueBroadcast(api, currentNonce, address); err != nil {
-			pool.logger.Error(err.Error())
-		}
+		pool.continueBroadcast(api, currentNonce, address)
 	}
 }
 
@@ -340,8 +338,6 @@ func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 		}
 		currentNonce := uint64(*pCurrentNonce)
 
-		if err = pool.continueBroadcast(api, currentNonce, address); err != nil {
-			pool.logger.Error(err.Error())
-		}
+		pool.continueBroadcast(api, currentNonce, address)
 	}
 }
