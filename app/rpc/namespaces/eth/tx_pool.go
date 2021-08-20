@@ -170,7 +170,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		pool.logger.Error(err.Error())
 	}
 
-	return err
+	return nil
 }
 
 func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEthereumTx) error {
