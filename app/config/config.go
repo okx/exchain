@@ -78,37 +78,37 @@ func (c *OecConfig) update(key, value interface{}) {
 	case "mempool.recheck":
 		r, err := strconv.ParseBool(v)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetMempoolRecheck(r)
 	case "mempool.force_recheck_gap":
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetMempoolForceRecheckGap(r)
 	case "mempool.size":
 		r, err := strconv.Atoi(v)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetMempoolSize(r)
 	case "gas-limit-buffer":
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetGasLimitBuffer(r)
 	case "enable-dynamic-gp":
 		r, err := strconv.ParseBool(v)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetEnableDynamicGp(r)
 	case "dynamic-gp-weight":
 		r, err := strconv.Atoi(v)
 		if err != nil {
-			panic(err)
+			return
 		}
 		c.SetDynamicGpWeight(r)
 	}
