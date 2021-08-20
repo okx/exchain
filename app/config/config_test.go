@@ -22,9 +22,3 @@ func TestConfig(t *testing.T) {
 	require.Equal(t, true, cm.DynamicConfig.GetMempoolRecheck())
 	require.Equal(t, 150, tm.DynamicConfig.GetMempoolSize())
 }
-
-func TestApollo(t *testing.T) {
-	oecConf := GetOecConfig()
-	client := NewApolloClient(oecConf)
-	client.LoadConfig()
-}
