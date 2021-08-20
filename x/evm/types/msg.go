@@ -348,7 +348,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
-		if sdk.HigherThanMars(height) {
+		if sdk.HigherThanMercury(height) {
 			return ethcmn.Address{}, errors.New("deprecated support for homestead Signer")
 		}
 
