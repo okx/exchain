@@ -51,7 +51,7 @@ ldTestnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.star
    -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=5300000
 
 ldMainnetFlags = $(baseLdflags) -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=2322600 \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=5000000
+  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=5060000
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
