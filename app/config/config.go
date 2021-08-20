@@ -17,17 +17,6 @@ type OecConfig struct {
 	// mempool.size
 	mempoolSize int
 
-	// log_level
-	logLevel string
-
-	// rpc.disable-api
-	rpcDisableApi string
-	// rpc.rate-limit-api
-	rpcRateLimitApi string
-	// rpc.rate-limit-burst
-	rpcRateLimitBurst int
-	// rpc.rate-limit-count
-	rpcRateLimitCount int
 	// gas-limit-buffer
 	gasLimitBuffer uint64
 	// enable-dynamic-gp
@@ -73,11 +62,6 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool("mempool.recheck"))
 	c.SetMempoolForceRecheckGap(viper.GetInt64("mempool.force_recheck_gap"))
 	c.SetMempoolSize(viper.GetInt("mempool.size"))
-	c.SetLogLevel(viper.GetString("log_level"))
-	c.SetRpcDisableApi(viper.GetString("rpc.disable-api"))
-	c.SetRpcRateLimitApi(viper.GetString("rpc.rate-limit-api"))
-	c.SetRpcRateLimitBurst(viper.GetInt("rpc.rate-limit-burst"))
-	c.SetRpcRateLimitCount(viper.GetInt("rpc.rate-limit-count"))
 	c.SetGasLimitBuffer(viper.GetUint64("gas-limit-buffer"))
 	c.SetEnableDynamicGp(viper.GetBool("enable-dynamic-gp"))
 	c.SetDynamicGpWeight(viper.GetInt("dynamic-gp-weight"))
@@ -109,24 +93,6 @@ func (c *OecConfig) update(key, value interface{}) {
 			panic(err)
 		}
 		c.SetMempoolSize(r)
-	case "log_level":
-		c.SetLogLevel(v)
-	case "rpc.disable-api":
-		c.SetRpcDisableApi(v)
-	case "rpc.rate-limit-api":
-		c.SetRpcRateLimitApi(v)
-	case "rpc.rate-limit-burst":
-		r, err := strconv.Atoi(v)
-		if err != nil {
-			panic(err)
-		}
-		c.SetRpcRateLimitBurst(r)
-	case "rpc.rate-limit-count":
-		r, err := strconv.Atoi(v)
-		if err != nil {
-			panic(err)
-		}
-		c.SetRpcRateLimitCount(r)
 	case "gas-limit-buffer":
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -173,46 +139,6 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
-}
-
-func (c *OecConfig) GetLogLevel() string {
-	return c.logLevel
-}
-
-func (c *OecConfig) SetLogLevel(value string) {
-	c.logLevel = value
-}
-
-func (c *OecConfig) GetRpcDisableApi() string {
-	return c.rpcDisableApi
-}
-
-func (c *OecConfig) SetRpcDisableApi(value string) {
-	c.rpcDisableApi = value
-}
-
-func (c *OecConfig) GetRpcRateLimitApi() string {
-	return c.rpcRateLimitApi
-}
-
-func (c *OecConfig) SetRpcRateLimitApi(value string) {
-	c.rpcRateLimitApi = value
-}
-
-func (c *OecConfig) GetRpcRateLimitBurst() int {
-	return c.rpcRateLimitBurst
-}
-
-func (c *OecConfig) SetRpcRateLimitBurst(value int) {
-	c.rpcRateLimitBurst = value
-}
-
-func (c *OecConfig) GetRpcRateLimitCount() int {
-	return c.rpcRateLimitCount
-}
-
-func (c *OecConfig) SetRpcRateLimitCount(value int) {
-	c.rpcRateLimitCount = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {

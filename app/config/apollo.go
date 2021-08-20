@@ -47,7 +47,7 @@ func NewApolloClient(oecConf *OecConfig) *ApolloClient {
 		client,
 		oecConf,
 	}
-	client.AddChangeListener(oecConf)
+	client.AddChangeListener(&CustomChangeListener{oecConf})
 
 	return apc
 }
@@ -63,14 +63,18 @@ func (a *ApolloClient) LoadConfig() (loaded bool) {
 	return
 }
 
-func (c *OecConfig) OnChange(changeEvent *storage.ChangeEvent) {
+type CustomChangeListener struct {
+	oecConf *OecConfig
+}
+
+func (c *CustomChangeListener) OnChange(changeEvent *storage.ChangeEvent) {
 	for key, value := range changeEvent.Changes {
 		if value.ChangeType != storage.DELETED {
-			c.update(key, value.NewValue)
+			c.oecConf.update(key, value.NewValue)
 		}
 	}
 }
 
-func (c *OecConfig) OnNewestChange(event *storage.FullChangeEvent) {
+func (c *CustomChangeListener) OnNewestChange(event *storage.FullChangeEvent) {
 	return
 }
