@@ -1073,7 +1073,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID())
+	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
 	if err != nil {
 		return nil, err
 	}

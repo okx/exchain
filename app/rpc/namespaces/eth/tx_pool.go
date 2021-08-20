@@ -126,7 +126,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	from, err := tx.VerifySig(chainIDEpoch)
+	from, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height)
 	if err != nil {
 		return common.Hash{}, err
 	}
