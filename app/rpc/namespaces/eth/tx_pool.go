@@ -134,7 +134,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
-		api.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
+		api.txPool.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
 		return common.Hash{}, err
 	}
 
