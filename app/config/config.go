@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"sync"
 
-	cmconfig "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/spf13/viper"
 	tmconfig "github.com/tendermint/tendermint/config"
+
+	"github.com/spf13/viper"
 )
 
 type OecConfig struct {
@@ -54,7 +54,6 @@ func NewOecConfig() *OecConfig {
 func RegisterDynamicConfig() {
 	// set the dynamic config
 	oecConfig := GetOecConfig()
-	cmconfig.SetDynamicConfig(oecConfig)
 	tmconfig.SetDynamicConfig(oecConfig)
 }
 
@@ -127,6 +126,9 @@ func (c *OecConfig) GetMempoolForceRecheckGap() int64 {
 }
 
 func (c *OecConfig) SetMempoolForceRecheckGap(value int64) {
+	if value <= 0 {
+		return
+	}
 	c.mempoolForceRecheckGap = value
 }
 
