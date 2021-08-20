@@ -166,9 +166,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return err
 	}
 
-	if err = pool.continueBroadcast(api, currentNonce, address); err != nil {
-		pool.logger.Error(err.Error())
-	}
+	_ = pool.continueBroadcast(api, currentNonce, address)
 
 	return nil
 }
@@ -244,6 +242,7 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			pool.dropTxs(i, address)
 		}
+		pool.logger.Error(err.Error())
 	}
 
 	return err
