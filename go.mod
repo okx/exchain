@@ -20,6 +20,8 @@ require (
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
@@ -56,7 +58,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain11
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain12
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain9
 )
