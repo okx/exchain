@@ -80,11 +80,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
 	if !st.Simulate {
-		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
+		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()))
 		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.Prepare(ethHash, k.Bhash, int(ctx.EvmTransactionIndex()))
 		st.Csdb.SetLogSize(k.LogSize)
-		k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)
@@ -120,7 +119,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		if !st.Simulate {
-			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
 		return nil, err
 	}
@@ -129,7 +128,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
-		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
 			st.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 				k.Watcher.SaveContractCode(addr, c.Code)
@@ -204,9 +203,8 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	if !st.Simulate {
 		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
+		st.Csdb.Prepare(ethHash, k.Bhash, int(ctx.EvmTransactionIndex()))
 		st.Csdb.SetLogSize(k.LogSize)
-		k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)

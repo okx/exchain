@@ -42,7 +42,6 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
-	TxCount int
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
@@ -72,7 +71,6 @@ func NewKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
-		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
@@ -97,7 +95,6 @@ func NewSimulateKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
-		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),

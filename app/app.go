@@ -433,6 +433,7 @@ func NewOKExChainApp(
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
+	app.InitTxChecker()
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
@@ -509,6 +510,18 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
+}
+
+func (app *OKExChainApp) InitTxChecker() {
+	app.SetTxChecker(func(tx sdk.Tx) bool {
+		if tx != nil {
+			switch tx.(type) {
+			case evmtypes.MsgEthereumTx:
+				return true
+			}
+		}
+		return false
+	})
 }
 
 // LoadHeight loads state at a particular height
