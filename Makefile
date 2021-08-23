@@ -38,7 +38,7 @@ ifeq ($(MAKECMDGOALS),mainnet)
    MercuryHeight=5100000
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
-   MercuryHeight=5300000
+   MercuryHeight=5280000
 endif
 
 ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
