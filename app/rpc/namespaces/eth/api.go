@@ -50,8 +50,8 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer    = "gas-limit-buffer"
-	CacheOfEthCallLru     = 40960
+	FlagGasLimitBuffer = "gas-limit-buffer"
+	CacheOfEthCallLru  = 40960
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -503,11 +503,15 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getCode", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNumber)
-	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
+	height := blockNumber.Int64()
+	if blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber {
+		height, _ = api.backend.LatestBlockNumber()
+	}
+	code, err := api.wrappedBackend.GetCode(address, uint64(height))
 	if err == nil {
 		return code, nil
 	}
-	clientCtx := api.clientCtx.WithHeight(blockNumber.Int64())
+	clientCtx := api.clientCtx.WithHeight(height)
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
@@ -609,6 +613,11 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
+	// send chanData to txPool
+	if api.txPool != nil {
+		return broadcastTxByTxPool(api, tx, txBytes)
+	}
+
 	// Broadcast transaction in sync mode (default)
 	// NOTE: If error is encountered on the node, the broadcast will not return an error
 	res, err := api.clientCtx.BroadcastTx(txBytes)
@@ -644,7 +653,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 
 	// send chanData to txPool
-	if viper.GetBool(FlagEnableTxPool) {
+	if api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -731,13 +740,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Set sender address or use a default if none specified
 	var addr common.Address
-
-	if args.From == nil {
-		addrs, err := api.accounts()
-		if err == nil && len(addrs) > 0 {
-			addr = addrs[0]
-		}
-	} else {
+	if args.From != nil {
 		addr = *args.From
 	}
 
@@ -933,7 +936,8 @@ func (api *PublicEthereumAPI) GetTransactionByHash(hash common.Hash) (*rpctypes.
 		// check if the tx is on the mempool
 		pendingTx, pendingErr := api.PendingTransactionsByHash(hash)
 		if pendingErr != nil {
-			return nil, err
+			//to keep consistent with rpc of ethereum, should be return nil
+			return nil, nil
 		}
 		return pendingTx, nil
 	}
@@ -1069,7 +1073,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID())
+	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1245,15 +1249,13 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 		gasPrice = ParseGasPrice().ToInt()
 	}
 
-	// get the nonce from the account retriever and the pending transactions
-	nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if args.Nonce != nil {
-		if nonce != (uint64)(*args.Nonce) {
-			return nil, fmt.Errorf(fmt.Sprintf("invalid nonce; got %d, expected %d", (uint64)(*args.Nonce), nonce))
+	if args.Nonce != nil && (uint64)(*args.Nonce) > 0 {
+		nonce = (uint64)(*args.Nonce)
+	} else {
+		// get the nonce from the account retriever and the pending transactions
+		nonce, err = api.accountNonce(api.clientCtx, *args.From, true)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -1342,22 +1344,23 @@ func (api *PublicEthereumAPI) accountNonce(
 	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
-	from := sdk.AccAddress(address.Bytes())
+	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
-	if err == nil {
-		return acc.GetSequence(), nil
+	if err == nil { // account in watch db
+		 nonce = acc.GetSequence()
+	} else {
+		// use a the given client context in case its wrapped with a custom height
+		accRet := authtypes.NewAccountRetriever(clientCtx)
+		from := sdk.AccAddress(address.Bytes())
+		account, err := accRet.GetAccount(from)
+		if err != nil {
+			// account doesn't exist yet, return 0
+			return 0, nil
+		}
+		nonce = account.GetSequence()
+		api.watcherBackend.CommitAccountToRpcDb(account)
 	}
-	// use a the given client context in case its wrapped with a custom height
-	accRet := authtypes.NewAccountRetriever(clientCtx)
 
-	account, err := accRet.GetAccount(from)
-	if err != nil {
-		// account doesn't exist yet, return 0
-		return 0, nil
-	}
-
-	nonce := account.GetSequence()
-	api.watcherBackend.CommitAccountToRpcDb(account)
 	if !pending {
 		return nonce, nil
 	}
@@ -1365,10 +1368,9 @@ func (api *PublicEthereumAPI) accountNonce(
 	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
 	// to manually add them.
 	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
-	if err != nil {
-		return 0, err
+	if err == nil {
+		nonce += uint64(pendingTxs)
 	}
-	nonce += uint64(pendingTxs)
 
 	return nonce, nil
 }

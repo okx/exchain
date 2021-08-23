@@ -16,19 +16,15 @@ This repository hosts `ExChain`, the implementation of the ExChain based on the 
 **Note**: Requires [Go 1.14](https://golang.org/dl/)
 
 ## Getting Started
-See the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).
+Refer to the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).
 
-## ExChain Testnet
+- [Join the mainnet](https://github.com/okex/mainnet/blob/main/README.md)
+- [如何启动主网节点](https://forum.okt.club/d/174)
+  
+___
+- [Join the testnet](https://github.com/okex/testnet/blob/main/README.md)
+- [如何启动测试网节点](https://forum.okt.club/d/179)
 
-To run a full-node for the testnet of the ExChain, first [install `exchaind`](https://okexchain-docs.readthedocs.io/en/latest/getting-start/install-okexchain.html), then follow [the guide](https://okexchain-docs.readthedocs.io/en/latest/getting-start/join-okexchain-testnet.html).
-
-For status updates and genesis file, see the [genesis](https://okexchain-docs.readthedocs.io/en/latest/getting-start/join-okexchain-testnet.html#genesis-seeds).
-
-## Quick Start
-
-```
-make install
-```
 
 
 
