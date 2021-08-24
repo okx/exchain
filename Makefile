@@ -54,9 +54,6 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-BUILD_TESTNET_FLAGS := -ldflags '$(ldTestnetFlags)'  -gcflags "all=-N -l"
-BUILD_MAINNET_FLAGS := -ldflags '$(ldMainnetFlags)'  -gcflags "all=-N -l"
-
 
 all: install
 
