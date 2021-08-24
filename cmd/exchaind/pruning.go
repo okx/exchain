@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -18,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/node"
 	sm "github.com/tendermint/tendermint/state"
@@ -39,11 +41,12 @@ import (
 )
 
 const (
-	flagBlock = "block"
-	flagApp   = "app"
-	flagStart = "start"
-	flagEnd   = "end"
+	flagStart   = "start"
+	flagEnd     = "end"
+	flagPruning = "pruning"
 )
+
+var wg sync.WaitGroup
 
 func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -57,32 +60,42 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			log.Println("--------- pruning start ---------")
 			blockStoreDB, _, appDB, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
 
-			blockStore := store.NewBlockStore(blockStoreDB)
-			baseHeight := blockStore.Base()
-			size := blockStore.Size()
-			retainHeight := baseHeight + size - 2
-			log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
+			if viper.GetBool(flagPruning) {
+				log.Println("--------- pruning start ---------")
+				blockStore := store.NewBlockStore(blockStoreDB)
+				baseHeight := blockStore.Base()
+				size := blockStore.Size()
+				retainHeight := baseHeight + size - 2
+				log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
-			start := viper.GetInt64(flagStart)
-			if start < baseHeight || start >= retainHeight {
-				start = baseHeight
-			}
-			end := viper.GetInt64(flagEnd)
-			if end <= start || end >= retainHeight || end <= baseHeight {
-				end = retainHeight
-			}
-			log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+				start := viper.GetInt64(flagStart)
+				if start < baseHeight || start >= retainHeight {
+					start = baseHeight
+				}
+				end := viper.GetInt64(flagEnd)
+				if end <= start || end >= retainHeight || end <= baseHeight {
+					end = retainHeight
+				}
+				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
 
-            wg.Add(1)
-			go pruneApp(appDB, start, end)
-            wg.Wait()
-			log.Println("--------- pruning end ---------")
+				wg.Add(1)
+				go pruneApp(appDB, start, end)
+				wg.Wait()
+				log.Println("--------- pruning end ---------")
+			}
+
+			// sync before compact
+			log.Println("--------- compact start ---------")
+			wg.Add(1)
+			go compactDB(appDB)
+			wg.Wait()
+			log.Println("--------- compact end ---------")
+
 			return nil
 		},
 	}
@@ -99,26 +112,37 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 				return err
 			}
 
-			blockStore := store.NewBlockStore(blockStoreDB)
-			baseHeight := blockStore.Base()
-			size := blockStore.Size()
-			retainHeight := baseHeight + size - 2
-			log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
+			if viper.GetBool(flagPruning) {
+				blockStore := store.NewBlockStore(blockStoreDB)
+				baseHeight := blockStore.Base()
+				size := blockStore.Size()
+				retainHeight := baseHeight + size - 2
+				log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
-			start := viper.GetInt64(flagStart)
-			if start < baseHeight || start >= retainHeight {
-				start = baseHeight
-			}
-			end := viper.GetInt64(flagEnd)
-			if end <= start || end >= retainHeight || end <= baseHeight {
-				end = retainHeight
-			}
-			log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+				start := viper.GetInt64(flagStart)
+				if start < baseHeight || start >= retainHeight {
+					start = baseHeight
+				}
+				end := viper.GetInt64(flagEnd)
+				if end <= start || end >= retainHeight || end <= baseHeight {
+					end = retainHeight
+				}
+				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
 
-            wg.Add(2)
-			go pruneBlocks(blockStore, start, end)
-			go pruneStates(stateDB, start, end)
-            wg.Wait()
+				wg.Add(2)
+				go pruneBlocks(blockStore, start, end)
+				go pruneStates(stateDB, start, end)
+				wg.Wait()
+			}
+
+			// sync before compact
+			log.Println("--------- compact start ---------")
+			wg.Add(2)
+			go compactDB(blockStoreDB)
+			go compactDB(stateDB)
+			wg.Wait()
+			log.Println("--------- compact end ---------")
+
 			log.Println("--------- pruning end ---------")
 			return nil
 		},
@@ -126,8 +150,9 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 
 	cmd.PersistentFlags().Int64P(flagStart, "s", -1, "Pruning from the start height")
 	cmd.PersistentFlags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", false, "enable Pruning")
 
-    cmd.AddCommand(pruningAppStateCmd, pruningBlockStateCmd)
+	cmd.AddCommand(pruningAppStateCmd, pruningBlockStateCmd)
 	return cmd
 }
 
@@ -183,7 +208,7 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 
 // pruneApp deletes app states between the given heights (including from, excluding to).
 func pruneApp(appDB dbm.DB, from, to int64) {
-    defer wg.Done()
+	defer wg.Done()
 	if to <= from {
 		return
 	}
@@ -199,11 +224,11 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	}
 	pruneHeights := rs.GetPruningHeights()
 
-    // remained heights
-    newVersion :=make([]int64, 0)
+	// remained heights
+	newVersion := make([]int64, 0)
 	for _, v := range versions {
-		if v >= to || v< from {
-            newVersion = append(newVersion, v)
+		if v >= to || v < from {
+			newVersion = append(newVersion, v)
 			continue
 		}
 		pruneHeights = append(pruneHeights, v)
@@ -258,4 +283,10 @@ func initAppStore(appDB dbm.DB) *rootmulti.Store {
 	}
 
 	return rs
+}
+
+func compactDB(db dbm.DB) {
+	defer wg.Done()
+	err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
+	panicError(err)
 }

@@ -82,7 +82,6 @@ func main() {
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
         dataCmd(ctx),
-		compactCmd(ctx),
 		exportAppCmd(ctx),
 	)
 
