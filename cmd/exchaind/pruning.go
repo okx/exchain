@@ -106,13 +106,13 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			log.Println("--------- pruning start ---------")
 			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
 			if err != nil {
 				return err
 			}
 
 			if viper.GetBool(flagPruning) {
+			log.Println("--------- pruning start ---------")
 				blockStore := store.NewBlockStore(blockStoreDB)
 				baseHeight := blockStore.Base()
 				size := blockStore.Size()
@@ -133,6 +133,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 				go pruneBlocks(blockStore, start, end)
 				go pruneStates(stateDB, start, end)
 				wg.Wait()
+			    log.Println("--------- pruning end ---------")
 			}
 
 			// sync before compact
@@ -143,7 +144,6 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 
-			log.Println("--------- pruning end ---------")
 			return nil
 		},
 	}
@@ -200,7 +200,8 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 		return
 	}
 
-	if err := sm.PruneStates(stateDB, from, to); err != nil {
+    // v2 will not fail when the block at 'from' is pruned already
+	if err := sm.PruneStatesV2(stateDB, from, to); err != nil {
 		panic(fmt.Errorf("failed to prune state database: %w", err))
 	}
 	log.Println("Prune states end!")
