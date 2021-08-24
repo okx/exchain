@@ -50,13 +50,13 @@ var wg sync.WaitGroup
 
 func pruningCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "pruning",
-		Short: "Pruning blocks",
+		Use:   "compact",
+		Short: "Compact blocks and application states",
 	}
 
 	pruningAppStateCmd := &cobra.Command{
 		Use:   "state",
-		Short: "Pruning application state",
+		Short: "Compact while pruning application state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
@@ -64,14 +64,13 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+            keysNumBefore := calcKeysNum(appDB)
 
 			if viper.GetBool(flagPruning) {
-				log.Println("--------- pruning start ---------")
 				blockStore := store.NewBlockStore(blockStoreDB)
 				baseHeight := blockStore.Base()
 				size := blockStore.Size()
 				retainHeight := baseHeight + size - 2
-				log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
 				start := viper.GetInt64(flagStart)
 				if start < baseHeight || start >= retainHeight {
@@ -86,7 +85,9 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 				wg.Add(1)
 				go pruneApp(appDB, start, end)
 				wg.Wait()
-				log.Println("--------- pruning end ---------")
+
+                keysNumAfter := calcKeysNum(appDB)
+			    log.Printf("number of keys is changed from %d -> %d\n", keysNumBefore, keysNumAfter)
 			}
 
 			// sync before compact
@@ -96,13 +97,14 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 
+
 			return nil
 		},
 	}
 
 	pruningBlockStateCmd := &cobra.Command{
 		Use:   "block",
-		Short: "Pruning blocks and states",
+		Short: "Compact while pruning blocks and states",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
@@ -110,14 +112,13 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+            keysNumBefore := calcKeysNum(blockStoreDB)
 
 			if viper.GetBool(flagPruning) {
-			log.Println("--------- pruning start ---------")
 				blockStore := store.NewBlockStore(blockStoreDB)
 				baseHeight := blockStore.Base()
 				size := blockStore.Size()
 				retainHeight := baseHeight + size - 2
-				log.Printf("Data info: baseHeight=%d, size=%d, retainHeight=%d\n", baseHeight, size, retainHeight)
 
 				start := viper.GetInt64(flagStart)
 				if start < baseHeight || start >= retainHeight {
@@ -127,13 +128,21 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 				if end <= start || end >= retainHeight || end <= baseHeight {
 					end = retainHeight
 				}
-				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
 
+				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+                // calc number of blocks
+                validBlocksBefore, _ := blockStore.GetValidBlocks(1, blockStore.Height()+1)
+
+				log.Println("--------- pruning start ---------")
 				wg.Add(2)
 				go pruneBlocks(blockStore, start, end)
 				go pruneStates(stateDB, start, end)
 				wg.Wait()
-			    log.Println("--------- pruning end ---------")
+				log.Println("--------- pruning end ---------")
+                validBlocksAfter, _ := blockStore.GetValidBlocks(1, blockStore.Height()+1)
+                keysNumAfter := calcKeysNum(blockStoreDB)
+                log.Printf("number of blocks is changed from %d -> %d\n", len(validBlocksBefore), len(validBlocksAfter))
+                log.Printf("number of keys is changed from %d -> %d\n", keysNumBefore, keysNumAfter)
 			}
 
 			// sync before compact
@@ -143,6 +152,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 			go compactDB(stateDB)
 			wg.Wait()
 			log.Println("--------- compact end ---------")
+
 
 			return nil
 		},
@@ -184,12 +194,12 @@ func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
 		return
 	}
 
-	pruned, err := blockStore.PruneRange(from, to)
+	_, err := blockStore.PruneRange(from, to)
 	if err != nil {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
 
-	log.Printf("Prune blocks end: pruned: %d, new base: %d, block len:%d\n", pruned, blockStore.Base(), blockStore.Size())
+	// log.Printf("Prune blocks end: pruned: %d, new base: %d, block len:%d\n", pruned, blockStore.Base(), blockStore.Size())
 }
 
 // pruneStates deletes states between the given heights (including from, excluding to).
@@ -200,7 +210,7 @@ func pruneStates(stateDB dbm.DB, from, to int64) {
 		return
 	}
 
-    // v2 will not fail when the block at 'from' is pruned already
+	// v2 will not fail when the block at 'from' is pruned already
 	if err := sm.PruneStatesV2(stateDB, from, to); err != nil {
 		panic(fmt.Errorf("failed to prune state database: %w", err))
 	}
@@ -223,6 +233,8 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	if len(versions) == 0 {
 		return
 	}
+    numVersionBefore := len(versions)
+	log.Println("--------- pruning start ---------")
 	pruneHeights := rs.GetPruningHeights()
 
 	// remained heights
@@ -234,7 +246,7 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 		}
 		pruneHeights = append(pruneHeights, v)
 	}
-	log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, newVersion, pruneHeights)
+	// log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, newVersion, pruneHeights)
 
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
@@ -250,7 +262,8 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 
 	pruneHeights = make([]int64, 0)
 	rs.FlushPruneHeights(pruneHeights, newVersion)
-	log.Println("Prune app store end!")
+	log.Println("--------- pruning end ---------")
+    log.Printf("number of application states versions is changed from %d -> %d\n", numVersionBefore, len(newVersion))
 }
 
 func initAppStore(appDB dbm.DB) *rootmulti.Store {
@@ -290,4 +303,17 @@ func compactDB(db dbm.DB) {
 	defer wg.Done()
 	err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
 	panicError(err)
+}
+
+func calcKeysNum(db dbm.DB) uint64 {
+	var keys uint64
+	iter, err := db.Iterator(nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	for ; iter.Valid(); iter.Next() {
+		keys++
+	}
+	iter.Close()
+	return keys
 }
