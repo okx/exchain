@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -41,198 +42,233 @@ import (
 )
 
 const (
-	flagStart   = "start"
-	flagEnd     = "end"
-	flagPruning = "pruning"
+	flagHeight  = "height"
+	flagPruning = "enable_pruning"
+
+	blockDBName = "blockstore"
+	stateDBName = "state"
+	appDBName   = "application"
 )
 
 var wg sync.WaitGroup
 
-func pruningCmd(ctx *server.Context) *cobra.Command {
+func dataCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "compact",
-		Short: "Compact blocks and application states",
+		Use:   "data",
+		Short: "modify data or query data in database",
 	}
 
-	pruningAppStateCmd := &cobra.Command{
+	cmd.AddCommand(pruningCmd(ctx), queryCmd(ctx))
+
+	return cmd
+}
+
+func pruningCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "prune-compact",
+		Short: "Prune and Compact blocks and application states",
+	}
+
+	cmd.AddCommand(pruneAllCmd(ctx),
+		pruneAppCmd(ctx),
+		pruneBlockCmd(ctx),
+	)
+
+	return cmd
+}
+
+func pruneAllCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "all",
+		Short: "Compact both application states and blocks",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			blockStoreDB := initDB(config, blockDBName)
+			stateDB := initDB(config, stateDBName)
+			appDB := initDB(config, appDBName)
+
+			if viper.GetBool(flagPruning) {
+				baseHeight, retainHeight := getPruneBlockParams(blockStoreDB)
+
+				log.Println("--------- pruning start... ---------")
+				wg.Add(3)
+				go pruneBlocks(blockStoreDB, baseHeight, retainHeight)
+				go pruneStates(stateDB, baseHeight, retainHeight)
+				go pruneApp(appDB, baseHeight, retainHeight)
+				wg.Wait()
+				log.Println("--------- pruning end!!!   ---------")
+			}
+
+			log.Println("--------- compact start... ---------")
+			wg.Add(3)
+			go compactDB(blockStoreDB, blockDBName)
+			go compactDB(stateDB, stateDBName)
+			go compactDB(appDB, appDBName)
+			wg.Wait()
+			log.Println("--------- compact end!!!   ---------")
+
+			return nil
+		},
+	}
+
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
+
+	return cmd
+}
+
+func pruneAppCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "state",
 		Short: "Compact while pruning application state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			blockStoreDB, _, appDB, err := initDBs(config, node.DefaultDBProvider)
-			if err != nil {
-				return err
-			}
-            keysNumBefore := calcKeysNum(appDB)
+
+			appDB := initDB(config, appDBName)
 
 			if viper.GetBool(flagPruning) {
-				blockStore := store.NewBlockStore(blockStoreDB)
-				baseHeight := blockStore.Base()
-				size := blockStore.Size()
-				retainHeight := baseHeight + size - 2
-
-				start := viper.GetInt64(flagStart)
-				if start < baseHeight || start >= retainHeight {
-					start = baseHeight
-				}
-				end := viper.GetInt64(flagEnd)
-				if end <= start || end >= retainHeight || end <= baseHeight {
-					end = retainHeight
-				}
-				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
+				retainHeight := getPruneAppParams(appDB)
 
 				wg.Add(1)
-				go pruneApp(appDB, start, end)
+				go pruneApp(appDB, 1, retainHeight)
 				wg.Wait()
-
-                keysNumAfter := calcKeysNum(appDB)
-			    log.Printf("number of keys is changed from %d -> %d\n", keysNumBefore, keysNumAfter)
 			}
 
-			// sync before compact
 			log.Println("--------- compact start ---------")
 			wg.Add(1)
-			go compactDB(appDB)
+			go compactDB(appDB, appDBName)
 			wg.Wait()
 			log.Println("--------- compact end ---------")
-
 
 			return nil
 		},
 	}
 
-	pruningBlockStateCmd := &cobra.Command{
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
+
+	return cmd
+}
+
+func pruneBlockCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "block",
 		Short: "Compact while pruning blocks and states",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			blockStoreDB, stateDB, _, err := initDBs(config, node.DefaultDBProvider)
-			if err != nil {
-				return err
-			}
-            keysNumBefore := calcKeysNum(blockStoreDB)
+
+			blockStoreDB := initDB(config, blockDBName)
+			stateDB := initDB(config, stateDBName)
 
 			if viper.GetBool(flagPruning) {
-				blockStore := store.NewBlockStore(blockStoreDB)
-				baseHeight := blockStore.Base()
-				size := blockStore.Size()
-				retainHeight := baseHeight + size - 2
+				baseHeight, retainHeight := getPruneBlockParams(blockStoreDB)
 
-				start := viper.GetInt64(flagStart)
-				if start < baseHeight || start >= retainHeight {
-					start = baseHeight
-				}
-				end := viper.GetInt64(flagEnd)
-				if end <= start || end >= retainHeight || end <= baseHeight {
-					end = retainHeight
-				}
-
-				log.Printf("Pruning info: start=%d, end=%d\n", start, end)
-                // calc number of blocks
-                validBlocksBefore, _ := blockStore.GetValidBlocks(1, blockStore.Height()+1)
-
-				log.Println("--------- pruning start ---------")
+				log.Println("--------- pruning start... ---------")
 				wg.Add(2)
-				go pruneBlocks(blockStore, start, end)
-				go pruneStates(stateDB, start, end)
+				go pruneBlocks(blockStoreDB, baseHeight, retainHeight)
+				go pruneStates(stateDB, baseHeight, retainHeight)
 				wg.Wait()
-				log.Println("--------- pruning end ---------")
-                validBlocksAfter, _ := blockStore.GetValidBlocks(1, blockStore.Height()+1)
-                keysNumAfter := calcKeysNum(blockStoreDB)
-                log.Printf("number of blocks is changed from %d -> %d\n", len(validBlocksBefore), len(validBlocksAfter))
-                log.Printf("number of keys is changed from %d -> %d\n", keysNumBefore, keysNumAfter)
+				log.Println("--------- pruning end!!!   ---------")
 			}
 
-			// sync before compact
-			log.Println("--------- compact start ---------")
+			log.Println("--------- compact start... ---------")
 			wg.Add(2)
-			go compactDB(blockStoreDB)
-			go compactDB(stateDB)
+			go compactDB(blockStoreDB, blockDBName)
+			go compactDB(stateDB, stateDBName)
 			wg.Wait()
-			log.Println("--------- compact end ---------")
-
+			log.Println("--------- compact end!!!   ---------")
 
 			return nil
 		},
 	}
 
-    pruningAllCmd := &cobra.Command{
-		Use:   "all",
-		Short: "Compact both application states and blocks",
-		RunE: func(cmd *cobra.Command, args []string) error {
-            err:=pruningAppStateCmd.RunE(cmd, args)
-            if err!=nil{
-                return nil
-            }
-            err=pruningBlockStateCmd.RunE(cmd, args)
-            return err
-        },
-    }
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
 
-	cmd.PersistentFlags().Int64P(flagStart, "s", -1, "Pruning from the start height")
-	cmd.PersistentFlags().Int64P(flagEnd, "e", -1, "Pruning to the end height")
-	cmd.PersistentFlags().BoolP(flagPruning, "p", false, "enable Pruning")
-
-	cmd.AddCommand(pruningAppStateCmd, pruningBlockStateCmd, pruningAllCmd)
 	return cmd
 }
 
-func initDBs(config *cfg.Config, dbProvider node.DBProvider) (blockStoreDB, stateDB, appDB dbm.DB, err error) {
-	blockStoreDB, err = dbProvider(&node.DBContext{"blockstore", config})
-	if err != nil {
-		return
-	}
+func getPruneBlockParams(blockStoreDB dbm.DB) (baseHeight, retainHeight int64) {
+	baseHeight, size := getBlockInfo(blockStoreDB)
 
-	stateDB, err = dbProvider(&node.DBContext{"state", config})
-	if err != nil {
-		return
-	}
-
-	appDB, err = dbProvider(&node.DBContext{"application", config})
-	if err != nil {
-		return
+	retainHeight = viper.GetInt64(flagHeight)
+	if retainHeight >= baseHeight+size-1 || retainHeight <= baseHeight {
+		retainHeight = baseHeight + size - 2
 	}
 
 	return
 }
 
+func getPruneAppParams(appDB dbm.DB) (retainHeight int64) {
+	rs := initAppStore(appDB)
+	latestV := rs.GetLatestVersion()
+
+	retainHeight = viper.GetInt64(flagHeight)
+	if retainHeight >= latestV || retainHeight <= 1 {
+		retainHeight = latestV - 1
+	}
+
+	return
+}
+
+func initDB(config *cfg.Config, dbName string) dbm.DB {
+	if dbName != blockDBName && dbName != stateDBName && dbName != appDBName {
+		panic(fmt.Sprintf("unknow db name:%s", dbName))
+	}
+
+	db, err := node.DefaultDBProvider(&node.DBContext{dbName, config})
+	panicError(err)
+
+	return db
+}
+
 // pruneBlocks deletes blocks between the given heights (including from, excluding to).
-func pruneBlocks(blockStore *store.BlockStore, from, to int64) {
+func pruneBlocks(blockStoreDB dbm.DB, baseHeight, retainHeight int64) {
 	defer wg.Done()
 
-	log.Printf("Prune blocks [%d,%d)...", from, to)
-	if to <= from {
+	log.Printf("Prune blocks [%d,%d)...", baseHeight, retainHeight)
+	if retainHeight <= baseHeight {
 		return
 	}
 
-	_, err := blockStore.PruneRange(from, to)
+	baseHeightBefore, sizeBefore := getBlockInfo(blockStoreDB)
+	start := time.Now()
+	_, err := store.NewBlockStore(blockStoreDB).PruneBlocks(retainHeight)
 	if err != nil {
 		panic(fmt.Errorf("failed to prune block store: %w", err))
 	}
 
-	// log.Printf("Prune blocks end: pruned: %d, new base: %d, block len:%d\n", pruned, blockStore.Base(), blockStore.Size())
+	baseHeightAfter, sizeAfter := getBlockInfo(blockStoreDB)
+	log.Printf("Block db info [baseHeight,size]: [%d,%d] --> [%d,%d]\n", baseHeightBefore, sizeBefore, baseHeightAfter, sizeAfter)
+	log.Printf("Prune blocks done in %v \n", time.Since(start))
 }
 
 // pruneStates deletes states between the given heights (including from, excluding to).
 func pruneStates(stateDB dbm.DB, from, to int64) {
 	defer wg.Done()
+
 	log.Printf("Prune states [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
 
-	// v2 will not fail when the block at 'from' is pruned already
-	if err := sm.PruneStatesV2(stateDB, from, to); err != nil {
+	start := time.Now()
+	if err := sm.PruneStates(stateDB, from, to); err != nil {
 		panic(fmt.Errorf("failed to prune state database: %w", err))
 	}
-	log.Println("Prune states end!")
+
+	log.Printf("Prune states done in %v \n", time.Since(start))
 }
 
 // pruneApp deletes app states between the given heights (including from, excluding to).
 func pruneApp(appDB dbm.DB, from, to int64) {
 	defer wg.Done()
+
+	log.Printf("Prune applcation [%d,%d)...", from, to)
 	if to <= from {
 		return
 	}
@@ -246,37 +282,48 @@ func pruneApp(appDB dbm.DB, from, to int64) {
 	if len(versions) == 0 {
 		return
 	}
-    numVersionBefore := len(versions)
-	log.Println("--------- pruning start ---------")
 	pruneHeights := rs.GetPruningHeights()
 
-	// remained heights
-	newVersion := make([]int64, 0)
-	for _, v := range versions {
+	newVersions := make([]int64, 0)
+	newPruneHeights := make([]int64, 0)
+	deleteVersions := make([]int64, 0)
+
+	for _, v := range pruneHeights {
 		if v >= to || v < from {
-			newVersion = append(newVersion, v)
+			newPruneHeights = append(newPruneHeights, v)
 			continue
 		}
-		pruneHeights = append(pruneHeights, v)
+		deleteVersions = append(deleteVersions, v)
 	}
-	// log.Printf("Prune app store: LatestVersion=%d,Versions=%v PruneHeights=%v", latestV, newVersion, pruneHeights)
 
+	for _, v := range versions {
+		if v >= to || v < from {
+			newVersions = append(newVersions, v)
+			continue
+		}
+		deleteVersions = append(deleteVersions, v)
+	}
+	log.Printf("Prune application: Versions=%v, PruneVersions=%v", len(versions)+len(pruneHeights), len(deleteVersions))
+
+	keysNumBefore, kvSizeBefore := calcKeysNum(appDB)
+	start := time.Now()
 	for key, store := range rs.GetStores() {
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 
-			if err := store.(*iavl.Store).DeleteVersions(pruneHeights...); err != nil {
+			if err := store.(*iavl.Store).DeleteVersions(deleteVersions...); err != nil {
 				log.Printf("failed to delete version: %s", err)
 			}
 		}
 	}
 
-	pruneHeights = make([]int64, 0)
-	rs.FlushPruneHeights(pruneHeights, newVersion)
-	log.Println("--------- pruning end ---------")
-    log.Printf("number of application states versions is changed from %d -> %d\n", numVersionBefore, len(newVersion))
+	rs.FlushPruneHeights(newPruneHeights, newVersions)
+
+	keysNumAfter, kvSizeAfter := calcKeysNum(appDB)
+	log.Printf("Application db key info [keysNum,kvSize]: [%d,%d] --> [%d,%d]\n", keysNumBefore, kvSizeBefore, keysNumAfter, kvSizeAfter)
+	log.Printf("Prune application done in %v \n", time.Since(start))
 }
 
 func initAppStore(appDB dbm.DB) *rootmulti.Store {
@@ -312,25 +359,38 @@ func initAppStore(appDB dbm.DB) *rootmulti.Store {
 	return rs
 }
 
-func compactDB(db dbm.DB) {
+func compactDB(db dbm.DB, name string) {
 	defer wg.Done()
-	err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
-	panicError(err)
+
+	log.Printf("Compact %s... \n", name)
+	start := time.Now()
+	for i := 0; i < 5; i++ {
+		err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
+		panicError(err)
+	}
+
+	log.Printf("Compact %s done in %v \n", name, time.Since(start))
 }
 
-func calcKeysNum(db dbm.DB) uint64 {
-	var keys uint64
+func calcKeysNum(db dbm.DB) (keys, kvSize uint64) {
 	iter, err := db.Iterator(nil, nil)
 	if err != nil {
 		panic(err)
 	}
 	for ; iter.Valid(); iter.Next() {
 		keys++
+		kvSize += uint64(len(iter.Key())) + uint64(len(iter.Value()))
 	}
 	iter.Close()
-	return keys
+	return
 }
 
+func getBlockInfo(blockStoreDB dbm.DB) (baseHeight, size int64) {
+	blockStore := store.NewBlockStore(blockStoreDB)
+	baseHeight = blockStore.Base()
+	size = blockStore.Size()
+	return
+}
 
 func queryCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -340,26 +400,14 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 
 	queryBlockState := &cobra.Command{
 		Use:   "block",
-		Short: "Query blocks and states in database",
+		Short: "Query blocks heights in db",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			blockStoreDB, _, _, err := initDBs(config, node.DefaultDBProvider)
-			if err != nil {
-				return err
-			}
 
+			blockStoreDB := initDB(config, blockDBName)
 			blockStore := store.NewBlockStore(blockStoreDB)
-			height := blockStore.Height()
-			if blockStore.Base() == 0 {
-				return fmt.Errorf("base of blockStore cannot be zero, may be wrong path is used.")
-			}
-
-			list, err := blockStore.GetValidBlocks(1, height+1)
-			if err != nil {
-				return err
-			}
-			log.Printf("Block Info: %v\n", list)
+			fmt.Printf("[%d ~ %d]\n", blockStore.Base(), blockStore.Height())
 
 			return nil
 		},
@@ -367,34 +415,22 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 
 	queryAppState := &cobra.Command{
 		Use:   "state",
-		Short: "Query application states info in database",
+		Short: "Query application states version in db",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
-			_, _, appStateDB, err := initDBs(config, node.DefaultDBProvider)
-			if err != nil {
-				return err
-			}
+			appStateDB := initDB(config, appDBName)
 
 			rs := initAppStore(appStateDB)
 			versions := rs.GetVersions()
-			log.Printf("appState Info: %v\n", versions)
+			pruneHeights := rs.GetPruningHeights()
+
+			fmt.Printf("%v\n", append(pruneHeights, versions...))
 			return nil
 		},
 	}
 
 	cmd.AddCommand(queryBlockState, queryAppState)
-
-	return cmd
-}
-
-func dataCmd(ctx *server.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "data",
-		Short: "modify data or query data in database",
-	}
-
-	cmd.AddCommand(pruningCmd(ctx), queryCmd(ctx))
 
 	return cmd
 }
