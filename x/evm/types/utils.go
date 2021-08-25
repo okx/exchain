@@ -49,6 +49,15 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
+func prefixedRlpHash(prefix byte, x interface{}) (hash ethcmn.Hash) {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte{prefix})
+	_ = rlp.Encode(hasher, x)
+	_ = hasher.Sum(hash[:0])
+
+	return hash
+}
+
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
 	ContractAddress ethcmn.Address  `json:"contract_address"`

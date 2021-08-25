@@ -9,6 +9,15 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
+// AccessList is an EIP-2930 access list.
+type AccessList []AccessTuple
+
+// AccessTuple is the element type of an access list.
+type AccessTuple struct {
+	Address     ethcmn.Address `json:"address"        gencodec:"required"`
+	StorageKeys []ethcmn.Hash  `json:"storageKeys"    gencodec:"required"`
+}
+
 // TxData implements the Ethereum transaction data structure. It is used
 // solely as intended in Ethereum abiding by the protocol.
 type TxData struct {
@@ -18,6 +27,13 @@ type TxData struct {
 	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
 	Amount       *big.Int        `json:"value"`
 	Payload      []byte          `json:"input"`
+	//
+	//GasTipCap *hexutil.Big    `json:"maxPriorityFeePerGas"`
+	//GasFeeCap         *hexutil.Big    `json:"maxFeePerGas"`
+	//
+	//// Access list transaction fields:
+	//ChainID    *hexutil.Big `json:"chainId,omitempty"`
+	//AccessList *AccessList  `json:"accessList,omitempty"`
 
 	// signature values
 	V *big.Int `json:"v"`
@@ -26,6 +42,40 @@ type TxData struct {
 
 	// hash is only used when marshaling to JSON
 	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+}
+
+type DynamicFeeTx struct {
+	ChainID    *big.Int
+	Nonce      uint64
+	GasTipCap  *big.Int
+	GasFeeCap  *big.Int
+	Gas        uint64
+	To         *ethcmn.Address `rlp:"nil"` // nil means contract creation
+	Value      *big.Int
+	Data       []byte
+	AccessList AccessList
+
+	// Signature values
+	V *big.Int `json:"v" gencodec:"required"`
+	R *big.Int `json:"r" gencodec:"required"`
+	S *big.Int `json:"s" gencodec:"required"`
+}
+
+func (msg DynamicFeeTx) RLPSignBytes(prefix byte) ethcmn.Hash {
+	return prefixedRlpHash(
+			prefix,
+			[]interface{}{
+				msg.ChainID,
+				msg.Nonce,
+				msg.GasTipCap,
+				msg.GasFeeCap,
+				msg.Gas,
+				msg.To,
+				msg.Value,
+				msg.Data,
+				msg.AccessList,
+			},
+		)
 }
 
 // encodableTxData implements the Ethereum transaction data structure. It is used

@@ -127,6 +127,14 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
+func (msg *MsgEthereumTx) SetSize(contentsize uint64) {
+	msg.size.Store(ethcmn.StorageSize(contentsize))
+}
+
+func (msg *MsgEthereumTx) SetFrom(signer ethtypes.Signer, sender ethcmn.Address) {
+	msg.from.Store(sigCache{signer: signer, from: sender})
+}
+
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
@@ -367,16 +375,21 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	V := new(big.Int)
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
-		// do not allow recovery for transactions with an unprotected chainID
-		if chainID.Sign() == 0 {
-			return ethcmn.Address{}, errors.New("chainID cannot be zero")
+		if msg.Data.V.Uint64() == 1 || msg.Data.V.Uint64() == 0 {
+			V = new(big.Int).Add(msg.Data.V, big.NewInt(27))
+			sigHash = msg.RLPSignBytes(chainID)
+		} else {
+			// do not allow recovery for transactions with an unprotected chainID
+			if chainID.Sign() == 0 {
+				return ethcmn.Address{}, errors.New("chainID cannot be zero")
+			}
+
+			chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+			V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+			V.Sub(V, big8)
+
+			sigHash = msg.RLPSignBytes(chainID)
 		}
-
-		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
-		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
-		V.Sub(V, big8)
-
-		sigHash = msg.RLPSignBytes(chainID)
 	} else {
 		V = msg.Data.V
 

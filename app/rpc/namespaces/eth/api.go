@@ -6,11 +6,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/app"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/app"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -638,11 +639,40 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("data", data)
 	tx := new(evmtypes.MsgEthereumTx)
+	tx2 := new(evmtypes.DynamicFeeTx)
 
-	// RLP decode raw transaction bytes
-	if err := rlp.DecodeBytes(data, tx); err != nil {
-		// Return nil is for when gasLimit overflows uint64
-		return common.Hash{}, err
+	if len(data) > 0 && data[0] > 0x7f {
+		// RLP decode raw transaction bytes
+		if err := rlp.DecodeBytes(data[:], tx); err != nil {
+			// Return nil is for when gasLimit overflows uint64
+			return common.Hash{}, err
+		}
+	} else {
+		if err := rlp.DecodeBytes(data[1:], &tx2); err != nil {
+			return common.Hash{}, err
+		}
+		tx = &evmtypes.MsgEthereumTx{
+			Data: evmtypes.TxData {
+				AccountNonce: tx2.Nonce,
+				Price: 		  tx2.GasFeeCap,
+				GasLimit:     tx2.Gas,
+				Recipient:    tx2.To,
+				Amount:       tx2.Value,
+				Payload:      tx2.Data,
+				V: tx2.V,
+				R: tx2.R,
+				S: tx2.S,
+			},
+		}
+		hash := tx2.RLPSignBytes(data[0])
+		V := new(big.Int).Add(tx2.V, big.NewInt(27))
+		from, err := recoverPlain(hash, tx2.R, tx2.S, V, true)
+		if err != nil {
+			return common.Hash{}, err
+		}
+		fmt.Println("here", from.String())
+
+		tx.SetSize(uint64(len(data)))
 	}
 
 	// Encode transaction by default Tx encoder
@@ -669,6 +699,33 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	}
 	// Return transaction hash
 	return common.HexToHash(res.TxHash), nil
+}
+
+func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
+	if Vb.BitLen() > 8 {
+		return common.Address{}, errors.New("invalid transaction v, r, s values")
+	}
+	V := byte(Vb.Uint64() - 27)
+	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
+		return common.Address{}, errors.New("invalid transaction v, r, s values")
+	}
+	// encode the signature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, crypto.SignatureLength)
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+	// recover the public key from the signature
+	pub, err := crypto.Ecrecover(sighash[:], sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	if len(pub) == 0 || pub[0] != 4 {
+		return common.Address{}, errors.New("invalid public key")
+	}
+	var addr common.Address
+	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
+	return addr, nil
 }
 
 func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
