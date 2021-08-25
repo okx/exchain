@@ -651,6 +651,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		if err := rlp.DecodeBytes(data[1:], &tx2); err != nil {
 			return common.Hash{}, err
 		}
+		hash := tx2.RLPSignBytes(data[0])
 		tx = &evmtypes.MsgEthereumTx{
 			Data: evmtypes.TxData {
 				AccountNonce: tx2.Nonce,
@@ -662,16 +663,16 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 				V: tx2.V,
 				R: tx2.R,
 				S: tx2.S,
+				Hash: &hash,
 			},
 		}
-		hash := tx2.RLPSignBytes(data[0])
 		V := new(big.Int).Add(tx2.V, big.NewInt(27))
 		from, err := recoverPlain(hash, tx2.R, tx2.S, V, true)
 		if err != nil {
 			return common.Hash{}, err
 		}
-		fmt.Println("here", from.String())
 
+		tx.SetFrom(ethtypes.NewEIP155Signer(tx2.ChainID), from)
 		tx.SetSize(uint64(len(data)))
 	}
 

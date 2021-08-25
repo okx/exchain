@@ -377,7 +377,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if isProtectedV(msg.Data.V) {
 		if msg.Data.V.Uint64() == 1 || msg.Data.V.Uint64() == 0 {
 			V = new(big.Int).Add(msg.Data.V, big.NewInt(27))
-			sigHash = msg.RLPSignBytes(chainID)
+			sigHash = *msg.Data.Hash
 		} else {
 			// do not allow recovery for transactions with an unprotected chainID
 			if chainID.Sign() == 0 {
@@ -400,7 +400,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if err != nil {
 		return ethcmn.Address{}, err
 	}
-
+	fmt.Println("here", sender)
 	msg.from.Store(sigCache{signer: signer, from: sender})
 	return sender, nil
 }
