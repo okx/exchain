@@ -651,6 +651,9 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		if err := rlp.DecodeBytes(data[1:], &tx2); err != nil {
 			return common.Hash{}, err
 		}
+		if api.chainIDEpoch.Cmp(tx2.ChainID) != 0 {
+			return common.Hash{}, errors.New(fmt.Sprintf("not matched chain id, expected %d, got %d", api.chainIDEpoch.Uint64(), tx2.ChainID.Uint64()))
+		}
 		hash := tx2.RLPSignBytes(data[0])
 		tx = &evmtypes.MsgEthereumTx{
 			Data: evmtypes.TxData{
