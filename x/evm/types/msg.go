@@ -127,14 +127,6 @@ type MsgEthereumTx struct {
 	from atomic.Value
 }
 
-func (msg *MsgEthereumTx) SetSize(contentsize uint64) {
-	msg.size.Store(ethcmn.StorageSize(contentsize))
-}
-
-func (msg *MsgEthereumTx) SetFrom(signer ethtypes.Signer, sender ethcmn.Address) {
-	msg.from.Store(sigCache{signer: signer, from: sender})
-}
-
 func (msg MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
@@ -400,7 +392,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if err != nil {
 		return ethcmn.Address{}, err
 	}
-	fmt.Println("here", sender)
+
 	msg.from.Store(sigCache{signer: signer, from: sender})
 	return sender, nil
 }
