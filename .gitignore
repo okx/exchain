@@ -10,8 +10,8 @@
 *.csv
 
 # Build
-exchaind
-exchaincli
+.exchaind
+.exchaincli
 vendor
 build
 tools/
