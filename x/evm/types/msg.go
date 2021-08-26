@@ -369,6 +369,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if isProtectedV(msg.Data.V) {
 		if msg.Data.V.Uint64() == 1 || msg.Data.V.Uint64() == 0 {
 			V = new(big.Int).Add(msg.Data.V, big.NewInt(27))
+
 			sigHash = *msg.Data.Hash
 		} else {
 			// do not allow recovery for transactions with an unprotected chainID
@@ -401,7 +402,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
-		return v != 27 && v != 28
+		return v != 27 && v != 28 && v != 0 && v != 1
 	}
 	// anything not 27 or 28 is considered protected
 	return true
