@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/app"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -50,8 +52,7 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer = "gas-limit-buffer"
-	CacheOfEthCallLru  = 40960
+	CacheOfEthCallLru = 40960
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -71,7 +72,6 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
-	gasLimitBuffer uint64
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -96,7 +96,6 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
-		gasLimitBuffer: viper.GetUint64(FlagGasLimitBuffer),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -849,7 +848,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	gasBuffer := estimatedGas / 100 * api.gasLimitBuffer
+	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	gas := estimatedGas + gasBuffer
 
 	return hexutil.Uint64(gas), nil
@@ -1347,7 +1346,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil { // account in watch db
-		 nonce = acc.GetSequence()
+		nonce = acc.GetSequence()
 	} else {
 		// use a the given client context in case its wrapped with a custom height
 		accRet := authtypes.NewAccountRetriever(clientCtx)
