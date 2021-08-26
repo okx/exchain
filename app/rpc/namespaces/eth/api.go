@@ -1073,7 +1073,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID())
+	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1344,22 +1344,23 @@ func (api *PublicEthereumAPI) accountNonce(
 	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
 ) (uint64, error) {
 	// Get nonce (sequence) from sender account
-	from := sdk.AccAddress(address.Bytes())
+	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
-	if err == nil {
-		return acc.GetSequence(), nil
+	if err == nil { // account in watch db
+		 nonce = acc.GetSequence()
+	} else {
+		// use a the given client context in case its wrapped with a custom height
+		accRet := authtypes.NewAccountRetriever(clientCtx)
+		from := sdk.AccAddress(address.Bytes())
+		account, err := accRet.GetAccount(from)
+		if err != nil {
+			// account doesn't exist yet, return 0
+			return 0, nil
+		}
+		nonce = account.GetSequence()
+		api.watcherBackend.CommitAccountToRpcDb(account)
 	}
-	// use a the given client context in case its wrapped with a custom height
-	accRet := authtypes.NewAccountRetriever(clientCtx)
 
-	account, err := accRet.GetAccount(from)
-	if err != nil {
-		// account doesn't exist yet, return 0
-		return 0, nil
-	}
-
-	nonce := account.GetSequence()
-	api.watcherBackend.CommitAccountToRpcDb(account)
 	if !pending {
 		return nonce, nil
 	}
@@ -1367,10 +1368,9 @@ func (api *PublicEthereumAPI) accountNonce(
 	// the account retriever doesn't include the uncommitted transactions on the nonce so we need to
 	// to manually add them.
 	pendingTxs, err := api.backend.UserPendingTransactionsCnt(address.String())
-	if err != nil {
-		return 0, err
+	if err == nil {
+		nonce += uint64(pendingTxs)
 	}
-	nonce += uint64(pendingTxs)
 
 	return nonce, nil
 }

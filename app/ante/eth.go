@@ -146,7 +146,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// validate sender/signature and cache the address
-	_, err = msgEthTx.VerifySig(chainIDEpoch)
+	_, err = msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
 	}
