@@ -25,7 +25,16 @@ type OecConfig struct {
 	dynamicGpWeight int
 }
 
-const FlagEnableDynamic = "config.enable-dynamic"
+const (
+	FlagEnableDynamic = "config.enable-dynamic"
+
+	FlagMempoolRecheck         = "mempool.recheck"
+	FlagMempoolForceRecheckGap = "mempool.force_recheck_gap"
+	FlagMempoolSize            = "mempool.size"
+	FlagGasLimitBuffer         = "gas-limit-buffer"
+	FlagEnableDynamicGp        = "enable-dynamic-gp"
+	FlagDynamicGpWeight        = "dynamic-gp-weight"
+)
 
 var oecConfig *OecConfig
 var once sync.Once
@@ -58,12 +67,12 @@ func RegisterDynamicConfig() {
 }
 
 func (c *OecConfig) loadFromConfig() {
-	c.SetMempoolRecheck(viper.GetBool("mempool.recheck"))
-	c.SetMempoolForceRecheckGap(viper.GetInt64("mempool.force_recheck_gap"))
-	c.SetMempoolSize(viper.GetInt("mempool.size"))
-	c.SetGasLimitBuffer(viper.GetUint64("gas-limit-buffer"))
-	c.SetEnableDynamicGp(viper.GetBool("enable-dynamic-gp"))
-	c.SetDynamicGpWeight(viper.GetInt("dynamic-gp-weight"))
+	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
+	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
+	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
+	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
+	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
 }
 
 func (c *OecConfig) loadFromApollo() bool {
@@ -74,37 +83,37 @@ func (c *OecConfig) loadFromApollo() bool {
 func (c *OecConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
 	switch k {
-	case "mempool.recheck":
+	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
 		}
 		c.SetMempoolRecheck(r)
-	case "mempool.force_recheck_gap":
+	case FlagMempoolForceRecheckGap:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return
 		}
 		c.SetMempoolForceRecheckGap(r)
-	case "mempool.size":
+	case FlagMempoolSize:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
 		}
 		c.SetMempoolSize(r)
-	case "gas-limit-buffer":
+	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
 			return
 		}
 		c.SetGasLimitBuffer(r)
-	case "enable-dynamic-gp":
+	case FlagEnableDynamicGp:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
 		}
 		c.SetEnableDynamicGp(r)
-	case "dynamic-gp-weight":
+	case FlagDynamicGpWeight:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return

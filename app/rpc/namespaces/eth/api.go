@@ -52,8 +52,7 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer = "gas-limit-buffer"
-	CacheOfEthCallLru  = 40960
+	CacheOfEthCallLru = 40960
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -1347,7 +1346,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil { // account in watch db
-		 nonce = acc.GetSequence()
+		nonce = acc.GetSequence()
 	} else {
 		// use a the given client context in case its wrapped with a custom height
 		accRet := authtypes.NewAccountRetriever(clientCtx)

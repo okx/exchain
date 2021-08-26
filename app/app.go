@@ -63,9 +63,7 @@ func init() {
 }
 
 const (
-	appName         = "OKExChain"
-	DynamicGpWeight = "dynamic-gp-weight"
-	EnableDynamicGp = "enable-dynamic-gp"
+	appName = "OKExChain"
 )
 
 var (
