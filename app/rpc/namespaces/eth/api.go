@@ -653,18 +653,18 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		}
 		hash := tx2.RLPSignBytes(data[0])
 		tx = &evmtypes.MsgEthereumTx{
-			Data: evmtypes.TxData {
+			Data: evmtypes.TxData{
 				AccountNonce: tx2.Nonce,
-				Price: 		  tx2.GasFeeCap,
+				Price:        tx2.GasFeeCap,
 				GasLimit:     tx2.Gas,
 				Recipient:    tx2.To,
 				Amount:       tx2.Value,
 				Payload:      tx2.Data,
-				V: 			  tx2.V,
-				R: 			  tx2.R,
-				S: 			  tx2.S,
+				V:            tx2.V,
+				R:            tx2.R,
+				S:            tx2.S,
 
-				Hash: 		  &hash,
+				Hash: &hash,
 			},
 		}
 	}
@@ -1371,7 +1371,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil { // account in watch db
-		 nonce = acc.GetSequence()
+		nonce = acc.GetSequence()
 	} else {
 		// use a the given client context in case its wrapped with a custom height
 		accRet := authtypes.NewAccountRetriever(clientCtx)

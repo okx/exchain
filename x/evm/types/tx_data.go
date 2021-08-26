@@ -56,19 +56,19 @@ type DynamicFeeTx struct {
 
 func (msg DynamicFeeTx) RLPSignBytes(prefix byte) ethcmn.Hash {
 	return prefixedRlpHash(
-			prefix,
-			[]interface{}{
-				msg.ChainID,
-				msg.Nonce,
-				msg.GasTipCap,
-				msg.GasFeeCap,
-				msg.Gas,
-				msg.To,
-				msg.Value,
-				msg.Data,
-				msg.AccessList,
-			},
-		)
+		prefix,
+		[]interface{}{
+			msg.ChainID,
+			msg.Nonce,
+			msg.GasTipCap,
+			msg.GasFeeCap,
+			msg.Gas,
+			msg.To,
+			msg.Value,
+			msg.Data,
+			msg.AccessList,
+		},
+	)
 }
 
 // encodableTxData implements the Ethereum transaction data structure. It is used
