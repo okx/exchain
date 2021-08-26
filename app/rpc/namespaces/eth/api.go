@@ -646,7 +646,7 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			// Return nil is for when gasLimit overflows uint64
 			return common.Hash{}, err
 		}
-	} else {
+	} else if data[0] == 0x2 {
 		tx2 := new(evmtypes.DynamicFeeTx)
 		if err := rlp.DecodeBytes(data[1:], &tx2); err != nil {
 			return common.Hash{}, err
