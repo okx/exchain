@@ -35,7 +35,7 @@ build_tags := $(strip $(build_tags))
 
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
-   MercuryHeight=5100000
+   MercuryHeight=5150000
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
