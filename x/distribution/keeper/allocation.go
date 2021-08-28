@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -39,11 +40,14 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	if err != nil {
 		panic(err)
 	}
+	totalFee := common.ConvertDecToFloat64(feesCollected.AmountOf(common.NativeToken))
+	k.metric.TotalFee.Add(totalFee)
 
 	feePool := k.GetFeePool(ctx)
 	if totalPreviousPower == 0 {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesCollected...)
 		k.SetFeePool(ctx, feePool)
+		k.metric.FeeToCommunityPool.Add(float64(feesCollected.AmountOf(common.NativeToken).TruncateInt64()))
 		logger.Debug("totalPreviousPower is zero, send fees to community pool", "fees", feesCollected)
 		return
 	}
@@ -72,6 +76,7 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	if !feesToCommunity.IsZero() {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesToCommunity...)
 		k.SetFeePool(ctx, feePool)
+		k.metric.FeeToCommunityPool.Add(common.ConvertDecToFloat64(feesToCommunity.AmountOf(common.NativeToken)))
 		logger.Debug("Send fees to community pool", "community_pool", feesToCommunity)
 	}
 }
@@ -98,10 +103,16 @@ func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousV
 	//beginning allocating rewards equally
 	remaining := rewards
 	reward := rewards.MulDecTruncate(powerFraction)
+	rewardInFloat64 := common.ConvertDecToFloat64(reward.AmountOf(common.NativeToken))
 	for _, val := range validators {
 		k.AllocateTokensToValidator(ctx, val, reward)
 		logger.Debug("allocate by equal", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
+		if index := common.StringsContains(k.monitoredValidators, val.GetOperator().String()); index != -1 {
+			k.metric.FeeToControlledVals.Add(rewardInFloat64)
+		} else {
+			k.metric.FeeToOtherVals.Add(rewardInFloat64)
+		}
 	}
 	return remaining
 }
@@ -138,6 +149,12 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 		k.AllocateTokensToValidator(ctx, val, reward)
 		logger.Debug("allocate by shares", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
+		rewardInFloat64 := common.ConvertDecToFloat64(reward.AmountOf(common.NativeToken))
+		if index := common.StringsContains(k.monitoredValidators, val.GetOperator().String()); index != -1 {
+			k.metric.FeeToControlledVals.Add(rewardInFloat64)
+		} else {
+			k.metric.FeeToOtherVals.Add(rewardInFloat64)
+		}
 	}
 	return remaining
 }

@@ -3,6 +3,8 @@ package keeper
 import (
 	"bytes"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/x/common/monitor"
+
 	"strconv"
 	"testing"
 	"time"
@@ -167,7 +169,7 @@ func CreateTestInput(
 
 	// for staking/distr rollback to cosmos-sdk
 	stakingKeeper := staking.NewKeeper(cdc, stakingSk, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace))
+		pk.Subspace(staking.DefaultParamspace), monitor.NopStakingMetric())
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())
 	pk.SetStakingKeeper(stakingKeeper)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/x/common/monitor"
 
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
@@ -173,7 +174,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	keeper := NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
+	keeper := NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace), monitor.NopStakingMetric())
 	keeper.SetParams(ctx, types.DefaultParams())
 
 	// set module accounts
