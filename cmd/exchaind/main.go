@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
@@ -83,7 +83,7 @@ func main() {
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
-        dataCmd(ctx),
+		dataCmd(ctx),
 		exportAppCmd(ctx),
 	)
 

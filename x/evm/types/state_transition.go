@@ -201,13 +201,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ReturnData: ret,
 	}
 
-	// The maximum refund should not be more than half of the consumption
-	gasReturn := gasConsumed / 2
-	if gasReturn > csdb.refund {
-		gasReturn = csdb.refund
-	}
-	st.GasReturn = gasReturn
-
 	defer func() {
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
