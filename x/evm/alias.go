@@ -1,8 +1,8 @@
 package evm
 
 import (
-	"github.com/okex/okexchain/x/evm/keeper"
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // nolint
@@ -15,8 +15,9 @@ const (
 
 // nolint
 var (
-	NewKeeper = keeper.NewKeeper
-	TxDecoder = types.TxDecoder
+	NewKeeper         = keeper.NewKeeper
+	TxDecoder         = types.TxDecoder
+	NewSimulateKeeper = keeper.NewSimulateKeeper
 )
 
 //nolint

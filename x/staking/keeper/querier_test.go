@@ -3,10 +3,8 @@ package keeper
 import (
 	"testing"
 
-	"github.com/okex/okexchain/x/common"
-
 	types2 "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -104,8 +102,7 @@ func TestQueryParams(t *testing.T) {
 
 	params := types.Params{}
 	_ = amino.UnmarshalJSON(data, &params)
-	require.True(t, params.BondDenom == common.NativeToken, params)
-
+	require.Equal(t, types.DefaultMaxValidators, params.MaxValidators)
 }
 
 func TestQueryAddress(t *testing.T) {

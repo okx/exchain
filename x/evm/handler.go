@@ -1,14 +1,13 @@
 package evm
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/common/perf"
-	"github.com/okex/okexchain/x/evm/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
+	"github.com/ethereum/go-ethereum/common"
+	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -38,6 +37,9 @@ func NewHandler(k *Keeper) sdk.Handler {
 		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
 
 		result, err = handlerFun()
+		if err != nil {
+			err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
+		}
 
 		return result, err
 	}
@@ -52,7 +54,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// Verify signature and retrieve sender address
-	sender, err := msg.VerifySig(chainIDEpoch)
+	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -72,23 +74,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
-		GasReturn:    uint64(0),
 	}
-
-	defer func() {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
-	}()
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
 	if !st.Simulate {
+		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
@@ -100,8 +92,36 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	defer func() {
+		if !st.Simulate && k.Watcher.Enabled() {
+			currentGasMeter := ctx.GasMeter()
+			pm := k.GenerateCSDBParams()
+			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			if sendAcc != nil {
+				pm.Watcher.SaveAccount(sendAcc, true)
+			}
+			ctx.WithGasMeter(currentGasMeter)
+		}
+		if e := recover(); e != nil {
+			k.Watcher.Reset()
+			panic(e)
+		}
+		if !st.Simulate {
+			if err != nil {
+				k.Watcher.Reset()
+			} else {
+				//save state and account data into batch
+				k.Watcher.Finalize()
+			}
+		}
+	}()
+
+	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
+		if !st.Simulate {
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+		}
 		return nil, err
 	}
 
@@ -109,6 +129,14 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
+		if msg.Data.Recipient == nil {
+			st.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
+				k.Watcher.SaveContractCode(addr, c.Code)
+				k.Watcher.SaveContractCodeByHash(c.CodeHash, c.Code)
+				return true
+			})
+		}
 	}
 
 	// log successful execution
@@ -142,6 +170,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
+
+	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
+	}
+
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -162,18 +195,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
-		CoinDenom:    k.GetParams(ctx).EvmDenom,
-		GasReturn:    uint64(0),
 	}
-
-	defer func() {
-		if !st.Simulate {
-			refundErr := st.RefundGas(ctx)
-			if refundErr != nil {
-				panic(refundErr)
-			}
-		}
-	}()
 
 	if msg.Recipient != nil {
 		to := common.BytesToAddress(msg.Recipient.Bytes())
@@ -192,7 +214,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, err := st.TransitionDb(ctx, config)
+	executionResult, _, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}

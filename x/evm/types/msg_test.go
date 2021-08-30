@@ -13,7 +13,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -191,13 +191,13 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	signer, err := msg.VerifySig(chainID)
+	signer, err := msg.VerifySig(chainID, 0)
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
 	require.NotEqual(t, addr2, signer)
 
 	// msg atomic load
-	signer, err = msg.VerifySig(chainID)
+	signer, err = msg.VerifySig(chainID, 0)
 	require.NoError(t, err)
 	require.Equal(t, addr1, signer)
 
@@ -208,7 +208,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	// zero chainID
 	err = msg.Sign(zeroChainID, priv1.ToECDSA())
 	require.Nil(t, err)
-	_, err = msg.VerifySig(zeroChainID)
+	_, err = msg.VerifySig(zeroChainID, 0)
 	require.Nil(t, err)
 
 	// require invalid chain ID fail validation
@@ -216,7 +216,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 	err = msg.Sign(chainID, priv1.ToECDSA())
 	require.Nil(t, err)
 
-	signer, err = msg.VerifySig(big.NewInt(4))
+	signer, err = msg.VerifySig(big.NewInt(4), 0)
 	require.Error(t, err)
 	require.Equal(t, ethcmn.Address{}, signer)
 }

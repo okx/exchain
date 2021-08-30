@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/tendermint/tendermint/state"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/server"
@@ -24,6 +28,7 @@ const (
 	applicationDB = "application"
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
+	pprofAddrFlag = "pprof_addr"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -32,12 +37,23 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 		Short: "Replay blocks from local db",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
+			pprofAddress := viper.GetString(pprofAddrFlag)
+			go func() {
+				err := http.ListenAndServe(pprofAddress, nil)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}()
+
 			dataDir := viper.GetString(dataDirFlag)
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------")
 		},
 	}
-	cmd.Flags().StringP(dataDirFlag, "d", ".okexchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(dataDirFlag, "d", ".exchaind/data", "Directory of block data for replaying")
+	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
+	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
+	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	return cmd
 }
 

@@ -9,9 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
-
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/spf13/viper"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
+
+const FlagGetLogsHeightSpan = "logs-height-span"
 
 // Filter can be used to retrieve and filter logs.
 type Filter struct {
@@ -74,7 +77,7 @@ func newFilter(backend Backend, criteria filters.FilterCriteria, matcher *bloomb
 
 // Logs searches the blockchain for matching log entries, returning all from the
 // first block that contains matches, updating the start of the filter accordingly.
-func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
+func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	logs := []*ethtypes.Log{}
 	var err error
 
@@ -108,22 +111,38 @@ func (f *Filter) Logs(_ context.Context) ([]*ethtypes.Log, error) {
 		f.criteria.ToBlock = big.NewInt(head)
 	}
 
-	for i := f.criteria.FromBlock.Int64(); i <= f.criteria.ToBlock.Int64(); i++ {
-		block, err := f.backend.GetBlockByNumber(rpctypes.BlockNumber(i), true)
+	if f.criteria.FromBlock.Int64() <= tmtypes.GetStartBlockHeight() ||
+		f.criteria.ToBlock.Int64() <= tmtypes.GetStartBlockHeight() {
+		return nil, fmt.Errorf("from and to block height must greater than %d", tmtypes.GetStartBlockHeight())
+	}
+
+	heightSpan := viper.GetInt64(FlagGetLogsHeightSpan)
+	if heightSpan == 0 {
+		return nil, fmt.Errorf("the node connected does not support logs filter")
+	} else if heightSpan > 0 && f.criteria.ToBlock.Int64()-f.criteria.FromBlock.Int64() > heightSpan {
+		return nil, fmt.Errorf("the span between fromBlock and toBlock must be less than or equal to %d", heightSpan)
+	}
+
+	begin := f.criteria.FromBlock.Uint64()
+	end := f.criteria.ToBlock.Uint64()
+	size, sections := f.backend.BloomStatus()
+	if indexed := sections*size + uint64(tmtypes.GetStartBlockHeight()); indexed > begin {
+		// update from block height
+		f.criteria.FromBlock.Sub(f.criteria.FromBlock, big.NewInt(tmtypes.GetStartBlockHeight()))
+		if indexed > end {
+			logs, err = f.indexedLogs(ctx, end-uint64(tmtypes.GetStartBlockHeight()))
+		} else {
+			logs, err = f.indexedLogs(ctx, indexed-1-uint64(tmtypes.GetStartBlockHeight()))
+		}
 		if err != nil {
 			return logs, err
 		}
-
-		txs, ok := block["transactions"].([]*rpctypes.Transaction)
-		if !ok || len(txs) == 0 {
-			continue
-		}
-
-		logsMatched := f.checkMatches(txs)
-		logs = append(logs, logsMatched...)
+		// recover from block height
+		f.criteria.FromBlock.Add(f.criteria.FromBlock, big.NewInt(tmtypes.GetStartBlockHeight()))
 	}
-
-	return logs, nil
+	rest, err := f.unindexedLogs(ctx, end)
+	logs = append(logs, rest...)
+	return logs, err
 }
 
 // blockLogs returns the logs matching the filter criteria within a single block.
@@ -148,21 +167,126 @@ func (f *Filter) blockLogs(header *ethtypes.Header, hash common.Hash) ([]*ethtyp
 	return logs, nil
 }
 
-// checkMatches checks if the logs from the a list of transactions transaction
-// contain any log events that  match the filter criteria. This function is
-// called when the bloom filter signals a potential match.
-func (f *Filter) checkMatches(transactions []*rpctypes.Transaction) []*ethtypes.Log {
-	unfiltered := []*ethtypes.Log{}
-	for _, tx := range transactions {
-		logs, err := f.backend.GetTransactionLogs(tx.Hash)
+// checkMatches checks if the receipts belonging to the given header contain any log events that
+// match the filter criteria. This function is called when the bloom filter signals a potential match.
+func (f *Filter) checkMatches(hash common.Hash) (logs []*ethtypes.Log, err error) {
+	// Get the logs of the block
+	logsList, err := f.backend.GetLogs(hash)
+	if err != nil {
+		return nil, err
+	}
+	var unfiltered []*ethtypes.Log
+	for _, logs := range logsList {
+		unfiltered = append(unfiltered, logs...)
+	}
+	logs = filterLogs(unfiltered, nil, nil, f.criteria.Addresses, f.criteria.Topics)
+	return logs, nil
+}
+
+// indexedLogs returns the logs matching the filter criteria based on the bloom
+// bits indexed available locally or via the network.
+func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, error) {
+	// Create a matcher session and request servicing from the backend
+	matches := make(chan uint64, 64)
+
+	session, err := f.matcher.Start(ctx, f.criteria.FromBlock.Uint64(), end, matches)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	f.backend.ServiceFilter(ctx, session)
+
+	// Iterate over the matches until exhausted or context closed
+	var logs []*ethtypes.Log
+
+	bigEnd := big.NewInt(int64(end))
+	for {
+		select {
+		case number, ok := <-matches:
+			number += uint64(tmtypes.GetStartBlockHeight())
+			// Abort if all matches have been fulfilled
+			if !ok {
+				err := session.Error()
+				if err == nil {
+					f.criteria.FromBlock = bigEnd.Add(bigEnd, big.NewInt(1))
+				}
+				return logs, err
+			}
+			f.criteria.FromBlock = big.NewInt(int64(number)).Add(big.NewInt(int64(number)), big.NewInt(1))
+
+			// Retrieve the suggested block and pull any truly matching logs
+			hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(number))
+			found, err := f.checkMatches(hash)
+			if err != nil {
+				return logs, err
+			}
+			logs = append(logs, found...)
+
+		case <-ctx.Done():
+			return logs, ctx.Err()
+		}
+	}
+}
+
+// unindexedLogs returns the logs matching the filter criteria based on raw block
+// iteration and bloom matching.
+func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, error) {
+	var logs []*ethtypes.Log
+	begin := f.criteria.FromBlock.Int64()
+	beginPtr := &begin
+	defer f.criteria.FromBlock.SetInt64(*beginPtr)
+
+	for ; begin <= int64(end); begin++ {
+		header, err := f.backend.HeaderByNumber(rpctypes.BlockNumber(begin))
+		if header == nil || err != nil {
+			return logs, err
+		}
+		hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(begin))
 		if err != nil {
-			// ignore error if transaction didn't set any logs (eg: when tx type is not
-			// MsgEthereumTx or MsgEthermint)
+			return logs, err
+		}
+		found, err := f.blockLogs(header, hash)
+		if err != nil {
+			return logs, err
+		}
+		logs = append(logs, found...)
+	}
+	return logs, nil
+}
+
+// filterLogs creates a slice of logs matching the given criteria.
+func filterLogs(logs []*ethtypes.Log, fromBlock, toBlock *big.Int, addresses []common.Address, topics [][]common.Hash) []*ethtypes.Log {
+	var ret []*ethtypes.Log
+Logs:
+	for _, log := range logs {
+		if fromBlock != nil && fromBlock.Int64() >= 0 && fromBlock.Uint64() > log.BlockNumber {
+			continue
+		}
+		if toBlock != nil && toBlock.Int64() >= 0 && toBlock.Uint64() < log.BlockNumber {
 			continue
 		}
 
-		unfiltered = append(unfiltered, logs...)
+		if len(addresses) > 0 && !includes(addresses, log.Address) {
+			continue
+		}
+		// If the to filtered topics is greater than the amount of topics in logs, skip.
+		if len(topics) > len(log.Topics) {
+			continue Logs
+		}
+		for i, sub := range topics {
+			match := len(sub) == 0 // empty rule set == wildcard
+			for _, topic := range sub {
+				if log.Topics[i] == topic {
+					match = true
+					break
+				}
+			}
+			if !match {
+				continue Logs
+			}
+		}
+		ret = append(ret, log)
 	}
-
-	return FilterLogs(unfiltered, f.criteria.FromBlock, f.criteria.ToBlock, f.criteria.Addresses, f.criteria.Topics)
+	return ret
 }

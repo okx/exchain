@@ -3,6 +3,10 @@ package keeper
 import (
 	"math/big"
 
+	"github.com/okex/exchain/x/evm/watcher"
+
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -10,6 +14,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // BeginBlock sets the block hash -> block height map for the previous block height
@@ -35,6 +40,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.TxCount = 0
 	k.LogSize = 0
 	k.Bhash = common.BytesToHash(currentHash)
+
+	//that can make sure latest block has been committed
+	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	k.Watcher.ExecuteDelayEraseKey()
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -48,6 +57,49 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
+
+	if types.GetEnableBloomFilter() {
+		// the hash of current block is stored when executing BeginBlock of next block.
+		// so update section in the next block.
+		if indexer := types.GetIndexer(); indexer != nil {
+			if types.GetIndexer().IsProcessing() {
+				// notify new height
+				go func() {
+					indexer.NotifyNewHeight(ctx)
+				}()
+			} else {
+				interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
+				if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks {
+					go types.GetIndexer().ProcessSection(ctx, k, interval)
+				}
+			}
+		}
+	}
+
+	if watcher.IsWatcherEnabled() && k.Watcher.IsFirstUse() {
+		store := ctx.KVStore(k.storeKey)
+		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
+		defer iteratorBlockedList.Close()
+		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {
+			k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
+		}
+
+		iteratorDeploymentWhitelist := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractDeploymentWhitelist)
+		defer iteratorDeploymentWhitelist.Close()
+		for ; iteratorDeploymentWhitelist.Valid(); iteratorDeploymentWhitelist.Next() {
+			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key()[1:])
+		}
+
+		k.Watcher.Used()
+	}
+
+	if watcher.IsWatcherEnabled() {
+		params := k.GetParams(ctx)
+		k.Watcher.SaveParams(params)
+
+		k.Watcher.SaveBlock(bloom)
+		k.Watcher.Commit()
+	}
 
 	return []abci.ValidatorUpdate{}
 }

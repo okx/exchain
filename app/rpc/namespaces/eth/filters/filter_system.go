@@ -3,8 +3,11 @@ package filters
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/spf13/viper"
 	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	coretypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -17,14 +20,15 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 var (
-	txEvents     = tmtypes.QueryForEvent(tmtypes.EventTx).String()
-	evmEvents    = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
-	headerEvents = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
+	txEvents        = tmtypes.QueryForEvent(tmtypes.EventTx).String()
+	pendingtxEvents = tmtypes.QueryForEvent(tmtypes.EventPendingTx).String()
+	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
+	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -33,30 +37,18 @@ type EventSystem struct {
 	ctx    context.Context
 	client rpcclient.Client
 
+	// channel length when subscribing
+	channelLength int
+
 	// light client mode
 	lightMode bool
 
-	index filterIndex
-
-	// Subscriptions
-	txsSub  *Subscription // Subscription for new transaction event
-	logsSub *Subscription // Subscription for new log event
-	// rmLogsSub      *Subscription // Subscription for removed log event
-
-	pendingLogsSub *Subscription // Subscription for pending log event
-	chainSub       *Subscription // Subscription for new chain event
+	index      filterIndex
+	indexMux   *sync.RWMutex
 
 	// Channels
 	install   chan *Subscription // install filter for event notification
 	uninstall chan *Subscription // remove filter for event notification
-
-	// Unidirectional channels to receive Tendermint ResultEvents
-	txsCh         <-chan coretypes.ResultEvent // Channel to receive new pending transactions event
-	logsCh        <-chan coretypes.ResultEvent // Channel to receive new log event
-	pendingLogsCh <-chan coretypes.ResultEvent // Channel to receive new pending log event
-	// rmLogsCh      <-chan coretypes.ResultEvent // Channel to receive removed log event
-
-	chainCh <-chan coretypes.ResultEvent // Channel to receive new chain event
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,
@@ -74,15 +66,12 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 	es := &EventSystem{
 		ctx:           context.Background(),
 		client:        client,
+		channelLength: viper.GetInt(server.FlagWsSubChannelLength),
 		lightMode:     false,
 		index:         index,
+		indexMux:      new(sync.RWMutex),
 		install:       make(chan *Subscription),
 		uninstall:     make(chan *Subscription),
-		txsCh:         make(<-chan coretypes.ResultEvent),
-		logsCh:        make(<-chan coretypes.ResultEvent),
-		pendingLogsCh: make(<-chan coretypes.ResultEvent),
-		// rmLogsCh:      make(<-chan coretypes.ResultEvent),
-		chainCh: make(<-chan coretypes.ResultEvent),
 	}
 
 	go es.eventLoop()
@@ -111,11 +100,11 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 
 	switch sub.typ {
 	case filters.PendingTransactionsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.PendingLogsSubscription, filters.MinedAndPendingLogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.LogsSubscription:
-		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
+		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event, es.channelLength)
 	case filters.BlocksSubscription:
 		eventCh, err = es.client.Subscribe(es.ctx, string(sub.id), sub.event)
 	default:
@@ -240,7 +229,7 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.PendingTransactionsSubscription,
-		event:     txEvents,
+		event:     pendingtxEvents,
 		created:   time.Now().UTC(),
 		hashes:    make(chan []common.Hash),
 		installed: make(chan struct{}, 1),
@@ -286,64 +275,10 @@ func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
 
 // eventLoop (un)installs filters and processes mux events.
 func (es *EventSystem) eventLoop() {
-	var (
-		err                                                                           error
-		cancelPendingTxsSubs, cancelLogsSubs, cancelPendingLogsSubs, cancelHeaderSubs context.CancelFunc
-	)
-
-	// Subscribe events
-	es.txsSub, cancelPendingTxsSubs, err = es.SubscribePendingTxs()
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe pending txs: %w", err))
-	}
-
-	defer cancelPendingTxsSubs()
-
-	es.logsSub, cancelLogsSubs, err = es.SubscribeLogs(filters.FilterCriteria{})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe logs: %w", err))
-	}
-
-	defer cancelLogsSubs()
-
-	es.pendingLogsSub, cancelPendingLogsSubs, err = es.subscribePendingLogs(filters.FilterCriteria{})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe pending logs: %w", err))
-	}
-
-	defer cancelPendingLogsSubs()
-
-	es.chainSub, cancelHeaderSubs, err = es.SubscribeNewHeads()
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe headers: %w", err))
-	}
-
-	defer cancelHeaderSubs()
-
-	// Ensure all subscriptions get cleaned up
-	defer func() {
-		es.txsSub.Unsubscribe(es)
-		es.logsSub.Unsubscribe(es)
-		// es.rmLogsSub.Unsubscribe(es)
-		es.pendingLogsSub.Unsubscribe(es)
-		es.chainSub.Unsubscribe(es)
-	}()
-
 	for {
 		select {
-		case txEvent := <-es.txsSub.eventCh:
-			es.handleTxsEvent(txEvent)
-		case headerEv := <-es.chainSub.eventCh:
-			es.handleChainEvent(headerEv)
-		case logsEv := <-es.logsSub.eventCh:
-			es.handleLogs(logsEv)
-		// TODO: figure out how to handle removed logs
-		// case logsEv := <-es.rmLogsSub.eventCh:
-		// 	es.handleLogs(logsEv)
-		case logsEv := <-es.pendingLogsSub.eventCh:
-			es.handleLogs(logsEv)
-
 		case f := <-es.install:
+			es.indexMux.Lock()
 			if f.typ == filters.MinedAndPendingLogsSubscription {
 				// the type are logs and pending logs subscriptions
 				es.index[filters.LogsSubscription][f.id] = f
@@ -351,9 +286,11 @@ func (es *EventSystem) eventLoop() {
 			} else {
 				es.index[f.typ][f.id] = f
 			}
+			es.indexMux.Unlock()
 			close(f.installed)
 
 		case f := <-es.uninstall:
+			es.indexMux.Lock()
 			if f.typ == filters.MinedAndPendingLogsSubscription {
 				// the type are logs and pending logs subscriptions
 				delete(es.index[filters.LogsSubscription], f.id)
@@ -361,18 +298,8 @@ func (es *EventSystem) eventLoop() {
 			} else {
 				delete(es.index[f.typ], f.id)
 			}
+			es.indexMux.Unlock()
 			close(f.err)
-			// System stopped
-		case <-es.txsSub.Err():
-			return
-		case <-es.logsSub.Err():
-			return
-		// case <-es.rmLogsSub.Err():
-		// 	return
-		case <-es.pendingLogsSub.Err():
-			return
-		case <-es.chainSub.Err():
-			return
 		}
 	}
 	// }()

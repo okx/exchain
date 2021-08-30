@@ -5,8 +5,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/okex/okexchain/x/order/keeper"
-	"github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/order/keeper"
+	"github.com/okex/exchain/x/order/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"strings"
@@ -62,7 +62,7 @@ func GetCmdDepthBook(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query the depth book of a trading pair",
 		Long: strings.TrimSpace(`Query the depth book of a trading pair:
 
-$ okexchaincli query depthbook mytoken_okt
+$ exchaincli query depthbook mytoken_okt
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
@@ -151,7 +151,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query the parameters of the order process",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ okexchaincli query order params
+$ exchaincli query order params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

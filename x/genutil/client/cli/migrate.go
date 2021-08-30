@@ -12,9 +12,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	extypes "github.com/cosmos/cosmos-sdk/x/genutil"
+	v018 "github.com/okex/exchain/x/genutil/client/legacy/v0_18"
 )
 
 var migrationMap = extypes.MigrationMap{
+	"v0.18": v018.Migrate,
 }
 
 const (
@@ -30,7 +32,7 @@ func MigrateGenesisCmd(_ *server.Context, cdc *codec.Codec) *cobra.Command {
 		Long: fmt.Sprintf(`Migrate the source genesis into the target version and print to STDOUT.
 
 Example:
-$ %s migrate v0.11 /path/to/genesis.json --chain-id=okexchain --genesis-time=2019-04-22T17:00:00Z
+$ %s migrate v0.11 /path/to/genesis.json --chain-id=exchain --genesis-time=2019-04-22T17:00:00Z
 `, version.ServerName),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

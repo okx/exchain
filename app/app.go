@@ -3,36 +3,8 @@ package app
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"os"
-
-	"github.com/okex/okexchain/x/common/perf"
-
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
-	"github.com/okex/okexchain/app/ante"
-	okexchaincodec "github.com/okex/okexchain/app/codec"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/ammswap"
-	"github.com/okex/okexchain/x/backend"
-	commonversion "github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/debug"
-	"github.com/okex/okexchain/x/dex"
-	dexclient "github.com/okex/okexchain/x/dex/client"
-	distr "github.com/okex/okexchain/x/distribution"
-	"github.com/okex/okexchain/x/evidence"
-	"github.com/okex/okexchain/x/evm"
-	"github.com/okex/okexchain/x/farm"
-	farmclient "github.com/okex/okexchain/x/farm/client"
-	"github.com/okex/okexchain/x/genutil"
-	"github.com/okex/okexchain/x/gov"
-	"github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/order"
-	"github.com/okex/okexchain/x/params"
-	paramsclient "github.com/okex/okexchain/x/params/client"
-	"github.com/okex/okexchain/x/slashing"
-	"github.com/okex/okexchain/x/staking"
-	"github.com/okex/okexchain/x/stream"
-	"github.com/okex/okexchain/x/token"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,7 +19,35 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
-
+	"github.com/okex/exchain/app/ante"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/refund"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/common/perf"
+	commonversion "github.com/okex/exchain/x/common/version"
+	"github.com/okex/exchain/x/debug"
+	"github.com/okex/exchain/x/dex"
+	dexclient "github.com/okex/exchain/x/dex/client"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/evidence"
+	"github.com/okex/exchain/x/evm"
+	evmclient "github.com/okex/exchain/x/evm/client"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/farm"
+	farmclient "github.com/okex/exchain/x/farm/client"
+	"github.com/okex/exchain/x/genutil"
+	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/params"
+	paramsclient "github.com/okex/exchain/x/params/client"
+	"github.com/okex/exchain/x/slashing"
+	"github.com/okex/exchain/x/staking"
+	"github.com/okex/exchain/x/stream"
+	"github.com/okex/exchain/x/token"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
@@ -62,14 +62,16 @@ func init() {
 	okexchain.SetBip44CoinType(config)
 }
 
-const appName = "OKExChain"
+const (
+	appName = "OKExChain"
+)
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.okexchaincli")
+	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.okexchaind")
+	DefaultNodeHome = os.ExpandEnv("$HOME/.exchaind")
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
@@ -85,6 +87,8 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
+			evmclient.ManageContractDeploymentWhitelistProposalHandler,
+			evmclient.ManageContractBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -121,10 +125,7 @@ var (
 		farm.MintFarmingAccount:   {supply.Burner},
 	}
 
-	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{
-		distr.ModuleName: true,
-	}
+	GlobalGpIndex = GasPriceIndex{}
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -172,6 +173,8 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
+
+	blockGasPrice []*big.Int
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -239,12 +242,13 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+
 	app.BankKeeper = bank.NewBaseKeeper(
-		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+		&app.AccountKeeper, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		cdc, keys[supply.StoreKey], app.AccountKeeper, app.BankKeeper, maccPerms,
+		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 	stakingKeeper := staking.NewKeeper(
 		cdc, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
@@ -266,11 +270,11 @@ func NewOKExChainApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.cdc)
 	app.EvmKeeper = evm.NewKeeper(
-		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
+		app.cdc, keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock],
-		app.cdc, appConfig.BackendConfig.EnableBackend, app.AccountKeeper)
+		app.cdc, appConfig.BackendConfig.EnableBackend, &app.AccountKeeper)
 
 	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.cdc)
@@ -305,11 +309,13 @@ func NewOKExChainApp(
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
-		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper))
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
+		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
-		AddRoute(farm.RouterKey, &app.FarmKeeper)
+		AddRoute(farm.RouterKey, &app.FarmKeeper).
+		AddRoute(evm.RouterKey, app.EvmKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.cdc, app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -318,6 +324,7 @@ func NewOKExChainApp(
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
 	app.DexKeeper.SetGovKeeper(app.GovKeeper)
 	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -339,7 +346,7 @@ func NewOKExChainApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
+		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
 		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
@@ -416,6 +423,8 @@ func NewOKExChainApp(
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
+	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -436,17 +445,29 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
+		app.blockGasPrice = app.blockGasPrice[:0]
+	}
+
 	return app.mm.EndBlock(ctx, req)
 }
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight()+1)
+	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
 		app.syncTx(req.Tx)
+	}
+
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		if err == nil {
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+		}
 	}
 
 	return resp
@@ -469,6 +490,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+
+	perf.GetPerf().InitChainer(app.Logger())
+
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
@@ -487,16 +511,6 @@ func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
 	}
 
 	return modAccAddrs
-}
-
-// BlacklistedAccAddrs returns all the app's module account addresses black listed for receiving tokens.
-func (app *OKExChainApp) BlacklistedAccAddrs() map[string]bool {
-	blacklistedAddrs := make(map[string]bool)
-	for acc := range maccPerms {
-		blacklistedAddrs[supply.NewModuleAddress(acc).String()] = !allowedReceivingModAcc[acc]
-	}
-
-	return blacklistedAddrs
 }
 
 // SimulationManager implements the SimulationApp interface
@@ -597,5 +611,13 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 			}
 		}
 		return nil
+	}
+}
+
+func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) uint64 {
+		return ak.GetAccount(ctx, addr).GetSequence()
 	}
 }

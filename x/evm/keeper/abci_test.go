@@ -1,13 +1,17 @@
 package keeper_test
 
 import (
-	"math/big"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"math/big"
+	"os"
+	"time"
 )
 
 func (suite *KeeperTestSuite) TestBeginBlock() {
@@ -57,6 +61,25 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 100)
 	suite.Require().Equal(int64(10), bloom.Big().Int64())
+}
+
+func (suite *KeeperTestSuite) TestEndBlockWatcher() {
+	// update the counters
+	suite.app.EvmKeeper.Bloom.SetInt64(10)
+
+	store := suite.ctx.KVStore(suite.app.EvmKeeper.GetStoreKey())
+	store.Set(types.GetContractDeploymentWhitelistMemberKey(suite.address.Bytes()), []byte(""))
+	store.Set(types.GetContractBlockedListMemberKey(suite.address.Bytes()), []byte(""))
+	viper.Set(watcher.FlagFastQueryLru, 100)
+	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
+	time.Sleep(time.Millisecond)
+	querier := watcher.NewQuerier()
+	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
+	res2 := querier.HasContractBlockedList(suite.address.Bytes())
+	os.RemoveAll(watcher.WatchDbDir)
+
+	suite.Require().True(res1)
+	suite.Require().True(res2)
 }
 
 func (suite *KeeperTestSuite) TestResetCache() {

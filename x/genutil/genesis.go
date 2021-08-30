@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/genutil/types"
+	"github.com/okex/exchain/x/genutil/types"
 )
 
 // InitGenesis - initialize accounts and deliver genesis transactions

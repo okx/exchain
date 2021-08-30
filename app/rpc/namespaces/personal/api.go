@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
@@ -17,10 +18,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	"github.com/okex/okexchain/app/crypto/hd"
-	"github.com/okex/okexchain/app/rpc/namespaces/eth"
-	rpctypes "github.com/okex/okexchain/app/rpc/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/rpc/namespaces/eth"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 )
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -31,10 +32,10 @@ type PrivateAccountAPI struct {
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
-func NewAPI(ethAPI *eth.PublicEthereumAPI) *PrivateAccountAPI {
+func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 	api := &PrivateAccountAPI{
 		ethAPI: ethAPI,
-		logger: log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "json-rpc", "namespace", "personal"),
+		logger: log.With("module", "json-rpc", "namespace", "personal"),
 	}
 
 	err := api.ethAPI.GetKeyringInfo()
@@ -62,18 +63,23 @@ func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Add
 	}
 
 	privKey := ethsecp256k1.PrivKey(crypto.FromECDSA(priv))
-
-	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
+	pubKey := privKey.PubKey()
 
 	// ignore error as we only care about the length of the list
 	list, _ := api.ethAPI.ClientCtx().Keybase.List()
-	privKeyName := fmt.Sprintf("personal_%d", len(list))
+	for _, info := range list {
+		if info.GetPubKey().Equals(pubKey) {
+			return common.BytesToAddress(info.GetAddress().Bytes()), nil
+		}
+	}
+	privKeyName := fmt.Sprintf("personal_%s", uuid.New())
+	armor := mintkey.EncryptArmorPrivKey(privKey, password, ethsecp256k1.KeyType)
 
 	if err := api.ethAPI.ClientCtx().Keybase.ImportPrivKey(privKeyName, armor, password); err != nil {
 		return common.Address{}, err
 	}
 
-	addr := common.BytesToAddress(privKey.PubKey().Address().Bytes())
+	addr := common.BytesToAddress(pubKey.Address().Bytes())
 
 	info, err := api.ethAPI.ClientCtx().Keybase.Get(privKeyName)
 	if err != nil {
@@ -127,7 +133,7 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
 	api.logger.Debug("personal_newAccount")
 
-	name := "key_" + time.Now().UTC().Format(time.RFC3339)
+	name := "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String()
 	info, _, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1, "")
 	if err != nil {
 		return common.Address{}, err
@@ -137,7 +143,7 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 
 	addr := common.BytesToAddress(info.GetPubKey().Address().Bytes())
 	api.logger.Info("Your new key was generated", "address", addr.String())
-	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.okexchaind/"+name)
+	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
 }

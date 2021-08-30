@@ -7,7 +7,7 @@ import (
 
 	client "github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/gov"
+	"github.com/okex/exchain/x/gov"
 
 	"github.com/pkg/errors"
 
@@ -17,9 +17,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okexchain/x/common"
-	dexUtils "github.com/okex/okexchain/x/dex/client/utils"
-	"github.com/okex/okexchain/x/dex/types"
+	"github.com/okex/exchain/x/common"
+	dexUtils "github.com/okex/exchain/x/dex/client/utils"
+	"github.com/okex/exchain/x/dex/types"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +63,7 @@ func getCmdList(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Long: strings.TrimSpace(`List a trading pair:
 
-$ okexchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
+$ exchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 `),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -112,7 +112,7 @@ func getCmdDeposit(cdc *codec.Codec) *cobra.Command {
 		Short: "deposit an amount of token on a product",
 		Long: strings.TrimSpace(`Deposit an amount of token on a product:
 
-$ okexchaincli tx dex deposit mytoken_okt 1000okt --from mykey
+$ exchaincli tx dex deposit mytoken_okt 1000okt --from mykey
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
@@ -146,7 +146,7 @@ func getCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 		Short: "withdraw an amount of token from a product",
 		Long: strings.TrimSpace(`Withdraw an amount of token from a product:
 
-$ okexchaincli tx dex withdraw mytoken_okt 1000okt --from mykey
+$ exchaincli tx dex withdraw mytoken_okt 1000okt --from mykey
 
 The 'product' is a trading pair in full name of the tokens: ${base-asset-symbol}_${quote-asset-symbol}, for example 'mytoken_okt'.
 `),
@@ -298,7 +298,7 @@ func getCmdRegisterOperator(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Long: strings.TrimSpace(`Register a dex operator:
 
-$ okexchaincli tx dex register-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
+$ exchaincli tx dex register-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
 `),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -341,7 +341,7 @@ func getCmdEditOperator(cdc *codec.Codec) *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Long: strings.TrimSpace(`Edit a dex operator:
 
-$ okexchaincli tx dex edit-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
+$ exchaincli tx dex edit-operator --website http://xxx/operator.json --handling-fee-address addr --from mykey
 `),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

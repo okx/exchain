@@ -3,24 +3,29 @@ package types
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
-
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"reflect"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	tmtypes "github.com/tendermint/tendermint/types"
+)
+
+var (
+	// static gas limit for all blocks
+	defaultGasLimit   = hexutil.Uint64(int64(^uint32(0)))
+	defaultGasUsed    = hexutil.Uint64(0)
+	defaultDifficulty = (*hexutil.Big)(big.NewInt(0))
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
@@ -41,7 +46,7 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 // representation, with the given location metadata set (if available).
 func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	from, err := tx.VerifySig(tx.ChainID())
+	from, err := tx.VerifySig(tx.ChainID(), int64(blockNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +110,11 @@ func EthBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 func EthHeaderFromTendermint(header tmtypes.Header) *ethtypes.Header {
 	return &ethtypes.Header{
 		ParentHash:  common.BytesToHash(header.LastBlockID.Hash.Bytes()),
-		UncleHash:   common.Hash{},
+		UncleHash:   ethtypes.EmptyUncleHash,
 		Coinbase:    common.BytesToAddress(header.ProposerAddress),
 		Root:        common.BytesToHash(header.AppHash),
 		TxHash:      common.BytesToHash(header.DataHash),
-		ReceiptHash: common.Hash{},
+		ReceiptHash: ethtypes.EmptyRootHash,
 		Difficulty:  nil,
 		Number:      big.NewInt(header.Height),
 		Time:        uint64(header.Time.Unix()),
@@ -175,13 +180,16 @@ func FormatBlock(
 	if len(header.DataHash) == 0 {
 		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
 	}
-
+	parentHash := header.LastBlockID.Hash
+	if parentHash == nil {
+		parentHash = ethtypes.EmptyRootHash.Bytes()
+	}
 	ret := map[string]interface{}{
 		"number":           hexutil.Uint64(header.Height),
 		"hash":             hexutil.Bytes(curBlockHash),
-		"parentHash":       hexutil.Bytes(header.LastBlockID.Hash),
-		"nonce":            hexutil.Uint64(0), // PoW specific
-		"sha3Uncles":       common.Hash{},     // No uncles in Tendermint
+		"parentHash":       hexutil.Bytes(parentHash),
+		"nonce":            ethtypes.BlockNonce{},   // PoW specific
+		"sha3Uncles":       ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		"logsBloom":        bloom,
 		"transactionsRoot": hexutil.Bytes(header.DataHash),
 		"stateRoot":        hexutil.Bytes(header.AppHash),
@@ -194,14 +202,18 @@ func FormatBlock(
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
 		"gasUsed":          (*hexutil.Big)(gasUsed),
 		"timestamp":        hexutil.Uint64(header.Time.Unix()),
-		"uncles":           []string{},
-		"receiptsRoot":     common.Hash{},
+		"uncles":           []common.Hash{},
+		"receiptsRoot":     ethtypes.EmptyRootHash,
 	}
-	switch transactions.(type) {
-	case []common.Hash:
-		ret["transactions"] = transactions.([]common.Hash)
-	case []*Transaction:
-		ret["transactions"] = transactions.([]*Transaction)
+	if !reflect.ValueOf(transactions).IsNil() {
+		switch transactions.(type) {
+		case []common.Hash:
+			ret["transactions"] = transactions.([]common.Hash)
+		case []*Transaction:
+			ret["transactions"] = transactions.([]*Transaction)
+		}
+	} else {
+		ret["transactions"] = []common.Hash{}
 	}
 	return ret
 }
@@ -237,4 +249,29 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 		}
 	}
 	return gasUsed
+}
+
+// EthHeaderWithBlockHashFromTendermint gets the eth Header with block hash from Tendermint block inside
+func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *EthHeaderWithBlockHash, err error) {
+	if tmHeader == nil {
+		return header, errors.New("failed. nil tendermint block header")
+	}
+
+	header = &EthHeaderWithBlockHash{
+		ParentHash:  common.BytesToHash(tmHeader.LastBlockID.Hash.Bytes()),
+		UncleHash:   ethtypes.EmptyUncleHash,
+		Coinbase:    common.BytesToAddress(tmHeader.ProposerAddress),
+		Root:        common.BytesToHash(tmHeader.AppHash),
+		TxHash:      common.BytesToHash(tmHeader.DataHash),
+		ReceiptHash: ethtypes.EmptyRootHash,
+		Number:      (*hexutil.Big)(big.NewInt(tmHeader.Height)),
+		// difficulty is not available for DPOS
+		Difficulty: defaultDifficulty,
+		GasLimit:   defaultGasLimit,
+		GasUsed:    defaultGasUsed,
+		Time:       hexutil.Uint64(tmHeader.Time.Unix()),
+		Hash:       common.BytesToHash(tmHeader.Hash()),
+	}
+
+	return
 }

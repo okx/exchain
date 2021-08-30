@@ -8,12 +8,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	okexchain "github.com/okex/okexchain/app"
-	app "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/common/version"
-	"github.com/okex/okexchain/x/token"
-	"github.com/okex/okexchain/x/token/types"
+	okexchain "github.com/okex/exchain/app"
+	app "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/common/version"
+	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -59,12 +59,11 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 		{"success to multi-send", "9978.000000000000000000okt", successfulMultiSendMsg, gAcc[0]},
 		//{"fail to send to contract", "9978.000000000000000000okt", failedSendMsg, gAcc[0]},
 		//{"fail to multi-send to contract", "9978.000000000000000000okt", failedMultiSendMsg, gAcc[0]},
-		{"success to send to contract", "9977.000000000000000000okt", sendToContractMsg, gAcc[0]},
-		{"success to multi-send to contract", "9967.000000000000000000okt", multiSendToContractMsg, gAcc[0]},
+		{"fail to send to contract", "9978.000000000000000000okt", sendToContractMsg, gAcc[0]},
+		{"fail to multi-send to contract", "9978.000000000000000000okt", multiSendToContractMsg, gAcc[0]},
 	}
 	for i, tt := range TestSets {
 		t.Run(tt.description, func(t *testing.T) {
-			ctx = okexapp.NewContext(true, abci.Header{})
 			handler(ctx, TestSets[i].msg)
 			acc := okexapp.AccountKeeper.GetAccount(ctx, tt.account.Address)
 			acc.GetCoins().String()

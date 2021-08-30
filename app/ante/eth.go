@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	ethermint "github.com/okex/okexchain/app/types"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
+	ethermint "github.com/okex/exchain/app/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler
@@ -96,7 +96,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	evmDenom := emfd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 
 	// fee = gas price * gas limit
 	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecFromBigIntWithPrec(msgEthTx.Fee(), sdk.Precision))
@@ -146,7 +146,7 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// validate sender/signature and cache the address
-	_, err = msgEthTx.VerifySig(chainIDEpoch)
+	_, err = msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
 	}
@@ -202,7 +202,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		)
 	}
 
-	evmDenom := avd.evmKeeper.GetParams(ctx).EvmDenom
+	evmDenom := sdk.DefaultBondDenom
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)
@@ -255,11 +255,60 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// if multiple transactions are submitted in succession with increasing nonces,
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
-	if msgEthTx.Data.AccountNonce != seq {
-		return ctx, sdkerrors.Wrapf(
-			sdkerrors.ErrInvalidSequence,
-			"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
-		)
+	if ctx.IsCheckTx() {
+		// will be checkTx and RecheckTx mode
+		if ctx.IsReCheckTx() {
+			// recheckTx mode
+
+			// sequence must strictly increasing
+			if msgEthTx.Data.AccountNonce != seq {
+				return ctx, sdkerrors.Wrapf(
+					sdkerrors.ErrInvalidSequence,
+					"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+				)
+			}
+		} else {
+			// checkTx mode
+			checkTxModeNonce := seq
+
+			if !baseapp.IsMempoolEnableRecheck() {
+				// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
+				// to add pending txs len in the mempool.
+				// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
+				// will also reset checkState), so we will need to add pending txs len to get the right nonce
+				gPool := baseapp.GetGlobalMempool()
+				if gPool != nil {
+					cnt := gPool.GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+					checkTxModeNonce = seq + uint64(cnt)
+				}
+			}
+
+			if baseapp.IsMempoolEnableSort() {
+				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
+					return ctx, sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected in the range of [%d, %d]",
+						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
+					)
+				}
+			} else {
+				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
+					return ctx, sdkerrors.Wrapf(
+						sdkerrors.ErrInvalidSequence,
+						"invalid nonce; got %d, expected %d",
+						msgEthTx.Data.AccountNonce, checkTxModeNonce,
+					)
+				}
+			}
+		}
+	} else {
+		// only deliverTx mode
+		if msgEthTx.Data.AccountNonce != seq {
+			return ctx, sdkerrors.Wrapf(
+				sdkerrors.ErrInvalidSequence,
+				"invalid nonce; got %d, expected %d", msgEthTx.Data.AccountNonce, seq,
+			)
+		}
 	}
 
 	return next(ctx, tx, simulate)
@@ -330,7 +379,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
 
-		evmDenom := egcd.evmKeeper.GetParams(ctx).EvmDenom
+		evmDenom := sdk.DefaultBondDenom
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
@@ -365,6 +414,15 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 
 // AnteHandle handles incrementing the sequence of the sender.
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
+	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
+	// when mempool is not in enableRecheck mode, we should not increment the nonce
+
+	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
+	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() {
+		return next(ctx, tx, simulate)
+	}
+
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
 	gasMeter := ctx.GasMeter()
@@ -379,6 +437,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		acc := issd.ak.GetAccount(ctx, addr)
+
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 			panic(err)
 		}
@@ -387,5 +446,28 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	// set the original gas meter
 	ctx = ctx.WithGasMeter(gasMeter)
+	return next(ctx, tx, simulate)
+}
+
+// NewGasLimitDecorator creates a new GasLimitDecorator.
+func NewGasLimitDecorator(evm EVMKeeper) GasLimitDecorator {
+	return GasLimitDecorator{
+		evm: evm,
+	}
+}
+
+type GasLimitDecorator struct {
+	evm EVMKeeper
+}
+
+// AnteHandle handles incrementing the sequence of the sender.
+func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+	if !ok {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
+	}
+	if msgEthTx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
+	}
 	return next(ctx, tx, simulate)
 }

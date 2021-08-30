@@ -6,8 +6,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/dex/types"
-	ordertypes "github.com/okex/okexchain/x/order/types"
+	"github.com/okex/exchain/x/dex/types"
+	ordertypes "github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 

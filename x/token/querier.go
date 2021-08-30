@@ -1,11 +1,12 @@
 package token
 
 import (
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/token/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -31,6 +32,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryTokensV2(ctx, path[1:], req, keeper)
 		case types.QueryTokenV2:
 			return queryTokenV2(ctx, path[1:], req, keeper)
+		case types.UploadAccount:
+			return uploadAccount(ctx, keeper)
 		default:
 			return nil, types.ErrUnknownTokenQueryType()
 		}
@@ -166,4 +169,18 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
 	return res, nil
+}
+
+func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	if !viper.GetBool(FlagOSSEnable) {
+		return []byte("This API is not enabled"), nil
+	}
+	// Note: very time-consuming
+	filePath := exportAccounts(ctx, keeper)
+	if filePath == "" {
+		return
+	}
+	uploadOSS(filePath)
+
+	return []byte("Complete the Export account data and Upload it to oss"), nil
 }

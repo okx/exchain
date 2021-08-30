@@ -2,17 +2,23 @@ package eth
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/okex/okexchain/x/evm/types"
+	sdkerror "github.com/cosmos/cosmos-sdk/types/errors"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/okex/exchain/x/evm/types"
 
 	"github.com/ethereum/go-ethereum/core/vm"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethermint "github.com/okex/okexchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"
 )
 
@@ -37,7 +43,7 @@ func ParseGasPrice() *hexutil.Big {
 	}
 
 	//return the default gas price : DefaultGasPrice
-	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2).BigInt())
+	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2+1).BigInt())
 }
 
 type cosmosError struct {
@@ -207,4 +213,26 @@ func genericStringMap(s []string) map[string]string {
 		ret[s[i]] = s[i+1]
 	}
 	return ret
+}
+
+func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
+	switch txRes.Code {
+	case sdkerror.ErrTxInMempoolCache.ABCICode():
+		return common.Hash{}, sdkerror.ErrTxInMempoolCache
+	case sdkerror.ErrMempoolIsFull.ABCICode():
+		return common.Hash{}, sdkerror.ErrMempoolIsFull
+	case sdkerror.ErrTxTooLarge.ABCICode():
+		return common.Hash{}, sdkerror.Wrapf(sdkerror.ErrTxTooLarge, txRes.RawLog)
+	}
+	return common.Hash{}, fmt.Errorf(txRes.RawLog)
+}
+
+func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
+	prefix := addr.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(key))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], key)
+
+	return ethcrypto.Keccak256Hash(compositeKey)
 }

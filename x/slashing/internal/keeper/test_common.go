@@ -22,9 +22,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/slashing/internal/types"
-	"github.com/okex/okexchain/x/staking"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/slashing/internal/types"
+	"github.com/okex/exchain/x/staking"
 )
 
 // TODO remove dependencies on staking (should only refer to validator set type from sdk)

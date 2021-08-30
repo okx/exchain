@@ -2,6 +2,7 @@ package monitor
 
 // const
 const (
+	XNameSpace       = xNameSpace
 	xNameSpace       = "x"
 	orderSubSystem   = "order"
 	stakingSubSystem = "staking"

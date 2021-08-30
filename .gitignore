@@ -7,10 +7,11 @@
 *.swn
 .vscode
 .idea
+*.csv
 
 # Build
-okexchaind
-okexchaincli
+.exchaind
+.exchaincli
 vendor
 build
 tools/
@@ -25,18 +26,18 @@ doc
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
-cmd/okexchaincli/statik/statik.go
+cmd/exchaincli/statik/statik.go
 mytestnet
 doc/statik/statik.go
 dev/cache
 cmd/launch/launch
-cmd/okexchaincli/okexchaincli
-cmd/okexchaind/okexchaind
-cmd/okexchaintool/okexchaintool
+cmd/exchaincli/exchaincli
+cmd/exchaind/exchaind
+cmd/exchaintool/exchaintool
 cmd/tiger/tiger
-cmd/okexchaind/testnet_okchain.go
+cmd/exchaind/testnet_okchain.go
 dev/testnet/cache
-testnet_okexchain.go
+testnet_exchain.go
 tools
 
 
@@ -71,3 +72,4 @@ contract_tests/*
 dev/cache/*
 result.txt
 ethermint
+_cache_evm

@@ -1,7 +1,6 @@
 package filters
 
 import (
-	"log"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -39,10 +38,6 @@ func (s *Subscription) Unsubscribe(es *EventSystem) {
 	}
 
 	go func() {
-		defer func() {
-			log.Println("successfully unsubscribed to event", s.event)
-		}()
-
 	uninstallLoop:
 		for {
 			// write uninstall request and consume logs/hashes. This prevents

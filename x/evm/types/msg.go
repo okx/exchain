@@ -8,7 +8,10 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/okex/okexchain/app/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/tendermint/tendermint/mempool"
+
+	"github.com/okex/exchain/app/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -20,9 +23,10 @@ import (
 )
 
 var (
-	_ sdk.Msg = MsgEthermint{}
-	_ sdk.Msg = MsgEthereumTx{}
-	_ sdk.Tx  = MsgEthereumTx{}
+	_ sdk.Msg    = MsgEthermint{}
+	_ sdk.Msg    = MsgEthereumTx{}
+	_ sdk.Tx     = MsgEthereumTx{}
+	_ ante.FeeTx = MsgEthereumTx{}
 )
 
 var big8 = big.NewInt(8)
@@ -121,6 +125,22 @@ type MsgEthereumTx struct {
 	// caches
 	size atomic.Value
 	from atomic.Value
+}
+
+func (msg MsgEthereumTx) GetFee() sdk.Coins {
+	fee := make(sdk.Coins, 1)
+	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
+	return fee
+}
+
+func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
+
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
+	if err != nil {
+		return nil
+	}
+
+	return msg.From()
 }
 
 // sigCache is used to cache the derived sender and contains the signer used
@@ -323,11 +343,15 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int) (ethcmn.Address, error) {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Address, error) {
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
+		if sdk.HigherThanMercury(height) {
+			return ethcmn.Address{}, errors.New("deprecated support for homestead Signer")
+		}
+
 		signer = ethtypes.HomesteadSigner{}
 	}
 
@@ -434,4 +458,29 @@ func deriveChainID(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	return v.Div(v, big.NewInt(2))
+}
+
+// Return tx sender and gas price
+func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
+	exTxInfo := mempool.ExTxInfo{
+		Sender:   "",
+		GasPrice: big.NewInt(0),
+		Nonce:    msg.Data.AccountNonce,
+	}
+
+	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return exTxInfo
+	}
+
+	// Verify signature and retrieve sender address
+	from, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
+	if err != nil {
+		return exTxInfo
+	}
+
+	exTxInfo.Sender = from.String()
+	exTxInfo.GasPrice = msg.Data.Price
+
+	return exTxInfo
 }

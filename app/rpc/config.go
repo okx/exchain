@@ -6,23 +6,38 @@ import (
 	"os"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/viper"
-
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	cmserver "github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	"github.com/okex/okexchain/app/crypto/hd"
-	"github.com/okex/okexchain/app/rpc/websockets"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/rpc/pendingtx"
+	"github.com/okex/exchain/app/rpc/websockets"
+	"github.com/spf13/viper"
 )
 
 const (
 	flagUnlockKey = "unlock-key"
 	flagWebsocket = "wsport"
+
+	FlagPersonalAPI    = "personal-api"
+	FlagRateLimitAPI   = "rpc.rate-limit-api"
+	FlagRateLimitCount = "rpc.rate-limit-count"
+	FlagRateLimitBurst = "rpc.rate-limit-burst"
+	FlagEnableMonitor  = "rpc.enable-monitor"
+	FlagDisableAPI     = "rpc.disable-api"
+	FlagKafkaAddr      = "pendingtx.kafka-addr"
+	FlagKafkaTopic     = "pendingtx.kafka-topic"
+
+	MetricsNamespace = "x"
+	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
+	MetricsSubsystem = "rpc"
+
+	MetricsFieldName = "Metrics"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.
@@ -57,7 +72,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 		}
 	}
 
-	apis := GetAPIs(rs.CliCtx, privkeys...)
+	apis := GetAPIs(rs.CliCtx, rs.Logger(), privkeys...)
 
 	// Register all the APIs exposed by the namespace services
 	// TODO: handle allowlist and private APIs
@@ -72,8 +87,17 @@ func RegisterRoutes(rs *lcd.RestServer) {
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := websockets.NewServer(rs.CliCtx, websocketAddr)
+	ws := websockets.NewServer(rs.CliCtx, rs.Logger(), websocketAddr)
 	ws.Start()
+
+	// pending tx watcher
+	kafkaAddrs := viper.GetString(FlagKafkaAddr)
+	kafkaTopic := viper.GetString(FlagKafkaTopic)
+	if kafkaAddrs != "" && kafkaTopic != "" {
+		kafkaClient := pendingtx.NewKafkaClient(strings.Split(kafkaAddrs, ","), kafkaTopic)
+		ptw := pendingtx.NewWatcher(rs.CliCtx, rs.Logger(), kafkaClient)
+		ptw.Start()
+	}
 }
 
 func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {

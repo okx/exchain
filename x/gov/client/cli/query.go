@@ -13,10 +13,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/okex/okexchain/x/gov/client/utils"
+	"github.com/okex/exchain/x/gov/client/utils"
 
-	"github.com/okex/okexchain/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -92,8 +92,8 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query for a all proposals. You can filter the returns with the following flags.
 
 Example:
-$ %s query gov proposals --depositor okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
-$ %s query gov proposals --voter okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov proposals --depositor ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658
+$ %s query gov proposals --voter ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658
 $ %s query gov proposals --status (DepositPeriod|VotingPeriod|Passed|Rejected)
 `,
 				version.ClientName, version.ClientName, version.ClientName,
@@ -304,7 +304,7 @@ func getCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details for a single vote on a proposal given its identifier.
 
 Example:
-$ %s query gov vote 1 okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0
+$ %s query gov vote 1 ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
 `,
 				version.ClientName,
 			),
@@ -422,7 +422,7 @@ func getCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Query details for a single proposal deposit on a proposal by its identifier.
 
 Example:
-$ %s query gov deposit 1 okexchain1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ %s query gov deposit 1 ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658
 `,
 				version.ClientName,
 			),

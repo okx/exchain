@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/dex"
-	"github.com/okex/okexchain/x/order/types"
-	"github.com/okex/okexchain/x/token"
-	tokentypes "github.com/okex/okexchain/x/token/types"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/dex"
+	"github.com/okex/exchain/x/order/types"
+	"github.com/okex/exchain/x/token"
+	tokentypes "github.com/okex/exchain/x/token/types"
 )
 
 func TestEventNewOrders(t *testing.T) {
@@ -929,7 +929,7 @@ func TestFeesTable(t *testing.T) {
 }
 
 func handleOrders(t *testing.T, baseasset string, quoteasset string, orders []*types.Order, blockheight int64) sdk.SysCoins {
-	TestTokenPairOwner := "okexchain10q0rk5qnyag7wfvvt7rtphlw589m7frsku8qc9"
+	TestTokenPairOwner := "ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658"
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)
 	mapp, addrKeysSlice := getMockApp(t, len(orders))

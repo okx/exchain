@@ -5,9 +5,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/okex/okexchain/x/common"
-	govtypes "github.com/okex/okexchain/x/gov/types"
-	"github.com/okex/okexchain/x/params/types"
+	"github.com/okex/exchain/x/common"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -100,12 +100,6 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govtypes.Content) 
 // CheckMsgSubmitProposal implements ProposalHandler interface
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error {
 	paramsChangeProposal := msg.Content.(types.ParameterChangeProposal)
-
-	if sdk.IsDisableChangeEvmDenomByProposal(ctx.BlockHeight()) {
-		if err := checkDenom(paramsChangeProposal); err != nil {
-			return err
-		}
-	}
 
 	// check message sender is current validator
 	if !keeper.sk.IsValidator(ctx, msg.Proposer) {

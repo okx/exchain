@@ -3,7 +3,7 @@ package keeper
 import (
 	"math/big"
 
-	"github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -41,9 +41,20 @@ func (k *Keeper) GetBalance(ctx sdk.Context, addr ethcmn.Address) *big.Int {
 func (k *Keeper) GetCode(ctx sdk.Context, addr ethcmn.Address) []byte {
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCode(addr)
 }
+
+// GetCodeByHash calls CommitStateDB.GetCode using the passed in context
+func (k *Keeper) GetCodeByHash(ctx sdk.Context, hash ethcmn.Hash) []byte {
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCodeByHash(hash)
+}
+
 // GetState calls CommitStateDB.GetState using the passed in context
 func (k *Keeper) GetState(ctx sdk.Context, addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetState(addr, hash)
+}
+
+// GetStateByKey calls CommitStateDB.GetState using the passed in context
+func (k *Keeper) GetStateByKey(ctx sdk.Context, addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetStateByKey(addr, hash)
 }
 
 // ----------------------------------------------------------------------------

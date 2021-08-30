@@ -4,8 +4,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/params"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // Default parameter namespace
@@ -30,10 +30,9 @@ func (k Keeper) MaxValidators(ctx sdk.Context) (res uint16) {
 	return
 }
 
-// BondDenom renturns  the param Bondable coin denomination
-func (k Keeper) BondDenom(ctx sdk.Context) (res string) {
-	k.paramstore.Get(ctx, types.KeyBondDenom, &res)
-	return
+// BondDenom returns the default the denomination of staking token
+func (k Keeper) BondDenom(_ sdk.Context) string {
+	return sdk.DefaultBondDenom
 }
 
 // GetParams gets all params as types.Params
@@ -41,7 +40,6 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.UnbondingTime(ctx),
 		k.MaxValidators(ctx),
-		k.BondDenom(ctx),
 		k.ParamsEpoch(ctx),
 		k.ParamsMaxValsToAddShares(ctx),
 		k.ParamsMinDelegation(ctx),

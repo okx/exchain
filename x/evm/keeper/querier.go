@@ -8,11 +8,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
-	"github.com/okex/okexchain/app/utils"
-	"github.com/okex/okexchain/x/evm/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/app/utils"
+	"github.com/okex/exchain/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -31,8 +29,12 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryBlockNumber(ctx, keeper)
 		case types.QueryStorage:
 			return queryStorage(ctx, path, keeper)
+		case types.QueryStorageByKey:
+			return queryStorageByKey(ctx, path, keeper)
 		case types.QueryCode:
 			return queryCode(ctx, path, keeper)
+		case types.QueryCodeByHash:
+			return queryCodeByHash(ctx, path, keeper)
 		case types.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
 		case types.QueryBloom:
@@ -43,10 +45,38 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryExportAccount(ctx, path, keeper)
 		case types.QueryParameters:
 			return queryParams(ctx, keeper)
+		case types.QueryHeightToHash:
+			return queryHeightToHash(ctx, path, keeper)
+		case types.QuerySection:
+			return querySection(ctx, path, keeper)
+		case types.QueryContractDeploymentWhitelist:
+			return queryContractDeploymentWhitelist(ctx, keeper)
+		case types.QueryContractBlockedList:
+			return queryContractBlockedList(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
 	}
+}
+
+func queryContractBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	blockedList := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractBlockedList()
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, blockedList)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
+}
+
+func queryContractDeploymentWhitelist(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
+	whitelist := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractDeploymentWhitelist()
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+
+	return res, nil
 }
 
 func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
@@ -99,6 +129,23 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	return bz, nil
 }
 
+func queryStorageByKey(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 3 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 3 parameters is required")
+	}
+
+	addr := ethcmn.HexToAddress(path[1])
+	key := ethcmn.HexToHash(path[2])
+	val := keeper.GetStateByKey(ctx, addr, key)
+	res := types.QueryResStorage{Value: val.Bytes()}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return bz, nil
+}
+
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	if len(path) < 2 {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
@@ -106,7 +153,25 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	code := keeper.GetCode(ctx, addr)
+	so := keeper.GetOrNewStateObject(ctx, addr)
+	code := keeper.GetCodeByHash(ctx, ethcmn.BytesToHash(so.CodeHash()))
+	res := types.QueryResCode{Code: code}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return bz, nil
+}
+
+func queryCodeByHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	hash := ethcmn.HexToHash(path[1])
+	code := keeper.GetCodeByHash(ctx, hash)
 	res := types.QueryResCode{Code: code}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
@@ -223,5 +288,40 @@ func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
+	return res, nil
+}
+
+func queryHeightToHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	height, err := strconv.Atoi(path[1])
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, params[1] convert to int failed")
+	}
+	hash := keeper.GetHeightHash(ctx, uint64(height))
+
+	return hash.Bytes(), nil
+}
+
+func querySection(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if !types.GetEnableBloomFilter() {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"disable bloom filter")
+	}
+
+	if len(path) != 1 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"wrong parameters, need no parameters")
+	}
+
+	res, err := json.Marshal(types.GetIndexer().StoredSection())
+	if err != nil {
+		return nil, err
+	}
+
 	return res, nil
 }

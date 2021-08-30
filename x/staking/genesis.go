@@ -3,13 +3,12 @@ package staking
 import (
 	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmtypes "github.com/tendermint/tendermint/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/staking/exported"
-	"github.com/okex/okexchain/x/staking/types"
 )
 
 // InitGenesis sets the pool and parameters for the provided keeper
@@ -25,6 +24,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	// slashing periods are correctly initialized for the validator set e.g. with a one-block offset - the first
 	// TM block is at height 1, so state updates applied from genesis.json are in block 0.
 	ctx = ctx.WithBlockHeight(1 - sdk.ValidatorUpdateDelay)
+
 	keeper.SetParams(ctx, data.Params)
 	keeper.SetLastTotalPower(ctx, data.LastTotalPower)
 
@@ -46,8 +46,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 		keeper.SetProxyBinding(ctx, proxyDelegatorKeyExported.ProxyAddr, proxyDelegatorKeyExported.DelAddr, false)
 	}
 
-	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(data.Params.BondDenom, bondedTokens),
-		sdk.NewDecCoinFromDec(data.Params.BondDenom, notBondedTokens), data.Exported)
+	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, bondedTokens),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, notBondedTokens), data.Exported)
 
 	// don't need to run Tendermint updates if we exported
 	if data.Exported {

@@ -8,8 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	evmtypes "github.com/okex/okexchain/x/evm/types"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 )
@@ -55,6 +55,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		case evmtypes.MsgEthereumTx:
 			anteHandler = sdk.ChainAnteDecorators(
 				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+				NewGasLimitDecorator(evmKeeper),
 				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
 				NewEthSigVerificationDecorator(),

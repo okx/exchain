@@ -3,7 +3,7 @@ package perf
 import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/common/monitor"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/tendermint/tendermint/libs/log"
 	"sync"
 	"time"
@@ -69,6 +69,8 @@ func GetPerf() Perf {
 
 // Perf shows the expected behaviour
 type Perf interface {
+	InitChainer(logger log.Logger)
+
 	OnAppBeginBlockEnter(height int64) uint64
 	OnAppBeginBlockExit(height int64, seq uint64)
 
@@ -143,6 +145,7 @@ type performance struct {
 	moduleInfoMap map[string]*moduleInfo
 	check         bool
 	msgQueue      []string
+	logger log.Logger
 }
 
 func newPerf() *performance {
@@ -169,6 +172,12 @@ func newPerf() *performance {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+
+
+
+func (p *performance) InitChainer(logger log.Logger) {
+	p.logger = logger.With("module", "perf")
+}
 
 func (p *performance) EnableCheck() {
 	p.check = true
@@ -331,7 +340,13 @@ func (p *performance) OnCommitEnter(height int64) uint64 {
 	return p.app.seqNum
 }
 
-func (p *performance) OnCommitExit(height int64, seq uint64, logger log.Logger) {
+func (p *performance) OnCommitExit(height int64, seq uint64, l log.Logger) {
+
+	logger := p.logger
+	if logger == nil {
+		return
+	}
+
 	p.sanityCheckApp(height, seq)
 	// by millisecond
 	unit := int64(1e6)

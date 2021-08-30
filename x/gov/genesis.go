@@ -7,8 +7,8 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/okex/okexchain/x/gov/keeper"
-	"github.com/okex/okexchain/x/gov/types"
+	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 // GenesisState - all staking state that must be provided at genesis

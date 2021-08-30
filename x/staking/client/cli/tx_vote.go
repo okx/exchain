@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/okexchain/x/staking/types"
+	"github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +22,9 @@ func GetCmdDestroyValidator(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "destroy-validator [flags]",
 		Args:  cobra.NoArgs,
-		Short: "deregister the validator from the OKExChain and unbond the min self delegation",
+		Short: "deregister the validator from the ExChain and unbond the min self delegation",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Deregister the validator from the OKExChain and unbond the min self delegation.
+			fmt.Sprintf(`Deregister the validator from the ExChain and unbond the min self delegation.
 
 Example:
 $ %s tx staking destroy-validator --from mykey
@@ -120,10 +120,10 @@ func GetCmdAddShares(cdc *codec.Codec) *cobra.Command {
 		Short: fmt.Sprintf("add shares to one or more validators by all deposited %s", sdk.DefaultBondDenom),
 		Long: strings.TrimSpace(
 			fmt.Sprintf("Add shares to one or more validators by all deposited %s.\n\nExample:\n$ %s tx staking add-shares "+
-				"okexchainvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg,"+
-				"okexchainvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42dnwst5,"+
-				"okexchainvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8,"+
-				"okexchainvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6tr3mk6 --from mykey\n",
+				"exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg,"+
+				"exvaloper1svzxp4ts5le2s4zugx34ajt6shz2hg42dnwst5,"+
+				"exvaloper10q0rk5qnyag7wfvvt7rtphlw589m7frshchly8,"+
+				"exvaloper1g7znsf24w4jc3xfca88pq9kmlyjdare6tr3mk6 --from mykey\n",
 				sdk.DefaultBondDenom, version.ClientName),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -227,7 +227,7 @@ func GetCmdBindProxy(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Bind proxy relationship.
 
 Example:
-$ %s tx staking proxy bind okexchain1hw4r48aww06ldrfeuq2v438ujnl6alsz0685a0 --from mykey
+$ %s tx staking proxy bind ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02 --from mykey
 `,
 				version.ClientName),
 		),

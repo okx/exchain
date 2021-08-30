@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 
+	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/x/dex"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/order"
 	"github.com/spf13/cobra"
-
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/libs/cli"
@@ -13,21 +17,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clientkeys "github.com/cosmos/cosmos-sdk/client/keys"
 	clientrpc "github.com/cosmos/cosmos-sdk/client/rpc"
-	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	tokencmd "github.com/okex/okexchain/x/token/client/cli"
-
-	"github.com/okex/okexchain/app"
-	"github.com/okex/okexchain/app/codec"
-	"github.com/okex/okexchain/app/crypto/ethsecp256k1"
-	"github.com/okex/okexchain/app/rpc"
-	okexchain "github.com/okex/okexchain/app/types"
-	"github.com/okex/okexchain/cmd/client"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/cmd/client"
+	tokencmd "github.com/okex/exchain/x/token/client/cli"
 )
 
 var (
@@ -52,13 +53,14 @@ func main() {
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "okexchaincli",
-		Short: "Command line interface for interacting with okexchaind",
+		Use:   "exchaincli",
+		Short: "Command line interface for interacting with exchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
 	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+		utils.SetParseAppTx(parseMsgEthereumTx)
 		return client.InitConfig(rootCmd)
 	}
 
@@ -68,9 +70,6 @@ func main() {
 		sdkclient.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc),
 		txCmd(cdc),
-		client.ValidateChainID(
-			rpc.ServeCmd(cdc),
-		),
 		flags.LineBreak,
 		client.KeyCommands(),
 		flags.LineBreak,
@@ -133,7 +132,10 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	var cmdsToRemove []*cobra.Command
 
 	for _, cmd := range txCmd.Commands() {
-		if cmd.Use == auth.ModuleName || cmd.Use == bank.ModuleName {
+		if cmd.Use == auth.ModuleName ||
+			cmd.Use == order.ModuleName ||
+			cmd.Use == dex.ModuleName ||
+			cmd.Use == bank.ModuleName {
 			cmdsToRemove = append(cmdsToRemove, cmd)
 		}
 	}
@@ -141,4 +143,13 @@ func txCmd(cdc *sdkcodec.Codec) *cobra.Command {
 	txCmd.RemoveCommand(cmdsToRemove...)
 
 	return txCmd
+}
+
+func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
+	var tx evmtypes.MsgEthereumTx
+	err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }

@@ -3,19 +3,18 @@ package order
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/okexchain/x/common"
 	"math"
 
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/order/keeper"
+	"github.com/okex/exchain/x/order/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/willf/bitset"
-
-	"github.com/okex/okexchain/x/common/perf"
-	"github.com/okex/okexchain/x/order/keeper"
-	"github.com/okex/okexchain/x/order/types"
 )
 
 func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
@@ -34,6 +33,9 @@ func CalculateGas(msg sdk.Msg, params *types.Params) (gas uint64) {
 // NewOrderHandler returns the handler with version 0.
 func NewOrderHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+		// disable order tx handler
+		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Order messages are not allowd.")
+
 		gas := CalculateGas(msg, keeper.GetParams(ctx))
 
 		// consume gas that msg required, it will panic if gas is insufficient

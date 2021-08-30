@@ -10,10 +10,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
-	comm "github.com/okex/okexchain/x/common"
-	"github.com/okex/okexchain/x/distribution/types"
-	"github.com/okex/okexchain/x/gov"
-	govrest "github.com/okex/okexchain/x/gov/client/rest"
+	comm "github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/distribution/types"
+	"github.com/okex/exchain/x/gov"
+	govrest "github.com/okex/exchain/x/gov/client/rest"
 )
 
 // RegisterRoutes register distribution REST routes.
