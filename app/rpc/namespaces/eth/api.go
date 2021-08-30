@@ -53,6 +53,8 @@ import (
 
 const (
 	CacheOfEthCallLru = 40960
+
+	FlagEnableMultiCall = "rpc.enable-multi-call"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -727,6 +729,10 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 
 // MultiCall performs multiple raw contract call.
 func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) ([]hexutil.Bytes, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
 	monitor := monitor.GetMonitor("eth_multiCall", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNr)
 
