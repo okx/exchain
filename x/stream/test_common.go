@@ -215,7 +215,7 @@ func MockApplyBlock(app *MockApp, blockHeight int64, txs []auth.StdTx) {
 	}
 
 	app.EndBlock(abci.RequestEndBlock{Height: blockHeight})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 }
 
 func CreateGenAccounts(numAccs int, genCoins sdk.Coins) (addrKeysSlice mock.AddrKeysSlice, genAccs []auth.Account) {

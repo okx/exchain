@@ -569,11 +569,11 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 }
 
 // Commit implements the Application interface
-func (app *OKExChainApp) Commit() abci.ResponseCommit {
+func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	res := app.BaseApp.Commit()
+	res := app.BaseApp.Commit(req)
 	return res
 }
 
