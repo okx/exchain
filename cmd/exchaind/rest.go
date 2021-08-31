@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
-	backendrest "github.com/okex/exchain/x/backend/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	dexrest "github.com/okex/exchain/x/dex/client/rest"
 	dist "github.com/okex/exchain/x/distribution"
@@ -55,7 +54,6 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 
 	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
 	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.StoreKey)
-	backendrest.RegisterRoutes(rs.CliCtx, v1Router)
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -82,5 +80,4 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
-	backendrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }

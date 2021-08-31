@@ -25,7 +25,6 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
@@ -46,7 +45,6 @@ import (
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
-	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
@@ -100,8 +98,6 @@ var (
 		token.AppModuleBasic{},
 		dex.AppModuleBasic{},
 		order.AppModuleBasic{},
-		backend.AppModuleBasic{},
-		stream.AppModuleBasic{},
 		debug.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
@@ -118,7 +114,6 @@ var (
 		token.ModuleName:          {supply.Minter, supply.Burner},
 		dex.ModuleName:            nil,
 		order.ModuleName:          nil,
-		backend.ModuleName:        nil,
 		ammswap.ModuleName:        {supply.Minter, supply.Burner},
 		farm.ModuleName:           nil,
 		farm.YieldFarmingAccount:  nil,
@@ -165,8 +160,6 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
-	BackendKeeper  backend.Keeper
-	StreamKeeper   stream.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -289,10 +282,6 @@ func NewOKExChainApp(
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.cdc)
 
-	app.StreamKeeper = stream.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.AccountKeeper, &app.SwapKeeper,
-		&app.FarmKeeper, app.cdc, logger, appConfig, streamMetrics)
-	app.BackendKeeper = backend.NewKeeper(app.OrderKeeper, app.TokenKeeper, &app.DexKeeper, &app.SwapKeeper, &app.FarmKeeper,
-		app.MintKeeper, app.StreamKeeper.GetMarketKeeper(), app.cdc, logger, appConfig.BackendConfig)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -352,8 +341,6 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
-		backend.NewAppModule(app.BackendKeeper),
-		stream.NewAppModule(app.StreamKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 	)
 
@@ -361,7 +348,6 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
-		stream.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
 		dex.ModuleName,
@@ -379,8 +365,6 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		order.ModuleName,
 		staking.ModuleName,
-		backend.ModuleName,
-		stream.ModuleName,
 		evm.ModuleName,
 	)
 
@@ -459,9 +443,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
 
 	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
-	}
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
@@ -476,14 +457,10 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
-		if stdTx, ok := tx.(auth.StdTx); ok {
+		if _, ok := tx.(auth.StdTx); ok {
 			txHash := fmt.Sprintf("%X", tmhash.Sum(txBytes))
 			app.Logger().Debug(fmt.Sprintf("[Sync Tx(%s) to backend module]", txHash))
-			ctx := app.GetDeliverStateCtx()
-			app.BackendKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
-			app.StreamKeeper.SyncTx(ctx, &stdTx, txHash,
-				ctx.BlockHeader().Time.Unix())
+
 		}
 	}
 }
