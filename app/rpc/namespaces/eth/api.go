@@ -54,6 +54,8 @@ import (
 
 const (
 	CacheOfEthCallLru = 40960
+
+	FlagEnableMultiCall = "rpc.enable-multi-call"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -331,7 +333,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	return (*hexutil.Big)(val), nil
 }
 
-// GetBalance returns the provided account's balance up to the provided block number.
+// GetAccount returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
@@ -391,7 +393,7 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
-// GetStorageAt returns the contract storage at the given address, block number, and key.
+// GetStorageAtInternal returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
 	return api.getStorageAt(address, key, 0, true)
 }
@@ -522,7 +524,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 	return out.Code, nil
 }
 
-// GetCode returns the contract code at the given address and block number.
+// GetCodeByHash returns the contract code at the given address and block number.
 func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
 	code, err := api.wrappedBackend.GetCodeByHash(hash.Bytes())
 	if err == nil {
@@ -724,6 +726,26 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	}
 	api.addCallCache(key, data.Ret)
 	return data.Ret, nil
+}
+
+// MultiCall performs multiple raw contract call.
+func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) ([]hexutil.Bytes, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
+	monitor := monitor.GetMonitor("eth_multiCall", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("args", args, "block number", blockNr)
+
+	rets := make([]hexutil.Bytes, 0, len(args))
+	for _, arg := range args {
+		ret, err := api.Call(arg, blockNr, nil)
+		if err != nil {
+			return rets, err
+		}
+		rets = append(rets, ret)
+	}
+	return rets, nil
 }
 
 // DoCall performs a simulated call operation through the evmtypes. It returns the
