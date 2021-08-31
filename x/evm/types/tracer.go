@@ -3,9 +3,11 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/server"
 	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
@@ -17,13 +19,16 @@ import (
 )
 
 const (
-	tracesDir = "traces"
+	tracesDir        = "traces"
 	FlagEnableTraces = "enable-evm-traces"
+	FlagTraceSegment = "evm-trace-segment"
 )
 
 var (
-	tracesDB dbm.DB
+	tracesDB     dbm.DB
 	enableTraces bool
+
+	step, total, num int64
 )
 
 func init() {
@@ -34,24 +39,44 @@ func init() {
 	})
 }
 
-func OpenTxTracesDB() {
+func InitTxTraces() {
 	enableTraces = viper.GetBool(FlagEnableTraces)
 	if !enableTraces {
 		return
 	}
-	dataDir := filepath.Join(viper.GetString("home"), "data")
+
+	etp := viper.GetString(FlagTraceSegment)
+	segment := strings.Split(etp, "-")
+	if len(segment) != 3 {
+		panic(fmt.Errorf("invalid evm trace params: %s", etp))
+	}
+
 	var err error
+	step, err = strconv.ParseInt(segment[0], 10, 64)
+	if err != nil || step <= 0 {
+		panic(fmt.Errorf("invalid evm trace params: %s", etp))
+	}
+	total, err = strconv.ParseInt(segment[1], 10, 64)
+	if err != nil || total <= 0 {
+		panic(fmt.Errorf("invalid evm trace params: %s", etp))
+	}
+	num, err = strconv.ParseInt(segment[2], 10, 64)
+	if err != nil || num < 0 || num >= total {
+		panic(fmt.Errorf("invalid evm trace params: %s", etp))
+	}
+
+	dataDir := filepath.Join(viper.GetString("home"), "data")
 	tracesDB, err = sdk.NewLevelDB(tracesDir, dataDir)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
-	if !enableTraces {
-		return
-	}
+func checkTracesSegment(height int64) bool {
+	return enableTraces && ((height-1)/step)%total == num
+}
 
+func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
 	var (
 		res []byte
 		err error
@@ -97,7 +122,7 @@ func saveToDB(txHash string, res json.RawMessage) {
 	}
 }
 
-func GetTracesFromDB(txHash string) json.RawMessage{
+func GetTracesFromDB(txHash string) json.RawMessage {
 	if tracesDB == nil {
 		return []byte{}
 	}

@@ -145,10 +145,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	var tracer vm.Tracer
 	tracer = vm.NewStructLogger(nil)
+	enableDebug := checkTracesSegment(ctx.BlockHeight())
 
 	vmConfig := vm.Config{
 		ExtraEips: params.ExtraEIPs,
-		Debug:     enableTraces,
+		Debug:     enableDebug,
 		Tracer:    tracer,
 	}
 
@@ -245,7 +246,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	defer func() {
-		if !st.Simulate {
+		if !st.Simulate && enableDebug {
 			saveTraceResult(ctx, tracer, result)
 		}
 	}()

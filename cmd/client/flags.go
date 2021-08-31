@@ -51,5 +51,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 
-	cmd.Flags().Bool(evmtypes.FlagEnableTraces, false, "enable traces db to save evm transaction trace")
+	cmd.Flags().Bool(evmtypes.FlagEnableTraces, false, "Enable traces db to save evm transaction trace")
+	cmd.Flags().String(evmtypes.FlagTraceSegment, "1-1-0", "Parameters for segmented execution of evm trace, such as \"step-total-num\"")
 }

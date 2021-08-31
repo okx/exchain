@@ -59,7 +59,7 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
-	types.OpenTxTracesDB()
+	types.InitTxTraces()
 
 	if enable := types.GetEnableBloomFilter(); enable {
 		db := types.BloomDb()
