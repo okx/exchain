@@ -14,7 +14,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	//github.com/ethereum/go-ethereum v1.9.25
-	github.com/ethereum/go-ethereum v1.10.0
+	github.com/ethereum/go-ethereum v1.10.8
 	github.com/frankban/quicktest v1.7.2 // indirect
 	github.com/garyburd/redigo v1.6.2
 	github.com/go-kit/kit v0.10.0
@@ -28,7 +28,6 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/json-iterator/go v1.1.9
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20200123000308-a60dcd172b4c
 	github.com/nacos-group/nacos-sdk-go v1.0.0
 	github.com/pierrec/lz4 v2.4.1+incompatible // indirect
@@ -37,7 +36,6 @@ require (
 	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/tsdb v0.9.1 // indirect
 	github.com/segmentio/kafka-go v0.2.2
-	github.com/shirou/gopsutil v2.20.9+incompatible // indirect
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.1.1
@@ -45,18 +43,17 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
+	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
-	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
-	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
-	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
-	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.30.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 replace (
