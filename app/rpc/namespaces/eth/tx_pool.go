@@ -35,6 +35,7 @@ var broadcastErrors = map[uint32]*sdkerrors.Error{
 	sdkerrors.ErrTxInMempoolCache.ABCICode(): sdkerrors.ErrTxInMempoolCache,
 	sdkerrors.ErrMempoolIsFull.ABCICode():    sdkerrors.ErrMempoolIsFull,
 	sdkerrors.ErrTxTooLarge.ABCICode():       sdkerrors.ErrTxTooLarge,
+	sdkerrors.ErrInvalidSequence.ABCICode():  sdkerrors.ErrInvalidSequence,
 }
 
 type TxPool struct {
@@ -233,7 +234,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	}
 	// i is the start index of txs that don't need to be dropped
 	if err != nil {
-		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
+		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) &&
+			!strings.Contains(err.Error(), sdkerrors.ErrInvalidSequence.Error()) {
 			// tx has err, and err is not mempoolfull, the tx should be dropped
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
@@ -267,9 +269,9 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	}
 	if res.Code != sdk.CodeOK {
 		if broadcastErrors[res.Code] == nil {
-			return fmt.Errorf("broadcast tx failed, code : %d", res.Code)
+			return fmt.Errorf("broadcast tx failed, code: %d, rawLog: %s", res.Code, res.RawLog)
 		} else {
-			return fmt.Errorf("broadcast tx failed, err:%s", broadcastErrors[res.Code].Error())
+			return fmt.Errorf("broadcast tx failed, err: %s", broadcastErrors[res.Code].Error())
 		}
 	}
 	return nil
