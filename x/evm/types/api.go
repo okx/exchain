@@ -14,7 +14,7 @@ type TraceExecutionResult struct {
 	Gas         uint64         `json:"gas"`
 	Failed      bool           `json:"failed"`
 	ReturnValue string         `json:"returnValue"`
-	StructLogs  []StructLogRes `json:"structLogs"`
+	StructLogs  []vm.StructLog `json:"structLogs"`
 }
 
 // StructLogRes stores a structured log emitted by the EVM while replaying a

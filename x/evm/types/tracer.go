@@ -9,7 +9,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
@@ -93,7 +92,7 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
-			//StructLogs:  FormatLogs(tracer.StructLogs()),
+			StructLogs:  tracer.StructLogs(),
 		})
 
 	case *tracers.Tracer:
@@ -107,35 +106,33 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		res = []byte(err.Error())
 	}
 
-	txHash := hexutil.Encode(tmtypes.Tx(ctx.TxBytes()).Hash())
-
-	saveToDB(txHash, res)
+	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(), res)
 }
 
-func saveToDB(txHash string, res json.RawMessage) {
+func saveToDB(txHash []byte, res json.RawMessage) {
 	if tracesDB == nil {
 		panic("traces db is nil")
 	}
-	err := tracesDB.Set([]byte(txHash), res)
+	err := tracesDB.SetSync(txHash, res)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetTracesFromDB(txHash string) json.RawMessage {
+func GetTracesFromDB(txHash []byte) json.RawMessage {
 	if tracesDB == nil {
 		return []byte{}
 	}
-	res, err := tracesDB.Get([]byte(txHash))
+	res, err := tracesDB.Get(txHash)
 	if err != nil {
 		return []byte{}
 	}
 	return res
 }
 
-func DeleteTracesFromDB(txHash string) error {
+func DeleteTracesFromDB(txHash []byte) error {
 	if tracesDB == nil {
 		return fmt.Errorf("traces db is nil")
 	}
-	return tracesDB.Delete([]byte(txHash))
+	return tracesDB.Delete(txHash)
 }

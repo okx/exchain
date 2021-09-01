@@ -1398,14 +1398,20 @@ func (api *PublicEthereumAPI) accountNonce(
 }
 
 // GetTxTrace returns the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) GetTxTrace(txHash string) json.RawMessage {
-	return evmtypes.GetTracesFromDB(txHash)
+func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
+	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	return evmtypes.GetTracesFromDB(txHash.Bytes())
 }
 
 // DeleteTxTrace delete the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) DeleteTxTrace(txHash string) json.RawMessage {
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) json.RawMessage {
+	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
 	var rawMsg json.RawMessage
-	if err := evmtypes.DeleteTracesFromDB(txHash); err != nil {
+	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
 		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace failed"))
 	} else {
 		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace succeed"))
