@@ -12,6 +12,7 @@ import (
 
 	"github.com/okex/exchain/app"
 	ante "github.com/okex/exchain/app/ante"
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	okexchain "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -40,6 +41,8 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
+
+	appconfig.RegisterDynamicConfig()
 }
 
 func TestAnteTestSuite(t *testing.T) {

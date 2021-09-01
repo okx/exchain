@@ -286,8 +286,11 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 					// to add pending txs len in the mempool.
 					// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
 					// will also reset checkState), so we will need to add pending txs len to get the right nonce
-					cnt := baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
-					checkTxModeNonce = seq + uint64(cnt)
+					gPool := baseapp.GetGlobalMempool()
+					if gPool != nil {
+						cnt := gPool.GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+						checkTxModeNonce = seq + uint64(cnt)
+					}
 				}
 
 				if baseapp.IsMempoolEnableSort() {

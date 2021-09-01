@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/app"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 
 	cmserver "github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -50,8 +52,9 @@ import (
 )
 
 const (
-	FlagGasLimitBuffer = "gas-limit-buffer"
-	CacheOfEthCallLru  = 40960
+	CacheOfEthCallLru = 40960
+
+	FlagEnableMultiCall = "rpc.enable-multi-call"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -71,7 +74,6 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
-	gasLimitBuffer uint64
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -96,7 +98,6 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(),
-		gasLimitBuffer: viper.GetUint64(FlagGasLimitBuffer),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -331,7 +332,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 	return (*hexutil.Big)(val), nil
 }
 
-// GetBalance returns the provided account's balance up to the provided block number.
+// GetAccount returns the provided account's balance up to the provided block number.
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
@@ -391,7 +392,7 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
-// GetStorageAt returns the contract storage at the given address, block number, and key.
+// GetStorageAtInternal returns the contract storage at the given address, block number, and key.
 func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error) {
 	return api.getStorageAt(address, key, 0, true)
 }
@@ -522,7 +523,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctyp
 	return out.Code, nil
 }
 
-// GetCode returns the contract code at the given address and block number.
+// GetCodeByHash returns the contract code at the given address and block number.
 func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, error) {
 	code, err := api.wrappedBackend.GetCodeByHash(hash.Bytes())
 	if err == nil {
@@ -726,6 +727,26 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.Bloc
 	return data.Ret, nil
 }
 
+// MultiCall performs multiple raw contract call.
+func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) ([]hexutil.Bytes, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+
+	monitor := monitor.GetMonitor("eth_multiCall", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("args", args, "block number", blockNr)
+
+	rets := make([]hexutil.Bytes, 0, len(args))
+	for _, arg := range args {
+		ret, err := api.Call(arg, blockNr, nil)
+		if err != nil {
+			return rets, err
+		}
+		rets = append(rets, ret)
+	}
+	return rets, nil
+}
+
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
@@ -849,7 +870,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
-	gasBuffer := estimatedGas / 100 * api.gasLimitBuffer
+	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	gas := estimatedGas + gasBuffer
 
 	return hexutil.Uint64(gas), nil
@@ -1347,7 +1368,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	nonce := uint64(0)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil { // account in watch db
-		 nonce = acc.GetSequence()
+		nonce = acc.GetSequence()
 	} else {
 		// use a the given client context in case its wrapped with a custom height
 		accRet := authtypes.NewAccountRetriever(clientCtx)
