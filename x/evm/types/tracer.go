@@ -116,7 +116,7 @@ func saveToDB(txHash string, res json.RawMessage) {
 	if tracesDB == nil {
 		panic("traces db is nil")
 	}
-	err := tracesDB.SetSync([]byte(txHash), res)
+	err := tracesDB.Set([]byte(txHash), res)
 	if err != nil {
 		panic(err)
 	}
