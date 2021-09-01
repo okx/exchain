@@ -93,7 +93,7 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
+			//StructLogs:  FormatLogs(tracer.StructLogs()),
 		})
 
 	case *tracers.Tracer:
