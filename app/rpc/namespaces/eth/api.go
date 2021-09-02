@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -12,15 +11,32 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/config"
-
-	cmserver "github.com/cosmos/cosmos-sdk/server"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
+	json "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 
+	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	cmserver "github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/merkle"
+	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/types"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -31,25 +47,6 @@ import (
 	"github.com/okex/exchain/app/utils"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 const (
@@ -1412,9 +1409,9 @@ func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) json.RawMessage 
 
 	var rawMsg json.RawMessage
 	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
-		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace failed"))
+		rawMsg, _ = json.Marshal("delete trace failed")
 	} else {
-		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace succeed"))
+		rawMsg, _ = json.Marshal("delete trace succeed")
 	}
 	return rawMsg
 }
