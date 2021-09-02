@@ -88,16 +88,15 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		if len(result.Revert()) > 0 {
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
-		res, err = json.Marshal(&TraceExecutionResult{
+
+		res, err = json.ConfigFastest.Marshal(&TraceExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
 			StructLogs:  tracer.StructLogs(),
 		})
-
 	case *tracers.Tracer:
 		res, err = tracer.GetResult()
-
 	default:
 		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
 	}
