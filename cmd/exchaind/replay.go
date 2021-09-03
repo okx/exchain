@@ -198,7 +198,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	if stopheight == 0 {
 		stopheight = originLatestBlockHeight
 	}
-	log.Println("origin latest block height", "height", stopheight)
+	log.Println("replay stop block height", "height", stopheight)
 
 	for height := startBlockHeight; height <= stopheight; height++ {
 		log.Println("replaying ", height)
