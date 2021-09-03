@@ -29,6 +29,7 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	pprofAddrFlag = "pprof_addr"
+	FlagHaltHeight = "height"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -54,6 +55,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
+	cmd.Flags().Uint64(FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	return cmd
 }
 
@@ -87,7 +89,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	// replay
 	startBlockHeight := currentBlockHeight + 1
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
+	//doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
+	stopBlockHeight := viper.GetInt64(FlagHaltHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight,stopBlockHeight)
 }
 
 // panic if error is not nil
@@ -161,15 +165,40 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	return nil
 }
 
+//func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
+//	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
+//	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
+//	panicError(err)
+//	originBlockStore := store.NewBlockStore(originBlockStoreDB)
+//	originLatestBlockHeight := originBlockStore.Height()
+//	log.Println("origin latest block height", "height", originLatestBlockHeight)
+//
+//	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
+//		log.Println("replaying ", height)
+//		block := originBlockStore.LoadBlock(height)
+//		meta := originBlockStore.LoadBlockMeta(height)
+//
+//		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+//		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+//		panicError(err)
+//	}
+//}
+
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
+	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64,stopBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
-	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
+	stopheight := stopBlockHeight
+	if stopheight == 0 {
+		stopheight = originLatestBlockHeight
+	}
+	log.Println("replay stop block height", "height", stopheight)
+
+	for height := startBlockHeight; height <= stopheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
