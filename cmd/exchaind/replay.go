@@ -90,8 +90,8 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	// replay
 	startBlockHeight := currentBlockHeight + 1
 	//doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
-	stopBlockHeight := viper.GetInt64(FlagHaltHeight)
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight,stopBlockHeight)
+	haltBlockHeight := viper.GetInt64(FlagHaltHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight,haltBlockHeight)
 }
 
 // panic if error is not nil
@@ -112,7 +112,6 @@ func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
-	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
 	return createAndStartProxyAppConns(clientCreator)
 }
 
@@ -165,40 +164,26 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	return nil
 }
 
-//func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-//	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
-//	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
-//	panicError(err)
-//	originBlockStore := store.NewBlockStore(originBlockStoreDB)
-//	originLatestBlockHeight := originBlockStore.Height()
-//	log.Println("origin latest block height", "height", originLatestBlockHeight)
-//
-//	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
-//		log.Println("replaying ", height)
-//		block := originBlockStore.LoadBlock(height)
-//		meta := originBlockStore.LoadBlockMeta(height)
-//
-//		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-//		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-//		panicError(err)
-//	}
-//}
-
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64,stopBlockHeight int64) {
+	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64,haltBlockHeight int64){
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
-	stopheight := stopBlockHeight
-	if stopheight == 0 {
-		stopheight = originLatestBlockHeight
+	haltheight := haltBlockHeight
+	if haltheight <= startBlockHeight {
+		panic("haltheight <= startBlockHeight please check data or height")
 	}
-	log.Println("replay stop block height", "height", stopheight)
 
-	for height := startBlockHeight; height <= stopheight; height++ {
+	if haltheight == 0 {
+		haltheight = originLatestBlockHeight
+	}
+
+	log.Println("replay stop block height", "height", haltheight)
+
+	for height := startBlockHeight; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
