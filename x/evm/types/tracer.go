@@ -89,12 +89,16 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
 
-		_ = &TraceExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			StructLogs:  FormatLogs(tracer.StructLogs()),
-		}
+		_ = returnVal
+
+		l := tracer.StructLogs()
+		_ = l
+		//_ = &TraceExecutionResult{
+		//	Gas:         result.UsedGas,
+		//	Failed:      result.Failed(),
+		//	ReturnValue: returnVal,
+		//	StructLogs:  FormatLogs(tracer.StructLogs()),
+		//}
 		//res, err = proto.Marshal(&TraceExecutionResult{
 		//	Gas:         result.UsedGas,
 		//	Failed:      result.Failed(),
