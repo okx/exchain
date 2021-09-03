@@ -165,26 +165,6 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	return nil
 }
 
-//func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-//	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
-//	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
-//	panicError(err)
-//	originBlockStore := store.NewBlockStore(originBlockStoreDB)
-//	originLatestBlockHeight := originBlockStore.Height()
-//	log.Println("origin latest block height", "height", originLatestBlockHeight)
-//
-//
-//	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
-//		log.Println("replaying ", height)
-//		block := originBlockStore.LoadBlock(height)
-//		meta := originBlockStore.LoadBlockMeta(height)
-//
-//		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-//		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-//		panicError(err)
-//	}
-//}
-
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64,stopBlockHeight int64) {
