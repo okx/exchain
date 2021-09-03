@@ -448,8 +448,13 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		acc := issd.ak.GetAccount(ctx, addr)
-
-		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+		seq := acc.GetSequence()
+		if !baseapp.IsMempoolEnablePendingPool() {
+			seq++
+		} else if msgEthTx.Data.AccountNonce == seq {
+			seq++
+		}
+		if err := acc.SetSequence(seq); err != nil {
 			panic(err)
 		}
 		issd.ak.SetAccount(ctx, acc)
