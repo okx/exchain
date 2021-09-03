@@ -1,6 +1,9 @@
 package types
 
 import (
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/vm"
 )
 
@@ -69,3 +72,38 @@ type StructLogRes struct {
 //	}
 //	return formatted
 //}
+
+//FormatLog formats EVM returned structured logs for json output
+func FormatLog(log *vm.StructLog) *StructLogRes {
+	formatted := &StructLogRes{
+		Pc:      log.Pc,
+		Op:      log.Op.String(),
+		Gas:     log.Gas,
+		GasCost: log.GasCost,
+		Depth:   log.Depth,
+		Error:   log.Err,
+	}
+	if log.Stack != nil {
+		stack := make([]string, len(log.Stack))
+		for i, stackValue := range log.Stack {
+			stack[i] = fmt.Sprintf("%x", math.PaddedBigBytes(stackValue, 32))
+		}
+		formatted.Stack = &stack
+	}
+	if log.Memory != nil {
+		memory := make([]string, 0, (len(log.Memory)+31)/32)
+		for i := 0; i+32 <= len(log.Memory); i += 32 {
+			memory = append(memory, fmt.Sprintf("%x", log.Memory[i:i+32]))
+		}
+		formatted.Memory = &memory
+	}
+	if log.Storage != nil {
+		storage := make(map[string]string)
+		for i, storageValue := range log.Storage {
+			storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
+		}
+		formatted.Storage = &storage
+	}
+
+	return formatted
+}

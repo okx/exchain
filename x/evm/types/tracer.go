@@ -89,15 +89,14 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
 
-		_ = returnVal
-
-		//l := tracer.StructLogs()
-		//_ = l
+		for _, log := range tracer.StructLogs() {
+			res, err = json.Marshal(FormatLog(&log))
+		}
 		_ = &TraceExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
-			StructLogs:  tracer.StructLogs(),
+			//StructLogs:  tracer.StructLogs(),
 		}
 		//res, err = proto.Marshal(&TraceExecutionResult{
 		//	Gas:         result.UsedGas,
