@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
-	"github.com/gogo/protobuf/proto"
 	json "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -90,12 +89,18 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
 
-		res, err = proto.Marshal(&TraceExecutionResult{
+		_ = &TraceExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
 			StructLogs:  FormatLogs(tracer.StructLogs()),
-		})
+		}
+		//res, err = proto.Marshal(&TraceExecutionResult{
+		//	Gas:         result.UsedGas,
+		//	Failed:      result.Failed(),
+		//	ReturnValue: returnVal,
+		//	StructLogs:  FormatLogs(tracer.StructLogs()),
+		//})
 	case *tracers.Tracer:
 		res, err = tracer.GetResult()
 	default:
