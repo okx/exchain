@@ -3,1103 +3,1104 @@
 
 package types
 
-//import (
-//	fmt "fmt"
-//	_ "github.com/gogo/protobuf/gogoproto"
-//	proto "github.com/gogo/protobuf/proto"
-//	io "io"
-//	math "math"
-//	math_bits "math/bits"
-//)
-//
-//// Reference imports to suppress errors if they are not otherwise used.
-//var _ = proto.Marshal
-//var _ = fmt.Errorf
-//var _ = math.Inf
-//
-//// This is a compile-time assertion to ensure that this generated file
-//// is compatible with the proto package it is being compiled against.
-//// A compilation error at this line likely means your copy of the
-//// proto package needs to be updated.
-//const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
-//
-//type TraceExecutionResult struct {
-//	Gas         uint64          `protobuf:"varint,1,opt,name=gas,proto3" json:"gas,omitempty"`
-//	Failed      bool            `protobuf:"varint,2,opt,name=failed,proto3" json:"failed,omitempty"`
-//	ReturnValue string          `protobuf:"bytes,3,opt,name=returnValue,proto3" json:"returnValue,omitempty"`
-//	StructLogs  []*StructLogRes `protobuf:"bytes,4,rep,name=structLogs,proto3" json:"structLogs,omitempty"`
-//}
-//
-//func (m *TraceExecutionResult) Reset()         { *m = TraceExecutionResult{} }
-//func (m *TraceExecutionResult) String() string { return proto.CompactTextString(m) }
-//func (*TraceExecutionResult) ProtoMessage()    {}
-//func (*TraceExecutionResult) Descriptor() ([]byte, []int) {
-//	return fileDescriptor_e38db6297b04b378, []int{0}
-//}
-//func (m *TraceExecutionResult) XXX_Unmarshal(b []byte) error {
-//	return m.Unmarshal(b)
-//}
-//func (m *TraceExecutionResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-//	if deterministic {
-//		return xxx_messageInfo_TraceExecutionResult.Marshal(b, m, deterministic)
-//	} else {
-//		b = b[:cap(b)]
-//		n, err := m.MarshalToSizedBuffer(b)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return b[:n], nil
-//	}
-//}
-//func (m *TraceExecutionResult) XXX_Merge(src proto.Message) {
-//	xxx_messageInfo_TraceExecutionResult.Merge(m, src)
-//}
-//func (m *TraceExecutionResult) XXX_Size() int {
-//	return m.Size()
-//}
-//func (m *TraceExecutionResult) XXX_DiscardUnknown() {
-//	xxx_messageInfo_TraceExecutionResult.DiscardUnknown(m)
-//}
-//
-//var xxx_messageInfo_TraceExecutionResult proto.InternalMessageInfo
-//
-//func (m *TraceExecutionResult) GetGas() uint64 {
-//	if m != nil {
-//		return m.Gas
-//	}
-//	return 0
-//}
-//
-//func (m *TraceExecutionResult) GetFailed() bool {
-//	if m != nil {
-//		return m.Failed
-//	}
-//	return false
-//}
-//
-//func (m *TraceExecutionResult) GetReturnValue() string {
-//	if m != nil {
-//		return m.ReturnValue
-//	}
-//	return ""
-//}
-//
-//func (m *TraceExecutionResult) GetStructLogs() []*StructLogRes {
-//	if m != nil {
-//		return m.StructLogs
-//	}
-//	return nil
-//}
-//
-//type StructLogRes struct {
-//	Pc      uint64            `protobuf:"varint,1,opt,name=pc,proto3" json:"pc,omitempty"`
-//	Op      string            `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"`
-//	Gas     uint64            `protobuf:"varint,3,opt,name=gas,proto3" json:"gas,omitempty"`
-//	GasCost uint64            `protobuf:"varint,4,opt,name=gasCost,proto3" json:"gasCost,omitempty"`
-//	Depth   int64             `protobuf:"varint,5,opt,name=depth,proto3" json:"depth,omitempty"`
-//	Error   string            `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-//	Stack   []string          `protobuf:"bytes,7,rep,name=stack,proto3" json:"stack,omitempty"`
-//	Memory  []string          `protobuf:"bytes,8,rep,name=memory,proto3" json:"memory,omitempty"`
-//	Storage map[string]string `protobuf:"bytes,9,rep,name=storage,proto3" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-//}
-//
-//func (m *StructLogRes) Reset()         { *m = StructLogRes{} }
-//func (m *StructLogRes) String() string { return proto.CompactTextString(m) }
-//func (*StructLogRes) ProtoMessage()    {}
-//func (*StructLogRes) Descriptor() ([]byte, []int) {
-//	return fileDescriptor_e38db6297b04b378, []int{1}
-//}
-//func (m *StructLogRes) XXX_Unmarshal(b []byte) error {
-//	return m.Unmarshal(b)
-//}
-//func (m *StructLogRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-//	if deterministic {
-//		return xxx_messageInfo_StructLogRes.Marshal(b, m, deterministic)
-//	} else {
-//		b = b[:cap(b)]
-//		n, err := m.MarshalToSizedBuffer(b)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return b[:n], nil
-//	}
-//}
-//func (m *StructLogRes) XXX_Merge(src proto.Message) {
-//	xxx_messageInfo_StructLogRes.Merge(m, src)
-//}
-//func (m *StructLogRes) XXX_Size() int {
-//	return m.Size()
-//}
-//func (m *StructLogRes) XXX_DiscardUnknown() {
-//	xxx_messageInfo_StructLogRes.DiscardUnknown(m)
-//}
-//
-//var xxx_messageInfo_StructLogRes proto.InternalMessageInfo
-//
-//func (m *StructLogRes) GetPc() uint64 {
-//	if m != nil {
-//		return m.Pc
-//	}
-//	return 0
-//}
-//
-//func (m *StructLogRes) GetOp() string {
-//	if m != nil {
-//		return m.Op
-//	}
-//	return ""
-//}
-//
-//func (m *StructLogRes) GetGas() uint64 {
-//	if m != nil {
-//		return m.Gas
-//	}
-//	return 0
-//}
-//
-//func (m *StructLogRes) GetGasCost() uint64 {
-//	if m != nil {
-//		return m.GasCost
-//	}
-//	return 0
-//}
-//
-//func (m *StructLogRes) GetDepth() int64 {
-//	if m != nil {
-//		return m.Depth
-//	}
-//	return 0
-//}
-//
-//func (m *StructLogRes) GetError() string {
-//	if m != nil {
-//		return m.Error
-//	}
-//	return ""
-//}
-//
-//func (m *StructLogRes) GetStack() []string {
-//	if m != nil {
-//		return m.Stack
-//	}
-//	return nil
-//}
-//
-//func (m *StructLogRes) GetMemory() []string {
-//	if m != nil {
-//		return m.Memory
-//	}
-//	return nil
-//}
-//
-//func (m *StructLogRes) GetStorage() map[string]string {
-//	if m != nil {
-//		return m.Storage
-//	}
-//	return nil
-//}
-//
-//func init() {
-//	proto.RegisterType((*TraceExecutionResult)(nil), "gaia.evm.v1beta1.TraceExecutionResult")
-//	proto.RegisterType((*StructLogRes)(nil), "gaia.evm.v1beta1.StructLogRes")
-//	proto.RegisterMapType((map[string]string)(nil), "gaia.evm.v1beta1.StructLogRes.StorageEntry")
-//}
-//
-//func init() {
-//	proto.RegisterFile("gaia/evm/v1beta1/tracer_type.proto", fileDescriptor_e38db6297b04b378)
-//}
-//
-//var fileDescriptor_e38db6297b04b378 = []byte{
-//	// 408 bytes of a gzipped FileDescriptorProto
-//	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x52, 0xc1, 0x8a, 0xdb, 0x30,
-//	0x14, 0x8c, 0xec, 0x6c, 0xb2, 0xd6, 0x96, 0xb2, 0x88, 0x50, 0xc4, 0x1e, 0x8c, 0xf1, 0xc9, 0x50,
-//	0xb0, 0xd9, 0xf6, 0x52, 0x96, 0xd2, 0x43, 0x4b, 0x6e, 0x3d, 0x69, 0x4b, 0x0f, 0xbd, 0x14, 0x45,
-//	0xfb, 0xaa, 0x98, 0xc4, 0x91, 0x91, 0x64, 0x13, 0xff, 0x45, 0xbf, 0xa1, 0x3f, 0xd1, 0x5f, 0xe8,
-//	0x31, 0xc7, 0x1e, 0x4b, 0xf2, 0x23, 0x45, 0xb2, 0x4d, 0x42, 0x0f, 0xbd, 0x69, 0xe6, 0xcd, 0x13,
-//	0x33, 0x8f, 0xc1, 0xa9, 0xe4, 0x25, 0x2f, 0xa0, 0xad, 0x8a, 0xf6, 0x7e, 0x05, 0x96, 0xdf, 0x17,
-//	0x56, 0x73, 0x01, 0xfa, 0xab, 0xed, 0x6a, 0xc8, 0x6b, 0xad, 0xac, 0x22, 0xb7, 0x4e, 0x93, 0x43,
-//	0x5b, 0xe5, 0x83, 0xe6, 0x6e, 0x21, 0x95, 0x54, 0x7e, 0x58, 0xb8, 0x57, 0xaf, 0x4b, 0x7f, 0x20,
-//	0xbc, 0xf8, 0xe4, 0xb6, 0x97, 0x7b, 0x10, 0x8d, 0x2d, 0xd5, 0x8e, 0x81, 0x69, 0xb6, 0x96, 0xdc,
-//	0xe2, 0x50, 0x72, 0x43, 0x51, 0x82, 0xb2, 0x29, 0x73, 0x4f, 0xf2, 0x02, 0xcf, 0xbe, 0xf1, 0x72,
-//	0x0b, 0x4f, 0x34, 0x48, 0x50, 0x76, 0xcd, 0x06, 0x44, 0x12, 0x7c, 0xa3, 0xc1, 0x36, 0x7a, 0xf7,
-//	0x99, 0x6f, 0x1b, 0xa0, 0x61, 0x82, 0xb2, 0x88, 0x5d, 0x52, 0xe4, 0x1d, 0xc6, 0xc6, 0xea, 0x46,
-//	0xd8, 0x8f, 0x4a, 0x1a, 0x3a, 0x4d, 0xc2, 0xec, 0xe6, 0x55, 0x9c, 0xff, 0xeb, 0x30, 0x7f, 0x1c,
-//	0x35, 0x0c, 0x0c, 0xbb, 0xd8, 0x48, 0x7f, 0x06, 0xf8, 0xd9, 0xe5, 0x90, 0x3c, 0xc7, 0x41, 0x2d,
-//	0x06, 0x6f, 0x41, 0x2d, 0x1c, 0x56, 0xb5, 0xb7, 0x15, 0xb1, 0x40, 0xd5, 0xa3, 0xf9, 0xf0, 0x6c,
-//	0x9e, 0xe2, 0xb9, 0xe4, 0xe6, 0x83, 0x32, 0x96, 0x4e, 0x3d, 0x3b, 0x42, 0xb2, 0xc0, 0x57, 0x4f,
-//	0x50, 0xdb, 0x35, 0xbd, 0x4a, 0x50, 0x16, 0xb2, 0x1e, 0x38, 0x16, 0xb4, 0x56, 0x9a, 0xce, 0xfc,
-//	0xa7, 0x3d, 0x70, 0xac, 0xb1, 0x5c, 0x6c, 0xe8, 0x3c, 0x09, 0x1d, 0xeb, 0x81, 0x3b, 0x4c, 0x05,
-//	0x95, 0xd2, 0x1d, 0xbd, 0xf6, 0xf4, 0x80, 0xc8, 0x12, 0xcf, 0x8d, 0x55, 0x9a, 0x4b, 0xa0, 0x91,
-//	0xcf, 0xfc, 0xf2, 0xff, 0x99, 0xf3, 0xc7, 0x5e, 0xbd, 0xdc, 0x59, 0xdd, 0xb1, 0x71, 0xf7, 0xee,
-//	0xc1, 0x85, 0x3f, 0x0f, 0x5c, 0xb8, 0x0d, 0x74, 0x3e, 0x7d, 0xc4, 0xdc, 0xd3, 0xd9, 0x6a, 0xfd,
-//	0xed, 0xfb, 0x0b, 0xf4, 0xe0, 0x21, 0x78, 0x83, 0xde, 0xbf, 0xfd, 0x75, 0x8c, 0xd1, 0xe1, 0x18,
-//	0xa3, 0x3f, 0xc7, 0x18, 0x7d, 0x3f, 0xc5, 0x93, 0xc3, 0x29, 0x9e, 0xfc, 0x3e, 0xc5, 0x93, 0x2f,
-//	0xa9, 0x2c, 0xed, 0xba, 0x59, 0xe5, 0x42, 0x55, 0x85, 0x50, 0xa6, 0x52, 0xa6, 0xf0, 0xb5, 0xda,
-//	0xfb, 0x62, 0xb9, 0x26, 0x99, 0xd5, 0xcc, 0x77, 0xe4, 0xf5, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff,
-//	0x96, 0xe1, 0x3a, 0x06, 0x71, 0x02, 0x00, 0x00,
-//}
-//
-//func (m *TraceExecutionResult) Marshal() (dAtA []byte, err error) {
-//	size := m.Size()
-//	dAtA = make([]byte, size)
-//	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-//	if err != nil {
-//		return nil, err
-//	}
-//	return dAtA[:n], nil
-//}
-//
-//func (m *TraceExecutionResult) MarshalTo(dAtA []byte) (int, error) {
-//	size := m.Size()
-//	return m.MarshalToSizedBuffer(dAtA[:size])
-//}
-//
-//func (m *TraceExecutionResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-//	i := len(dAtA)
-//	_ = i
-//	var l int
-//	_ = l
-//	if len(m.StructLogs) > 0 {
-//		for iNdEx := len(m.StructLogs) - 1; iNdEx >= 0; iNdEx-- {
-//			{
-//				size, err := m.StructLogs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-//				if err != nil {
-//					return 0, err
-//				}
-//				i -= size
-//				i = encodeVarintTracerType(dAtA, i, uint64(size))
-//			}
-//			i--
-//			dAtA[i] = 0x22
-//		}
-//	}
-//	if len(m.ReturnValue) > 0 {
-//		i -= len(m.ReturnValue)
-//		copy(dAtA[i:], m.ReturnValue)
-//		i = encodeVarintTracerType(dAtA, i, uint64(len(m.ReturnValue)))
-//		i--
-//		dAtA[i] = 0x1a
-//	}
-//	if m.Failed {
-//		i--
-//		if m.Failed {
-//			dAtA[i] = 1
-//		} else {
-//			dAtA[i] = 0
-//		}
-//		i--
-//		dAtA[i] = 0x10
-//	}
-//	if m.Gas != 0 {
-//		i = encodeVarintTracerType(dAtA, i, uint64(m.Gas))
-//		i--
-//		dAtA[i] = 0x8
-//	}
-//	return len(dAtA) - i, nil
-//}
-//
-//func (m *StructLogRes) Marshal() (dAtA []byte, err error) {
-//	size := m.Size()
-//	dAtA = make([]byte, size)
-//	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-//	if err != nil {
-//		return nil, err
-//	}
-//	return dAtA[:n], nil
-//}
-//
-//func (m *StructLogRes) MarshalTo(dAtA []byte) (int, error) {
-//	size := m.Size()
-//	return m.MarshalToSizedBuffer(dAtA[:size])
-//}
-//
-//func (m *StructLogRes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-//	i := len(dAtA)
-//	_ = i
-//	var l int
-//	_ = l
-//	if len(m.Storage) > 0 {
-//		for k := range m.Storage {
-//			v := m.Storage[k]
-//			baseI := i
-//			i -= len(v)
-//			copy(dAtA[i:], v)
-//			i = encodeVarintTracerType(dAtA, i, uint64(len(v)))
-//			i--
-//			dAtA[i] = 0x12
-//			i -= len(k)
-//			copy(dAtA[i:], k)
-//			i = encodeVarintTracerType(dAtA, i, uint64(len(k)))
-//			i--
-//			dAtA[i] = 0xa
-//			i = encodeVarintTracerType(dAtA, i, uint64(baseI-i))
-//			i--
-//			dAtA[i] = 0x4a
-//		}
-//	}
-//	if len(m.Memory) > 0 {
-//		for iNdEx := len(m.Memory) - 1; iNdEx >= 0; iNdEx-- {
-//			i -= len(m.Memory[iNdEx])
-//			copy(dAtA[i:], m.Memory[iNdEx])
-//			i = encodeVarintTracerType(dAtA, i, uint64(len(m.Memory[iNdEx])))
-//			i--
-//			dAtA[i] = 0x42
-//		}
-//	}
-//	if len(m.Stack) > 0 {
-//		for iNdEx := len(m.Stack) - 1; iNdEx >= 0; iNdEx-- {
-//			i -= len(m.Stack[iNdEx])
-//			copy(dAtA[i:], m.Stack[iNdEx])
-//			i = encodeVarintTracerType(dAtA, i, uint64(len(m.Stack[iNdEx])))
-//			i--
-//			dAtA[i] = 0x3a
-//		}
-//	}
-//	if len(m.Error) > 0 {
-//		i -= len(m.Error)
-//		copy(dAtA[i:], m.Error)
-//		i = encodeVarintTracerType(dAtA, i, uint64(len(m.Error)))
-//		i--
-//		dAtA[i] = 0x32
-//	}
-//	if m.Depth != 0 {
-//		i = encodeVarintTracerType(dAtA, i, uint64(m.Depth))
-//		i--
-//		dAtA[i] = 0x28
-//	}
-//	if m.GasCost != 0 {
-//		i = encodeVarintTracerType(dAtA, i, uint64(m.GasCost))
-//		i--
-//		dAtA[i] = 0x20
-//	}
-//	if m.Gas != 0 {
-//		i = encodeVarintTracerType(dAtA, i, uint64(m.Gas))
-//		i--
-//		dAtA[i] = 0x18
-//	}
-//	if len(m.Op) > 0 {
-//		i -= len(m.Op)
-//		copy(dAtA[i:], m.Op)
-//		i = encodeVarintTracerType(dAtA, i, uint64(len(m.Op)))
-//		i--
-//		dAtA[i] = 0x12
-//	}
-//	if m.Pc != 0 {
-//		i = encodeVarintTracerType(dAtA, i, uint64(m.Pc))
-//		i--
-//		dAtA[i] = 0x8
-//	}
-//	return len(dAtA) - i, nil
-//}
-//
-//func encodeVarintTracerType(dAtA []byte, offset int, v uint64) int {
-//	offset -= sovTracerType(v)
-//	base := offset
-//	for v >= 1<<7 {
-//		dAtA[offset] = uint8(v&0x7f | 0x80)
-//		v >>= 7
-//		offset++
-//	}
-//	dAtA[offset] = uint8(v)
-//	return base
-//}
-//func (m *TraceExecutionResult) Size() (n int) {
-//	if m == nil {
-//		return 0
-//	}
-//	var l int
-//	_ = l
-//	if m.Gas != 0 {
-//		n += 1 + sovTracerType(uint64(m.Gas))
-//	}
-//	if m.Failed {
-//		n += 2
-//	}
-//	l = len(m.ReturnValue)
-//	if l > 0 {
-//		n += 1 + l + sovTracerType(uint64(l))
-//	}
-//	if len(m.StructLogs) > 0 {
-//		for _, e := range m.StructLogs {
-//			l = e.Size()
-//			n += 1 + l + sovTracerType(uint64(l))
-//		}
-//	}
-//	return n
-//}
-//
-//func (m *StructLogRes) Size() (n int) {
-//	if m == nil {
-//		return 0
-//	}
-//	var l int
-//	_ = l
-//	if m.Pc != 0 {
-//		n += 1 + sovTracerType(uint64(m.Pc))
-//	}
-//	l = len(m.Op)
-//	if l > 0 {
-//		n += 1 + l + sovTracerType(uint64(l))
-//	}
-//	if m.Gas != 0 {
-//		n += 1 + sovTracerType(uint64(m.Gas))
-//	}
-//	if m.GasCost != 0 {
-//		n += 1 + sovTracerType(uint64(m.GasCost))
-//	}
-//	if m.Depth != 0 {
-//		n += 1 + sovTracerType(uint64(m.Depth))
-//	}
-//	l = len(m.Error)
-//	if l > 0 {
-//		n += 1 + l + sovTracerType(uint64(l))
-//	}
-//	if len(m.Stack) > 0 {
-//		for _, s := range m.Stack {
-//			l = len(s)
-//			n += 1 + l + sovTracerType(uint64(l))
-//		}
-//	}
-//	if len(m.Memory) > 0 {
-//		for _, s := range m.Memory {
-//			l = len(s)
-//			n += 1 + l + sovTracerType(uint64(l))
-//		}
-//	}
-//	if len(m.Storage) > 0 {
-//		for k, v := range m.Storage {
-//			_ = k
-//			_ = v
-//			mapEntrySize := 1 + len(k) + sovTracerType(uint64(len(k))) + 1 + len(v) + sovTracerType(uint64(len(v)))
-//			n += mapEntrySize + 1 + sovTracerType(uint64(mapEntrySize))
-//		}
-//	}
-//	return n
-//}
-//
-//func sovTracerType(x uint64) (n int) {
-//	return (math_bits.Len64(x|1) + 6) / 7
-//}
-//func sozTracerType(x uint64) (n int) {
-//	return sovTracerType(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-//}
-//func (m *TraceExecutionResult) Unmarshal(dAtA []byte) error {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	for iNdEx < l {
-//		preIndex := iNdEx
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return ErrIntOverflowTracerType
-//			}
-//			if iNdEx >= l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= uint64(b&0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		fieldNum := int32(wire >> 3)
-//		wireType := int(wire & 0x7)
-//		if wireType == 4 {
-//			return fmt.Errorf("proto: TraceExecutionResult: wiretype end group for non-group")
-//		}
-//		if fieldNum <= 0 {
-//			return fmt.Errorf("proto: TraceExecutionResult: illegal tag %d (wire type %d)", fieldNum, wire)
-//		}
-//		switch fieldNum {
-//		case 1:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Gas", wireType)
-//			}
-//			m.Gas = 0
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				m.Gas |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//		case 2:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
-//			}
-//			var v int
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				v |= int(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			m.Failed = bool(v != 0)
-//		case 3:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field ReturnValue", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.ReturnValue = string(dAtA[iNdEx:postIndex])
-//			iNdEx = postIndex
-//		case 4:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field StructLogs", wireType)
-//			}
-//			var msglen int
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				msglen |= int(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			if msglen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + msglen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.StructLogs = append(m.StructLogs, &StructLogRes{})
-//			if err := m.StructLogs[len(m.StructLogs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-//				return err
-//			}
-//			iNdEx = postIndex
-//		default:
-//			iNdEx = preIndex
-//			skippy, err := skipTracerType(dAtA[iNdEx:])
-//			if err != nil {
-//				return err
-//			}
-//			if (skippy < 0) || (iNdEx+skippy) < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if (iNdEx + skippy) > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			iNdEx += skippy
-//		}
-//	}
-//
-//	if iNdEx > l {
-//		return io.ErrUnexpectedEOF
-//	}
-//	return nil
-//}
-//func (m *StructLogRes) Unmarshal(dAtA []byte) error {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	for iNdEx < l {
-//		preIndex := iNdEx
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return ErrIntOverflowTracerType
-//			}
-//			if iNdEx >= l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= uint64(b&0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		fieldNum := int32(wire >> 3)
-//		wireType := int(wire & 0x7)
-//		if wireType == 4 {
-//			return fmt.Errorf("proto: StructLogRes: wiretype end group for non-group")
-//		}
-//		if fieldNum <= 0 {
-//			return fmt.Errorf("proto: StructLogRes: illegal tag %d (wire type %d)", fieldNum, wire)
-//		}
-//		switch fieldNum {
-//		case 1:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Pc", wireType)
-//			}
-//			m.Pc = 0
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				m.Pc |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//		case 2:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Op", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.Op = string(dAtA[iNdEx:postIndex])
-//			iNdEx = postIndex
-//		case 3:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Gas", wireType)
-//			}
-//			m.Gas = 0
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				m.Gas |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//		case 4:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field GasCost", wireType)
-//			}
-//			m.GasCost = 0
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				m.GasCost |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//		case 5:
-//			if wireType != 0 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Depth", wireType)
-//			}
-//			m.Depth = 0
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				m.Depth |= int64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//		case 6:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.Error = string(dAtA[iNdEx:postIndex])
-//			iNdEx = postIndex
-//		case 7:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Stack", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.Stack = append(m.Stack, string(dAtA[iNdEx:postIndex]))
-//			iNdEx = postIndex
-//		case 8:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.Memory = append(m.Memory, string(dAtA[iNdEx:postIndex]))
-//			iNdEx = postIndex
-//		case 9:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Storage", wireType)
-//			}
-//			var msglen int
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				msglen |= int(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			if msglen < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			postIndex := iNdEx + msglen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			if m.Storage == nil {
-//				m.Storage = make(map[string]string)
-//			}
-//			var mapkey string
-//			var mapvalue string
-//			for iNdEx < postIndex {
-//				entryPreIndex := iNdEx
-//				var wire uint64
-//				for shift := uint(0); ; shift += 7 {
-//					if shift >= 64 {
-//						return ErrIntOverflowTracerType
-//					}
-//					if iNdEx >= l {
-//						return io.ErrUnexpectedEOF
-//					}
-//					b := dAtA[iNdEx]
-//					iNdEx++
-//					wire |= uint64(b&0x7F) << shift
-//					if b < 0x80 {
-//						break
-//					}
-//				}
-//				fieldNum := int32(wire >> 3)
-//				if fieldNum == 1 {
-//					var stringLenmapkey uint64
-//					for shift := uint(0); ; shift += 7 {
-//						if shift >= 64 {
-//							return ErrIntOverflowTracerType
-//						}
-//						if iNdEx >= l {
-//							return io.ErrUnexpectedEOF
-//						}
-//						b := dAtA[iNdEx]
-//						iNdEx++
-//						stringLenmapkey |= uint64(b&0x7F) << shift
-//						if b < 0x80 {
-//							break
-//						}
-//					}
-//					intStringLenmapkey := int(stringLenmapkey)
-//					if intStringLenmapkey < 0 {
-//						return ErrInvalidLengthTracerType
-//					}
-//					postStringIndexmapkey := iNdEx + intStringLenmapkey
-//					if postStringIndexmapkey < 0 {
-//						return ErrInvalidLengthTracerType
-//					}
-//					if postStringIndexmapkey > l {
-//						return io.ErrUnexpectedEOF
-//					}
-//					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-//					iNdEx = postStringIndexmapkey
-//				} else if fieldNum == 2 {
-//					var stringLenmapvalue uint64
-//					for shift := uint(0); ; shift += 7 {
-//						if shift >= 64 {
-//							return ErrIntOverflowTracerType
-//						}
-//						if iNdEx >= l {
-//							return io.ErrUnexpectedEOF
-//						}
-//						b := dAtA[iNdEx]
-//						iNdEx++
-//						stringLenmapvalue |= uint64(b&0x7F) << shift
-//						if b < 0x80 {
-//							break
-//						}
-//					}
-//					intStringLenmapvalue := int(stringLenmapvalue)
-//					if intStringLenmapvalue < 0 {
-//						return ErrInvalidLengthTracerType
-//					}
-//					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-//					if postStringIndexmapvalue < 0 {
-//						return ErrInvalidLengthTracerType
-//					}
-//					if postStringIndexmapvalue > l {
-//						return io.ErrUnexpectedEOF
-//					}
-//					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
-//					iNdEx = postStringIndexmapvalue
-//				} else {
-//					iNdEx = entryPreIndex
-//					skippy, err := skipTracerType(dAtA[iNdEx:])
-//					if err != nil {
-//						return err
-//					}
-//					if (skippy < 0) || (iNdEx+skippy) < 0 {
-//						return ErrInvalidLengthTracerType
-//					}
-//					if (iNdEx + skippy) > postIndex {
-//						return io.ErrUnexpectedEOF
-//					}
-//					iNdEx += skippy
-//				}
-//			}
-//			m.Storage[mapkey] = mapvalue
-//			iNdEx = postIndex
-//		default:
-//			iNdEx = preIndex
-//			skippy, err := skipTracerType(dAtA[iNdEx:])
-//			if err != nil {
-//				return err
-//			}
-//			if (skippy < 0) || (iNdEx+skippy) < 0 {
-//				return ErrInvalidLengthTracerType
-//			}
-//			if (iNdEx + skippy) > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			iNdEx += skippy
-//		}
-//	}
-//
-//	if iNdEx > l {
-//		return io.ErrUnexpectedEOF
-//	}
-//	return nil
-//}
-//func skipTracerType(dAtA []byte) (n int, err error) {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	depth := 0
-//	for iNdEx < l {
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return 0, ErrIntOverflowTracerType
-//			}
-//			if iNdEx >= l {
-//				return 0, io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= (uint64(b) & 0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		wireType := int(wire & 0x7)
-//		switch wireType {
-//		case 0:
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return 0, ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return 0, io.ErrUnexpectedEOF
-//				}
-//				iNdEx++
-//				if dAtA[iNdEx-1] < 0x80 {
-//					break
-//				}
-//			}
-//		case 1:
-//			iNdEx += 8
-//		case 2:
-//			var length int
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return 0, ErrIntOverflowTracerType
-//				}
-//				if iNdEx >= l {
-//					return 0, io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				length |= (int(b) & 0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			if length < 0 {
-//				return 0, ErrInvalidLengthTracerType
-//			}
-//			iNdEx += length
-//		case 3:
-//			depth++
-//		case 4:
-//			if depth == 0 {
-//				return 0, ErrUnexpectedEndOfGroupTracerType
-//			}
-//			depth--
-//		case 5:
-//			iNdEx += 4
-//		default:
-//			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
-//		}
-//		if iNdEx < 0 {
-//			return 0, ErrInvalidLengthTracerType
-//		}
-//		if depth == 0 {
-//			return iNdEx, nil
-//		}
-//	}
-//	return 0, io.ErrUnexpectedEOF
-//}
-//
-//var (
-//	ErrInvalidLengthTracerType        = fmt.Errorf("proto: negative length found during unmarshaling")
-//	ErrIntOverflowTracerType          = fmt.Errorf("proto: integer overflow")
-//	ErrUnexpectedEndOfGroupTracerType = fmt.Errorf("proto: unexpected end of group")
-//)
+import (
+	fmt "fmt"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+
+type TraceExecutionResult struct {
+	Gas         uint64          `protobuf:"varint,1,opt,name=gas,proto3" json:"gas,omitempty"`
+	Failed      bool            `protobuf:"varint,2,opt,name=failed,proto3" json:"failed,omitempty"`
+	ReturnValue string          `protobuf:"bytes,3,opt,name=returnValue,proto3" json:"returnValue,omitempty"`
+	StructLogs  []*StructLogRes `protobuf:"bytes,4,rep,name=structLogs,proto3" json:"structLogs,omitempty"`
+}
+
+func (m *TraceExecutionResult) Reset()         { *m = TraceExecutionResult{} }
+func (m *TraceExecutionResult) String() string { return proto.CompactTextString(m) }
+func (*TraceExecutionResult) ProtoMessage()    {}
+func (*TraceExecutionResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e38db6297b04b378, []int{0}
+}
+func (m *TraceExecutionResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TraceExecutionResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TraceExecutionResult.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TraceExecutionResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TraceExecutionResult.Merge(m, src)
+}
+func (m *TraceExecutionResult) XXX_Size() int {
+	return m.Size()
+}
+func (m *TraceExecutionResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_TraceExecutionResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TraceExecutionResult proto.InternalMessageInfo
+
+func (m *TraceExecutionResult) GetGas() uint64 {
+	if m != nil {
+		return m.Gas
+	}
+	return 0
+}
+
+func (m *TraceExecutionResult) GetFailed() bool {
+	if m != nil {
+		return m.Failed
+	}
+	return false
+}
+
+func (m *TraceExecutionResult) GetReturnValue() string {
+	if m != nil {
+		return m.ReturnValue
+	}
+	return ""
+}
+
+func (m *TraceExecutionResult) GetStructLogs() []*StructLogRes {
+	if m != nil {
+		return m.StructLogs
+	}
+	return nil
+}
+
+type StructLogRes struct {
+	Pc      uint64            `protobuf:"varint,1,opt,name=pc,proto3" json:"pc,omitempty"`
+	Op      string            `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"`
+	Gas     uint64            `protobuf:"varint,3,opt,name=gas,proto3" json:"gas,omitempty"`
+	GasCost uint64            `protobuf:"varint,4,opt,name=gasCost,proto3" json:"gasCost,omitempty"`
+	Depth   int64             `protobuf:"varint,5,opt,name=depth,proto3" json:"depth,omitempty"`
+	Error   string            `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Stack   []string          `protobuf:"bytes,7,rep,name=stack,proto3" json:"stack,omitempty"`
+	Memory  []string          `protobuf:"bytes,8,rep,name=memory,proto3" json:"memory,omitempty"`
+	Storage map[string]string `protobuf:"bytes,9,rep,name=storage,proto3" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (m *StructLogRes) Reset()         { *m = StructLogRes{} }
+func (m *StructLogRes) String() string { return proto.CompactTextString(m) }
+func (*StructLogRes) ProtoMessage()    {}
+func (*StructLogRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e38db6297b04b378, []int{1}
+}
+func (m *StructLogRes) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *StructLogRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_StructLogRes.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *StructLogRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StructLogRes.Merge(m, src)
+}
+func (m *StructLogRes) XXX_Size() int {
+	return m.Size()
+}
+func (m *StructLogRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_StructLogRes.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StructLogRes proto.InternalMessageInfo
+
+func (m *StructLogRes) GetPc() uint64 {
+	if m != nil {
+		return m.Pc
+	}
+	return 0
+}
+
+func (m *StructLogRes) GetOp() string {
+	if m != nil {
+		return m.Op
+	}
+	return ""
+}
+
+func (m *StructLogRes) GetGas() uint64 {
+	if m != nil {
+		return m.Gas
+	}
+	return 0
+}
+
+func (m *StructLogRes) GetGasCost() uint64 {
+	if m != nil {
+		return m.GasCost
+	}
+	return 0
+}
+
+func (m *StructLogRes) GetDepth() int64 {
+	if m != nil {
+		return m.Depth
+	}
+	return 0
+}
+
+func (m *StructLogRes) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
+func (m *StructLogRes) GetStack() []string {
+	if m != nil {
+		return m.Stack
+	}
+	return nil
+}
+
+func (m *StructLogRes) GetMemory() []string {
+	if m != nil {
+		return m.Memory
+	}
+	return nil
+}
+
+func (m *StructLogRes) GetStorage() map[string]string {
+	if m != nil {
+		return m.Storage
+	}
+	return nil
+}
+
+func init() {
+	proto.RegisterType((*TraceExecutionResult)(nil), "gaia.evm.v1beta1.TraceExecutionResult")
+	proto.RegisterType((*StructLogRes)(nil), "gaia.evm.v1beta1.StructLogRes")
+	proto.RegisterMapType((map[string]string)(nil), "gaia.evm.v1beta1.StructLogRes.StorageEntry")
+}
+
+func init() {
+	proto.RegisterFile("gaia/evm/v1beta1/tracer_type.proto", fileDescriptor_e38db6297b04b378)
+}
+
+var fileDescriptor_e38db6297b04b378 = []byte{
+	// 408 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x52, 0xc1, 0x8a, 0xdb, 0x30,
+	0x14, 0x8c, 0xec, 0x6c, 0xb2, 0xd6, 0x96, 0xb2, 0x88, 0x50, 0xc4, 0x1e, 0x8c, 0xf1, 0xc9, 0x50,
+	0xb0, 0xd9, 0xf6, 0x52, 0x96, 0xd2, 0x43, 0x4b, 0x6e, 0x3d, 0x69, 0x4b, 0x0f, 0xbd, 0x14, 0x45,
+	0xfb, 0xaa, 0x98, 0xc4, 0x91, 0x91, 0x64, 0x13, 0xff, 0x45, 0xbf, 0xa1, 0x3f, 0xd1, 0x5f, 0xe8,
+	0x31, 0xc7, 0x1e, 0x4b, 0xf2, 0x23, 0x45, 0xb2, 0x4d, 0x42, 0x0f, 0xbd, 0x69, 0xe6, 0xcd, 0x13,
+	0x33, 0x8f, 0xc1, 0xa9, 0xe4, 0x25, 0x2f, 0xa0, 0xad, 0x8a, 0xf6, 0x7e, 0x05, 0x96, 0xdf, 0x17,
+	0x56, 0x73, 0x01, 0xfa, 0xab, 0xed, 0x6a, 0xc8, 0x6b, 0xad, 0xac, 0x22, 0xb7, 0x4e, 0x93, 0x43,
+	0x5b, 0xe5, 0x83, 0xe6, 0x6e, 0x21, 0x95, 0x54, 0x7e, 0x58, 0xb8, 0x57, 0xaf, 0x4b, 0x7f, 0x20,
+	0xbc, 0xf8, 0xe4, 0xb6, 0x97, 0x7b, 0x10, 0x8d, 0x2d, 0xd5, 0x8e, 0x81, 0x69, 0xb6, 0x96, 0xdc,
+	0xe2, 0x50, 0x72, 0x43, 0x51, 0x82, 0xb2, 0x29, 0x73, 0x4f, 0xf2, 0x02, 0xcf, 0xbe, 0xf1, 0x72,
+	0x0b, 0x4f, 0x34, 0x48, 0x50, 0x76, 0xcd, 0x06, 0x44, 0x12, 0x7c, 0xa3, 0xc1, 0x36, 0x7a, 0xf7,
+	0x99, 0x6f, 0x1b, 0xa0, 0x61, 0x82, 0xb2, 0x88, 0x5d, 0x52, 0xe4, 0x1d, 0xc6, 0xc6, 0xea, 0x46,
+	0xd8, 0x8f, 0x4a, 0x1a, 0x3a, 0x4d, 0xc2, 0xec, 0xe6, 0x55, 0x9c, 0xff, 0xeb, 0x30, 0x7f, 0x1c,
+	0x35, 0x0c, 0x0c, 0xbb, 0xd8, 0x48, 0x7f, 0x06, 0xf8, 0xd9, 0xe5, 0x90, 0x3c, 0xc7, 0x41, 0x2d,
+	0x06, 0x6f, 0x41, 0x2d, 0x1c, 0x56, 0xb5, 0xb7, 0x15, 0xb1, 0x40, 0xd5, 0xa3, 0xf9, 0xf0, 0x6c,
+	0x9e, 0xe2, 0xb9, 0xe4, 0xe6, 0x83, 0x32, 0x96, 0x4e, 0x3d, 0x3b, 0x42, 0xb2, 0xc0, 0x57, 0x4f,
+	0x50, 0xdb, 0x35, 0xbd, 0x4a, 0x50, 0x16, 0xb2, 0x1e, 0x38, 0x16, 0xb4, 0x56, 0x9a, 0xce, 0xfc,
+	0xa7, 0x3d, 0x70, 0xac, 0xb1, 0x5c, 0x6c, 0xe8, 0x3c, 0x09, 0x1d, 0xeb, 0x81, 0x3b, 0x4c, 0x05,
+	0x95, 0xd2, 0x1d, 0xbd, 0xf6, 0xf4, 0x80, 0xc8, 0x12, 0xcf, 0x8d, 0x55, 0x9a, 0x4b, 0xa0, 0x91,
+	0xcf, 0xfc, 0xf2, 0xff, 0x99, 0xf3, 0xc7, 0x5e, 0xbd, 0xdc, 0x59, 0xdd, 0xb1, 0x71, 0xf7, 0xee,
+	0xc1, 0x85, 0x3f, 0x0f, 0x5c, 0xb8, 0x0d, 0x74, 0x3e, 0x7d, 0xc4, 0xdc, 0xd3, 0xd9, 0x6a, 0xfd,
+	0xed, 0xfb, 0x0b, 0xf4, 0xe0, 0x21, 0x78, 0x83, 0xde, 0xbf, 0xfd, 0x75, 0x8c, 0xd1, 0xe1, 0x18,
+	0xa3, 0x3f, 0xc7, 0x18, 0x7d, 0x3f, 0xc5, 0x93, 0xc3, 0x29, 0x9e, 0xfc, 0x3e, 0xc5, 0x93, 0x2f,
+	0xa9, 0x2c, 0xed, 0xba, 0x59, 0xe5, 0x42, 0x55, 0x85, 0x50, 0xa6, 0x52, 0xa6, 0xf0, 0xb5, 0xda,
+	0xfb, 0x62, 0xb9, 0x26, 0x99, 0xd5, 0xcc, 0x77, 0xe4, 0xf5, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x96, 0xe1, 0x3a, 0x06, 0x71, 0x02, 0x00, 0x00,
+}
+
+func (m *TraceExecutionResult) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TraceExecutionResult) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TraceExecutionResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.StructLogs) > 0 {
+		for iNdEx := len(m.StructLogs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.StructLogs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintTracerType(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.ReturnValue) > 0 {
+		i -= len(m.ReturnValue)
+		copy(dAtA[i:], m.ReturnValue)
+		i = encodeVarintTracerType(dAtA, i, uint64(len(m.ReturnValue)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Failed {
+		i--
+		if m.Failed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Gas != 0 {
+		i = encodeVarintTracerType(dAtA, i, uint64(m.Gas))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *StructLogRes) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StructLogRes) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *StructLogRes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Storage) > 0 {
+		for k := range m.Storage {
+			v := m.Storage[k]
+			baseI := i
+			i -= len(v)
+			copy(dAtA[i:], v)
+			i = encodeVarintTracerType(dAtA, i, uint64(len(v)))
+			i--
+			dAtA[i] = 0x12
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintTracerType(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintTracerType(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.Memory) > 0 {
+		for iNdEx := len(m.Memory) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Memory[iNdEx])
+			copy(dAtA[i:], m.Memory[iNdEx])
+			i = encodeVarintTracerType(dAtA, i, uint64(len(m.Memory[iNdEx])))
+			i--
+			dAtA[i] = 0x42
+		}
+	}
+	if len(m.Stack) > 0 {
+		for iNdEx := len(m.Stack) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Stack[iNdEx])
+			copy(dAtA[i:], m.Stack[iNdEx])
+			i = encodeVarintTracerType(dAtA, i, uint64(len(m.Stack[iNdEx])))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = encodeVarintTracerType(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Depth != 0 {
+		i = encodeVarintTracerType(dAtA, i, uint64(m.Depth))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.GasCost != 0 {
+		i = encodeVarintTracerType(dAtA, i, uint64(m.GasCost))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Gas != 0 {
+		i = encodeVarintTracerType(dAtA, i, uint64(m.Gas))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Op) > 0 {
+		i -= len(m.Op)
+		copy(dAtA[i:], m.Op)
+		i = encodeVarintTracerType(dAtA, i, uint64(len(m.Op)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Pc != 0 {
+		i = encodeVarintTracerType(dAtA, i, uint64(m.Pc))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func encodeVarintTracerType(dAtA []byte, offset int, v uint64) int {
+	offset -= sovTracerType(v)
+	base := offset
+	for v >= 1<<7 {
+		dAtA[offset] = uint8(v&0x7f | 0x80)
+		v >>= 7
+		offset++
+	}
+	dAtA[offset] = uint8(v)
+	return base
+}
+func (m *TraceExecutionResult) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Gas != 0 {
+		n += 1 + sovTracerType(uint64(m.Gas))
+	}
+	if m.Failed {
+		n += 2
+	}
+	l = len(m.ReturnValue)
+	if l > 0 {
+		n += 1 + l + sovTracerType(uint64(l))
+	}
+	if len(m.StructLogs) > 0 {
+		for _, e := range m.StructLogs {
+			l = e.Size()
+			n += 1 + l + sovTracerType(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *StructLogRes) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Pc != 0 {
+		n += 1 + sovTracerType(uint64(m.Pc))
+	}
+	l = len(m.Op)
+	if l > 0 {
+		n += 1 + l + sovTracerType(uint64(l))
+	}
+	if m.Gas != 0 {
+		n += 1 + sovTracerType(uint64(m.Gas))
+	}
+	if m.GasCost != 0 {
+		n += 1 + sovTracerType(uint64(m.GasCost))
+	}
+	if m.Depth != 0 {
+		n += 1 + sovTracerType(uint64(m.Depth))
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + sovTracerType(uint64(l))
+	}
+	if len(m.Stack) > 0 {
+		for _, s := range m.Stack {
+			l = len(s)
+			n += 1 + l + sovTracerType(uint64(l))
+		}
+	}
+	if len(m.Memory) > 0 {
+		for _, s := range m.Memory {
+			l = len(s)
+			n += 1 + l + sovTracerType(uint64(l))
+		}
+	}
+	if len(m.Storage) > 0 {
+		for k, v := range m.Storage {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + sovTracerType(uint64(len(k))) + 1 + len(v) + sovTracerType(uint64(len(v)))
+			n += mapEntrySize + 1 + sovTracerType(uint64(mapEntrySize))
+		}
+	}
+	return n
+}
+
+func sovTracerType(x uint64) (n int) {
+	return (math_bits.Len64(x|1) + 6) / 7
+}
+func sozTracerType(x uint64) (n int) {
+	return sovTracerType(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *TraceExecutionResult) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTracerType
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TraceExecutionResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TraceExecutionResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gas", wireType)
+			}
+			m.Gas = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Gas |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Failed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Failed = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReturnValue", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReturnValue = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StructLogs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.StructLogs = append(m.StructLogs, &StructLogRes{})
+			if err := m.StructLogs[len(m.StructLogs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTracerType(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *StructLogRes) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTracerType
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StructLogRes: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StructLogRes: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pc", wireType)
+			}
+			m.Pc = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Pc |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Op", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Op = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Gas", wireType)
+			}
+			m.Gas = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Gas |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GasCost", wireType)
+			}
+			m.GasCost = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.GasCost |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Depth", wireType)
+			}
+			m.Depth = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Depth |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Stack", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Stack = append(m.Stack, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Memory = append(m.Memory, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Storage", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Storage == nil {
+				m.Storage = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTracerType
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTracerType
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthTracerType
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthTracerType
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var stringLenmapvalue uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTracerType
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapvalue |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapvalue := int(stringLenmapvalue)
+					if intStringLenmapvalue < 0 {
+						return ErrInvalidLengthTracerType
+					}
+					postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+					if postStringIndexmapvalue < 0 {
+						return ErrInvalidLengthTracerType
+					}
+					if postStringIndexmapvalue > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = string(dAtA[iNdEx:postStringIndexmapvalue])
+					iNdEx = postStringIndexmapvalue
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipTracerType(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLengthTracerType
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Storage[mapkey] = mapvalue
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTracerType(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTracerType
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func skipTracerType(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
+	iNdEx := 0
+	depth := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return 0, ErrIntOverflowTracerType
+			}
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if dAtA[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+		case 1:
+			iNdEx += 8
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowTracerType
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if length < 0 {
+				return 0, ErrInvalidLengthTracerType
+			}
+			iNdEx += length
+		case 3:
+			depth++
+		case 4:
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupTracerType
+			}
+			depth--
+		case 5:
+			iNdEx += 4
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthTracerType
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
+	}
+	return 0, io.ErrUnexpectedEOF
+}
+
+var (
+	ErrInvalidLengthTracerType        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowTracerType          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupTracerType = fmt.Errorf("proto: unexpected end of group")
+)

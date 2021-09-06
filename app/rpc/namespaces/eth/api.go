@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1395,7 +1394,7 @@ func (api *PublicEthereumAPI) accountNonce(
 }
 
 // GetTxTrace returns the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
+func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) []byte {
 	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", txHash)
 

@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core"
@@ -108,7 +110,7 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		//	saveToDB(append(txHash, math.PaddedBigBytes(big.NewInt(int64(index)), 32)...), logRes)
 		//}
 
-		res, err = json.Marshal(&TraceExecutionResult{
+		res, err = proto.Marshal(&TraceExecutionResult{
 			Gas:         result.UsedGas,
 			Failed:      result.Failed(),
 			ReturnValue: returnVal,
@@ -137,7 +139,7 @@ func saveToDB(key []byte, value json.RawMessage) {
 	}
 }
 
-func GetTracesFromDB(txHash []byte) json.RawMessage {
+func GetTracesFromDB(txHash []byte) []byte {
 	if tracesDB == nil {
 		return []byte{}
 	}
