@@ -1399,25 +1399,6 @@ func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) []byte {
 	defer monitor.OnEnd("hash", txHash)
 
 	return evmtypes.GetTracesFromDB(txHash.Bytes())
-	//res := &evmtypes.TraceExecutionResult{}
-	//err := json.Unmarshal(evmtypes.GetTracesFromDB(txHash.Bytes()), res)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//logs := make([]*evmtypes.StructLogRes, res.LogsLen)
-	//for i := 0; i < res.LogsLen; i++ {
-	//	log := &evmtypes.StructLogRes{}
-	//	logByte := evmtypes.GetTracesFromDB(append(txHash.Bytes(), math.PaddedBigBytes(big.NewInt(int64(i)), 32)...))
-	//	err := json.Unmarshal(logByte, log)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	logs[i] = log
-	//}
-	//res.StructLogs = logs
-	//fmt.Printf("%+v", res)
-	//return stdjson.Marshal(res)
 }
 
 // DeleteTxTrace delete the trace of tx execution by txhash.

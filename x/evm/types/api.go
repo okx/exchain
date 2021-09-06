@@ -55,20 +55,20 @@ func FormatLogs(logs []vm.StructLog) []*StructLogRes {
 			}
 			formatted[index].Stack = stack
 		}
-		if trace.Memory != nil {
-			memory := make([]string, 0, (len(trace.Memory)+31)/32)
-			for i := 0; i+32 <= len(trace.Memory); i += 32 {
-				memory = append(memory, fmt.Sprintf("%x", trace.Memory[i:i+32]))
-			}
-			formatted[index].Memory = memory
-		}
-		if trace.Storage != nil {
-			storage := make(map[string]string)
-			for i, storageValue := range trace.Storage {
-				storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
-			}
-			formatted[index].Storage = storage
-		}
+		//if trace.Memory != nil {
+		//	memory := make([]string, 0, (len(trace.Memory)+31)/32)
+		//	for i := 0; i+32 <= len(trace.Memory); i += 32 {
+		//		memory = append(memory, fmt.Sprintf("%x", trace.Memory[i:i+32]))
+		//	}
+		//	formatted[index].Memory = memory
+		//}
+		//if trace.Storage != nil {
+		//	storage := make(map[string]string)
+		//	for i, storageValue := range trace.Storage {
+		//		storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
+		//	}
+		//	formatted[index].Storage = storage
+		//}
 	}
 	return formatted
 }
