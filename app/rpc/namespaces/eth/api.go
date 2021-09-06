@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -21,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
-	json "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
@@ -1400,20 +1400,36 @@ func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
 	defer monitor.OnEnd("hash", txHash)
 
 	return evmtypes.GetTracesFromDB(txHash.Bytes())
+	//res := &evmtypes.TraceExecutionResult{}
+	//err := json.Unmarshal(evmtypes.GetTracesFromDB(txHash.Bytes()), res)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//logs := make([]*evmtypes.StructLogRes, res.LogsLen)
+	//for i := 0; i < res.LogsLen; i++ {
+	//	log := &evmtypes.StructLogRes{}
+	//	logByte := evmtypes.GetTracesFromDB(append(txHash.Bytes(), math.PaddedBigBytes(big.NewInt(int64(i)), 32)...))
+	//	err := json.Unmarshal(logByte, log)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	logs[i] = log
+	//}
+	//res.StructLogs = logs
+	//fmt.Printf("%+v", res)
+	//return stdjson.Marshal(res)
 }
 
 // DeleteTxTrace delete the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) json.RawMessage {
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
 	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", txHash)
 
-	var rawMsg json.RawMessage
 	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
-		rawMsg, _ = json.Marshal("delete trace failed")
-	} else {
-		rawMsg, _ = json.Marshal("delete trace succeed")
+		return "delete trace failed"
 	}
-	return rawMsg
+	return "delete trace succeed"
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

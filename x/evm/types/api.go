@@ -14,7 +14,8 @@ type TraceExecutionResult struct {
 	Gas         uint64         `json:"gas"`
 	Failed      bool           `json:"failed"`
 	ReturnValue string         `json:"returnValue"`
-	StructLogs  []vm.StructLog `json:"structLogs"`
+	StructLogs  []StructLogRes `json:"structLogs"`
+	//LogsLen     int             `json:"logsLen""`
 }
 
 // StructLogRes stores a structured log emitted by the EVM while replaying a
@@ -32,78 +33,74 @@ type StructLogRes struct {
 }
 
 // FormatLogs formats EVM returned structured logs for json output
-//func FormatLogs(logs []vm.StructLog) []*StructLogRes {
-//	formatted := make([]*StructLogRes, len(logs))
-//	for index, trace := range logs {
-//		errs := ""
-//		if trace.Err != nil {
-//			errs = trace.Err.Error()
-//		}
-//
-//		formatted[index] = &StructLogRes{
-//			Pc:      trace.Pc,
-//			Op:      trace.Op.String(),
-//			Gas:     trace.Gas,
-//			GasCost: trace.GasCost,
-//			Depth:   int64(trace.Depth),
-//			Error:   errs,
-//		}
-//		if trace.Stack != nil {
-//			stack := make([]string, len(trace.Stack))
-//			for i, stackValue := range trace.Stack {
-//				stack[i] = fmt.Sprintf("%x", math.PaddedBigBytes(stackValue, 32))
-//			}
-//			formatted[index].Stack = stack
-//		}
-//		if trace.Memory != nil {
-//			memory := make([]string, 0, (len(trace.Memory)+31)/32)
-//			for i := 0; i+32 <= len(trace.Memory); i += 32 {
-//				memory = append(memory, fmt.Sprintf("%x", trace.Memory[i:i+32]))
-//			}
-//			formatted[index].Memory = memory
-//		}
-//		if trace.Storage != nil {
-//			storage := make(map[string]string)
-//			for i, storageValue := range trace.Storage {
-//				storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
-//			}
-//			formatted[index].Storage = storage
-//		}
-//	}
-//	return formatted
-//}
-
-//FormatLog formats EVM returned structured logs for json output
-func FormatLog(log *vm.StructLog) *StructLogRes {
-	formatted := &StructLogRes{
-		Pc:      log.Pc,
-		Op:      log.Op.String(),
-		Gas:     log.Gas,
-		GasCost: log.GasCost,
-		Depth:   log.Depth,
-		Error:   log.Err,
-	}
-	if log.Stack != nil {
-		stack := make([]string, len(log.Stack))
-		for i, stackValue := range log.Stack {
-			stack[i] = fmt.Sprintf("%x", math.PaddedBigBytes(stackValue, 32))
+func FormatLogs(logs []vm.StructLog) []StructLogRes {
+	formatted := make([]StructLogRes, len(logs))
+	for index, trace := range logs {
+		formatted[index] = StructLogRes{
+			Pc:      trace.Pc,
+			Op:      trace.Op.String(),
+			Gas:     trace.Gas,
+			GasCost: trace.GasCost,
+			Depth:   trace.Depth,
+			Error:   trace.Err,
 		}
-		formatted.Stack = &stack
-	}
-	if log.Memory != nil {
-		memory := make([]string, 0, (len(log.Memory)+31)/32)
-		for i := 0; i+32 <= len(log.Memory); i += 32 {
-			memory = append(memory, fmt.Sprintf("%x", log.Memory[i:i+32]))
+		if trace.Stack != nil {
+			stack := make([]string, len(trace.Stack))
+			for i, stackValue := range trace.Stack {
+				stack[i] = fmt.Sprintf("%x", math.PaddedBigBytes(stackValue, 32))
+			}
+			formatted[index].Stack = &stack
 		}
-		formatted.Memory = &memory
-	}
-	if log.Storage != nil {
-		storage := make(map[string]string)
-		for i, storageValue := range log.Storage {
-			storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
+		if trace.Memory != nil {
+			memory := make([]string, 0, (len(trace.Memory)+31)/32)
+			for i := 0; i+32 <= len(trace.Memory); i += 32 {
+				memory = append(memory, fmt.Sprintf("%x", trace.Memory[i:i+32]))
+			}
+			formatted[index].Memory = &memory
 		}
-		formatted.Storage = &storage
+		if trace.Storage != nil {
+			storage := make(map[string]string)
+			for i, storageValue := range trace.Storage {
+				storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
+			}
+			formatted[index].Storage = &storage
+		}
 	}
-
 	return formatted
 }
+
+//
+////FormatLog formats EVM returned structured logs for json output
+//func FormatLog(log *vm.StructLog) *StructLogRes {
+//	formatted := &StructLogRes{
+//		Pc:      log.Pc,
+//		Op:      log.Op.String(),
+//		Gas:     log.Gas,
+//		GasCost: log.GasCost,
+//		Depth:   log.Depth,
+//		Error:   log.Err,
+//	}
+//	if log.Stack != nil {
+//		stack := make([]string, len(log.Stack))
+//		for i, stackValue := range log.Stack {
+//			stack[i] = fmt.Sprintf("%x", math.PaddedBigBytes(stackValue, 32))
+//		}
+//		formatted.Stack = &stack
+//	}
+//	if log.Memory != nil {
+//		memory := make([]string, 0, (len(log.Memory)+31)/32)
+//		for i := 0; i+32 <= len(log.Memory); i += 32 {
+//			memory = append(memory, fmt.Sprintf("%x", log.Memory[i:i+32]))
+//		}
+//		formatted.Memory = &memory
+//	}
+//	if log.Storage != nil {
+//		storage := make(map[string]string)
+//		for i, storageValue := range log.Storage {
+//			storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
+//		}
+//		formatted.Storage = &storage
+//	}
+//
+//	return formatted
+//}

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
-	json "github.com/json-iterator/go"
 	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
@@ -77,8 +77,9 @@ func checkTracesSegment(height int64) bool {
 
 func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
 	var (
-		res []byte
-		err error
+		res    []byte
+		err    error
+		txHash = tmtypes.Tx(ctx.TxBytes()).Hash()
 	)
 	// Depending on the tracer type, format and return the output
 	switch tracer := tracer.(type) {
@@ -89,21 +90,30 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 			returnVal = fmt.Sprintf("%x", result.Revert())
 		}
 
-		for _, log := range tracer.StructLogs() {
-			res, err = json.Marshal(FormatLog(&log))
-		}
-		_ = &TraceExecutionResult{
-			Gas:         result.UsedGas,
-			Failed:      result.Failed(),
-			ReturnValue: returnVal,
-			//StructLogs:  tracer.StructLogs(),
-		}
-		//res, err = proto.Marshal(&TraceExecutionResult{
+		//res, err = json.Marshal(&TraceExecutionResult{
 		//	Gas:         result.UsedGas,
 		//	Failed:      result.Failed(),
 		//	ReturnValue: returnVal,
-		//	StructLogs:  FormatLogs(tracer.StructLogs()),
+		//	//StructLogs:  tracer.StructLogs(),
+		//	LogsLen: len(tracer.StructLogs()),
 		//})
+		//
+		//// Splitting logs to avoid OOM
+		//for index, log := range tracer.StructLogs() {
+		//	logRes, err := json.Marshal(FormatLog(&log))
+		//	if err != nil {
+		//		logRes = []byte(err.Error())
+		//	}
+		//	fmt.Println(string(logRes))
+		//	saveToDB(append(txHash, math.PaddedBigBytes(big.NewInt(int64(index)), 32)...), logRes)
+		//}
+
+		res, err = json.Marshal(&TraceExecutionResult{
+			Gas:         result.UsedGas,
+			Failed:      result.Failed(),
+			ReturnValue: returnVal,
+			StructLogs:  FormatLogs(tracer.StructLogs()),
+		})
 	case *tracers.Tracer:
 		res, err = tracer.GetResult()
 	default:
@@ -114,14 +124,14 @@ func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionRe
 		res = []byte(err.Error())
 	}
 
-	saveToDB(tmtypes.Tx(ctx.TxBytes()).Hash(), res)
+	saveToDB(txHash, res)
 }
 
-func saveToDB(txHash []byte, res json.RawMessage) {
+func saveToDB(key []byte, value json.RawMessage) {
 	if tracesDB == nil {
 		panic("traces db is nil")
 	}
-	err := tracesDB.SetSync(txHash, res)
+	err := tracesDB.SetSync(key, value)
 	if err != nil {
 		panic(err)
 	}

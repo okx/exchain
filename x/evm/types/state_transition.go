@@ -144,7 +144,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	params := csdb.GetParams()
 
 	var tracer vm.Tracer
-	tracer = vm.NewStructLogger(nil)
+	tracer = vm.NewStructLogger(&vm.LogConfig{
+		DisableMemory:  true,
+		DisableStorage: true,
+	})
 	enableDebug := checkTracesSegment(ctx.BlockHeight())
 
 	vmConfig := vm.Config{
