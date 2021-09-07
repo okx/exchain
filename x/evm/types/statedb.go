@@ -27,7 +27,8 @@ var (
 
 	zeroBalance = sdk.ZeroInt().BigInt()
 
-	GlobalStoreCache sync.Map
+	GlobalStateCache = make(map[ethcmn.Hash]ethcmn.Hash)
+	GlobalCodeCache = make(map[ethcmn.Address][]byte)
 )
 
 type revision struct {
@@ -276,9 +277,9 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		key := AssembleKey(addr, key)
-		GlobalStoreCache.Store(key, value)
+		GlobalStateCache[key] = value
 	}
-	
+
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
 		so.SetState(nil, key, value)
@@ -291,7 +292,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	hash := ethcrypto.Keccak256Hash(code)
 
 	if !csdb.ctx.IsCheckTx() {
-		GlobalStoreCache.Store(addr, code)
+		GlobalCodeCache[addr] = code
 	}
 
 	if so != nil {
@@ -467,15 +468,15 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		panic(addr)
 	}
 
-	if code, ok := GlobalStoreCache.Load(addr); ok {
-		return code.([]byte)
+	if code, ok := GlobalCodeCache[addr]; ok {
+		return code
 	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		code := so.Code(nil)
 		if !csdb.ctx.IsCheckTx() {
-			GlobalStoreCache.Store(addr, code)
+			GlobalCodeCache[addr] = code
 		}
 		return code
 	}
@@ -494,8 +495,8 @@ func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
 
 // GetCodeSize returns the code size for a given account.
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
-	if code, ok := GlobalStoreCache.Load(addr); ok {
-		return len(code.([]byte))
+	if code, ok := GlobalCodeCache[addr]; ok {
+		return len(code)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -523,15 +524,15 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 // GetState retrieves a value from the given account's storage store.
 func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	key := AssembleKey(addr, hash)
-	if val, ok := GlobalStoreCache.Load(key); ok {
-		return val.(ethcmn.Hash)
+	if val, ok := GlobalStateCache[key]; ok {
+		return val
 	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		val := so.GetState(nil, hash)
 		if !csdb.ctx.IsCheckTx() {
-			GlobalStoreCache.Store(key, val)
+			GlobalStateCache[key] = val
 		}
 		return val
 	}
@@ -552,8 +553,8 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) 
 // storage.
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	key := AssembleKey(addr, hash)
-	if val, ok := GlobalStoreCache.Load(key); ok {
-		return val.(ethcmn.Hash)
+	if val, ok := GlobalStateCache[key]; ok {
+		return val
 	}
 
 	so := csdb.getStateObject(addr)
@@ -561,7 +562,7 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 		val := so.GetCommittedState(nil, hash)
 
 		if !csdb.ctx.IsCheckTx() {
-			GlobalStoreCache.Store(key, val)
+			GlobalStateCache[key] = val
 		}
 
 		return val
