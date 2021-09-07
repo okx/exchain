@@ -3,10 +3,6 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"math/big"
-	"sync"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -14,14 +10,14 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	"io"
+	"math/big"
 )
 
 var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
-
-	GlobalContractObjs sync.Map
 )
 
 // StateObject interface for interacting with state object
@@ -87,22 +83,12 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
-	if !db.ctx.IsCheckTx() {
-		if obj, ok := GlobalContractObjs.Load(ethermintAccount.EthAddress()); ok {
-			so := obj.(*stateObject)
-			so.stateDB = db
-			so.account = ethermintAccount
-
-			return so
-		}
-	}
-
 	// set empty code hash
 	if ethermintAccount.CodeHash == nil {
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	obj := &stateObject{
+	return &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
 		address:                 ethermintAccount.EthAddress(),
@@ -111,12 +97,6 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
 	}
-
-	if !db.ctx.IsCheckTx() {
-		GlobalContractObjs.Store(obj.address, obj)
-	}
-
-	return obj
 }
 
 // ----------------------------------------------------------------------------
@@ -352,12 +332,6 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 		return nil
 	}
 
-	if !so.stateDB.ctx.IsCheckTx() {
-		if code, ok := GlobalContractCode.Load(ethcmn.BytesToHash(so.CodeHash())); ok {
-			return code.([]byte)
-		}
-	}
-
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	code := store.Get(so.CodeHash())
@@ -489,4 +463,16 @@ type stateEntry struct {
 	// address key of the state object
 	address     ethcmn.Address
 	stateObject *stateObject
+}
+
+func AssembleKey(address ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
+	prefix := address.Bytes()
+	suffix := key.Bytes()
+	compositeKey := make([]byte, len(prefix)+len(suffix))
+
+	copy(compositeKey, prefix)
+	copy(compositeKey[len(prefix):], suffix)
+
+	return ethcrypto.Keccak256Hash(compositeKey)
+
 }

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -28,7 +27,7 @@ var (
 
 	zeroBalance = sdk.ZeroInt().BigInt()
 
-	GlobalContractCode sync.Map
+	GlobalStoreCache sync.Map
 )
 
 type revision struct {
@@ -275,6 +274,11 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 
 // SetState sets the storage state with a key, value pair for an account.
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
+	if !csdb.ctx.IsCheckTx() {
+		key := AssembleKey(addr, key)
+		GlobalStoreCache.Store(key, value)
+	}
+	
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
 		so.SetState(nil, key, value)
@@ -287,7 +291,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	hash := ethcrypto.Keccak256Hash(code)
 
 	if !csdb.ctx.IsCheckTx() {
-		GlobalContractCode.Store(hash, code)
+		GlobalStoreCache.Store(addr, code)
 	}
 
 	if so != nil {
@@ -463,9 +467,17 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		panic(addr)
 	}
 
+	if code, ok := GlobalStoreCache.Load(addr); ok {
+		return code.([]byte)
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.Code(nil)
+		code := so.Code(nil)
+		if !csdb.ctx.IsCheckTx() {
+			GlobalStoreCache.Store(addr, code)
+		}
+		return code
 	}
 
 	return nil
@@ -482,6 +494,10 @@ func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
 
 // GetCodeSize returns the code size for a given account.
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
+	if code, ok := GlobalStoreCache.Load(addr); ok {
+		return len(code.([]byte))
+	}
+
 	so := csdb.getStateObject(addr)
 	if so == nil {
 		return 0
@@ -506,9 +522,18 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 
 // GetState retrieves a value from the given account's storage store.
 func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+	key := AssembleKey(addr, hash)
+	if val, ok := GlobalStoreCache.Load(key); ok {
+		return val.(ethcmn.Hash)
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.GetState(nil, hash)
+		val := so.GetState(nil, hash)
+		if !csdb.ctx.IsCheckTx() {
+			GlobalStoreCache.Store(key, val)
+		}
+		return val
 	}
 
 	return ethcmn.Hash{}
@@ -526,9 +551,20 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) 
 // GetCommittedState retrieves a value from the given account's committed
 // storage.
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+	key := AssembleKey(addr, hash)
+	if val, ok := GlobalStoreCache.Load(key); ok {
+		return val.(ethcmn.Hash)
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.GetCommittedState(nil, hash)
+		val := so.GetCommittedState(nil, hash)
+
+		if !csdb.ctx.IsCheckTx() {
+			GlobalStoreCache.Store(key, val)
+		}
+
+		return val
 	}
 
 	return ethcmn.Hash{}
@@ -709,13 +745,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
-	if !so.stateDB.ctx.IsCheckTx() {
-		if !bytes.Equal(so.CodeHash(), emptyCodeHash) {
-			GlobalContractCode.Delete(ethcmn.BytesToHash(so.CodeHash()))
-		}
-		GlobalContractObjs.Delete(so.address)
-	}
-
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 }
