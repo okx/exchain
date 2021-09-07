@@ -2,7 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/okex/exchain/app/rpc"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -87,7 +91,7 @@ func main() {
 	)
 
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
@@ -99,7 +103,16 @@ func main() {
 	}
 }
 
-func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
+func closeApp(iApp abci.Application) {
+	fmt.Println("Close App")
+	app := iApp.(*app.OKExChainApp)
+	app.StopStore()
+	evmtypes.CloseIndexer()
+	rpc.CloseEthBackend()
+	time.Sleep(time.Second * 1)
+}
+
+func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) (abci.Application) {
 	pruningOpts, err := server.GetPruningOptionsFromFlags()
 	if err != nil {
 		panic(err)
