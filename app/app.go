@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/mosn/holmes"
 	"io"
 	"math/big"
 	"os"
@@ -434,22 +433,6 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
-
-	// auto dump pprof
-	h, err := holmes.New(
-		holmes.WithCollectInterval("5s"),
-		holmes.WithCoolDown("1m"),
-		holmes.WithDumpPath("/data/pprof"),
-		holmes.WithCPUDump(1, 1, 1),
-		holmes.WithBinaryDump(),
-	)
-	if err != nil {
-		tmos.Exit(err.Error())
-	}
-	h.EnableCPUDump()
-	// start the metrics collect and dump loop
-	h.Start()
-	logger.Info("auto dump pprof start")
 
 	return app
 }
