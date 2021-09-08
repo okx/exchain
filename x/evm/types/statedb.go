@@ -376,6 +376,22 @@ func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.
 		})
 	}
 }
+func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn.Address, precompiles []ethcmn.Address, txAccesses ethtypes.AccessList) {
+	csdb.AddAddressToAccessList(sender)
+	if csdb != nil {
+		csdb.AddAddressToAccessList(*dest)
+		// If it's a create-tx, the destination will be added inside evm.create
+	}
+	for _, addr := range precompiles {
+		csdb.AddAddressToAccessList(addr)
+	}
+	for _, el := range txAccesses {
+		csdb.AddAddressToAccessList(el.Address)
+		for _, key := range el.StorageKeys {
+			csdb.AddSlotToAccessList(el.Address, key)
+		}
+	}
+}
 
 // AddressInAccessList returns true if the given address is in the access list.
 func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {

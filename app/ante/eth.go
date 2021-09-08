@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -375,7 +376,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	gasLimit := msgEthTx.GetGas()
-	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, msgEthTx.To() == nil, true, false)
+	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
 		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
