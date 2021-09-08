@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"io"
 
 	"github.com/spf13/cobra"
@@ -95,6 +96,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().Bool(evmtypes.FlagEnableTraces, false, "enable traces db to save evm transaction trace")
 	err := executor.Execute()
 	if err != nil {
 		panic(err)

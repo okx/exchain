@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -40,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
@@ -1429,4 +1431,65 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount.SetAddress(address.Bytes())
 	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
 	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
+}
+
+//合约信息
+func (api *PublicEthereumAPI) TokenInitInfo(contractAddr common.Address) vm.TokenInitInfo {
+	tokenInfoByte := vm.ReadToken([]byte(contractAddr.Hex()))
+	var tokenInfo vm.TokenInitInfo
+	if err := rlp.DecodeBytes(tokenInfoByte, &tokenInfo); err != nil {
+		return tokenInfo
+	}
+	return tokenInfo
+}
+
+//内部交易
+func (api *PublicEthereumAPI) GetInternalTransactions(txHash string) []vm.InnerTx {
+	return vm.GetFromDB(txHash)
+}
+
+//按块查询
+func (api *PublicEthereumAPI) GetBlockInternalTransactions(blockHash string) map[string][]vm.InnerTx {
+	var rtn = make(map[string][]vm.InnerTx)
+	txHashes := vm.GetBlockDB(blockHash)
+	if txHashes != nil {
+		for _, txHash := range txHashes {
+			inners := vm.GetFromDB(txHash)
+			rtn[txHash] = inners
+		}
+	} else {
+		rtn = nil
+	}
+	return rtn
+}
+
+// GetTxByHash returns the tx identified by txhash.
+func (api *PublicEthereumAPI) GetTxByHash(hash common.Hash) (*evmtypes.MsgEthereumTx, rpctypes.BlockNumber, uint32) {
+
+	resTx, err := api.clientCtx.Client.Tx(hash.Bytes(), false)
+	if err != nil {
+		return nil, 0, 0
+	}
+
+	ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, resTx.Tx)
+	if err != nil {
+		return nil, 0, 0
+	}
+	return ethTx, rpctypes.BlockNumber(resTx.Height), resTx.Index
+}
+
+// GetTxTrace returns the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) GetTxTrace(txHash string) json.RawMessage {
+	return evmtypes.GetTracesFromDB(txHash)
+}
+
+// DeleteTxTrace delete the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash string) json.RawMessage {
+	var rawMsg json.RawMessage
+	if err := evmtypes.DeleteTracesFromDB(txHash); err != nil {
+		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace failed"))
+	} else {
+		rawMsg, _ = json.Marshal(fmt.Sprintf("delete trace succeed"))
+	}
+	return rawMsg
 }

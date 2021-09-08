@@ -1,15 +1,23 @@
 package evm
 
 import (
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
+	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
+
+func init() {
+	server.TrapSignal(func() {
+		ethvm.CloseDB()
+	})
+}
 
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
@@ -117,12 +125,22 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 	}()
 
-	executionResult, resultData, err := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
+
 	if err != nil {
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
 		return nil, err
+	}
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil && len(erc20s) > 0 {
+			k.AddContract(erc20s)
+		}
 	}
 
 	if !st.Simulate {
@@ -214,9 +232,18 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err := st.TransitionDb(ctx, config)
+	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
+	}
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil && len(erc20s) > 0 {
+			k.AddContract(erc20s)
+		}
 	}
 
 	// update block bloom filter

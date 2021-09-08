@@ -3,6 +3,9 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	ethvm "github.com/ethereum/go-ethereum/core/vm"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -48,6 +51,9 @@ type Keeper struct {
 	LogSize uint
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
+
+	// add inner block data
+	innerBlockData ethvm.BlockInnerData
 }
 
 // NewKeeper generates new evm module keeper
@@ -57,6 +63,13 @@ func NewKeeper(
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	types.OpenTxTracesDB()
+	innerTxPath := viper.GetString(cli.HomeFlag)
+	err := ethvm.InitDB(innerTxPath)
+	if err != nil {
+		panic(err)
 	}
 
 	if enable := types.GetEnableBloomFilter(); enable {
@@ -77,6 +90,12 @@ func NewKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
 		Ada:           types.DefaultPrefixDb{},
+		innerBlockData: ethvm.BlockInnerData{
+			BlockHash:    "",
+			TxHashes:     make([]string, 0),
+			TxMap:        make(map[string][]*ethvm.InnerTx),
+			ContractList: make([]*ethvm.ERC20Contract, 0),
+		},
 	}
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
@@ -243,4 +262,54 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 // SetGovKeeper sets keeper of gov
 func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
+}
+
+// ----------------------------------------------------------------------------
+// Add inner tx
+// ----------------------------------------------------------------------------
+// init inner block data
+func (k *Keeper) InitInnerBlock(hash string) {
+	k.innerBlockData = ethvm.BlockInnerData{
+		BlockHash:    hash,
+		TxHashes:     make([]string, 0),
+		TxMap:        make(map[string][]*ethvm.InnerTx),
+		ContractList: make([]*ethvm.ERC20Contract, 0),
+	}
+}
+
+func (k *Keeper) UpdateInnerBlockData() {
+	//Block write db
+	if len(k.innerBlockData.TxHashes) > 0 {
+		if err := ethvm.WriteBlockDB(k.innerBlockData.BlockHash, k.innerBlockData.TxHashes); err != nil {
+			panic(err)
+		}
+	}
+	//InnerTx write db
+	if len(k.innerBlockData.TxMap) > 0 {
+		for txHash, inTx := range k.innerBlockData.TxMap {
+			if err := ethvm.WriteTx(txHash, inTx); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	//Contract write db
+	if len(k.innerBlockData.ContractList) > 0 {
+		for _, contract := range k.innerBlockData.ContractList {
+			if err := ethvm.WriteToken(contract.ContractAddr, contract.ContractCode); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+// add inner tx
+func (k *Keeper) AddInnerTx(hash string, txs []*ethvm.InnerTx) {
+	k.innerBlockData.TxHashes = append(k.innerBlockData.TxHashes, hash)
+	k.innerBlockData.TxMap[hash] = txs
+}
+
+// add erc20 contract
+func (k *Keeper) AddContract(contract []*ethvm.ERC20Contract) {
+	k.innerBlockData.ContractList = append(k.innerBlockData.ContractList, contract...)
 }
