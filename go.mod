@@ -6,6 +6,7 @@ require (
 	github.com/Comcast/pulsar-client-go v0.1.1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
+	github.com/apolloconfig/agollo/v4 v4.0.8
 	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -43,6 +44,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca
 	github.com/tendermint/go-amino v0.15.1
+	github.com/tendermint/iavl v0.14.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
@@ -56,7 +58,8 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210907082800-26983649d8e0
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210908093918-af625079e742
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20210907111428-92f7f7065845
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain8
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain11
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )

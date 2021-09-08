@@ -20,12 +20,13 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/crypto/tmhash"
+	"github.com/tendermint/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
 
 const (
 	FlagEnableTxPool      = "enable-tx-pool"
-	TxPoolSliceMaxLen     = "tx-pool-cap"
+	TxPoolCap             = "tx-pool-cap"
 	BroadcastPeriodSecond = "broadcast-period-second"
 	txPoolDb              = "tx_pool"
 )
@@ -34,16 +35,17 @@ var broadcastErrors = map[uint32]*sdkerrors.Error{
 	sdkerrors.ErrTxInMempoolCache.ABCICode(): sdkerrors.ErrTxInMempoolCache,
 	sdkerrors.ErrMempoolIsFull.ABCICode():    sdkerrors.ErrMempoolIsFull,
 	sdkerrors.ErrTxTooLarge.ABCICode():       sdkerrors.ErrTxTooLarge,
+	sdkerrors.ErrInvalidSequence.ABCICode():  sdkerrors.ErrInvalidSequence,
 }
 
-var txPoolSliceMaxLen uint64
-
-
 type TxPool struct {
-	addressTxsPool map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
-	clientCtx      clientcontext.CLIContext
-	db             tmdb.DB
-	mu             sync.Mutex
+	addressTxsPool    map[common.Address][]*evmtypes.MsgEthereumTx // All currently processable transactions
+	clientCtx         clientcontext.CLIContext
+	db                tmdb.DB
+	mu                sync.Mutex
+	cap               uint64
+	broadcastInterval time.Duration
+	logger            log.Logger
 }
 
 func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPool {
@@ -51,13 +53,14 @@ func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPo
 	if err != nil {
 		panic(err)
 	}
-
-	txPoolSliceMaxLen = viper.GetUint64(TxPoolSliceMaxLen)
-
+	interval := time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond))
 	pool := &TxPool{
-		addressTxsPool: make(map[common.Address][]*evmtypes.MsgEthereumTx),
-		clientCtx:      clientCtx,
-		db:             db,
+		addressTxsPool:    make(map[common.Address][]*evmtypes.MsgEthereumTx),
+		clientCtx:         clientCtx,
+		db:                db,
+		cap:               viper.GetUint64(TxPoolCap),
+		broadcastInterval: interval,
+		logger:            api.logger.With("module", "tx_pool", "namespace", "eth"),
 	}
 
 	if err = pool.initDB(api); err != nil {
@@ -124,7 +127,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	from, err := tx.VerifySig(chainIDEpoch)
+	from, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -132,7 +135,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
-		api.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
+		api.txPool.logger.Error("eth_sendRawTransaction txPool err:", err.Error())
 		return common.Hash{}, err
 	}
 
@@ -151,7 +154,7 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
 	}
 
-	if tx.Data.AccountNonce > currentNonce + txPoolSliceMaxLen {
+	if tx.Data.AccountNonce > currentNonce+pool.cap {
 		return fmt.Errorf("AccountNonce of tx is bigger than txPool capacity, please try later: AccountNonce[%d]", tx.Data.AccountNonce)
 	}
 
@@ -187,7 +190,7 @@ func (pool *TxPool) update(index int, address common.Address, tx *evmtypes.MsgEt
 func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// if this is the first time to insertTx, make the cap of txPool be TxPoolSliceMaxLen
 	if _, ok := pool.addressTxsPool[address]; !ok {
-		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, txPoolSliceMaxLen)
+		pool.addressTxsPool[address] = make([]*evmtypes.MsgEthereumTx, 0, pool.cap)
 	}
 	index := 0
 	for index < len(pool.addressTxsPool[address]) {
@@ -214,8 +217,11 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		if pool.addressTxsPool[address][i].Data.AccountNonce == currentNonce {
 			// do broadcast
 			if err = pool.broadcast(pool.addressTxsPool[address][i]); err != nil {
+				pool.logger.Error(err.Error())
 				// delete the tx when broadcast failed
-				pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce)
+				if err := pool.delTxInDB(address, pool.addressTxsPool[address][i].Data.AccountNonce); err != nil {
+					pool.logger.Error(err.Error())
+				}
 				break
 			}
 			// update currentNonce
@@ -228,24 +234,25 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 	}
 	// i is the start index of txs that don't need to be dropped
 	if err != nil {
-		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) {
+		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) &&
+			!strings.Contains(err.Error(), sdkerrors.ErrInvalidSequence.Error()) {
 			// tx has err, and err is not mempoolfull, the tx should be dropped
 			err = fmt.Errorf("%s, nonce %d of tx has been dropped, please send again",
 				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
-			pool.dropTxs(i + 1, address)
+			pool.dropTxs(i+1, address)
 		} else {
 			err = fmt.Errorf("%s, nonce %d :", err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce)
 			pool.dropTxs(i, address)
 		}
-		api.logger.Error(err.Error())
+		pool.logger.Error(err.Error())
 	}
 
 	return err
 }
 
 // drop [0:index) txs in txpool
-func (pool *TxPool)dropTxs(index int, address common.Address) {
-	tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]), txPoolSliceMaxLen)
+func (pool *TxPool) dropTxs(index int, address common.Address) {
+	tmp := make([]*evmtypes.MsgEthereumTx, len(pool.addressTxsPool[address][index:]), pool.cap)
 	copy(tmp, pool.addressTxsPool[address][index:])
 	pool.addressTxsPool[address] = tmp
 }
@@ -257,11 +264,14 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 		return err
 	}
 	res, err := pool.clientCtx.BroadcastTx(txBytes)
+	if err != nil {
+		pool.logger.Error(err.Error())
+	}
 	if res.Code != sdk.CodeOK {
 		if broadcastErrors[res.Code] == nil {
-			return fmt.Errorf("broadcast tx failed, code : %d", res.Code)
+			return fmt.Errorf("broadcast tx failed, code: %d, rawLog: %s", res.Code, res.RawLog)
 		} else {
-			return fmt.Errorf("broadcast tx failed, err:%s", broadcastErrors[res.Code].Error())
+			return fmt.Errorf("broadcast tx failed, err: %s", broadcastErrors[res.Code].Error())
 		}
 	}
 	return nil
@@ -301,7 +311,7 @@ func (pool *TxPool) delTxInDB(address common.Address, txNonce uint64) error {
 
 func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 	for {
-		time.Sleep(time.Second * time.Duration(viper.GetInt(BroadcastPeriodSecond)))
+		time.Sleep(pool.broadcastInterval)
 		pool.broadcastPeriodCore(api)
 	}
 }
@@ -311,6 +321,7 @@ func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 	for address, _ := range pool.addressTxsPool {
 		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
 		if err != nil {
+			pool.logger.Error(err.Error())
 			continue
 		}
 		currentNonce := uint64(*pCurrentNonce)
@@ -329,6 +340,6 @@ func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 		}
 		currentNonce := uint64(*pCurrentNonce)
 
-		err = pool.continueBroadcast(api, currentNonce, address)
+		pool.continueBroadcast(api, currentNonce, address)
 	}
 }
