@@ -439,7 +439,7 @@ func NewOKExChainApp(
 	h, err := holmes.New(
 		holmes.WithCollectInterval("5s"),
 		holmes.WithCoolDown("1m"),
-		holmes.WithDumpPath("/Users/shaoyunzhan/Documents/wp/go_wp/okexchainProjects/exchain/pprof"),
+		holmes.WithDumpPath("/data/pprof"),
 		holmes.WithCPUDump(1, 1, 1),
 		holmes.WithBinaryDump(),
 	)
