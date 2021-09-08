@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
@@ -18,15 +19,21 @@ import (
 )
 
 const (
-	tracesDir        = "traces"
-	FlagEnableTraces = "enable-evm-traces"
-	FlagTraceSegment = "evm-trace-segment"
+	tracesDir          = "traces"
+	FlagEnableTraces   = "enable-evm-traces"
+	FlagTraceSegment   = "evm-trace-segment"
+	FlagTraceFromAddrs = "evm-trace-from-addrs"
+	FlagTraceToAddrs   = "evm-trace-to-addrs"
 )
 
 var (
 	tracesDB     dbm.DB
 	enableTraces bool
 
+	// trace from/to addr
+	traceFromAddrs, traceToAddrs map[string]struct{}
+
+	// trace segment
 	step, total, num int64
 )
 
@@ -64,6 +71,21 @@ func InitTxTraces() {
 		panic(fmt.Errorf("invalid evm trace params: %s", etp))
 	}
 
+	traceFromAddrs = make(map[string]struct{})
+	traceToAddrs = make(map[string]struct{})
+	fromAddrsStr := viper.GetString(FlagTraceFromAddrs)
+	if fromAddrsStr != "" {
+		for _, addr := range strings.Split(fromAddrsStr, ",") {
+			traceFromAddrs[common.HexToAddress(addr).String()] = struct{}{}
+		}
+	}
+	toAddrsStr := viper.GetString(FlagTraceToAddrs)
+	if toAddrsStr != "" {
+		for _, addr := range strings.Split(toAddrsStr, ",") {
+			traceToAddrs[common.HexToAddress(addr).String()] = struct{}{}
+		}
+	}
+
 	dataDir := filepath.Join(viper.GetString("home"), "data")
 	tracesDB, err = sdk.NewLevelDB(tracesDir, dataDir)
 	if err != nil {
@@ -71,8 +93,14 @@ func InitTxTraces() {
 	}
 }
 
-func checkTracesSegment(height int64) bool {
-	return enableTraces && ((height-1)/step)%total == num
+func checkTracesSegment(height int64, from, to string) bool {
+	_, fromOk := traceFromAddrs[from]
+	_, toOk := traceToAddrs[to]
+
+	return enableTraces &&
+		((height-1)/step)%total == num &&
+		(len(traceFromAddrs) == 0 || (len(traceFromAddrs) > 0 && fromOk)) &&
+		(len(traceToAddrs) == 0 || (len(traceToAddrs) > 0 && toOk))
 }
 
 func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
