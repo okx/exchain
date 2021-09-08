@@ -36,7 +36,7 @@ func repairDataCmd(ctx *server.Context) *cobra.Command {
 func repairData(ctx *server.Context) {
 	// set ignore smb check
 	sm.SetIgnoreSmbCheck(true)
-	iavl.SetIgnoreCheck(true)
+	iavl.SetIgnoreVersionCheck(true)
 
 	// load latest block height
 	rootDir := ctx.Config.RootDir
