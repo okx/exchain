@@ -1399,7 +1399,7 @@ func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
 	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", txHash)
 
-	return evmtypes.GetTracesFromDB(txHash.Bytes())
+	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
 }
 
 // DeleteTxTrace delete the trace of tx execution by txhash.
