@@ -44,6 +44,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
 	github.com/tendermint/go-amino v0.15.1
+	github.com/tendermint/iavl v0.14.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
@@ -56,8 +57,8 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210906101954-ea9c2e5521c8
-	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210906101911-c04d43a1f4ba
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain16
+	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain1
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain11
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
