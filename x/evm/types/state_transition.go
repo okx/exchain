@@ -148,7 +148,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		DisableMemory:  true,
 		DisableStorage: false,
 	})
-	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), st.Recipient.String())
+
+	to := ""
+	if st.Recipient != nil {
+		to = st.Recipient.String()
+	}
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
 	vmConfig := vm.Config{
 		ExtraEips: params.ExtraEIPs,

@@ -100,7 +100,7 @@ func checkTracesSegment(height int64, from, to string) bool {
 	return enableTraces &&
 		((height-1)/step)%total == num &&
 		(len(traceFromAddrs) == 0 || (len(traceFromAddrs) > 0 && fromOk)) &&
-		(len(traceToAddrs) == 0 || (len(traceToAddrs) > 0 && toOk))
+		(len(traceToAddrs) == 0 || to == "" || (len(traceToAddrs) > 0 && toOk))
 }
 
 func saveTraceResult(ctx sdk.Context, tracer vm.Tracer, result *core.ExecutionResult) {
