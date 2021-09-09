@@ -51,7 +51,7 @@ func repairData(ctx *server.Context) {
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
 	// load start version
-	startVersion := latestBlockHeight - (latestBlockHeight % 100) + 1
+	startVersion := latestBlockHeight - (latestBlockHeight % 100)
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
@@ -93,7 +93,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *app.OKE
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
-	for height := startHeight; height <= latestHeight; height++ {
+	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
