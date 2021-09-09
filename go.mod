@@ -58,8 +58,8 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210908111849-2382113ee58c
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210909004110-f960a5a9084d
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20210907064033-e41a3c6fe400
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210908104801-7296b66455d6
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210909004539-dc76fe197be8
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
