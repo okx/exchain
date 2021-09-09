@@ -7,10 +7,11 @@
 *.swn
 .vscode
 .idea
+*.csv
 
 # Build
-exchaind
-exchaincli
+.exchaind
+.exchaincli
 vendor
 build
 tools/
@@ -71,3 +72,4 @@ contract_tests/*
 dev/cache/*
 result.txt
 ethermint
+_cache_evm

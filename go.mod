@@ -6,6 +6,7 @@ require (
 	github.com/Comcast/pulsar-client-go v0.1.1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
+	github.com/apolloconfig/agollo/v4 v4.0.8
 	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -59,4 +60,5 @@ replace (
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210908111849-2382113ee58c
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20210907064033-e41a3c6fe400
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210908104801-7296b66455d6
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20210831062251-0eeb93ab0259
 )

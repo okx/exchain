@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"os"
@@ -22,6 +21,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
@@ -64,8 +64,6 @@ func init() {
 
 const (
 	appName = "OKExChain"
-	DynamicGpWeight = "dynamic-gp-weight"
-	EnableDynamicGp = "enable-dynamic-gp"
 )
 
 var (
@@ -176,9 +174,7 @@ type OKExChainApp struct {
 	// simulation manager
 	sm *module.SimulationManager
 
-	blockGasPrice   []*big.Int
-	enableGpSuggest bool
-	dynamicGpWeight int
+	blockGasPrice []*big.Int
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -216,22 +212,13 @@ func NewOKExChainApp(
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
 	app := &OKExChainApp{
-		BaseApp:         bApp,
-		cdc:             cdc,
-		invCheckPeriod:  invCheckPeriod,
-		keys:            keys,
-		tkeys:           tkeys,
-		subspaces:       make(map[string]params.Subspace),
-		enableGpSuggest: viper.GetBool(EnableDynamicGp),
+		BaseApp:        bApp,
+		cdc:            cdc,
+		invCheckPeriod: invCheckPeriod,
+		keys:           keys,
+		tkeys:          tkeys,
+		subspaces:      make(map[string]params.Subspace),
 	}
-
-	gpWeight := viper.GetInt(DynamicGpWeight)
-	if gpWeight == 0 {
-		gpWeight = 1
-	} else if gpWeight > 100 {
-		gpWeight = 100
-	}
-	app.dynamicGpWeight = gpWeight
 
 	// init params keeper and subspaces
 	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
@@ -458,8 +445,8 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if app.enableGpSuggest {
-		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, app.dynamicGpWeight)
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
 		app.blockGasPrice = app.blockGasPrice[:0]
 	}
 
@@ -476,7 +463,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		app.syncTx(req.Tx)
 	}
 
-	if app.enableGpSuggest {
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
 		if err == nil {
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
@@ -503,6 +490,9 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+
+	perf.GetPerf().InitChainer(app.Logger())
+
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
