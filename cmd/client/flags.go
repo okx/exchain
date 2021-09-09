@@ -51,7 +51,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 
-	cmd.Flags().Bool(config.FlagPprofAutoDump, true, "Enable auto dump pprof")
+	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
 	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "CollectInterval of pprof to dump")
 	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "CoolDown of pprof to dump")
 	cmd.Flags().String(config.FlagPprofDumpPath, "/root/.okexchaind/pprof", "DownPath of pprof to dump")
