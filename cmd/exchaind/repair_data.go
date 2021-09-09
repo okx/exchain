@@ -64,6 +64,7 @@ func repairData(ctx *server.Context) {
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+	repairApp.StopStore()
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, error) {
