@@ -160,7 +160,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().NoError(err, "failed to commit StateDB")
 
 	// simulate BaseApp EndBlocker commitment
-	suite.app.Commit()
+	suite.app.Commit(abci.RequestCommit{})
 }
 
 func (suite *KeeperTestSuite) TestChainConfig() {

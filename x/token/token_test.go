@@ -260,7 +260,7 @@ func mockApplyBlock(t *testing.T, app *MockDexApp, txs []auth.StdTx, height int6
 		app.Deliver(tx)
 	}
 	app.EndBlock(abci.RequestEndBlock{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	return ctx
 }
 
