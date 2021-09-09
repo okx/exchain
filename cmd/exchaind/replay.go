@@ -173,12 +173,11 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
 	haltheight := haltBlockHeight
-	if haltheight <= startBlockHeight {
-		panic("haltheight <= startBlockHeight please check data or height")
-	}
-
 	if haltheight == 0 {
 		haltheight = originLatestBlockHeight
+	}
+	if haltheight <= startBlockHeight {
+		panic("haltheight <= startBlockHeight please check data or height")
 	}
 
 	log.Println("replay stop block height", "height", haltheight)
