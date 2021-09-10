@@ -419,6 +419,10 @@ func NewOKExChainApp(
 	return app
 }
 
+func (app *OKExChainApp) LoadStartVersion(height int64) error {
+	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
+}
+
 // Name returns the name of the App
 func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
 
