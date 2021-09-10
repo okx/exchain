@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
@@ -35,7 +34,6 @@ const (
 // PprofDown auto dump pprof
 func PprofDown() {
 	c := LoadPprofFromConfig()
-	fmt.Println(fmt.Sprintf("LoadPprofFromConfig = %v", c))
 	if c.autoDump {
 		h, err := holmes.New(
 			holmes.WithCollectInterval(c.collectInterval),
@@ -43,16 +41,15 @@ func PprofDown() {
 			holmes.WithDumpPath(c.dumpPath),
 			holmes.WithCPUDump(c.cpuTriggerPercentMin, c.cpuTriggerPercentDiff, c.cpuTriggerPercentAbs),
 			holmes.WithMemDump(c.memTriggerPercentMin, c.memTriggerPercentDiff, c.memTriggerPercentAbs),
+			holmes.WithGoroutineDump(2000, 50, 5000),
 			holmes.WithBinaryDump(),
 		)
 		if err != nil {
 			tmos.Exit(err.Error())
 		}
-		h.EnableCPUDump()
-		h.EnableMemDump()
+		h.EnableCPUDump().EnableMemDump().EnableGoroutineDump()
 		// start the metrics collect and dump loop
 		h.Start()
-		fmt.Println("auto dump pprof start")
 	}
 }
 
