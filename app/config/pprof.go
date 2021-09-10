@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
 	tmos "github.com/tendermint/tendermint/libs/os"
+	"path"
 )
 
 type PporfConfig struct {
@@ -19,9 +21,6 @@ type PporfConfig struct {
 
 const (
 	FlagPprofAutoDump              = "pprof-auto-dump"
-	FlagPprofCollectInterval       = "pprof-collect-interval"
-	FlagPprofCoolDown              = "pprof-cool-down"
-	FlagPprofDumpPath              = "pprof-dump-path"
 	FlagPprofCpuTriggerPercentMin  = "pprof-cpu-trigger-percent-min"
 	FlagPprofCpuTriggerPercentDiff = "pprof-cpu-trigger-percent-diff"
 	FlagPprofCpuTriggerPercentAbs  = "pprof-cpu-trigger-percent-abs"
@@ -51,17 +50,15 @@ func PprofDown() {
 
 func LoadPprofFromConfig() *PporfConfig {
 	autoDump := viper.GetBool(FlagPprofAutoDump)
-	collectInterval := viper.GetString(FlagPprofCollectInterval)
-	coolDown := viper.GetString(FlagPprofCoolDown)
-	dumpPath := viper.GetString(FlagPprofDumpPath)
+	dumpPath := path.Join(viper.GetString(cli.HomeFlag), "pprof")
 	cpuTriggerPercentMin := viper.GetInt(FlagPprofCpuTriggerPercentMin)
 	cpuTriggerPercentDiff := viper.GetInt(FlagPprofCpuTriggerPercentDiff)
 	cpuTriggerPercentAbs := viper.GetInt(FlagPprofCpuTriggerPercentAbs)
 
 	c := &PporfConfig{
 		autoDump:              autoDump,
-		collectInterval:       collectInterval,
-		coolDown:              coolDown,
+		collectInterval:       "5s",
+		coolDown:              "3m",
 		dumpPath:              dumpPath,
 		cpuTriggerPercentMin:  cpuTriggerPercentMin,
 		cpuTriggerPercentDiff: cpuTriggerPercentDiff,
