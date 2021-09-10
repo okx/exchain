@@ -55,4 +55,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(evmtypes.FlagTraceSegment, "1-1-0", "Parameters for segmented execution of evm trace, such as \"step-total-num\"")
 	cmd.Flags().String(evmtypes.FlagTraceFromAddrs, "", "Generate traces for transactions at specified from addresses (comma separated)")
 	cmd.Flags().String(evmtypes.FlagTraceToAddrs, "", "Generate traces for transactions at specified to addresses (comma separated)")
+	cmd.Flags().Bool(evmtypes.FlagTraceDisableMemory, false, "Disable memory output for evm trace")
+	cmd.Flags().Bool(evmtypes.FlagTraceDisableStack, false, "Disable stack output for evm trace")
+	cmd.Flags().Bool(evmtypes.FlagTraceDisableStorage, false, "Disable storage output for evm trace")
+	cmd.Flags().Bool(evmtypes.FlagTraceDisableReturnData, false, "Disable return data output for evm trace")
+	cmd.Flags().Bool(evmtypes.FlagTraceDebug, false, "Output full trace logs for evm")
 }

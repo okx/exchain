@@ -19,11 +19,17 @@ import (
 )
 
 const (
-	tracesDir          = "traces"
-	FlagEnableTraces   = "enable-evm-traces"
-	FlagTraceSegment   = "evm-trace-segment"
-	FlagTraceFromAddrs = "evm-trace-from-addrs"
-	FlagTraceToAddrs   = "evm-trace-to-addrs"
+	tracesDir = "traces"
+
+	FlagEnableTraces           = "evm-trace-enable"
+	FlagTraceSegment           = "evm-trace-segment"
+	FlagTraceFromAddrs         = "evm-trace-from-addrs"
+	FlagTraceToAddrs           = "evm-trace-to-addrs"
+	FlagTraceDisableMemory     = "evm-trace-nomemory"
+	FlagTraceDisableStack      = "evm-trace-nostack"
+	FlagTraceDisableStorage    = "evm-trace-nostorage"
+	FlagTraceDisableReturnData = "evm-trace-noreturndata"
+	FlagTraceDebug             = "evm-trace-debug"
 )
 
 var (
@@ -35,6 +41,8 @@ var (
 
 	// trace segment
 	step, total, num int64
+
+	evmLogConfig *vm.LogConfig
 )
 
 func init() {
@@ -84,6 +92,14 @@ func InitTxTraces() {
 		for _, addr := range strings.Split(toAddrsStr, ",") {
 			traceToAddrs[common.HexToAddress(addr).String()] = struct{}{}
 		}
+	}
+
+	evmLogConfig = &vm.LogConfig{
+		DisableMemory:     viper.GetBool(FlagTraceDisableMemory),
+		DisableStack:      viper.GetBool(FlagTraceDisableStack),
+		DisableStorage:    viper.GetBool(FlagTraceDisableStorage),
+		DisableReturnData: viper.GetBool(FlagTraceDisableReturnData),
+		Debug:             viper.GetBool(FlagTraceDebug),
 	}
 
 	dataDir := filepath.Join(viper.GetString("home"), "data")
