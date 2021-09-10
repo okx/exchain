@@ -79,7 +79,7 @@ func DeriveSecp256k1(mnemonic, bip39Passphrase, path string) ([]byte, error) {
 
 	key := masterKey
 	for _, n := range hdpath {
-		key, err = key.Child(n)
+		key, err = key.Derive(n)
 		if err != nil {
 			return nil, err
 		}

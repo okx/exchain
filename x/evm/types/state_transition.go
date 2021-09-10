@@ -120,7 +120,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	contractCreation := st.Recipient == nil
 
-	cost, err := core.IntrinsicGas(st.Payload, contractCreation, config.IsHomestead(), config.IsIstanbul())
+	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
 		return exeRes, resData, sdkerrors.Wrap(err, "invalid intrinsic gas for transaction")
 	}
