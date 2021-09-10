@@ -187,7 +187,6 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
@@ -433,7 +432,6 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
-
 	return app
 }
 
