@@ -17,6 +17,9 @@ type PporfConfig struct {
 	cpuTriggerPercentMin  int
 	cpuTriggerPercentDiff int
 	cpuTriggerPercentAbs  int
+	memTriggerPercentMin  int
+	memTriggerPercentDiff int
+	memTriggerPercentAbs  int
 }
 
 const (
@@ -24,6 +27,9 @@ const (
 	FlagPprofCpuTriggerPercentMin  = "pprof-cpu-trigger-percent-min"
 	FlagPprofCpuTriggerPercentDiff = "pprof-cpu-trigger-percent-diff"
 	FlagPprofCpuTriggerPercentAbs  = "pprof-cpu-trigger-percent-abs"
+	FlagPprofMemTriggerPercentMin  = "pprof-mem-trigger-percent-min"
+	FlagPprofMemTriggerPercentDiff = "pprof-mem-trigger-percent-diff"
+	FlagPprofMemTriggerPercentAbs  = "pprof-mem-trigger-percent-abs"
 )
 
 // PprofDown auto dump pprof
@@ -36,12 +42,14 @@ func PprofDown() {
 			holmes.WithCoolDown(c.coolDown),
 			holmes.WithDumpPath(c.dumpPath),
 			holmes.WithCPUDump(c.cpuTriggerPercentMin, c.cpuTriggerPercentDiff, c.cpuTriggerPercentAbs),
+			holmes.WithMemDump(c.memTriggerPercentMin, c.memTriggerPercentDiff, c.memTriggerPercentAbs),
 			holmes.WithBinaryDump(),
 		)
 		if err != nil {
 			tmos.Exit(err.Error())
 		}
 		h.EnableCPUDump()
+		h.EnableMemDump()
 		// start the metrics collect and dump loop
 		h.Start()
 		fmt.Println("auto dump pprof start")
@@ -54,6 +62,9 @@ func LoadPprofFromConfig() *PporfConfig {
 	cpuTriggerPercentMin := viper.GetInt(FlagPprofCpuTriggerPercentMin)
 	cpuTriggerPercentDiff := viper.GetInt(FlagPprofCpuTriggerPercentDiff)
 	cpuTriggerPercentAbs := viper.GetInt(FlagPprofCpuTriggerPercentAbs)
+	memTriggerPercentMin := viper.GetInt(FlagPprofMemTriggerPercentMin)
+	memTriggerPercentDiff := viper.GetInt(FlagPprofMemTriggerPercentDiff)
+	memTriggerPercentAbs := viper.GetInt(FlagPprofMemTriggerPercentAbs)
 
 	c := &PporfConfig{
 		autoDump:              autoDump,
@@ -63,6 +74,9 @@ func LoadPprofFromConfig() *PporfConfig {
 		cpuTriggerPercentMin:  cpuTriggerPercentMin,
 		cpuTriggerPercentDiff: cpuTriggerPercentDiff,
 		cpuTriggerPercentAbs:  cpuTriggerPercentAbs,
+		memTriggerPercentMin:  memTriggerPercentMin,
+		memTriggerPercentDiff: memTriggerPercentDiff,
+		memTriggerPercentAbs:  memTriggerPercentAbs,
 	}
 	return c
 }

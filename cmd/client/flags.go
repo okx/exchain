@@ -53,6 +53,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
-	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 30, "TriggerPercentDiff of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 }
