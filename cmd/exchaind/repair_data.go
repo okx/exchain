@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"path/filepath"
+
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
@@ -14,26 +18,23 @@ import (
 	"github.com/tendermint/tendermint/store"
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
-	"io"
-	"log"
-	"path/filepath"
 )
 
-func repairDataCmd(ctx *server.Context) *cobra.Command {
+func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "repair-data",
+		Use:   "repair-state",
 		Short: "Repair the SMB(state machine broken) data of node",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- repair data start ---------")
 
-			repairData(ctx)
+			repairState(ctx)
 			log.Println("--------- repair data success ---------")
 		},
 	}
 	return cmd
 }
 
-func repairData(ctx *server.Context) {
+func repairState(ctx *server.Context) {
 	// set ignore smb check
 	sm.SetIgnoreSmbCheck(true)
 	iavl.SetIgnoreVersionCheck(true)
