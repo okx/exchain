@@ -63,7 +63,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
+		PersistentPreRunE: server.PersistentPreRunEFn(ctx, appconfig.RegisterDynamicConfig),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
@@ -79,15 +79,16 @@ func main() {
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx),
+		repairDataCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
-        dataCmd(ctx),
+		dataCmd(ctx),
 		exportAppCmd(ctx),
 	)
 
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag, appconfig.RegisterDynamicConfig)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
 
 	rootCmd.PersistentFlags().StringSlice("test.monitored_validators", []string{}, "the list of validators, used for monitoring to test")
 	rootCmd.PersistentFlags().Float64("test.init_totoal_fee", 0, "")
