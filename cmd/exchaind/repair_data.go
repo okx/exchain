@@ -19,7 +19,8 @@ import (
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
-
+var commitInterval int64
+const FlagCommitInterval string = "commit-interval"
 func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repair-state",
@@ -30,7 +31,9 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			repairState(ctx)
 			log.Println("--------- repair data success ---------")
 		},
+
 	}
+	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 100, "The number of interval heights for submitting Commit")
 	return cmd
 }
 
@@ -52,7 +55,7 @@ func repairState(ctx *server.Context) {
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
 	// load start version
-	startVersion := latestBlockHeight - (latestBlockHeight % 100)
+	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 2
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
