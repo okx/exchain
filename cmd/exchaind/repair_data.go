@@ -56,6 +56,9 @@ func repairState(ctx *server.Context) {
 	panicError(err)
 	// load start version
 	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 2
+	if startVersion == 0 {
+		panic("height too low, please restart from height 0 with genesis file")
+	}
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
