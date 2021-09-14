@@ -31,26 +31,28 @@ const (
 	FlagPprofMemTriggerPercentAbs  = "pprof-mem-trigger-percent-abs"
 )
 
-// PprofDown auto dump pprof
-func PprofDown() {
+// PprofDownload auto dump pprof
+func PprofDownload() {
 	c := LoadPprofFromConfig()
-	if c.autoDump {
-		h, err := holmes.New(
-			holmes.WithCollectInterval(c.collectInterval),
-			holmes.WithCoolDown(c.coolDown),
-			holmes.WithDumpPath(c.dumpPath),
-			holmes.WithCPUDump(c.cpuTriggerPercentMin, c.cpuTriggerPercentDiff, c.cpuTriggerPercentAbs),
-			holmes.WithMemDump(c.memTriggerPercentMin, c.memTriggerPercentDiff, c.memTriggerPercentAbs),
-			holmes.WithGoroutineDump(2000, 50, 5000),
-			holmes.WithBinaryDump(),
-		)
-		if err != nil {
-			tmos.Exit(err.Error())
-		}
-		h.EnableCPUDump().EnableMemDump().EnableGoroutineDump()
-		// start the metrics collect and dump loop
-		h.Start()
+	if !c.autoDump {
+		return
 	}
+
+	h, err := holmes.New(
+		holmes.WithCollectInterval(c.collectInterval),
+		holmes.WithCoolDown(c.coolDown),
+		holmes.WithDumpPath(c.dumpPath),
+		holmes.WithCPUDump(c.cpuTriggerPercentMin, c.cpuTriggerPercentDiff, c.cpuTriggerPercentAbs),
+		holmes.WithMemDump(c.memTriggerPercentMin, c.memTriggerPercentDiff, c.memTriggerPercentAbs),
+		holmes.WithGoroutineDump(2000, 50, 5000),
+		holmes.WithBinaryDump(),
+	)
+	if err != nil {
+		tmos.Exit(err.Error())
+	}
+	h.EnableCPUDump().EnableMemDump().EnableGoroutineDump()
+	// start the metrics collect and dump loop
+	h.Start()
 }
 
 func LoadPprofFromConfig() *PporfConfig {
