@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/tendermint/tendermint/libs/log"
 	"golang.org/x/time/rate"
@@ -47,6 +48,9 @@ type Backend interface {
 	GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error)
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
+
+	// Used by eip-1898
+	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -447,4 +451,29 @@ func (b *EthermintBackend) IsDisabled(apiName string) bool {
 		return false
 	}
 	return b.disableAPI[apiName]
+}
+
+func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error) {
+	if blockNumber, ok := blockNumberOrHash.Number(); ok {
+		return blockNumber, nil
+	}
+	hash, ok := blockNumberOrHash.Hash()
+	if !ok {
+		return rpctypes.LatestBlockNumber, nil
+	}
+	ethBlock, err := b.wrappedBackend.GetBlockByHash(hash, false)
+	if err == nil {
+		return rpctypes.BlockNumber(ethBlock.Number), nil
+	}
+
+	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	if err != nil {
+		return rpctypes.LatestBlockNumber, err
+	}
+
+	var out evmtypes.QueryResBlockNumber
+	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return rpctypes.LatestBlockNumber, err
+	}
+	return rpctypes.BlockNumber(out.Number), nil
 }
