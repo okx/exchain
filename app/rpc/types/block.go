@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -25,6 +26,8 @@ const (
 	// PendingBlockNumber mapping from "pending" to -1 for tm query
 	PendingBlockNumber = BlockNumber(-1)
 )
+
+var ErrResourceNotFound = errors.New("resource not found")
 
 // NewBlockNumber creates a new BlockNumber instance.
 func NewBlockNumber(n *big.Int) BlockNumber {

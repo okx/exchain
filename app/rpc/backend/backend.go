@@ -468,12 +468,12 @@ func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.Block
 
 	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
-		return rpctypes.LatestBlockNumber, err
+		return rpctypes.LatestBlockNumber, rpctypes.ErrResourceNotFound
 	}
 
 	var out evmtypes.QueryResBlockNumber
 	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return rpctypes.LatestBlockNumber, err
+		return rpctypes.LatestBlockNumber, rpctypes.ErrResourceNotFound
 	}
 	return rpctypes.BlockNumber(out.Number), nil
 }
