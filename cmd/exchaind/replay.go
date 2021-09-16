@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/app/config"
 	"github.com/tendermint/tendermint/state"
 	"log"
 	"net/http"
@@ -57,6 +58,13 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int32(server.FlagStateDelta, 0, "sync through state delta")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
+	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 	return cmd
 }
 
@@ -92,7 +100,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	startBlockHeight := currentBlockHeight + 1
 	//doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
 	haltBlockHeight := viper.GetInt64(server.FlagHaltHeight)
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight,haltBlockHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight, haltBlockHeight)
 }
 
 // panic if error is not nil
@@ -166,7 +174,7 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64,haltBlockHeight int64){
+	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64, haltBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
