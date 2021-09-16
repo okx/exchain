@@ -589,12 +589,12 @@ github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
-github.com/okex/cosmos-sdk v0.39.3-0.20210909024334-6f2bfa10b9d2 h1:Qa+3psaSQ9mrXK471mULUihNMty9fBA89LuZuO3T6Y4=
-github.com/okex/cosmos-sdk v0.39.3-0.20210909024334-6f2bfa10b9d2/go.mod h1:IF2TXpqfsXNnAhif9csCTPNWFmo2RVl8HMdGhFGKLRw=
-github.com/okex/iavl v0.14.4-0.20210910090849-8ce9bc342f7f h1:ZFjsE6pFWotv/qtQkm0JUS/gY1A9q7uJcckFy0ZYvJs=
-github.com/okex/iavl v0.14.4-0.20210910090849-8ce9bc342f7f/go.mod h1:wjJHSKtxZrNMRB5zKvP+G1xI2cIsgIXZ3PQhwDymgs0=
-github.com/okex/tendermint v0.33.9-okexchain6.0.20210910082908-d6bd99428bf8 h1:ZXkMifqvdAcH5BqN/RK3x804FJCdMH3EK6Dag7UxI0o=
-github.com/okex/tendermint v0.33.9-okexchain6.0.20210910082908-d6bd99428bf8/go.mod h1:ojFWB0TYbuSVKipWirh5iBUaFZ8/WcyF1maLEATCROs=
+github.com/okex/cosmos-sdk v0.39.3-0.20210916021453-7da80120be4c h1:7YW5ZGq1l9jRJUpBFgMZm18/xIrp1RdmW2f7ZZTJxrk=
+github.com/okex/cosmos-sdk v0.39.3-0.20210916021453-7da80120be4c/go.mod h1:IF2TXpqfsXNnAhif9csCTPNWFmo2RVl8HMdGhFGKLRw=
+github.com/okex/iavl v0.14.4-0.20210915032419-c3beb39ce30c h1:aEn9w7TnMSR0b0OUJQqO5snpdRDw38gLnAZDGjRnc54=
+github.com/okex/iavl v0.14.4-0.20210915032419-c3beb39ce30c/go.mod h1:wjJHSKtxZrNMRB5zKvP+G1xI2cIsgIXZ3PQhwDymgs0=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20210915092618-717eb155f8bb h1:kRNVSvjIIWvVB6lrf5V6YhZG5YhB47WIlWJiqaU7q5A=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20210915092618-717eb155f8bb/go.mod h1:sgHygBYjB74OYTk/uKBKEtkfFqcPY20e0oV+QNXGboc=
 github.com/okex/tm-db v0.5.2-exchain1 h1:c8aX7HoNW58GXHEO6e7BR81SwyBfjWJkqGwNUhF3tlc=
 github.com/okex/tm-db v0.5.2-exchain1/go.mod h1:VrPTx04QJhQ9d8TFUTc2GpPBvBf/U9vIdBIzkjBk7Lk=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
@@ -1126,7 +1126,6 @@ google.golang.org/grpc v1.23.1/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyac
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
 google.golang.org/grpc v1.26.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
 google.golang.org/grpc v1.27.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8abTk=
-google.golang.org/grpc v1.28.1/go.mod h1:rpkK4SK4GF4Ach/+MFLZUBavHOvF2JJB5uozKKal+60=
 google.golang.org/grpc v1.29.1/go.mod h1:itym6AZVZYACWQqET3MqgPpjcuV5QH3BxFS3IjizoKk=
 google.golang.org/grpc v1.30.0 h1:M5a8xTlYTxwMn5ZFkwhRabsygDY5G8TYLyQDBxJNAxE=
 google.golang.org/grpc v1.30.0/go.mod h1:N36X2cJ7JwdamYAgDz+s+rVMFjt3numwzf/HckM8pak=
