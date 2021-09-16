@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/Comcast/pulsar-client-go v0.1.1
-	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 	github.com/apolloconfig/agollo/v4 v4.0.8
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
@@ -17,7 +16,6 @@ require (
 	github.com/frankban/quicktest v1.7.2 // indirect
 	github.com/garyburd/redigo v1.6.2
 	github.com/go-kit/kit v0.10.0
-	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/uuid v1.1.5
@@ -58,8 +56,8 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain16
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210914030119-814e9c3e671f
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain1
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain11
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20210913034320-db0586d8c1b9
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
