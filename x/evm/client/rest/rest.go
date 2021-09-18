@@ -33,6 +33,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/contract/blocked", QueryContractBlockedHandlerFn(cliCtx)).Methods("GET")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -201,5 +202,29 @@ func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		rest.PostProcessResponseBare(w, cliCtx, res)
+	}
+}
+
+// QueryContractBlockedHandlerFn defines evm contract blocked list handler
+func QueryContractBlockedHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
+
+		bz, height, err := cliCtx.QueryWithData(path, nil)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		var blockedList evmtypes.AddressList
+		cliCtx.Codec.MustUnmarshalJSON(bz, &blockedList)
+
+		var ethAddrs []string
+		for _, accAddr := range blockedList {
+			ethAddrs = append(ethAddrs, ethcommon.BytesToAddress(accAddr.Bytes()).Hex())
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, ethAddrs)
 	}
 }
