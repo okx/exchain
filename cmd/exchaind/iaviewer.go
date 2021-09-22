@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/iavl"
 	dbm "github.com/tendermint/tm-db"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -70,7 +71,7 @@ func readAll(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "read",
 		Short: "Read key-value from leveldb",
-		Long:  "okexchaind iaviewer read --data_dir /root/.exchaind/data/application.db --module s/k:evm/ --height 40",
+		Long:  "exchaind iaviewer read --data_dir /root/.exchaind/data/application.db --module s/k:evm/ --height 40",
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
 			if "" != viper.GetString(FlagIaviewerModule) {
@@ -91,7 +92,7 @@ func readDiff(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff",
 		Short: "Read different key-value from leveldb according two paths",
-		Long:  "okexchaind iaviewer diff --data_dir /root/.exchaind/data/application.db --compare_data_dir /data/application.db  --module s/k:evm/ --height 40",
+		Long:  "exchaind iaviewer diff --data_dir /root/.exchaind/data/application.db --compare_data_dir /data/application.db  --module s/k:evm/ --height 40",
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
 			if "" != viper.GetString(FlagIaviewerModule) {
@@ -104,8 +105,8 @@ func readDiff(cdc *codec.Codec) *cobra.Command {
 	}
 	cmd.Flags().String(FlagIaviewerDataDir, "", "directory of leveldb")
 	cmd.Flags().String(FlagIaviewerCompareDataDir, "", "compared directory of leveldb")
-	cmd.Flags().String(FlagIaviewerHeight, "", "module of leveldb. If module is null, read all modules")
-	cmd.Flags().Int(FlagIaviewerModule, 0, "block height")
+	cmd.Flags().String(FlagIaviewerModule, "", "module of leveldb. If module is null, read all modules")
+	cmd.Flags().Int(FlagIaviewerHeight, 0, "block height")
 	return cmd
 }
 
@@ -115,25 +116,28 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 		os.Remove(path.Join(dataDir, "/LOCK"))
 		os.Remove(path.Join(compareDir, "/LOCK"))
 
-		fmt.Printf("==================================== %s begin ====================================\n", module)
-
 		//get all key-values
 		tree, err := ReadTree(dataDir, height, []byte(module), DefaultCacheSize)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
+			log.Println("Error reading data: ", err)
 			os.Exit(1)
 		}
 		compareTree, err := ReadTree(compareDir, height, []byte(module), DefaultCacheSize)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading compareTree data: %s\n", err)
+			log.Println("Error reading compareTree data: ", err)
 			os.Exit(1)
 		}
+		if bytes.Equal(tree.Hash(), compareTree.Hash()) {
+			continue
+		}
+
 		var wg sync.WaitGroup
 		wg.Add(2)
 		dataMap := make(map[string][32]byte, tree.Size())
 		compareDataMap := make(map[string][32]byte, compareTree.Size())
 		go getKVs(tree, dataMap, &wg)
 		go getKVs(compareTree, compareDataMap, &wg)
+		wg.Wait()
 
 		//get all keys
 		keySize := tree.Size()
@@ -148,6 +152,7 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 			allKeys[k] = false
 		}
 
+		log.Println(fmt.Sprintf("==================================== %s begin ====================================", module))
 		//find diff value by each key
 		for key, _ := range allKeys {
 			value, ok := dataMap[key]
@@ -157,30 +162,26 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 				if value == compareValue {
 					continue
 				}
-				fmt.Printf("value is different !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-				fmt.Printf("dir :\n")
+				log.Println("value is different !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+				log.Println("dir :")
 				printByKey(cdc, tree, module, keyByte)
-				fmt.Printf("compareDir :\n")
+				log.Println("compareDir :")
 				printByKey(cdc, compareTree, module, keyByte)
 				continue
 			}
 			if ok {
-				fmt.Printf("Only be in dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+				log.Println("Only be in dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 				printByKey(cdc, tree, module, keyByte)
 				continue
 			}
 			if compareOK {
-				fmt.Printf("Only be in compare dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+				log.Println("Only be in compare dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 				printByKey(cdc, compareTree, module, keyByte)
 				continue
 			}
 
 		}
-
-		printTree(cdc, module, tree)
-		fmt.Printf("Hash: %X\n", tree.Hash())
-		fmt.Printf("Size: %X\n", tree.Size())
-		fmt.Printf("==================================== %s end ====================================\n\n", module)
+		log.Println(fmt.Sprintf("==================================== %s end ====================================", module))
 	}
 }
 
@@ -188,16 +189,16 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 func IaviewerReadData(cdc *codec.Codec, dataDir string, modules []string, version int) {
 	for _, module := range modules {
 		os.Remove(path.Join(dataDir, "/LOCK"))
-		fmt.Printf("==================================== %s begin ====================================\n", module)
+		log.Println(fmt.Sprintf("==================================== %s begin ====================================\n", module))
 		tree, err := ReadTree(dataDir, version, []byte(module), DefaultCacheSize)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading data: %s\n", err)
 			os.Exit(1)
 		}
 		printTree(cdc, module, tree)
-		fmt.Printf("Hash: %X\n", tree.Hash())
-		fmt.Printf("Size: %X\n", tree.Size())
-		fmt.Printf("==================================== %s end ====================================\n\n", module)
+		log.Println(fmt.Sprintf("Hash: %X\n", tree.Hash()))
+		log.Println(fmt.Sprintf("Size: %X\n", tree.Size()))
+		log.Println(fmt.Sprintf("==================================== %s end ====================================\n\n", module))
 	}
 }
 
@@ -251,7 +252,7 @@ func printTree(cdc *codec.Codec, module string, tree *iavl.MutableTree) {
 		} else {
 			printKey := parseWeaveKey(key)
 			digest := hex.EncodeToString(value)
-			fmt.Printf("%s:%s\n", printKey, digest)
+			log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 		}
 		return false
 	})
@@ -264,7 +265,7 @@ func printByKey(cdc *codec.Codec, tree *iavl.MutableTree, module string, key []b
 	} else {
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -273,12 +274,12 @@ func supplyPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case supplytypes.SupplyKey[0]:
 		var supplyAmount sdk.Dec
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &supplyAmount)
-		fmt.Printf("tokenSymbol:%s:info:%s\n", string(key[1:]), supplyAmount.String())
+		log.Println(fmt.Sprintf("tokenSymbol:%s:info:%s\n", string(key[1:]), supplyAmount.String()))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -292,12 +293,12 @@ func mintPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case minttypes.MinterKey[0]:
 		var minter MinterCustom
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &minter)
-		fmt.Printf("minter:%v\n", minter)
+		log.Println(fmt.Sprintf("minter:%v\n", minter))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -306,35 +307,35 @@ func tokenPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case tokentypes.TokenKey[0]:
 		var token tokentypes.Token
 		cdc.MustUnmarshalBinaryBare(value, &token)
-		fmt.Printf("tokenName:%s:info:%s\n", string(key[1:]), token.String())
+		log.Println(fmt.Sprintf("tokenName:%s:info:%s\n", string(key[1:]), token.String()))
 		return
 	case tokentypes.TokenNumberKey[0]:
 		var tokenNumber uint64
 		cdc.MustUnmarshalBinaryBare(value, &tokenNumber)
-		fmt.Printf("tokenNumber:%x\n", tokenNumber)
+		log.Println(fmt.Sprintf("tokenNumber:%x\n", tokenNumber))
 		return
 	case tokentypes.PrefixUserTokenKey[0]:
 		var token tokentypes.Token
 		cdc.MustUnmarshalBinaryBare(value, &token)
 		//address-token:tokenInfo
-		fmt.Printf("%s-%s:token:%s\n", hex.EncodeToString(key[1:21]), string(key[21:]), token.String())
+		log.Println(fmt.Sprintf("%s-%s:token:%s\n", hex.EncodeToString(key[1:21]), string(key[21:]), token.String()))
 		return
 
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
 func mainPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	if bytes.Equal(key, []byte("consensus_params")) {
-		fmt.Printf("consensusParams:%s\n", hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("consensusParams:%s\n", hex.EncodeToString(value)))
 		return
 	}
 	printKey := parseWeaveKey(key)
 	digest := hex.EncodeToString(value)
-	fmt.Printf("%s:%s\n", printKey, digest)
+	log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 }
 
 func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) {
@@ -342,18 +343,18 @@ func slashingPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case slashingtypes.ValidatorSigningInfoKey[0]:
 		var signingInfo slashingtypes.ValidatorSigningInfo
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &signingInfo)
-		fmt.Printf("validatorAddr:%s:signingInfo:%s\n", hex.EncodeToString(key[1:]), signingInfo.String())
+		log.Println(fmt.Sprintf("validatorAddr:%s:signingInfo:%s\n", hex.EncodeToString(key[1:]), signingInfo.String()))
 		return
 	case slashingtypes.ValidatorMissedBlockBitArrayKey[0]:
-		fmt.Printf("validatorMissedBlockAddr:%s:index:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("validatorMissedBlockAddr:%s:index:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case slashingtypes.AddrPubkeyRelationKey[0]:
-		fmt.Printf("pubkeyAddr:%s:pubkey:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("pubkeyAddr:%s:pubkey:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -362,46 +363,46 @@ func distributionPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case distypes.FeePoolKey[0]:
 		var feePool distypes.FeePool
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &feePool)
-		fmt.Printf("feePool:%v\n", feePool)
+		log.Println(fmt.Sprintf("feePool:%v\n", feePool))
 		return
 	case distypes.ProposerKey[0]:
-		fmt.Printf("proposerKey:%s\n", hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("proposerKey:%s\n", hex.EncodeToString(value)))
 		return
 	case distypes.DelegatorWithdrawAddrPrefix[0]:
-		fmt.Printf("delegatorWithdrawAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("delegatorWithdrawAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case distypes.ValidatorAccumulatedCommissionPrefix[0]:
 		var commission types.ValidatorAccumulatedCommission
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &commission)
-		fmt.Printf("validatorAccumulatedAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), commission.String())
+		log.Println(fmt.Sprintf("validatorAccumulatedAddr:%s:address:%s\n", hex.EncodeToString(key[1:]), commission.String()))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
 func govPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	switch key[0] {
 	case govtypes.ProposalsKeyPrefix[0]:
-		fmt.Printf("proposalId:%x;power:%x\n", binary.BigEndian.Uint64(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("proposalId:%x;power:%x\n", binary.BigEndian.Uint64(key[1:]), hex.EncodeToString(value)))
 		return
 	case govtypes.ActiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		fmt.Printf("activeProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value))
+		log.Println(fmt.Sprintf("activeProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value)))
 		return
 	case govtypes.InactiveProposalQueuePrefix[0]:
 		time, _ := sdk.ParseTimeBytes(key[1:])
-		fmt.Printf("inactiveProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value))
+		log.Println(fmt.Sprintf("inactiveProposalEndTime:%x;proposalId:%x\n", time.String(), binary.BigEndian.Uint64(value)))
 		return
 	case govtypes.ProposalIDKey[0]:
-		fmt.Printf("proposalId:%x\n", hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("proposalId:%x\n", hex.EncodeToString(value)))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -410,33 +411,33 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	case stakingtypes.LastValidatorPowerKey[0]:
 		var power int64
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
-		fmt.Printf("validatorAddress:%s;power:%x\n", hex.EncodeToString(key[1:]), power)
+		log.Println(fmt.Sprintf("validatorAddress:%s;power:%x\n", hex.EncodeToString(key[1:]), power))
 		return
 	case stakingtypes.LastTotalPowerKey[0]:
 		var power sdk.Int
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &power)
-		fmt.Printf("lastTotolValidatorPower:%s\n", power.String())
+		log.Println(fmt.Sprintf("lastTotolValidatorPower:%s\n", power.String()))
 		return
 	case stakingtypes.ValidatorsKey[0]:
 		var validator stakingtypes.Validator
 		cdc.MustUnmarshalBinaryLengthPrefixed(value, &validator)
-		fmt.Printf("validator:%s;info:%s\n", hex.EncodeToString(key[1:]), validator)
+		log.Println(fmt.Sprintf("validator:%s;info:%s\n", hex.EncodeToString(key[1:]), validator))
 		return
 	case stakingtypes.ValidatorsByConsAddrKey[0]:
-		fmt.Printf("validatorConsAddrKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("validatorConsAddrKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case stakingtypes.ValidatorsByPowerIndexKey[0]:
-		fmt.Printf("validatorPowerIndexKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("validatorPowerIndexKey:%s;address:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
 func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) {
-	fmt.Printf("%s:%s\n", string(key), string(value))
+	log.Println(fmt.Sprintf("%s:%s\n", string(key), string(value)))
 }
 
 func accPrintKey(cdc *codec.Codec, key []byte, value []byte) {
@@ -444,51 +445,51 @@ func accPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 		var acc exported.Account
 		bz := value
 		cdc.MustUnmarshalBinaryBare(bz, &acc)
-		fmt.Printf("adress:%s;account:%s\n", hex.EncodeToString(key[1:]), acc.String())
+		log.Println(fmt.Sprintf("adress:%s;account:%s\n", hex.EncodeToString(key[1:]), acc.String()))
 		return
 	} else if bytes.Equal(key, acctypes.GlobalAccountNumberKey) {
-		fmt.Printf("%s:%s\n", string(key), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("%s:%s\n", string(key), hex.EncodeToString(value)))
 		return
 	} else {
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
 func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) {
 	switch key[0] {
 	case evmtypes.KeyPrefixBlockHash[0]:
-		fmt.Printf("blockHash:%s;height:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("blockHash:%s;height:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case evmtypes.KeyPrefixBloom[0]:
-		fmt.Printf("bloomHeight:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("bloomHeight:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case evmtypes.KeyPrefixCode[0]:
-		fmt.Printf("code:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("code:%s;data:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case evmtypes.KeyPrefixStorage[0]:
-		fmt.Printf("stroageHash:%s;keyHash:%s;data:%s\n", hex.EncodeToString(key[1:40]), hex.EncodeToString(key[41:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("stroageHash:%s;keyHash:%s;data:%s\n", hex.EncodeToString(key[1:40]), hex.EncodeToString(key[41:]), hex.EncodeToString(value)))
 		return
 	case evmtypes.KeyPrefixChainConfig[0]:
 		bz := value
 		var config evmtypes.ChainConfig
 		cdc.MustUnmarshalBinaryBare(bz, &config)
-		fmt.Printf("chainCofig:%s\n", config.String())
+		log.Println(fmt.Sprintf("chainCofig:%s\n", config.String()))
 		return
 	case evmtypes.KeyPrefixHeightHash[0]:
-		fmt.Printf("height:%s;blockHash:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value))
+		log.Println(fmt.Sprintf("height:%s;blockHash:%s\n", hex.EncodeToString(key[1:]), hex.EncodeToString(value)))
 		return
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:
-		fmt.Printf("whiteAddress:%s\n", hex.EncodeToString(key[1:]))
+		log.Println(fmt.Sprintf("whiteAddress:%s\n", hex.EncodeToString(key[1:])))
 		return
 	case evmtypes.KeyPrefixContractBlockedList[0]:
-		fmt.Printf("blockedAddres:%s\n", hex.EncodeToString(key[1:]))
+		log.Println(fmt.Sprintf("blockedAddres:%s\n", hex.EncodeToString(key[1:])))
 		return
 	default:
 		printKey := parseWeaveKey(key)
 		digest := hex.EncodeToString(value)
-		fmt.Printf("%s:%s\n", printKey, digest)
+		log.Println(fmt.Sprintf("%s:%s\n", printKey, digest))
 	}
 }
 
@@ -509,7 +510,7 @@ func ReadTree(dir string, version int, prefix []byte, cacheSize int) (*iavl.Muta
 		return nil, err
 	}
 	ver, err := tree.LoadVersion(int64(version))
-	fmt.Printf("Got version: %d\n", ver)
+	log.Println(fmt.Sprintf("Got version: %d\n", ver))
 	return tree, err
 }
 
@@ -544,7 +545,7 @@ func parseWeaveKey(key []byte) string {
 	}
 	prefix := key[:cut]
 	id := key[cut+1:]
-	fmt.Println("================", fmt.Sprintf("%s:%s", encodeID(prefix), encodeID(id)))
+	log.Println("================", fmt.Sprintf("%s:%s", encodeID(prefix), encodeID(id)))
 	return fmt.Sprintf("%s:%s", encodeID(prefix), encodeID(id))
 }
 
