@@ -43,6 +43,14 @@ const (
 	KeyParams       = "s/k:params/"
 	KeyStaking      = "s/k:staking/"
 	KeySlashing     = "s/k:slashing/"
+	KeyTokenPair    = "s/k:token_pair/"
+	KeyUpgrade      = "s/k:upgrade/"
+	KeyFarm         = "s/k:farm/"
+	KeyOrder        = "s/k:order/"
+	KeyDex          = "s/k:dex/"
+	KeyAmmswap      = "s/k:ammswap/"
+	KeyEvidence     = "s/k:evidence/"
+	KeyLok          = "s/k:lock/"
 
 	DefaultCacheSize int = 100000
 
@@ -242,6 +250,14 @@ var (
 		KeyParams,
 		KeyStaking,
 		KeySlashing,
+		KeyTokenPair,
+		KeyUpgrade,
+		KeyFarm,
+		KeyOrder,
+		KeyDex,
+		KeyAmmswap,
+		KeyEvidence,
+		KeyLok,
 	}
 )
 
