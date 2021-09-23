@@ -545,7 +545,6 @@ func parseWeaveKey(key []byte) string {
 	}
 	prefix := key[:cut]
 	id := key[cut+1:]
-	log.Println("================", fmt.Sprintf("%s:%s", encodeID(prefix), encodeID(id)))
 	return fmt.Sprintf("%s:%s", encodeID(prefix), encodeID(id))
 }
 
