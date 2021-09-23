@@ -8,16 +8,17 @@ import (
 	"fmt"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint"
 	supplytypes "github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/app"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	slashingtypes "github.com/okex/exchain/x/slashing"
 	tokentypes "github.com/okex/exchain/x/token/types"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/tendermint/iavl"
 	dbm "github.com/tendermint/tm-db"
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -43,21 +44,8 @@ const (
 	KeyParams       = "s/k:params/"
 	KeyStaking      = "s/k:staking/"
 	KeySlashing     = "s/k:slashing/"
-	KeyTokenPair    = "s/k:token_pair/"
-	KeyUpgrade      = "s/k:upgrade/"
-	KeyFarm         = "s/k:farm/"
-	KeyOrder        = "s/k:order/"
-	KeyDex          = "s/k:dex/"
-	KeyAmmswap      = "s/k:ammswap/"
-	KeyEvidence     = "s/k:evidence/"
-	KeyLok          = "s/k:lock/"
 
 	DefaultCacheSize int = 100000
-
-	FlagIaviewerDataDir        = "data_dir"
-	FlagIaviewerCompareDataDir = "compare_data_dir"
-	FlagIaviewerModule         = "module"
-	FlagIaviewerHeight         = "height"
 )
 
 func iaviewerCmd(cdc *codec.Codec) *cobra.Command {
@@ -77,44 +65,50 @@ func iaviewerCmd(cdc *codec.Codec) *cobra.Command {
 
 func readAll(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "read",
+		Use:   "read [data_dir] [height] [module]",
 		Short: "Read key-value from leveldb",
-		Long:  "exchaind iaviewer read --data_dir /root/.exchaind/data/application.db --module s/k:evm/ --height 40",
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
-			if "" != viper.GetString(FlagIaviewerModule) {
-				moduleList = []string{viper.GetString(FlagIaviewerModule)}
+			if len(args) == 3 {
+				moduleList = []string{args[2]}
 			} else {
-				moduleList = modules
+				moduleList = make([]string, 0, len(app.ModuleBasics))
+				for m := range app.ModuleBasics {
+					moduleList = append(moduleList, fmt.Sprintf("s/k:%s/", m))
+				}
 			}
-			IaviewerReadData(cdc, viper.GetString(FlagIaviewerDataDir), moduleList, viper.GetInt(FlagIaviewerHeight))
+
+			height, err := strconv.ParseInt(args[1], 10, 64)
+			if err != nil {
+				panic("The input height is wrong")
+			}
+			IaviewerReadData(cdc, args[0], moduleList, int(height))
 		},
 	}
-	cmd.Flags().String(FlagIaviewerDataDir, "", "directory of leveldb")
-	cmd.Flags().String(FlagIaviewerModule, "", "module of leveldb. If module is null, read all modules")
-	cmd.Flags().Int(FlagIaviewerHeight, 0, "block height")
 	return cmd
 }
 
 func readDiff(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "diff",
+		Use:   "diff [data_dir] [compare_data_dir] [height] [module]",
 		Short: "Read different key-value from leveldb according two paths",
-		Long:  "exchaind iaviewer diff --data_dir /root/.exchaind/data/application.db --compare_data_dir /data/application.db  --module s/k:evm/ --height 40",
 		Run: func(cmd *cobra.Command, args []string) {
 			var moduleList []string
-			if "" != viper.GetString(FlagIaviewerModule) {
-				moduleList = []string{viper.GetString(FlagIaviewerModule)}
+			if len(args) == 4 {
+				moduleList = []string{args[3]}
 			} else {
-				moduleList = modules
+				moduleList = make([]string, 0, len(app.ModuleBasics))
+				for m := range app.ModuleBasics {
+					moduleList = append(moduleList, fmt.Sprintf("s/k:%s/", m))
+				}
 			}
-			IaviewerPrintDiff(cdc, viper.GetString(FlagIaviewerDataDir), viper.GetString(FlagIaviewerCompareDataDir), moduleList, viper.GetInt(FlagIaviewerModule))
+			height, err := strconv.ParseInt(args[2], 10, 64)
+			if err != nil {
+				panic("The input height is wrong")
+			}
+			IaviewerPrintDiff(cdc, args[0], args[1], moduleList, int(height))
 		},
 	}
-	cmd.Flags().String(FlagIaviewerDataDir, "", "directory of leveldb")
-	cmd.Flags().String(FlagIaviewerCompareDataDir, "", "compared directory of leveldb")
-	cmd.Flags().String(FlagIaviewerModule, "", "module of leveldb. If module is null, read all modules")
-	cmd.Flags().Int(FlagIaviewerHeight, 0, "block height")
 	return cmd
 }
 
@@ -170,20 +164,21 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 				if value == compareValue {
 					continue
 				}
-				log.Println("value is different !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-				log.Println("dir :")
+				log.Println("\nvalue is different--------------------------------------------------------------------")
+				log.Println("dir key-value :")
 				printByKey(cdc, tree, module, keyByte)
-				log.Println("compareDir :")
+				log.Println("compareDir key-value :")
 				printByKey(cdc, compareTree, module, keyByte)
+				log.Println("value is different--------------------------------------------------------------------")
 				continue
 			}
 			if ok {
-				log.Println("Only be in dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+				log.Println("\nOnly be in dir--------------------------------------------------------------------")
 				printByKey(cdc, tree, module, keyByte)
 				continue
 			}
 			if compareOK {
-				log.Println("Only be in compare dir!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+				log.Println("\nOnly be in compare dir--------------------------------------------------------------------")
 				printByKey(cdc, compareTree, module, keyByte)
 				continue
 			}
@@ -197,6 +192,7 @@ func IaviewerPrintDiff(cdc *codec.Codec, dataDir string, compareDir string, modu
 func IaviewerReadData(cdc *codec.Codec, dataDir string, modules []string, version int) {
 	for _, module := range modules {
 		os.Remove(path.Join(dataDir, "/LOCK"))
+		log.Println(module)
 		log.Println(fmt.Sprintf("==================================== %s begin ====================================\n", module))
 		tree, err := ReadTree(dataDir, version, []byte(module), DefaultCacheSize)
 		if err != nil {
@@ -223,43 +219,19 @@ type (
 	printKey func(cdc *codec.Codec, key []byte, value []byte)
 )
 
-var (
-	printKeysDict = map[string]printKey{
-		KeyEvm:          evmPrintKey,
-		KeyAcc:          accPrintKey,
-		KeyParams:       paramsPrintKey,
-		KeyStaking:      stakingPrintKey,
-		KeyGov:          govPrintKey,
-		KeyDistribution: distributionPrintKey,
-		KeySlashing:     slashingPrintKey,
-		KeyMain:         mainPrintKey,
-		KeyToken:        tokenPrintKey,
-		KeyMint:         mintPrintKey,
-		KeySupply:       supplyPrintKey,
-	}
-
-	modules = []string{
-		KeyDistribution,
-		KeyGov,
-		KeyMain,
-		KeyToken,
-		KeyMint,
-		KeyAcc,
-		KeySupply,
-		KeyEvm,
-		KeyParams,
-		KeyStaking,
-		KeySlashing,
-		KeyTokenPair,
-		KeyUpgrade,
-		KeyFarm,
-		KeyOrder,
-		KeyDex,
-		KeyAmmswap,
-		KeyEvidence,
-		KeyLok,
-	}
-)
+var printKeysDict = map[string]printKey{
+	KeyEvm:          evmPrintKey,
+	KeyAcc:          accPrintKey,
+	KeyParams:       paramsPrintKey,
+	KeyStaking:      stakingPrintKey,
+	KeyGov:          govPrintKey,
+	KeyDistribution: distributionPrintKey,
+	KeySlashing:     slashingPrintKey,
+	KeyMain:         mainPrintKey,
+	KeyToken:        tokenPrintKey,
+	KeyMint:         mintPrintKey,
+	KeySupply:       supplyPrintKey,
+}
 
 func printTree(cdc *codec.Codec, module string, tree *iavl.MutableTree) {
 	tree.Iterate(func(key []byte, value []byte) bool {
@@ -526,7 +498,7 @@ func ReadTree(dir string, version int, prefix []byte, cacheSize int) (*iavl.Muta
 		return nil, err
 	}
 	ver, err := tree.LoadVersion(int64(version))
-	log.Println(fmt.Sprintf("Got version: %d\n", ver))
+	log.Println(fmt.Sprintf("%s Got version: %d\n", string(prefix), ver))
 	return tree, err
 }
 
