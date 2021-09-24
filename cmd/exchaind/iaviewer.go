@@ -48,6 +48,20 @@ const (
 	DefaultCacheSize int = 100000
 )
 
+var printKeysDict = map[string]printKey{
+	KeyEvm:          evmPrintKey,
+	KeyAcc:          accPrintKey,
+	KeyParams:       paramsPrintKey,
+	KeyStaking:      stakingPrintKey,
+	KeyGov:          govPrintKey,
+	KeyDistribution: distributionPrintKey,
+	KeySlashing:     slashingPrintKey,
+	KeyMain:         mainPrintKey,
+	KeyToken:        tokenPrintKey,
+	KeyMint:         mintPrintKey,
+	KeySupply:       supplyPrintKey,
+}
+
 func iaviewerCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iaviewer",
@@ -218,20 +232,6 @@ func getKVs(tree *iavl.MutableTree, dataMap map[string][32]byte, wg *sync.WaitGr
 type (
 	printKey func(cdc *codec.Codec, key []byte, value []byte)
 )
-
-var printKeysDict = map[string]printKey{
-	KeyEvm:          evmPrintKey,
-	KeyAcc:          accPrintKey,
-	KeyParams:       paramsPrintKey,
-	KeyStaking:      stakingPrintKey,
-	KeyGov:          govPrintKey,
-	KeyDistribution: distributionPrintKey,
-	KeySlashing:     slashingPrintKey,
-	KeyMain:         mainPrintKey,
-	KeyToken:        tokenPrintKey,
-	KeyMint:         mintPrintKey,
-	KeySupply:       supplyPrintKey,
-}
 
 func printTree(cdc *codec.Codec, module string, tree *iavl.MutableTree) {
 	tree.Iterate(func(key []byte, value []byte) bool {
