@@ -21,9 +21,9 @@ var (
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
-	GlobalstateObjectCacheSize                           = 1000 // State Object cache size limit in elements.
-	GlobalStateObjectCache      map[string]*list.Element        // State Object cache.
-	GlobalStateObjectCacheQueue *list.List                      // LRU queue of cache elements. Used for deletion.
+	GlobalstateObjectCacheSize                           = 10000 // State Object cache size limit in elements.
+	GlobalStateObjectCache      map[string]*list.Element         // State Object cache.
+	GlobalStateObjectCacheQueue *list.List                       // LRU queue of cache elements. Used for deletion.
 )
 
 func init() {
@@ -95,7 +95,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if !db.ctx.IsCheckTx() {
-		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()] ; ok {
+		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()]; ok {
 			GlobalStateObjectCacheQueue.MoveToBack(elem)
 
 			so := elem.Value.(*stateObject)
