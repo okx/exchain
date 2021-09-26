@@ -9,7 +9,7 @@ import (
 var singleAnalys *analyer
 
 type analyer struct {
-	//logger          log.Logger
+	logger          log.Logger
 	status          bool
 	currentTxIndex  int64
 	blockHeight     int64
@@ -38,7 +38,7 @@ type blockFormat struct {
 
 func NewAnalys(log log.Logger, height int64) *analyer {
 	singleAnalys = &analyer{
-		//	logger:      log,
+		logger:      log,
 		status:      true,
 		blockHeight: height,
 	}
@@ -162,8 +162,10 @@ func (s *analyer) formatLog() {
 		}
 		txs = append(txs, txLocal)
 	}
+
 	block.tx = txs
 	txsByte, _ := json.Marshal(txs)
-	fmt.Println("txsByte", string(txsByte))
-	//s.logger.Debug(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
+	//fmt.Println("txsByte", string(txsByte))
+	//s.logger.Info("cccccc")
+	s.logger.Info(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
 }
