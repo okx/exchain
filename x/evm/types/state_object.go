@@ -16,12 +16,14 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
+const FlagEvmStateObjectCacheSize = "evm-state-object-cache-size"
+
 var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
-	GlobalstateObjectCacheSize                           = 10000 // State Object cache size limit in elements.
+	GlobalStateObjectCacheSize                           = 10000 // State Object cache size limit in elements.
 	GlobalStateObjectCache      map[string]*list.Element         // State Object cache.
 	GlobalStateObjectCacheQueue *list.List                       // LRU queue of cache elements. Used for deletion.
 )
@@ -125,7 +127,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		elem := GlobalStateObjectCacheQueue.PushBack(obj)
 		GlobalStateObjectCache[obj.Address().String()] = elem
 
-		if GlobalStateObjectCacheQueue.Len() > GlobalstateObjectCacheSize {
+		if GlobalStateObjectCacheQueue.Len() > GlobalStateObjectCacheSize {
 			oldest := GlobalStateObjectCacheQueue.Front()
 			addStr := GlobalStateObjectCacheQueue.Remove(oldest).(*stateObject).Address().String()
 			delete(GlobalStateObjectCache, addStr)
