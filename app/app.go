@@ -551,12 +551,12 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	analys := pkg.NewAnalys(app.Logger(), app.LastBlockHeight()+1)
 	analys.StartBeginBlock()
 	defer func() {
 		perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
+
 		analys.StopBeginBlock()
 	}()
 

@@ -33,6 +33,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/tsdb v0.9.1 // indirect
+	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/kafka-go v0.2.2
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
@@ -53,7 +54,6 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	github.com/satori/go.uuid latest
 )
 
 replace (

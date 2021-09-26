@@ -9,7 +9,7 @@ import (
 var singleAnalys *analyer
 
 type analyer struct {
-	logger          log.Logger
+	//logger          log.Logger
 	status          bool
 	currentTxIndex  int64
 	blockHeight     int64
@@ -38,7 +38,7 @@ type blockFormat struct {
 
 func NewAnalys(log log.Logger, height int64) *analyer {
 	singleAnalys = &analyer{
-		logger:      log,
+		//	logger:      log,
 		status:      true,
 		blockHeight: height,
 	}
@@ -118,13 +118,17 @@ func (s *analyer) newTxLog() {
 
 func (s *analyer) StartTxLog(module, oper string) {
 	if s.status {
-		s.tx[s.currentTxIndex].StartTxLog(module, oper)
+		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
+			s.tx[s.currentTxIndex-1].StartTxLog(module, oper)
+		}
 	}
 }
 
 func (s *analyer) StopTxLog(module, oper string) {
 	if s.status {
-		s.tx[s.currentTxIndex].StopTxLog(module, oper)
+		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
+			s.tx[s.currentTxIndex-1].StopTxLog(module, oper)
+		}
 	}
 }
 
@@ -159,6 +163,7 @@ func (s *analyer) formatLog() {
 		txs = append(txs, txLocal)
 	}
 	block.tx = txs
-	txsByte , _ := json.Marshal(txs)
-	s.logger.Debug(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
+	txsByte, _ := json.Marshal(txs)
+	fmt.Println("txsByte", string(txsByte))
+	//s.logger.Debug(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
 }
