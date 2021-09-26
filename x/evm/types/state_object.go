@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"io"
 	"math/big"
@@ -19,7 +20,16 @@ var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
+
+	GlobalstateObjectCacheSize                           = 1000 // State Object cache size limit in elements.
+	GlobalStateObjectCache      map[string]*list.Element        // State Object cache.
+	GlobalStateObjectCacheQueue *list.List                      // LRU queue of cache elements. Used for deletion.
 )
+
+func init() {
+	GlobalStateObjectCache = make(map[string]*list.Element)
+	GlobalStateObjectCacheQueue = list.New()
+}
 
 // StateObject interface for interacting with state object
 type StateObject interface {
@@ -84,12 +94,24 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
+	if !db.ctx.IsCheckTx() {
+		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()] ; ok {
+			GlobalStateObjectCacheQueue.MoveToBack(elem)
+
+			so := elem.Value.(*stateObject)
+			so.stateDB = db
+			so.account = ethermintAccount
+
+			return so
+		}
+	}
+
 	// set empty code hash
 	if ethermintAccount.CodeHash == nil {
 		ethermintAccount.CodeHash = emptyCodeHash
 	}
 
-	return &stateObject{
+	obj := &stateObject{
 		stateDB:                 db,
 		account:                 ethermintAccount,
 		address:                 ethermintAccount.EthAddress(),
@@ -98,6 +120,19 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		keyToOriginStorageIndex: make(map[ethcmn.Hash]int),
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
 	}
+
+	if !db.ctx.IsCheckTx() {
+		elem := GlobalStateObjectCacheQueue.PushBack(obj)
+		GlobalStateObjectCache[obj.Address().String()] = elem
+
+		if GlobalStateObjectCacheQueue.Len() > GlobalstateObjectCacheSize {
+			oldest := GlobalStateObjectCacheQueue.Front()
+			addStr := GlobalStateObjectCacheQueue.Remove(oldest).(*stateObject).Address().String()
+			delete(GlobalStateObjectCache, addStr)
+		}
+	}
+
+	return obj
 }
 
 // ----------------------------------------------------------------------------
