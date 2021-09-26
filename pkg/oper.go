@@ -2,39 +2,38 @@ package pkg
 
 import (
 	"math"
-	"time"
 )
 
 type operateInfo struct {
-	count    int64 `json:"count"`
-	timeCost int64 `json:"timeCost"`
-	lastCall int64 `json:"lastCall"`
-	avg      int64 `json:"avg"`
-	min      int64 `json:"min"`
-	max      int64 `json:"max"`
+	Count    int64 `json:"count"`
+	TimeCost int64 `json:"timeCost"`
+	LastCall int64 `json:"lastCall"`
+	Avg      int64 `json:"avg"`
+	Min      int64 `json:"min"`
+	Max      int64 `json:"max"`
 }
 
 func newOperateInfo() *operateInfo {
 	tmp := &operateInfo{
-		lastCall: time.Now().Unix(),
-		min:      math.MaxInt64,
+		LastCall: GetNowTimeMs(),
+		Min:      math.MaxInt64,
 	}
 	return tmp
 }
 
 func (s *operateInfo) StartOper() {
-	s.lastCall = time.Now().Unix()
+	s.LastCall = GetNowTimeMs()
 }
 
 func (s *operateInfo) StopOper() {
-	callTime := time.Now().Unix() - s.lastCall
-	if callTime > s.max {
-		s.max = callTime
+	callTime := GetNowTimeMs() - s.LastCall
+	if callTime > s.Max {
+		s.Max = callTime
 	}
-	if callTime < s.min {
-		s.min = callTime
+	if callTime < s.Min {
+		s.Min = callTime
 	}
-	s.timeCost += callTime
-	s.count++
-	s.avg = s.timeCost / s.count
+	s.TimeCost += callTime
+	s.Count++
+	s.Avg = s.TimeCost / s.Count
 }

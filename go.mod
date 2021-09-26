@@ -53,6 +53,7 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+	github.com/satori/go.uuid latest
 )
 
 replace (

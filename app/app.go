@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/pkg"
 	"io"
 	"math/big"
 	"os"
@@ -460,7 +461,11 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
+	pkg.GetCurrentAnalys().StartDelliverTx()
+	defer func() {
+		perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
+		pkg.GetCurrentAnalys().StopDelliverTx()
+	}()
 
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
@@ -548,7 +553,12 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
+	analys := pkg.NewAnalys(app.Logger(), app.LastBlockHeight()+1)
+	analys.StartBeginBlock()
+	defer func() {
+		perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
+		analys.StopBeginBlock()
+	}()
 
 	return app.BaseApp.BeginBlock(req)
 }
@@ -557,7 +567,11 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
+	pkg.GetCurrentAnalys().StartEndBlock()
+	defer func() {
+		perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
+		pkg.GetCurrentAnalys().StopEndBlock()
+	}()
 
 	return app.BaseApp.EndBlock(req)
 }
@@ -566,7 +580,11 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
+	pkg.GetCurrentAnalys().StartCommitBlock()
+	defer func() {
+		perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
+		pkg.StopCommitBlock()
+	}()
 	res := app.BaseApp.Commit()
 	return res
 }
