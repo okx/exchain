@@ -15,18 +15,20 @@ type operateInfo struct {
 
 func newOperateInfo() *operateInfo {
 	tmp := &operateInfo{
-		LastCall: GetNowTimeMs(),
+		LastCall: GetNowTimeNs(),
 		Min:      math.MaxInt64,
 	}
 	return tmp
 }
 
 func (s *operateInfo) StartOper() {
-	s.LastCall = GetNowTimeMs()
+	s.LastCall = GetNowTimeNs()
 }
 
 func (s *operateInfo) StopOper() {
-	callTime := GetNowTimeMs() - s.LastCall
+
+	callTime := GetNowTimeNs() - s.LastCall
+
 	if callTime > s.Max {
 		s.Max = callTime
 	}
@@ -36,4 +38,5 @@ func (s *operateInfo) StopOper() {
 	s.TimeCost += callTime
 	s.Count++
 	s.Avg = s.TimeCost / s.Count
+
 }

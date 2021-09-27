@@ -18,12 +18,14 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/google/gops v0.3.20 // indirect
 	github.com/google/uuid v1.1.5
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/jinzhu/gorm v1.9.16
 	github.com/json-iterator/go v1.1.9
+	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20210614093730-56a4d342a6ff
 	github.com/mosn/holmes v0.0.0-20210830110104-685dc05437bf
@@ -34,6 +36,7 @@ require (
 	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/tsdb v0.9.1 // indirect
 	github.com/segmentio/kafka-go v0.2.2
+	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.1.1

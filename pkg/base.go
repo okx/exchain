@@ -20,16 +20,20 @@ func newTxBase() *txBase {
 func (s *txBase) StartCost(oper string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if v, ok := s.Record[oper]; !ok {
+
+	if _, ok := s.Record[oper]; !ok {
+
 		s.Record[oper] = newOperateInfo()
-	} else {
-		v.StartOper()
 	}
+
+	s.Record[oper].StartOper()
+
 }
 
 func (s *txBase) StopCost(oper string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
 	if _, ok := s.Record[oper]; !ok {
 		return errors.New(fmt.Sprintf("%s not Start", oper))
 	}

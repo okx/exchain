@@ -12,7 +12,7 @@ type txLog struct {
 
 func newTxLog(module []string) *txLog {
 	tmp := &txLog{
-		startTime: GetNowTimeMs(),
+		startTime: GetNowTimeNs(),
 		Record:    make(map[string]*txBase),
 	}
 	for _, v := range module {
@@ -30,13 +30,15 @@ func (s *txLog) StartTxLog(module, oper string) error {
 }
 
 func (s *txLog) StopTxLog(module, oper string) error {
+
 	if _, ok := s.Record[module]; !ok {
 		return fmt.Errorf("%s module not found", module)
 	}
 	s.Record[module].StopCost(oper)
 	//统计evm 耗时
 	if v, ok := s.Record[COMMIT_STATE_DB]; ok {
-		s.EvmCost = GetNowTimeMs() - s.startTime - v.AllCost()
+		s.EvmCost = GetNowTimeNs() - s.startTime - v.AllCost()
 	}
+
 	return nil
 }

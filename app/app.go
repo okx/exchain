@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/okex/exchain/pkg"
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -25,6 +24,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/pkg"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
@@ -555,7 +555,6 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 	analys.OnAppBeginBlockEnter()
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
 	defer analys.OnAppBeginBlockExit()
-
 	return app.BaseApp.BeginBlock(req)
 }
 
@@ -576,6 +575,7 @@ func (app *OKExChainApp) Commit() abci.ResponseCommit {
 	pkg.GetCurrentAnalys().OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
 	defer pkg.OnCommitExit()
+
 	res := app.BaseApp.Commit()
 	return res
 }

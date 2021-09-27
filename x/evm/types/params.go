@@ -62,8 +62,8 @@ func NewParams(enableCreate, enableCall, enableContractDeploymentWhitelist, enab
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EnableCreate:                      false,
-		EnableCall:                        false,
+		EnableCreate:                      true,
+		EnableCall:                        true,
 		ExtraEIPs:                         []int(nil), // TODO: define default values
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,

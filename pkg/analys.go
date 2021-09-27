@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -25,17 +24,6 @@ type analyer struct {
 	tx              []*txLog
 }
 
-type txFormat struct {
-	evm      int64                              `json:"evm_cost"`
-	txDetail map[string]map[string]*operateInfo `json:"tx_detail"`
-}
-
-type blockFormat struct {
-	blockHeight int64      `json:"height"`
-	blockCost   int64      `json:"block_cost"`
-	tx          []txFormat `json:"tx_list"`
-}
-
 func NewAnalys(log log.Logger, height int64) *analyer {
 	singleAnalys = &analyer{
 		logger:      log,
@@ -49,7 +37,7 @@ func GetCurrentAnalys() *analyer {
 	return singleAnalys
 }
 
-func  OnCommitExit() {
+func OnCommitExit() {
 	if singleAnalys != nil {
 		singleAnalys.OnCommitExit()
 	}
@@ -62,50 +50,50 @@ func CloseAnalys() {
 
 func (s *analyer) OnAppBeginBlockEnter() {
 	if s.status {
-		s.startBeginBlock = GetNowTimeMs()
+		s.startBeginBlock = GetNowTimeNs()
 	}
 }
 
 func (s *analyer) OnAppBeginBlockExit() {
 	if s.status {
-		s.beginBlockCost = GetNowTimeMs() - s.startBeginBlock
+		s.beginBlockCost = GetNowTimeNs() - s.startBeginBlock
 	}
 }
 
 func (s *analyer) OnAppDeliverTxEnter() {
 	if s.status {
-		s.startdelliverTx = GetNowTimeMs()
+		s.startdelliverTx = GetNowTimeNs()
 		s.newTxLog()
 	}
 }
 
 func (s *analyer) OnAppDeliverTxExit() {
 	if s.status {
-		s.beginBlockCost = GetNowTimeMs() - s.startdelliverTx
+		s.delliverTxCost = GetNowTimeNs() - s.startdelliverTx
 	}
 }
 
 func (s *analyer) OnAppEndBlockEnter() {
 	if s.status {
-		s.startEndBlock = GetNowTimeMs()
+		s.startEndBlock = GetNowTimeNs()
 	}
 }
 
 func (s *analyer) OnAppEndBlockExit() {
 	if s.status {
-		s.endBlockCost = GetNowTimeMs() - s.startEndBlock
+		s.endBlockCost = GetNowTimeNs() - s.startEndBlock
 	}
 }
 
 func (s *analyer) OnCommitEnter() {
 	if s.status {
-		s.startCommit = GetNowTimeMs()
+		s.startCommit = GetNowTimeNs()
 	}
 }
 
 func (s *analyer) OnCommitExit() {
 	if s.status {
-		s.commitCost = GetNowTimeMs() - s.startCommit
+		s.commitCost = GetNowTimeNs() - s.startCommit
 		//format to print log and release current
 		s.formatLog()
 	}
@@ -138,32 +126,18 @@ func (s *analyer) Close() {
 
 func (s *analyer) formatLog() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
-	var txs []txFormat
-	block := &blockFormat{
-		blockHeight: s.blockHeight,
-		blockCost:   s.allCost,
-	}
-
-	for _, v := range s.tx {
-		txMap := make(map[string]map[string]*operateInfo)
-		for module, operInfo := range v.Record {
-			if _, ok := txMap[module]; !ok {
-				txMap[module] = make(map[string]*operateInfo)
-			}
-			for oper, detail := range operInfo.Record {
-				if _, ok := txMap[module]; !ok {
-					txMap[module][oper] = detail
-				}
+	var tx_info string
+	for index, v := range s.tx {
+		tx_info += fmt.Sprintf(TX_FORMAT, index+1, v.EvmCost)
+		var tx_detail string
+		for module, operMap := range v.Record {
+			tx_detail += fmt.Sprintf("moduleName: %s", module)
+			for action, oper := range operMap.Record {
+				tx_detail += fmt.Sprintf(TX_DETAIL, action, oper.Count, oper.TimeCost, oper.Min, oper.Max, oper.Avg)
 			}
 		}
-		txLocal := txFormat{
-			evm:      v.EvmCost,
-			txDetail: txMap,
-		}
-		txs = append(txs, txLocal)
+		tx_info += tx_detail
 	}
 
-	block.tx = txs
-	txsByte, _ := json.Marshal(txs)
-	s.logger.Info(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
+	s.logger.Info(fmt.Sprintf(BLOCK_FORMAT, s.blockHeight, s.allCost, tx_info))
 }
