@@ -179,7 +179,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		if !params.EnableCall {
-			fmt.Println("ErrCallDisabled -->" , ErrCallDisabled.Error())
 			return exeRes, resData, ErrCallDisabled
 		}
 
