@@ -25,6 +25,7 @@ import (
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/codec"
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/cmd/client"
@@ -62,7 +63,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
+		PersistentPreRunE: server.PersistentPreRunEFn(ctx, appconfig.RegisterDynamicConfig),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
@@ -78,12 +79,13 @@ func main() {
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx),
+		repairStateCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
-		pruningCmd(ctx),
-		compactCmd(ctx),
+		dataCmd(ctx),
 		exportAppCmd(ctx),
+		iaviewerCmd(cdc),
 	)
 
 	// Tendermint node base commands

@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v0.19.1
+Version=v0.19.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -35,10 +35,10 @@ build_tags := $(strip $(build_tags))
 
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
-   MercuryHeight=5100000
+   MercuryHeight=5150000
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
-   MercuryHeight=5280000
+   MercuryHeight=5300000
 endif
 
 ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
@@ -54,9 +54,6 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
 
 
 BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
-BUILD_TESTNET_FLAGS := -ldflags '$(ldTestnetFlags)'  -gcflags "all=-N -l"
-BUILD_MAINNET_FLAGS := -ldflags '$(ldMainnetFlags)'  -gcflags "all=-N -l"
-
 
 all: install
 

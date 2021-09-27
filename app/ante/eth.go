@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -256,6 +257,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
+		ctx = ctx.WithAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
 		if ctx.IsReCheckTx() {
 			// recheckTx mode
@@ -268,33 +270,46 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 				)
 			}
 		} else {
-			// checkTx mode
-			checkTxModeNonce := seq
-
-			if !baseapp.IsMempoolEnableRecheck() {
-				// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
-				// to add pending txs len in the mempool.
-				// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
-				// will also reset checkState), so we will need to add pending txs len to get the right nonce
-				cnt:= baseapp.GetGlobalMempool().GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
-				checkTxModeNonce = seq + uint64(cnt)
-			}
-
-			if baseapp.IsMempoolEnableSort() {
-				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
-					return ctx, sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected in the range of [%d, %d]",
-						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
-					)
-				}
-			} else {
-				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
+			if baseapp.IsMempoolEnablePendingPool() {
+				if msgEthTx.Data.AccountNonce < seq {
 					return ctx, sdkerrors.Wrapf(
 						sdkerrors.ErrInvalidSequence,
 						"invalid nonce; got %d, expected %d",
-						msgEthTx.Data.AccountNonce, checkTxModeNonce,
+						msgEthTx.Data.AccountNonce, seq,
 					)
+				}
+			} else {
+				// checkTx mode
+				checkTxModeNonce := seq
+
+				if !baseapp.IsMempoolEnableRecheck() {
+					// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
+					// to add pending txs len in the mempool.
+					// but, if disable recheck, we will not increase sequence of checkState (even in force recheck case, we
+					// will also reset checkState), so we will need to add pending txs len to get the right nonce
+					gPool := baseapp.GetGlobalMempool()
+					if gPool != nil {
+						cnt := gPool.GetUserPendingTxsCnt(common.BytesToAddress(address.Bytes()).String())
+						checkTxModeNonce = seq + uint64(cnt)
+					}
+				}
+
+				if baseapp.IsMempoolEnableSort() {
+					if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
+						return ctx, sdkerrors.Wrapf(
+							sdkerrors.ErrInvalidSequence,
+							"invalid nonce; got %d, expected in the range of [%d, %d]",
+							msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
+						)
+					}
+				} else {
+					if msgEthTx.Data.AccountNonce != checkTxModeNonce {
+						return ctx, sdkerrors.Wrapf(
+							sdkerrors.ErrInvalidSequence,
+							"invalid nonce; got %d, expected %d",
+							msgEthTx.Data.AccountNonce, checkTxModeNonce,
+						)
+					}
 				}
 			}
 		}
@@ -361,7 +376,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	}
 
 	gasLimit := msgEthTx.GetGas()
-	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, msgEthTx.To() == nil, true, false)
+	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
 		return ctx, sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
 	}
@@ -434,8 +449,13 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// increment sequence of all signers
 	for _, addr := range msgEthTx.GetSigners() {
 		acc := issd.ak.GetAccount(ctx, addr)
-
-		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
+		seq := acc.GetSequence()
+		if !baseapp.IsMempoolEnablePendingPool() {
+			seq++
+		} else if msgEthTx.Data.AccountNonce == seq {
+			seq++
+		}
+		if err := acc.SetSequence(seq); err != nil {
 			panic(err)
 		}
 		issd.ak.SetAccount(ctx, acc)

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/app/config"
 	"github.com/tendermint/tendermint/state"
 	"log"
 	"net/http"
@@ -29,6 +30,7 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	pprofAddrFlag = "pprof_addr"
+	//FlagHaltHeight = "halt-height"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -54,6 +56,14 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
+	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
+	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 	return cmd
 }
 
@@ -87,7 +97,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	// replay
 	startBlockHeight := currentBlockHeight + 1
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
+	//doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
+	haltBlockHeight := viper.GetInt64(server.FlagHaltHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight, haltBlockHeight)
 }
 
 // panic if error is not nil
@@ -108,7 +120,6 @@ func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
-	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
 	return createAndStartProxyAppConns(clientCreator)
 }
 
@@ -162,14 +173,24 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64) {
+	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64, haltBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
-	for height := startBlockHeight; height <= originLatestBlockHeight; height++ {
+	haltheight := haltBlockHeight
+	if haltheight == 0 {
+		haltheight = originLatestBlockHeight
+	}
+	if haltheight <= startBlockHeight {
+		panic("haltheight <= startBlockHeight please check data or height")
+	}
+
+	log.Println("replay stop block height", "height", haltheight)
+
+	for height := startBlockHeight; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
