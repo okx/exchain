@@ -637,9 +637,15 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
+	// estimate gas use
+	eGas, err := api.GetEthEstimateGas(tx)
+	if err != nil {
+		eGas = tx.GetGas()
+	}
+
 	// Broadcast transaction in sync mode (default)
 	// NOTE: If error is encountered on the node, the broadcast will not return an error
-	res, err := api.clientCtx.BroadcastTx(txBytes)
+	res, err := api.clientCtx.BroadcastTx(txBytes, eGas)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -676,9 +682,15 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
+	// estimate gas use
+	eGas, err := api.GetEthEstimateGas(tx)
+	if err != nil {
+		eGas = tx.GetGas()
+	}
+
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// If error is encountered on the node, the broadcast will not return an error
-	res, err := api.clientCtx.BroadcastTx(txBytes)
+	res, err := api.clientCtx.BroadcastTx(txBytes, eGas)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -1428,4 +1440,20 @@ func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount.SetAddress(address.Bytes())
 	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
 	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
+}
+
+func (api *PublicEthereumAPI) GetEthEstimateGas(ethTx *evmtypes.MsgEthereumTx) (uint64, error){
+	callArgs := rpctypes.CallArgs{
+		From:     ethTx.Data.Recipient,
+		To:       ethTx.To(),
+		GasPrice: (*hexutil.Big)(ethTx.Data.Price),
+		Value:    (*hexutil.Big)(ethTx.Data.Amount),
+		Data:     (*hexutil.Bytes)(&ethTx.Data.Payload),
+	}
+	gl, err := api.EstimateGas(callArgs)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(gl), nil
 }

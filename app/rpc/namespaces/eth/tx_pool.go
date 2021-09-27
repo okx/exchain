@@ -264,7 +264,7 @@ func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	if err != nil {
 		return err
 	}
-	res, err := pool.clientCtx.BroadcastTx(txBytes)
+	res, err := pool.clientCtx.BroadcastTx(txBytes, tx.GetGas())
 	if err != nil {
 		pool.logger.Error(err.Error())
 	}
