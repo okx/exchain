@@ -9,6 +9,7 @@ require (
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
+	github.com/buger/jsonparser v1.0.0 // indirect
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/deckarep/golang-set v1.7.1 // indirect
