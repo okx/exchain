@@ -61,3 +61,4 @@ replace (
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain12
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
+
