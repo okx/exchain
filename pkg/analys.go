@@ -143,7 +143,7 @@ func (s *analyer) formatLog() {
 		blockHeight: s.blockHeight,
 		blockCost:   s.allCost,
 	}
-	// here to print the logs
+
 	for _, v := range s.tx {
 		txMap := make(map[string]map[string]*operateInfo)
 		for module, operInfo := range v.Record {
@@ -165,7 +165,5 @@ func (s *analyer) formatLog() {
 
 	block.tx = txs
 	txsByte, _ := json.Marshal(txs)
-	//fmt.Println("txsByte", string(txsByte))
-	//s.logger.Info("cccccc")
 	s.logger.Info(fmt.Sprintf(DEBUG_FORMAT, s.blockHeight, s.allCost, string(txsByte)))
 }
