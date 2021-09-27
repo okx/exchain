@@ -72,6 +72,9 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["crisis"]["constant_fee"][
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
+# Enable EVM
+sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
+sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
