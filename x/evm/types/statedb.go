@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/pkg"
 	"math/big"
 	"sort"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/pkg"
 	"github.com/okex/exchain/x/params"
 )
 
