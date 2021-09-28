@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/analyzer"
 	"io"
 	"math/big"
 	"os"
@@ -24,7 +25,6 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/pkg"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
@@ -461,9 +461,9 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	pkg.GetCurrentAnalys().OnAppDeliverTxEnter()
+	analyzer.GetCurrentAnalys().OnAppDeliverTxEnter()
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
-	defer pkg.GetCurrentAnalys().OnAppDeliverTxExit()
+	defer analyzer.GetCurrentAnalys().OnAppDeliverTxExit()
 
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
@@ -551,7 +551,7 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	analys := pkg.NewAnalys(app.Logger(), app.LastBlockHeight()+1)
+	analys := analyzer.NewAnalys(app.Logger(), app.LastBlockHeight()+1)
 	analys.OnAppBeginBlockEnter()
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
 	defer analys.OnAppBeginBlockExit()
@@ -562,9 +562,9 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	pkg.GetCurrentAnalys().OnAppEndBlockEnter()
+	analyzer.GetCurrentAnalys().OnAppEndBlockEnter()
 	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
-	defer pkg.GetCurrentAnalys().OnAppEndBlockExit()
+	defer analyzer.GetCurrentAnalys().OnAppEndBlockExit()
 	return app.BaseApp.EndBlock(req)
 }
 
@@ -572,9 +572,9 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	pkg.GetCurrentAnalys().OnCommitEnter()
+	analyzer.GetCurrentAnalys().OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	defer pkg.OnCommitExit()
+	defer analyzer.OnCommitExit()
 
 	res := app.BaseApp.Commit()
 	return res

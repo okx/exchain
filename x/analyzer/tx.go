@@ -1,4 +1,4 @@
-package pkg
+package analyzer
 
 import (
 	"fmt"
@@ -6,13 +6,14 @@ import (
 
 type txLog struct {
 	startTime int64
+	AllCost   int64
 	EvmCost   int64
 	Record    map[string]*txBase
 }
 
 func newTxLog(module []string) *txLog {
 	tmp := &txLog{
-		startTime: GetNowTimeNs(),
+		startTime: GetNowTimeMs(),
 		Record:    make(map[string]*txBase),
 	}
 	for _, v := range module {
@@ -37,7 +38,8 @@ func (s *txLog) StopTxLog(module, oper string) error {
 	s.Record[module].StopCost(oper)
 	//统计evm 耗时
 	if v, ok := s.Record[COMMIT_STATE_DB]; ok {
-		s.EvmCost = GetNowTimeNs() - s.startTime - v.AllCost()
+		s.AllCost = GetNowTimeMs() - s.startTime
+		s.EvmCost = s.AllCost - v.DBCost()
 	}
 
 	return nil

@@ -1,4 +1,4 @@
-package pkg
+package analyzer
 
 import (
 	"errors"
@@ -22,7 +22,6 @@ func (s *txBase) StartCost(oper string) {
 	defer s.lock.Unlock()
 
 	if _, ok := s.Record[oper]; !ok {
-
 		s.Record[oper] = newOperateInfo()
 	}
 
@@ -41,7 +40,7 @@ func (s *txBase) StopCost(oper string) error {
 	return nil
 }
 
-func (s *txBase) AllCost() int64 {
+func (s *txBase) DBCost() int64 {
 	var res int64
 	s.lock.RLock()
 	defer s.lock.RUnlock()

@@ -1,8 +1,9 @@
-package pkg
+package analyzer
 
 import (
 	"fmt"
 	"github.com/tendermint/tendermint/libs/log"
+	"time"
 )
 
 var singleAnalys *analyer
@@ -21,7 +22,18 @@ type analyer struct {
 	startCommit     int64
 	commitCost      int64
 	allCost         int64
+	evmCost         int64
 	tx              []*txLog
+}
+
+func init() {
+	dbOper = newDbRecord()
+	for _, v := range STATEDB_READ {
+		dbOper.AddOperType(v, READ)
+	}
+	for _, v := range STATEDB_WRITE {
+		dbOper.AddOperType(v, WRITE)
+	}
 }
 
 func NewAnalys(log log.Logger, height int64) *analyer {
@@ -50,51 +62,51 @@ func CloseAnalys() {
 
 func (s *analyer) OnAppBeginBlockEnter() {
 	if s.status {
-		s.startBeginBlock = GetNowTimeNs()
+		s.startBeginBlock = GetNowTimeMs()
 	}
 }
 
 func (s *analyer) OnAppBeginBlockExit() {
 	if s.status {
-		s.beginBlockCost = GetNowTimeNs() - s.startBeginBlock
+		s.beginBlockCost = GetNowTimeMs() - s.startBeginBlock
 	}
 }
 
 func (s *analyer) OnAppDeliverTxEnter() {
 	if s.status {
-		s.startdelliverTx = GetNowTimeNs()
+		s.startdelliverTx = GetNowTimeMs()
 		s.newTxLog()
 	}
 }
 
 func (s *analyer) OnAppDeliverTxExit() {
 	if s.status {
-		s.delliverTxCost = GetNowTimeNs() - s.startdelliverTx
+		s.delliverTxCost = GetNowTimeMs() - s.startdelliverTx
 	}
 }
 
 func (s *analyer) OnAppEndBlockEnter() {
 	if s.status {
-		s.startEndBlock = GetNowTimeNs()
+		s.startEndBlock = GetNowTimeMs()
 	}
 }
 
 func (s *analyer) OnAppEndBlockExit() {
 	if s.status {
-		s.endBlockCost = GetNowTimeNs() - s.startEndBlock
+		s.endBlockCost = GetNowTimeMs() - s.startEndBlock
 	}
 }
 
 func (s *analyer) OnCommitEnter() {
 	if s.status {
-		s.startCommit = GetNowTimeNs()
+		s.startCommit = GetNowTimeMs()
 	}
 }
 
 func (s *analyer) OnCommitExit() {
 	if s.status {
-		s.commitCost = GetNowTimeNs() - s.startCommit
-		//format to print log and release current
+		s.commitCost = GetNowTimeMs() - s.startCommit
+		//format to print analyzer and release current
 		s.formatLog()
 	}
 }
@@ -125,19 +137,40 @@ func (s *analyer) Close() {
 }
 
 func (s *analyer) formatLog() {
+	var  tx_detail, tx_debug string
+	var debug bool
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
-	var tx_info string
+	if s.allCost > 5*int64(time.Millisecond) {
+		debug = true
+	}
 	for index, v := range s.tx {
-		tx_info += fmt.Sprintf(TX_FORMAT, index+1, v.EvmCost)
-		var tx_detail string
-		for module, operMap := range v.Record {
-			tx_detail += fmt.Sprintf("moduleName: %s", module)
+		s.evmCost += v.EvmCost
+		var txRead, txWrite int64
+
+		for _, operMap := range v.Record {
+			tx_debug = ""
 			for action, oper := range operMap.Record {
-				tx_detail += fmt.Sprintf(TX_DETAIL, action, oper.Count, oper.TimeCost, oper.Min, oper.Max, oper.Avg)
+				operType, err := dbOper.GetOperType(action)
+				if err != nil {
+					continue
+				}
+				if operType == READ {
+					txRead += oper.TimeCost
+				}
+				if operType == WRITE {
+					txWrite += oper.TimeCost
+				}
+				if debug {
+					tx_debug += fmt.Sprintf(TX_DEBUG_FORMAT, action, oper.Count, oper.TimeCost)
+				}
+
 			}
 		}
-		tx_info += tx_detail
+		tx_detail += fmt.Sprintf(TX_FORMAT, index + 1, v.AllCost, txRead, txWrite, v.EvmCost)
+		if debug{
+			tx_detail += tx_debug
+		}
 	}
 
-	s.logger.Info(fmt.Sprintf(BLOCK_FORMAT, s.blockHeight, s.allCost, tx_info))
+	s.logger.Info(fmt.Sprintf(BLOCK_FORMAT, s.blockHeight, s.allCost, s.evmCost, tx_detail))
 }

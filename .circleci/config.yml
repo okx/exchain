@@ -49,7 +49,7 @@ jobs:
           name: Save go modules cache
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - "/go/analyzer/mod"
       - save_cache:
           name: Save source code cache
           key: go-src-v1-{{ .Revision }}
