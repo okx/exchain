@@ -81,7 +81,7 @@ func (s *analyer) OnAppDeliverTxEnter() {
 
 func (s *analyer) OnAppDeliverTxExit() {
 	if s.status {
-		s.delliverTxCost = GetNowTimeMs() - s.startdelliverTx
+		s.delliverTxCost += GetNowTimeMs() - s.startdelliverTx
 	}
 }
 
