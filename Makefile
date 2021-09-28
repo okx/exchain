@@ -116,8 +116,8 @@ ifeq ($(OS),Windows_NT)
 	go build $(BUILD_FLAGS) -o build/exchaind.exe ./cmd/exchaind
 	go build $(BUILD_FLAGS) -o build/exchaincli.exe ./cmd/exchaincli
 else
-	go build -gcflags='all=-N-l' $(BUILD_FLAGS) -o build/exchaind ./cmd/exchaind
-	go build -gcflags='all=-N-l' $(BUILD_FLAGS) -o build/exchaincli ./cmd/exchaincli
+	go build $(BUILD_FLAGS) -o build/exchaind ./cmd/exchaind
+	go build $(BUILD_FLAGS) -o build/exchaincli ./cmd/exchaincli
 endif
 
 build-linux:
