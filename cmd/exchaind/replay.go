@@ -30,7 +30,6 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	pprofAddrFlag = "pprof_addr"
-	//FlagHaltHeight = "halt-height"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {

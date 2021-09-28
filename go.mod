@@ -58,8 +58,8 @@ require (
 
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210924023005-da4b116c2686
-	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain1
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20210928091514-17e712cf2e6b
+	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20210928091222-2656e7d02c94
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain12
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
