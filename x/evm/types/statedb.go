@@ -353,7 +353,7 @@ func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
 	csdb.logs = []*ethtypes.Log{}
 }
 
-// AddLog adds a new analyzer to the state and sets the analyzer metadata from the state.
+// AddLog adds a new log to the state and sets the log metadata from the state.
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
 		funcName := analyzer.RunFuncName()

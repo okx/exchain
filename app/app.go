@@ -566,6 +566,7 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 	analyzer.GetCurrentAnalys().OnAppEndBlockEnter()
 	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
 	defer analyzer.GetCurrentAnalys().OnAppEndBlockExit()
+
 	return app.BaseApp.EndBlock(req)
 }
 
