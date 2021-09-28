@@ -367,11 +367,6 @@ func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
 func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	csdb.logs = []*ethtypes.Log{}
 }
 
@@ -778,11 +773,6 @@ func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
 // StorageTrie returns nil as the state in Ethermint does not use a direct
 // storage trie.
 func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	return nil
 }
 
@@ -827,7 +817,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			// update the object in the KVStore
 			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
 				return ethcmn.Hash{}, err
-			}
+			}Finalise
 		}
 
 		delete(csdb.stateObjectsDirty, stateEntry.address)
@@ -998,11 +988,6 @@ func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
 // Database retrieves the low level database supporting the lower level trie
 // ops. It is not used in Ethermint, so it returns nil.
 func (csdb *CommitStateDB) Database() ethstate.Database {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	return nil
 }
 
@@ -1031,11 +1016,6 @@ func (csdb *CommitStateDB) Exist(addr ethcmn.Address) bool {
 
 // Error returns the first non-nil error the StateDB encountered.
 func (csdb *CommitStateDB) Error() error {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	return csdb.dbErr
 }
 
@@ -1302,11 +1282,6 @@ func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 //
 // TODO: Implement if we need it, especially for the RPC API.
 func (csdb *CommitStateDB) RawDump() ethstate.Dump {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	return ethstate.Dump{}
 }
 
@@ -1317,20 +1292,10 @@ type preimageEntry struct {
 }
 
 func (csdb *CommitStateDB) SetLogSize(logSize uint) {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	csdb.logSize = logSize
 }
 
 func (csdb *CommitStateDB) GetLogSize() uint {
-	if analys := pkg.GetCurrentAnalys(); analys != nil {
-		funcName := pkg.RunFuncName()
-		analys.StartTxLog(pkg.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(pkg.COMMIT_STATE_DB, funcName)
-	}
 	return csdb.logSize
 }
 
