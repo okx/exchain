@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"io"
-	"time"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -110,7 +108,6 @@ func closeApp(iApp abci.Application) {
 	app.StopStore()
 	evmtypes.CloseIndexer()
 	rpc.CloseEthBackend()
-	time.Sleep(time.Second * 1)
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) (abci.Application) {
