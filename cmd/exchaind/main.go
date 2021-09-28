@@ -87,6 +87,7 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 		dataCmd(ctx),
 		exportAppCmd(ctx),
+		iaviewerCmd(cdc),
 	)
 
 	// Tendermint node base commands
