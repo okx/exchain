@@ -817,7 +817,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			// update the object in the KVStore
 			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
 				return ethcmn.Hash{}, err
-			}Finalise
+			}
 		}
 
 		delete(csdb.stateObjectsDirty, stateEntry.address)
