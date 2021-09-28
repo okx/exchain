@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	analyzer "github.com/okex/exchain/x/analyzer"
 	"math/big"
 	"sort"
 	"sync"
@@ -21,6 +20,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/analyzer"
 )
 
 var (

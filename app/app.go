@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/analyzer"
 	"io"
 	"math/big"
 	"os"
@@ -26,6 +25,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -555,6 +555,7 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 	analys.OnAppBeginBlockEnter()
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
 	defer analys.OnAppBeginBlockExit()
+
 	return app.BaseApp.BeginBlock(req)
 }
 
@@ -575,7 +576,6 @@ func (app *OKExChainApp) Commit() abci.ResponseCommit {
 	analyzer.GetCurrentAnalys().OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
 	defer analyzer.OnCommitExit()
-
 	res := app.BaseApp.Commit()
 	return res
 }
