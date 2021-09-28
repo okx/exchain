@@ -95,10 +95,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	}
 
 	// replay
-	startBlockHeight := currentBlockHeight + 1
-	//doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight)
-	haltBlockHeight := viper.GetInt64(server.FlagHaltHeight)
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, startBlockHeight, haltBlockHeight)
+	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 }
 
 // panic if error is not nil
@@ -172,24 +169,36 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, originDataDir string, startBlockHeight int64, haltBlockHeight int64) {
+	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 
-	haltheight := haltBlockHeight
+	haltheight := viper.GetInt64(server.FlagHaltHeight)
 	if haltheight == 0 {
 		haltheight = originLatestBlockHeight
 	}
-	if haltheight <= startBlockHeight {
+	if haltheight <= lastBlockHeight+1 {
 		panic("haltheight <= startBlockHeight please check data or height")
 	}
 
 	log.Println("replay stop block height", "height", haltheight)
 
-	for height := startBlockHeight; height <= haltheight; height++ {
+	// Replay blocks up to the latest in the blockstore.
+	if lastBlockHeight == state.LastBlockHeight+1 {
+		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
+		panicError(err)
+		mockApp := newMockProxyApp(lastAppHash, abciResponses)
+		block := originBlockStore.LoadBlock(lastBlockHeight)
+		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
+		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
+		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		panicError(err)
+	}
+
+	for height := lastBlockHeight+1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
@@ -198,4 +207,43 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
+}
+
+func newMockProxyApp(appHash []byte, abciResponses *sm.ABCIResponses) proxy.AppConnConsensus {
+	clientCreator := proxy.NewLocalClientCreator(&mockProxyApp{
+		appHash:       appHash,
+		abciResponses: abciResponses,
+	})
+	cli, _ := clientCreator.NewABCIClient()
+	err := cli.Start()
+	if err != nil {
+		panic(err)
+	}
+	return proxy.NewAppConnConsensus(cli)
+}
+
+type mockProxyApp struct {
+	abci.BaseApplication
+
+	appHash       []byte
+	txCount       int
+	abciResponses *sm.ABCIResponses
+}
+
+func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+	r := mock.abciResponses.DeliverTxs[mock.txCount]
+	mock.txCount++
+	if r == nil { //it could be nil because of amino unMarshall, it will cause an empty ResponseDeliverTx to become nil
+		return abci.ResponseDeliverTx{}
+	}
+	return *r
+}
+
+func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlock {
+	mock.txCount = 0
+	return *mock.abciResponses.EndBlock
+}
+
+func (mock *mockProxyApp) Commit() abci.ResponseCommit {
+	return abci.ResponseCommit{Data: mock.appHash}
 }
