@@ -71,7 +71,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int64Var(&tmiavl.MinCommitItemCount, tmiavl.FlagIavlMinCommitItemCount, 500000, "Min nodes num to triggle node cache commit")
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
-	cmd.Flags().BoolVar(&tmiavl.EnableOptPruning, tmiavl.FlagIavlEnableOptPruning, false, "Enable cache iavl node data to optimization leveldb pruning process")
+	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().IntVar(&tmiavl.Debugging, tmiavl.FlagIavlDebug, 0, "Enable iavl project debug")
 	return cmd
 }
