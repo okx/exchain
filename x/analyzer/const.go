@@ -3,8 +3,8 @@ package analyzer
 const (
 	COMMIT_STATE_DB = "CommitStateDb"
 	AVL             = "iavl"
-	BLOCK_FORMAT    = "Block: Height<%d>, allCost<%dms>, evmCost<%dms>, Tx[%s]"
-	TX_FORMAT       = "Tx: %d, allCost<%dms>, db:[read<%dms>, write<%dms>], evmCost<%dms>"
+	BLOCK_FORMAT    = "Block: Height<%d>, allCost<%dms>, evmCost<%dms>, Tx[ %s ]"
+	TX_FORMAT       = "{TxID: %d, allCost<%dms>, db:[read<%dms>, write<%dms>], evmCost<%dms>} "
 	TX_DEBUG_FORMAT = "[oper: %s , callTimes<%d>, cost:<%dms>]"
 	READ            = 1
 	WRITE           = 2

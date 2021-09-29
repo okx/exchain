@@ -137,7 +137,7 @@ func (s *analyer) Close() {
 }
 
 func (s *analyer) formatLog() {
-	var  tx_detail, tx_debug string
+	var tx_detail, tx_debug string
 	var debug bool
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	if s.allCost > 5*int64(time.Millisecond) {
@@ -163,11 +163,10 @@ func (s *analyer) formatLog() {
 				if debug {
 					tx_debug += fmt.Sprintf(TX_DEBUG_FORMAT, action, oper.Count, oper.TimeCost)
 				}
-
 			}
 		}
-		tx_detail += fmt.Sprintf(TX_FORMAT, index + 1, v.AllCost, txRead, txWrite, v.EvmCost)
-		if debug{
+		tx_detail += fmt.Sprintf(TX_FORMAT, index+1, v.AllCost, txRead, txWrite, v.EvmCost)
+		if debug {
 			tx_detail += tx_debug
 		}
 	}
