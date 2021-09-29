@@ -318,7 +318,6 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 
 // SetCode sets the code for a given account.
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
-	fmt.Println("CommitStateDB SetCode " , csdb.ctx.IsCheckTx())
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
 		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
