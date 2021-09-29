@@ -461,9 +461,9 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	analyzer.GetCurrentAnalys().OnAppDeliverTxEnter()
+	analyzer.OnAppDeliverTxEnter()
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
-	defer analyzer.GetCurrentAnalys().OnAppDeliverTxExit()
+	defer analyzer.OnAppDeliverTxExit()
 
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
@@ -551,10 +551,9 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	analys := analyzer.NewAnalys(app.Logger(), app.LastBlockHeight()+1)
-	analys.OnAppBeginBlockEnter()
+	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
-	defer analys.OnAppBeginBlockExit()
+	defer analyzer.OnAppBeginBlockExit()
 
 	return app.BaseApp.BeginBlock(req)
 }
@@ -563,9 +562,9 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	analyzer.GetCurrentAnalys().OnAppEndBlockEnter()
+	analyzer.OnAppEndBlockEnter()
 	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
-	defer analyzer.GetCurrentAnalys().OnAppEndBlockExit()
+	defer analyzer.OnAppEndBlockExit()
 
 	return app.BaseApp.EndBlock(req)
 }
@@ -574,7 +573,7 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	analyzer.GetCurrentAnalys().OnCommitEnter()
+	analyzer.OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
 	defer analyzer.OnCommitExit()
 	res := app.BaseApp.Commit()

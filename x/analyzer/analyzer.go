@@ -36,74 +36,125 @@ func init() {
 	}
 }
 
-func NewAnalys(log log.Logger, height int64) *analyer {
-	singleAnalys = &analyer{
-		logger:      log,
-		status:      true,
-		blockHeight: height,
+func newAnalys(log log.Logger, height int64) {
+	if singleAnalys == nil {
+		singleAnalys = &analyer{
+			logger:      log,
+			status:      true,
+			blockHeight: height,
+		}
 	}
-	return singleAnalys
 }
 
-func GetCurrentAnalys() *analyer {
-	return singleAnalys
+func OnAppBeginBlockEnter(log log.Logger, height int64) {
+	newAnalys(log, height)
+
+	singleAnalys.onAppBeginBlockEnter()
+}
+
+func OnAppBeginBlockExit() {
+	if singleAnalys != nil {
+		singleAnalys.onAppBeginBlockExit()
+	}
+}
+
+func OnAppDeliverTxEnter() {
+	if singleAnalys != nil {
+		singleAnalys.onAppDeliverTxEnter()
+	}
+}
+
+func OnAppDeliverTxExit() {
+	if singleAnalys != nil {
+		singleAnalys.onAppDeliverTxExit()
+	}
+}
+
+func OnAppEndBlockEnter() {
+	if singleAnalys != nil {
+		singleAnalys.onAppEndBlockEnter()
+	}
+}
+
+func OnAppEndBlockExit() {
+	if singleAnalys != nil {
+		singleAnalys.onAppEndBlockExit()
+	}
+}
+
+func OnCommitEnter() {
+	if singleAnalys != nil {
+		singleAnalys.onCommitEnter()
+	}
 }
 
 func OnCommitExit() {
 	if singleAnalys != nil {
-		singleAnalys.OnCommitExit()
+		singleAnalys.onCommitExit()
 	}
 	singleAnalys = nil
+}
+
+func StartTxLog(module, oper string) {
+	if singleAnalys != nil {
+		singleAnalys.startTxLog(module, oper)
+	}
+}
+
+func StopTxLog(module, oper string) {
+	if singleAnalys != nil {
+		singleAnalys.stopTxLog(module, oper)
+	}
 }
 
 func CloseAnalys() {
 	singleAnalys.Close()
 }
 
-func (s *analyer) OnAppBeginBlockEnter() {
+func (s *analyer) onAppBeginBlockEnter() {
 	if s.status {
 		s.startBeginBlock = GetNowTimeMs()
 	}
 }
 
-func (s *analyer) OnAppBeginBlockExit() {
+func (s *analyer) onAppBeginBlockExit() {
 	if s.status {
 		s.beginBlockCost = GetNowTimeMs() - s.startBeginBlock
 	}
 }
 
-func (s *analyer) OnAppDeliverTxEnter() {
+func (s *analyer) onAppDeliverTxEnter() {
 	if s.status {
 		s.startdelliverTx = GetNowTimeMs()
 		s.newTxLog()
 	}
 }
 
-func (s *analyer) OnAppDeliverTxExit() {
+func (s *analyer) onAppDeliverTxExit() {
 	if s.status {
 		s.delliverTxCost += GetNowTimeMs() - s.startdelliverTx
 	}
 }
 
-func (s *analyer) OnAppEndBlockEnter() {
+func (s *analyer) onAppEndBlockEnter() {
 	if s.status {
 		s.startEndBlock = GetNowTimeMs()
 	}
 }
 
-func (s *analyer) OnAppEndBlockExit() {
+func (s *analyer) onAppEndBlockExit() {
 	if s.status {
 		s.endBlockCost = GetNowTimeMs() - s.startEndBlock
 	}
 }
 
-func (s *analyer) OnCommitEnter() {
+func (s *analyer) onCommitEnter() {
 	if s.status {
 		s.startCommit = GetNowTimeMs()
 	}
 }
 
-func (s *analyer) OnCommitExit() {
+func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
 		//format to print analyzer and release current
@@ -116,7 +167,7 @@ func (s *analyer) newTxLog() {
 	s.tx = append(s.tx, newTxLog(module))
 }
 
-func (s *analyer) StartTxLog(module, oper string) {
+func (s *analyer) startTxLog(module, oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
 			s.tx[s.currentTxIndex-1].StartTxLog(module, oper)
@@ -124,7 +175,7 @@ func (s *analyer) StartTxLog(module, oper string) {
 	}
 }
 
-func (s *analyer) StopTxLog(module, oper string) {
+func (s *analyer) stopTxLog(module, oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
 			s.tx[s.currentTxIndex-1].StopTxLog(module, oper)

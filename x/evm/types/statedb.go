@@ -19,8 +19,8 @@ import (
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/analyzer"
+	"github.com/okex/exchain/x/params"
 )
 
 var (
@@ -209,10 +209,10 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 }
 
 func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
-	if analys := analyzer.GetCurrentAnalys(); analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	code, ok := csdb.codeCache[addr]
@@ -235,10 +235,10 @@ func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode
 
 // SetHeightHash sets the block header hash associated with a given height.
 func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
@@ -262,10 +262,10 @@ func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
 
 // AddBalance adds amount to the account associated with addr.
 func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -276,10 +276,10 @@ func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 
 // SubBalance subtracts amount from the account associated with addr.
 func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -290,10 +290,10 @@ func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 
 // SetNonce sets the nonce (sequence number) of an account.
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -304,10 +304,10 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 
 // SetState sets the storage state with a key, value pair for an account.
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -318,10 +318,11 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 
 // SetCode sets the code for a given account.
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	fmt.Println("CommitStateDB SetCode " , csdb.ctx.IsCheckTx())
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -355,10 +356,10 @@ func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	csdb.journal.append(addLogChange{txhash: csdb.thash})
@@ -374,10 +375,10 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 
 // AddPreimage records a SHA3 preimage seen by the VM.
 func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	if _, ok := csdb.hashToPreimageIndex[hash]; !ok {
@@ -393,10 +394,10 @@ func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
 
 // AddRefund adds gas to the refund counter.
 func (csdb *CommitStateDB) AddRefund(gas uint64) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -406,10 +407,10 @@ func (csdb *CommitStateDB) AddRefund(gas uint64) {
 // SubRefund removes gas from the refund counter. It will panic if the refund
 // counter goes below zero.
 func (csdb *CommitStateDB) SubRefund(gas uint64) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -422,10 +423,10 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 
 // AddAddressToAccessList adds the given address to the access list
 func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	if csdb.accessList.AddAddress(addr) {
@@ -435,10 +436,10 @@ func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
 
 // AddSlotToAccessList adds the given (address, slot)-tuple to the access list
 func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.Hash) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	addrMod, slotMod := csdb.accessList.AddSlot(addr, slot)
@@ -457,10 +458,10 @@ func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.
 	}
 }
 func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn.Address, precompiles []ethcmn.Address, txAccesses ethtypes.AccessList) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	csdb.AddAddressToAccessList(sender)
@@ -481,10 +482,10 @@ func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn
 
 // AddressInAccessList returns true if the given address is in the access list.
 func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	return csdb.accessList.ContainsAddress(addr)
@@ -492,10 +493,10 @@ func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
 
 // SlotInAccessList returns true if the given (address, slot)-tuple is in the access list.
 func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Hash) (bool, bool) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	return csdb.accessList.Contains(addr, slot)
@@ -530,10 +531,10 @@ func (csdb *CommitStateDB) GetParams() Params {
 // GetBalance retrieves the balance from the given address or 0 if object not
 // found.
 func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -546,10 +547,10 @@ func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
 
 // GetNonce returns the nonce (sequence number) for a given account.
 func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -576,10 +577,10 @@ func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
 
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	// check for the contract calling from blocked list if contract blocked list is enabled
@@ -606,10 +607,10 @@ func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
 
 // GetCodeSize returns the code size for a given account.
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -626,10 +627,10 @@ func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 
 // GetCodeHash returns the code hash for a given account.
 func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -642,10 +643,10 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 
 // GetState retrieves a value from the given account's storage store.
 func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -668,10 +669,10 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) 
 // GetCommittedState retrieves a value from the given account's committed
 // storage.
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -689,10 +690,10 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 
 // GetRefund returns the current value of the refund counter.
 func (csdb *CommitStateDB) GetRefund() uint64 {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	return csdb.refund
@@ -711,10 +712,10 @@ func (csdb *CommitStateDB) Preimages() map[ethcmn.Hash][]byte {
 // HasSuicided returns if the given account for the specified address has been
 // killed.
 func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -879,10 +880,10 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 
 // Snapshot returns an identifier for the current revision of the state.
 func (csdb *CommitStateDB) Snapshot() int {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	id := csdb.nextRevisionID
@@ -901,10 +902,10 @@ func (csdb *CommitStateDB) Snapshot() int {
 
 // RevertToSnapshot reverts all state changes made since the given revision.
 func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	// find the snapshot in the stack of valid snapshots
@@ -936,10 +937,10 @@ func (csdb *CommitStateDB) Database() ethstate.Database {
 // Empty returns whether the state object is either non-existent or empty
 // according to the EIP161 specification (balance = nonce = code = 0).
 func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -949,10 +950,10 @@ func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
 // Exist reports whether the given account address exists in the state. Notably,
 // this also returns true for suicided accounts.
 func (csdb *CommitStateDB) Exist(addr ethcmn.Address) bool {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	return csdb.getStateObject(addr) != nil
@@ -968,10 +969,10 @@ func (csdb *CommitStateDB) Error() error {
 // The account's state object is still available until the state is committed,
 // getStateObject will return a non-nil account after Suicide.
 func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -1064,10 +1065,10 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	newobj, prevobj := csdb.createObject(addr)
@@ -1079,10 +1080,10 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 // ForEachStorage iterates over each storage items, all invoke the provided
 // callback on each key, value pair.
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
-	if analys := analyzer.GetCurrentAnalys(); !csdb.ctx.IsCheckTx() && analys != nil {
+	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analys.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analys.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
 	}
 
 	so := csdb.getStateObject(addr)
