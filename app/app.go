@@ -25,6 +25,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -460,7 +461,9 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
+	analyzer.OnAppDeliverTxEnter()
 	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
+	defer analyzer.OnAppDeliverTxExit()
 
 	resp := app.BaseApp.DeliverTx(req)
 	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
@@ -548,7 +551,9 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
 	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
+	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
 	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
+	defer analyzer.OnAppBeginBlockExit()
 
 	return app.BaseApp.BeginBlock(req)
 }
@@ -557,7 +562,9 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
 	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
+	analyzer.OnAppEndBlockEnter()
 	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
+	defer analyzer.OnAppEndBlockExit()
 
 	return app.BaseApp.EndBlock(req)
 }
@@ -566,7 +573,9 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
+	analyzer.OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
+	defer analyzer.OnCommitExit()
 	res := app.BaseApp.Commit()
 	return res
 }
