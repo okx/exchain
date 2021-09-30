@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/store/iavl"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/okex/exchain/app/config"
 	"github.com/tendermint/tendermint/state"
@@ -14,6 +15,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tmiavl "github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"
@@ -30,7 +32,6 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	pprofAddrFlag = "pprof_addr"
-	//FlagHaltHeight = "halt-height"
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -64,6 +65,14 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
+	cmd.Flags().StringToIntVar(&iavl.OutputModules, iavl.FlagOutputModules, map[string]int{},"decide which module in iavl to be printed")
+	cmd.Flags().IntVar(&iavl.IavlCacheSize, iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
+	cmd.Flags().Int64Var(&tmiavl.CommitIntervalHeight, tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
+	cmd.Flags().Int64Var(&tmiavl.MinCommitItemCount, tmiavl.FlagIavlMinCommitItemCount, 500000, "Min nodes num to triggle node cache commit")
+	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
+	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
+	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
+	cmd.Flags().IntVar(&tmiavl.Debugging, tmiavl.FlagIavlDebug, 0, "Enable iavl project debug")
 	return cmd
 }
 

@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/binary"
-	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -25,13 +24,12 @@ type Keeper interface {
 	GetHeightHash(ctx sdk.Context, height uint64) common.Hash
 }
 
-func init() {
-	server.TrapSignal(func() {
-		if indexer != nil && indexer.backend.db != nil {
-			indexer.backend.db.Close()
-		}
-	})
+func CloseIndexer() {
+	if indexer != nil && indexer.backend.db != nil {
+		indexer.backend.db.Close()
+	}
 }
+
 
 func GetEnableBloomFilter() bool {
 	once.Do(func() {
