@@ -573,9 +573,9 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
 	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	analyzer.OnCommitEnter()
+	//analyzer.OnCommitEnter()
 	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	defer analyzer.OnCommitExit()
+	//defer analyzer.OnCommitExit()
 	res := app.BaseApp.Commit()
 	return res
 }

@@ -35,6 +35,8 @@ run() {
 }
 
 
+#       --iavl-enable-async-commit \
+
 killbyname exchaind
 killbyname exchaincli
 
