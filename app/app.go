@@ -495,6 +495,7 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
+
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
@@ -504,6 +505,7 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
+
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {
@@ -545,39 +547,6 @@ func (app *OKExChainApp) Codec() *codec.Codec {
 // NOTE: This is solely to be used for testing purposes.
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
-}
-
-// BeginBlock implements the Application interface
-func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
-	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
-	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
-	defer analyzer.OnAppBeginBlockExit()
-
-	return app.BaseApp.BeginBlock(req)
-}
-
-// EndBlock implements the Application interface
-func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-
-	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	analyzer.OnAppEndBlockEnter()
-	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
-	defer analyzer.OnAppEndBlockExit()
-
-	return app.BaseApp.EndBlock(req)
-}
-
-// Commit implements the Application interface
-func (app *OKExChainApp) Commit() abci.ResponseCommit {
-
-	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	analyzer.OnCommitEnter()
-	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	defer analyzer.OnCommitExit()
-	res := app.BaseApp.Commit()
-	return res
 }
 
 // GetMaccPerms returns a copy of the module account permissions
