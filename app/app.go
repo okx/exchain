@@ -25,9 +25,7 @@ import (
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/backend"
-	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
@@ -458,27 +456,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
-
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	analyzer.OnAppDeliverTxEnter()
-	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
-	defer analyzer.OnAppDeliverTxExit()
-
-	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
-	}
-
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
-		if err == nil {
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
-		}
-	}
-
-	return resp
-}
 
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
@@ -498,8 +475,6 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-
-	perf.GetPerf().InitChainer(app.Logger())
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)

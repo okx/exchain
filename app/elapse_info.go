@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-	elapse "github.com/tendermint/tendermint/trace"
+	"github.com/tendermint/tendermint/trace"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"sync"
@@ -14,7 +14,7 @@ func init() {
 		elapsedInfo := &ElapsedTimeInfos{
 			infoMap: make(map[string]string),
 		}
-		elapse.SetInfoObject(elapsedInfo)
+		trace.SetInfoObject(elapsedInfo)
 	})
 }
 
@@ -39,11 +39,11 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 	}
 
 	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s]",
-		elapse.Height, e.infoMap[elapse.Height],
-		elapse.Tx, e.infoMap[elapse.Tx],
-		elapse.GasUsed, e.infoMap[elapse.GasUsed],
-		elapse.Produce, e.infoMap[elapse.Produce],
-		elapse.RunTx, e.infoMap[elapse.RunTx],
+		trace.Height, e.infoMap[trace.Height],
+		trace.Tx, e.infoMap[trace.Tx],
+		trace.GasUsed, e.infoMap[trace.GasUsed],
+		trace.Produce, e.infoMap[trace.Produce],
+		trace.RunTx, e.infoMap[trace.RunTx],
 		)
 
 	logger.Info(info)

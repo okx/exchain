@@ -1,8 +1,9 @@
 package app
 
 import (
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/x/analyzer"
-	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/trace"
 )
@@ -11,9 +12,7 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
-	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
 	defer analyzer.OnAppBeginBlockExit()
 
 
@@ -22,25 +21,43 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 	return app.BaseApp.BeginBlock(req)
 }
 
+
+func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+
+	analyzer.OnAppDeliverTxEnter()
+	defer analyzer.OnAppDeliverTxExit()
+
+	resp := app.BaseApp.DeliverTx(req)
+	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
+		app.syncTx(req.Tx)
+	}
+
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
+		if err == nil {
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
+		}
+	}
+
+	return resp
+}
+
 // EndBlock implements the Application interface
 func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 
-	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
 	analyzer.OnAppEndBlockEnter()
-	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
 	defer analyzer.OnAppEndBlockExit()
 
 	return app.BaseApp.EndBlock(req)
 }
 
 
+
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
-	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	analyzer.OnCommitEnter()
-	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	defer analyzer.OnCommitExit()
+	//analyzer.OnCommitEnter()
+	//defer analyzer.OnCommitExit()
 	res := app.BaseApp.Commit()
 
 	return res
