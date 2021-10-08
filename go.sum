@@ -591,8 +591,8 @@ github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
-github.com/okex/cosmos-sdk v0.39.3-0.20210918092413-411d984cdf73 h1:egSUeMkbTQOc5RVjz7MA7ohYdeF6dbxtmh62Jqqt250=
-github.com/okex/cosmos-sdk v0.39.3-0.20210918092413-411d984cdf73/go.mod h1:UXo1DIb7+q2vWE/ZgjstIhh586H8sYJeHIrsyBPmPaE=
+github.com/okex/cosmos-sdk v0.39.3-0.20211008043309-f0bbe19c22f9 h1:aTuNAdebVwGPLY/uUXbMYeLz61GBnSYWZGCS7fnuDDs=
+github.com/okex/cosmos-sdk v0.39.3-0.20211008043309-f0bbe19c22f9/go.mod h1:UXo1DIb7+q2vWE/ZgjstIhh586H8sYJeHIrsyBPmPaE=
 github.com/okex/iavl v0.14.4-0.20211008041925-3d60d3fd42ca h1:DMhPCFscYk/u2KJsSVv14WTVlR0oMEfVNvqSO/TKjA8=
 github.com/okex/iavl v0.14.4-0.20211008041925-3d60d3fd42ca/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20211008042152-65b48cf708cd h1:G/zsvgSQAifxpsZejTN9G3am04YFtlhHru8QViJ8aBg=
