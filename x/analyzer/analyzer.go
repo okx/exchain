@@ -1,5 +1,10 @@
 package analyzer
 
+import (
+	"fmt"
+	"github.com/tendermint/tendermint/trace"
+)
+
 var preSingleAnalys, singleAnalys *analyer
 
 type analyer struct {
@@ -49,27 +54,6 @@ func OnAppBeginBlockExit() {
 	if singleAnalys != nil {
 		singleAnalys.onAppBeginBlockExit()
 	}
-}
-
-func EvmCost() int64 {
-	if preSingleAnalys != nil {
-		return preSingleAnalys.EvmCost()
-	}
-	return 0
-}
-
-func DbReadCost() int64 {
-	if preSingleAnalys != nil {
-		return preSingleAnalys.DbReadCost()
-	}
-	return 0
-}
-
-func DbWriteCost() int64 {
-	if preSingleAnalys != nil {
-		return preSingleAnalys.DbWriteCost()
-	}
-	return 0
 }
 
 func OnAppDeliverTxEnter() {
@@ -194,18 +178,6 @@ func (s *analyer) stopTxLog(module, oper string) {
 	}
 }
 
-func (s *analyer) EvmCost() int64 {
-	return s.evmCost
-}
-
-func (s *analyer) DbReadCost() int64 {
-	return s.dbRead
-}
-
-func (s *analyer) DbWriteCost() int64 {
-	return s.dbWrite
-}
-
 func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	for _, v := range s.tx {
@@ -225,4 +197,5 @@ func (s *analyer) format() {
 			}
 		}
 	}
+	trace.GetElapsedInfo().AddInfo("Evm", fmt.Sprintf("read<%dms>, write<%dms>, execute<%dms>", s.dbRead, s.dbWrite, s.evmCost))
 }
