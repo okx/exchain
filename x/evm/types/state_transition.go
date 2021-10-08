@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -168,11 +169,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := &vm.InnerTx{
-		Dept:    *big.NewInt(0),
-		From:    st.Sender.String(),
-		IsError: false,
-	}
+	callTx := vm.NewInnerTx(bank.COSMOS_DEPTH, st.Sender.String(), "", st.Amount.String(), "", "")
 	evm.InnerTxies = append(evm.InnerTxies, callTx)
 	//add InnerTx end
 
@@ -192,9 +189,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 
-		//addToAddress
+		//addInnerTx
 		callTx.To = contractAddress.String()
-		//addToAddressEnd
+		callTx.CallType = vm.CREATE_INNER_TX_CALL_TYPE
+		callTx.Name = vm.CREATE_INNER_TX_CALL_TYPE
+		//addInnerTx end
 
 	default:
 		if !params.EnableCall {
@@ -206,13 +205,17 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 
-		//addToAddress
+		//addInnerTx
 		callTx.To = st.Recipient.String()
-		//addToAddressEnd
+		callTx.CallType = vm.CALL_INNER_TX_CALL_TYPE
+		callTx.Name = vm.CALL_INNER_TX_CALL_TYPE
+		//addInnerTx end
 	}
 
 	gasConsumed := gasLimit - leftOverGas
-
+	//addInnerTx
+	callTx.GasUsed = gasConsumed
+	//addInnerTx end
 	innerTxs = FailedTransaction(evm, err != nil)
 	erc20Contracts = evm.Contracts
 	result := &core.ExecutionResult{
@@ -338,7 +341,7 @@ func FailedTransaction(evm *vm.EVM, failed bool) []*vm.InnerTx {
 			errIx.IsError = true
 		}
 		return evm.InnerTxies
-	} else if len(evm.InnerTxies) > 1 {
+	} else if len(evm.InnerTxies) > 0 {
 		return evm.InnerTxies
 	} else {
 		return nil

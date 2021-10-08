@@ -524,7 +524,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 	if err != nil {
 		return nil, err
 	}
-	
+
 	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
 		return code, nil
@@ -1448,10 +1448,41 @@ func (api *PublicEthereumAPI) GetInternalTransactions(txHash string) []vm.InnerT
 	return vm.GetFromDB(txHash)
 }
 
-//按块查询
-func (api *PublicEthereumAPI) GetBlockInternalTransactions(blockHash string) map[string][]vm.InnerTx {
+//按块Hash查询
+func (api *PublicEthereumAPI) GetBlockInternalTransactionsByHash(blockHash string) map[string][]vm.InnerTx {
 	var rtn = make(map[string][]vm.InnerTx)
 	txHashes := vm.GetBlockDB(blockHash)
+	if txHashes != nil {
+		for _, txHash := range txHashes {
+			inners := vm.GetFromDB(txHash)
+			rtn[txHash] = inners
+		}
+	} else {
+		rtn = nil
+	}
+	return rtn
+}
+
+//按块height查询
+func (api *PublicEthereumAPI) GetBlockInternalTransactionsByNumber(blockNum rpctypes.BlockNumber) map[string][]vm.InnerTx {
+	height := blockNum.Int64()
+	if blockNum == rpctypes.PendingBlockNumber {
+		latestHeight, err := api.backend.LatestBlockNumber()
+		if err != nil {
+			return nil
+		}
+		height = latestHeight
+	}
+
+	// latest block info
+	latestBlock, err := api.clientCtx.Client.Block(&height)
+	if err != nil {
+		return nil
+	}
+
+	hash := latestBlock.Block.Hash().Bytes()
+	var rtn = make(map[string][]vm.InnerTx)
+	txHashes := vm.GetBlockDB(hexutil.Encode(hash))
 	if txHashes != nil {
 		for _, txHash := range txHashes {
 			inners := vm.GetFromDB(txHash)

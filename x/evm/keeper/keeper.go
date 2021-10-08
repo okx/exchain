@@ -277,9 +277,14 @@ func (k *Keeper) InitInnerBlock(hash string) {
 	}
 }
 
-func (k *Keeper) UpdateInnerBlockData() {
+func (k *Keeper) GetInnerBlockData() ethvm.BlockInnerData {
+	return k.innerBlockData
+}
+
+func (k *Keeper) UpdateInnerBlockData(ctx sdk.Context) {
 	//Block write db
 	if len(k.innerBlockData.TxHashes) > 0 {
+		k.Logger(ctx).Error("WriteBlock", k.innerBlockData.BlockHash)
 		if err := ethvm.WriteBlockDB(k.innerBlockData.BlockHash, k.innerBlockData.TxHashes); err != nil {
 			panic(err)
 		}
@@ -287,6 +292,7 @@ func (k *Keeper) UpdateInnerBlockData() {
 	//InnerTx write db
 	if len(k.innerBlockData.TxMap) > 0 {
 		for txHash, inTx := range k.innerBlockData.TxMap {
+			k.Logger(ctx).Error("WriteTx", txHash, inTx)
 			if err := ethvm.WriteTx(txHash, inTx); err != nil {
 				panic(err)
 			}
@@ -305,11 +311,20 @@ func (k *Keeper) UpdateInnerBlockData() {
 
 // add inner tx
 func (k *Keeper) AddInnerTx(hash string, txs []*ethvm.InnerTx) {
-	k.innerBlockData.TxHashes = append(k.innerBlockData.TxHashes, hash)
-	k.innerBlockData.TxMap[hash] = txs
+	innerTxs, ok := k.innerBlockData.TxMap[hash]
+	if !ok {
+		k.innerBlockData.TxHashes = append(k.innerBlockData.TxHashes, hash)
+		innerTxs = make([]*ethvm.InnerTx, 0)
+	}
+	innerTxs = append(innerTxs, txs...)
+	k.innerBlockData.TxMap[hash] = innerTxs
 }
 
 // add erc20 contract
 func (k *Keeper) AddContract(contract []*ethvm.ERC20Contract) {
 	k.innerBlockData.ContractList = append(k.innerBlockData.ContractList, contract...)
+}
+
+func (k *Keeper) GetCodec() *codec.Codec {
+	return k.cdc
 }

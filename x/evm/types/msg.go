@@ -28,7 +28,7 @@ var (
 	_ sdk.Tx     = MsgEthereumTx{}
 	_ ante.FeeTx = MsgEthereumTx{}
 )
-
+var big0 = big.NewInt(0)
 var big8 = big.NewInt(8)
 
 // message type and route constants
