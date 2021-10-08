@@ -31,6 +31,7 @@ run() {
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
 
+# --iavl-enable-async-commit \
     exit
 }
 
@@ -91,3 +92,5 @@ exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
 run
+
+# exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y
