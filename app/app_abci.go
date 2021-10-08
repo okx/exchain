@@ -12,7 +12,7 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
+	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight()+1)
 	defer analyzer.OnAppBeginBlockExit()
 
 

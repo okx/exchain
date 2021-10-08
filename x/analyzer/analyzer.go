@@ -2,14 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/tendermint/tendermint/libs/log"
 	"time"
 )
 
 var singleAnalys *analyer
 
 type analyer struct {
-	logger          log.Logger
 	status          bool
 	currentTxIndex  int64
 	blockHeight     int64
@@ -36,19 +34,17 @@ func init() {
 	}
 }
 
-func newAnalys(log log.Logger, height int64) {
+func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
-			logger:      log,
 			status:      true,
 			blockHeight: height,
 		}
 	}
 }
 
-func OnAppBeginBlockEnter(log log.Logger, height int64) {
-	newAnalys(log, height)
-
+func OnAppBeginBlockEnter(height int64) {
+	newAnalys(height)
 	singleAnalys.onAppBeginBlockEnter()
 }
 
@@ -157,8 +153,6 @@ func (s *analyer) onCommitEnter() {
 func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
-		//format to print analyzer and release current
-		s.formatLog()
 	}
 }
 
@@ -222,5 +216,4 @@ func (s *analyer) formatLog() {
 		}
 	}
 
-	s.logger.Info(fmt.Sprintf(BLOCK_FORMAT, s.blockHeight, s.allCost, s.evmCost, tx_detail))
 }
