@@ -1,10 +1,5 @@
 package analyzer
 
-import (
-	"fmt"
-	"time"
-)
-
 var singleAnalys *analyer
 
 type analyer struct {
@@ -19,8 +14,11 @@ type analyer struct {
 	endBlockCost    int64
 	startCommit     int64
 	commitCost      int64
+	dbRead          int64
+	dbWrite         int64
 	allCost         int64
 	evmCost         int64
+	done            bool
 	tx              []*txLog
 }
 
@@ -52,6 +50,27 @@ func OnAppBeginBlockExit() {
 	if singleAnalys != nil {
 		singleAnalys.onAppBeginBlockExit()
 	}
+}
+
+func EvmCost() int64 {
+	if singleAnalys != nil {
+		return singleAnalys.EvmCost()
+	}
+	return -1
+}
+
+func DbReadCost() int64 {
+	if singleAnalys != nil {
+		singleAnalys.DbReadCost()
+	}
+	return -1
+}
+
+func DbWriteCost() int64 {
+	if singleAnalys != nil {
+		singleAnalys.DbWriteCost()
+	}
+	return -1
 }
 
 func OnAppDeliverTxEnter() {
@@ -153,6 +172,7 @@ func (s *analyer) onCommitEnter() {
 func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
+		s.format()
 	}
 }
 
@@ -181,39 +201,46 @@ func (s *analyer) Close() {
 	s.status = false
 }
 
-func (s *analyer) formatLog() {
-	var tx_detail, tx_debug string
-	var debug bool
-	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
-	if s.allCost > 5*int64(time.Millisecond) {
-		debug = true
+func (s *analyer) EvmCost() int64 {
+	if s.done {
+		return s.evmCost
 	}
-	for index, v := range s.tx {
-		s.evmCost += v.EvmCost
-		var txRead, txWrite int64
+	return -1
+}
 
+func (s *analyer) DbReadCost() int64 {
+	if s.done {
+		return s.dbRead
+	}
+	return -1
+}
+
+func (s *analyer) DbWriteCost() int64 {
+	if s.done {
+		return s.dbWrite
+	}
+	return -1
+}
+
+func (s *analyer) format() {
+	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
+	for _, v := range s.tx {
+		s.evmCost += v.EvmCost
 		for _, operMap := range v.Record {
-			tx_debug = ""
 			for action, oper := range operMap.Record {
 				operType, err := dbOper.GetOperType(action)
 				if err != nil {
 					continue
 				}
 				if operType == READ {
-					txRead += oper.TimeCost
+					s.dbRead += oper.TimeCost
 				}
 				if operType == WRITE {
-					txWrite += oper.TimeCost
-				}
-				if debug {
-					tx_debug += fmt.Sprintf(TX_DEBUG_FORMAT, action, oper.Count, oper.TimeCost)
+					s.dbWrite += oper.TimeCost
 				}
 			}
 		}
-		tx_detail += fmt.Sprintf(TX_FORMAT, index+1, v.AllCost, txRead, txWrite, v.EvmCost)
-		if debug {
-			tx_detail += tx_debug
-		}
+		s.done = true
 	}
 
 }
