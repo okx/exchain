@@ -37,7 +37,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		return
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s[%s], %s[%s]",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s[%s], %s[%s], " + analyzer.EVM_FORMAT,
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
@@ -45,7 +45,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		trace.Round, e.infoMap[trace.Round],
 		trace.CommitRound, e.infoMap[trace.CommitRound],
 		trace.Produce, e.infoMap[trace.Produce],
-		analyzer.EVM_FORMAT, analyzer.DbReadCost(), analyzer.DbWriteCost(), analyzer.EvmCost(),
+		analyzer.DbReadCost(), analyzer.DbWriteCost(), analyzer.EvmCost(),
 	)
 
 	logger.Info(info)

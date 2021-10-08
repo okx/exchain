@@ -5,7 +5,7 @@ const (
 	AVL             = "iavl"
 	READ            = 1
 	WRITE           = 2
-	EVM_FORMAT      = "evm[r<%dms>, w<%dms>, e<%dms>]"
+	EVM_FORMAT      = "Evm[read<%dms>, write<%dms>, execute<%dms>]"
 )
 
 var (
