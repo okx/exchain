@@ -18,7 +18,6 @@ type analyer struct {
 	dbWrite         int64
 	allCost         int64
 	evmCost         int64
-	done            bool
 	tx              []*txLog
 }
 
@@ -56,21 +55,21 @@ func EvmCost() int64 {
 	if preSingleAnalys != nil {
 		return preSingleAnalys.EvmCost()
 	}
-	return -1
+	return 0
 }
 
 func DbReadCost() int64 {
 	if preSingleAnalys != nil {
 		return preSingleAnalys.DbReadCost()
 	}
-	return -1
+	return 0
 }
 
 func DbWriteCost() int64 {
 	if preSingleAnalys != nil {
 		return preSingleAnalys.DbWriteCost()
 	}
-	return -1
+	return 0
 }
 
 func OnAppDeliverTxEnter() {
@@ -196,24 +195,15 @@ func (s *analyer) stopTxLog(module, oper string) {
 }
 
 func (s *analyer) EvmCost() int64 {
-	if s.done {
-		return s.evmCost
-	}
-	return -1
+	return s.evmCost
 }
 
 func (s *analyer) DbReadCost() int64 {
-	if s.done {
-		return s.dbRead
-	}
-	return -1
+	return s.dbRead
 }
 
 func (s *analyer) DbWriteCost() int64 {
-	if s.done {
-		return s.dbWrite
-	}
-	return -1
+	return s.dbWrite
 }
 
 func (s *analyer) format() {
@@ -234,7 +224,5 @@ func (s *analyer) format() {
 				}
 			}
 		}
-		s.done = true
 	}
-
 }
