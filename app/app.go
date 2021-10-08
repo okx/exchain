@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/okex/exchain/pkg"
+	"github.com/okex/exchain/x/common/perf"
 	"io"
 	"math/big"
 	"os"
@@ -27,7 +28,6 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
-	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
@@ -497,15 +497,15 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
+
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-
-	perf.GetPerf().InitChainer(app.Logger())
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
+
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {

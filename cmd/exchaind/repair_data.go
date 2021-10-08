@@ -19,7 +19,8 @@ import (
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
-
+var commitInterval int64
+const FlagCommitInterval string = "commit-interval"
 func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repair-state",
@@ -30,7 +31,9 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			repairState(ctx)
 			log.Println("--------- repair data success ---------")
 		},
+
 	}
+	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 100, "The number of interval heights for submitting Commit")
 	return cmd
 }
 
@@ -52,7 +55,11 @@ func repairState(ctx *server.Context) {
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
 	// load start version
-	err = repairApp.LoadStartVersion(latestBlockHeight - 2)
+	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 2
+	if startVersion == 0 {
+		panic("height too low, please restart from height 0 with genesis file")
+	}
+	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
 	// load state
@@ -63,7 +70,8 @@ func repairState(ctx *server.Context) {
 	panicError(err)
 
 	// repair data by apply the latest two blocks
-	doRepair(ctx, state, stateStoreDB, proxyApp, latestBlockHeight, dataDir)
+	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+	repairApp.StopStore()
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, error) {
@@ -91,11 +99,9 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *app.OKE
 }
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, latestHeight int64, dataDir string) {
+	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
-	// replay the latest two blocks
-	height := latestHeight - 1
-	for i := 0; i < 2; i++ {
+	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -106,7 +112,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
-		height++
+
 	}
 
 }
