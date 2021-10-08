@@ -12,7 +12,7 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	analyzer.OnAppBeginBlockEnter(app.Logger(), app.LastBlockHeight()+1)
+	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight()+1)
 	defer analyzer.OnAppBeginBlockExit()
 
 
@@ -56,8 +56,8 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
 
-	//analyzer.OnCommitEnter()
-	//defer analyzer.OnCommitExit()
+	analyzer.OnCommitEnter()
+	defer analyzer.OnCommitExit()
 	res := app.BaseApp.Commit()
 
 	return res

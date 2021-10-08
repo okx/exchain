@@ -15,7 +15,7 @@
 # Build
 .exchaind
 .exchaincli
-vendor
+vendor*
 build
 tools/
 tools/bin/*

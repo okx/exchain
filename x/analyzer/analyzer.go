@@ -2,14 +2,12 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/tendermint/tendermint/libs/log"
-	"time"
+	"github.com/tendermint/tendermint/trace"
 )
 
-var singleAnalys *analyer
+var preSingleAnalys, singleAnalys *analyer
 
 type analyer struct {
-	logger          log.Logger
 	status          bool
 	currentTxIndex  int64
 	blockHeight     int64
@@ -21,6 +19,8 @@ type analyer struct {
 	endBlockCost    int64
 	startCommit     int64
 	commitCost      int64
+	dbRead          int64
+	dbWrite         int64
 	allCost         int64
 	evmCost         int64
 	tx              []*txLog
@@ -36,19 +36,17 @@ func init() {
 	}
 }
 
-func newAnalys(log log.Logger, height int64) {
+func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
-			logger:      log,
 			status:      true,
 			blockHeight: height,
 		}
 	}
 }
 
-func OnAppBeginBlockEnter(log log.Logger, height int64) {
-	newAnalys(log, height)
-
+func OnAppBeginBlockEnter(height int64) {
+	newAnalys(height)
 	singleAnalys.onAppBeginBlockEnter()
 }
 
@@ -107,10 +105,6 @@ func StopTxLog(module, oper string) {
 	}
 }
 
-func CloseAnalys() {
-	singleAnalys.Close()
-}
-
 func (s *analyer) onAppBeginBlockEnter() {
 	if s.status {
 		s.startBeginBlock = GetNowTimeMs()
@@ -157,9 +151,10 @@ func (s *analyer) onCommitEnter() {
 func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
-		//format to print analyzer and release current
-		s.formatLog()
+		s.format()
+		preSingleAnalys = singleAnalys
 	}
+	singleAnalys = nil
 }
 
 func (s *analyer) newTxLog() {
@@ -183,44 +178,24 @@ func (s *analyer) stopTxLog(module, oper string) {
 	}
 }
 
-func (s *analyer) Close() {
-	s.status = false
-}
-
-func (s *analyer) formatLog() {
-	var tx_detail, tx_debug string
-	var debug bool
+func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
-	if s.allCost > 5*int64(time.Millisecond) {
-		debug = true
-	}
-	for index, v := range s.tx {
+	for _, v := range s.tx {
 		s.evmCost += v.EvmCost
-		var txRead, txWrite int64
-
 		for _, operMap := range v.Record {
-			tx_debug = ""
 			for action, oper := range operMap.Record {
 				operType, err := dbOper.GetOperType(action)
 				if err != nil {
 					continue
 				}
 				if operType == READ {
-					txRead += oper.TimeCost
+					s.dbRead += oper.TimeCost
 				}
 				if operType == WRITE {
-					txWrite += oper.TimeCost
-				}
-				if debug {
-					tx_debug += fmt.Sprintf(TX_DEBUG_FORMAT, action, oper.Count, oper.TimeCost)
+					s.dbWrite += oper.TimeCost
 				}
 			}
 		}
-		tx_detail += fmt.Sprintf(TX_FORMAT, index+1, v.AllCost, txRead, txWrite, v.EvmCost)
-		if debug {
-			tx_detail += tx_debug
-		}
 	}
-
-	s.logger.Info(fmt.Sprintf(BLOCK_FORMAT, s.blockHeight, s.allCost, s.evmCost, tx_detail))
+	trace.GetElapsedInfo().AddInfo("Evm", fmt.Sprintf("read<%dms>, write<%dms>, execute<%dms>", s.dbRead, s.dbWrite, s.evmCost))
 }
