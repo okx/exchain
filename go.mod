@@ -52,6 +52,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
+	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -60,6 +61,6 @@ replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain17
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain2
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain13
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain14
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
