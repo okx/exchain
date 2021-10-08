@@ -32,6 +32,7 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
+
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
    MercuryHeight=5150000
