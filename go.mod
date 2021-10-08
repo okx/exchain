@@ -34,7 +34,6 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/prometheus/tsdb v0.9.1 // indirect
-	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/kafka-go v0.2.2
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
