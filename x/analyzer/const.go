@@ -5,6 +5,7 @@ const (
 	AVL             = "iavl"
 	READ            = 1
 	WRITE           = 2
+	EVM_FORMAT      = "evm[r<%dms>, w<%dms>, e<%dms>]"
 )
 
 var (

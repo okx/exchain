@@ -1,6 +1,6 @@
 package analyzer
 
-var singleAnalys *analyer
+var preSingleAnalys, singleAnalys *analyer
 
 type analyer struct {
 	status          bool
@@ -53,22 +53,22 @@ func OnAppBeginBlockExit() {
 }
 
 func EvmCost() int64 {
-	if singleAnalys != nil {
-		return singleAnalys.EvmCost()
+	if preSingleAnalys != nil {
+		return preSingleAnalys.EvmCost()
 	}
 	return -1
 }
 
 func DbReadCost() int64 {
-	if singleAnalys != nil {
-		singleAnalys.DbReadCost()
+	if preSingleAnalys != nil {
+		return preSingleAnalys.DbReadCost()
 	}
 	return -1
 }
 
 func DbWriteCost() int64 {
-	if singleAnalys != nil {
-		singleAnalys.DbWriteCost()
+	if preSingleAnalys != nil {
+		return preSingleAnalys.DbWriteCost()
 	}
 	return -1
 }
@@ -122,10 +122,6 @@ func StopTxLog(module, oper string) {
 	}
 }
 
-func CloseAnalys() {
-	singleAnalys.Close()
-}
-
 func (s *analyer) onAppBeginBlockEnter() {
 	if s.status {
 		s.startBeginBlock = GetNowTimeMs()
@@ -173,7 +169,9 @@ func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
 		s.format()
+		preSingleAnalys = singleAnalys
 	}
+	singleAnalys = nil
 }
 
 func (s *analyer) newTxLog() {
@@ -195,10 +193,6 @@ func (s *analyer) stopTxLog(module, oper string) {
 			s.tx[s.currentTxIndex-1].StopTxLog(module, oper)
 		}
 	}
-}
-
-func (s *analyer) Close() {
-	s.status = false
 }
 
 func (s *analyer) EvmCost() int64 {

@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/tendermint/tendermint/trace"
+	"github.com/okex/exchain/x/analyzer"
 	"github.com/tendermint/tendermint/libs/log"
-
+	"github.com/tendermint/tendermint/trace"
 	"sync"
 )
+
 var once sync.Once
 
 func init() {
@@ -30,8 +31,6 @@ func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
 	e.infoMap[key] = info
 }
 
-
-
 func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 
 	if len(e.infoMap) == 0 {
@@ -46,6 +45,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		trace.Round, e.infoMap[trace.Round],
 		trace.CommitRound, e.infoMap[trace.CommitRound],
 		trace.Produce, e.infoMap[trace.Produce],
+		analyzer.EVM_FORMAT, analyzer.DbReadCost(), analyzer.DbWriteCost(), analyzer.EvmCost(),
 	)
 
 	logger.Info(info)
