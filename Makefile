@@ -25,6 +25,7 @@ ifeq ($(VERSION),)
 endif
 
 build_tags = netgo
+
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
