@@ -103,8 +103,8 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 		if int(tx.Data.AccountNonce) != txNonce {
 			return fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce)
 		}
-
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,8 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
+	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 	if err != nil {
 		return err
 	}
@@ -318,8 +319,9 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			pool.logger.Error(err.Error())
 			continue
@@ -333,8 +335,9 @@ func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			continue
 		}

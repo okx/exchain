@@ -8,6 +8,9 @@
 .vscode
 .idea
 *.csv
+*.tar.gz
+*.txt
+*.xls
 
 # Build
 .exchaind

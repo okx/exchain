@@ -26,7 +26,6 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
-	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
@@ -457,25 +456,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
-
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
-
-	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
-	}
-
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
-		if err == nil {
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
-		}
-	}
-
-	return resp
-}
 
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
@@ -492,15 +472,15 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
+
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-
-	perf.GetPerf().InitChainer(app.Logger())
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
+
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {
@@ -542,33 +522,6 @@ func (app *OKExChainApp) Codec() *codec.Codec {
 // NOTE: This is solely to be used for testing purposes.
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
-}
-
-// BeginBlock implements the Application interface
-func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
-	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
-
-	return app.BaseApp.BeginBlock(req)
-}
-
-// EndBlock implements the Application interface
-func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-
-	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
-
-	return app.BaseApp.EndBlock(req)
-}
-
-// Commit implements the Application interface
-func (app *OKExChainApp) Commit() abci.ResponseCommit {
-
-	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	res := app.BaseApp.Commit()
-	return res
 }
 
 // GetMaccPerms returns a copy of the module account permissions
