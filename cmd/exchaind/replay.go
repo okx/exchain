@@ -57,6 +57,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVarP(&state.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().String(types.FlagStateDelta, types.NoDelta, "sync through state delta")
 	cmd.Flags().Bool(types.FlagDataCenter, false, "Use data-center-mode or not")
+	cmd.Flags().String(types.DataCenterUrl, "http://127.0.0.1:7002/", "data-center-url")
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
