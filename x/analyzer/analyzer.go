@@ -5,7 +5,7 @@ import (
 	"github.com/tendermint/tendermint/trace"
 )
 
-var preSingleAnalys, singleAnalys *analyer
+var singleAnalys *analyer
 
 type analyer struct {
 	status          bool
@@ -152,7 +152,6 @@ func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
 		s.format()
-		preSingleAnalys = singleAnalys
 	}
 	singleAnalys = nil
 }
