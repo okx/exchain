@@ -284,7 +284,6 @@ func (k *Keeper) GetInnerBlockData() ethvm.BlockInnerData {
 func (k *Keeper) UpdateInnerBlockData(ctx sdk.Context) {
 	//Block write db
 	if len(k.innerBlockData.TxHashes) > 0 {
-		k.Logger(ctx).Error("WriteBlock", k.innerBlockData.BlockHash)
 		if err := ethvm.WriteBlockDB(k.innerBlockData.BlockHash, k.innerBlockData.TxHashes); err != nil {
 			panic(err)
 		}
@@ -292,7 +291,6 @@ func (k *Keeper) UpdateInnerBlockData(ctx sdk.Context) {
 	//InnerTx write db
 	if len(k.innerBlockData.TxMap) > 0 {
 		for txHash, inTx := range k.innerBlockData.TxMap {
-			k.Logger(ctx).Error("WriteTx", txHash, inTx)
 			if err := ethvm.WriteTx(txHash, inTx); err != nil {
 				panic(err)
 			}
