@@ -245,6 +245,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		resData.ContractAddress = contractAddress
 	}
 
+	//fmt.Println("statr-----1", resData.ContractAddress.String())
+	//fmt.Println("statr-----2", resData.Bloom.Big().String())
+	//fmt.Println("statr-----3", resData.Logs)
+	//for _, v := range resData.Logs {
+	//	fmt.Println("vvv", v)
+	//}
+	//fmt.Println("statr-----4", hex.EncodeToString(resData.Ret))
+	//fmt.Println("statr-----5", resData.TxHash.String())
 	resBz, err := EncodeResultData(*resData)
 	if err != nil {
 		return

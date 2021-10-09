@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	cfg "github.com/tendermint/tendermint/config"
 	"io"
 	"log"
 	"path/filepath"
@@ -98,6 +99,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for i := 0; i < 2; i++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)

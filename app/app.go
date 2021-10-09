@@ -2,10 +2,6 @@ package app
 
 import (
 	"fmt"
-	"io"
-	"math/big"
-	"os"
-
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -14,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/mint"
@@ -53,6 +50,9 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
+	"io"
+	"math/big"
+	"os"
 )
 
 func init() {
@@ -426,6 +426,9 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetChangeBalanceHandler(NewChangeBalanceHandle(app.AccountKeeper, app.SupplyKeeper))
+	app.SetGetTxFee(NewGetTxFeeHandle())
+	app.SetFixLog(NewFinalLog(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -634,7 +637,36 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
-	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+	) (uint64, sdk.Coins) {
+		return ak.GetAccount(ctx, addr).GetSequence(), ak.GetAccount(ctx, addr).GetCoins()
+	}
+}
+
+func NewChangeBalanceHandle(ak auth.AccountKeeper, sk supply.Keeper) sdk.ChangeBalanceHandler {
+	return func(ctx sdk.Context, balance sdk.Coins) sdk.Coins {
+		address := sk.GetModuleAddress(auth.FeeCollectorName)
+		acc := ak.GetAccount(ctx, address)
+		if balance.Empty() {
+			return acc.GetCoins()
+		}
+		acc.SetCoins(balance)
+		ak.SetAccount(ctx, acc)
+		return balance
+	}
+}
+
+func NewGetTxFeeHandle() sdk.GetTxFeeHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) sdk.Coins {
+		feeTx, ok := tx.(authante.FeeTx)
+		if ok {
+			return feeTx.GetFee()
+		}
+		return sdk.Coins{}
+	}
+}
+
+func NewFinalLog(ek *evm.Keeper) sdk.LogFix {
+	return func() (logs map[int][]byte) {
+		return ek.FixLog()
 	}
 }

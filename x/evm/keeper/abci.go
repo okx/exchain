@@ -38,6 +38,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.LogSize = 0
+	k.Mmpp = make(map[uint32]TxMapping)
 	k.Bhash = common.BytesToHash(currentHash)
 
 	//that can make sure latest block has been committed

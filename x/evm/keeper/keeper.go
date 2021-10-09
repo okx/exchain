@@ -3,9 +3,8 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
-
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/store"
 
@@ -45,8 +44,14 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
+
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
+	Mmpp    map[uint32]TxMapping
+}
+
+type TxMapping struct {
+	ResultData *types.ResultData
 }
 
 // NewKeeper generates new evm module keeper
@@ -104,6 +109,33 @@ func NewSimulateKeeper(
 
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
 	k.Watcher.DeleteAccount(acc.GetAddress())
+}
+
+func (k Keeper) FixLog() map[int][]byte {
+	res := make(map[int][]byte, 0)
+	preLogSize := uint(0)
+	k.Bloom = new(big.Int)
+	for index := 0; index < len(k.Mmpp); index++ {
+		rs := k.Mmpp[uint32(index)]
+		if rs.ResultData == nil {
+			continue
+		}
+		for _, v := range rs.ResultData.Logs {
+			v.Index = preLogSize
+			preLogSize++
+		}
+
+		bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rs.ResultData.Logs))
+		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+		rs.ResultData.Bloom = bloomFilter
+		k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
+		data, err := types.EncodeResultData(*rs.ResultData)
+		if err != nil {
+			panic(err)
+		}
+		res[index] = data
+	}
+	return res
 }
 
 // Logger returns a module-specific logger.

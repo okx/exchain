@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -117,6 +118,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
+	if ctx.IsAsync() {
+		tmp := keeper.TxMapping{
+			ResultData: resultData,
+		}
+		k.Mmpp[ctx.EvmTransactionIndex()] = tmp
+	}
+
 	if err != nil {
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())

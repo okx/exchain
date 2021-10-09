@@ -53,7 +53,7 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
 
 
-BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
+BUILD_FLAGS := -ldflags '$(ldflags)'  
 
 all: install
 
