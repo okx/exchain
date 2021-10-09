@@ -41,7 +41,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
 		trace.RunTx, e.infoMap[trace.RunTx],
-		"Evm", e.infoMap["Evm"],
+		trace.Evm, e.infoMap[trace.Evm],
 		trace.Round, e.infoMap[trace.Round],
 		trace.CommitRound, e.infoMap[trace.CommitRound],
 		trace.Produce, e.infoMap[trace.Produce],
