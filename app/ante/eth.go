@@ -21,6 +21,7 @@ import (
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler
 type EVMKeeper interface {
 	GetParams(ctx sdk.Context) evmtypes.Params
+	IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // EthSetupContextDecorator sets the infinite GasMeter in the Context and wraps

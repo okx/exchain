@@ -50,6 +50,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 			)
 
 		case evmtypes.MsgEthereumTx:
@@ -62,7 +63,8 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewAccountVerificationDecorator(ak, evmKeeper),
 				NewNonceVerificationDecorator(ak),
 				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
+				NewIncrementSenderSequenceDecorator(ak),           // innermost AnteDecorator.
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 			)
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
@@ -127,4 +129,54 @@ func setupAccount(ak keeper.AccountKeeper, ctx sdk.Context, addr sdk.AccAddress)
 
 	acc = ak.NewAccountWithAddress(ctx, addr)
 	ak.SetAccount(ctx, acc)
+}
+
+// AccountBlockedVerificationDecorator check whether signer is blocked.
+type AccountBlockedVerificationDecorator struct {
+	evmKeeper EVMKeeper
+}
+
+// NewAccountBlockedVerificationDecorator creates a new AccountBlockedVerificationDecorator instance
+func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedVerificationDecorator {
+	return AccountBlockedVerificationDecorator{
+		evmKeeper: evmKeeper,
+	}
+}
+
+// AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
+func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	signers, err := getSigners(tx)
+	if err != nil {
+		return ctx, err
+	}
+	for _, signer := range signers {
+		//TODO it may be optimizate by cache blockedAddressList
+		if ok := abvd.evmKeeper.IsAddressBlocked(ctx, signer); ok {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", signer.String())
+		}
+	}
+	return next(ctx, tx, simulate)
+}
+
+// getSigners get signers of tx(contains cosmos-tx and eth-tx.
+func getSigners(tx sdk.Tx) ([]sdk.AccAddress, error) {
+	signers := make([]sdk.AccAddress, 0)
+	switch tx.(type) {
+	case auth.StdTx:
+		sigTx, ok := tx.(authante.SigVerifiableTx)
+		if !ok {
+			return signers, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
+		}
+		signers = append(signers, sigTx.GetSigners()...)
+	case evmtypes.MsgEthereumTx:
+		msgEthTx, ok := tx.(evmtypes.MsgEthereumTx)
+		if !ok {
+			return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
+		}
+		signers = append(signers, msgEthTx.GetSigners()...)
+
+	default:
+		return signers, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "invalid transaction type: %T", tx)
+	}
+	return signers, nil
 }
