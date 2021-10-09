@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/trace"
-	"sync"
 )
 
 var once sync.Once
@@ -36,12 +37,13 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		return
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s[%s], %s[%s], %s[%s]",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s[%s], %s[%s], %s[%s], %s[%s]",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		"Evm", e.infoMap["Evm"],
+		"DB", e.infoMap["DB"],
 		trace.Round, e.infoMap[trace.Round],
 		trace.CommitRound, e.infoMap[trace.CommitRound],
 		trace.Produce, e.infoMap[trace.Produce],
