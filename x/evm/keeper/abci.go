@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -38,7 +39,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.LogSize = 0
-	k.Mmpp = make(map[uint32]TxMapping)
+	k.LogsManages = NewLogManager()
 	k.Bhash = common.BytesToHash(currentHash)
 
 	//that can make sure latest block has been committed
@@ -53,9 +54,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-
+	fmt.Println("EndBlock------------before----", k.Bloom.String())
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
+	fmt.Println("EndBlock----------------", k.Bloom.String(), bloom.Big().String())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	if types.GetEnableBloomFilter() {
@@ -102,4 +104,35 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	}
 
 	return []abci.ValidatorUpdate{}
+}
+
+func (k *Keeper) FixLog(size int) map[int][]byte {
+	res := make(map[int][]byte, 0)
+	preLogSize := uint(0)
+	k.Bloom = new(big.Int)
+	fmt.Println("size", size)
+	for index := 0; index < size; index++ {
+		rs := k.LogsManages.Get(uint32(index))
+		if rs.ResultData == nil {
+			fmt.Println("111777---", index)
+			continue
+		}
+		for _, v := range rs.ResultData.Logs {
+			v.Index = preLogSize
+			preLogSize++
+		}
+
+		bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rs.ResultData.Logs))
+		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
+		rs.ResultData.Bloom = bloomFilter
+		k.Bloom = k.Bloom.Or(k.Bloom, bloomInt)
+		fmt.Println("resuuuu", rs.ResultData.TxHash.String())
+		//fmt.Println("k.Bloom", index, k.Bloom, rs.ResultData.Bloom.Big().String())
+		data, err := types.EncodeResultData(*rs.ResultData)
+		if err != nil {
+			panic(err)
+		}
+		res[index] = data
+	}
+	return res
 }

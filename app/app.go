@@ -646,6 +646,7 @@ func NewChangeBalanceHandle(ak auth.AccountKeeper, sk supply.Keeper) sdk.ChangeB
 	return func(ctx sdk.Context, balance sdk.Coins) sdk.Coins {
 		address := sk.GetModuleAddress(auth.FeeCollectorName)
 		acc := ak.GetAccount(ctx, address)
+		//fmt.Println("====NewChangeBalanceHandle", balance, balance.Empty(), acc.GetCoins(), address.String())
 		if balance.Empty() {
 			return acc.GetCoins()
 		}
@@ -666,7 +667,7 @@ func NewGetTxFeeHandle() sdk.GetTxFeeHandler {
 }
 
 func NewFinalLog(ek *evm.Keeper) sdk.LogFix {
-	return func() (logs map[int][]byte) {
-		return ek.FixLog()
+	return func(size int) (logs map[int][]byte) {
+		return ek.FixLog(size)
 	}
 }

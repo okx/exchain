@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
+	"sync"
 
 	"github.com/cosmos/cosmos-sdk/store"
 
@@ -45,13 +46,44 @@ type Keeper struct {
 	Bhash   ethcmn.Hash
 	LogSize uint
 
-	Watcher *watcher.Watcher
-	Ada     types.DbAdapter
-	Mmpp    map[uint32]TxMapping
+	Watcher     *watcher.Watcher
+	Ada         types.DbAdapter
+	LogsManages *LogsManager
+}
+
+type LogsManager struct {
+	mu   sync.RWMutex
+	Mmpp map[uint32]TxMapping
+}
+
+func NewLogManager() *LogsManager {
+	return &LogsManager{
+		mu:   sync.RWMutex{},
+		Mmpp: make(map[uint32]TxMapping),
+	}
+}
+
+func (l *LogsManager) Set(index uint32, value TxMapping) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.Mmpp[index] = value
+}
+
+func (l *LogsManager) Get(index uint32) TxMapping {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.Mmpp[index]
+}
+
+func (l *LogsManager) Len() int {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return len(l.Mmpp)
 }
 
 type TxMapping struct {
 	ResultData *types.ResultData
+	Err        error
 }
 
 // NewKeeper generates new evm module keeper
@@ -109,33 +141,6 @@ func NewSimulateKeeper(
 
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
 	k.Watcher.DeleteAccount(acc.GetAddress())
-}
-
-func (k Keeper) FixLog() map[int][]byte {
-	res := make(map[int][]byte, 0)
-	preLogSize := uint(0)
-	k.Bloom = new(big.Int)
-	for index := 0; index < len(k.Mmpp); index++ {
-		rs := k.Mmpp[uint32(index)]
-		if rs.ResultData == nil {
-			continue
-		}
-		for _, v := range rs.ResultData.Logs {
-			v.Index = preLogSize
-			preLogSize++
-		}
-
-		bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rs.ResultData.Logs))
-		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
-		rs.ResultData.Bloom = bloomFilter
-		k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
-		data, err := types.EncodeResultData(*rs.ResultData)
-		if err != nil {
-			panic(err)
-		}
-		res[index] = data
-	}
-	return res
 }
 
 // Logger returns a module-specific logger.

@@ -73,3 +73,6 @@ dev/cache/*
 result.txt
 ethermint
 _cache_evm
+multi_run.log_123
+multi_run.log_tmp
+scf.sh

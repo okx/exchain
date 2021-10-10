@@ -35,7 +35,6 @@ type Handler struct {
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
-	//fmt.Println("39-----39----,gasRefund-start")
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(TempGasMeter)
@@ -48,7 +47,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gasUsed := currentGasMeter.GasConsumed()
 
 	if gasUsed >= gasLimit {
-		//fmt.Println("GasRefund---------", gasUsed, gasLimit)
 		return nil, nil
 	}
 
@@ -81,7 +79,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 		//fmt.Println("gasRefund", gasRefund)
 	}
 
-	//fmt.Println("gas--refund---", tx.GetTxInfo(ctx).Nonce, gasFees)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
