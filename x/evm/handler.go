@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
@@ -82,10 +81,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
 	if !st.Simulate {
-		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()))
+		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, int(ctx.EvmTransactionIndex()))
+		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
+		k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)
@@ -119,27 +119,21 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
-	if !ctx.IsAsync() {
-		fmt.Println("err", err)
-		//fmt.Println("err", executionResult)
-		//fmt.Println("err", executionResult.Result)
-		fmt.Println("err", resultData)
-	}
+	//if !ctx.IsAsync() {
+	//	fmt.Println("err", err)
+	//	fmt.Println("err", resultData)
+	//}
 
-	fmt.Println("129999", ctx.IsAsync(), ctx.EvmTransactionIndex(), err)
 	if ctx.IsAsync() {
-		fmt.Println("ccc", ctx.EvmTransactionIndex())
 		tmp := keeper.TxMapping{
 			ResultData: resultData,
 			Err:        err,
 		}
-		fmt.Println("///////", ctx.EvmTransactionIndex())
 		k.LogsManages.Set(ctx.EvmTransactionIndex(), tmp)
-		fmt.Println("135---------", ctx.EvmTransactionIndex(), tmp.ResultData == nil)
 	}
 	if err != nil {
 		if !st.Simulate {
-			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
+			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
 		}
 		return nil, err
 	}
@@ -150,7 +144,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		//fmt.Println("?????", k.Bloom.String(), executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
-		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(ctx.EvmTransactionIndex()-1), resultData, ctx.GasMeter().GasConsumed())
+		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
 			st.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 				k.Watcher.SaveContractCode(addr, c.Code)
@@ -225,8 +219,9 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	if !st.Simulate {
 		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, int(ctx.EvmTransactionIndex()))
+		st.Csdb.Prepare(ethHash, k.Bhash, int(k.TxCount))
 		st.Csdb.SetLogSize(k.LogSize)
+		k.TxCount++
 	}
 
 	config, found := k.GetChainConfig(ctx)
@@ -242,7 +237,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	// update block bloom filter
 	if !st.Simulate {
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-		fmt.Println("23888----", k.Bloom.String(), executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 	}
 

@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -38,6 +37,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
+	k.TxCount = 0
 	k.LogSize = 0
 	k.LogsManages = NewLogManager()
 	k.Bhash = common.BytesToHash(currentHash)
@@ -54,10 +54,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	fmt.Println("EndBlock------------before----", k.Bloom.String())
+	//fmt.Println("EndBlock------------before----", k.Bloom.String())
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
-	fmt.Println("EndBlock----------------", k.Bloom.String(), bloom.Big().String())
+	//fmt.Println("EndBlock----------------", k.Bloom.String(), bloom.Big().String())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	if types.GetEnableBloomFilter() {
@@ -110,15 +110,26 @@ func (k *Keeper) FixLog(size int) map[int][]byte {
 	res := make(map[int][]byte, 0)
 	preLogSize := uint(0)
 	k.Bloom = new(big.Int)
-	fmt.Println("size", size)
+	//fmt.Println("size", size)
+	txInBlock := uint(0)
 	for index := 0; index < size; index++ {
-		rs := k.LogsManages.Get(uint32(index))
-		if rs.ResultData == nil {
-			fmt.Println("111777---", index)
+		rs, ok := k.LogsManages.Get(uint32(index))
+		if !ok { // not enter handleEthereum
+			//fmt.Println("//////", index)
 			continue
 		}
+		if index != 0 {
+			txInBlock++
+		}
+
+		if rs.ResultData == nil {
+			//fmt.Println("111777---", index)
+			continue
+		}
+
 		for _, v := range rs.ResultData.Logs {
 			v.Index = preLogSize
+			v.TxIndex = txInBlock
 			preLogSize++
 		}
 
@@ -126,7 +137,7 @@ func (k *Keeper) FixLog(size int) map[int][]byte {
 		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
 		rs.ResultData.Bloom = bloomFilter
 		k.Bloom = k.Bloom.Or(k.Bloom, bloomInt)
-		fmt.Println("resuuuu", rs.ResultData.TxHash.String())
+		//fmt.Println("resuuuu", index, rs.ResultData)
 		//fmt.Println("k.Bloom", index, k.Bloom, rs.ResultData.Bloom.Big().String())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {

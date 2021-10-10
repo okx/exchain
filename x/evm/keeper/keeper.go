@@ -42,6 +42,7 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
+	TxCount int
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
@@ -69,10 +70,11 @@ func (l *LogsManager) Set(index uint32, value TxMapping) {
 	l.Mmpp[index] = value
 }
 
-func (l *LogsManager) Get(index uint32) TxMapping {
+func (l *LogsManager) Get(index uint32) (TxMapping, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return l.Mmpp[index]
+	data, ok := l.Mmpp[index]
+	return data, ok
 }
 
 func (l *LogsManager) Len() int {
