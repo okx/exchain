@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/big"
 	"os"
+	"sync"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -51,6 +52,7 @@ import (
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/tendermint/iavl"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -125,6 +127,8 @@ var (
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
+
+    onceLog sync.Once
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -186,6 +190,8 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+
+
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
@@ -431,6 +437,23 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
+
+	onceLog.Do(func() {
+		logFunc := func(level int, format string, args ...interface{}) {
+			switch level {
+			case iavl.IAVL_ERR:
+				logger.Error(fmt.Sprintf(format, args...))
+			case iavl.IAVL_INFO:
+				logger.Info(fmt.Sprintf(format, args...))
+			case iavl.IAVL_DEBUG:
+				logger.Debug(fmt.Sprintf(format, args...))
+			default:
+				return
+			}
+		}
+		iavl.SetLogFunc(logFunc)
+	})
+
 	return app
 }
 
