@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -106,20 +107,24 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	return []abci.ValidatorUpdate{}
 }
 
-func (k *Keeper) FixLog(size int) map[int][]byte {
+func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 	res := make(map[int][]byte, 0)
 	preLogSize := uint(0)
 	k.Bloom = new(big.Int)
 	//fmt.Println("size", size)
 	txInBlock := uint(0)
-	for index := 0; index < size; index++ {
+	first := true
+	for index := 0; index < len(isAnteFailed); index++ {
 		rs, ok := k.LogsManages.Get(uint32(index))
-		if !ok { // not enter handleEthereum
-			//fmt.Println("//////", index)
+		//fmt.Println("index----", index, ok, rs.Err, rs.ResultData == nil)
+		if !ok || isAnteFailed[uint32(index)] { // not enter handleEthereum
+			fmt.Println("//////", index, ok, isAnteFailed)
 			continue
 		}
-		if index != 0 {
+		if !first {
 			txInBlock++
+		} else {
+			first = false
 		}
 
 		if rs.ResultData == nil {
@@ -137,6 +142,7 @@ func (k *Keeper) FixLog(size int) map[int][]byte {
 		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
 		rs.ResultData.Bloom = bloomFilter
 		k.Bloom = k.Bloom.Or(k.Bloom, bloomInt)
+		//fmt.Println("err", index, rs.Err)
 		//fmt.Println("resuuuu", index, rs.ResultData)
 		//fmt.Println("k.Bloom", index, k.Bloom, rs.ResultData.Bloom.Big().String())
 		data, err := types.EncodeResultData(*rs.ResultData)

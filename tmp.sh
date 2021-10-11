@@ -4,6 +4,7 @@ make mainnet
 cp /Users/oker/scf/bin/exchaind /Users/oker/scf/bin/exchaind_tmp 
 chmod +x /Users/oker/scf/bin/exchaind_tmp
 export EXCHAIND_PATH=~/.exchaind_tmp
+
 rm -rf ${EXCHAIND_PATH}
 
 #cp -rf ~/.exchaind_tmp_2386696 ~/.exchaind_tmp

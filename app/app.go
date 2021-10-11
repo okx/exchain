@@ -667,7 +667,7 @@ func NewGetTxFeeHandle() sdk.GetTxFeeHandler {
 }
 
 func NewFinalLog(ek *evm.Keeper) sdk.LogFix {
-	return func(size int) (logs map[int][]byte) {
-		return ek.FixLog(size)
+	return func(isAnteFailed map[uint32]bool) (logs map[int][]byte) {
+		return ek.FixLog(isAnteFailed)
 	}
 }
