@@ -64,6 +64,10 @@ func RegisterDynamicConfig() {
 	// set the dynamic config
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
+
+
+	//download pprof
+	PprofDownload()
 }
 
 func (c *OecConfig) loadFromConfig() {

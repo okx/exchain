@@ -31,6 +31,7 @@ run() {
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
 
+# --iavl-enable-async-commit \
     exit
 }
 
@@ -72,6 +73,9 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["crisis"]["constant_fee"][
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="okt"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
 
+# Enable EVM
+sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
+sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER
@@ -88,3 +92,5 @@ exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
 run
+
+# exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y

@@ -82,7 +82,7 @@ run() {
   p2p_seed_opt=$5
   p2p_seed_arg=$6
 
-  LOG_LEVEL=main:info,state:info,evm:debug
+  LOG_LEVEL=main:info,*:error
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \
@@ -93,12 +93,13 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 2s \
+    --consensus.timeout_commit 3s \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --rest.laddr tcp://localhost:8545 \
     --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
 
+#     --iavl-enable-async-commit \
 }
 
 function start() {
