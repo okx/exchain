@@ -591,12 +591,12 @@ github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
-github.com/okex/cosmos-sdk v0.39.3-0.20210914030119-814e9c3e671f h1:7Sxs+LHY+RXUXp3fBUS+F0mjm1QMOcMQ4qOjqjNpfW0=
-github.com/okex/cosmos-sdk v0.39.3-0.20210914030119-814e9c3e671f/go.mod h1:IvlniaZoJAtzILHgcmnfaJ5S125TYJWfJvGqY9zSXb4=
+github.com/okex/cosmos-sdk v0.39.3-0.20211011111554-61a0500930cc h1:gk5Cv2ptLQ1k0ZzjGTuOSGjinIflcV4T61mdcctl2qo=
+github.com/okex/cosmos-sdk v0.39.3-0.20211011111554-61a0500930cc/go.mod h1:IvlniaZoJAtzILHgcmnfaJ5S125TYJWfJvGqY9zSXb4=
 github.com/okex/iavl v0.14.3-exchain1 h1:DVzcZq362OkRkFR3JEeTsxSzuydAItzjMXafeJ/LQwk=
 github.com/okex/iavl v0.14.3-exchain1/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
-github.com/okex/tendermint v0.33.9-okexchain6.0.20210913034320-db0586d8c1b9 h1:NWXq5wwVVMtz+85QFl5Wy/MDu4iWQlnqFRayt/z5ppo=
-github.com/okex/tendermint v0.33.9-okexchain6.0.20210913034320-db0586d8c1b9/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20211011111710-a61dd4f79b25 h1:ITZ/hD4/n3VWYBv6ya7P9WiS4HSp3dQ0VvJYFkeS0KY=
+github.com/okex/tendermint v0.33.9-okexchain6.0.20211011111710-a61dd4f79b25/go.mod h1:EoGTbJUufUueNIigY3zyO6f7GOj29OdpFhuR8sxWdSU=
 github.com/okex/tm-db v0.5.2-exchain1 h1:c8aX7HoNW58GXHEO6e7BR81SwyBfjWJkqGwNUhF3tlc=
 github.com/okex/tm-db v0.5.2-exchain1/go.mod h1:VrPTx04QJhQ9d8TFUTc2GpPBvBf/U9vIdBIzkjBk7Lk=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
