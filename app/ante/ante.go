@@ -39,6 +39,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 			anteHandler = sdk.ChainAnteDecorators(
 				authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
 				NewAccountSetupDecorator(ak),
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				authante.NewMempoolFeeDecorator(),
 				authante.NewValidateBasicDecorator(),
 				authante.NewValidateMemoDecorator(ak),
@@ -50,12 +51,12 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 			)
 
 		case evmtypes.MsgEthereumTx:
 			anteHandler = sdk.ChainAnteDecorators(
-				NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+				NewEthSetupContextDecorator(),                     // outermost AnteDecorator. EthSetUpContext must be called first
+				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				NewGasLimitDecorator(evmKeeper),
 				NewEthMempoolFeeDecorator(evmKeeper),
 				authante.NewValidateBasicDecorator(),
@@ -63,8 +64,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				NewAccountVerificationDecorator(ak, evmKeeper),
 				NewNonceVerificationDecorator(ak),
 				NewEthGasConsumeDecorator(ak, sk, evmKeeper),
-				NewIncrementSenderSequenceDecorator(ak),           // innermost AnteDecorator.
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+				NewIncrementSenderSequenceDecorator(ak), // innermost AnteDecorator.
 			)
 		default:
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
