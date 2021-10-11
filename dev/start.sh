@@ -28,10 +28,23 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --consensus.timeout_commit 3s \
+      --iavl-enable-async-commit \
+      --iavl-commit-interval-height 10 \
+      --iavl-output-modules evm=0,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
 
+# --iavl-commit-interval-height \
 # --iavl-enable-async-commit \
+#      --iavl-cache-size int                              Max size of iavl cache (default 1000000)
+#      --iavl-commit-interval-height int                  Max interval to commit node cache into leveldb (default 100)
+#      --iavl-debug int                                   Enable iavl project debug
+#      --iavl-enable-async-commit                         Enable async commit
+#      --iavl-enable-pruning-history-state                Enable pruning history state
+#      --iavl-height-orphans-cache-size int               Max orphan version to cache in memory (default 8)
+#      --iavl-max-committed-height-num int                Max committed version to cache in memory (default 8)
+#      --iavl-min-commit-item-count int                   Min nodes num to triggle node cache commit (default 500000)
+#      --iavl-output-modules
     exit
 }
 
