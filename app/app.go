@@ -441,11 +441,11 @@ func NewOKExChainApp(
 	onceLog.Do(func() {
 		logFunc := func(level int, format string, args ...interface{}) {
 			switch level {
-			case iavl.IAVL_ERR:
+			case iavl.IalvErr:
 				logger.Error(fmt.Sprintf(format, args...))
-			case iavl.IAVL_INFO:
+			case iavl.IalvInfo:
 				logger.Info(fmt.Sprintf(format, args...))
-			case iavl.IAVL_DEBUG:
+			case iavl.IalvDebug:
 				logger.Debug(fmt.Sprintf(format, args...))
 			default:
 				return

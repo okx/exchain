@@ -597,6 +597,10 @@ github.com/okex/iavl v0.0.0-20211011011124-ccbb8dc84c13 h1:s72kVWyIckHxliUMxSPnl
 github.com/okex/iavl v0.0.0-20211011011124-ccbb8dc84c13/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
 github.com/okex/iavl v0.0.0-20211011020124-c7bf79aecdc5 h1:OpYJa/sE4afoXqN4QPKtaCDVpVJehEBZwMGEw7B4u5M=
 github.com/okex/iavl v0.0.0-20211011020124-c7bf79aecdc5/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
+github.com/okex/iavl v0.0.0-20211011035701-4aa732db166f h1:pJ4lfsCsIFtFmNyZkgNWi/lLrXDjBR2De2nai4k3gEI=
+github.com/okex/iavl v0.0.0-20211011035701-4aa732db166f/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
+github.com/okex/iavl v0.0.0-20211011042128-e4f4f8551aa2 h1:KNvQyyMej9tGH2Zhh/4Pn+FBwGfa60dwjXi0pqGmrb4=
+github.com/okex/iavl v0.0.0-20211011042128-e4f4f8551aa2/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
 github.com/okex/iavl v0.14.4-0.20211009062139-ceee932a41cc h1:rnqlwj9RiGsECxv5wQ/wLRQfepbspBYlnMhadGUlC0E=
 github.com/okex/iavl v0.14.4-0.20211009062139-ceee932a41cc/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20211009022446-c5eab3596a5d h1:6eDU9TfZBp8ykDEnpcXXmkJWU0cgzptHrDMCsTL2yV8=
