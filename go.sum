@@ -595,6 +595,8 @@ github.com/okex/cosmos-sdk v0.39.2-exchain18 h1:dKLVG83sKjvoKond2EYN945q5bz6OUhT
 github.com/okex/cosmos-sdk v0.39.2-exchain18/go.mod h1:T0M/3M2tXqexBHG2fokTA4Prgaxr+kdAzjB2txBrOLU=
 github.com/okex/iavl v0.14.3-exchain3 h1:1QB8fYlh8S6Sbpi3DQe1cwLAjYEpYDSFi6GWoVHSVJs=
 github.com/okex/iavl v0.14.3-exchain3/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
+github.com/okex/tendermint v0.0.0-20211012225230-da1b2e55e831 h1:ZCuNkHybkSRnpPImLAzprwhY64MVT35muya6v+Zk2pg=
+github.com/okex/tendermint v0.0.0-20211012225230-da1b2e55e831/go.mod h1:M1QIvLS/pX7b7wwoLLFCGPxnPVNpiy9yNg9l/zFiMh0=
 github.com/okex/tendermint v0.33.9-exchain15 h1:WK0IdBuiqqB/FGfk/BUlOIlOEe4Bi04upZTVHM94bVg=
 github.com/okex/tendermint v0.33.9-exchain15/go.mod h1:M1QIvLS/pX7b7wwoLLFCGPxnPVNpiy9yNg9l/zFiMh0=
 github.com/okex/tm-db v0.5.2-exchain1 h1:c8aX7HoNW58GXHEO6e7BR81SwyBfjWJkqGwNUhF3tlc=

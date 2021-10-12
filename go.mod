@@ -62,6 +62,6 @@ replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain18
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain3
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-exchain15
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.0.0-20211012225230-da1b2e55e831
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
