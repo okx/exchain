@@ -23,7 +23,7 @@ type analyer struct {
 	dbWrite         int64
 	allCost         int64
 	evmCost         int64
-	tx              []*txLog
+	txs             []*txLog
 }
 
 func init() {
@@ -34,6 +34,10 @@ func init() {
 	for _, v := range STATEDB_WRITE {
 		dbOper.AddOperType(v, WRITE)
 	}
+	for _, v := range EVM_OPER {
+		dbOper.AddOperType(v, EVMALL)
+	}
+
 }
 
 func newAnalys(height int64) {
@@ -93,15 +97,15 @@ func OnCommitExit() {
 	singleAnalys = nil
 }
 
-func StartTxLog(module, oper string) {
+func StartTxLog(oper string) {
 	if singleAnalys != nil {
-		singleAnalys.startTxLog(module, oper)
+		singleAnalys.startTxLog(oper)
 	}
 }
 
-func StopTxLog(module, oper string) {
+func StopTxLog(oper string) {
 	if singleAnalys != nil {
-		singleAnalys.stopTxLog(module, oper)
+		singleAnalys.stopTxLog(oper)
 	}
 }
 
@@ -158,21 +162,21 @@ func (s *analyer) onCommitExit() {
 
 func (s *analyer) newTxLog() {
 	s.currentTxIndex++
-	s.tx = append(s.tx, newTxLog(module))
+	s.txs = append(s.txs, newTxLog())
 }
 
-func (s *analyer) startTxLog(module, oper string) {
+func (s *analyer) startTxLog(oper string) {
 	if s.status {
-		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
-			s.tx[s.currentTxIndex-1].StartTxLog(module, oper)
+		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
+			s.txs[s.currentTxIndex-1].StartTxLog(oper)
 		}
 	}
 }
 
-func (s *analyer) stopTxLog(module, oper string) {
+func (s *analyer) stopTxLog(oper string) {
 	if s.status {
-		if s.currentTxIndex > 0 && int64(len(s.tx)) == s.currentTxIndex {
-			s.tx[s.currentTxIndex-1].StopTxLog(module, oper)
+		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
+			s.txs[s.currentTxIndex-1].StopTxLog(oper)
 		}
 	}
 }
@@ -180,33 +184,23 @@ func (s *analyer) stopTxLog(module, oper string) {
 func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	var evmcore int64
-	for _, v := range s.tx {
-		s.evmCost += v.EvmCost
-		for model, operMap := range v.Record {
-			if model == EVM {
-				if v, ok := operMap.Record[EVM_Create]; ok {
-					evmcore += v.TimeCost
-				}
-				if v, ok := operMap.Record[EVM_Call]; ok {
-					evmcore += v.TimeCost
-				}
+	for _, v := range s.txs {
+		for oper, operObj := range v.Record {
+			operType, err := dbOper.GetOperType(oper)
+			if err != nil {
 				continue
 			}
-			for action, oper := range operMap.Record {
-				operType, err := dbOper.GetOperType(action)
-				if err != nil {
-					continue
-				}
-				if operType == READ {
-					s.dbRead += oper.TimeCost
-				}
-				if operType == WRITE {
-					s.dbWrite += oper.TimeCost
-				}
+			switch operType {
+			case READ:
+				s.dbRead += operObj.TimeCost
+			case WRITE:
+				s.dbWrite += operObj.TimeCost
+			case EVMALL:
+				evmcore += operObj.TimeCost
 			}
 		}
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore - s.dbRead - s.dbWrite))
+	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
 }

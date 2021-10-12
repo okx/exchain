@@ -175,9 +175,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr)
 		}
-		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Create)
+		analyzer.StartTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Create)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		if !params.EnableCall {
@@ -186,9 +185,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Call)
+		analyzer.StartTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
-		analyzer.StopTxLog(analyzer.EVM, analyzer.EVM_Call)
+
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
 
@@ -198,6 +197,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
 		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+		analyzer.StopTxLog(analyzer.EVMCORE)
 	}()
 	if err != nil {
 		// Consume gas before returning
