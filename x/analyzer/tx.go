@@ -7,40 +7,34 @@ import (
 type txLog struct {
 	startTime int64
 	AllCost   int64
-	EvmCost   int64
-	Record    map[string]*txBase
+	Record map[string]*operateInfo
 }
 
-func newTxLog(module []string) *txLog {
+func newTxLog() *txLog {
 	tmp := &txLog{
 		startTime: GetNowTimeMs(),
-		Record:    make(map[string]*txBase),
+		Record:    make(map[string]*operateInfo),
 	}
-	for _, v := range module {
-		tmp.Record[v] = newTxBase()
-	}
+
 	return tmp
 }
 
-func (s *txLog) StartTxLog(module, oper string) error {
-	if _, ok := s.Record[module]; !ok {
-		return fmt.Errorf("%s module not found", module)
+func (s *txLog) StartTxLog(oper string) error {
+
+	if _, ok := s.Record[oper]; !ok {
+		s.Record[oper] = newOperateInfo()
 	}
-	s.Record[module].StartCost(oper)
+	s.Record[oper].StartOper()
 	return nil
 }
 
-func (s *txLog) StopTxLog(module, oper string) error {
+func (s *txLog) StopTxLog(oper string) error {
 
-	if _, ok := s.Record[module]; !ok {
-		return fmt.Errorf("%s module not found", module)
+	if _, ok := s.Record[oper]; !ok {
+		return fmt.Errorf("%s oper not found", oper)
 	}
-	s.Record[module].StopCost(oper)
-	//统计evm 耗时
-	if v, ok := s.Record[COMMIT_STATE_DB]; ok {
-		s.AllCost = GetNowTimeMs() - s.startTime
-		s.EvmCost = s.AllCost - v.DBCost()
-	}
+
+	s.Record[oper].StopOper()
 
 	return nil
 }
