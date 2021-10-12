@@ -207,6 +207,6 @@ func (s *analyer) format() {
 		}
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, s.evmCost, evmcore))
+	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore - s.dbRead - s.dbWrite))
 
 }

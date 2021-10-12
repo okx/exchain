@@ -8,7 +8,7 @@ const (
 	EVM_Call        = "Call"
 	READ            = 1
 	WRITE           = 2
-	EVM_FORMAT      = "read<%dms>, write<%dms>, execute<%dms>, call&create<%dms>"
+	EVM_FORMAT      = "read<%dms>, write<%dms>, execute<%dms>"
 )
 
 var (
