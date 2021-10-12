@@ -1,7 +1,11 @@
 package watcher
 
 import (
+	"bytes"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"math/big"
+	"net/http"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -14,7 +18,10 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
+
+var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
 	store         *WatchStore
@@ -29,6 +36,13 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+}
+
+type Batch struct {
+	Key       []byte `json:"key"`
+	Value     []byte `json:"value"`
+	TypeValue uint32 `json:"type_value"`
+	Height    int64  `json:"height"`
 }
 
 var (
@@ -315,18 +329,39 @@ func (w *Watcher) Reset() {
 	w.staleBatch = []WatchMessage{}
 }
 
-func (w *Watcher) Commit() {
+func (w *Watcher) Commit(height int64) {
 	if !w.Enabled() {
 		return
 	}
 	//hold it in temp
 	batch := w.batch
 	go func() {
-		for _, b := range batch {
-			w.store.Set(b.GetKey(), []byte(b.GetValue()))
-			if b.GetType() == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+		batchs := make([]*Batch, len(batch))
+		for i, b := range batch {
+			key := b.GetKey()
+			value := []byte(b.GetValue())
+			typeValue := b.GetType()
+			batchs[i] = &Batch{key, value, typeValue, height}
+			w.store.Set(key, value)
+			if typeValue == TypeState {
+				state.SetStateToLru(common.BytesToHash(key), value)
 			}
 		}
+		sendToDatacenter(batchs)
 	}()
+}
+
+// sendToDatacenter send bcBlockResponseMessage to DataCenter
+func sendToDatacenter(batch []*Batch) {
+	msgBody, err := itjs.Marshal(&batch)
+	if  err != nil {
+		return
+	}
+
+	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "batch", "application/json", bytes.NewBuffer(msgBody))
+	if err != nil {
+		logger.Error("sendToDatacenter err ,", err)
+		return
+	}
+	defer response.Body.Close()
 }
