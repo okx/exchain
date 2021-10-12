@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/x/evm/watcher"
@@ -55,10 +54,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	//fmt.Println("EndBlock------------before----", k.Bloom.String())
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
-	//fmt.Println("EndBlock----------------", k.Bloom.String(), bloom.Big().String())
 	k.SetBlockBloom(ctx, req.Height, bloom)
 
 	if types.GetEnableBloomFilter() {
@@ -111,14 +108,11 @@ func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 	res := make(map[int][]byte, 0)
 	preLogSize := uint(0)
 	k.Bloom = new(big.Int)
-	//fmt.Println("size", size)
 	txInBlock := uint(0)
 	first := true
 	for index := 0; index < len(isAnteFailed); index++ {
 		rs, ok := k.LogsManages.Get(uint32(index))
-		//fmt.Println("index----", index, ok, rs.Err, rs.ResultData == nil)
 		if !ok || isAnteFailed[uint32(index)] { // not enter handleEthereum
-			fmt.Println("//////", index, ok, isAnteFailed)
 			continue
 		}
 		if !first {
@@ -128,7 +122,6 @@ func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 		}
 
 		if rs.ResultData == nil {
-			//fmt.Println("111777---", index)
 			continue
 		}
 
@@ -142,9 +135,6 @@ func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
 		rs.ResultData.Bloom = bloomFilter
 		k.Bloom = k.Bloom.Or(k.Bloom, bloomInt)
-		//fmt.Println("err", index, rs.Err)
-		//fmt.Println("resuuuu", index, rs.ResultData)
-		//fmt.Println("k.Bloom", index, k.Bloom, rs.ResultData.Bloom.Big().String())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
 			panic(err)

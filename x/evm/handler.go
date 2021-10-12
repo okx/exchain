@@ -119,10 +119,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
-	//if !ctx.IsAsync() {
-	//	fmt.Println("err", err)
-	//	fmt.Println("err", resultData)
-	//}
 
 	if ctx.IsAsync() {
 		tmp := keeper.TxMapping{
@@ -138,11 +134,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 
-	//fmt.Println("handleErhrtx", err)
 	if !st.Simulate {
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
-		//fmt.Println("?????", k.Bloom.String(), executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {

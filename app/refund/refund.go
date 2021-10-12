@@ -69,14 +69,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
 		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
 		gasRefund := fee.Sub(gasCost)
-
 		gasFees[i] = gasRefund
-
-		//fmt.Println("gas", gasLimit, "--", gasUsed, "----", gas, "---", fees)
-		//fmt.Println("detail", fee.Amount, gas, gasPrice)
-		//fmt.Println("gasConsumned", gasConsumed)
-		//fmt.Println("gasCost", gasCost)
-		//fmt.Println("gasRefund", gasRefund)
 	}
 
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
