@@ -164,6 +164,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	// create contract or execute call
+	defer analyzer.StopTxLog(analyzer.EVMCORE)
 	switch contractCreation {
 	case true:
 		if !params.EnableCreate {
@@ -197,7 +198,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
 		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
-		analyzer.StopTxLog(analyzer.EVMCORE)
 	}()
 	if err != nil {
 		// Consume gas before returning
