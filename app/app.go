@@ -48,11 +48,11 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
+	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
-	"github.com/tendermint/iavl"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -439,14 +439,15 @@ func NewOKExChainApp(
 	}
 
 	onceLog.Do(func() {
+		iavllog := logger.With("module", "iavl")
 		logFunc := func(level int, format string, args ...interface{}) {
 			switch level {
-			case iavl.IalvErr:
-				logger.Error(fmt.Sprintf(format, args...))
-			case iavl.IalvInfo:
-				logger.Info(fmt.Sprintf(format, args...))
-			case iavl.IalvDebug:
-				logger.Debug(fmt.Sprintf(format, args...))
+			case iavl.IavlErr:
+				iavllog.Error(fmt.Sprintf(format, args...))
+			case iavl.IavlInfo:
+				iavllog.Info(fmt.Sprintf(format, args...))
+			case iavl.IavlDebug:
+				iavllog.Debug(fmt.Sprintf(format, args...))
 			default:
 				return
 			}
