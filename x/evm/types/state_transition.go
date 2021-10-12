@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/okex/exchain/x/analyzer"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -174,8 +175,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr)
 		}
-
+		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Create)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
+		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Create)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		if !params.EnableCall {
@@ -184,7 +186,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
+		analyzer.StartTxLog(analyzer.EVM, analyzer.EVM_Call)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		analyzer.StopTxLog(analyzer.EVM, analyzer.EVM_Call)
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
 

@@ -179,9 +179,19 @@ func (s *analyer) stopTxLog(module, oper string) {
 
 func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
+	var evmcore int64
 	for _, v := range s.tx {
 		s.evmCost += v.EvmCost
-		for _, operMap := range v.Record {
+		for model, operMap := range v.Record {
+			if model == EVM {
+				if v, ok := operMap.Record[EVM_Create]; ok {
+					evmcore += v.TimeCost
+				}
+				if v, ok := operMap.Record[EVM_Call]; ok {
+					evmcore += v.TimeCost
+				}
+				continue
+			}
 			for action, oper := range operMap.Record {
 				operType, err := dbOper.GetOperType(action)
 				if err != nil {
@@ -197,6 +207,6 @@ func (s *analyer) format() {
 		}
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, s.evmCost))
+	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, s.evmCost, evmcore))
 
 }
