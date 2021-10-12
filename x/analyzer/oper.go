@@ -1,7 +1,6 @@
 package analyzer
 
 type operateInfo struct {
-	Count    int64 `json:"count"`
 	TimeCost int64 `json:"timeCost"`
 	LastCall int64 `json:"lastCall"`
 }
@@ -20,5 +19,4 @@ func (s *operateInfo) StartOper() {
 func (s *operateInfo) StopOper() {
 	callTime := GetNowTimeMs() - s.LastCall
 	s.TimeCost += callTime
-	s.Count++
 }

@@ -211,8 +211,8 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	code, ok := csdb.codeCache[addr]
@@ -237,8 +237,8 @@ func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode
 func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
@@ -264,8 +264,8 @@ func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -278,8 +278,8 @@ func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -292,8 +292,8 @@ func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -306,8 +306,8 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -320,8 +320,8 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -357,8 +357,8 @@ func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(addLogChange{txhash: csdb.thash})
@@ -376,8 +376,8 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	if _, ok := csdb.hashToPreimageIndex[hash]; !ok {
@@ -395,8 +395,8 @@ func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
 func (csdb *CommitStateDB) AddRefund(gas uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -408,8 +408,8 @@ func (csdb *CommitStateDB) AddRefund(gas uint64) {
 func (csdb *CommitStateDB) SubRefund(gas uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -424,8 +424,8 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	if csdb.accessList.AddAddress(addr) {
@@ -437,8 +437,8 @@ func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
 func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	addrMod, slotMod := csdb.accessList.AddSlot(addr, slot)
@@ -459,8 +459,8 @@ func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.
 func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn.Address, precompiles []ethcmn.Address, txAccesses ethtypes.AccessList) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	csdb.AddAddressToAccessList(sender)
@@ -483,8 +483,8 @@ func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn
 func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	return csdb.accessList.ContainsAddress(addr)
@@ -494,8 +494,8 @@ func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
 func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Hash) (bool, bool) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	return csdb.accessList.Contains(addr, slot)
@@ -532,8 +532,8 @@ func (csdb *CommitStateDB) GetParams() Params {
 func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -548,8 +548,8 @@ func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
 func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -578,8 +578,8 @@ func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	// check for the contract calling from blocked list if contract blocked list is enabled
@@ -608,8 +608,8 @@ func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -628,8 +628,8 @@ func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -644,8 +644,8 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -670,8 +670,8 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) 
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -691,8 +691,8 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 func (csdb *CommitStateDB) GetRefund() uint64 {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	return csdb.refund
@@ -713,8 +713,8 @@ func (csdb *CommitStateDB) Preimages() map[ethcmn.Hash][]byte {
 func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -881,8 +881,8 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 func (csdb *CommitStateDB) Snapshot() int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	id := csdb.nextRevisionID
@@ -903,8 +903,8 @@ func (csdb *CommitStateDB) Snapshot() int {
 func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	// find the snapshot in the stack of valid snapshots
@@ -938,8 +938,8 @@ func (csdb *CommitStateDB) Database() ethstate.Database {
 func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -951,8 +951,8 @@ func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
 func (csdb *CommitStateDB) Exist(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	return csdb.getStateObject(addr) != nil
@@ -970,8 +970,8 @@ func (csdb *CommitStateDB) Error() error {
 func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -1066,8 +1066,8 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	newobj, prevobj := csdb.createObject(addr)
@@ -1081,8 +1081,8 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := analyzer.RunFuncName()
-		analyzer.StartTxLog(analyzer.COMMIT_STATE_DB, funcName)
-		defer analyzer.StopTxLog(analyzer.COMMIT_STATE_DB, funcName)
+		analyzer.StartTxLog(funcName)
+		defer analyzer.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
