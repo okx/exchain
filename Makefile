@@ -143,5 +143,9 @@ localnet-start: localnet-stop
 localnet-stop:
 	docker-compose down
 
+rocksdb:
+	@echo "Installing rocksdb..."
+	@bash ./dev/devtools/install-rocksdb.sh
+.PHONY: rocksdb
 
 .PHONY: build
