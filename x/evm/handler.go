@@ -5,6 +5,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -48,6 +49,8 @@ func NewHandler(k *Keeper) sdk.Handler {
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
+	analyzer.StartTxLog("handleMsgEthereumTx")
+	defer analyzer.StopTxLog("handleMsgEthereumTx")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
@@ -170,7 +173,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-
+	analyzer.StartTxLog("handleMsgEthermint")
+	defer analyzer.StopTxLog("handleMsgEthermint")
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
