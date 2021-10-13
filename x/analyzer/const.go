@@ -4,7 +4,9 @@ const (
 	READ       = 1
 	WRITE      = 2
 	EVMALL     = 3
+	ANTEHANDLE = 4
 	EVM_FORMAT = "read<%dms>, write<%dms>, execute<%dms>"
+	ANTEHANDLE_FORMAT = "execute<%dms>"
 	EVMCORE    = "evmcore"
 )
 

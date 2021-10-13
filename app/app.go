@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/analyzer"
 	"io"
 	"math/big"
 	"os"
@@ -202,7 +203,7 @@ func NewOKExChainApp(
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), analyzer.StartTxLog, analyzer.StopTxLog, baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
 
