@@ -51,12 +51,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// parse the chainID from a string to a base-10 integer
 	analyzer.StartTxLog("handleMsgEthereumTx")
 	defer analyzer.StopTxLog("handleMsgEthereumTx")
+
+	analyzer.StartTxLog("handleMsgEthereumTx-VerifySig")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
 	// Verify signature and retrieve sender address
+
 	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return nil, err
@@ -78,10 +81,12 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
 	}
+	analyzer.StopTxLog("handleMsgEthereumTx-VerifySig")
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
+	analyzer.StartTxLog("handleMsgEthereumTx-SaveEthereumTx")
 	if !st.Simulate {
 		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
@@ -95,7 +100,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
+	analyzer.StopTxLog("handleMsgEthereumTx-SaveEthereumTx")
+
 	defer func() {
+		analyzer.StartTxLog("handleMsgEthereumTx-defer")
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
 			pm := k.GenerateCSDBParams()
@@ -118,6 +126,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 				k.Watcher.Finalize()
 			}
 		}
+		analyzer.StopTxLog("handleMsgEthereumTx-defer")
 	}()
 
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
@@ -128,6 +137,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 
+	analyzer.StartTxLog("handleMsgEthereumTx-138")
 	if !st.Simulate {
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -168,6 +178,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
+	analyzer.StopTxLog("handleMsgEthereumTx-138")
 	return executionResult.Result, nil
 }
 
@@ -175,10 +186,12 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
 	analyzer.StartTxLog("handleMsgEthermint")
 	defer analyzer.StopTxLog("handleMsgEthermint")
+
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
 
+	analyzer.StartTxLog("handleMsgEthermint-TransitionDb-before")
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -217,12 +230,14 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	if !found {
 		return nil, types.ErrChainConfigNotFound
 	}
+	analyzer.StopTxLog("handleMsgEthermint-TransitionDb-before")
 
 	executionResult, _, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
+	analyzer.StartTxLog("handleMsgEthermint-TransitionDb-after")
 	// update block bloom filter
 	if !st.Simulate {
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -255,5 +270,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
+	analyzer.StopTxLog("handleMsgEthermint-TransitionDb-after")
 	return executionResult.Result, nil
 }
