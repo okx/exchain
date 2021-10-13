@@ -187,7 +187,8 @@ func (s *analyer) stopTxLog(oper string) {
 func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	var evmcore int64
-	var un_known []interface{}
+	var format string
+	var record = make(map[string]int64)
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
 			operType, err := dbOper.GetOperType(oper)
@@ -201,13 +202,20 @@ func (s *analyer) format() {
 				s.dbWrite += operObj.TimeCost
 			case EVMALL:
 				evmcore += operObj.TimeCost
-			case UNKNOWN_TYPE:
-				un_known = append(un_known, operObj.TimeCost)
+			default:
+				if _, ok := record[oper]; !ok {
+					record[oper] = operObj.TimeCost
+				} else {
+					record[oper] += operObj.TimeCost
+				}
+
 			}
 		}
 	}
-
+	for k, v := range record{
+		format += fmt.Sprintf("%s<%dms> ", k, v)
+	}
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
-	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(UNKNOWN_FORMAT, un_known...))
+	trace.GetElapsedInfo().AddInfo("Unknown", format)
 }
