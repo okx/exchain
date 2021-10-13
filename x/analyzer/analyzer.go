@@ -37,7 +37,7 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
-	for _, v := range ANTE_HANDLE {
+	for _, v := range UNKNOWN {
 		dbOper.AddOperType(v, ANTEHANDLE)
 	}
 
@@ -208,5 +208,5 @@ func (s *analyer) format() {
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
-	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(ANTEHANDLE_FORMAT, antHandle))
+	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(UNKNOWN_FORMAT, antHandle))
 }

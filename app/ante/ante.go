@@ -7,7 +7,6 @@ import (
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
