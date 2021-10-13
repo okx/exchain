@@ -378,6 +378,7 @@ func compactLevelDB(name, dir string) {
 	dbPath := filepath.Join(dir, name+".db")
 	ldb, err := leveldb.OpenFile(dbPath, nil)
 	panicError(err)
+	defer ldb.Close()
 
 	for i := 0; i < 5; i++ {
 		err = ldb.CompactRange(util.Range{})
@@ -389,6 +390,7 @@ func compactRocksDB(name, dir string) {
 	dbPath := filepath.Join(dir, name+".db")
 	rdb, err := gorocksdb.OpenDb(gorocksdb.NewDefaultOptions(), dbPath)
 	panicError(err)
+	defer rdb.Close()
 
 	for i := 0; i < 5; i++ {
 		rdb.CompactRange(gorocksdb.Range{})
