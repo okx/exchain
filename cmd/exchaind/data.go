@@ -3,15 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/tecbot/gorocksdb"
 
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -25,6 +18,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/supply"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/node"
 	sm "github.com/tendermint/tendermint/state"
@@ -46,9 +42,8 @@ import (
 )
 
 const (
-	flagHeight    = "height"
-	flagPruning   = "enable_pruning"
-	flagDBBackend = "db_backend"
+	flagHeight  = "height"
+	flagPruning = "enable_pruning"
 
 	blockDBName = "blockstore"
 	stateDBName = "state"
@@ -79,9 +74,6 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 		pruneBlockCmd(ctx),
 	)
 
-	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
-	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
-	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 	return cmd
 }
 
@@ -93,10 +85,11 @@ func pruneAllCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
+			blockStoreDB := initDB(config, blockDBName)
+			stateDB := initDB(config, stateDBName)
+			appDB := initDB(config, appDBName)
+
 			if viper.GetBool(flagPruning) {
-				blockStoreDB := initDB(config, blockDBName)
-				stateDB := initDB(config, stateDBName)
-				appDB := initDB(config, appDBName)
 				baseHeight, retainHeight := getPruneBlockParams(blockStoreDB)
 
 				log.Println("--------- pruning start... ---------")
@@ -110,15 +103,18 @@ func pruneAllCmd(ctx *server.Context) *cobra.Command {
 
 			log.Println("--------- compact start... ---------")
 			wg.Add(3)
-			go compactDB(&node.DBContext{blockDBName, config})
-			go compactDB(&node.DBContext{stateDBName, config})
-			go compactDB(&node.DBContext{appDBName, config})
+			go compactDB(blockStoreDB, blockDBName)
+			go compactDB(stateDB, stateDBName)
+			go compactDB(appDB, appDBName)
 			wg.Wait()
 			log.Println("--------- compact end!!!   ---------")
 
 			return nil
 		},
 	}
+
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
 
 	return cmd
 }
@@ -131,8 +127,9 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
+			appDB := initDB(config, appDBName)
+
 			if viper.GetBool(flagPruning) {
-				appDB := initDB(config, appDBName)
 				retainHeight := getPruneAppParams(appDB)
 
 				wg.Add(1)
@@ -142,13 +139,16 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 
 			log.Println("--------- compact start ---------")
 			wg.Add(1)
-			go compactDB(&node.DBContext{appDBName, config})
+			go compactDB(appDB, appDBName)
 			wg.Wait()
 			log.Println("--------- compact end ---------")
 
 			return nil
 		},
 	}
+
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
 
 	return cmd
 }
@@ -161,9 +161,10 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
+			blockStoreDB := initDB(config, blockDBName)
+			stateDB := initDB(config, stateDBName)
+
 			if viper.GetBool(flagPruning) {
-				blockStoreDB := initDB(config, blockDBName)
-				stateDB := initDB(config, stateDBName)
 				baseHeight, retainHeight := getPruneBlockParams(blockStoreDB)
 
 				log.Println("--------- pruning start... ---------")
@@ -176,14 +177,17 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 
 			log.Println("--------- compact start... ---------")
 			wg.Add(2)
-			go compactDB(&node.DBContext{blockDBName, config})
-			go compactDB(&node.DBContext{stateDBName, config})
+			go compactDB(blockStoreDB, blockDBName)
+			go compactDB(stateDB, stateDBName)
 			wg.Wait()
 			log.Println("--------- compact end!!!   ---------")
 
 			return nil
 		},
 	}
+
+	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
+	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
 
 	return cmd
 }
@@ -355,46 +359,17 @@ func initAppStore(appDB dbm.DB) *rootmulti.Store {
 	return rs
 }
 
-func compactDB(ctx *node.DBContext) {
+func compactDB(db dbm.DB, name string) {
 	defer wg.Done()
 
-	log.Printf("Compact %s... \n", ctx.ID)
+	log.Printf("Compact %s... \n", name)
 	start := time.Now()
-
-	dbType := dbm.BackendType(ctx.Config.DBBackend)
-	switch dbType {
-	case dbm.GoLevelDBBackend:
-		compactLevelDB(ctx.ID, ctx.Config.DBDir())
-	case dbm.RocksDBBackend:
-		compactRocksDB(ctx.ID, ctx.Config.DBDir())
-	default:
-		panic("unsupported DB backend type")
-	}
-
-	log.Printf("Compact %s done in %v \n", ctx.ID, time.Since(start))
-}
-
-func compactLevelDB(name, dir string) {
-	dbPath := filepath.Join(dir, name+".db")
-	ldb, err := leveldb.OpenFile(dbPath, nil)
-	panicError(err)
-	defer ldb.Close()
-
 	for i := 0; i < 5; i++ {
-		err = ldb.CompactRange(util.Range{})
+		err := db.(*dbm.GoLevelDB).DB().CompactRange(util.Range{})
 		panicError(err)
 	}
-}
 
-func compactRocksDB(name, dir string) {
-	dbPath := filepath.Join(dir, name+".db")
-	rdb, err := gorocksdb.OpenDb(gorocksdb.NewDefaultOptions(), dbPath)
-	panicError(err)
-	defer rdb.Close()
-
-	for i := 0; i < 5; i++ {
-		rdb.CompactRange(gorocksdb.Range{})
-	}
+	log.Printf("Compact %s done in %v \n", name, time.Since(start))
 }
 
 func calcKeysNum(db dbm.DB) (keys, kvSize uint64) {

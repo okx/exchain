@@ -28,7 +28,7 @@ commands:
 jobs:
   build:
     docker:
-      - image: okexchain/build-env-rocksdb
+      - image: circleci/golang:1.14
     working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps:
       - checkout
