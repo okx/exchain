@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -360,25 +361,34 @@ func compactDB(db dbm.DB, name string, dbType dbm.BackendType) {
 	log.Printf("Compact %s... \n", name)
 	start := time.Now()
 
-	switch dbType {
-	case dbm.GoLevelDBBackend:
-		compactLevelDB(db)
-	case dbm.RocksDBBackend:
-		compactRocksDB(db)
-	default:
-		panic("unsupported DB backend type")
+	dbCompactor, ok := backends[dbType]
+	if !ok {
+		keys := make([]string, len(backends))
+		i := 0
+		for k := range backends {
+			keys[i] = string(k)
+			i++
+		}
+		panic(fmt.Sprintf("Unknown db_backend %s, expected either %s", dbType, strings.Join(keys, " or ")))
 	}
+
+	dbCompactor(db)
 
 	log.Printf("Compact %s done in %v \n", name, time.Since(start))
 }
 
-func compactLevelDB(db dbm.DB) {
-	if ldb, ok := db.(*dbm.GoLevelDB); ok {
-		for i := 0; i < 5; i++ {
-			err := ldb.DB().CompactRange(util.Range{})
-			panicError(err)
+func init() {
+	dbCompactor := func(db dbm.DB) {
+		if ldb, ok := db.(*dbm.GoLevelDB); ok {
+			for i := 0; i < 5; i++ {
+				if err := ldb.DB().CompactRange(util.Range{}); err != nil {
+					panic(err)
+				}
+			}
 		}
 	}
+
+	registerDBCompactor(dbm.GoLevelDBBackend, dbCompactor)
 }
 
 func calcKeysNum(db dbm.DB) (keys, kvSize uint64) {
@@ -442,4 +452,15 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 	cmd.AddCommand(queryBlockState, queryAppState)
 
 	return cmd
+}
+
+type dbCompactor func(dbm.DB)
+
+var backends = map[dbm.BackendType]dbCompactor{}
+
+func registerDBCompactor(dbType dbm.BackendType, compactor dbCompactor) {
+	if _, ok := backends[dbType]; ok {
+		return
+	}
+	backends[dbType] = compactor
 }
