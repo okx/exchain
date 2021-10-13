@@ -37,8 +37,11 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
-	for _, v := range UNKNOWN {
+	for _, v := range ANTE {
 		dbOper.AddOperType(v, ANTEHANDLE)
+	}
+	for _, v := range VALIDATE {
+		dbOper.AddOperType(v, VALIDATETYPE)
 	}
 
 }
@@ -188,6 +191,7 @@ func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	var evmcore int64
 	var antHandle int64
+	var validateBasic int64
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
 			operType, err := dbOper.GetOperType(oper)
@@ -203,10 +207,12 @@ func (s *analyer) format() {
 				evmcore += operObj.TimeCost
 			case ANTEHANDLE:
 				antHandle += operObj.TimeCost
+			case VALIDATETYPE:
+				validateBasic += operObj.TimeCost
 			}
 		}
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
-	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(UNKNOWN_FORMAT, antHandle))
+	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(UNKNOWN_FORMAT, antHandle, validateBasic))
 }
