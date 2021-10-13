@@ -208,5 +208,5 @@ func (s *analyer) format() {
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
-	trace.GetElapsedInfo().AddInfo("anteHandle", fmt.Sprintf(ANTEHANDLE_FORMAT, antHandle))
+	trace.GetElapsedInfo().AddInfo("Unknown", fmt.Sprintf(ANTEHANDLE_FORMAT, antHandle))
 }
