@@ -57,6 +57,7 @@ func KeyCommands() *cobra.Command {
 		clientkeys.MigrateCommand(),
 		flags.LineBreak,
 		UnsafeExportEthKeyCommand(),
+		ExportEthCompCommand(),
 	)
 	return cmd
 }
