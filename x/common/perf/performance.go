@@ -176,7 +176,7 @@ func newPerf() *performance {
 
 
 func (p *performance) InitChainer(logger log.Logger) {
-	p.logger = logger.With("module", "perf")
+	//p.logger = logger.With("module", "perf")
 }
 
 func (p *performance) EnableCheck() {
