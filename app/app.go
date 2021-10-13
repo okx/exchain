@@ -203,9 +203,11 @@ func NewOKExChainApp(
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), analyzer.StartTxLog, analyzer.StopTxLog, baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
+	bApp.SetStartLogHandler(analyzer.StartTxLog)
+	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
