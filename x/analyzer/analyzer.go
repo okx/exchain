@@ -213,7 +213,7 @@ func (s *analyer) format() {
 		}
 	}
 
-	var keys = []string{"runTx", "handleMsgEthereumTx-SaveEthereumTx",  "handleMsgEthereumTx-defer",  "handleMsgEthereumTx",  "anteHandler", "app-callback", "handleMsgEthereumTx-138", "handleMsgEthereumTx-VerifySig", "exchainDeliverTx"}
+	var keys = []string{"runTx", "handleMsgEthereumTx-SaveEthereumTx",  "handleMsgEthereumTx-defer",  "handleMsgEthereumTx",  "anteHandler", "app-callback", "handleMsgEthereumTx-138", "handleMsgEthereumTx-VerifySig", "exchainDeliverTx", "handleMsgEthereumTx-TransitionDb"}
 
 	for _ , v  := range keys{
 		format += fmt.Sprintf("%s<%dms> ", v, record[v])
