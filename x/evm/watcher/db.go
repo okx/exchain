@@ -15,7 +15,7 @@ const (
 	FlagFastQueryLru = "fast-lru"
 	FlagDBBackend    = "db_backend"
 
-	WatchDBDir  = "data"
+	WatchDbDir  = "data"
 	WatchDBName = "watch"
 )
 
@@ -37,7 +37,7 @@ func InstanceOfWatchStore() *WatchStore {
 
 func initDb() dbm.DB {
 	homeDir := viper.GetString(flags.FlagHome)
-	dbPath := filepath.Join(homeDir, WatchDBDir)
+	dbPath := filepath.Join(homeDir, WatchDbDir)
 	backend := viper.GetString(FlagDBBackend)
 
 	return dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
