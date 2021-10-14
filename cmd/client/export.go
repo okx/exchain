@@ -92,10 +92,11 @@ func ExportEthCompCommand() *cobra.Command {
 		Short: "Export an Ethereum private keystore file",
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
-	The parameters of Scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
+	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
+			accountName := args[0]
 			fileName := args[1]
 
 			if pathExist(fileName) {
@@ -104,7 +105,7 @@ func ExportEthCompCommand() *cobra.Command {
 					return err
 				}
 				if !overwrite {
-					return fmt.Errorf("export kestore file is aborted")
+					return fmt.Errorf("export keystore file is aborted")
 				}
 			}
 
@@ -129,7 +130,7 @@ func ExportEthCompCommand() *cobra.Command {
 					inBuf)
 			case keys.BackendOS:
 				conf, err = input.GetConfirmation(
-					"Enter passphrase to decrypt your key:",
+					"Decrypt your key by os passphrase. Are you sure?",
 					inBuf)
 			}
 			if err != nil || !conf {
@@ -142,42 +143,24 @@ func ExportEthCompCommand() *cobra.Command {
 				return err
 			}
 
-			// Exports private key from keybase using password
-			privKey, err := kb.ExportPrivateKeyObject(args[0], decryptPassword)
+			// Get eth keystore key by Name
+			ethKey, err := getEthKeyByName(kb, accountName, decryptPassword)
 			if err != nil {
 				return err
 			}
 
-			// Converts key to Ethermint secp256 implementation
-			emintKey, ok := privKey.(ethsecp256k1.PrivKey)
-			if !ok {
-				return fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
+			// Export Key to keystore file
+			if err := exportKeyStoreFile(ethKey, encryptPassword, fileName); err != nil {
+				return err
 			}
 
-			//  Converts Ethermint secp256 implementation key to keystore key
-			ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
-			if err != nil {
-				return fmt.Errorf("failed convert to ethKey: %s", err.Error())
-			}
-
-			// Encrypt Key to get keystore file
-			content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
-			if err != nil {
-				return fmt.Errorf("failed to encrypt key: %s", err.Error())
-			}
-
-			// Write to keystore file
-			err = ioutil.WriteFile(fileName, content, os.ModePerm)
-			if err != nil {
-				return fmt.Errorf("failed to write keystore: %s", err.Error())
-			}
 			fmt.Printf("The keystore has exported to: %s \n", fileName)
 			return nil
 		},
 	}
 }
 
-// pathExist used for judging the file or path exist or not when InitGenesis
+// pathExist used for judging the file exist
 func pathExist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -187,6 +170,44 @@ func pathExist(path string) bool {
 		return false
 	}
 	return true
+}
+
+// exportKeyStoreFile Export Key to  keystore file
+func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) error {
+	// Encrypt Key to get keystore file
+	content, err := keystore.EncryptKey(ethKey, encryptPassword, keystore.StandardScryptN, keystore.StandardScryptP)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt key: %s", err.Error())
+	}
+
+	// Write to keystore file
+	err = ioutil.WriteFile(fileName, content, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to write keystore: %s", err.Error())
+	}
+	return nil
+}
+
+// getEthKeyByName Get eth keystore key by Name
+func getEthKeyByName(kb keys.Keybase, accountName, decryptPassword string) (*keystore.Key, error) {
+	// Exports private key from keybase using password
+	privKey, err := kb.ExportPrivateKeyObject(accountName, decryptPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	// Converts key to Ethermint secp256 implementation
+	emintKey, ok := privKey.(ethsecp256k1.PrivKey)
+	if !ok {
+		return nil, fmt.Errorf("invalid private key type, must be Ethereum key: %T", privKey)
+	}
+
+	//  Converts Ethermint secp256 implementation key to keystore key
+	ethKey, err := newEthKeyFromECDSA(emintKey.ToECDSA())
+	if err != nil {
+		return nil, fmt.Errorf("failed convert to ethKey: %s", err.Error())
+	}
+	return ethKey, nil
 }
 
 // newEthKeyFromECDSA new eth.keystore Key
