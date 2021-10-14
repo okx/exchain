@@ -52,21 +52,28 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	analyzer.StartTxLog("handleMsgEthereumTx")
 	defer analyzer.StopTxLog("handleMsgEthereumTx")
 
-	analyzer.StartTxLog("handleMsgEthereumTx-VerifySig")
+	analyzer.StartTxLog("handleMsgEthereumTx-ParseChainID")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
+	analyzer.StopTxLog("handleMsgEthereumTx-ParseChainID")
+
 
 	// Verify signature and retrieve sender address
 
+	analyzer.StartTxLog("handleMsgEthereumTx-VerifySig")
 	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return nil, err
 	}
+	analyzer.StopTxLog("handleMsgEthereumTx-VerifySig")
 
+	analyzer.StartTxLog("handleMsgEthereumTx-txhash")
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
+	analyzer.StopTxLog("handleMsgEthereumTx-txhash")
+
 
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,
@@ -139,7 +146,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	analyzer.StopTxLog("handleMsgEthereumTx-TransitionDb")
 
-	analyzer.StartTxLog("handleMsgEthereumTx-138")
+	analyzer.StartTxLog("handleMsgEthereumTx-Bloomfilter")
 	if !st.Simulate {
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -153,10 +160,12 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			})
 		}
 	}
+	analyzer.StopTxLog("handleMsgEthereumTx-Bloomfilter")
 
 	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
 
+	analyzer.StartTxLog("handleMsgEthereumTx-EmitEvents")
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
@@ -180,7 +189,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
-	analyzer.StopTxLog("handleMsgEthereumTx-138")
+	analyzer.StopTxLog("handleMsgEthereumTx-EmitEvents")
 	return executionResult.Result, nil
 }
 
