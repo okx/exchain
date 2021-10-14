@@ -248,7 +248,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	if contractCreation {
 		resData.ContractAddress = contractAddress
 	}
-	
+
 	resBz, err := EncodeResultData(*resData)
 	if err != nil {
 		return

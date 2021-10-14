@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-
 	"io"
 	"math/big"
 	"os"
@@ -130,7 +129,7 @@ var (
 
 	GlobalGpIndex = GasPriceIndex{}
 
-	onceLog sync.Once
+    onceLog sync.Once
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -192,6 +191,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+
 
 	// get config
 	appConfig, err := config.ParseConfig()
@@ -426,15 +426,15 @@ func NewOKExChainApp(
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
-	app.InitTxChecker()
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
-	app.SetChangeBalanceHandler(NewChangeBalanceHandle(app.AccountKeeper, app.SupplyKeeper))
-	app.SetGetTxFee(NewGetTxFeeHandle())
-	app.SetFixLog(NewFinalLog(app.EvmKeeper))
+	app.SetIsEvmTxHandler(NewIsEvmTxHandler)
+	app.SetChangeBalanceHandler(NewFeeCollectorAccHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetGetTxFeeHandler(NewGetTxFeeHandler())
+	app.SetFixLog(NewFixLog(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -485,6 +485,7 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
+
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
@@ -500,6 +501,7 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
+
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
@@ -508,17 +510,6 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
 
-func (app *OKExChainApp) InitTxChecker() {
-	app.SetTxChecker(func(tx sdk.Tx) bool {
-		if tx != nil {
-			switch tx.(type) {
-			case evmtypes.MsgEthereumTx:
-				return true
-			}
-		}
-		return false
-	})
-}
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {
@@ -617,21 +608,29 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func NewChangeBalanceHandle(ak auth.AccountKeeper, sk supply.Keeper) sdk.ChangeBalanceHandler {
-	return func(ctx sdk.Context, balance sdk.Coins) sdk.Coins {
-		address := sk.GetModuleAddress(auth.FeeCollectorName)
-		acc := ak.GetAccount(ctx, address)
-		if balance.Empty() {
-			return acc.GetCoins()
+func NewIsEvmTxHandler(tx sdk.Tx) bool {
+	if tx != nil {
+		switch tx.(type) {
+		case evmtypes.MsgEthereumTx:
+			return true
 		}
-		acc.SetCoins(balance)
-		ak.SetAccount(ctx, acc)
-		return balance
+	}
+	return false
+}
+
+func NewFeeCollectorAccHandler(ak auth.AccountKeeper, sk supply.Keeper) sdk.FeeCollectorAccHandler {
+	return func(ctx sdk.Context, updateValue bool, balance sdk.Coins) sdk.Coins {
+		acc := ak.GetAccount(ctx, sk.GetModuleAddress(auth.FeeCollectorName))
+		if updateValue {
+			acc.SetCoins(balance)
+			ak.SetAccount(ctx, acc)
+		}
+		return acc.GetCoins()
 	}
 }
 
-func NewGetTxFeeHandle() sdk.GetTxFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) sdk.Coins {
+func NewGetTxFeeHandler() sdk.GetTxFeeHandler {
+	return func(tx sdk.Tx) sdk.Coins {
 		feeTx, ok := tx.(authante.FeeTx)
 		if ok {
 			return feeTx.GetFee()
@@ -640,7 +639,7 @@ func NewGetTxFeeHandle() sdk.GetTxFeeHandler {
 	}
 }
 
-func NewFinalLog(ek *evm.Keeper) sdk.LogFix {
+func NewFixLog(ek *evm.Keeper) sdk.LogFix {
 	return func(isAnteFailed map[uint32]bool) (logs map[int][]byte) {
 		return ek.FixLog(isAnteFailed)
 	}

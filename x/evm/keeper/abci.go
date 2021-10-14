@@ -54,6 +54,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
 	k.SetBlockBloom(ctx, req.Height, bloom)
@@ -106,35 +107,25 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 
 func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 	res := make(map[int][]byte, 0)
-	preLogSize := uint(0)
-	k.Bloom = new(big.Int)
-	txInBlock := uint(0)
-	first := true
+	logSize := uint(0)
+	txInBlock := int(-1)
+
 	for index := 0; index < len(isAnteFailed); index++ {
 		rs, ok := k.LogsManages.Get(uint32(index))
-		if !ok || isAnteFailed[uint32(index)] { // not enter handleEthereum
+		if !ok || isAnteFailed[uint32(index)] {
 			continue
 		}
-		if !first {
-			txInBlock++
-		} else {
-			first = false
-		}
+		txInBlock++
 
 		if rs.ResultData == nil {
 			continue
 		}
 
 		for _, v := range rs.ResultData.Logs {
-			v.Index = preLogSize
-			v.TxIndex = txInBlock
-			preLogSize++
+			v.Index = logSize
+			v.TxIndex = uint(txInBlock)
+			logSize++
 		}
-
-		bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rs.ResultData.Logs))
-		bloomFilter := ethtypes.BytesToBloom(bloomInt.Bytes())
-		rs.ResultData.Bloom = bloomFilter
-		k.Bloom = k.Bloom.Or(k.Bloom, bloomInt)
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
 			panic(err)

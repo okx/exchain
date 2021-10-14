@@ -3,14 +3,13 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	"math/big"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/store"
-
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -46,44 +45,43 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
-
 	Watcher     *watcher.Watcher
 	Ada         types.DbAdapter
 	LogsManages *LogsManager
 }
 
 type LogsManager struct {
-	mu   sync.RWMutex
-	Mmpp map[uint32]TxMapping
+	mu      sync.RWMutex
+	Results map[uint32]TxResult
 }
 
 func NewLogManager() *LogsManager {
 	return &LogsManager{
-		mu:   sync.RWMutex{},
-		Mmpp: make(map[uint32]TxMapping),
+		mu:      sync.RWMutex{},
+		Results: make(map[uint32]TxResult),
 	}
 }
 
-func (l *LogsManager) Set(index uint32, value TxMapping) {
+func (l *LogsManager) Set(index uint32, value TxResult) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Mmpp[index] = value
+	l.Results[index] = value
 }
 
-func (l *LogsManager) Get(index uint32) (TxMapping, bool) {
+func (l *LogsManager) Get(index uint32) (TxResult, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	data, ok := l.Mmpp[index]
+	data, ok := l.Results[index]
 	return data, ok
 }
 
 func (l *LogsManager) Len() int {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	return len(l.Mmpp)
+	return len(l.Results)
 }
 
-type TxMapping struct {
+type TxResult struct {
 	ResultData *types.ResultData
 	Err        error
 }
@@ -110,6 +108,7 @@ func NewKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
@@ -134,6 +133,7 @@ func NewSimulateKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),

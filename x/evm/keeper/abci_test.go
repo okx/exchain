@@ -29,14 +29,17 @@ func (suite *KeeperTestSuite) TestBeginBlock() {
 
 	// update the counters
 	suite.app.EvmKeeper.Bloom.SetInt64(10)
+	suite.app.EvmKeeper.TxCount = 10
 
 	suite.app.EvmKeeper.BeginBlock(suite.ctx, abci.RequestBeginBlock{})
 	suite.Require().NotZero(suite.app.EvmKeeper.Bloom.Int64())
+	suite.Require().NotZero(suite.app.EvmKeeper.TxCount)
 
 	suite.Require().Equal(int64(initialConsumed), int64(suite.ctx.GasMeter().GasConsumed()))
 
 	suite.app.EvmKeeper.BeginBlock(suite.ctx, req)
 	suite.Require().Zero(suite.app.EvmKeeper.Bloom.Int64())
+	suite.Require().Zero(suite.app.EvmKeeper.TxCount)
 
 	suite.Require().Equal(int64(initialConsumed), int64(suite.ctx.GasMeter().GasConsumed()))
 
@@ -118,6 +121,7 @@ func (suite *KeeperTestSuite) TestResetCache() {
 	suite.Require().Equal(ethcmn.Hash{}, suite.stateDB.BlockHash())
 
 	suite.Require().Zero(suite.app.EvmKeeper.Bloom.Int64())
+	suite.Require().Zero(suite.app.EvmKeeper.TxCount)
 	suite.Require().Zero(len(suite.stateDB.WithContext(suite.ctx).Preimages()))
 	suite.Require().Zero(suite.stateDB.GetRefund())
 }

@@ -118,9 +118,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
-
 	if ctx.IsAsync() {
-		tmp := keeper.TxMapping{
+		tmp := keeper.TxResult{
 			ResultData: resultData,
 			Err:        err,
 		}
@@ -212,7 +211,7 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	if !st.Simulate {
 		// Prepare db for logs
-		st.Csdb.Prepare(ethHash, k.Bhash, int(k.TxCount))
+		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
 	}

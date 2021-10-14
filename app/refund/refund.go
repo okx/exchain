@@ -1,11 +1,12 @@
 package refund
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/auth/refund"
 	"math/big"
 
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
+
+	"github.com/cosmos/cosmos-sdk/x/auth/refund"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -35,6 +36,7 @@ type Handler struct {
 }
 
 func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.Coins, err error) {
+
 	currentGasMeter := ctx.GasMeter()
 	TempGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(TempGasMeter)
@@ -64,11 +66,13 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := make(sdk.Coins, len(fees))
+
 	for i, fee := range fees {
 		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
 		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
 		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
 		gasRefund := fee.Sub(gasCost)
+
 		gasFees[i] = gasRefund
 	}
 

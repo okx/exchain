@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	cfg "github.com/tendermint/tendermint/config"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -17,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	tmiavl "github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
+	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
@@ -90,7 +90,6 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	fmt.Println("stateStorDb")
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 
@@ -204,8 +203,6 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	}
 
 	stateStoreDb.SaveBlock(block, ps, seenCommit)
-	latestBlockHeight := stateStoreDb.Height()
-	fmt.Println("LLLLL", height, stateStoreDb.Height(), latestBlockHeight)
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
@@ -225,19 +222,16 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 
 	log.Println("replay stop block height", "height", haltheight)
-	fmt.Println("lastBlockHeight", lastBlockHeight, state.LastBlockHeight)
+
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
 		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
-		fmt.Println("LastBlockHeight", lastBlockHeight, len(abciResponses.DeliverTxs))
 		panicError(err)
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
-		//blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-		//SaveBlock(ctx, originBlockStore, block.Height)
 		panicError(err)
 	}
 
@@ -249,7 +243,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-
 		SaveBlock(ctx, originBlockStore, height)
 		panicError(err)
 	}
