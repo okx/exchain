@@ -36,7 +36,7 @@ const (
 	stateDB       = "state"
 
 	pprofAddrFlag    = "pprof_addr"
-	runWithPprofFlag = "run_with_pprof"
+	runWithPprofFlag = "gen_pprof"
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
