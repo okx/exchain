@@ -129,6 +129,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		analyzer.StopTxLog("handleMsgEthereumTx-defer")
 	}()
 
+	analyzer.StartTxLog("handleMsgEthereumTx-TransitionDb")
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		if !st.Simulate {
@@ -136,6 +137,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		return nil, err
 	}
+	analyzer.StopTxLog("handleMsgEthereumTx-TransitionDb")
 
 	analyzer.StartTxLog("handleMsgEthereumTx-138")
 	if !st.Simulate {
