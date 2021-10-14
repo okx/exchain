@@ -10,15 +10,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-type configureType int
-
-const (
-	mem configureType = iota
-	cpu
-	thread
-	goroutine
-)
-
 const (
 	defaultLoggerFlags     = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultLoggerPerm      = 0644
@@ -64,7 +55,7 @@ func (dumper *pprofDumper) cpuProfile(height int64) {
 }
 
 func (dumper *pprofDumper) dumpCpuPprof(height int64) {
-	fileName := dumper.getBinaryFileName(height, cpu)
+	fileName := dumper.getBinaryFileName(height)
 	bf, err := os.OpenFile(fileName, defaultLoggerFlags, defaultLoggerPerm)
 	if err != nil {
 		dumper.logger.Error("height(%d) dump cpu pprof, open file(%s) error:%s", height, fileName, err.Error())
@@ -83,17 +74,10 @@ func (dumper *pprofDumper) dumpCpuPprof(height int64) {
 	dumper.logger.Info("height(%d) dump cpu pprof file(%s)", fileName)
 }
 
-func (dumper *pprofDumper) getBinaryFileName(height int64, dumpType configureType) string {
+func (dumper *pprofDumper) getBinaryFileName(height int64) string {
 	var (
 		binarySuffix = time.Now().Format("20060102150405") + ".bin"
 	)
-	fileName := fmt.Sprintf("%s_%d_%s", type2name[dumpType], height, binarySuffix)
+	fileName := fmt.Sprintf("interval_%d_%s", height, binarySuffix)
 	return path.Join(dumper.dumpPath, fileName)
-}
-
-var type2name = map[configureType]string{
-	mem:       "mem",
-	cpu:       "cpu",
-	thread:    "thread",
-	goroutine: "goroutine",
 }
