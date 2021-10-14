@@ -213,10 +213,10 @@ func (s *analyer) format() {
 		}
 	}
 
-	//var keys = []string{"runTx", "handleMsgEthereumTx-SaveEthereumTx",  "handleMsgEthereumTx-defer",  "handleMsgEthereumTx",  "anteHandler", "app-callback", "handleMsgEthereumTx-138", "handleMsgEthereumTx-VerifySig", "exchainDeliverTx", "handleMsgEthereumTx-TransitionDb"}
+	var keys = []string{"Deliver", "app-Decoder", "BaseApp-run",  "initCtx",  "validateBasicTxMsgs",  "anteHandler", "runMsgs", "GasRefundHandler", "handleMsgEthereum", "ParseChainID", "VerifySig", "txhash", "SaveEthereum", "TransitionDb", "EmitEvents", "AppendEvents"}
 
-	for k , v  := range record{
-		format += fmt.Sprintf("%s<%dms>, ", k, v)
+	for _ , v  := range keys{
+		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))

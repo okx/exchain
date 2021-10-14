@@ -49,8 +49,8 @@ func NewHandler(k *Keeper) sdk.Handler {
 // handleMsgEthereumTx handles an Ethereum specific tx
 func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*sdk.Result, error) {
 	// parse the chainID from a string to a base-10 integer
-	analyzer.StartTxLog("handleMsgEthereumTx")
-	defer analyzer.StopTxLog("handleMsgEthereumTx")
+	analyzer.StartTxLog("handleMsgEthereum")
+	defer analyzer.StopTxLog("handleMsgEthereum")
 
 	analyzer.StartTxLog("ParseChainID")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
@@ -92,7 +92,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
-	analyzer.StartTxLog("SaveEthereumTx")
+	analyzer.StartTxLog("SaveEthereum")
 	if !st.Simulate {
 		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
@@ -106,10 +106,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	analyzer.StopTxLog("SaveEthereumTx")
+	analyzer.StopTxLog("SaveEthereum")
 
 	defer func() {
-		analyzer.StartTxLog("handleMsgEthereumTx-defer")
+		analyzer.StartTxLog("defer")
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
 			pm := k.GenerateCSDBParams()
@@ -132,7 +132,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 				k.Watcher.Finalize()
 			}
 		}
-		analyzer.StopTxLog("handleMsgEthereumTx-defer")
+		analyzer.StopTxLog("defer")
 	}()
 
 	analyzer.StartTxLog("TransitionDb")
@@ -145,7 +145,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	analyzer.StopTxLog("TransitionDb")
 
-	analyzer.StartTxLog("handleMsgEthereumTx-Bloomfilter")
+	analyzer.StartTxLog("Bloomfilter")
 	if !st.Simulate {
 		// update block bloom filter
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -159,7 +159,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			})
 		}
 	}
-	analyzer.StopTxLog("handleMsgEthereumTx-Bloomfilter")
+	analyzer.StopTxLog("Bloomfilter")
 
 	// log successful execution
 	k.Logger(ctx).Info(executionResult.Result.Log)
