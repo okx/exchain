@@ -5,14 +5,16 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"path/filepath"
+	"runtime/pprof"
+	"time"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/okex/exchain/app/config"
-	"github.com/tendermint/tendermint/state"
-	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/app/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmiavl "github.com/tendermint/iavl"
@@ -20,6 +22,7 @@ import (
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
+	"github.com/tendermint/tendermint/state"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
 	"github.com/tendermint/tendermint/types"
@@ -31,7 +34,12 @@ const (
 	applicationDB = "application"
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
-	pprofAddrFlag = "pprof_addr"
+
+	pprofAddrFlag    = "pprof_addr"
+	runWithPprofFlag = "gen_pprof"
+
+	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	defaultPprofFilePerm = 0644
 )
 
 func replayCmd(ctx *server.Context) *cobra.Command {
@@ -66,12 +74,13 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 	cmd.Flags().IntVar(&iavl.IavlCacheSize, iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
-	cmd.Flags().StringToIntVar(&tmiavl.OutputModules, tmiavl.FlagOutputModules, map[string]int{},"decide which module in iavl to be printed")
+	cmd.Flags().StringToIntVar(&tmiavl.OutputModules, tmiavl.FlagOutputModules, map[string]int{}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64Var(&tmiavl.CommitIntervalHeight, tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
 	cmd.Flags().Int64Var(&tmiavl.MinCommitItemCount, tmiavl.FlagIavlMinCommitItemCount, 500000, "Min nodes num to triggle node cache commit")
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
+	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	return cmd
 }
 
@@ -207,15 +216,42 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		panicError(err)
 	}
 
-	for height := lastBlockHeight+1; height <= haltheight; height++ {
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	if viper.GetBool(runWithPprofFlag) {
+		startDumpPprof()
+		defer stopDumpPprof()
+	}
+	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
+}
+
+func startDumpPprof() {
+	var (
+		binarySuffix = time.Now().Format("20060102150405") + ".bin"
+	)
+	fileName := fmt.Sprintf("replay_pprof_%s", binarySuffix)
+	bf, err := os.OpenFile(fileName, defaulPprofFileFlags, defaultPprofFilePerm)
+	if err != nil {
+		fmt.Printf("open pprof file(%s) error:%s\n", fileName, err.Error())
+		return
+	}
+
+	err = pprof.StartCPUProfile(bf)
+	if err != nil {
+		fmt.Printf("dump pprof StartCPUProfile error:%s\n", err.Error())
+		return
+	}
+	fmt.Printf("start to dump pprof file(%s)\n", fileName)
+}
+
+func stopDumpPprof() {
+	pprof.StopCPUProfile()
+	fmt.Printf("dump pprof successfully\n")
 }
 
 func newMockProxyApp(appHash []byte, abciResponses *sm.ABCIResponses) proxy.AppConnConsensus {
