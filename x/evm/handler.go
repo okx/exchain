@@ -186,14 +186,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 // handleMsgEthermint handles an sdk.StdTx for an Ethereum state transition
 func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sdk.Result, error) {
-	analyzer.StartTxLog("handleMsgEthermint")
-	defer analyzer.StopTxLog("handleMsgEthermint")
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		return nil, sdkerrors.Wrap(ethermint.ErrInvalidMsgType, "Ethermint type message is not allowed.")
 	}
 
-	analyzer.StartTxLog("handleMsgEthermint-TransitionDb-before")
 	// parse the chainID from a string to a base-10 integer
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -232,14 +229,12 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	if !found {
 		return nil, types.ErrChainConfigNotFound
 	}
-	analyzer.StopTxLog("handleMsgEthermint-TransitionDb-before")
 
 	executionResult, _, err := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	analyzer.StartTxLog("handleMsgEthermint-TransitionDb-after")
 	// update block bloom filter
 	if !st.Simulate {
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
@@ -272,6 +267,5 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
-	analyzer.StopTxLog("handleMsgEthermint-TransitionDb-after")
 	return executionResult.Result, nil
 }
