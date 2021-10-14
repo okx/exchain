@@ -10,9 +10,7 @@ import (
 func init() {
 	dbCompactor := func(db dbm.DB) {
 		if rdb, ok := db.(*dbm.RocksDB); ok {
-			for i := 0; i < 5; i++ {
-				rdb.DB().CompactRange(gorocksdb.Range{})
-			}
+			rdb.DB().CompactRange(gorocksdb.Range{})
 		}
 	}
 

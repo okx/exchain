@@ -90,6 +90,10 @@ func pruneAllCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
+			if err := checkBackend(dbm.BackendType(ctx.Config.DBBackend)); err != nil {
+				return err
+			}
+
 			blockStoreDB := initDB(config, blockDBName)
 			stateDB := initDB(config, stateDBName)
 			appDB := initDB(config, appDBName)
@@ -129,6 +133,10 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
+			if err := checkBackend(dbm.BackendType(ctx.Config.DBBackend)); err != nil {
+				return err
+			}
+
 			appDB := initDB(config, appDBName)
 
 			if viper.GetBool(flagPruning) {
@@ -159,6 +167,10 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			if err := checkBackend(dbm.BackendType(ctx.Config.DBBackend)); err != nil {
+				return err
+			}
 
 			blockStoreDB := initDB(config, blockDBName)
 			stateDB := initDB(config, stateDBName)
@@ -209,6 +221,20 @@ func getPruneAppParams(appDB dbm.DB) (retainHeight int64) {
 	}
 
 	return
+}
+
+func checkBackend(dbType dbm.BackendType) error {
+	if _, ok := backends[dbType]; !ok {
+		keys := make([]string, len(backends))
+		i := 0
+		for k := range backends {
+			keys[i] = string(k)
+			i++
+		}
+		return fmt.Errorf("unknown db_backend %s, expected <%s>", dbType, strings.Join(keys, " , "))
+	}
+
+	return nil
 }
 
 func initDB(config *cfg.Config, dbName string) dbm.DB {
@@ -361,34 +387,13 @@ func compactDB(db dbm.DB, name string, dbType dbm.BackendType) {
 	log.Printf("Compact %s... \n", name)
 	start := time.Now()
 
-	dbCompactor, ok := backends[dbType]
-	if !ok {
-		keys := make([]string, len(backends))
-		i := 0
-		for k := range backends {
-			keys[i] = string(k)
-			i++
-		}
-		panic(fmt.Sprintf("Unknown db_backend %s, expected either %s", dbType, strings.Join(keys, " or ")))
+	if dbCompactor, ok := backends[dbType]; !ok {
+		panic(fmt.Sprintf("Unknown db_backend %s, ", dbType))
+	} else {
+		dbCompactor(db)
 	}
-
-	dbCompactor(db)
 
 	log.Printf("Compact %s done in %v \n", name, time.Since(start))
-}
-
-func init() {
-	dbCompactor := func(db dbm.DB) {
-		if ldb, ok := db.(*dbm.GoLevelDB); ok {
-			for i := 0; i < 5; i++ {
-				if err := ldb.DB().CompactRange(util.Range{}); err != nil {
-					panic(err)
-				}
-			}
-		}
-	}
-
-	registerDBCompactor(dbm.GoLevelDBBackend, dbCompactor)
 }
 
 func calcKeysNum(db dbm.DB) (keys, kvSize uint64) {
@@ -463,4 +468,16 @@ func registerDBCompactor(dbType dbm.BackendType, compactor dbCompactor) {
 		return
 	}
 	backends[dbType] = compactor
+}
+
+func init() {
+	dbCompactor := func(db dbm.DB) {
+		if ldb, ok := db.(*dbm.GoLevelDB); ok {
+			if err := ldb.DB().CompactRange(util.Range{}); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	registerDBCompactor(dbm.GoLevelDBBackend, dbCompactor)
 }
