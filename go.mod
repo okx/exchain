@@ -6,6 +6,7 @@ require (
 	github.com/Comcast/pulsar-client-go v0.1.1
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 	github.com/apolloconfig/agollo/v4 v4.0.8
+	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/cosmos/cosmos-sdk v0.39.2
@@ -47,8 +48,8 @@ require (
 
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
-	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20211014093002-e1e7b5d257e1
+	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20211014230545-b092cce32613
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.3-exchain5
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20211014002756-375db1af3636
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20211014231246-3d8f7622a883
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
 )
