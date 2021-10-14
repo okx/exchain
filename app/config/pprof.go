@@ -25,6 +25,7 @@ type PporfConfig struct {
 	memTriggerPercentDiff int
 	memTriggerPercentAbs  int
 	triggerAbciElapsed    int64
+	useCGroup             bool
 }
 
 const (
@@ -38,6 +39,7 @@ const (
 	FlagPprofMemTriggerPercentAbs  = "pprof-mem-trigger-percent-abs"
 	FlagPprofCoolDown              = "pprof-cool-down"
 	FlagPprofAbciElapsed           = "pprof-trigger-abci-elapsed"
+	FlagPprofUseCGroup             = "pprof-use-cgroup"
 )
 
 // PprofDownload auto dump pprof
@@ -59,6 +61,7 @@ func PprofDownload(context *server.Context) {
 		holmes.WithMemDump(c.memTriggerPercentMin, c.memTriggerPercentDiff, c.memTriggerPercentAbs),
 		holmes.WithGoroutineDump(2000, 50, 5000),
 		holmes.WithBinaryDump(),
+		holmes.WithCGroup(c.useCGroup),
 	)
 	if err != nil {
 		tmos.Exit(err.Error())
@@ -80,6 +83,7 @@ func LoadPprofFromConfig() *PporfConfig {
 	memTriggerPercentAbs := viper.GetInt(FlagPprofMemTriggerPercentAbs)
 	coolDown := viper.GetString(FlagPprofCoolDown)
 	triggerAbciElapsed := viper.GetInt64(FlagPprofAbciElapsed)
+	useCGroup := viper.GetBool(FlagPprofUseCGroup)
 	c := &PporfConfig{
 		autoDump:              autoDump,
 		collectInterval:       collectInterval,
@@ -92,6 +96,7 @@ func LoadPprofFromConfig() *PporfConfig {
 		memTriggerPercentDiff: memTriggerPercentDiff,
 		memTriggerPercentAbs:  memTriggerPercentAbs,
 		triggerAbciElapsed:    triggerAbciElapsed,
+		useCGroup:             useCGroup,
 	}
 	return c
 }
