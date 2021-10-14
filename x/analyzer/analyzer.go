@@ -213,7 +213,11 @@ func (s *analyer) format() {
 		}
 	}
 
-	var keys = []string{"Deliver", "app-Decoder", "BaseApp-run",  "initCtx",  "validateBasicTxMsgs",  "anteHandler", "runMsgs", "GasRefundHandler", "handleMsgEthereum", "ParseChainID", "VerifySig", "txhash", "SaveEthereum", "TransitionDb", "EmitEvents", "AppendEvents"}
+	var keys = []string{"DeliverTx", "txDecoder", "BaseApp-run",
+		"initCtx",  "valTxMsgs", "anteHandler",
+		"runMsgs", "refund", "evmtx",
+		"ParseChainID", "VerifySig", "txhash",
+		"SaveTx", "TransitionDb", "EmitEvents", "AppendEvents"}
 
 	for _ , v  := range keys{
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
@@ -222,5 +226,5 @@ func (s *analyer) format() {
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
 	format += fmt.Sprintf("%s<%dms>", "exchainDeliverTx", s.delliverTxCost)
-	trace.GetElapsedInfo().AddInfo("DeliverTx", format)
+	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
 }
