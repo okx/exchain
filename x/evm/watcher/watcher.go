@@ -3,11 +3,9 @@ package watcher
 import (
 	"bytes"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"io/ioutil"
 	"math/big"
 	"net/http"
-	"strconv"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -43,18 +41,6 @@ type Watcher struct {
 	dirtyAccount []*sdk.AccAddress
 	centerBatch  []*Batch
 	needDelAcc   bool
-}
-
-type Batch struct {
-	Key       []byte `json:"key"`
-	Value     []byte `json:"value"`
-	TypeValue uint32 `json:"type_value"`
-}
-
-type WatchData struct {
-	Account []*sdk.AccAddress `json:"account"`
-	Batches []*Batch          `json:"batches"`
-	height  int64             `json:"height"`
 }
 
 var (
@@ -407,10 +393,13 @@ func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 
 func (w *Watcher) SetGetBatchFunc() {
 	gb := func(height int64) bool {
-		msgBody := strconv.Itoa(int(height))
+		msg := tmstate.DataCenterMsg{Height: height}
+		msgBody, err := tmtypes.Json.Marshal(&msg)
+		if  err != nil {
+			return false
+		}
 		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadBatch", "application/json", bytes.NewBuffer([]byte(msgBody)))
 		if err != nil {
-			logger.Error("getDataFromDatacenter err ,", err)
 			return false
 		}
 		defer response.Body.Close()
@@ -433,14 +422,15 @@ func (w *Watcher) SetGetBatchFunc() {
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
 func (w *Watcher) SendToDatacenter(height int64) {
-	msg := WatchData{w.dirtyAccount, w.centerBatch, height}
-	msgBody, err := itjs.Marshal(&msg)
+	value := WatchData{w.dirtyAccount, w.centerBatch}
+	valueByte, err := itjs.Marshal(&value)
 	if err != nil {
 		return
 	}
+	msg := tmstate.DataCenterMsg{Height: height, Value: valueByte}
+	msgBody, err := tmtypes.Json.Marshal(&msg)
 	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"saveBatch", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
-		logger.Error("sendToDatacenter err ,", err)
 		return
 	}
 	defer response.Body.Close()

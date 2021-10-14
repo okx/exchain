@@ -62,6 +62,17 @@ func (m MsgEthTx) GetType() uint32 {
 	return TypeOthers
 }
 
+type Batch struct {
+	Key       []byte `json:"key"`
+	Value     []byte `json:"value"`
+	TypeValue uint32 `json:"type_value"`
+}
+
+type WatchData struct {
+	Account []*sdk.AccAddress `json:"account"`
+	Batches []*Batch          `json:"batches"`
+}
+
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
 	ethTx, e := rpctypes.NewTransaction(tx, txHash, blockHash, height, index)
 	if e != nil {
