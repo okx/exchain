@@ -39,13 +39,22 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	// dirtyAccount, centerBatch send to DataCenter
+	dirtyAccount []*sdk.AccAddress
+	centerBatch  []*Batch
+	needDelAcc   bool
 }
 
 type Batch struct {
 	Key       []byte `json:"key"`
 	Value     []byte `json:"value"`
 	TypeValue uint32 `json:"type_value"`
-	Height    int64  `json:"height"`
+}
+
+type WatchData struct {
+	Account []*sdk.AccAddress `json:"account"`
+	Batches []*Batch          `json:"batches"`
+	height  int64             `json:"height"`
 }
 
 var (
@@ -187,6 +196,14 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 	w.delayEraseKey = append(w.delayEraseKey, key)
+	w.needDelAcc = false
+}
+
+func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
+	if w.dirtyAccount == nil {
+		w.dirtyAccount = []*sdk.AccAddress{}
+	}
+	w.dirtyAccount = append(w.dirtyAccount, addr)
 }
 
 func (w *Watcher) ExecuteDelayEraseKey() {
@@ -334,53 +351,80 @@ func (w *Watcher) Reset() {
 	w.staleBatch = []WatchMessage{}
 }
 
-func (w *Watcher) Commit(height int64) {
+func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
 	}
 	//hold it in temp
 	batch := w.batch
-	go func() {
-		batchs := make([]*Batch, len(batch))
-		for i, b := range batch {
-			key := b.GetKey()
-			value := []byte(b.GetValue())
-			typeValue := b.GetType()
-			batchs[i] = &Batch{key, value, typeValue, height}
-			w.store.Set(key, value)
-			if typeValue == TypeState {
-				state.SetStateToLru(common.BytesToHash(key), value)
-			}
+	go w.commitBatch(w.batch)
+
+	// if get data from DataCenter
+	if w.centerBatch != nil {
+		go w.commitCenterBatch(w.centerBatch)
+		w.centerBatch = nil
+	}
+	if w.needDelAcc && w.dirtyAccount != nil {
+		go w.delDirtyAccount(w.dirtyAccount)
+		w.dirtyAccount = nil
+		w.needDelAcc = false
+	}
+
+	// get centerBatch for sending to DataCenter
+	centerBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
+		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+	}
+	w.centerBatch = centerBatch
+}
+
+func (w *Watcher) commitBatch(batch []WatchMessage) {
+	for _, b := range batch {
+		key := b.GetKey()
+		value := []byte(b.GetValue())
+		typeValue := b.GetType()
+		w.store.Set(key, value)
+		if typeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(key), value)
 		}
-		sendToDatacenter(batchs)
-	}()
+	}
+}
+
+func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	for _, b := range batch {
+		w.store.Set(b.Key, b.Value)
+		if b.TypeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		}
+	}
+}
+
+func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
+	for _, account := range accounts {
+		w.DeleteAccount(*account)
+	}
 }
 
 func (w *Watcher) SetGetBatchFunc() {
 	gb := func(height int64) bool {
 		msgBody := strconv.Itoa(int(height))
-		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "loadBatch", "application/json", bytes.NewBuffer([]byte(msgBody)))
+		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadBatch", "application/json", bytes.NewBuffer([]byte(msgBody)))
 		if err != nil {
 			logger.Error("getDataFromDatacenter err ,", err)
 			return false
 		}
 		defer response.Body.Close()
 		rlt, _ := ioutil.ReadAll(response.Body)
-		var batch []*Batch
-		if err = itjs.Unmarshal(rlt, &batch); err != nil {
+		data := WatchData{}
+		if err = itjs.Unmarshal(rlt, &data); err != nil {
 			return false
 		}
-		go func() {
-			for _, b := range batch {
-				key := b.Key
-				value := b.Value
-				typeValue := b.TypeValue
-				w.store.Set(key, value)
-				if typeValue == TypeState {
-					state.SetStateToLru(common.BytesToHash(key), value)
-				}
-			}
-		}()
+		if data.Account == nil || data.Batches == nil {
+			return false
+		}
+		w.centerBatch = data.Batches
+		w.dirtyAccount = data.Account
+		w.needDelAcc = true
 		return true
 	}
 
@@ -388,12 +432,13 @@ func (w *Watcher) SetGetBatchFunc() {
 }
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
-func sendToDatacenter(batch []*Batch) {
-	msgBody, err := itjs.Marshal(&batch)
-	if  err != nil {
+func (w *Watcher) SendToDatacenter(height int64) {
+	msg := WatchData{w.dirtyAccount, w.centerBatch, height}
+	msgBody, err := itjs.Marshal(&msg)
+	if err != nil {
 		return
 	}
-	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "saveBatch", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"saveBatch", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
