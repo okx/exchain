@@ -8,19 +8,16 @@ import (
 	"github.com/tendermint/tendermint/trace"
 )
 
-
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight()+1)
+	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	defer analyzer.OnAppBeginBlockExit()
-
 
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
 }
-
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
@@ -28,9 +25,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	defer analyzer.OnAppDeliverTxExit()
 
 	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
-	}
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
@@ -50,8 +44,6 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 
 	return app.BaseApp.EndBlock(req)
 }
-
-
 
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit() abci.ResponseCommit {
