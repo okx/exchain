@@ -4,8 +4,10 @@ import (
 	"bytes"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/nacos-group/nacos-sdk-go/common/logger"
+	"io/ioutil"
 	"math/big"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -18,6 +20,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/types"
+	tmstate "github.com/tendermint/tendermint/state"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -67,7 +70,9 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher.SetGetBatchFunc()
+	return watcher
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -351,14 +356,44 @@ func (w *Watcher) Commit(height int64) {
 	}()
 }
 
+func (w *Watcher) SetGetBatchFunc() {
+	gb := func(height int64) bool {
+		msgBody := strconv.Itoa(int(height))
+		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "loadBatch", "application/json", bytes.NewBuffer([]byte(msgBody)))
+		if err != nil {
+			logger.Error("getDataFromDatacenter err ,", err)
+			return false
+		}
+		defer response.Body.Close()
+		rlt, _ := ioutil.ReadAll(response.Body)
+		var batch []*Batch
+		if err = itjs.Unmarshal(rlt, &batch); err != nil {
+			return false
+		}
+		go func() {
+			for _, b := range batch {
+				key := b.Key
+				value := b.Value
+				typeValue := b.TypeValue
+				w.store.Set(key, value)
+				if typeValue == TypeState {
+					state.SetStateToLru(common.BytesToHash(key), value)
+				}
+			}
+		}()
+		return true
+	}
+
+	tmstate.GetBatch = gb
+}
+
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
 func sendToDatacenter(batch []*Batch) {
 	msgBody, err := itjs.Marshal(&batch)
 	if  err != nil {
 		return
 	}
-
-	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "batch", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl) + "saveBatch", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
