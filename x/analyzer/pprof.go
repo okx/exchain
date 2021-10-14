@@ -13,7 +13,7 @@ import (
 const (
 	defaultLoggerFlags     = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultLoggerPerm      = 0644
-	defaultCPUSamplingTime = 30 * time.Second // collect 5s cpu profile
+	defaultCPUSamplingTime = 30 * time.Second // collect 30s cpu profile
 	defaultCoolDown        = 3 * time.Minute
 )
 
