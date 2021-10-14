@@ -20,8 +20,11 @@ import (
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
+
 var commitInterval int64
+
 const FlagCommitInterval string = "commit-interval"
+
 func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repair-state",
@@ -32,9 +35,8 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			repairState(ctx)
 			log.Println("--------- repair data success ---------")
 		},
-
 	}
-	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 100, "The number of interval heights for submitting Commit")
+	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 1, "The number of interval heights for submitting Commit")
 	return cmd
 }
 
@@ -47,6 +49,7 @@ func repairState(ctx *server.Context) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	latestBlockHeight := latestBlockHeight(dataDir)
+	fmt.Println("???????", dataDir, latestBlockHeight)
 	startBlockHeight := types.GetStartBlockHeight()
 	if latestBlockHeight <= startBlockHeight+2 {
 		panic(fmt.Sprintf("There is no need to repair data. The latest block height is %d, start block height is %d", latestBlockHeight, startBlockHeight))
@@ -60,6 +63,7 @@ func repairState(ctx *server.Context) {
 	if startVersion == 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
+	fmt.Println("startVersion", latestBlockHeight, startVersion)
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
@@ -114,6 +118,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
+		panic("test-----")
 
 	}
 

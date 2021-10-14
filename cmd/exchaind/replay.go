@@ -2,17 +2,17 @@ package main
 
 import (
 	"fmt"
+	cfg "github.com/tendermint/tendermint/config"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/okex/exchain/app/config"
-	"github.com/tendermint/tendermint/state"
-	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/app/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmiavl "github.com/tendermint/iavl"
@@ -20,6 +20,7 @@ import (
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
+	"github.com/tendermint/tendermint/state"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
 	"github.com/tendermint/tendermint/types"
@@ -66,7 +67,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 	cmd.Flags().IntVar(&iavl.IavlCacheSize, iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
-	cmd.Flags().StringToIntVar(&tmiavl.OutputModules, tmiavl.FlagOutputModules, map[string]int{},"decide which module in iavl to be printed")
+	cmd.Flags().StringToIntVar(&tmiavl.OutputModules, tmiavl.FlagOutputModules, map[string]int{}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64Var(&tmiavl.CommitIntervalHeight, tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
 	cmd.Flags().Int64Var(&tmiavl.MinCommitItemCount, tmiavl.FlagIavlMinCommitItemCount, 500000, "Min nodes num to triggle node cache commit")
 	cmd.Flags().IntVar(&tmiavl.HeightOrphansCacheSize, tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
@@ -89,6 +90,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
+	fmt.Println("stateStorDb")
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 
@@ -177,6 +179,35 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	return nil
 }
 
+var (
+	alreadyInit = false
+	nowbb       dbm.DB
+)
+
+func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
+	if !alreadyInit {
+		var err error
+		alreadyInit = true
+		dataDir := filepath.Join(ctx.Config.RootDir, "data")
+		nowbb, err = openDB(blockStoreDB, dataDir)
+		panicError(err)
+	}
+	stateStoreDb := store.NewBlockStore(nowbb)
+
+	block := originDB.LoadBlock(height)
+	meta := originDB.LoadBlockMeta(height)
+	seenCommit := originDB.LoadSeenCommit(height)
+
+	ps := types.NewPartSetFromHeader(meta.BlockID.PartsHeader)
+	for index := 0; index < ps.Total(); index++ {
+		ps.AddPart(originDB.LoadBlockPart(height, index))
+	}
+
+	stateStoreDb.SaveBlock(block, ps, seenCommit)
+	latestBlockHeight := stateStoreDb.Height()
+	fmt.Println("LLLLL", height, stateStoreDb.Height(), latestBlockHeight)
+}
+
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
@@ -194,26 +225,32 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 
 	log.Println("replay stop block height", "height", haltheight)
-
+	fmt.Println("lastBlockHeight", lastBlockHeight, state.LastBlockHeight)
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
 		abciResponses, err := sm.LoadABCIResponses(stateStoreDB, lastBlockHeight)
+		fmt.Println("LastBlockHeight", lastBlockHeight, len(abciResponses.DeliverTxs))
 		panicError(err)
 		mockApp := newMockProxyApp(lastAppHash, abciResponses)
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
+		//blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		//SaveBlock(ctx, originBlockStore, block.Height)
 		panicError(err)
 	}
 
-	for height := lastBlockHeight+1; height <= haltheight; height++ {
+	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+
+		SaveBlock(ctx, originBlockStore, height)
 		panicError(err)
 	}
 }
