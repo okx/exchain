@@ -37,6 +37,9 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
+	for _, v := range UNKNOWN {
+		dbOper.AddOperType(v, UNKNOWN_TYPE)
+	}
 
 }
 
@@ -184,6 +187,8 @@ func (s *analyer) stopTxLog(oper string) {
 func (s *analyer) format() {
 	s.allCost = s.beginBlockCost + s.delliverTxCost + s.endBlockCost + s.commitCost
 	var evmcore int64
+	var format string
+	var record = make(map[string]int64)
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
 			operType, err := dbOper.GetOperType(oper)
@@ -197,10 +202,29 @@ func (s *analyer) format() {
 				s.dbWrite += operObj.TimeCost
 			case EVMALL:
 				evmcore += operObj.TimeCost
+			default:
+				if _, ok := record[oper]; !ok {
+					record[oper] = operObj.TimeCost
+				} else {
+					record[oper] += operObj.TimeCost
+				}
+
 			}
 		}
 	}
 
+	var keys = []string{"DeliverTx", "txDecoder", "BaseApp-run",
+		"initCtx",  "valTxMsgs", "anteHandler",
+		"runMsgs", "refund", "evmtx",
+		"ParseChainID", "VerifySig", "txhash",
+		"SaveTx", "TransitionDb", "EmitEvents", "AppendEvents"}
+
+	for _ , v  := range keys{
+		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
+	}
+
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
+	//format += fmt.Sprintf("%s<%dms>", "exchainDeliverTx", s.delliverTxCost)
+	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
 }
