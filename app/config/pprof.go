@@ -3,6 +3,8 @@ package config
 import (
 	"path"
 
+	"github.com/cosmos/cosmos-sdk/server"
+
 	"github.com/okex/exchain/x/analyzer"
 
 	"github.com/mosn/holmes"
@@ -39,14 +41,14 @@ const (
 )
 
 // PprofDownload auto dump pprof
-func PprofDownload() {
+func PprofDownload(context *server.Context) {
 	c := LoadPprofFromConfig()
 	if !c.autoDump {
 		return
 	}
 
 	// auto download pprof by analyzer
-	analyzer.InitializePprofDumper(c.dumpPath, c.coolDown, c.triggerAbciElapsed)
+	analyzer.InitializePprofDumper(context.Logger, c.dumpPath, c.coolDown, c.triggerAbciElapsed)
 
 	// auto download pprof by holmes
 	h, err := holmes.New(

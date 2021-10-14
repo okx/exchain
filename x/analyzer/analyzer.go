@@ -53,6 +53,10 @@ func newAnalys(height int64) {
 func OnAppBeginBlockEnter(height int64) {
 	newAnalys(height)
 	singleAnalys.onAppBeginBlockEnter()
+	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
+	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
+		singlePprofDumper.cpuProfile(height)
+	}
 }
 
 func OnAppBeginBlockExit() {
@@ -157,9 +161,6 @@ func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
 		s.format()
-		if singlePprofDumper != nil && s.allCost > singlePprofDumper.triggerAbciElapsed {
-			go singlePprofDumper.cpuProfile(s.blockHeight)
-		}
 	}
 	singleAnalys = nil
 }

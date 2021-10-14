@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/server"
+
 	"github.com/stretchr/testify/suite"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -42,7 +44,7 @@ func (suite *AnteTestSuite) SetupTest() {
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
 
-	appconfig.RegisterDynamicConfig()
+	appconfig.RegisterDynamicConfig(server.NewDefaultContext())
 }
 
 func TestAnteTestSuite(t *testing.T) {

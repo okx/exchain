@@ -1,12 +1,13 @@
 package analyzer
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
 	"runtime/pprof"
 	"time"
+
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type configureType int
@@ -27,7 +28,7 @@ const (
 
 var singlePprofDumper *pprofDumper
 
-func InitializePprofDumper(dumpPath string, coolDownStr string, abciElapsed int64) {
+func InitializePprofDumper(logger log.Logger, dumpPath string, coolDownStr string, abciElapsed int64) {
 	if singlePprofDumper != nil {
 		return
 	}
@@ -36,6 +37,7 @@ func InitializePprofDumper(dumpPath string, coolDownStr string, abciElapsed int6
 		coolDown = defaultCoolDown
 	}
 	singlePprofDumper = &pprofDumper{
+		logger:             logger.With("module", "main"),
 		dumpPath:           dumpPath,
 		coolDown:           coolDown,
 		cpuCoolDownTime:    time.Now(),
@@ -44,6 +46,7 @@ func InitializePprofDumper(dumpPath string, coolDownStr string, abciElapsed int6
 }
 
 type pprofDumper struct {
+	logger   log.Logger
 	dumpPath string
 	// the cool down time after every type of dump
 	coolDown           time.Duration
@@ -51,26 +54,33 @@ type pprofDumper struct {
 	triggerAbciElapsed int64
 }
 
-func (dumper *pprofDumper) cpuProfile(height int64) error {
+func (dumper *pprofDumper) cpuProfile(height int64) {
 	if dumper.cpuCoolDownTime.After(time.Now()) {
-		return errors.New("cpu dump is in coolDown")
+		dumper.logger.Info(fmt.Sprintf("height(%d) cpu dump is in coolDown", height))
+		return
 	}
+	dumper.cpuCoolDownTime = time.Now().Add(dumper.coolDown)
+	go dumper.dumpCpuPprof(height)
+}
+
+func (dumper *pprofDumper) dumpCpuPprof(height int64) {
 	fileName := dumper.getBinaryFileName(height, cpu)
 	bf, err := os.OpenFile(fileName, defaultLoggerFlags, defaultLoggerPerm)
 	if err != nil {
-		return err
+		dumper.logger.Error("height(%d) dump cpu pprof, open file(%s) error:%s", height, fileName, err.Error())
+		return
 	}
 	defer bf.Close()
 
 	err = pprof.StartCPUProfile(bf)
 	if err != nil {
-		return err
+		dumper.logger.Error("height(%d) dump cpu pprof, StartCPUProfile error:%s", height, err.Error())
+		return
 	}
 
 	time.Sleep(defaultCPUSamplingTime)
 	pprof.StopCPUProfile()
-	dumper.cpuCoolDownTime = time.Now().Add(dumper.coolDown)
-	return nil
+	dumper.logger.Info("height(%d) dump cpu pprof file(%s)", fileName)
 }
 
 func (dumper *pprofDumper) getBinaryFileName(height int64, dumpType configureType) string {
