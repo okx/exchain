@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+
 	"github.com/tendermint/tendermint/trace"
 )
 
@@ -156,6 +157,9 @@ func (s *analyer) onCommitExit() {
 	if s.status {
 		s.commitCost = GetNowTimeMs() - s.startCommit
 		s.format()
+		if singlePprofDumper != nil && s.allCost > singlePprofDumper.triggerAbciElapsed {
+			go singlePprofDumper.cpuProfile(s.blockHeight)
+		}
 	}
 	singleAnalys = nil
 }

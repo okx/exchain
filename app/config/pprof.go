@@ -1,11 +1,14 @@
 package config
 
 import (
+	"path"
+
+	"github.com/okex/exchain/x/analyzer"
+
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmos "github.com/tendermint/tendermint/libs/os"
-	"path"
 )
 
 type PporfConfig struct {
@@ -19,18 +22,21 @@ type PporfConfig struct {
 	memTriggerPercentMin  int
 	memTriggerPercentDiff int
 	memTriggerPercentAbs  int
+	triggerAbciElapsed    int64
 }
 
 const (
 	FlagPprofAutoDump              = "pprof-auto-dump"
+	FlagPprofCollectInterval       = "pprof-collect-interval"
 	FlagPprofCpuTriggerPercentMin  = "pprof-cpu-trigger-percent-min"
 	FlagPprofCpuTriggerPercentDiff = "pprof-cpu-trigger-percent-diff"
 	FlagPprofCpuTriggerPercentAbs  = "pprof-cpu-trigger-percent-abs"
 	FlagPprofMemTriggerPercentMin  = "pprof-mem-trigger-percent-min"
 	FlagPprofMemTriggerPercentDiff = "pprof-mem-trigger-percent-diff"
 	FlagPprofMemTriggerPercentAbs  = "pprof-mem-trigger-percent-abs"
+	FlagPprofCoolDown              = "pprof-cool-down"
+	FlagPprofAbciElapsed           = "pprof-trigger-abci-elapsed"
 )
-
 
 // PprofDownload auto dump pprof
 func PprofDownload() {
@@ -39,6 +45,10 @@ func PprofDownload() {
 		return
 	}
 
+	// auto download pprof by analyzer
+	analyzer.InitializePprofDumper(c.dumpPath, c.coolDown, c.triggerAbciElapsed)
+
+	// auto download pprof by holmes
 	h, err := holmes.New(
 		holmes.WithCollectInterval(c.collectInterval),
 		holmes.WithCoolDown(c.coolDown),
@@ -58,6 +68,7 @@ func PprofDownload() {
 
 func LoadPprofFromConfig() *PporfConfig {
 	autoDump := viper.GetBool(FlagPprofAutoDump)
+	collectInterval := viper.GetString(FlagPprofCollectInterval)
 	dumpPath := path.Join(viper.GetString(cli.HomeFlag), "pprof")
 	cpuTriggerPercentMin := viper.GetInt(FlagPprofCpuTriggerPercentMin)
 	cpuTriggerPercentDiff := viper.GetInt(FlagPprofCpuTriggerPercentDiff)
@@ -65,11 +76,12 @@ func LoadPprofFromConfig() *PporfConfig {
 	memTriggerPercentMin := viper.GetInt(FlagPprofMemTriggerPercentMin)
 	memTriggerPercentDiff := viper.GetInt(FlagPprofMemTriggerPercentDiff)
 	memTriggerPercentAbs := viper.GetInt(FlagPprofMemTriggerPercentAbs)
-
+	coolDown := viper.GetString(FlagPprofCoolDown)
+	triggerAbciElapsed := viper.GetInt64(FlagPprofAbciElapsed)
 	c := &PporfConfig{
 		autoDump:              autoDump,
-		collectInterval:       "5s",
-		coolDown:              "3m",
+		collectInterval:       collectInterval,
+		coolDown:              coolDown,
 		dumpPath:              dumpPath,
 		cpuTriggerPercentMin:  cpuTriggerPercentMin,
 		cpuTriggerPercentDiff: cpuTriggerPercentDiff,
@@ -77,6 +89,7 @@ func LoadPprofFromConfig() *PporfConfig {
 		memTriggerPercentMin:  memTriggerPercentMin,
 		memTriggerPercentDiff: memTriggerPercentDiff,
 		memTriggerPercentAbs:  memTriggerPercentAbs,
+		triggerAbciElapsed:    triggerAbciElapsed,
 	}
 	return c
 }
