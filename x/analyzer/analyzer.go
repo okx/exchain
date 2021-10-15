@@ -37,9 +37,6 @@ func init() {
 	for _, v := range EVM_OPER {
 		dbOper.AddOperType(v, EVMALL)
 	}
-	for _, v := range UNKNOWN {
-		dbOper.AddOperType(v, UNKNOWN_TYPE)
-	}
 
 }
 
