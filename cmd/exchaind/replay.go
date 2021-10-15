@@ -255,10 +255,14 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-		SaveBlock(ctx, originBlockStore, height)
 		panicError(err)
+		//SaveBlock(ctx, originBlockStore, height)
+		//fmt.Println("ddsadsa", height, lastBlockHeight)
+		//if height == lastBlockHeight+5 {
+		//	break
+		//}
 	}
-	fmt.Printf("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs)
+	fmt.Println("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs)
 }
 
 func startDumpPprof() {
