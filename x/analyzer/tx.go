@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -32,13 +31,13 @@ func (s *txLog) StartTxLog(oper string) error {
 	return nil
 }
 
-func (s *txLog) StopTxLog(oper string) error {
+func (s *txLog) StopTxLog(oper string)  {
 	if v, ok := s.Record.Load(oper); !ok {
-		return fmt.Errorf("%s oper not found", oper)
+		return
 	}else{
 		oper := v.(*operateInfo)
 		oper.StopOper()
 	}
 
-	return nil
+	return
 }
