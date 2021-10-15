@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/analyzer"
 	"io"
 	"math/big"
 	"os"
@@ -205,6 +206,8 @@ func NewOKExChainApp(
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
+	bApp.SetStartLogHandler(analyzer.StartTxLog)
+	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,

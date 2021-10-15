@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"errors"
 	"runtime"
 	"strings"
 	"sync"
@@ -35,7 +34,7 @@ func (s *DbRecord) GetOperType(oper string) (int, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	if _, ok := s.oper[oper]; !ok {
-		return -1, errors.New("oper not exist")
+		return -1, nil
 	}
 	return s.oper[oper], nil
 }
