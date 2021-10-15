@@ -20,7 +20,8 @@ func init() {
 }
 
 type ElapsedTimeInfos struct {
-	infoMap map[string]string
+	infoMap     map[string]string
+	elapsedTime int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
@@ -52,4 +53,12 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 
 	logger.Info(info)
 	e.infoMap = make(map[string]string)
+}
+
+func (e *ElapsedTimeInfos) SetElapsedTime(elapsedTime int64) {
+	e.elapsedTime = elapsedTime
+}
+
+func (e *ElapsedTimeInfos) GetElapsedTime() int64 {
+	return e.elapsedTime
 }

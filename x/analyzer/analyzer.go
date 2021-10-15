@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+
 	"github.com/tendermint/tendermint/trace"
 )
 
@@ -55,6 +56,10 @@ func newAnalys(height int64) {
 func OnAppBeginBlockEnter(height int64) {
 	newAnalys(height)
 	singleAnalys.onAppBeginBlockEnter()
+	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
+	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
+		singlePprofDumper.cpuProfile(height)
+	}
 }
 
 func OnAppBeginBlockExit() {
