@@ -10,6 +10,7 @@ import (
 
 	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,11 +47,12 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 // representation, with the given location metadata set (if available).
 func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	from, err := tx.VerifySig(tx.ChainID(), int64(blockNumber))
+	fromSigCache, err := tx.VerifySig(tx.ChainID(), int64(blockNumber), sdk.EmptyContext().SigCache())
 	if err != nil {
 		return nil, err
 	}
 
+	from := fromSigCache.GetFrom()
 	rpcTx := &Transaction{
 		From:     from,
 		Gas:      hexutil.Uint64(tx.Data.GasLimit),

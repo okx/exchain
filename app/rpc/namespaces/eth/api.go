@@ -522,7 +522,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 	if err != nil {
 		return nil, err
 	}
-	
+
 	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
 		return code, nil
@@ -1118,11 +1118,12 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return nil, err
 	}
 
+	from := fromSigCache.GetFrom()
 	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 	if tx.Index != 0 {
 		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))

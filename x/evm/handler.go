@@ -59,21 +59,20 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	analyzer.StopTxLog("ParseChainID")
 
-
 	// Verify signature and retrieve sender address
 
 	analyzer.StartTxLog("VerifySig")
-	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return nil, err
 	}
 	analyzer.StopTxLog("VerifySig")
 
 	analyzer.StartTxLog("txhash")
+	sender := senderSigCache.GetFrom()
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 	analyzer.StopTxLog("txhash")
-
 
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,

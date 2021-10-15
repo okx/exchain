@@ -148,15 +148,17 @@ func (esvd EthSigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	}
 
 	// validate sender/signature and cache the address
-	_, err = msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+	signerSigCache, err := msgEthTx.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "signature verification failed: %s", err.Error())
 	}
 
+	// update ctx for push signerSigCache
+	newCtx = ctx.WithSigCache(signerSigCache)
+
 	// NOTE: when signature verification succeeds, a non-empty signer address can be
 	// retrieved from the transaction on the next AnteDecorators.
-
-	return next(ctx, msgEthTx, simulate)
+	return next(newCtx, msgEthTx, simulate)
 }
 
 // AccountVerificationDecorator validates an account balance checks
