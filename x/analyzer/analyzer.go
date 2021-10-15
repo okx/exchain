@@ -195,9 +195,7 @@ func (s *analyer) format() {
 	var format string
 	var record = make(map[string]int64)
 	for _, v := range s.txs {
-		v.Record.Range(func(key, value interface{}) bool {
-			oper := key.(string)
-			operObj := value.(*operateInfo)
+		for oper, operObj := range v.Record {
 			operType := dbOper.GetOperType(oper)
 			switch operType {
 			case READ:
@@ -213,10 +211,7 @@ func (s *analyer) format() {
 					record[oper] += operObj.TimeCost
 				}
 			}
-
-			return true
-		})
-
+		}
 	}
 
 	var keys = []string{"DeliverTx", "txDecoder", "BaseApp-run",

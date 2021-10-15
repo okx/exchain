@@ -1,41 +1,30 @@
 package analyzer
 
-import (
-	"sync"
-)
-
 type txLog struct {
 	startTime int64
 	AllCost   int64
-	Record    sync.Map
+	Record    map[string]*operateInfo
 }
 
 func newTxLog() *txLog {
 	tmp := &txLog{
 		startTime: GetNowTimeMs(),
+		Record:    make(map[string]*operateInfo),
 	}
 
 	return tmp
 }
 
 func (s *txLog) StartTxLog(oper string) {
-	if v, ok := s.Record.Load(oper); !ok {
-		newOper := newOperateInfo()
-		s.Record.Store(oper, newOper)
-		newOper.StartOper()
-	} else {
-		oper := v.(*operateInfo)
-		oper.StartOper()
+	if _, ok := s.Record[oper]; !ok {
+		s.Record[oper] = newOperateInfo()
 	}
+	s.Record[oper].StartOper()
 }
 
 func (s *txLog) StopTxLog(oper string) {
-	if v, ok := s.Record.Load(oper); !ok {
+	if _, ok := s.Record[oper]; !ok {
 		return
-	} else {
-		oper := v.(*operateInfo)
-		oper.StopOper()
 	}
-
-	return
+	s.Record[oper].StopOper()
 }
