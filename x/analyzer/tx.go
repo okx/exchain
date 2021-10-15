@@ -6,7 +6,7 @@ import (
 )
 
 type txLog struct {
-	Lock sync.RWMutex
+	lock sync.RWMutex
 	startTime int64
 	AllCost   int64
 	Record map[string]*operateInfo
@@ -22,8 +22,8 @@ func newTxLog() *txLog {
 }
 
 func (s *txLog) StartTxLog(oper string) error {
-	s.Lock.Lock()
-	defer s.Lock.Unlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	if _, ok := s.Record[oper]; !ok {
 		s.Record[oper] = newOperateInfo()
 	}
@@ -32,8 +32,8 @@ func (s *txLog) StartTxLog(oper string) error {
 }
 
 func (s *txLog) StopTxLog(oper string) error {
-	s.Lock.RLock()
-	defer s.Lock.RUnlock()
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	if _, ok := s.Record[oper]; !ok {
 		return fmt.Errorf("%s oper not found", oper)
 	}
