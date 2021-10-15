@@ -253,13 +253,12 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		SaveBlock(ctx, originBlockStore, height)
 		panicError(err)
 	}
+	fmt.Printf("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs)
 }
 
 func startDumpPprof() {
