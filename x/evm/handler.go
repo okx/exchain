@@ -92,7 +92,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
-	analyzer.StartTxLog("SaveTx")
+	if ctx.IsCheckTx() != true {
+		analyzer.StartTxLog("SaveTx")
+	}
 	if !st.Simulate {
 		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
@@ -105,8 +107,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	if !found {
 		return nil, types.ErrChainConfigNotFound
 	}
-
-	analyzer.StopTxLog("SaveTx")
+	if ctx.IsCheckTx() != true {
+		analyzer.StopTxLog("SaveTx")
+	}
 
 	defer func() {
 		analyzer.StartTxLog("defer")
