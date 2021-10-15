@@ -125,6 +125,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		k.LogsManages.Set(ctx.EvmTransactionIndex(), tmp)
 	}
+	
 	if err != nil {
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())

@@ -16,12 +16,16 @@ import (
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
 	sm "github.com/tendermint/tendermint/state"
+	state2 "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/store"
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
+
 var commitInterval int64
+
 const FlagCommitInterval string = "commit-interval"
+
 func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repair-state",
@@ -32,7 +36,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			repairState(ctx)
 			log.Println("--------- repair data success ---------")
 		},
-
 	}
 	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 1, "The number of interval heights for submitting Commit")
 	return cmd
@@ -114,9 +117,12 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
-
+		if height-startHeight == 10 {
+			fmt.Println("height stt", height, startHeight)
+			break
+		}
 	}
-
+	fmt.Println("PallTxNumbers", state2.PallTxs, "AllTxNumbers", state2.AllTxs)
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {

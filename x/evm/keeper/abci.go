@@ -109,6 +109,7 @@ func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 	res := make(map[int][]byte, 0)
 	logSize := uint(0)
 	txInBlock := int(-1)
+	k.Bloom = new(big.Int)
 
 	for index := 0; index < len(isAnteFailed); index++ {
 		rs, ok := k.LogsManages.Get(uint32(index))
@@ -126,6 +127,7 @@ func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
 			v.TxIndex = uint(txInBlock)
 			logSize++
 		}
+		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
 		data, err := types.EncodeResultData(*rs.ResultData)
 		if err != nil {
 			panic(err)
