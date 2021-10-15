@@ -18,23 +18,21 @@ func newTxLog() *txLog {
 	return tmp
 }
 
-func (s *txLog) StartTxLog(oper string) error {
+func (s *txLog) StartTxLog(oper string) {
 	if v, ok := s.Record.Load(oper); !ok {
 		newOper := newOperateInfo()
 		s.Record.Store(oper, newOper)
 		newOper.StartOper()
-	}else{
+	} else {
 		oper := v.(*operateInfo)
 		oper.StartOper()
 	}
-
-	return nil
 }
 
-func (s *txLog) StopTxLog(oper string)  {
+func (s *txLog) StopTxLog(oper string) {
 	if v, ok := s.Record.Load(oper); !ok {
 		return
-	}else{
+	} else {
 		oper := v.(*operateInfo)
 		oper.StopOper()
 	}
