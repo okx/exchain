@@ -54,7 +54,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// Verify signature and retrieve sender address
-
 	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err != nil {
 		return nil, err
