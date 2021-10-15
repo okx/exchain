@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
@@ -58,4 +59,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
+
+	cmd.Flags().String(app.Elapsed, "Evm=0,DeliverTx=0,DB=0,Round=0,CommitRound=0,Produce=0", "Evm=x,DeliverTx=x,DB=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
 }
