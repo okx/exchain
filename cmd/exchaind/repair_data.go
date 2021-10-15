@@ -6,6 +6,9 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/store/rootmulti"
+	"github.com/spf13/viper"
+
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
@@ -20,9 +23,9 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-var commitInterval int64
-
-const FlagCommitInterval string = "commit-interval"
+const (
+	FlagStartHeight string = "start-height"
+)
 
 func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,8 +38,18 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- repair data success ---------")
 		},
 	}
-	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 100, "The number of interval heights for submitting Commit")
+	cmd.Flags().Int64(FlagStartHeight, 0, "Set the start block height for repair")
 	return cmd
+}
+
+type repairApp struct {
+	db dbm.DB
+	*app.OKExChainApp
+}
+
+func (app *repairApp) getLatestVersion() int64 {
+	rs := rootmulti.NewStore(app.db)
+	return rs.GetLatestVersion()
 }
 
 func repairState(ctx *server.Context) {
@@ -56,13 +69,6 @@ func repairState(ctx *server.Context) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
-	// load start version
-	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 2
-	if startVersion == 0 {
-		panic("height too low, please restart from height 0 with genesis file")
-	}
-	err = repairApp.LoadStartVersion(startVersion)
-	panicError(err)
 
 	// load state
 	stateStoreDB, err := openDB(stateDB, dataDir)
@@ -71,12 +77,24 @@ func repairState(ctx *server.Context) {
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
 
+	// load start version
+	startVersion := viper.GetInt64(FlagStartHeight)
+	if startVersion == 0 {
+		latestVersion := repairApp.getLatestVersion()
+		startVersion = latestVersion - 2
+	}
+	if startVersion == 0 {
+		panic("height too low, please restart from height 0 with genesis file")
+	}
+	err = repairApp.LoadStartVersion(startVersion)
+	panicError(err)
+
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
 	repairApp.StopStore()
 }
 
-func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, error) {
+func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	db, err := openDB(applicationDB, dataDir)
@@ -89,15 +107,15 @@ func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, er
 	return proxyApp, repairApp, err
 }
 
-func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *app.OKExChainApp {
-	return app.NewOKExChainApp(
+func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairApp {
+	return &repairApp{db, app.NewOKExChainApp(
 		logger,
 		db,
 		traceStore,
 		false,
 		map[int64]bool{},
 		0,
-	)
+	)}
 }
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
