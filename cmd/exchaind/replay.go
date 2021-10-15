@@ -257,12 +257,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 		//SaveBlock(ctx, originBlockStore, height)
-		//fmt.Println("ddsadsa", height, lastBlockHeight)
-		//if height == lastBlockHeight+5 {
-		//	break
-		//}
 	}
-	fmt.Println("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs)
+	fmt.Println("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs, "Conflict Txs", sm.AllTxs-sm.PallTxs)
 }
 
 func startDumpPprof() {
