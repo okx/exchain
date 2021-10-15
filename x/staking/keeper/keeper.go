@@ -3,10 +3,9 @@ package keeper
 import (
 	"container/list"
 	"fmt"
-	"strings"
-
 	"github.com/okex/exchain/x/staking/exported"
 	"github.com/tendermint/tendermint/libs/log"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"

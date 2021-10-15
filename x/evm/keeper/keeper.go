@@ -41,10 +41,10 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
-	TxCount int
-	Bloom   *big.Int
-	Bhash   ethcmn.Hash
-	LogSize uint
+	TxCount     int
+	Bloom       *big.Int
+	Bhash       ethcmn.Hash
+	LogSize     uint
 	Watcher     *watcher.Watcher
 	Ada         types.DbAdapter
 	LogsManages *LogsManager
@@ -52,26 +52,26 @@ type Keeper struct {
 
 type LogsManager struct {
 	mu      sync.RWMutex
-	Results map[uint32]TxResult
+	Results map[string]TxResult
 }
 
 func NewLogManager() *LogsManager {
 	return &LogsManager{
 		mu:      sync.RWMutex{},
-		Results: make(map[uint32]TxResult),
+		Results: make(map[string]TxResult),
 	}
 }
 
-func (l *LogsManager) Set(index uint32, value TxResult) {
+func (l *LogsManager) Set(txBytes string, value TxResult) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Results[index] = value
+	l.Results[txBytes] = value
 }
 
-func (l *LogsManager) Get(index uint32) (TxResult, bool) {
+func (l *LogsManager) Get(txBytes string) (TxResult, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	data, ok := l.Results[index]
+	data, ok := l.Results[txBytes]
 	return data, ok
 }
 

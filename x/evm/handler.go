@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
+	"unsafe"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -137,11 +138,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	analyzer.StartTxLog("TransitionDb")
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if ctx.IsAsync() {
+		bytes2str := func(b []byte) string {
+			return *(*string)(unsafe.Pointer(&b))
+		}
+
 		tmp := keeper.TxResult{
 			ResultData: resultData,
 			Err:        err,
 		}
-		k.LogsManages.Set(ctx.EvmTransactionIndex(), tmp)
+		k.LogsManages.Set(bytes2str(ctx.TxBytes()), tmp)
 	}
 
 	if err != nil {

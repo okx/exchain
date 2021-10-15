@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/viper"
 	tmiavl "github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/proxy"
@@ -38,6 +37,8 @@ const (
 
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
+
+	pallTx = "pall_tx"
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
@@ -82,6 +83,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
+	cmd.Flags().Bool(pallTx, false, "pall Tx")
 	return cmd
 }
 
@@ -253,7 +255,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
+		blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 		//SaveBlock(ctx, originBlockStore, height)

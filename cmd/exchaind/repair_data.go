@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	cfg "github.com/tendermint/tendermint/config"
+	"github.com/spf13/viper"
 	"io"
 	"log"
 	"path/filepath"
@@ -38,6 +38,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().Int64Var(&commitInterval, FlagCommitInterval, 1, "The number of interval heights for submitting Commit")
+	cmd.Flags().Bool(pallTx, false, "pall Tx")
 	return cmd
 }
 
@@ -59,7 +60,7 @@ func repairState(ctx *server.Context) {
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
 	// load start version
-	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 2
+	startVersion := latestBlockHeight - ((latestBlockHeight - 2) % commitInterval) - 1
 	if startVersion == 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
@@ -106,7 +107,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetIsAsyncDeliverTx(cfg.IsAsyncDeliverTx())
+	blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)

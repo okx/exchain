@@ -105,15 +105,15 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 	return []abci.ValidatorUpdate{}
 }
 
-func (k *Keeper) FixLog(isAnteFailed map[uint32]bool) map[int][]byte {
+func (k *Keeper) FixLog(isAnteFailed [][]string) map[int][]byte {
 	res := make(map[int][]byte, 0)
 	logSize := uint(0)
 	txInBlock := int(-1)
 	k.Bloom = new(big.Int)
 
 	for index := 0; index < len(isAnteFailed); index++ {
-		rs, ok := k.LogsManages.Get(uint32(index))
-		if !ok || isAnteFailed[uint32(index)] {
+		rs, ok := k.LogsManages.Get(isAnteFailed[index][0])
+		if !ok || isAnteFailed[index][1] != "" {
 			continue
 		}
 		txInBlock++

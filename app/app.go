@@ -130,7 +130,7 @@ var (
 
 	GlobalGpIndex = GasPriceIndex{}
 
-    onceLog sync.Once
+	onceLog sync.Once
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -192,7 +192,6 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-
 
 	// get config
 	appConfig, err := config.ParseConfig()
@@ -488,7 +487,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
@@ -504,7 +502,6 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
-
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
@@ -512,7 +509,6 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
-
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {
@@ -643,7 +639,7 @@ func NewGetTxFeeHandler() sdk.GetTxFeeHandler {
 }
 
 func NewFixLog(ek *evm.Keeper) sdk.LogFix {
-	return func(isAnteFailed map[uint32]bool) (logs map[int][]byte) {
+	return func(isAnteFailed [][]string) (logs map[int][]byte) {
 		return ek.FixLog(isAnteFailed)
 	}
 }
