@@ -8,13 +8,12 @@ import (
 type txLog struct {
 	startTime int64
 	AllCost   int64
-	Record    sync.Map //[string]*operateInfo
+	Record    sync.Map
 }
 
 func newTxLog() *txLog {
 	tmp := &txLog{
 		startTime: GetNowTimeMs(),
-	//	Record:    make(map[string]*operateInfo),
 	}
 
 	return tmp

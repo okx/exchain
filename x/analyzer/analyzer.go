@@ -198,10 +198,7 @@ func (s *analyer) format() {
 		v.Record.Range(func(key, value interface{}) bool {
 			oper := key.(string)
 			operObj := value.(*operateInfo)
-			operType, err := dbOper.GetOperType(oper)
-			if err != nil {
-				return false
-			}
+			operType := dbOper.GetOperType(oper)
 			switch operType {
 			case READ:
 				s.dbRead += operObj.TimeCost
@@ -231,7 +228,7 @@ func (s *analyer) format() {
 	for _, v := range keys {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 	}
-	
+
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
 	//format += fmt.Sprintf("%s<%dms>", "exchainDeliverTx", s.delliverTxCost)
