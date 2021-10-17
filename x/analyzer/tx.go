@@ -1,13 +1,9 @@
 package analyzer
 
-import (
-	"fmt"
-)
-
 type txLog struct {
 	startTime int64
 	AllCost   int64
-	Record map[string]*operateInfo
+	Record    map[string]*operateInfo
 }
 
 func newTxLog() *txLog {
@@ -19,22 +15,16 @@ func newTxLog() *txLog {
 	return tmp
 }
 
-func (s *txLog) StartTxLog(oper string) error {
-
+func (s *txLog) StartTxLog(oper string) {
 	if _, ok := s.Record[oper]; !ok {
 		s.Record[oper] = newOperateInfo()
 	}
 	s.Record[oper].StartOper()
-	return nil
 }
 
-func (s *txLog) StopTxLog(oper string) error {
-
+func (s *txLog) StopTxLog(oper string) {
 	if _, ok := s.Record[oper]; !ok {
-		return fmt.Errorf("%s oper not found", oper)
+		return
 	}
-
 	s.Record[oper].StopOper()
-
-	return nil
 }

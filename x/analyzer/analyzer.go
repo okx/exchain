@@ -196,10 +196,7 @@ func (s *analyer) format() {
 	var record = make(map[string]int64)
 	for _, v := range s.txs {
 		for oper, operObj := range v.Record {
-			operType, err := dbOper.GetOperType(oper)
-			if err != nil {
-				continue
-			}
+			operType := dbOper.GetOperType(oper)
 			switch operType {
 			case READ:
 				s.dbRead += operObj.TimeCost
@@ -213,18 +210,17 @@ func (s *analyer) format() {
 				} else {
 					record[oper] += operObj.TimeCost
 				}
-
 			}
 		}
 	}
 
 	var keys = []string{"DeliverTx", "txDecoder", "BaseApp-run",
-		"initCtx",  "valTxMsgs", "anteHandler",
+		"initCtx", "valTxMsgs", "anteHandler",
 		"runMsgs", "refund", "evmtx",
 		"ParseChainID", "VerifySig", "txhash",
 		"SaveTx", "TransitionDb", "EmitEvents", "AppendEvents"}
 
-	for _ , v  := range keys{
+	for _, v := range keys {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 	}
 

@@ -110,6 +110,7 @@ func (st StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error) {
+
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
@@ -146,6 +147,18 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	ctx = ctx.WithGasMeter(evmGasMeter)
 	csdb := st.Csdb.WithContext(ctx)
 
+	StartTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StartTxLog(tag)
+		}
+	}
+	StopTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StopTxLog(tag)
+		}
+	}
+
+
 	params := csdb.GetParams()
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs)
@@ -175,8 +188,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr)
 		}
-		analyzer.StartTxLog(analyzer.EVMCORE)
-		defer analyzer.StopTxLog(analyzer.EVMCORE)
+
+		StartTxLog(analyzer.EVMCORE)
+		defer StopTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
@@ -186,8 +200,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-		analyzer.StartTxLog(analyzer.EVMCORE)
-		defer analyzer.StopTxLog(analyzer.EVMCORE)
+		StartTxLog(analyzer.EVMCORE)
+		defer StopTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
