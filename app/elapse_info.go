@@ -37,7 +37,6 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 	if len(e.infoMap) == 0 {
 		return
 	}
-
 	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s[%s], %s[%s], %s[%s], %s[%s], %s[%s]",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
