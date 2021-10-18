@@ -220,8 +220,7 @@ func TestMsgEthereumTxSig(t *testing.T) {
 
 	signerCache, err = msg.VerifySig(big.NewInt(4), 0, sdk.EmptyContext().SigCache())
 	require.Error(t, err)
-	signer = signerCache.GetFrom()
-	require.Equal(t, ethcmn.Address{}, signer)
+	require.Nil(t, signerCache)
 }
 
 func TestMsgEthereumTx_ChainID(t *testing.T) {
