@@ -7,6 +7,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm/cache"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -109,6 +110,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		st.Csdb.Prepare(ethHash, k.Bhash, k.TxCount)
 		st.Csdb.SetLogSize(k.LogSize)
 		k.TxCount++
+		cache.InstanceOfMonitor().Empty()
 	}
 
 	config, found := k.GetChainConfig(ctx)
@@ -142,6 +144,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			} else {
 				//save state and account data into batch
 				k.Watcher.Finalize()
+				cache.InstanceOfMonitor().Iterator(func(key common.Hash, value []byte) {
+					cache.SetStateToCache(key, value)
+				})
 			}
 		}
 	}()

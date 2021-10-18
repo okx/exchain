@@ -6,6 +6,8 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/okex/exchain/x/evm/cache"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -128,6 +130,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 // setState sets a state with a prefixed key and value to the dirty storage.
 func (so *stateObject) setState(key, value ethcmn.Hash) {
 	idx, ok := so.keyToDirtyStorageIndex[key]
+	cache.InstanceOfMonitor().SetState(key, value.Bytes())
 	if ok {
 		so.dirtyStorage[idx].Value = value
 		return
@@ -377,7 +380,13 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
+	rawValue := cache.GetStateFromCache(prefixKey)
+	if rawValue == nil {
+		rawValue = store.Get(prefixKey.Bytes())
+		if len(rawValue) > 0 { //cache it
+			cache.InstanceOfMonitor().SetState(prefixKey, rawValue)
+		}
+	}
 
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)
