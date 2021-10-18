@@ -11,7 +11,7 @@ import (
 
 //the default lru cache size is 1kw, that means the max memory size we needs is (32 + 32 + 4) * 10000000, about 700MB
 var (
-	defaultCacheSize int = 10000000
+	defaultCacheSize int = 100000000
 	gStateCache      *lru.Cache
 	once             sync.Once
 	stateCache       Monitor
@@ -32,6 +32,9 @@ func instanceOfStateLru() *lru.Cache {
 	return gStateCache
 }
 
+var MatchCounter = 0
+var SetCounter = 0
+
 func GetStateFromCache(key common.Hash) []byte {
 	cache := instanceOfStateLru()
 	if cache == nil {
@@ -41,6 +44,7 @@ func GetStateFromCache(key common.Hash) []byte {
 	if ok {
 		ret, ok := value.([]byte)
 		if ok {
+			MatchCounter++
 			return ret
 		}
 	}
@@ -52,5 +56,6 @@ func SetStateToCache(key common.Hash, value []byte) {
 	if cache == nil {
 		return
 	}
+	SetCounter++
 	cache.Add(key, value)
 }

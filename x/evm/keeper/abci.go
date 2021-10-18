@@ -1,7 +1,10 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
+
+	"github.com/okex/exchain/x/evm/cache"
 
 	"github.com/okex/exchain/x/evm/watcher"
 
@@ -100,6 +103,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.SaveBlock(bloom)
 		k.Watcher.Commit()
 	}
-
+	k.Logger(ctx).With("module", "main").Info(fmt.Sprintf("Match %d, Write %d\n", cache.MatchCounter, cache.SetCounter))
 	return []abci.ValidatorUpdate{}
 }
