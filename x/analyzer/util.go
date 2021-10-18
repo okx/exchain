@@ -30,13 +30,13 @@ func newDbRecord() *DbRecord {
 	}
 }
 
-func (s *DbRecord) GetOperType(oper string) (int, error) {
+func (s *DbRecord) GetOperType(oper string) int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	if _, ok := s.oper[oper]; !ok {
-		return -1, nil
+		return -1
 	}
-	return s.oper[oper], nil
+	return s.oper[oper]
 }
 
 func (s *DbRecord) AddOperType(oper string, value int) {

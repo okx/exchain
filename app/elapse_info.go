@@ -33,6 +33,7 @@ type ElapsedTimeInfos struct {
 	infoMap         map[string]string
 	showFlagMap     map[string]struct{}
 	showFlagInitail bool
+	elapsedTime int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
@@ -90,4 +91,12 @@ func (e *ElapsedTimeInfos) decodeElapsParam() {
 		}
 	}
 	e.showFlagInitail = true
+}
+
+func (e *ElapsedTimeInfos) SetElapsedTime(elapsedTime int64) {
+	e.elapsedTime = elapsedTime
+}
+
+func (e *ElapsedTimeInfos) GetElapsedTime() int64 {
+	return e.elapsedTime
 }
