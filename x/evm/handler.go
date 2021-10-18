@@ -73,13 +73,14 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// Verify signature and retrieve sender address
 
 	StartTxLog("VerifySig")
-	sender, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
+	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return nil, err
 	}
 	StopTxLog("VerifySig")
 
 	StartTxLog("txhash")
+	sender := senderSigCache.GetFrom()
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog("txhash")
