@@ -12,7 +12,7 @@ import (
 
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{trace.Evm, "DB", "DeliverTxs", trace.Round, trace.CommitRound, trace.Produce}
+	CUSTOM_PRINT = []string{trace.Evm, "Iavl", "DB", "DeliverTxs", trace.Round, trace.CommitRound, trace.Produce}
 )
 
 const (
@@ -33,7 +33,7 @@ type ElapsedTimeInfos struct {
 	infoMap         map[string]string
 	showFlagMap     map[string]struct{}
 	showFlagInitail bool
-	elapsedTime int64
+	elapsedTime     int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
@@ -82,7 +82,8 @@ func (e *ElapsedTimeInfos) decodeElapsParam() {
 	}
 
 	elapsd := viper.GetString(Elapsed)
-	// suppose elapsd is like Evm=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
+
+	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
 	elapsdA := strings.Split(elapsd, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
@@ -90,6 +91,7 @@ func (e *ElapsedTimeInfos) decodeElapsParam() {
 			e.showFlagMap[setVal[0]] = struct{}{}
 		}
 	}
+
 	e.showFlagInitail = true
 }
 

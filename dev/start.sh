@@ -31,7 +31,7 @@ run() {
       --iavl-commit-interval-height 2 \
       --iavl-output-modules evm=1,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
-      --elapsed Evm=1,DeliverTxs=1,DB=1,Round=1,CommitRound=1,Produce=1 \
+      --elapsed Evm=1,Iavl=1,DeliverTxs=1,DB=1,Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
 
 # --iavl-commit-interval-height \

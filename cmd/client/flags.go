@@ -61,7 +61,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
 
-	cmd.Flags().String(app.Elapsed, "Evm=0,DeliverTxs=0,DB=0,Round=0,CommitRound=0,Produce=0", "Evm=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
+	cmd.Flags().String(app.Elapsed, "Evm=0,Iavl=0,DeliverTxs=0,DB=0,Round=0,CommitRound=0,Produce=0", "Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
 
 	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "The cool down time after every type of pprof dump")
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
