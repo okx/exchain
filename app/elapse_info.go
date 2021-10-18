@@ -27,7 +27,7 @@ func init() {
 			schemaMap: make(map[string]bool),
 		}
 
-		elapsedInfo.decodeElapsParam(DefaultElapsedSchemas)
+		elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
 
 		trace.SetInfoObject(elapsedInfo)
 	})
@@ -55,7 +55,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 	}
 
 	if !e.initialized {
-		e.decodeElapsParam(viper.GetString(Elapsed))
+		e.decodeElapseParam(viper.GetString(Elapsed))
 		e.initialized = true
 	}
 
@@ -85,7 +85,7 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 	e.infoMap = make(map[string]string)
 }
 
-func (e *ElapsedTimeInfos) decodeElapsParam(elapsed string) {
+func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
 
 	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
 	elapsdA := strings.Split(elapsed, ",")
