@@ -82,7 +82,7 @@ func (e *ElapsedTimeInfos) decodeElapsParam() {
 	}
 
 	elapsd := viper.GetString(Elapsed)
-	// suppose elapsd is like Evm=x,DeliverTx=x,DB=x,Round=x,CommitRound=x,Produce=x
+	// suppose elapsd is like Evm=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
 	elapsdA := strings.Split(elapsd, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
