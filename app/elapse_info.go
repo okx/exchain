@@ -12,7 +12,7 @@ import (
 
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{trace.Evm, "Iavl", "DB", "DeliverTxs", trace.Round, trace.CommitRound, trace.Produce}
+	CUSTOM_PRINT = []string{trace.Evm, "Iavl", "DeliverTxs", trace.Round, trace.CommitRound, trace.Produce}
 )
 
 const (

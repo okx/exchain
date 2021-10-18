@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/tendermint/tendermint/trace"
 )
@@ -220,7 +221,7 @@ func (s *analyer) format() {
 	for _, v := range keys {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
 	}
-
+	format = strings.TrimRight(format, ", ")
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
 	//format += fmt.Sprintf("%s<%dms>", "exchainDeliverTx", s.delliverTxCost)
