@@ -16,6 +16,7 @@ var (
 )
 
 const (
+	DefaultElapsedSchemas = "Evm=1,Iavl=1,DeliverTxs=0,Round=0,CommitRound=0,Produce=0"
 	Elapsed = "elapsed"
 )
 
@@ -23,16 +24,19 @@ func init() {
 	once.Do(func() {
 		elapsedInfo := &ElapsedTimeInfos{
 			infoMap:     make(map[string]string),
-			showFlagMap: make(map[string]struct{}),
+			schemaMap: make(map[string]bool),
 		}
+
+		elapsedInfo.decodeElapsParam(DefaultElapsedSchemas)
+
 		trace.SetInfoObject(elapsedInfo)
 	})
 }
 
 type ElapsedTimeInfos struct {
 	infoMap         map[string]string
-	showFlagMap     map[string]struct{}
-	showFlagInitail bool
+	schemaMap       map[string]bool
+	initialized     bool
 	elapsedTime     int64
 }
 
@@ -50,12 +54,18 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		return
 	}
 
-	e.decodeElapsParam()
+	if !e.initialized {
+		e.decodeElapsParam(viper.GetString(Elapsed))
+		e.initialized = true
+	}
+
 
 	var detailInfo string
-	for _, v := range CUSTOM_PRINT {
-		if _, ok := e.showFlagMap[v]; ok {
-			detailInfo += fmt.Sprintf("%s[%s], ", v, e.infoMap[v])
+	for _, k := range CUSTOM_PRINT {
+		if v, ok := e.schemaMap[k]; ok {
+			if v {
+				detailInfo += fmt.Sprintf("%s[%s], ", k, e.infoMap[k])
+			}
 		}
 	}
 
@@ -75,24 +85,16 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 	e.infoMap = make(map[string]string)
 }
 
-func (e *ElapsedTimeInfos) decodeElapsParam() {
-
-	if e.showFlagInitail {
-		return
-	}
-
-	elapsd := viper.GetString(Elapsed)
+func (e *ElapsedTimeInfos) decodeElapsParam(elapsed string) {
 
 	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
-	elapsdA := strings.Split(elapsd, ",")
+	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
 		if len(setVal) == 2 && setVal[1] == "1" {
-			e.showFlagMap[setVal[0]] = struct{}{}
+			e.schemaMap[setVal[0]] = true
 		}
 	}
-
-	e.showFlagInitail = true
 }
 
 func (e *ElapsedTimeInfos) SetElapsedTime(elapsedTime int64) {
