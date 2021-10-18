@@ -33,6 +33,7 @@ func instanceOfStateLru() *lru.Cache {
 }
 
 var MatchCounter = 0
+var TotalCounter = 0
 var SetCounter = 0
 
 func GetStateFromCache(key common.Hash) []byte {
@@ -40,6 +41,7 @@ func GetStateFromCache(key common.Hash) []byte {
 	if cache == nil {
 		return nil
 	}
+	TotalCounter++
 	value, ok := cache.Get(key)
 	if ok {
 		ret, ok := value.([]byte)

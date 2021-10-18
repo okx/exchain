@@ -103,6 +103,6 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.SaveBlock(bloom)
 		k.Watcher.Commit()
 	}
-	k.Logger(ctx).With("module", "main").Info(fmt.Sprintf("Match %d, Write %d\n", cache.MatchCounter, cache.SetCounter))
+	k.Logger(ctx).With("module", "main").Info(fmt.Sprintf("Total %d, Match %d, Missed %d, Write %d", cache.TotalCounter, cache.MatchCounter, cache.TotalCounter-cache.MatchCounter, cache.SetCounter))
 	return []abci.ValidatorUpdate{}
 }
