@@ -224,6 +224,5 @@ func (s *analyer) format() {
 	format = strings.TrimRight(format, ", ")
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 
-	//format += fmt.Sprintf("%s<%dms>", "exchainDeliverTx", s.delliverTxCost)
 	trace.GetElapsedInfo().AddInfo("DeliverTxs", format)
 }
