@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"io"
-
+	"fmt"
+	"github.com/okex/exchain/app/rpc"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
@@ -79,16 +81,17 @@ func main() {
 		genutilcli.ValidateGenesisCmd(ctx, cdc, app.ModuleBasics),
 		client.TestnetCmd(ctx, cdc, app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx),
-		repairDataCmd(ctx),
+		repairStateCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, cdc, app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
 		dataCmd(ctx),
 		exportAppCmd(ctx),
+		iaviewerCmd(cdc),
 	)
 
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
@@ -100,7 +103,15 @@ func main() {
 	}
 }
 
-func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
+func closeApp(iApp abci.Application) {
+	fmt.Println("Close App")
+	app := iApp.(*app.OKExChainApp)
+	app.StopStore()
+	evmtypes.CloseIndexer()
+	rpc.CloseEthBackend()
+}
+
+func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) (abci.Application) {
 	pruningOpts, err := server.GetPruningOptionsFromFlags()
 	if err != nil {
 		panic(err)

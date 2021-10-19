@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
@@ -53,4 +54,19 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,10000, "The size for state object cache")
 	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
+
+	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
+	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
+	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
+
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "Evm=x,Iavl=x,DeliverTxs=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
+
+	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "The cool down time after every type of pprof dump")
+	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
+	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 }

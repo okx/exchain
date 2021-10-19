@@ -7,7 +7,6 @@ import (
 	"unicode"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
@@ -39,19 +38,22 @@ const (
 	apiVersion = "1.0"
 )
 
+var ethBackend *backend.EthermintBackend
+
+func CloseEthBackend() {
+	if ethBackend != nil {
+		ethBackend.Close()
+	}
+}
+
 // GetAPIs returns the list of all APIs from the Ethereum namespaces
 func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.PrivKey) []rpc.API {
 	nonceLock := new(rpctypes.AddrLocker)
 	rateLimiters := getRateLimiter()
 	disableAPI := getDisableAPI()
-	ethBackend := backend.New(clientCtx, log, rateLimiters, disableAPI)
+	ethBackend = backend.New(clientCtx, log, rateLimiters, disableAPI)
 	ethAPI := eth.NewAPI(clientCtx, log, ethBackend, nonceLock, keys...)
 	if evmtypes.GetEnableBloomFilter() {
-		server.TrapSignal(func() {
-			if ethBackend != nil {
-				ethBackend.Close()
-			}
-		})
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
 

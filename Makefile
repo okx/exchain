@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v0.19.5
+Version=v0.19.12
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -26,8 +26,9 @@ endif
 
 build_tags = netgo
 
-ifeq ($(WITH_CLEVELDB),yes)
-  build_tags += gcc
+ifeq ($(WITH_ROCKSDB),true)
+  CGO_ENABLED=1
+  build_tags += rocksdb
 endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -52,16 +53,23 @@ ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
   -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
   -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
 
+ifeq ($(WITH_ROCKSDB),true)
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=rocksdb
+endif
 
-BUILD_FLAGS := -ldflags '$(ldflags)'  -gcflags "all=-N -l"
+BUILD_FLAGS := -ldflags '$(ldflags)'
+
+ifeq ($(DEBUG),true)
+	BUILD_FLAGS += -gcflags "all=-N -l"
+endif
 
 all: install
 
 install: exchain
 
 exchain:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 mainnet: exchain
 
@@ -103,21 +111,21 @@ go.sum: go.mod
 	@go mod tidy
 
 cli:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaincli
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 server:
-	go install -v $(BUILD_FLAGS) -tags "$(BUILD_TAGS)" ./cmd/exchaind
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
 
 build:
 ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -o build/exchaind.exe ./cmd/exchaind
-	go build $(BUILD_FLAGS) -o build/exchaincli.exe ./cmd/exchaincli
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind.exe ./cmd/exchaind
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli.exe ./cmd/exchaincli
 else
-	go build $(BUILD_FLAGS) -o build/exchaind ./cmd/exchaind
-	go build $(BUILD_FLAGS) -o build/exchaincli ./cmd/exchaincli
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind ./cmd/exchaind
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
 endif
 
 build-linux:
@@ -135,5 +143,9 @@ localnet-start: localnet-stop
 localnet-stop:
 	docker-compose down
 
+rocksdb:
+	@echo "Installing rocksdb..."
+	@bash ./dev/devtools/install-rocksdb.sh
+.PHONY: rocksdb
 
 .PHONY: build
