@@ -16,7 +16,10 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
-const FlagEvmStateObjectCacheSize = "evm-state-object-cache-size"
+const (
+	FlagEvmStateObjectCacheSize   = "evm-state-object-cache-size"
+	FlagEvmStateObjectCacheHeight = "evm-state-object-cache-height"
+)
 
 var (
 	_ StateObject = (*stateObject)(nil)
@@ -24,6 +27,7 @@ var (
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
 	GlobalStateObjectCacheSize                           = 10000 // State Object cache size limit in elements.
+	GlobalCacheBeginHeight      int64                            // State Object cache begin height.
 	GlobalStateObjectCache      map[string]*list.Element         // State Object cache.
 	GlobalStateObjectCacheQueue *list.List                       // LRU queue of cache elements. Used for deletion.
 )
@@ -96,7 +100,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		panic(fmt.Sprintf("invalid account type for state object: %T", accProto))
 	}
 
-	if !db.ctx.IsCheckTx() {
+	if useCache(db) {
 		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()]; ok {
 			GlobalStateObjectCacheQueue.MoveToBack(elem)
 
@@ -123,7 +127,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 		keyToDirtyStorageIndex:  make(map[ethcmn.Hash]int),
 	}
 
-	if !db.ctx.IsCheckTx() {
+	if useCache(db) {
 		elem := GlobalStateObjectCacheQueue.PushBack(obj)
 		GlobalStateObjectCache[obj.Address().String()] = elem
 
@@ -501,4 +505,11 @@ type stateEntry struct {
 	// address key of the state object
 	address     ethcmn.Address
 	stateObject *stateObject
+}
+
+func useCache(db *CommitStateDB) bool {
+	if !db.ctx.IsCheckTx() && db.ctx.BlockHeight() > GlobalCacheBeginHeight {
+		return true
+	}
+	return false
 }

@@ -52,4 +52,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 
 	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,10000, "The size for state object cache")
+	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
 }
