@@ -100,7 +100,9 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 		k.Watcher.SaveBlock(bloom)
 		k.Watcher.Commit()
 
-		go k.Watcher.SendToDatacenter(req.Height)
+		if watcher.IsCenterEnabled() {
+			go k.Watcher.SendToDatacenter(req.Height)
+		}
 	}
 
 	return []abci.ValidatorUpdate{}
