@@ -509,7 +509,6 @@ type stateEntry struct {
 }
 
 func useCache(db *CommitStateDB) bool {
-	return false
 	if !db.ctx.IsCheckTx() && db.ctx.BlockHeight() > GlobalCacheBeginHeight {
 		return true
 	}
