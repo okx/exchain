@@ -72,5 +72,4 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
 
 	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
-
 }
