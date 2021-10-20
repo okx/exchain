@@ -55,7 +55,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,10000, "The size for state object cache")
 	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
 
-
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
 	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
