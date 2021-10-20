@@ -52,5 +52,5 @@ replace (
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20211018070102-445b557b88fb
 	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20211020022316-c5a01268f729
 	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20211020004836-6e450a838269
-	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
+	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.3-0.20211020052116-598405d55a74
 )
