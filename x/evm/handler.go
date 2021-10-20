@@ -35,10 +35,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 
-		if !ctx.IsAsync() {
-			seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name) //TODO panic????
-			defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
-		}
+		_ = name
 
 		result, err = handlerFun()
 		if err != nil {
