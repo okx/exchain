@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
+	tmdb "github.com/tendermint/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -66,4 +67,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "The cool down time after every type of pprof dump")
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
+
+	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
 }
