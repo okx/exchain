@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/analyzer"
-	"github.com/okex/exchain/x/common/perf"
+	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -34,8 +34,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 
-		seq := perf.GetPerf().OnDeliverTxEnter(ctx, types.ModuleName, name)
-		defer perf.GetPerf().OnDeliverTxExit(ctx, types.ModuleName, name, seq)
+		_ = name
 
 		result, err = handlerFun()
 		if err != nil {
@@ -149,6 +148,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	StartTxLog("TransitionDb")
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
+	if ctx.IsAsync() {
+		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
+			ResultData: resultData,
+			Err:        err,
+		})
+	}
+
 	if err != nil {
 		if !st.Simulate {
 			k.Watcher.SaveTransactionReceipt(watcher.TransactionFailed, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), &types.ResultData{}, ctx.GasMeter().GasConsumed())
