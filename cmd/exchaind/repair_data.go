@@ -38,6 +38,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- repair data success ---------")
 		},
 	}
+	cmd.Flags().Bool(pallTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(FlagStartHeight, 0, "Set the start block height for repair")
 	return cmd
 }
@@ -122,6 +123,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
@@ -133,7 +135,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
-
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {

@@ -38,6 +38,9 @@ const (
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
 
+	pallTx    = "pall_tx"
+	saveBlock = "save_block"
+
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
 )
@@ -85,6 +88,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
+	cmd.Flags().Bool(pallTx, false, "pall Tx")
+	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	return cmd
 }
 
@@ -190,6 +195,33 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 	return nil
 }
 
+var (
+	alreadyInit  bool
+	stateStoreDb *store.BlockStore
+)
+
+// TODO need delete
+func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
+	if !alreadyInit {
+		alreadyInit = true
+		dataDir := filepath.Join(ctx.Config.RootDir, "data")
+		blockStoreDB, err := openDB(blockStoreDB, dataDir)
+		panicError(err)
+		stateStoreDb = store.NewBlockStore(blockStoreDB)
+	}
+
+	block := originDB.LoadBlock(height)
+	meta := originDB.LoadBlockMeta(height)
+	seenCommit := originDB.LoadSeenCommit(height)
+
+	ps := types.NewPartSetFromHeader(meta.BlockID.PartsHeader)
+	for index := 0; index < ps.Total(); index++ {
+		ps.AddPart(originDB.LoadBlockPart(height, index))
+	}
+
+	stateStoreDb.SaveBlock(block, ps, seenCommit)
+}
+
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
@@ -225,12 +257,17 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		startDumpPprof()
 		defer stopDumpPprof()
 	}
+	needSaveBlock := viper.GetBool(saveBlock)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
+		blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
+		if needSaveBlock {
+			SaveBlock(ctx, originBlockStore, height)
+		}
 	}
 }
 

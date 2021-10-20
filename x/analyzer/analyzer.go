@@ -45,7 +45,7 @@ func init() {
 func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
-			status:      true,
+			status:      false, // TODO: panic when pallTx
 			blockHeight: height,
 		}
 	}
