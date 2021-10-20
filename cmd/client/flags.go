@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
+	tmdb "github.com/tendermint/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -69,5 +70,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,10000, "The size for state object cache")
 	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
+
+	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
 
 }
