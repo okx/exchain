@@ -38,7 +38,8 @@ const (
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
 
-	pallTx = "pall_tx"
+	pallTx    = "pall_tx"
+	saveBlock = "save_block"
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
@@ -88,6 +89,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(pallTx, false, "pall Tx")
+	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	return cmd
 }
 
@@ -194,20 +196,19 @@ func initChain(state sm.State, stateDB dbm.DB, genDoc *types.GenesisDoc, proxyAp
 }
 
 var (
-	alreadyInit = false
-	nowbb       dbm.DB
+	alreadyInit  bool
+	stateStoreDb *store.BlockStore
 )
 
 // TODO need delete
 func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	if !alreadyInit {
-		var err error
 		alreadyInit = true
 		dataDir := filepath.Join(ctx.Config.RootDir, "data")
-		nowbb, err = openDB(blockStoreDB, dataDir)
+		blockStoreDB, err := openDB(blockStoreDB, dataDir)
 		panicError(err)
+		stateStoreDb = store.NewBlockStore(blockStoreDB)
 	}
-	stateStoreDb := store.NewBlockStore(nowbb)
 
 	block := originDB.LoadBlock(height)
 	meta := originDB.LoadBlockMeta(height)
@@ -256,6 +257,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		startDumpPprof()
 		defer stopDumpPprof()
 	}
+	needSaveBlock := viper.GetBool(saveBlock)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
@@ -263,9 +265,10 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
-		SaveBlock(ctx, originBlockStore, height)
+		if needSaveBlock {
+			SaveBlock(ctx, originBlockStore, height)
+		}
 	}
-	fmt.Println("AllTxs", sm.AllTxs, "PallTxs", sm.PallTxs, "Conflict Txs", sm.AllTxs-sm.PallTxs)
 }
 
 func startDumpPprof() {

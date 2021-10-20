@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/analyzer"
-	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
