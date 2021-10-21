@@ -869,7 +869,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
-	if !so.stateDB.ctx.IsCheckTx() {
+	if useCache(csdb){
 		if elem, ok := GlobalStateObjectCache[so.Address().String()]; ok {
 			GlobalStateObjectCacheQueue.Remove(elem)
 			delete(GlobalStateObjectCache, so.Address().String())
