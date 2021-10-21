@@ -26,10 +26,10 @@ var (
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
-	GlobalStateObjectCacheSize                           = 0 // State Object cache size limit in elements.
-	GlobalCacheBeginHeight      int64                        // State Object cache begin height.
-	GlobalStateObjectCache      map[string]*list.Element     // State Object cache.
-	GlobalStateObjectCacheQueue *list.List                   // LRU queue of cache elements. Used for deletion.
+	GlobalStateObjectCacheSize  int64                    // State Object cache size limit in elements.
+	GlobalCacheBeginHeight      int64                    // State Object cache begin height.
+	GlobalStateObjectCache      map[string]*list.Element // State Object cache.
+	GlobalStateObjectCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
 
 )
 
