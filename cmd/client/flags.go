@@ -68,7 +68,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
-	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,10000, "The size for state object cache")
+	cmd.Flags().IntVar(&evmtypes.GlobalStateObjectCacheSize, evmtypes.FlagEvmStateObjectCacheSize,0, "The size for state object cache")
 	cmd.Flags().Int64Var(&evmtypes.GlobalCacheBeginHeight, evmtypes.FlagEvmStateObjectCacheHeight,0, "The begin block height for state object cache")
 
 	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
