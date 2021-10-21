@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +49,9 @@ const (
 	flagHeight    = "height"
 	flagPruning   = "enable_pruning"
 	flagDBBackend = "db_backend"
+	flagFromDB    = "from"
+	flagToDB      = "to"
+	flagToDBPath  = "to_path"
 
 	blockDBName = "blockstore"
 	stateDBName = "state"
@@ -60,7 +66,11 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		Short: "modify data or query data in database",
 	}
 
-	cmd.AddCommand(pruningCmd(ctx), queryCmd(ctx))
+	cmd.AddCommand(
+		pruningCmd(ctx),
+		queryCmd(ctx),
+		dbConvertCmd(ctx),
+	)
 
 	return cmd
 }
@@ -196,6 +206,68 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 			return nil
 		},
 	}
+
+	return cmd
+}
+
+func dbConvertCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "db-convert",
+		Short: "Convert oec data from goleveldb to rocksdb, or vice versa",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			// */data/*
+			fromDir := ctx.Config.DBDir()
+			toDir := viper.GetString(flagToDBPath)
+
+			if toDir == "" {
+				toDir = filepath.Join(ctx.Config.RootDir, "data_convert")
+			}
+			if _, err := os.Stat(toDir); os.IsNotExist(err) {
+				err := os.MkdirAll(toDir, 0700)
+				if err != nil {
+					return fmt.Errorf("could not create directory %v: %w", toDir, err)
+				}
+			}
+
+			fromFs, err := ioutil.ReadDir(fromDir)
+			if err != nil {
+				return err
+			}
+
+			for _, f := range fromFs {
+				if f.IsDir() {
+					str := strings.Split(f.Name(), ".")
+					if len(str) != 2 || str[1] != "db" {
+						continue
+					}
+					wg.Add(1)
+					go func(name, fromDir, toDir string) {
+						defer wg.Done()
+
+						fromDB := viper.GetString(flagFromDB)
+						toDB := viper.GetString(flagToDB)
+						if fromDB == string(dbm.GoLevelDBBackend) && toDB == string(dbm.RocksDBBackend) {
+							LtoR(name, fromDir, toDir)
+						} else if fromDB == string(dbm.RocksDBBackend) && toDB == string(dbm.GoLevelDBBackend) {
+							RtoL(name, fromDir, toDir)
+						} else {
+							panic("unsupported DB for 'from' and 'to'")
+						}
+					}(str[0], fromDir, toDir)
+				}
+			}
+			wg.Wait()
+
+			return nil
+		},
+	}
+
+	cmd.PersistentFlags().StringP(flagFromDB, "f", string(dbm.GoLevelDBBackend), "The db type before conversion")
+	cmd.PersistentFlags().StringP(flagToDB, "t", string(dbm.RocksDBBackend), "The db type after conversion")
+	cmd.PersistentFlags().StringP(flagToDBPath, "p", "", "The db path after conversion")
 
 	return cmd
 }
