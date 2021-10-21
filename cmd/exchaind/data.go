@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -60,7 +64,11 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		Short: "modify data or query data in database",
 	}
 
-	cmd.AddCommand(pruningCmd(ctx), queryCmd(ctx))
+	cmd.AddCommand(
+		pruningCmd(ctx),
+		queryCmd(ctx),
+		dbConvertCmd(ctx),
+	)
 
 	return cmd
 }
@@ -192,6 +200,63 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 			go compactDB(stateDB, stateDBName, dbm.BackendType(ctx.Config.DBBackend))
 			wg.Wait()
 			log.Println("--------- compact end!!!   ---------")
+
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func dbConvertCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "convert",
+		Short: "Convert oec data from goleveldb to rocksdb",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			// {home}/data/*
+			fromDir := ctx.Config.DBDir()
+			toDir := filepath.Join(ctx.Config.RootDir, "data_convert")
+			if _, err := os.Stat(toDir); os.IsNotExist(err) {
+				err := os.MkdirAll(toDir, 0700)
+				if err != nil {
+					return fmt.Errorf("could not create directory %v: %w", toDir, err)
+				}
+			}
+
+			fromFs, err := ioutil.ReadDir(fromDir)
+			if err != nil {
+				return err
+			}
+			for _, f := range fromFs {
+				str := strings.Split(f.Name(), ".")
+				if f.IsDir() && len(str) == 2 && str[1] == "db" {
+					wg.Add(1)
+					go func(name, fromDir, toDir string) {
+						defer wg.Done()
+						LtoR(name, fromDir, toDir)
+					}(str[0], fromDir, toDir)
+				} else {
+					// cp
+					err := exec.Command("cp", "-r", filepath.Join(fromDir, f.Name()), toDir).Run()
+					if err != nil {
+						panic("Execute Command failed:" + err.Error())
+					}
+				}
+			}
+			wg.Wait()
+
+			// mv
+			err = exec.Command("mv", fromDir, filepath.Join(ctx.Config.RootDir, "data_backup")).Run()
+			if err != nil {
+				panic("Execute Command failed:" + err.Error())
+			}
+			err = exec.Command("mv", toDir, filepath.Join(ctx.Config.RootDir, "data")).Run()
+			if err != nil {
+				panic("Execute Command failed:" + err.Error())
+			}
 
 			return nil
 		},
