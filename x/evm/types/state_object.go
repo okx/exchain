@@ -26,10 +26,10 @@ var (
 
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
-	GlobalStateObjectCacheSize                           = 10000 // State Object cache size limit in elements.
-	GlobalCacheBeginHeight      int64                            // State Object cache begin height.
-	GlobalStateObjectCache      map[string]*list.Element         // State Object cache.
-	GlobalStateObjectCacheQueue *list.List                       // LRU queue of cache elements. Used for deletion.
+	GlobalStateObjectCacheSize                           = 0 // State Object cache size limit in elements.
+	GlobalCacheBeginHeight      int64                        // State Object cache begin height.
+	GlobalStateObjectCache      map[string]*list.Element     // State Object cache.
+	GlobalStateObjectCacheQueue *list.List                   // LRU queue of cache elements. Used for deletion.
 
 )
 
@@ -509,7 +509,7 @@ type stateEntry struct {
 }
 
 func useCache(db *CommitStateDB) bool {
-	if GlobalStateObjectCacheSize > 0  && !db.ctx.IsCheckTx() && db.ctx.BlockHeight() > GlobalCacheBeginHeight {
+	if GlobalStateObjectCacheSize > 0 && !db.ctx.IsCheckTx() && db.ctx.BlockHeight() > GlobalCacheBeginHeight {
 		return true
 	}
 	return false
