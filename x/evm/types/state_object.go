@@ -18,7 +18,6 @@ import (
 
 const (
 	FlagEvmStateObjectCacheSize   = "evm-state-object-cache-size"
-	FlagEvmStateObjectCacheHeight = "evm-state-object-cache-height"
 )
 
 var (
@@ -27,7 +26,6 @@ var (
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
 	GlobalStateObjectCacheSize  int                      // State Object cache size limit in elements.
-	GlobalCacheBeginHeight      int64                    // State Object cache begin height.
 	GlobalStateObjectCache      map[string]*list.Element // State Object cache.
 	GlobalStateObjectCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
 
@@ -509,7 +507,7 @@ type stateEntry struct {
 }
 
 func useCache(db *CommitStateDB) bool {
-	if GlobalStateObjectCacheSize > 0 && !db.ctx.IsCheckTx() && db.ctx.BlockHeight() > GlobalCacheBeginHeight {
+	if GlobalStateObjectCacheSize > 0 && !db.ctx.IsCheckTx() {
 		return true
 	}
 	return false
