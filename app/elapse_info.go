@@ -16,7 +16,7 @@ var (
 )
 
 const (
-	DefaultElapsedSchemas = "Evm=1,Iavl=1,DeliverTxs=0,Round=0,CommitRound=0,Produce=0"
+	DefaultElapsedSchemas = "Evm=1,Iavl=1,DeliverTxs=1,Round=0,CommitRound=0,Produce=0"
 	Elapsed = "elapsed"
 )
 
