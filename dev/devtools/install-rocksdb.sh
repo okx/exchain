@@ -15,4 +15,4 @@ if [[ `uname` == 'Linux' ]]; then
     cp librocksdb.so* /usr/lib/
 fi
 
-rm -r ../rocksdb
+rm -rf ../rocksdb
