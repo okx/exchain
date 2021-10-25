@@ -13,11 +13,12 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
 )
 
 const (
-	FlagEvmStateObjectCacheSize   = "evm-state-object-cache-size"
+	FlagEvmStateObjectCacheSize = "evm-state-object-cache-size"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 	GlobalStateObjectCacheSize  int                      // State Object cache size limit in elements.
 	GlobalStateObjectCache      map[string]*list.Element // State Object cache.
 	GlobalStateObjectCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
-
+	GlobalStateObjectCacheLru   *lru.Cache
 )
 
 func init() {
@@ -100,6 +101,15 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
+		value, ok := GlobalStateObjectCacheLru.Get(ethermintAccount.EthAddress().String())
+		if ok {
+			so := value.(*stateObject)
+			so.stateDB = db
+			so.account = ethermintAccount
+
+			return so
+		}
+		/*
 		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()]; ok {
 			GlobalStateObjectCacheQueue.MoveToBack(elem)
 
@@ -109,6 +119,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 
 			return so
 		}
+
+		 */
 	}
 
 	// set empty code hash
@@ -127,6 +139,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
+		GlobalStateObjectCacheLru.Add(obj.Address().String(), obj)
+/*
 		elem := GlobalStateObjectCacheQueue.PushBack(obj)
 		GlobalStateObjectCache[obj.Address().String()] = elem
 
@@ -135,6 +149,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 			addStr := GlobalStateObjectCacheQueue.Remove(oldest).(*stateObject).Address().String()
 			delete(GlobalStateObjectCache, addStr)
 		}
+
+ */
 	}
 
 	return obj

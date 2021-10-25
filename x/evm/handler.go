@@ -84,6 +84,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog("txhash")
 
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,
 		Price:        msg.Data.Price,
@@ -91,7 +93,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
+		Csdb:         csdb,
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
@@ -226,13 +228,15 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+
 	st := types.StateTransition{
 		AccountNonce: msg.AccountNonce,
 		Price:        msg.Price.BigInt(),
 		GasLimit:     msg.GasLimit,
 		Amount:       msg.Amount.BigInt(),
 		Payload:      msg.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx),
+		Csdb:         csdb,
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),

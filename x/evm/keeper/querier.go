@@ -60,7 +60,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 }
 
 func queryContractBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	blockedList := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractBlockedList()
+	blockedList := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx)
+
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, blockedList)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
@@ -71,6 +72,7 @@ func queryContractBlockedList(ctx sdk.Context, keeper Keeper) (res []byte, err s
 
 func queryContractDeploymentWhitelist(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 	whitelist := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetContractDeploymentWhitelist()
+
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, whitelist)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
