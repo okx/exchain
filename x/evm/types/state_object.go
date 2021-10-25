@@ -35,6 +35,7 @@ var (
 func init() {
 	GlobalStateObjectCache = make(map[string]*list.Element)
 	GlobalStateObjectCacheQueue = list.New()
+
 }
 
 // StateObject interface for interacting with state object
@@ -93,6 +94,15 @@ type stateObject struct {
 	deleted   bool
 }
 
+func DeleteStateObject(db *CommitStateDB) {
+	//fmt.Println("db.GetCleanAddr() ===>", db.GetCleanAddr())
+	for _, v := range db.GetCleanAddr(){
+		if useCache(db) {
+			getLruCache().Remove(v)
+		}
+	}
+}
+
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
@@ -101,7 +111,7 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
-		value, ok := GlobalStateObjectCacheLru.Get(ethermintAccount.EthAddress().String())
+		value, ok := getLruCache().Get(ethermintAccount.EthAddress().String())
 		if ok {
 			so := value.(*stateObject)
 			so.stateDB = db
@@ -109,18 +119,6 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 
 			return so
 		}
-		/*
-		if elem, ok := GlobalStateObjectCache[ethermintAccount.EthAddress().String()]; ok {
-			GlobalStateObjectCacheQueue.MoveToBack(elem)
-
-			so := elem.Value.(*stateObject)
-			so.stateDB = db
-			so.account = ethermintAccount
-
-			return so
-		}
-
-		 */
 	}
 
 	// set empty code hash
@@ -139,18 +137,10 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
-		GlobalStateObjectCacheLru.Add(obj.Address().String(), obj)
-/*
-		elem := GlobalStateObjectCacheQueue.PushBack(obj)
-		GlobalStateObjectCache[obj.Address().String()] = elem
-
-		if GlobalStateObjectCacheQueue.Len() > GlobalStateObjectCacheSize {
-			oldest := GlobalStateObjectCacheQueue.Front()
-			addStr := GlobalStateObjectCacheQueue.Remove(oldest).(*stateObject).Address().String()
-			delete(GlobalStateObjectCache, addStr)
-		}
-
- */
+		//set addr cache
+		getLruCache().Add(obj.Address().String(), obj)
+		//add oper addr to csdb
+		db.AddAddrOper(obj.Address().String())
 	}
 
 	return obj
@@ -527,4 +517,15 @@ func useCache(db *CommitStateDB) bool {
 		return true
 	}
 	return false
+}
+
+func getLruCache() *lru.Cache{
+	if GlobalStateObjectCacheLru != nil{
+		return GlobalStateObjectCacheLru
+	}
+	GlobalStateObjectCacheLru , err := lru.New(GlobalStateObjectCacheSize)
+	if err != nil{
+		return nil
+	}
+	return GlobalStateObjectCacheLru
 }

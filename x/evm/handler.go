@@ -121,8 +121,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog("SaveTx")
 
 	defer func() {
-		StartTxLog("defer")
-		defer StopTxLog("defer")
 
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()

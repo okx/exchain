@@ -146,6 +146,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(evmGasMeter)
 	csdb := st.Csdb.WithContext(ctx)
+	//clean invalid cache
+	defer DeleteStateObject(csdb)
 
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
@@ -206,7 +208,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
-
+	//panic("to test clean object")
 	gasConsumed := gasLimit - leftOverGas
 
 	defer func() {

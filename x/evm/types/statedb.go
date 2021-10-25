@@ -123,6 +123,7 @@ type CommitStateDB struct {
 
 	dbAdapter DbAdapter
 
+	operateAddrRecord map[string]struct{}
 }
 
 type StoreProxy interface {
@@ -170,6 +171,7 @@ func newCommitStateDB(
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            DefaultPrefixDb{},
+		operateAddrRecord:    make(map[string]struct{}),
 	}
 }
 
@@ -196,6 +198,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            csdbParams.Ada,
+		operateAddrRecord:    make(map[string]struct{}),
 	}
 }
 
@@ -1316,4 +1319,18 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
 	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	return bs.Has(contractAddr)
+}
+
+// AddAddrOper add addr to the operateAddrRecord
+func (csdb *CommitStateDB) AddAddrOper(contractAddr string)  {
+	csdb.operateAddrRecord[contractAddr] = struct{}{}
+}
+
+// GetCleanAddr return all oper address
+func (csdb *CommitStateDB) GetCleanAddr() []string {
+	var res []string
+	for k, _ := range csdb.operateAddrRecord{
+		res = append(res, k)
+	}
+	return res
 }
