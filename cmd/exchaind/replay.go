@@ -199,7 +199,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(height)
 
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{})
+		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block, &types.Deltas{}, &types.WatchData{})
 		panicError(err)
 	}
 }
