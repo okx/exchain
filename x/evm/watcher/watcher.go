@@ -37,7 +37,7 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
-	// dirtyAccount, centerBatch send to DataCenter
+	// dirtyAccount, centerBatch for transfer in network
 	dirtyAccount []*sdk.AccAddress
 	centerBatch  []*Batch
 	useCenter    bool
@@ -74,7 +74,8 @@ func GetWatchLruSize() int {
 
 func NewWatcher() *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
-	watcher.SetGetBatchFunc()
+	watcher.SetGetCenterBatchFunc()
+	watcher.SetGetWatchDataFunc()
 	return watcher
 }
 
@@ -398,7 +399,7 @@ func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) SetGetBatchFunc() {
+func (w *Watcher) SetGetCenterBatchFunc() {
 	gb := func(height int64) bool {
 		msg := tmstate.DataCenterMsg{Height: height}
 		msgBody, err := tmtypes.Json.Marshal(&msg)
@@ -424,7 +425,55 @@ func (w *Watcher) SetGetBatchFunc() {
 		return true
 	}
 
-	tmstate.GetBatch = gb
+	tmstate.GetCenterBatch = gb
+}
+
+func (w *Watcher) SetGetWatchDataFunc() {
+	gwd := func() *tmtypes.WatchData {
+		defer func() {
+			w.dirtyAccount = nil
+			w.centerBatch = nil
+		}()
+		//dirtyAccByte, err := itjs.Marshal(&w.dirtyAccount)
+		//if err != nil {
+		//	return nil
+		//}
+		//batchByte, err := itjs.Marshal(&w.centerBatch)
+		//if err != nil {
+		//	return nil
+		//}
+		value := WatchData{w.dirtyAccount, w.centerBatch}
+		valueByte, err := itjs.Marshal(&value)
+		if err != nil {
+			return nil
+		}
+		return &tmtypes.WatchData{WatchDataByte: valueByte, Height: int64(w.height)}
+	}
+
+	tmstate.GetWatchData = gwd
+}
+
+func (w *Watcher) SetUseWatchDataFunc() {
+	uwd := func(twd *tmtypes.WatchData) {
+		defer func() {
+			w.useCenter = false
+			w.dirtyAccount = nil
+			w.centerBatch = nil
+		}()
+		if twd == nil {
+			return
+		}
+		wd := WatchData{}
+		if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
+			return
+		}
+		w.dirtyAccount = wd.Account
+		w.centerBatch = wd.Batches
+		w.useCenter = true
+		w.Commit()
+	}
+
+	tmstate.UseWatchData = uwd
 }
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
