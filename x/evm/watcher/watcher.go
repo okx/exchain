@@ -40,7 +40,6 @@ type Watcher struct {
 	// dirtyAccount, centerBatch for transfer in network
 	dirtyAccount []*sdk.AccAddress
 	centerBatch  []*Batch
-	useCenter    bool
 }
 
 var (
@@ -74,8 +73,7 @@ func GetWatchLruSize() int {
 
 func NewWatcher() *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
-	watcher.SetGetCenterBatchFunc()
-	watcher.SetGetWatchDataFunc()
+	watcher.SetWatchDataFunc()
 	return watcher
 }
 
@@ -106,6 +104,10 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+
+	// ResetTransferWatchData
+	w.dirtyAccount = nil
+	w.centerBatch = nil
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -350,25 +352,32 @@ func (w *Watcher) Commit() {
 		return
 	}
 
-	// if get data from DataCenter
-	if w.useCenter {
-		if w.centerBatch != nil {
-			go w.commitCenterBatch(w.centerBatch)
-		}
-		if w.dirtyAccount != nil {
-			go w.delDirtyAccount(w.dirtyAccount)
-		}
-	} else {
-		//hold it in temp
-		batch := w.batch
-		go w.commitBatch(w.batch)
+	//hold it in temp
+	batch := w.batch
+	go w.commitBatch(w.batch)
 
-		// get centerBatch for sending to DataCenter
-		centerBatch := make([]*Batch, len(batch))
-		for i, b := range batch {
-			centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
-		}
-		w.centerBatch = centerBatch
+	// get centerBatch for sending to DataCenter
+	centerBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
+		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+	}
+	w.centerBatch = centerBatch
+
+	if IsCenterEnabled() {
+		go w.SendToDatacenter(int64(w.height))
+	}
+}
+
+func (w *Watcher) CommitWatchData() {
+	if w.centerBatch != nil {
+		go w.commitCenterBatch(w.centerBatch)
+	}
+	if w.dirtyAccount != nil {
+		go w.delDirtyAccount(w.dirtyAccount)
+	}
+
+	if IsCenterEnabled() {
+		go w.SendToDatacenter(int64(w.height))
 	}
 }
 
@@ -399,8 +408,8 @@ func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) SetGetCenterBatchFunc() {
-	gb := func(height int64) bool {
+func (w *Watcher) SetWatchDataFunc() {
+	gcb := func(height int64) bool {
 		msg := tmstate.DataCenterMsg{Height: height}
 		msgBody, err := tmtypes.Json.Marshal(&msg)
 		if err != nil {
@@ -421,27 +430,10 @@ func (w *Watcher) SetGetCenterBatchFunc() {
 		}
 		w.centerBatch = data.Batches
 		w.dirtyAccount = data.Account
-		w.useCenter = true
 		return true
 	}
 
-	tmstate.GetCenterBatch = gb
-}
-
-func (w *Watcher) SetGetWatchDataFunc() {
 	gwd := func() *tmtypes.WatchData {
-		defer func() {
-			w.dirtyAccount = nil
-			w.centerBatch = nil
-		}()
-		//dirtyAccByte, err := itjs.Marshal(&w.dirtyAccount)
-		//if err != nil {
-		//	return nil
-		//}
-		//batchByte, err := itjs.Marshal(&w.centerBatch)
-		//if err != nil {
-		//	return nil
-		//}
 		value := WatchData{w.dirtyAccount, w.centerBatch}
 		valueByte, err := itjs.Marshal(&value)
 		if err != nil {
@@ -450,39 +442,26 @@ func (w *Watcher) SetGetWatchDataFunc() {
 		return &tmtypes.WatchData{WatchDataByte: valueByte, Height: int64(w.height)}
 	}
 
-	tmstate.GetWatchData = gwd
-}
-
-func (w *Watcher) SetUseWatchDataFunc() {
 	uwd := func(twd *tmtypes.WatchData) {
-		defer func() {
-			w.useCenter = false
-			w.dirtyAccount = nil
-			w.centerBatch = nil
-		}()
-		if twd == nil {
-			return
+		if twd.Size() != 0 {
+			wd := WatchData{}
+			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
+				return
+			}
+			w.dirtyAccount = wd.Account
+			w.centerBatch = wd.Batches
 		}
-		wd := WatchData{}
-		if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
-			return
-		}
-		w.dirtyAccount = wd.Account
-		w.centerBatch = wd.Batches
-		w.useCenter = true
-		w.Commit()
+
+		w.CommitWatchData()
 	}
 
+	tmstate.GetCenterBatch = gcb
+	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
 }
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
 func (w *Watcher) SendToDatacenter(height int64) {
-	defer func() {
-		w.useCenter = false
-		w.dirtyAccount = nil
-		w.centerBatch = nil
-	}()
 	if w.centerBatch == nil && w.dirtyAccount == nil {
 		return
 	}
