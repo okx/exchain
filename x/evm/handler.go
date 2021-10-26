@@ -166,7 +166,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StartTxLog("Bloomfilter")
 	if !st.Simulate {
 		// update block bloom filter
-		k.Bloom.Or(k.Bloom, executionResult.Bloom)
+		if !ctx.IsAsync() {
+			k.Bloom.Or(k.Bloom, executionResult.Bloom) // not support paralleled-tx´
+		}
 		k.LogSize = st.Csdb.GetLogSize()
 		k.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess, msg, common.BytesToHash(txHash), uint64(k.TxCount-1), resultData, ctx.GasMeter().GasConsumed())
 		if msg.Data.Recipient == nil {
