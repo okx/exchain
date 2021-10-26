@@ -86,6 +86,9 @@ type stateObject struct {
 }
 
 func DeleteStateObject(db *CommitStateDB) {
+	if db == nil {
+		return
+	}
 	for _, v := range db.GetCleanAddr(){
 		if useCache(db) {
 			getLruCache().Remove(v)

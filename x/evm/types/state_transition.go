@@ -110,9 +110,13 @@ func (st StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error) {
-
+	var csdb *CommitStateDB
 	defer func() {
 		if e := recover(); e != nil {
+
+			//when panic use csdb as param input to clean invalid cache
+			DeleteStateObject(csdb)
+
 			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
 			// contract calling
 			if blockedContractAddr, ok := e.(common.Address); ok {
@@ -145,13 +149,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	currentGasMeter := ctx.GasMeter()
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(evmGasMeter)
-	csdb := st.Csdb.WithContext(ctx)
-	defer func() {
-		if e := recover(); e != nil {
-			//when panic use csdb as param input to clean invalid cache
-			DeleteStateObject(csdb)
-		}
-	}()
+	csdb = st.Csdb.WithContext(ctx)
 
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
