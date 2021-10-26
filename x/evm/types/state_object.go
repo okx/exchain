@@ -85,6 +85,9 @@ type stateObject struct {
 	deleted   bool
 }
 
+/*
+	DeleteStateObject is idempotent
+*/
 func DeleteStateObject(db *CommitStateDB) {
 	if db == nil {
 		return
