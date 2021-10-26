@@ -430,11 +430,12 @@ func (w *Watcher) SetWatchDataFunc() {
 		}
 		w.centerBatch = data.Batches
 		w.dirtyAccount = data.Account
+		w.delayEraseKey = data.DelayEraseKey
 		return true
 	}
 
 	gwd := func() *tmtypes.WatchData {
-		value := WatchData{w.dirtyAccount, w.centerBatch}
+		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
 		valueByte, err := itjs.Marshal(&value)
 		if err != nil {
 			return nil
@@ -450,6 +451,7 @@ func (w *Watcher) SetWatchDataFunc() {
 			}
 			w.dirtyAccount = wd.Account
 			w.centerBatch = wd.Batches
+			w.delayEraseKey = wd.DelayEraseKey
 		}
 
 		w.CommitWatchData()
@@ -465,7 +467,7 @@ func (w *Watcher) SendToDatacenter(height int64) {
 	if w.centerBatch == nil && w.dirtyAccount == nil {
 		return
 	}
-	value := WatchData{w.dirtyAccount, w.centerBatch}
+	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
 	valueByte, err := itjs.Marshal(&value)
 	if err != nil {
 		return

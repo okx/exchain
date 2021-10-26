@@ -69,8 +69,9 @@ type Batch struct {
 }
 
 type WatchData struct {
-	Account []*sdk.AccAddress `json:"account"`
-	Batches []*Batch          `json:"batches"`
+	Account       []*sdk.AccAddress `json:"account"`
+	Batches       []*Batch          `json:"batches"`
+	DelayEraseKey [][]byte          `json:"delay_erase_key"`
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
