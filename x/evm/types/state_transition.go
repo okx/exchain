@@ -110,6 +110,7 @@ func (st StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error) {
+
 	var csdb *CommitStateDB
 	defer func() {
 		if err != nil{
@@ -131,7 +132,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 				panic(e)
 			}
 		}
-
 	}()
 
 	contractCreation := st.Recipient == nil
