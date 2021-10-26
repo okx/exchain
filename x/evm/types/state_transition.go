@@ -208,7 +208,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
-	//panic("to test clean object")
+
 	gasConsumed := gasLimit - leftOverGas
 
 	defer func() {

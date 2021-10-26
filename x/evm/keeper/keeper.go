@@ -20,7 +20,6 @@ import (
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
 // to the StateDB interface.
-
 type Keeper struct {
 	// Amino codec
 	cdc *codec.Codec
@@ -208,7 +207,6 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (types.Storage, error) {
 	storage := types.Storage{}
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
 	err := csdb.ForEachStorage(address, func(key, value common.Hash) bool {
 		storage = append(storage, types.NewState(key, value))
 		return false

@@ -30,7 +30,6 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 		)
 
 		csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
 		k.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 			ethAccount, ok := account.(*ethermint.EthAccount)
 			if !ok {
@@ -71,7 +70,6 @@ func (k Keeper) NonceInvariant() sdk.Invariant {
 		)
 
 		csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
 		k.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 			ethAccount, ok := account.(*ethermint.EthAccount)
 			if !ok {

@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"io"
 	"math/big"
@@ -27,16 +26,8 @@ var (
 	emptyCodeHash = ethcrypto.Keccak256(nil)
 
 	GlobalStateObjectCacheSize  int                      // State Object cache size limit in elements.
-	GlobalStateObjectCache      map[string]*list.Element // State Object cache.
-	GlobalStateObjectCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
 	GlobalStateObjectCacheLru   *lru.Cache
 )
-
-func init() {
-	GlobalStateObjectCache = make(map[string]*list.Element)
-	GlobalStateObjectCacheQueue = list.New()
-
-}
 
 // StateObject interface for interacting with state object
 type StateObject interface {
@@ -95,7 +86,6 @@ type stateObject struct {
 }
 
 func DeleteStateObject(db *CommitStateDB) {
-	//fmt.Println("db.GetCleanAddr() ===>", db.GetCleanAddr())
 	for _, v := range db.GetCleanAddr(){
 		if useCache(db) {
 			getLruCache().Remove(v)
