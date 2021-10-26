@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 	"math/big"
 	"sort"
 	"sync"
@@ -123,7 +124,8 @@ type CommitStateDB struct {
 
 	dbAdapter DbAdapter
 
-	operateAddrRecord map[string]struct{}
+	lruCache       *lru.Cache
+	commonCacheKey map[string]struct{}
 }
 
 type StoreProxy interface {
@@ -152,6 +154,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
+	cacheLru, _ := lru.New(22)
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
@@ -171,14 +174,16 @@ func newCommitStateDB(
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            DefaultPrefixDb{},
-		operateAddrRecord:    make(map[string]struct{}),
+		lruCache:             cacheLru,
+		commonCacheKey:       make(map[string]struct{}),
 	}
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
+	cacheLru, _ := lru.New(22)
+
 	return &CommitStateDB{
 		ctx: ctx,
-
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
 		accountKeeper: csdbParams.AccountKeeper,
@@ -198,7 +203,8 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            csdbParams.Ada,
-		operateAddrRecord:    make(map[string]struct{}),
+		lruCache:             cacheLru,
+		commonCacheKey:       make(map[string]struct{}),
 	}
 }
 
@@ -230,6 +236,15 @@ func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode) bool) {
 	for addr, v := range csdb.codeCache {
 		cb(addr, v)
+	}
+
+}
+
+func (csdb *CommitStateDB) CommitCache(cache *lru.Cache) {
+	for k, _ := range csdb.commonCacheKey {
+		if v, ok := csdb.lruCache.Get(k); ok {
+			cache.Add(k, v)
+		}
 	}
 }
 
@@ -874,7 +889,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	if useCache(csdb) {
-		getLruCache().Remove(so.Address().String())
+		csdb.DelCache(so.Address().String())
 	}
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
@@ -1318,16 +1333,16 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 	return bs.Has(contractAddr)
 }
 
-// AddAddrOper add addr to the operateAddrRecord
-func (csdb *CommitStateDB) AddAddrOper(contractAddr string)  {
-	csdb.operateAddrRecord[contractAddr] = struct{}{}
+// AddCache add k v to lru cache and k map
+func (csdb *CommitStateDB) AddCache(key string, value interface{}) {
+	csdb.lruCache.Add(key, value)
+	csdb.commonCacheKey[key] = struct{}{}
 }
 
-// GetCleanAddr return all oper address
-func (csdb *CommitStateDB) GetCleanAddr() []string {
-	var res []string
-	for k, _ := range csdb.operateAddrRecord{
-		res = append(res, k)
+// DelCache delete local cache
+func (csdb *CommitStateDB) DelCache(key string) {
+	if _, ok := csdb.commonCacheKey[key] ; ok {
+		delete(csdb.commonCacheKey, key)
+		csdb.lruCache.Remove(key)
 	}
-	return res
 }

@@ -85,20 +85,6 @@ type stateObject struct {
 	deleted   bool
 }
 
-/*
-	DeleteStateObject is idempotent
-*/
-func DeleteStateObject(db *CommitStateDB) {
-	if db == nil {
-		return
-	}
-	for _, v := range db.GetCleanAddr(){
-		if useCache(db) {
-			getLruCache().Remove(v)
-		}
-	}
-}
-
 func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObject {
 	// func newStateObject(db *CommitStateDB, accProto authexported.Account, balance sdk.Int) *stateObject {
 	ethermintAccount, ok := accProto.(*types.EthAccount)
@@ -107,7 +93,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
-		value, ok := getLruCache().Get(ethermintAccount.EthAddress().String())
+		//read from global cache
+		value, ok := GetLruCache().Get(ethermintAccount.EthAddress().String())
 		if ok {
 			so := value.(*stateObject)
 			so.stateDB = db
@@ -133,10 +120,8 @@ func newStateObject(db *CommitStateDB, accProto authexported.Account) *stateObje
 	}
 
 	if useCache(db) {
-		//set addr cache
-		getLruCache().Add(obj.Address().String(), obj)
-		//add oper addr to csdb
-		db.AddAddrOper(obj.Address().String())
+		//add csdm tx cache
+		db.AddCache(obj.Address().String(), obj)
 	}
 
 	return obj
@@ -515,7 +500,7 @@ func useCache(db *CommitStateDB) bool {
 	return false
 }
 
-func getLruCache() *lru.Cache{
+func GetLruCache() *lru.Cache{
 	if GlobalStateObjectCacheLru != nil{
 		return GlobalStateObjectCacheLru
 	}
