@@ -178,7 +178,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			//commit cache to global cache
 			st.Csdb.CommitCache(types.GetLruCache())
 		}
-
 	}
 	StopTxLog("Bloomfilter")
 

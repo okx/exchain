@@ -154,7 +154,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
-	cacheLru, _ := lru.New(22)
+	cacheLru, _ := lru.New(GlobalStateObjectCacheSize)
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
@@ -180,10 +180,11 @@ func newCommitStateDB(
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
-	cacheLru, _ := lru.New(22)
+	cacheLru, _ := lru.New(GlobalStateObjectCacheSize)
 
 	return &CommitStateDB{
 		ctx: ctx,
+
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
 		accountKeeper: csdbParams.AccountKeeper,

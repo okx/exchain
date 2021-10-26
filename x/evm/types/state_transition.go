@@ -113,7 +113,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	defer func() {
 		if e := recover(); e != nil {
-
 			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
 			// contract calling
 			if blockedContractAddr, ok := e.(common.Address); ok {
