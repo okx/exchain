@@ -38,7 +38,6 @@ const (
 	pprofAddrFlag    = "pprof_addr"
 	runWithPprofFlag = "gen_pprof"
 
-	pallTx    = "pall_tx"
 	saveBlock = "save_block"
 
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
@@ -88,7 +87,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().IntVar(&tmiavl.MaxCommittedHeightNum, tmiavl.FlagIavlMaxCommittedHeightNum, 8, "Max committed version to cache in memory")
 	cmd.Flags().BoolVar(&tmiavl.EnableAsyncCommit, tmiavl.FlagIavlEnableAsyncCommit, false, "Enable cache iavl node data to optimization leveldb pruning process")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
-	cmd.Flags().Bool(pallTx, false, "pall Tx")
+	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	return cmd
 }
@@ -248,6 +247,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
+		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 	}
@@ -262,7 +262,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		blockExec.SetIsAsyncDeliverTx(viper.GetBool(pallTx))
+		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {

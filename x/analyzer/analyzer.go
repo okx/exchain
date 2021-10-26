@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
+	sm "github.com/tendermint/tendermint/state"
 	"strings"
 
 	"github.com/tendermint/tendermint/trace"
@@ -45,7 +47,7 @@ func init() {
 func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
-			status:      true,
+			status:      !viper.GetBool(sm.FlagParalleledTx),
 			blockHeight: height,
 		}
 	}

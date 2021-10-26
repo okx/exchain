@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -49,9 +50,6 @@ const (
 	flagHeight    = "height"
 	flagPruning   = "enable_pruning"
 	flagDBBackend = "db_backend"
-	flagFromDB    = "from"
-	flagToDB      = "to"
-	flagToDBPath  = "to_path"
 
 	blockDBName = "blockstore"
 	stateDBName = "state"
@@ -212,19 +210,15 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "db-convert",
-		Short: "Convert oec data from goleveldb to rocksdb, or vice versa",
+		Use:   "convert",
+		Short: "Convert oec data from goleveldb to rocksdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
 
-			// */data/*
+			// {home}/data/*
 			fromDir := ctx.Config.DBDir()
-			toDir := viper.GetString(flagToDBPath)
-
-			if toDir == "" {
-				toDir = filepath.Join(ctx.Config.RootDir, "data_convert")
-			}
+			toDir := filepath.Join(ctx.Config.RootDir, "data_convert")
 			if _, err := os.Stat(toDir); os.IsNotExist(err) {
 				err := os.MkdirAll(toDir, 0700)
 				if err != nil {
@@ -236,38 +230,37 @@ func dbConvertCmd(ctx *server.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			for _, f := range fromFs {
-				if f.IsDir() {
-					str := strings.Split(f.Name(), ".")
-					if len(str) != 2 || str[1] != "db" {
-						continue
-					}
+				str := strings.Split(f.Name(), ".")
+				if f.IsDir() && len(str) == 2 && str[1] == "db" {
 					wg.Add(1)
 					go func(name, fromDir, toDir string) {
 						defer wg.Done()
-
-						fromDB := viper.GetString(flagFromDB)
-						toDB := viper.GetString(flagToDB)
-						if fromDB == string(dbm.GoLevelDBBackend) && toDB == string(dbm.RocksDBBackend) {
-							LtoR(name, fromDir, toDir)
-						} else if fromDB == string(dbm.RocksDBBackend) && toDB == string(dbm.GoLevelDBBackend) {
-							RtoL(name, fromDir, toDir)
-						} else {
-							panic("unsupported DB for 'from' and 'to'")
-						}
+						LtoR(name, fromDir, toDir)
 					}(str[0], fromDir, toDir)
+				} else {
+					// cp
+					err := exec.Command("cp", "-r", filepath.Join(fromDir, f.Name()), toDir).Run()
+					if err != nil {
+						panic("Execute Command failed:" + err.Error())
+					}
 				}
 			}
 			wg.Wait()
 
+			// mv
+			err = exec.Command("mv", fromDir, filepath.Join(ctx.Config.RootDir, "data_backup")).Run()
+			if err != nil {
+				panic("Execute Command failed:" + err.Error())
+			}
+			err = exec.Command("mv", toDir, filepath.Join(ctx.Config.RootDir, "data")).Run()
+			if err != nil {
+				panic("Execute Command failed:" + err.Error())
+			}
+
 			return nil
 		},
 	}
-
-	cmd.PersistentFlags().StringP(flagFromDB, "f", string(dbm.GoLevelDBBackend), "The db type before conversion")
-	cmd.PersistentFlags().StringP(flagToDB, "t", string(dbm.RocksDBBackend), "The db type after conversion")
-	cmd.PersistentFlags().StringP(flagToDBPath, "p", "", "The db path after conversion")
 
 	return cmd
 }
