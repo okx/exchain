@@ -16,13 +16,13 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
-const codeBitmapCacheSize = 10000
+const keccak256HashSize = 1000000
 
 var (
 	_ StateObject = (*stateObject)(nil)
 
 	emptyCodeHash         = ethcrypto.Keccak256(nil)
-	keccak256HashCache, _ = lru.NewARC(codeBitmapCacheSize)
+	keccak256HashCache, _ = lru.NewARC(keccak256HashSize)
 )
 
 // StateObject interface for interacting with state object
