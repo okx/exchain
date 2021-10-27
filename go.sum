@@ -562,12 +562,12 @@ github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
-github.com/okex/cosmos-sdk v0.39.3-0.20211022043813-e9174e3ccda1 h1:qtlhObatcFWMLmpFG8wiJ/DchJWkeBgGsu1YX/7Ln1c=
-github.com/okex/cosmos-sdk v0.39.3-0.20211022043813-e9174e3ccda1/go.mod h1:8kyDKp0OiLMRLw0OVmxsZ835GlAsHVPNOHiqb8vdCsU=
+github.com/okex/cosmos-sdk v0.39.3-0.20211025234348-461dce098fb2 h1:2o4NLIyRX6dfmo0FHB0db0uw7r0wcvS9+i8z+1MJBuk=
+github.com/okex/cosmos-sdk v0.39.3-0.20211025234348-461dce098fb2/go.mod h1:8kyDKp0OiLMRLw0OVmxsZ835GlAsHVPNOHiqb8vdCsU=
 github.com/okex/go-ethereum v1.10.9-0.20211025070931-00ddcdc6d712 h1:/QMCWpBa+V1PySeNisIOf2dKzpnUfqrp3RQGwJ+uYfQ=
 github.com/okex/go-ethereum v1.10.9-0.20211025070931-00ddcdc6d712/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
-github.com/okex/iavl v0.14.4-0.20211020022316-c5a01268f729 h1:b1v+AHQZm3wSdx4uPUJmVWIPepKH9l0DZpP1x9iw6Tg=
-github.com/okex/iavl v0.14.4-0.20211020022316-c5a01268f729/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
+github.com/okex/iavl v0.14.4-0.20211027000138-ef8b64f9e1d5 h1:y7I3lnpow/x1HK1+ftp6iydnPzfYL3YqjSkEt3WolJg=
+github.com/okex/iavl v0.14.4-0.20211027000138-ef8b64f9e1d5/go.mod h1:vHLYxU/zuxBmxxr1v+5Vnd/JzcIsyK17n9P9RDubPVU=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20211022043751-8f764a76da75 h1:PetifDzFaT0fVDK5CoCAHjF2VRdSIqjHdG4z41vuYbA=
 github.com/okex/tendermint v0.33.9-okexchain6.0.20211022043751-8f764a76da75/go.mod h1:M1QIvLS/pX7b7wwoLLFCGPxnPVNpiy9yNg9l/zFiMh0=
 github.com/okex/tm-db v0.5.3-0.20211020083246-757456dbe597 h1:a9WAt0NXs15BBheCDyNyPwhk5IvBYm1pDKi5C74TsEE=
