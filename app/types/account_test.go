@@ -1,18 +1,30 @@
 package types_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+	"math/big"
+
+	"errors"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/sr25519"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
+	tmcrypto "github.com/tendermint/tendermint/crypto"
 	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/types"
 )
@@ -41,6 +53,251 @@ func (suite *AccountTestSuite) SetupTest() {
 
 func TestAccountTestSuite(t *testing.T) {
 	suite.Run(t, new(AccountTestSuite))
+}
+
+func parsePosAndType(data byte) (pos int, aminoType amino.Typ3) {
+	aminoType = amino.Typ3(data & 0x07)
+	pos = int(data) >> 3
+	return
+}
+
+func unmarshalEthAccountFromAmino(data []byte) (*types.EthAccount, error) {
+	var typePrefix = []byte{0x4c, 0x96, 0xdf, 0xce}
+	if 0 != bytes.Compare(typePrefix, data[0:4]) {
+		return nil, errors.New("type error")
+	}
+	data = data[4:]
+
+	var dataLen uint64 = 0
+	account := &types.EthAccount{}
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, _ := parsePosAndType(data[0])
+		data = data[1:]
+
+		var n int
+		dataLen, n, _ = amino.DecodeUvarint(data)
+
+		data = data[n:]
+		subData := data[:dataLen]
+
+		switch pos {
+		case 1:
+			baseAccount, err := unmarshalBaseAccountFromAmino(subData)
+			if err != nil {
+				return nil, err
+			}
+			account.BaseAccount = baseAccount
+		case 2:
+			account.CodeHash = subData
+		}
+	}
+	return account, nil
+}
+
+func unmarshalBaseAccountFromAmino(data []byte) (*auth.BaseAccount, error) {
+	var dataLen uint64 = 0
+	var subData []byte
+	account := &auth.BaseAccount{}
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, aminoType := parsePosAndType(data[0])
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			account.Address = make([]byte, len(subData), len(subData))
+			copy(account.Address, subData)
+			// account.Address = subData
+		case 2:
+			coin, err := unmarshalCoinFromAmino(subData)
+			if err != nil {
+				return nil, err
+			}
+			account.Coins = append(account.Coins, coin)
+		case 3:
+			pubkey, err := unmarshalPubKeyFromAmino(subData)
+			if err != nil {
+				return nil, err
+			}
+			account.PubKey = pubkey
+		case 4:
+			uvarint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
+			account.AccountNumber = uvarint
+			dataLen = uint64(n)
+		case 5:
+			uvarint, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, err
+			}
+			account.Sequence = uvarint
+			dataLen = uint64(n)
+		}
+	}
+	return account, nil
+}
+
+func unmarshalCoinFromAmino(data []byte) (coin sdk.DecCoin, err error) {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) <= 0 {
+			break
+		}
+
+		pos, aminoType := parsePosAndType(data[0])
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, _ = amino.DecodeUvarint(data)
+
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			coin.Denom = string(subData)
+		case 2:
+			amt := big.NewInt(0)
+			err = amt.UnmarshalText(subData)
+			if err != nil {
+				return
+			}
+			coin.Amount = sdk.Dec{
+				amt,
+			}
+		}
+	}
+	return
+}
+
+var typePubKeySecp256k1Prefix = []byte{0xeb, 0x5a, 0xe9, 0x87}
+
+func unmarshalPubKeyFromAmino(data []byte) (tmcrypto.PubKey, error) {
+	if 0 == bytes.Compare(typePubKeySecp256k1Prefix, data[0:4]) {
+		if data[4] != 33 {
+			return nil, errors.New("pubkey secp256k1 size error")
+		}
+		data = data[5:]
+		pubKey := secp256k1.PubKeySecp256k1{}
+		copy(pubKey[:], data)
+		return pubKey, nil
+	}
+	panic("not implement")
+}
+
+func TestAccountAmino(t *testing.T) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*exported.Account)(nil), nil)
+	types.RegisterCodec(cdc)
+
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	// ak := mock.NewAddrKeys(addr, pubKey, privKey)
+	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}})
+	testAccount := types.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash: ethcrypto.Keccak256(nil),
+	}
+
+	data, err := cdc.MarshalBinaryBare(&testAccount)
+	if err != nil {
+		t.Fatal("marshal error")
+	}
+
+	var account exported.Account
+
+	err = cdc.UnmarshalBinaryBare(data, &account)
+	if err != nil {
+		t.Fatal("unmarshal error")
+	}
+
+	ethAccount, err := unmarshalEthAccountFromAmino(data)
+	require.NoError(t, err)
+
+	require.EqualValues(t, &testAccount, account)
+	require.EqualValues(t, &testAccount, ethAccount)
+}
+
+func BenchmarkAccountAmino(b *testing.B) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*exported.Account)(nil), nil)
+	types.RegisterCodec(cdc)
+
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	// ak := mock.NewAddrKeys(addr, pubKey, privKey)
+	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
+	testAccount := types.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash: ethcrypto.Keccak256(nil),
+	}
+
+	data, _ := cdc.MarshalBinaryBare(&testAccount)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.Run("amino", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var account exported.Account
+			_ = cdc.UnmarshalBinaryBare(data, &account)
+		}
+	})
+
+	b.Run("direct", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = unmarshalEthAccountFromAmino(data)
+		}
+	})
 }
 
 func (suite *AccountTestSuite) TestEthAccount_Balance() {
