@@ -52,7 +52,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 	e = json.Unmarshal(b, &receipt)
@@ -74,7 +74,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 
@@ -118,7 +118,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if e != nil {
 		return common.Hash{}, e
 	}
-	if len(hash) == 0 {
+	if hash == nil {
 		return common.Hash{}, errNotFound
 	}
 	return common.HexToHash(string(hash)), e
@@ -140,7 +140,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 	if e != nil {
 		return nil, e
 	}
-	if len(hash) == 0 {
+	if hash == nil {
 		return nil, errNotFound
 	}
 
@@ -156,7 +156,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	if e != nil {
 		return nil, e
 	}
-	if len(info) == 0 {
+	if info == nil {
 		return nil, errNotFound
 	}
 
@@ -185,7 +185,7 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	if len(code) == 0 {
+	if code == nil {
 		return nil, errNotFound
 	}
 	q.lru.Add(common.BytesToHash(codeHash), code)
@@ -200,7 +200,7 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if e != nil {
 		return 0, e
 	}
-	if len(height) == 0 {
+	if height == nil {
 		return 0, errNotFound
 	}
 	h, e := strconv.Atoi(string(height))
@@ -216,7 +216,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 	if e != nil {
 		return nil, e
 	}
-	if len(transaction) == 0 {
+	if transaction == nil {
 		return nil, errNotFound
 	}
 	e = json.Unmarshal(transaction, &tx)
@@ -283,7 +283,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 	e = json.Unmarshal(b, &acc)
@@ -304,7 +304,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 	e = json.Unmarshal(b, &acc)
@@ -348,7 +348,7 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 	return b, nil
@@ -362,7 +362,7 @@ func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 
@@ -384,7 +384,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if e != nil {
 		return nil, e
 	}
-	if len(b) == 0 {
+	if b == nil {
 		return nil, errNotFound
 	}
 	var params evmtypes.Params
