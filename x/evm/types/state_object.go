@@ -25,6 +25,15 @@ var (
 	keccak256HashCache, _ = lru.NewARC(keccak256HashSize)
 )
 
+func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
+	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
+		return value.(ethcmn.Hash)
+	}
+	value := ethcrypto.Keccak256Hash(compositeKey)
+	keccak256HashCache.Add(string(compositeKey), value)
+	return value
+}
+
 // StateObject interface for interacting with state object
 type StateObject interface {
 	GetCommittedState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash
@@ -458,13 +467,7 @@ func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
-
-	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
-		return value.(ethcmn.Hash)
-	}
-	value := ethcrypto.Keccak256Hash(compositeKey)
-	keccak256HashCache.Add(string(compositeKey), value)
-	return value
+	return Keccak256HashWithCache(compositeKey)
 }
 
 // stateEntry represents a single key value pair from the StateDB's stateObject mappindg.
