@@ -13,7 +13,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.3.1
 	github.com/gorilla/handlers v1.4.2
-	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/mattn/go-isatty v0.0.12
 	github.com/pelletier/go-toml v1.6.0
@@ -31,9 +31,8 @@ require (
 	github.com/tendermint/iavl v0.14.1
 	github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
-	golang.org/x/net v0.0.0-20201010224723-4f7140c49acb // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 replace (
