@@ -17,7 +17,6 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/params"
@@ -325,7 +324,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
-	hash := ethcrypto.Keccak256Hash(code)
+	hash := Keccak256HashWithCache(code)
 	if so != nil {
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
