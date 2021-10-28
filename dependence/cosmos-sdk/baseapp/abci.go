@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -187,6 +188,17 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}
 
+	if abci.GetRemoveCheckTx() {
+		var ctx sdk.Context
+		ctx = app.getContextForTx(mode, req.Tx)
+		exTxInfo := app.GetTxInfo(ctx, tx)
+		data, _ := json.Marshal(exTxInfo)
+
+		return abci.ResponseCheckTx{
+			Data: data,
+		}
+	}
+
 	gInfo, result, _, err := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed, app.trace)
@@ -232,7 +244,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			app.parallelTxManage.workgroup.Push(asyncExe)
 			return abci.ResponseDeliverTx{}
 		}
-			
+
 		go func() {
 			var resp abci.ResponseDeliverTx
 			g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
