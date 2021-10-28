@@ -295,19 +295,36 @@ func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	if data != nil {
 		return data, nil
 	}
-	b, e := q.GetState(orgKey)
+	b, e := q.getState(orgKey)
 	if e != nil {
 		b, e = q.GetStateFromRdb(orgKey)
 	} else {
 		q.DeleteStateFromRdb(addr, key)
 	}
+	// key-value from rpc query may pollute lru cache if query old state
+	//if e == nil {
+	//	state.SetStateToLru(realKey, b)
+	//}
+	return b, e
+}
+
+func (q Querier) GetState(addr common.Address, key []byte) ([]byte, error) {
+	orgKey := GetMsgStateKey(addr, key)
+	realKey := common.BytesToHash(orgKey)
+
+	data := state.GetStateFromLru(realKey)
+	if data != nil {
+		return data, nil
+	}
+
+	b, e := q.getState(orgKey)
 	if e == nil {
 		state.SetStateToLru(realKey, b)
 	}
 	return b, e
 }
 
-func (q Querier) GetState(key []byte) ([]byte, error) {
+func (q Querier) getState(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}

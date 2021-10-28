@@ -40,6 +40,7 @@ type CommitStateDBParams struct {
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
 	Watcher       Watcher
+	Querier       Querier
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
 }
@@ -52,6 +53,10 @@ type Watcher interface {
 	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
 	DeleteContractBlockedList(addr sdk.AccAddress)
 	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
+}
+
+type Querier interface {
+	GetState(addr ethcmn.Address, key []byte) ([]byte, error)
 }
 
 type CacheCode struct {
@@ -76,6 +81,7 @@ type CommitStateDB struct {
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
 	Watcher       Watcher
+	Querier       Querier
 	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
@@ -182,6 +188,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
+		Querier:       csdbParams.Querier,
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),

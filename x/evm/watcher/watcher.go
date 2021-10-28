@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -273,6 +274,13 @@ func (w *Watcher) Finalize() {
 	if !w.Enabled() {
 		return
 	}
+
+	for _, batch := range w.staleBatch {
+		if batch.GetType() == TypeState {
+			state.SetStateToLru(common.BytesToHash(batch.GetKey()), []byte(batch.GetValue()))
+		}
+	}
+
 	w.batch = append(w.batch, w.staleBatch...)
 	w.Reset()
 }
@@ -322,11 +330,19 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	go func() {
+		dbBatch := w.store.db.NewBatch()
 		for _, b := range batch {
-			w.store.Set(b.GetKey(), []byte(b.GetValue()))
-			if b.GetType() == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
-			}
+			//w.store.Set(b.GetKey(), []byte(b.GetValue()))
+			dbBatch.Set(b.GetKey(), []byte(b.GetValue()))
+			//if b.GetType() == TypeState {
+			//	state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
+			//}
 		}
+		err := dbBatch.Write()
+		if err != nil {
+			panic(fmt.Sprintf("failed to write batch: %v", err))
+		}
+
+		dbBatch.Close()
 	}()
 }

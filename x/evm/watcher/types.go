@@ -6,8 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"math/big"
 	"strconv"
 
@@ -402,13 +400,22 @@ func NewMsgState(addr common.Address, key, value []byte) *MsgState {
 }
 
 func GetMsgStateKey(addr common.Address, key []byte) []byte {
+	//prefix := addr.Bytes()
+	//compositeKey := make([]byte, len(prefix)+len(key))
+	//
+	//copy(compositeKey, prefix)
+	//copy(compositeKey[len(prefix):], key)
+	//
+	//return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+
 	prefix := addr.Bytes()
-	compositeKey := make([]byte, len(prefix)+len(key))
+	halfLenOfKey := len(key) / 2
 
-	copy(compositeKey, prefix)
-	copy(compositeKey[len(prefix):], key)
+	compositeKey := make([]byte, len(key))
+	copy(compositeKey, prefix[:halfLenOfKey])
+	copy(compositeKey[halfLenOfKey:], key[halfLenOfKey:])
 
-	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+	return append(PrefixState, key...)
 }
 
 func (msgState *MsgState) GetKey() []byte {

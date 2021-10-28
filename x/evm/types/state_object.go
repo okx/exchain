@@ -273,10 +273,8 @@ func (so *stateObject) commitState() {
 		if !so.stateDB.ctx.IsCheckTx() {
 			if so.stateDB.Watcher.Enabled() {
 				so.stateDB.Watcher.SaveState(so.Address(), state.Key.Bytes(), state.Value.Bytes())
-
 			}
 		}
-
 	}
 	// clean storage as all entries are dirty
 	so.dirtyStorage = Storage{}
@@ -375,10 +373,12 @@ func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) e
 	// otherwise load the value from the KVStore
 	state := NewState(prefixKey, ethcmn.Hash{})
 
-	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	rawValue := store.Get(prefixKey.Bytes())
-
+	rawValue, err := so.stateDB.Querier.GetState(so.address, prefixKey.Bytes())
+	if err != nil {
+		ctx := so.stateDB.ctx
+		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
+		rawValue = store.Get(prefixKey.Bytes())
+	}
 	if len(rawValue) > 0 {
 		state.Value.SetBytes(rawValue)
 	}

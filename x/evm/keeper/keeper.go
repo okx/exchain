@@ -40,12 +40,13 @@ type Keeper struct {
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
 	// on the KVStore or adding it as a field on the EVM genesis state.
-	TxCount int
-	Bloom   *big.Int
-	Bhash   ethcmn.Hash
-	LogSize uint
-	Watcher *watcher.Watcher
-	Ada     types.DbAdapter
+	TxCount      int
+	Bloom        *big.Int
+	Bhash        ethcmn.Hash
+	LogSize      uint
+	Watcher      *watcher.Watcher
+	StateQuerier *watcher.Querier
+	Ada          types.DbAdapter
 
 	LogsManages *LogsManager
 }
@@ -76,6 +77,7 @@ func NewKeeper(
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
+		StateQuerier:  watcher.NewQuerier(),
 		Ada:           types.DefaultPrefixDb{},
 	}
 	if k.Watcher.Enabled() {
@@ -101,6 +103,7 @@ func NewSimulateKeeper(
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
+		StateQuerier:  watcher.NewQuerier(),
 		Ada:           ada,
 	}
 }
@@ -118,6 +121,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
 		Watcher:       k.Watcher,
+		Querier:       k.StateQuerier,
 		Ada:           k.Ada,
 	}
 }
