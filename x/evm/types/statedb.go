@@ -323,8 +323,8 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 		defer analyzer.StopTxLog(funcName)
 	}
 
-	hash := Keccak256HashWithCache(code)
 	so := csdb.GetOrNewStateObject(addr)
+	hash := Keccak256HashWithCache(code)
 	if so != nil {
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
