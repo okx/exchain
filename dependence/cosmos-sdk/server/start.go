@@ -145,7 +145,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
 	cmd.Flags().Int(tmdb.FlagLevelDBCacheSize, 128, "The amount of memory in megabytes to allocate to leveldb")
 	cmd.Flags().Int(tmdb.FlagLevelDBHandlersNum, 1024, "The number of files handles to allocate to the open database files")
-	cmd.Flags().Bool(abci.FlagCloseMutex, false, "Close local client query mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagCloseQueryMutex, false, "Close local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagCloseCheckTxMutex, false, "Close local client checkTx mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagRemoveCheckTx, false, "Remove checkTx for test")
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
@@ -323,7 +323,7 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 
-	abci.SetCloseMutex(viper.GetBool(abci.FlagCloseMutex))
+	abci.SetCloseMutex(viper.GetBool(abci.FlagCloseQueryMutex))
 	abci.SetCloseCheckTxMutex(viper.GetBool(abci.FlagCloseCheckTxMutex))
 	abci.SetRemoveCheckTx(viper.GetBool(abci.FlagRemoveCheckTx))
 }
