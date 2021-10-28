@@ -98,6 +98,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 }
 
 func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil}
 	var tpp map[string]*Node = nil
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
@@ -111,7 +112,6 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
 			return err
 		}
-		tree.commitCh <- commitEvent{-1, nil, nil, nil, nil}
 		tpp = tree.ndb.asyncPersistTppStart(version)
 	}
 	tree.commitOrphans = map[string]int64{}
