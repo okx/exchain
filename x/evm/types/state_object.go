@@ -16,7 +16,7 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
-const keccak256HashSize = 1000000
+const keccak256HashSize = 100000
 
 var (
 	_ StateObject = (*stateObject)(nil)
