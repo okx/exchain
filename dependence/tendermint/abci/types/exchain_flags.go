@@ -5,7 +5,7 @@ var closeCheckTxMutex bool
 var removeCheckTx bool
 
 const (
-	FlagCloseMutex        = "close-mutex"
+	FlagCloseQueryMutex   = "close-query-mutex"
 	FlagCloseCheckTxMutex = "close-checktx-mutex"
 	FlagRemoveCheckTx     = "remove-checktx"
 )
