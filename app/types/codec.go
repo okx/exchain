@@ -9,7 +9,9 @@ import (
 	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/go-amino"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/tendermint/tendermint/crypto/sr25519"
 	"math/big"
 )
 
@@ -178,16 +180,41 @@ func unmarshalCoinFromAmino(data []byte) (coin sdk.DecCoin, err error) {
 }
 
 var typePubKeySecp256k1Prefix = []byte{0xeb, 0x5a, 0xe9, 0x87}
+var typePubKeyEd25519Prefix = []byte{0x16, 0x24, 0xde, 0x64}
+var typePubKeySr25519Prefix = []byte{0x0d, 0xfb, 0x10, 0x05}
 
 func unmarshalPubKeyFromAmino(data []byte) (tmcrypto.PubKey, error) {
-	if 0 == bytes.Compare(typePubKeySecp256k1Prefix, data[0:4]) {
-		if data[4] != 33 {
+	if data[0] == 0x00 {
+		return nil, errors.New("unmarshal pubkey with disamb do not implement")
+	}
+	prefix := data[0:4]
+	size := data[4]
+	data = data[5:]
+	if len(data) < int(size) {
+		return nil, errors.New("raw data size error")
+	}
+	if 0 == bytes.Compare(typePubKeySecp256k1Prefix, prefix) {
+		if size != secp256k1.PubKeySecp256k1Size {
 			return nil, errors.New("pubkey secp256k1 size error")
 		}
-		data = data[5:]
 		pubKey := secp256k1.PubKeySecp256k1{}
 		copy(pubKey[:], data)
 		return pubKey, nil
+	} else if 0 == bytes.Compare(typePubKeyEd25519Prefix, prefix) {
+		if size != ed25519.PubKeyEd25519Size {
+			return nil, errors.New("pubkey ed25519 size error")
+		}
+		pubKey := ed25519.PubKeyEd25519{}
+		copy(pubKey[:], data)
+		return pubKey, nil
+	} else if 0 == bytes.Compare(typePubKeySr25519Prefix, prefix) {
+		if size != sr25519.PubKeySr25519Size {
+			return nil, errors.New("pubkey sr25519 size error")
+		}
+		pubKey := sr25519.PubKeySr25519{}
+		copy(pubKey[:], data)
+		return pubKey, nil
+	} else {
+		return nil, errors.New("unmarshal pubkey do not implement")
 	}
-	panic("not implement")
 }
