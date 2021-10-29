@@ -7,7 +7,6 @@ import (
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
-	"time"
 )
 
 var (
@@ -47,7 +46,6 @@ func execBlockOnProxyAppAsync(
 	AsyncCb := func(execRes abci.ExecuteRes) {
 		fmt.Println("enter ", execRes.GetCounter())
 		defer fmt.Println("stop", execRes.GetCounter())
-		time.Sleep(500 * time.Millisecond)
 		txReps[execRes.GetCounter()] = execRes
 		for txReps[txIndex] != nil {
 			res := txReps[txIndex]
