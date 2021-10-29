@@ -176,12 +176,13 @@ type AsyncWorkGroup struct {
 
 func NewAsyncWorkGroup() *AsyncWorkGroup {
 	return &AsyncWorkGroup{
-		WorkCh: make(chan ExecuteResult, 1),
+		WorkCh: make(chan ExecuteResult, 64),
 		Cb:     nil,
 	}
 }
 
 func (a *AsyncWorkGroup) Push(item ExecuteResult) {
+	fmt.Println("llll", len(a.WorkCh), item.Counter)
 	a.WorkCh <- item
 }
 
