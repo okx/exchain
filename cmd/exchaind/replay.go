@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/evm/watcher"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -89,6 +90,8 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(sm.FlagParalleledTx, false, "pall Tx")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	return cmd
 }
 
