@@ -176,7 +176,7 @@ type AsyncWorkGroup struct {
 
 func NewAsyncWorkGroup() *AsyncWorkGroup {
 	return &AsyncWorkGroup{
-		WorkCh: make(chan ExecuteResult, 4),
+		WorkCh: make(chan ExecuteResult, 1),
 		Cb:     nil,
 	}
 }
