@@ -45,12 +45,15 @@ func execBlockOnProxyAppAsync(
 	signal := make(chan int, 1)
 	rerunIdx := 0
 	AsyncCb := func(execRes abci.ExecuteRes) {
+		fmt.Println("enter ", execRes.GetCounter())
+		defer fmt.Println("stop", execRes.GetCounter())
 		time.Sleep(500 * time.Millisecond)
 		txReps[execRes.GetCounter()] = execRes
 		for txReps[txIndex] != nil {
 			res := txReps[txIndex]
 			if res.Conflict(asCache) {
 				rerunIdx++
+				fmt.Println("ccont", execRes.GetCounter())
 				res = proxyAppConn.DeliverTxWithCache(abci.RequestDeliverTx{Tx: block.Txs[res.GetCounter()]})
 				if proxyAppConn.Error() != nil {
 					signal <- 0
@@ -59,6 +62,7 @@ func execBlockOnProxyAppAsync(
 			}
 			txRs := res.GetResponse()
 			abciResponses.DeliverTxs[txIndex] = &txRs
+			fmt.Println("ready collect")
 			res.Collect(asCache)
 			res.Commit()
 			if abciResponses.DeliverTxs[txIndex].Code == abci.CodeTypeOK {
@@ -68,6 +72,7 @@ func execBlockOnProxyAppAsync(
 			}
 
 			txIndex++
+			fmt.Println("currentTxindex", txIndex)
 			if txIndex == len(block.Txs) {
 				logger.Info(fmt.Sprintf("BlockHeight %d With Tx %d : Paralle run %d, Conflected tx %d",
 					block.Height, len(block.Txs), len(abciResponses.DeliverTxs)-rerunIdx, rerunIdx))
