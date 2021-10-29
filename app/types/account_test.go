@@ -253,8 +253,15 @@ func TestAccountAmino(t *testing.T) {
 	ethAccount, err := unmarshalEthAccountFromAmino(data)
 	require.NoError(t, err)
 
-	require.EqualValues(t, &testAccount, account)
+	var account2 exported.Account
+	v, ok := cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(data, &account2)
+	require.True(t, ok)
+	account2, ok = v.(exported.Account)
+	require.True(t, ok)
+
 	require.EqualValues(t, &testAccount, ethAccount)
+	require.EqualValues(t, &testAccount, account)
+	require.EqualValues(t, &testAccount, account2)
 }
 
 func BenchmarkAccountAmino(b *testing.B) {
@@ -296,6 +303,13 @@ func BenchmarkAccountAmino(b *testing.B) {
 	b.Run("direct", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = unmarshalEthAccountFromAmino(data)
+		}
+	})
+
+	b.Run("amino-direct", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var account exported.Account
+			_, _ = cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(data,&account)
 		}
 	})
 }
