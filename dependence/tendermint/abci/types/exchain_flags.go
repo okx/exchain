@@ -1,35 +1,36 @@
 package types
 
-var closeQueryMutex bool
-var closeCheckTxMutex bool
-var removeCheckTx bool
+var disableQueryMutex bool
+var disableCheckTxMutex bool
+var disableCheckTx bool
 
 const (
-	FlagCloseQueryMutex   = "close-query-mutex"
-	FlagCloseCheckTxMutex = "close-checktx-mutex"
-	FlagRemoveCheckTx     = "remove-checktx"
+	FlagCloseMutex          = "close-mutex"
+	FlagDisableQueryMutex   = "disable-query-mutex"
+	FlagDisableCheckTxMutex = "disable-checktx-mutex"
+	FlagDisableCheckTx      = "disable-checktx"
 )
 
-func GetCloseMutex() bool {
-	return closeQueryMutex
+func GetDisableQueryMutex() bool {
+	return disableQueryMutex
 }
 
-func SetCloseMutex(isClose bool) {
-	closeQueryMutex = isClose
+func SetDisableQueryMutex(isClose bool) {
+	disableQueryMutex = isClose
 }
 
-func GetCloseCheckTxMutex() bool {
-	return closeCheckTxMutex
+func GetDisableCheckTxMutex() bool {
+	return disableCheckTxMutex
 }
 
-func SetCloseCheckTxMutex(isClose bool) {
-	closeCheckTxMutex = isClose
+func SetDisableCheckTxMutex(isClose bool) {
+	disableCheckTxMutex = isClose
 }
 
-func GetRemoveCheckTx() bool {
-	return removeCheckTx
+func GetDisableCheckTx() bool {
+	return disableCheckTx
 }
 
-func SetRemoveCheckTx(isRemove bool) {
-	removeCheckTx = isRemove
+func SetDisableCheckTx(isRemove bool) {
+	disableCheckTx = isRemove
 }
