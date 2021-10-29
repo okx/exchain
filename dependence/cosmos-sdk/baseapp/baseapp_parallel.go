@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,7 +10,6 @@ import (
 )
 
 func (app *BaseApp) PrepareParallelTxs(cb abci.AsyncCallBack, txs [][]byte) {
-	fmt.Println("start", len(app.parallelTxManage.workgroup.WorkCh))
 	app.parallelTxManage.workgroup.Cb = cb
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
@@ -66,7 +64,6 @@ func (app *BaseApp) EndParallelTxs() [][]byte {
 		txExecStats = append(txExecStats, []string{v, errMsg})
 	}
 	app.parallelTxManage.Clear()
-	fmt.Println("endpara", len(app.parallelTxManage.workgroup.WorkCh))
 	return app.logFix(txExecStats)
 }
 
@@ -182,7 +179,6 @@ func NewAsyncWorkGroup() *AsyncWorkGroup {
 }
 
 func (a *AsyncWorkGroup) Push(item ExecuteResult) {
-	fmt.Println("llll", len(a.WorkCh), item.Counter)
 	a.WorkCh <- item
 }
 
