@@ -148,6 +148,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(abci.FlagDisableQueryMutex, false, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTxMutex, false, "Disable local client checkTx mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
+	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
