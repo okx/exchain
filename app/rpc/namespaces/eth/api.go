@@ -522,15 +522,16 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 	if err != nil {
 		return nil, err
 	}
-	height := blockNumber.Int64()
-	if blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber {
-		height, _ = api.backend.LatestBlockNumber()
-	}
-	code, err := api.wrappedBackend.GetCode(address, uint64(height))
+
+	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
 		return code, nil
 	}
-	clientCtx := api.clientCtx.WithHeight(height)
+
+	clientCtx := api.clientCtx
+	if !(blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber) {
+		clientCtx = api.clientCtx.WithHeight(blockNumber.Int64())
+	}
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
@@ -1117,11 +1118,12 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return nil, err
 	}
 
+	from := fromSigCache.GetFrom()
 	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 	if tx.Index != 0 {
 		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
@@ -10,6 +11,7 @@ import (
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
+	tmdb "github.com/tendermint/tm-db"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -19,8 +21,11 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
 	cmd.Flags().String(stream.NacosTmrpcUrls, "", "Stream plugin`s nacos server urls for discovery service of tendermint rpc")
+	cmd.Flags().MarkHidden(stream.NacosTmrpcUrls)
 	cmd.Flags().String(stream.NacosTmrpcNamespaceID, "", "Stream plugin`s nacos namepace id for discovery service of tendermint rpc")
+	cmd.Flags().MarkHidden(stream.NacosTmrpcNamespaceID)
 	cmd.Flags().String(stream.NacosTmrpcAppName, "", "Stream plugin`s tendermint rpc name in eureka or nacos")
+	cmd.Flags().MarkHidden(stream.NacosTmrpcAppName)
 	cmd.Flags().String(stream.RpcExternalAddr, "127.0.0.1:26657", "Set the rpc-server external ip and port, when it is launched by Docker (default \"127.0.0.1:26657\")")
 
 	cmd.Flags().String(rpc.FlagRateLimitAPI, "", "Set the RPC API to be controlled by the rate limit policy, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
@@ -52,10 +57,19 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
+	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentMin, 70, "TriggerPercentMin of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentDiff, 50, "TriggerPercentDiff of mem to dump pprof")
 	cmd.Flags().Int(config.FlagPprofMemTriggerPercentAbs, 75, "TriggerPercentAbs of cpu mem dump pprof")
+
+	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "Evm=x,Iavl=x,DeliverTxs=x,Round=x,CommitRound=x,Produce=x x is 1 or 0")
+
+	cmd.Flags().String(config.FlagPprofCoolDown, "3m", "The cool down time after every type of pprof dump")
+	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
+	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
+
+	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
 }

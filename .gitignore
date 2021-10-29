@@ -8,11 +8,14 @@
 .vscode
 .idea
 *.csv
+*.tar.gz
+*.txt
+*.xls
 
 # Build
 .exchaind
 .exchaincli
-vendor
+vendor*
 build
 tools/
 tools/bin/*

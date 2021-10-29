@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
-	"github.com/cosmos/cosmos-sdk/store"
-
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -48,6 +46,8 @@ type Keeper struct {
 	LogSize uint
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
+
+	LogsManages *LogsManager
 }
 
 // NewKeeper generates new evm module keeper
@@ -243,4 +243,10 @@ func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 // SetGovKeeper sets keeper of gov
 func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
+}
+
+// checks whether the address is blocked
+func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
