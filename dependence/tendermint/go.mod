@@ -33,4 +33,4 @@ require (
 	google.golang.org/grpc v1.29.1
 )
 
-replace github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain1
+replace github.com/tendermint/tm-db => ../tm-db

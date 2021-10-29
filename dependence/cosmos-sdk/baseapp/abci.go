@@ -188,7 +188,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		panic(fmt.Sprintf("unknown RequestCheckTx type: %s", req.Type))
 	}
 
-	if abci.GetRemoveCheckTx() {
+	if abci.GetDisableCheckTx() {
 		var ctx sdk.Context
 		ctx = app.getContextForTx(mode, req.Tx)
 		exTxInfo := app.GetTxInfo(ctx, tx)

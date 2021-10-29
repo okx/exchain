@@ -10,3 +10,8 @@ require (
 	github.com/tendermint/tm-db v0.5.2
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 )
+
+replace (
+	github.com/tendermint/tendermint => ../tendermint
+	github.com/tendermint/tm-db => ../tm-db
+)
