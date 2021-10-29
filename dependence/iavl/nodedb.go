@@ -56,14 +56,14 @@ type nodeDB struct {
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 
-	dbReadCount   int
-	nodeReadCount int
-	dbWriteCount  int
+	dbReadCount   int64
+	nodeReadCount int64
+	dbWriteCount  int64
 
-	totalPersistedCount int
-	totalPersistedSize  int
-	totalDeletedCount   int
-	totalOrphanCount    int
+	totalPersistedCount int64
+	totalPersistedSize  int64
+	totalDeletedCount   int64
+	totalOrphanCount    int64
 
 	name string
 }
@@ -180,7 +180,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	batch.Set(ndb.nodeKey(node.hash), buf.Bytes())
 	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
 	node.persisted = true
-	ndb.addDBWriteCount()
+	ndb.addDBWriteCount(1)
 	ndb.cacheNode(node)
 }
 

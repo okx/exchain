@@ -64,3 +64,11 @@ func (tm *TreeMap) updateTotalPreCommitCacheSize() {
 	}
 	tm.totalPreCommitCacheSize = size
 }
+
+// resetMap clear the TreeMap, only for test.
+func (tm *TreeMap) resetMap() {
+	tm.mtx.Lock()
+	defer tm.mtx.Unlock()
+	tm.mutableTreeSavedMap = make(map[string]bool)
+	tm.mutableTreeList = []*MutableTree{}
+}

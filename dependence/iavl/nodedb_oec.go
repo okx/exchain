@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/tendermint/iavl/trace"
 
@@ -28,7 +29,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	if EnableAsyncCommit {
 		ndb.log(IavlDebug, "saving orphan node(size:%d) to OrphanCache", len(orphans))
 		version--
-		ndb.totalOrphanCount += len(orphans)
+		atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
 		orphansObj := ndb.heightOrphansMap[version]
 		if orphansObj != nil {
 			orphansObj.orphans = orphans
@@ -98,8 +99,10 @@ func (ndb *nodeDB) persistTpp(version int64, batch dbm.Batch, tpp map[string]*No
 	for _, node := range tpp {
 		ndb.batchSet(node, batch)
 	}
-	trc.Pin("batchCommit")
+	atomic.AddInt64(&ndb.totalPersistedCount, int64(len(tpp)))
+	ndb.addDBWriteCount(int64(len(tpp)))
 
+	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
@@ -177,49 +180,47 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	ndb.totalPersistedCount++
-	ndb.totalPersistedSize += len(nodeKey) + len(nodeValue)
+	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey) + len(nodeValue)))
 	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
-	ndb.addDBWriteCount()
 }
 
 
 
 func (ndb *nodeDB) addDBReadCount() {
-	ndb.dbReadCount++
+	atomic.AddInt64(&ndb.dbReadCount,1)
 }
 
-func (ndb *nodeDB) addDBWriteCount() {
-	ndb.dbWriteCount++
+func (ndb *nodeDB) addDBWriteCount(count int64) {
+	atomic.AddInt64(&ndb.dbWriteCount, count)
 }
 
 func (ndb *nodeDB) addNodeReadCount() {
-	ndb.nodeReadCount++
+	atomic.AddInt64(&ndb.nodeReadCount,1)
 }
 
 func (ndb *nodeDB) resetDBReadCount() {
-	ndb.dbReadCount = 0
+	atomic.StoreInt64(&ndb.dbReadCount, 0)
 }
 
 func (ndb *nodeDB) resetDBWriteCount() {
-	ndb.dbWriteCount = 0
+	atomic.StoreInt64(&ndb.dbWriteCount, 0)
 }
 
 func (ndb *nodeDB) resetNodeReadCount() {
-	ndb.nodeReadCount = 0
+	atomic.StoreInt64(&ndb.nodeReadCount, 0)
 }
 
 func (ndb *nodeDB) getDBReadCount() int {
-	return ndb.dbReadCount
+	return int(atomic.LoadInt64(&ndb.dbReadCount))
 }
 
 func (ndb *nodeDB) getDBWriteCount() int {
-	return ndb.dbWriteCount
+	return int(atomic.LoadInt64(&ndb.dbWriteCount))
 }
 
 func (ndb *nodeDB) getNodeReadCount() int {
-	return ndb.nodeReadCount
+	return int(atomic.LoadInt64(&ndb.nodeReadCount))
 }
 
 func (ndb *nodeDB) resetCount() {
@@ -250,10 +251,10 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	} else {
 		printLog += ", CHit:0"
 	}
-	printLog += fmt.Sprintf(", TPersisCnt:%d", ndb.totalPersistedCount)
-	printLog += fmt.Sprintf(", TPersisSize:%d", ndb.totalPersistedSize)
-	printLog += fmt.Sprintf(", TDelCnt:%d", ndb.totalDeletedCount)
-	printLog += fmt.Sprintf(", TOrphanCnt:%d", ndb.totalOrphanCount)
+	printLog += fmt.Sprintf(", TPersisCnt:%d", atomic.LoadInt64(&ndb.totalPersistedCount))
+	printLog += fmt.Sprintf(", TPersisSize:%d", atomic.LoadInt64(&ndb.totalPersistedSize))
+	printLog += fmt.Sprintf(", TDelCnt:%d", atomic.LoadInt64(&ndb.totalDeletedCount))
+	printLog += fmt.Sprintf(", TOrphanCnt:%d", atomic.LoadInt64(&ndb.totalOrphanCount))
 
 	return printLog
 }

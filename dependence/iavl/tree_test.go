@@ -80,7 +80,7 @@ func TestVersionedRandomTree(t *testing.T) {
 		tree.DeleteVersion(int64(i))
 	}
 
-	require.Len(tree.deepCopyVersions(), 1, "tree must have one version left")
+	require.Len(tree.versions.Clone(), 1, "tree must have one version left")
 	tr, err := tree.GetImmutable(int64(versions))
 	require.NoError(err, "GetImmutable should not error for version %d", versions)
 	require.Equal(tr.root, tree.root)
@@ -336,7 +336,7 @@ func TestVersionedTree(t *testing.T) {
 	_, err = tree.Load()
 	require.NoError(err)
 
-	require.Len(tree.deepCopyVersions(), 2, "wrong number of versions")
+	require.Len(tree.versions.Clone(), 2, "wrong number of versions")
 	require.EqualValues(v2, tree.Version())
 
 	// -----1-----
