@@ -25,6 +25,7 @@ type WatchStore struct {
 
 var gWatchStore *WatchStore = nil
 var once sync.Once
+var waitDeleteAccMap sync.Map
 
 func InstanceOfWatchStore() *WatchStore {
 	once.Do(func() {
@@ -71,4 +72,8 @@ func (w WatchStore) Has(key []byte) bool {
 		return false
 	}
 	return res
+}
+
+func (w WatchStore) GetBatch() dbm.Batch {
+	return w.db.NewBatch()
 }

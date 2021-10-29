@@ -1,9 +1,7 @@
 package watcher
 
 import (
-	"encoding/binary"
 	"encoding/json"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"math/big"
@@ -43,6 +41,7 @@ var (
 const (
 	TypeOthers = uint32(1)
 	TypeState  = uint32(2)
+	TypeAcc = uint32(3)
 )
 
 type WatchMessage interface {
@@ -220,18 +219,6 @@ func (m MsgBlock) GetType() uint32 {
 // out on a block.
 type BlockNonce [8]byte
 
-// EncodeNonce converts the given integer to a block nonce.
-func EncodeNonce(i uint64) BlockNonce {
-	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
-	return n
-}
-
-// Uint64 returns the integer value of a block nonce.
-func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
-}
-
 // MarshalText encodes n as a hex string with 0x prefix.
 func (n BlockNonce) MarshalText() ([]byte, error) {
 	return hexutil.Bytes(n[:]).MarshalText()
@@ -355,7 +342,7 @@ type MsgAccount struct {
 }
 
 func (msgAccount *MsgAccount) GetType() uint32 {
-	return TypeOthers
+	return TypeAcc
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {

@@ -237,6 +237,10 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
 	if e != nil {
@@ -250,6 +254,9 @@ func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) 
 func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
+	}
+	if _, ok := waitDeleteAccMap.Load(string(GetMsgAccountKey(addr.Bytes()))); ok {
+		return nil, errors.New("acc info out of data")
 	}
 	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))

@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+	db "github.com/tendermint/tm-db"
 	"math/big"
 	"sync"
 
@@ -155,10 +156,13 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 	if wMsg != nil {
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
+
+			if _, ok := waitDeleteAccMap.Load(string(wMsg.GetKey())); ok {
+				waitDeleteAccMap.Delete(string(wMsg.GetKey()))
+			}
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
-
 	}
 }
 
@@ -166,7 +170,9 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+	//w.store.Delete(GetMsgAccountKey(addr.Bytes()))
+	waitDeleteAccMap.Store(string(GetMsgAccountKey(addr.Bytes())), true)
+
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 	w.delayEraseKey = append(w.delayEraseKey, key)
 }
@@ -178,9 +184,17 @@ func (w *Watcher) ExecuteDelayEraseKey() {
 	if len(w.delayEraseKey) <= 0 {
 		return
 	}
+	dbBatch := w.store.GetBatch()
 	for _, k := range w.delayEraseKey {
-		w.store.Delete(k)
+		dbBatch.Delete(k)
+		//w.store.Delete(k)
 	}
+	err := dbBatch.Write()
+	if err != nil {
+		panic(fmt.Sprintf("failed to delete batch: %v", err))
+	}
+	dbBatch.Close()
+
 	w.delayEraseKey = make([][]byte, 0)
 }
 
@@ -278,6 +292,10 @@ func (w *Watcher) Finalize() {
 	for _, batch := range w.staleBatch {
 		if batch.GetType() == TypeState {
 			state.SetStateToLru(common.BytesToHash(batch.GetKey()), []byte(batch.GetValue()))
+		} else if batch.GetType() == TypeAcc {
+			if _, ok := waitDeleteAccMap.Load(string(batch.GetKey())); ok {
+				waitDeleteAccMap.Delete(string(batch.GetKey()))
+			}
 		}
 	}
 
@@ -338,6 +356,14 @@ func (w *Watcher) Commit() {
 			//	state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
 			//}
 		}
+
+		waitDeleteAccMap.Range(func (key, _ interface{}) bool{
+			dbBatch.Delete([]byte((key.(string))))
+			waitDeleteAccMap.Delete(key.(string))
+
+			return true
+		})
+
 		err := dbBatch.Write()
 		if err != nil {
 			panic(fmt.Sprintf("failed to write batch: %v", err))
@@ -345,4 +371,8 @@ func (w *Watcher) Commit() {
 
 		dbBatch.Close()
 	}()
+}
+
+func (w *Watcher) GetBatch() db.Batch{
+	return w.store.GetBatch()
 }
