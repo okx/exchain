@@ -19,6 +19,7 @@ import (
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
+var NotExist = errors.New("watchdb: not found")
 
 type Querier struct {
 	store *WatchStore
@@ -51,6 +52,9 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if e != nil {
 		return nil, e
 	}
+	if len(b) == 0 {
+		return nil, NotExist
+	}
 	e = json.Unmarshal(b, &receipt)
 	if e != nil {
 		return nil, e
@@ -69,6 +73,9 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	b, e := q.store.Get(append(prefixBlock, hash.Bytes()...))
 	if e != nil {
 		return nil, e
+	}
+	if len(b) == 0 {
+		return nil, NotExist
 	}
 	e = json.Unmarshal(b, &block)
 	if e != nil {
@@ -110,6 +117,9 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if e != nil {
 		return common.Hash{}, e
 	}
+	if len(hash) == 0 {
+		return common.Hash{}, NotExist
+	}
 	return common.HexToHash(string(hash)), e
 }
 
@@ -130,6 +140,9 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 	if e != nil {
 		return nil, e
 	}
+	if len(hash) == 0 {
+		return nil, NotExist
+	}
 	return q.GetBlockByHash(common.HexToHash(string(hash)), fullTx)
 }
 
@@ -141,6 +154,9 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
 	if e != nil {
 		return nil, e
+	}
+	if len(info) == 0 {
+		return nil, NotExist
 	}
 	e = json.Unmarshal(info, &codeInfo)
 	if e != nil {
@@ -167,6 +183,9 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
+	if len(code) == 0 {
+		return nil, NotExist
+	}
 	q.lru.Add(common.BytesToHash(codeHash), code)
 	return code, nil
 }
@@ -178,6 +197,9 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
 	if e != nil {
 		return 0, e
+	}
+	if len(height) == 0 {
+		return 0, NotExist
 	}
 	h, e := strconv.Atoi(string(height))
 	return uint64(h), e
@@ -191,6 +213,9 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 	transaction, e := q.store.Get(append(prefixTx, hash.Bytes()...))
 	if e != nil {
 		return nil, e
+	}
+	if len(transaction) == 0 {
+		return nil, NotExist
 	}
 	e = json.Unmarshal(transaction, &tx)
 	if e != nil {
@@ -263,6 +288,9 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if e != nil {
 		return nil, e
 	}
+	if len(b) == 0 {
+		return nil, NotExist
+	}
 	e = json.Unmarshal(b, &acc)
 	if e != nil {
 		return nil, e
@@ -280,6 +308,9 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
+	}
+	if len(b) == 0 {
+		return nil, NotExist
 	}
 	e = json.Unmarshal(b, &acc)
 	if e != nil {
@@ -339,6 +370,9 @@ func (q Querier) getState(key []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
+	if len(b) == 0 {
+		return nil, NotExist
+	}
 	return b, nil
 }
 
@@ -349,6 +383,9 @@ func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
 		return nil, e
+	}
+	if len(b) == 0 {
+		return nil, NotExist
 	}
 
 	return b, nil
@@ -368,6 +405,9 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	b, e := q.store.Get(prefixParams)
 	if e != nil {
 		return nil, e
+	}
+	if len(b) == 0 {
+		return nil, NotExist
 	}
 	var params evmtypes.Params
 	e = json.Unmarshal(b, &params)
