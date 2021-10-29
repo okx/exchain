@@ -21,7 +21,7 @@ import (
 var (
 	FlagIavlCacheSize = "iavl-cache-size"
 
-	IavlCacheSize     = 1000000
+	IavlCacheSize = 1000000
 )
 
 var (
@@ -92,7 +92,7 @@ func UnsafeNewStore(tree *iavl.MutableTree) *Store {
 func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var iTree *iavl.ImmutableTree
 	var err error
-	if !abci.GetCloseMutex() {
+	if !abci.GetDisableQueryMutex() {
 		if !st.VersionExists(version) {
 			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
 		}
