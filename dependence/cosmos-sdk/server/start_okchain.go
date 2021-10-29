@@ -203,47 +203,77 @@ func registerRestServerFlags(cmd *cobra.Command) *cobra.Command {
 // registerExChainPluginFlags registers the flags required for rest server
 func registerExChainPluginFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(FlagBackendEnableBackend, backendConf.EnableBackend, "Enable the node's backend plugin")
+	cmd.Flags().MarkHidden(FlagBackendEnableBackend)
 	cmd.Flags().Bool(FlagBackendEnableMktCompute, backendConf.EnableMktCompute, "Enable kline and ticker calculating")
+	cmd.Flags().MarkHidden(FlagBackendEnableMktCompute)
 	cmd.Flags().Bool(FlagBackendLogSQL, backendConf.LogSQL, "Enable backend plugin logging sql feature")
+	cmd.Flags().MarkHidden(FlagBackendLogSQL)
 	cmd.Flags().String(FlagBackendCleanUpsTime, backendConf.CleanUpsTime, "Backend plugin`s time of cleaning up kline data")
+	cmd.Flags().MarkHidden(FlagBackendCleanUpsTime)
 	cmd.Flags().String(FlagBacekendOrmEngineType, backendConf.OrmEngine.EngineType, "Backend plugin`s db (mysql or sqlite3)")
+	cmd.Flags().MarkHidden(FlagBacekendOrmEngineType)
 	cmd.Flags().String(FlagBackendOrmEngineConnectStr, backendConf.OrmEngine.ConnectStr, "Backend plugin`s db connect address")
+	cmd.Flags().MarkHidden(FlagBackendOrmEngineConnectStr)
 
 	cmd.Flags().String(FlagStreamEngine, streamConf.Engine, "Stream plugin`s engine config")
+	cmd.Flags().MarkHidden(FlagStreamEngine)
 	cmd.Flags().String(FlagStreamKlineQueryConnect, streamConf.KlineQueryConnect, "Stream plugin`s kiline query connect url")
+	cmd.Flags().MarkHidden(FlagStreamKlineQueryConnect)
 
 	// distr-lock flags
 	cmd.Flags().String(FlagStreamWorkerId, streamConf.WorkerId, "Stream plugin`s worker id")
+	cmd.Flags().MarkHidden(FlagStreamWorkerId)
 	cmd.Flags().String(FlagStreamRedisScheduler, streamConf.RedisScheduler, "Stream plugin`s redis url for scheduler job")
+	cmd.Flags().MarkHidden(FlagStreamRedisScheduler)
 	cmd.Flags().String(FlagStreamRedisLock, streamConf.RedisLock, "Stream plugin`s redis url for distributed lock")
+	cmd.Flags().MarkHidden(FlagStreamRedisLock)
 	cmd.Flags().String(FlagStreamLocalLockDir, streamConf.LocalLockDir, "Stream plugin`s local lock dir")
+	cmd.Flags().MarkHidden(FlagStreamLocalLockDir)
 	cmd.Flags().Int(FlagStreamCacheQueueCapacity, streamConf.CacheQueueCapacity, "Stream plugin`s cache queue capacity config")
+	cmd.Flags().MarkHidden(FlagStreamCacheQueueCapacity)
 
 	// kafka/pulsar service flags
 	cmd.Flags().String(FlagStreamMarketTopic, streamConf.MarketTopic, "Stream plugin`s pulsar/kafka topic for market quotation")
+	cmd.Flags().MarkHidden(FlagStreamMarketTopic)
 	cmd.Flags().Int(FlagStreamMarketPartition, streamConf.MarketPartition, "Stream plugin`s pulsar/kafka partition for market quotation")
+	cmd.Flags().MarkHidden(FlagStreamMarketPartition)
 
 	// market service flags for nacos config
 	cmd.Flags().Bool(FlagStreamMarketServiceEnable, streamConf.MarketServiceEnable, "Stream plugin`s market service enable config")
+	cmd.Flags().MarkHidden(FlagStreamMarketServiceEnable)
 	cmd.Flags().String(FlagStreamMarketNacosUrls, streamConf.MarketNacosUrls, "Stream plugin`s nacos server urls for getting market service info")
+	cmd.Flags().MarkHidden(FlagStreamMarketNacosUrls)
 	cmd.Flags().String(FlagStreamMarketNacosNamespaceId, streamConf.MarketNacosNamespaceId, "Stream plugin`s nacos name space id for getting market service info")
+	cmd.Flags().MarkHidden(FlagStreamMarketNacosNamespaceId)
 	cmd.Flags().StringArray(FlagStreamMarketNacosClusters, streamConf.MarketNacosClusters, "Stream plugin`s nacos clusters array list for getting market service info")
+	cmd.Flags().MarkHidden(FlagStreamMarketNacosClusters)
 	cmd.Flags().String(FlagStreamMarketNacosServiceName, streamConf.MarketNacosServiceName, "Stream plugin`s nacos service name for getting market service info")
+	cmd.Flags().MarkHidden(FlagStreamMarketNacosServiceName)
 	cmd.Flags().String(FlagStreamMarketNacosGroupName, streamConf.MarketNacosGroupName, "Stream plugin`s nacos group name for getting market service info")
+	cmd.Flags().MarkHidden(FlagStreamMarketNacosGroupName)
 
 	// market service flags for eureka config
 	cmd.Flags().String(FlagStreamMarketEurekaName, streamConf.MarketEurekaName, "Stream plugin`s market service name in eureka")
+	cmd.Flags().MarkHidden(FlagStreamMarketEurekaName)
 	cmd.Flags().String(FlagStreamEurekaServerUrl, streamConf.EurekaServerUrl, "Eureka server url for discovery service of rest api")
+	cmd.Flags().MarkHidden(FlagStreamEurekaServerUrl)
 
 	// restful service flags
 	cmd.Flags().String(FlagStreamRestApplicationName, streamConf.RestApplicationName, "Stream plugin`s rest application name in eureka or nacos")
+	cmd.Flags().MarkHidden(FlagStreamRestApplicationName)
 	cmd.Flags().String(FlagStreamRestNacosUrls, streamConf.RestNacosUrls, "Stream plugin`s nacos server urls for discovery service of rest api")
+	cmd.Flags().MarkHidden(FlagStreamRestNacosUrls)
 	cmd.Flags().String(FlagStreamRestNacosNamespaceId, streamConf.RestNacosNamespaceId, "Stream plugin`s nacos namepace id for discovery service of rest api")
+	cmd.Flags().MarkHidden(FlagStreamRestNacosNamespaceId)
 
 	// push service flags
 	cmd.Flags().String(FlagStreamPushservicePulsarPublicTopic, streamConf.PushservicePulsarPublicTopic, "Stream plugin`s pulsar public topic of push service")
+	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarPublicTopic)
 	cmd.Flags().String(FlagStreamPushservicePulsarPrivateTopic, streamConf.PushservicePulsarPrivateTopic, "Stream plugin`s pulsar private topic of push service")
+	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarPrivateTopic)
 	cmd.Flags().String(FlagStreamPushservicePulsarDepthTopic, streamConf.PushservicePulsarDepthTopic, "Stream plugin`s pulsar depth topic of push service")
+	cmd.Flags().MarkHidden(FlagStreamPushservicePulsarDepthTopic)
 	cmd.Flags().String(FlagStreamRedisRequirePass, streamConf.RedisRequirePass, "Stream plugin`s redis require pass")
+	cmd.Flags().MarkHidden(FlagStreamRedisRequirePass)
 	return cmd
 }
