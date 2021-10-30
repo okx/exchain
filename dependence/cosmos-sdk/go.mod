@@ -1,4 +1,4 @@
-go 1.13
+go 1.14
 
 module github.com/cosmos/cosmos-sdk
 
@@ -33,6 +33,7 @@ require (
 	github.com/tendermint/tm-db v0.5.2
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
+
 )
 
 replace (
