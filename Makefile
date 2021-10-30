@@ -42,19 +42,19 @@ else ifeq ($(MAKECMDGOALS),testnet)
    MercuryHeight=5300000
 endif
 
-ldflags = -X $(GithubTop)/cosmos/cosmos-sdk/version.Version=$(Version) \
-	-X $(GithubTop)/cosmos/cosmos-sdk/version.Name=$(Name) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/cosmos/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/tendermint/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
-  -X $(GithubTop)/cosmos/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
+ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
+	-X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Name=$(Name) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ServerName=$(ServerName) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ClientName=$(ClientName) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.startBlockHeightStr=$(GenesisHeight) \
+  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight)
 
 ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=rocksdb
+  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
@@ -88,7 +88,6 @@ test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/staking/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/token/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/upgrade/...
-#	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./vendor/github.com/cosmos/cosmos-sdk/x/mint/...
 
 get_vendor_deps:
 	@echo "--> Generating vendor directory via dep ensure"
