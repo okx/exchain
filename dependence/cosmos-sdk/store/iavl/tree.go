@@ -3,7 +3,7 @@ package iavl
 import (
 	"fmt"
 
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 )
 
 var (

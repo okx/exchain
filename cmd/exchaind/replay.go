@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/app/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmiavl "github.com/tendermint/iavl"
+	tmiavl "github.com/okex/exchain/dependence/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"

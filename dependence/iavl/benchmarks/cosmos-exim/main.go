@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 	tmdb "github.com/tendermint/tm-db"
 )
 

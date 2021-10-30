@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/tendermint/iavl/trace"
+	"github.com/okex/exchain/dependence/iavl/trace"
 
 	dbm "github.com/tendermint/tm-db"
 )

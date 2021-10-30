@@ -18,7 +18,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmiavl "github.com/tendermint/iavl"
+	tmiavl "github.com/okex/exchain/dependence/iavl"
 	"github.com/tendermint/tendermint/abci/server"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"

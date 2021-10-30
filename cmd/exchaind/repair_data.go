@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/mock"
 	"github.com/tendermint/tendermint/node"

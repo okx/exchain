@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/store/types"
-	tmiavl "github.com/tendermint/iavl"
+	tmiavl "github.com/okex/exchain/dependence/iavl"
 
 )
 

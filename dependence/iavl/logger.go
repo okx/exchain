@@ -2,7 +2,7 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/tendermint/iavl/trace"
+	"github.com/okex/exchain/dependence/iavl/trace"
 	"sync"
 )
 

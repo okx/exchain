@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	tmkv "github.com/tendermint/tendermint/libs/kv"

@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
-	cmn "github.com/tendermint/iavl/common"
+	cmn "github.com/okex/exchain/dependence/iavl/common"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 )
 

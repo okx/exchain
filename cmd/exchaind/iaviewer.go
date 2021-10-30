@@ -13,7 +13,7 @@ import (
 	slashingtypes "github.com/okex/exchain/x/slashing"
 	tokentypes "github.com/okex/exchain/x/token/types"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 	dbm "github.com/tendermint/tm-db"
 	"log"
 	"os"

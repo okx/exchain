@@ -49,7 +49,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
-	"github.com/tendermint/iavl"
+	"github.com/okex/exchain/dependence/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	"github.com/tendermint/tendermint/libs/log"
