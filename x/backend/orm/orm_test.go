@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/okex/exchain/x/backend/types"
@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	//tcommon "github.com/tendermint/tendermint/libs/common"
+	//tcommon "github.com/okex/exchain/libs/tendermint/libs/common"
 )
 
 func TestGorm(t *testing.T) {

@@ -2,8 +2,8 @@ package proto
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // ProtocolDefinition is the struct of app-upgrade detail info

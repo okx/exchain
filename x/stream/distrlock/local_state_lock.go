@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // LocalStateService is designed to save stream state info into a local file.

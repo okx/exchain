@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/x/staking/exported"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking/types"
 )

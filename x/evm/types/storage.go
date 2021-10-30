@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 

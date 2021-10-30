@@ -3,7 +3,7 @@ package params
 import (
 	"encoding/json"
 	"fmt"
-	sim "github.com/cosmos/cosmos-sdk/x/simulation"
+	sim "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"math/rand"
 
 	"github.com/okex/exchain/x/params/client/cli"
@@ -12,11 +12,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 var (

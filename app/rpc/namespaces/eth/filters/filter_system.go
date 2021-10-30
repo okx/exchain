@@ -6,19 +6,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/spf13/viper"
-	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmquery "github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
+	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"

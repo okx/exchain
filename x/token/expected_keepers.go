@@ -1,8 +1,8 @@
 package token
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
 // SupplyKeeper defines the expected supply Keeper (noalias)

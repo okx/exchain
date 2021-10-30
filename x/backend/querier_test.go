@@ -9,13 +9,13 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
 	orderTypes "github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func mockQuerier(t *testing.T) (*MockApp, sdk.Context, sdk.Querier, []*orderTypes.Order) {

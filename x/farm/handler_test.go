@@ -9,14 +9,14 @@ import (
 
 	"github.com/okex/exchain/x/common"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	swap "github.com/okex/exchain/x/ammswap"
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/farm/keeper"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type testContext struct {

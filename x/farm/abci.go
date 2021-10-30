@@ -3,10 +3,10 @@ package farm
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/farm/keeper"
 	"github.com/okex/exchain/x/farm/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // BeginBlocker allocates the native token to the pools in PoolsYieldNativeToken

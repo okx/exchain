@@ -3,10 +3,10 @@ package gov
 import (
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
 
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"

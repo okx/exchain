@@ -5,8 +5,8 @@ import (
 
 	"github.com/okex/exchain/x/dex"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/common"

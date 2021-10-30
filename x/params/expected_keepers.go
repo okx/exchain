@@ -1,7 +1,7 @@
 package params
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // BankKeeper shows the expected action of bank keeper

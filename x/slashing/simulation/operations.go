@@ -3,9 +3,9 @@ package simulation
 import (
 	"math/rand"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	simappparams "github.com/okex/exchain/libs/cosmos-sdk/simapp/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/x/slashing/internal/keeper"
 	"github.com/okex/exchain/x/slashing/internal/types"
 	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
