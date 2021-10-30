@@ -1,7 +1,7 @@
 package keys
 
 import (
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"

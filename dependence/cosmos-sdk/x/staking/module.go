@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

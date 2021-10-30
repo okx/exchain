@@ -9,12 +9,12 @@ import (
 	"github.com/spf13/viper"
 	"io"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/baseapp"

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/gov/types"

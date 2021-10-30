@@ -11,18 +11,18 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
 
-	abcicli "github.com/tendermint/tendermint/abci/client"
-	"github.com/tendermint/tendermint/abci/example/code"
-	"github.com/tendermint/tendermint/abci/example/counter"
-	"github.com/tendermint/tendermint/abci/example/kvstore"
-	"github.com/tendermint/tendermint/abci/server"
-	servertest "github.com/tendermint/tendermint/abci/tests/server"
-	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/abci/version"
-	"github.com/tendermint/tendermint/crypto/merkle"
+	abcicli "github.com/okex/exchain/dependence/tendermint/abci/client"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/code"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/counter"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/kvstore"
+	"github.com/okex/exchain/dependence/tendermint/abci/server"
+	servertest "github.com/okex/exchain/dependence/tendermint/abci/tests/server"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/abci/version"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
 )
 
 // client is a global variable so it can be reused by the console

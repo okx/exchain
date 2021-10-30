@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/tendermint/crypto/bcrypt"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/input"
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/keyerror"

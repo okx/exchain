@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

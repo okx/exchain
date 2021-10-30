@@ -7,7 +7,7 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 
 	"github.com/okex/exchain/app/rpc/backend"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // PublicTxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.

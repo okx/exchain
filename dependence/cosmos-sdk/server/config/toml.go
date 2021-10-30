@@ -5,7 +5,7 @@ import (
 	"text/template"
 
 	"github.com/spf13/viper"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
 )
 
 const defaultConfigTemplate = `# This is a TOML config file.

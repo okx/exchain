@@ -19,7 +19,7 @@ import (
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/okex/exchain/x/stream/pushservice"
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	tm "github.com/tendermint/tendermint/config"
+	tm "github.com/okex/exchain/dependence/tendermint/config"
 )
 
 func TestConfig(t *testing.T) {

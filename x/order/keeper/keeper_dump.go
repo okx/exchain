@@ -6,7 +6,7 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/order/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // DumpStore dumps all key-value message from KVStore

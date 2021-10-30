@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/mempool"
-	"github.com/tendermint/tendermint/rpc/client/mock"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/rpc/client/mock"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"

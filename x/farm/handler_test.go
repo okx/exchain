@@ -16,7 +16,7 @@ import (
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 type testContext struct {

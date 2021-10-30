@@ -3,8 +3,8 @@ package keeper
 import (
 	"fmt"
 
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/store/prefix"

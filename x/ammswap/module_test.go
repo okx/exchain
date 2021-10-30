@@ -8,7 +8,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestAppModule(t *testing.T) {

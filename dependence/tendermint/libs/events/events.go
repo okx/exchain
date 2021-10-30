@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tendermint/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
 )
 
 // ErrListenerWasRemoved is returned by AddEvent if the listener was removed.

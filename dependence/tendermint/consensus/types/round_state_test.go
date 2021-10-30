@@ -5,11 +5,11 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	"github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	"github.com/okex/exchain/dependence/tendermint/types"
+	tmtime "github.com/okex/exchain/dependence/tendermint/types/time"
 )
 
 func BenchmarkRoundStateDeepCopy(b *testing.B) {

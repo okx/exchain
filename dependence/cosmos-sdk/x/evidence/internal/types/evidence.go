@@ -7,9 +7,9 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/exported"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
 	"gopkg.in/yaml.v2"
 )
 

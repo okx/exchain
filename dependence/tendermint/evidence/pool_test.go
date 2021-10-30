@@ -10,9 +10,9 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
+	tmtime "github.com/okex/exchain/dependence/tendermint/types/time"
 )
 
 func TestMain(m *testing.M) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"

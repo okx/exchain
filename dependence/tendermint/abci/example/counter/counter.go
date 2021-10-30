@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/tendermint/abci/example/code"
-	"github.com/tendermint/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/code"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 type MockExTxInfo struct {

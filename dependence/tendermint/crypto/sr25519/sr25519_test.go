@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/sr25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/sr25519"
 )
 
 func TestSignAndValidateSr25519(t *testing.T) {

@@ -7,13 +7,13 @@ import (
 
 	"github.com/pkg/errors"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmliteErr "github.com/tendermint/tendermint/lite/errors"
-	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	tmliteErr "github.com/okex/exchain/dependence/tendermint/lite/errors"
+	tmliteProxy "github.com/okex/exchain/dependence/tendermint/lite/proxy"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

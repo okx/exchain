@@ -4,8 +4,8 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"

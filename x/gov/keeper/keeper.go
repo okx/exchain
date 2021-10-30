@@ -12,7 +12,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Keeper defines governance keeper

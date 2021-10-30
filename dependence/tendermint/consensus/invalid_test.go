@@ -3,11 +3,11 @@ package consensus
 import (
 	"testing"
 
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	"github.com/tendermint/tendermint/p2p"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 //----------------------------------------------

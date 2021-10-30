@@ -3,11 +3,11 @@ package core
 import (
 	"fmt"
 
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
+	tmmath "github.com/okex/exchain/dependence/tendermint/libs/math"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	rpctypes "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // BlockchainInfo gets block headers for minHeight <= height <= maxHeight.

@@ -17,7 +17,7 @@ import (
 	tokenKeeper "github.com/okex/exchain/x/token"
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 )
 
 func TestGenerateTx(t *testing.T) {

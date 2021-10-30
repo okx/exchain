@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // type check to ensure the interface is properly implemented

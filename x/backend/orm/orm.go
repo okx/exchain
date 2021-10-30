@@ -21,7 +21,7 @@ import (
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/token"
 	"github.com/pkg/errors"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // nolint

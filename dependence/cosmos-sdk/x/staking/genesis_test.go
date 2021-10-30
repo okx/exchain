@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	keep "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/keeper"

@@ -13,7 +13,7 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/common/monitor"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // nolint

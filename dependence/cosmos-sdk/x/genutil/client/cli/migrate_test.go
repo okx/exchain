@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
@@ -18,9 +18,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/log"
+	tcmd "github.com/okex/exchain/dependence/tendermint/cmd/tendermint/commands"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"

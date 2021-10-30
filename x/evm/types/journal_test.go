@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/dependence/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 
 	sdkcodec "github.com/okex/exchain/dependence/cosmos-sdk/codec"

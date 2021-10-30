@@ -1,7 +1,7 @@
 package provider
 
 import (
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // Provider provides information for the lite client to sync (verification

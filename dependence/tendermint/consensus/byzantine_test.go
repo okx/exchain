@@ -9,10 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/libs/service"
-	"github.com/tendermint/tendermint/p2p"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 //----------------------------------------------

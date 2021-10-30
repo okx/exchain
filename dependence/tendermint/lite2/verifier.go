@@ -6,8 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	"github.com/tendermint/tendermint/types"
+	tmmath "github.com/okex/exchain/dependence/tendermint/libs/math"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 var (

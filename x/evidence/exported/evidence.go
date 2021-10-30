@@ -3,7 +3,7 @@ package exported
 import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
 )
 
 // Evidence defines the contract which concrete evidence types of misbehavior

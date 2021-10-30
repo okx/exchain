@@ -12,8 +12,8 @@ import (
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 

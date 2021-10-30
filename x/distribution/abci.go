@@ -1,8 +1,8 @@
 package distribution
 
 import (
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/distribution/keeper"

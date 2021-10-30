@@ -11,7 +11,7 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/tendermint/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
 )
 
 const defaultStorePeriodicSaveInterval = 1 * time.Minute

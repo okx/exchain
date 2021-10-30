@@ -17,9 +17,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
 )
 
 var (

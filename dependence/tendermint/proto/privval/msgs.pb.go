@@ -7,8 +7,8 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	keys "github.com/tendermint/tendermint/proto/crypto/keys"
-	types "github.com/tendermint/tendermint/proto/types"
+	keys "github.com/okex/exchain/dependence/tendermint/proto/crypto/keys"
+	types "github.com/okex/exchain/dependence/tendermint/proto/types"
 	math "math"
 )
 

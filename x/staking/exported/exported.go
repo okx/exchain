@@ -2,7 +2,7 @@ package exported
 
 import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 // DelegatorI expected delegator functions

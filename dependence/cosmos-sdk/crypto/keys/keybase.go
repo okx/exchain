@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/keyerror"

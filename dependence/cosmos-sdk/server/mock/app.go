@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	bam "github.com/okex/exchain/dependence/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

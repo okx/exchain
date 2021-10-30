@@ -7,7 +7,7 @@ import (
 
 	keep "github.com/okex/exchain/dependence/cosmos-sdk/x/gov/keeper"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestImportExportQueues(t *testing.T) {

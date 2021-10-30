@@ -3,8 +3,8 @@ package evidence_test
 import (
 	"testing"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

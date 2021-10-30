@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"

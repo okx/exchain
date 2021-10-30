@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
 )
 
 const (

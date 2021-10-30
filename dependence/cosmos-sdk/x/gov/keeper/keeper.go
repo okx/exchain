@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Keeper defines the governance module Keeper

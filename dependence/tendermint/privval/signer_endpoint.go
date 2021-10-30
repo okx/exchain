@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	tmamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"

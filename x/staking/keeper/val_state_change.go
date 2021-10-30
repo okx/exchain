@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // ApplyAndReturnValidatorSetUpdates applies and returns accumulated updates to the bonded validator set. Also,

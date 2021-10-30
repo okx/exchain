@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

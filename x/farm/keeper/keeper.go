@@ -7,7 +7,7 @@ import (
 	swap "github.com/okex/exchain/x/ammswap/keeper"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/okex/exchain/x/token"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Keeper of the farm store

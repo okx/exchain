@@ -1,7 +1,7 @@
 package staking
 
 import (
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/staking/keeper"

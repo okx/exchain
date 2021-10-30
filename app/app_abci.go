@@ -4,8 +4,8 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/evm"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/trace"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/trace"
 )
 
 // BeginBlock implements the Application interface

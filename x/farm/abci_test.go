@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/x/farm/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestBeginBlocker(t *testing.T) {

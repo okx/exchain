@@ -7,7 +7,7 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/app"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
@@ -18,9 +18,9 @@ import (
 	"github.com/okex/exchain/x/evidence/internal/types"
 
 	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 )
 
 var (

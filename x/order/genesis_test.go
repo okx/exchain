@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/types/time"
+	"github.com/okex/exchain/dependence/tendermint/types/time"
 )
 
 func TestValidateGenesis(t *testing.T) {

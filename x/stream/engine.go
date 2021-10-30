@@ -14,7 +14,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	"github.com/okex/exchain/x/backend"

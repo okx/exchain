@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/internal/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/staking"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {

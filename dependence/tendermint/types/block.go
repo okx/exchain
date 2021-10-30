@@ -10,15 +10,15 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/bits"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	tmproto "github.com/tendermint/tendermint/proto/types"
-	tmversion "github.com/tendermint/tendermint/proto/version"
-	"github.com/tendermint/tendermint/version"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/bits"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	tmmath "github.com/okex/exchain/dependence/tendermint/libs/math"
+	tmproto "github.com/okex/exchain/dependence/tendermint/proto/types"
+	tmversion "github.com/okex/exchain/dependence/tendermint/proto/version"
+	"github.com/okex/exchain/dependence/tendermint/version"
 )
 
 const (

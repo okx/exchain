@@ -3,8 +3,8 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

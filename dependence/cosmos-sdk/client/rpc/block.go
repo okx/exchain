@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
 
-	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
+	tmliteProxy "github.com/okex/exchain/dependence/tendermint/lite/proxy"
 )
 
 //BlockCommand returns the verified block data for a given heights

@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 
 	tmbtcec "github.com/tendermint/btcd/btcec"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	tmsecp256k1 "github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

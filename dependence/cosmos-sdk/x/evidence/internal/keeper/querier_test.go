@@ -6,7 +6,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/exported"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/internal/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 const (

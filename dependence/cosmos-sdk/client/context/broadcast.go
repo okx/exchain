@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/mempool"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

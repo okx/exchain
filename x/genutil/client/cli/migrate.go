@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

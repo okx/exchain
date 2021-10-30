@@ -15,17 +15,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	auto "github.com/tendermint/tendermint/libs/autofile"
-	"github.com/tendermint/tendermint/libs/clist"
-	"github.com/tendermint/tendermint/libs/log"
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	"github.com/tendermint/tendermint/p2p"
-	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/trace"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	auto "github.com/okex/exchain/dependence/tendermint/libs/autofile"
+	"github.com/okex/exchain/dependence/tendermint/libs/clist"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmmath "github.com/okex/exchain/dependence/tendermint/libs/math"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	"github.com/okex/exchain/dependence/tendermint/proxy"
+	"github.com/okex/exchain/dependence/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 type TxInfoParser interface {

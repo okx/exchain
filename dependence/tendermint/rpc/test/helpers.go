@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
-	cfg "github.com/tendermint/tendermint/config"
-	tmnet "github.com/tendermint/tendermint/libs/net"
-	nm "github.com/tendermint/tendermint/node"
-	"github.com/tendermint/tendermint/p2p"
-	"github.com/tendermint/tendermint/privval"
-	"github.com/tendermint/tendermint/proxy"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	core_grpc "github.com/tendermint/tendermint/rpc/grpc"
-	rpcclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	tmnet "github.com/okex/exchain/dependence/tendermint/libs/net"
+	nm "github.com/okex/exchain/dependence/tendermint/node"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	"github.com/okex/exchain/dependence/tendermint/privval"
+	"github.com/okex/exchain/dependence/tendermint/proxy"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	core_grpc "github.com/okex/exchain/dependence/tendermint/rpc/grpc"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/client"
 )
 
 // Options helps with specifying some parameters for our RPC testing for greater

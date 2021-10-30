@@ -3,8 +3,8 @@ package keys
 import (
 	"fmt"
 
-	"github.com/tendermint/tendermint/crypto"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )

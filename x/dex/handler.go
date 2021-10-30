@@ -9,8 +9,8 @@ import (
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/dex/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // NewHandler handles all "dex" type messages.

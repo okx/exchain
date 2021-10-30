@@ -6,14 +6,14 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpcserver "github.com/tendermint/tendermint/rpc/jsonrpc/server"
-	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/rpc/client"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	rpcserver "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/server"
+	rpctypes "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 const (

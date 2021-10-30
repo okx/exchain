@@ -8,7 +8,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/types"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Keeper of the global paramstore

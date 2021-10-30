@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/fail"
-	"github.com/tendermint/tendermint/libs/log"
-	mempl "github.com/tendermint/tendermint/mempool"
-	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/trace"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/libs/fail"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	mempl "github.com/okex/exchain/dependence/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/proxy"
+	"github.com/okex/exchain/dependence/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
 

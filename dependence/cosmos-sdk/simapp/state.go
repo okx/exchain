@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	simapparams "github.com/okex/exchain/dependence/cosmos-sdk/simapp/params"

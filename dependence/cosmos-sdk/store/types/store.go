@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmkv "github.com/tendermint/tendermint/libs/kv"
-	tmstrings "github.com/tendermint/tendermint/libs/strings"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
+	tmstrings "github.com/okex/exchain/dependence/tendermint/libs/strings"
 	dbm "github.com/tendermint/tm-db"
 )
 

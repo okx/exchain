@@ -24,10 +24,10 @@ import (
 	"context"
 	"crypto/sha256"
 
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/service"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // Client wraps most important rpc calls a client would make if you want to

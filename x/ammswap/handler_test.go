@@ -12,7 +12,7 @@ import (
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func testCode(t *testing.T, err sdk.Error, expectedCode uint32) {

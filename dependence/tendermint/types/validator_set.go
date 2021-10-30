@@ -10,9 +10,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/tendermint/crypto/merkle"
-	tmmath "github.com/tendermint/tendermint/libs/math"
-	tmproto "github.com/tendermint/tendermint/proto/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	tmmath "github.com/okex/exchain/dependence/tendermint/libs/math"
+	tmproto "github.com/okex/exchain/dependence/tendermint/proto/types"
 )
 
 const (

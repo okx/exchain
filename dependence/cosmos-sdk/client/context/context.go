@@ -7,10 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	tmlite "github.com/tendermint/tendermint/lite"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	tmlite "github.com/okex/exchain/dependence/tendermint/lite"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	rpchttp "github.com/okex/exchain/dependence/tendermint/rpc/client/http"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"

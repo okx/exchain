@@ -9,10 +9,10 @@ import (
 
 	"github.com/pkg/errors"
 	iavltree "github.com/okex/exchain/dependence/iavl"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/store/cachemulti"

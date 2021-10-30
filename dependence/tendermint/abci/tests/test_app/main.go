@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/tendermint/tendermint/abci/example/code"
-	"github.com/tendermint/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/code"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 var abciType string

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 )
 
 // ----------------------------------------------------------------------------

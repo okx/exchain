@@ -8,7 +8,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 const EPOCH = 252

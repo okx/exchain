@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

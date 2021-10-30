@@ -32,12 +32,12 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmconfig "github.com/tendermint/tendermint/config"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	tmtypes "github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	tmconfig "github.com/okex/exchain/dependence/tendermint/config"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	tmtime "github.com/okex/exchain/dependence/tendermint/types/time"
 )
 
 var (

@@ -9,9 +9,9 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/spf13/cobra"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/libs/cli"
+	tmamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
 
 	sdkclient "github.com/okex/exchain/dependence/cosmos-sdk/client"
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"

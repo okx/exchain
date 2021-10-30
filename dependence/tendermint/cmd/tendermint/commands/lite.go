@@ -12,14 +12,14 @@ import (
 	"github.com/tendermint/go-amino"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	lite "github.com/tendermint/tendermint/lite2"
-	lproxy "github.com/tendermint/tendermint/lite2/proxy"
-	lrpc "github.com/tendermint/tendermint/lite2/rpc"
-	dbs "github.com/tendermint/tendermint/lite2/store/db"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
-	rpcserver "github.com/tendermint/tendermint/rpc/jsonrpc/server"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	lite "github.com/okex/exchain/dependence/tendermint/lite2"
+	lproxy "github.com/okex/exchain/dependence/tendermint/lite2/proxy"
+	lrpc "github.com/okex/exchain/dependence/tendermint/lite2/rpc"
+	dbs "github.com/okex/exchain/dependence/tendermint/lite2/store/db"
+	rpchttp "github.com/okex/exchain/dependence/tendermint/rpc/client/http"
+	rpcserver "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/server"
 )
 
 // LiteCmd represents the base command when called without any subcommands

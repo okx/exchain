@@ -11,9 +11,9 @@ import (
 	"github.com/tendermint/go-amino"
 	dbm "github.com/tendermint/tm-db"
 
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/lite2/store"
-	"github.com/tendermint/tendermint/types"
+	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/lite2/store"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestDumpStore(t *testing.T) {

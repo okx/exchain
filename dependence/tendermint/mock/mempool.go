@@ -4,12 +4,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/clist"
-	mempl "github.com/tendermint/tendermint/mempool"
-	"github.com/tendermint/tendermint/trace"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/libs/clist"
+	mempl "github.com/okex/exchain/dependence/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // Mempool is an empty implementation of a Mempool, useful for testing.

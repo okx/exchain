@@ -39,9 +39,9 @@ import (
 	//"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
-	"github.com/tendermint/tendermint/crypto/tmhash"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
 )
 
 type MockApp struct {

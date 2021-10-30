@@ -15,9 +15,9 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	"github.com/tendermint/tendermint/libs/service"
-	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
+	types "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
 )
 
 const (

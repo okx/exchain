@@ -3,7 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"

@@ -12,9 +12,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
-	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	types "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
 )
 
 var wsCallTimeout = 5 * time.Second

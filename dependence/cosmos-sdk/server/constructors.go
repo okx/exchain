@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

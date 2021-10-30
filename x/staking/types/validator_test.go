@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 func TestValidatorTestEquivalent(t *testing.T) {

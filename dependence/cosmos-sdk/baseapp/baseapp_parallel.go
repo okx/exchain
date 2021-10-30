@@ -6,7 +6,7 @@ import (
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func (app *BaseApp) PrepareParallelTxs(cb abci.AsyncCallBack, txs [][]byte) {

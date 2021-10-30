@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/armor"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/armor"
+	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/mintkey"

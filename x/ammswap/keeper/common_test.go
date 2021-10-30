@@ -14,8 +14,8 @@ import (
 	"github.com/okex/exchain/x/ammswap/types"
 	staking "github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/x/token"
 )

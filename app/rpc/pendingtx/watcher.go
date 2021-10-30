@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/tendermint/tendermint/libs/log"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 type Watcher struct {

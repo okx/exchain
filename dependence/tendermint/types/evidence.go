@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/tendermint/tendermint/crypto"
-	cryptoenc "github.com/tendermint/tendermint/crypto/encoding"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmproto "github.com/tendermint/tendermint/proto/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	cryptoenc "github.com/okex/exchain/dependence/tendermint/crypto/encoding"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmproto "github.com/okex/exchain/dependence/tendermint/proto/types"
 )
 
 const (

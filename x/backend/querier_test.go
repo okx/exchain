@@ -15,7 +15,7 @@ import (
 	orderTypes "github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func mockQuerier(t *testing.T) (*MockApp, sdk.Context, sdk.Querier, []*orderTypes.Order) {

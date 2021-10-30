@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tendermint/tendermint/libs/log"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"

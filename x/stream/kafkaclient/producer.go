@@ -12,7 +12,7 @@ import (
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/common/kline"
 	"github.com/segmentio/kafka-go"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 type KafkaProducer struct {

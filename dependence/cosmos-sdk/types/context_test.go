@@ -6,12 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/store"
 	"github.com/okex/exchain/dependence/cosmos-sdk/types"

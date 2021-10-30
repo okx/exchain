@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/order/types"
-	"github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli/flags"
 )
 
 type MockGetFeeKeeper struct {

@@ -7,10 +7,10 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
 )
 
 // Tx is an arbitrary byte array.

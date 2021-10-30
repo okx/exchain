@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/cli"
-	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
-	"github.com/tendermint/tendermint/libs/log"
+	tcmd "github.com/okex/exchain/dependence/tendermint/cmd/tendermint/commands"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	tmflags "github.com/okex/exchain/dependence/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"

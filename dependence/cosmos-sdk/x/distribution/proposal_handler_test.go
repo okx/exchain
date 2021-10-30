@@ -3,7 +3,7 @@ package distribution
 import (
 	"testing"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	"github.com/stretchr/testify/require"
 

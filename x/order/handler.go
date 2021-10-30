@@ -12,8 +12,8 @@ import (
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	"github.com/willf/bitset"
 )
 

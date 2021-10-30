@@ -6,7 +6,7 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	stakingexported "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/exported"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 type (

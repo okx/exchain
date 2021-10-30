@@ -4,8 +4,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	p2pconn "github.com/tendermint/tendermint/p2p/conn"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
+	p2pconn "github.com/okex/exchain/dependence/tendermint/p2p/conn"
 )
 
 const (

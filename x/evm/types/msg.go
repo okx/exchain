@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/ante"
-	"github.com/tendermint/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/mempool"
 
 	"github.com/okex/exchain/app/types"
 

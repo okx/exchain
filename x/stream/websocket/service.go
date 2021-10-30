@@ -7,7 +7,7 @@ import (
 	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Engine

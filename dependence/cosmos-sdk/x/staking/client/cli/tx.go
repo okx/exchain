@@ -10,8 +10,8 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client"
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"

@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func (suite *StateDBTestSuite) TestGetHashFn() {

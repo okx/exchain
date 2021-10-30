@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tendermint/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/mempool"
 
-	"github.com/tendermint/tendermint/crypto/merkle"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	service "github.com/tendermint/tendermint/libs/service"
-	lite "github.com/tendermint/tendermint/lite2"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	service "github.com/okex/exchain/dependence/tendermint/libs/service"
+	lite "github.com/okex/exchain/dependence/tendermint/lite2"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	rpctypes "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 var errNegOrZeroHeight = errors.New("negative or zero height")

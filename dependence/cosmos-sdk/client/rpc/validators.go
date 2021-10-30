@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"

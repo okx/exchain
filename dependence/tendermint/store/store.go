@@ -10,7 +10,7 @@ import (
 	db "github.com/tendermint/tm-db"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 /*

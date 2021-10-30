@@ -12,12 +12,12 @@ import (
 
 	db "github.com/tendermint/tm-db"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/kv"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	"github.com/tendermint/tendermint/state/txindex"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/kv"
+	"github.com/okex/exchain/dependence/tendermint/libs/pubsub/query"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	"github.com/okex/exchain/dependence/tendermint/state/txindex"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 func TestTxIndex(t *testing.T) {

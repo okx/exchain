@@ -1,6 +1,6 @@
 package types
 
-import "github.com/tendermint/tendermint/crypto"
+import "github.com/okex/exchain/dependence/tendermint/crypto"
 
 // MustBech32ifyAccPub returns the result of Bech32ifyAccPub panicing on failure.
 func MustBech32ifyAccPub(pub crypto.PubKey) string {

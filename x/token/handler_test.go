@@ -15,9 +15,9 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
-	"github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 

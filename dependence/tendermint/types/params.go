@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmstrings "github.com/tendermint/tendermint/libs/strings"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmstrings "github.com/okex/exchain/dependence/tendermint/libs/strings"
 )
 
 const (

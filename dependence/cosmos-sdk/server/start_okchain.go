@@ -13,7 +13,7 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	"github.com/spf13/cobra"
-	cmn "github.com/tendermint/tendermint/libs/os"
+	cmn "github.com/okex/exchain/dependence/tendermint/libs/os"
 )
 
 // exchain full-node start flags

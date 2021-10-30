@@ -14,8 +14,8 @@ import (
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 )
 
 //func tokensFromTendermintPower(power int64) sdk.Int {

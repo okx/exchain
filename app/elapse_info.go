@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/trace"
 )
 
 var (

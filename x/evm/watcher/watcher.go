@@ -13,7 +13,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 type Watcher struct {

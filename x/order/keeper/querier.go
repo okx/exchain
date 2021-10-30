@@ -3,7 +3,7 @@ package keeper
 import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/order/types"

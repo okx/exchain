@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

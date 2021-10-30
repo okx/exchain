@@ -13,7 +13,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	"golang.org/x/time/rate"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"

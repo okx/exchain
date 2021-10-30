@@ -10,7 +10,7 @@ import (
 	auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/order/client/cli"

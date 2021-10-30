@@ -11,7 +11,7 @@ import (
 	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	"github.com/okex/exchain/x/backend"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 func TestNewPulsarProducer(t *testing.T) {

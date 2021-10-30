@@ -3,7 +3,7 @@ package mempool
 import (
 	"sync"
 
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 type PendingPool struct {

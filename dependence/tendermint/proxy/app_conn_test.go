@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	abcicli "github.com/tendermint/tendermint/abci/client"
-	"github.com/tendermint/tendermint/abci/example/kvstore"
-	"github.com/tendermint/tendermint/abci/server"
-	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
+	abcicli "github.com/okex/exchain/dependence/tendermint/abci/client"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/kvstore"
+	"github.com/okex/exchain/dependence/tendermint/abci/server"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
 )
 
 //----------------------------------------

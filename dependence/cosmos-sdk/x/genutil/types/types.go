@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 // DONTCOVER

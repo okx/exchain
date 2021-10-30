@@ -10,11 +10,11 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/tendermint/tendermint/crypto"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	tmamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/tendermint/tendermint/libs/bech32"
+	"github.com/okex/exchain/dependence/tendermint/libs/bech32"
 )
 
 const (

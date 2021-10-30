@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )

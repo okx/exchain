@@ -19,8 +19,8 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
 

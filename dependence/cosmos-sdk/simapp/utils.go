@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	tmkv "github.com/tendermint/tendermint/libs/kv"
-	"github.com/tendermint/tendermint/libs/log"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

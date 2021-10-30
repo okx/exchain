@@ -12,8 +12,8 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	tmliteProxy "github.com/okex/exchain/dependence/tendermint/lite/proxy"
 )
 
 // GetQueryCmd returns the cli query commands for this module

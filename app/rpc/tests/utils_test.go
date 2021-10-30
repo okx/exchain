@@ -16,7 +16,7 @@ import (
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/types"
 	"github.com/stretchr/testify/require"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	tmamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 	"strings"
 	"testing"
 )

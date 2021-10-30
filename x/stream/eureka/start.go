@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/x/stream/common/utils"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // StartEurekaClient start eureka client and register rest service in eureka

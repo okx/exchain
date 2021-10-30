@@ -19,9 +19,9 @@ import (
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 )
 
 var mockBlockHeight int64 = -1

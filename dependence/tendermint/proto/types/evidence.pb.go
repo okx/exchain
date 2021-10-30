@@ -8,7 +8,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
-	keys "github.com/tendermint/tendermint/proto/crypto/keys"
+	keys "github.com/okex/exchain/dependence/tendermint/proto/crypto/keys"
 	math "math"
 	time "time"
 )

@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/x/common"
 	tokenTypes "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestKeeper_AllInOne_Smoke(t *testing.T) {

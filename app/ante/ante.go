@@ -11,7 +11,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
-	tmcrypto "github.com/tendermint/tendermint/crypto"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 func init() {

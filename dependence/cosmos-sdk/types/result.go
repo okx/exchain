@@ -9,7 +9,7 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
 )
 
 // GasInfo defines tx execution gas context.

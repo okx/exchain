@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"

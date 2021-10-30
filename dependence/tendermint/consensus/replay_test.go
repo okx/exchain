@@ -19,19 +19,19 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/tendermint/tendermint/abci/example/kvstore"
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/log"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	mempl "github.com/tendermint/tendermint/mempool"
-	"github.com/tendermint/tendermint/mock"
-	"github.com/tendermint/tendermint/privval"
-	"github.com/tendermint/tendermint/proxy"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
-	"github.com/tendermint/tendermint/version"
+	"github.com/okex/exchain/dependence/tendermint/abci/example/kvstore"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	mempl "github.com/okex/exchain/dependence/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/mock"
+	"github.com/okex/exchain/dependence/tendermint/privval"
+	"github.com/okex/exchain/dependence/tendermint/proxy"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/version"
 )
 
 func TestMain(m *testing.M) {

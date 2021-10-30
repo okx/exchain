@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/dependence/iavl"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/store/cachekv"

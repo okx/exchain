@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	amino "github.com/tendermint/go-amino"
 
-	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	types "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
 )
 
 const (

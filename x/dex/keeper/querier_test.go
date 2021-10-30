@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"
 	amino "github.com/tendermint/go-amino"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestQuerier_ProductsAndMatchOrder(t *testing.T) {

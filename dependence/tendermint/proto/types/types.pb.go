@@ -8,9 +8,9 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
-	merkle "github.com/tendermint/tendermint/proto/crypto/merkle"
-	bits "github.com/tendermint/tendermint/proto/libs/bits"
-	version "github.com/tendermint/tendermint/proto/version"
+	merkle "github.com/okex/exchain/dependence/tendermint/proto/crypto/merkle"
+	bits "github.com/okex/exchain/dependence/tendermint/proto/libs/bits"
+	version "github.com/okex/exchain/dependence/tendermint/proto/version"
 	math "math"
 	time "time"
 )

@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/bloombits"
-	"github.com/tendermint/tendermint/libs/log"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

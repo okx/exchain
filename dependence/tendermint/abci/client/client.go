@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
 )
 
 const (

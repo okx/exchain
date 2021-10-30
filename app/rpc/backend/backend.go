@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -18,7 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
 

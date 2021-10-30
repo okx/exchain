@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 const addrTest = "ex1rf9wr069pt64e58f2w3mjs9w72g8vemzw26658"

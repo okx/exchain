@@ -6,7 +6,7 @@ import (
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli/flags"
 
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"

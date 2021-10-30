@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/dependence/iavl"
-	"github.com/tendermint/tendermint/crypto/merkle"
+	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
 )
 
 // MultiStoreProof defines a collection of store proofs in a multi-store

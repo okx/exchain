@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 const (

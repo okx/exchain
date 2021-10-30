@@ -25,8 +25,8 @@ import (
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/status-im/keycard-go/hexutils"
 	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 )
 
 // erc20 contract with params:

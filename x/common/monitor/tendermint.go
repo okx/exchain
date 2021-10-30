@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 	"github.com/spf13/viper"
-	tmcli "github.com/tendermint/tendermint/rpc/client"
-	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
+	tmcli "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	tmhttp "github.com/okex/exchain/dependence/tendermint/rpc/client/http"
 	"strings"
 	"sync"
 )

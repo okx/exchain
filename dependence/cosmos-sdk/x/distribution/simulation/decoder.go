@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

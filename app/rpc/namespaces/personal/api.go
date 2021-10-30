@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/mintkey"

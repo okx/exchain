@@ -91,7 +91,7 @@ require (
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	//github.com/tendermint/iavl v0.14.1
-	github.com/tendermint/tendermint v0.33.9
+	//github.com/tendermint/tendermint v0.33.9
 	github.com/tendermint/tm-db v0.5.2
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/willf/bitset v1.1.11
@@ -116,12 +116,7 @@ require (
 
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
-	//github.com/cosmos/cosmos-sdk => ./dependence/cosmos-sdk
-
-	// cm
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-	//github.com/tendermint/iavl => ./dependence/iavl
-	github.com/tendermint/tendermint => ./dependence/tendermint
 	github.com/tendermint/tm-db => github.com/okex/tm-db v0.5.2-exchain2
 
 )

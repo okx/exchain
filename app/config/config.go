@@ -6,7 +6,7 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 
-	tmconfig "github.com/tendermint/tendermint/config"
+	tmconfig "github.com/okex/exchain/dependence/tendermint/config"
 
 	"github.com/spf13/viper"
 )

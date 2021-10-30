@@ -14,7 +14,7 @@ import (
 	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine

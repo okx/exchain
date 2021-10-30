@@ -7,7 +7,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 const (

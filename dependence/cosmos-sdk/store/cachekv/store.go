@@ -9,7 +9,7 @@ import (
 	"sync"
 	"unsafe"
 
-	tmkv "github.com/tendermint/tendermint/libs/kv"
+	tmkv "github.com/okex/exchain/dependence/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/store/tracekv"

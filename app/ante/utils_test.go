@@ -21,8 +21,8 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 type AnteTestSuite struct {

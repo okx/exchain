@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/params"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Keeper of the distribution store

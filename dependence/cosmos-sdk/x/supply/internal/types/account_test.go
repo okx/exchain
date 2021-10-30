@@ -8,7 +8,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"

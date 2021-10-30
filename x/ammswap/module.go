@@ -11,7 +11,7 @@ import (
 	"github.com/okex/exchain/x/ammswap/client/cli"
 	"github.com/okex/exchain/x/ammswap/client/rest"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // Type check to ensure the interface is properly implemented

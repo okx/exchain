@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestQueryValidators(t *testing.T) {

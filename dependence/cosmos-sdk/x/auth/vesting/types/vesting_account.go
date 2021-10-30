@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 	"gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

@@ -11,10 +11,10 @@ import (
 
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

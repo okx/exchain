@@ -7,7 +7,7 @@ import (
 	//"github.com/stretchr/testify/require"
 	"testing"
 
-	"github.com/tendermint/tendermint/types/time"
+	"github.com/okex/exchain/dependence/tendermint/types/time"
 )
 
 func TestDecay(t *testing.T) {

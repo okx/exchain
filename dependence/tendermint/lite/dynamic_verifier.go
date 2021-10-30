@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	log "github.com/tendermint/tendermint/libs/log"
-	lerr "github.com/tendermint/tendermint/lite/errors"
-	"github.com/tendermint/tendermint/types"
+	log "github.com/okex/exchain/dependence/tendermint/libs/log"
+	lerr "github.com/okex/exchain/dependence/tendermint/lite/errors"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 const sizeOfPendingMap = 1024

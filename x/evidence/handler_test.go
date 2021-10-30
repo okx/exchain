@@ -8,8 +8,8 @@ import (
 	"github.com/okex/exchain/x/evidence/internal/types"
 
 	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 )
 
 type HandlerTestSuite struct {

@@ -8,23 +8,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tendermint/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/trace"
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/fail"
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	"github.com/tendermint/tendermint/libs/service"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/libs/fail"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
+	tmtime "github.com/okex/exchain/dependence/tendermint/types/time"
 
-	cfg "github.com/tendermint/tendermint/config"
-	cstypes "github.com/tendermint/tendermint/consensus/types"
-	tmevents "github.com/tendermint/tendermint/libs/events"
-	"github.com/tendermint/tendermint/p2p"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	cstypes "github.com/okex/exchain/dependence/tendermint/consensus/types"
+	tmevents "github.com/okex/exchain/dependence/tendermint/libs/events"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 //-----------------------------------------------------------------------------

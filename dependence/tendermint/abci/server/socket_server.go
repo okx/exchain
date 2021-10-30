@@ -9,10 +9,10 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
-	tmnet "github.com/tendermint/tendermint/libs/net"
-	"github.com/tendermint/tendermint/libs/service"
+	"github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmnet "github.com/okex/exchain/dependence/tendermint/libs/net"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
 )
 
 // var maxNumberConnections = 2

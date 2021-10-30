@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"

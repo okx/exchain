@@ -9,7 +9,7 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/golang/protobuf/ptypes/duration"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
-	types "github.com/tendermint/tendermint/proto/types"
+	types "github.com/okex/exchain/dependence/tendermint/proto/types"
 	math "math"
 	time "time"
 )

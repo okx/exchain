@@ -10,7 +10,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis

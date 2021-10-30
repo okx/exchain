@@ -19,8 +19,8 @@ import (
 	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/types"
-	cfg "github.com/tendermint/tendermint/config"
-	tmtypes "github.com/tendermint/tendermint/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // GenAppStateFromConfig gets the genesis app state from the config

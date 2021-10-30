@@ -11,7 +11,7 @@ import (
 	v034gov "github.com/okex/exchain/dependence/cosmos-sdk/x/gov/legacy/v0_34"
 	v034staking "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/legacy/v0_34"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 )
 
 const (

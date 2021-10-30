@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	tmos "github.com/tendermint/tendermint/libs/os"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"

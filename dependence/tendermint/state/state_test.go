@@ -14,14 +14,14 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/libs/kv"
-	"github.com/tendermint/tendermint/libs/rand"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/libs/kv"
+	"github.com/okex/exchain/dependence/tendermint/libs/rand"
+	tmrand "github.com/okex/exchain/dependence/tendermint/libs/rand"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // setupTestCase does setup common to all test cases.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/dex/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

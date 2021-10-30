@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.

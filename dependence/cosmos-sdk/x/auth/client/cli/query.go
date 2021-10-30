@@ -19,7 +19,7 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 const (

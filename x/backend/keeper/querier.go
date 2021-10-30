@@ -11,7 +11,7 @@ import (
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
 	orderTypes "github.com/okex/exchain/x/order/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // NewQuerier is the module level router for state queries

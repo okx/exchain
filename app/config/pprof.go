@@ -9,8 +9,8 @@ import (
 
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
 )
 
 type PporfConfig struct {

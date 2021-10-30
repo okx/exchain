@@ -14,7 +14,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/common/kline"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 type PulsarProducer struct {

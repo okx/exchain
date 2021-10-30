@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	//tcommon "github.com/tendermint/tendermint/libs/common"
+	//tcommon "github.com/okex/exchain/dependence/tendermint/libs/common"
 )
 
 func TestGorm(t *testing.T) {

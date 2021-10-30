@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/multisig"
-	"github.com/tendermint/tendermint/mempool"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/mempool"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

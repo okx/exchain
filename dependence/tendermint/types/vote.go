@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmproto "github.com/tendermint/tendermint/proto/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	tmproto "github.com/okex/exchain/dependence/tendermint/proto/types"
 )
 
 const (

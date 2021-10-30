@@ -3,10 +3,10 @@ package analyzer
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	sm "github.com/tendermint/tendermint/state"
+	sm "github.com/okex/exchain/dependence/tendermint/state"
 	"strings"
 
-	"github.com/tendermint/tendermint/trace"
+	"github.com/okex/exchain/dependence/tendermint/trace"
 )
 
 var singleAnalys *analyer

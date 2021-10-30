@@ -23,8 +23,8 @@ import (
 	"github.com/okex/exchain/x/genutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // GenTxCmd builds the application's gentx command

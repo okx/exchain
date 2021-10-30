@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tendermint/tendermint/libs/tempfile"
+	"github.com/okex/exchain/dependence/tendermint/libs/tempfile"
 )
 
 /* Loading & Saving */

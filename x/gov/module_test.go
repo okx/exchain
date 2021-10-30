@@ -12,7 +12,7 @@ import (
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestAppModule_BeginBlock(t *testing.T) {

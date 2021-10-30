@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // BeginBlocker iterates through and handles any newly discovered evidence of

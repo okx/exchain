@@ -14,9 +14,9 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/libs/service"
-	types "github.com/tendermint/tendermint/rpc/jsonrpc/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/service"
+	types "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

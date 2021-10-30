@@ -50,10 +50,10 @@ import (
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/dependence/iavl"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
 

@@ -15,7 +15,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 type StateDBTestSuite struct {

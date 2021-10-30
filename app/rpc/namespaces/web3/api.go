@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/rpc/monitor"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // PublicWeb3API is the web3_ prefixed set of APIs in the Web3 JSON-RPC spec.

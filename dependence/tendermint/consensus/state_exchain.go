@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 
-	cstypes "github.com/tendermint/tendermint/consensus/types"
-	"github.com/tendermint/tendermint/libs/log"
+	cstypes "github.com/okex/exchain/dependence/tendermint/consensus/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 type coreData struct {

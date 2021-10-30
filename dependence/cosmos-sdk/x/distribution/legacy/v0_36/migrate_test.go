@@ -3,7 +3,7 @@ package v0_36
 import (
 	"testing"
 
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/types"
 	v034distr "github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/legacy/v0_34"

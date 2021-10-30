@@ -8,8 +8,8 @@ import (
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

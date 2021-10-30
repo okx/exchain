@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/exported"
 	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/internal/types"

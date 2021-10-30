@@ -21,8 +21,8 @@ import (
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 )
 

@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 const (

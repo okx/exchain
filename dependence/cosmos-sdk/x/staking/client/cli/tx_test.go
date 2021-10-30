@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/log"
+	tcmd "github.com/okex/exchain/dependence/tendermint/cmd/tendermint/commands"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

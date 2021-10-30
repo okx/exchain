@@ -21,8 +21,8 @@ import (
 	"github.com/okex/exchain/x/common"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
-	"github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/okex/exchain/dependence/tendermint/rpc/client"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application

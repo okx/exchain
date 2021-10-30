@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	slashingkeeper "github.com/okex/exchain/dependence/cosmos-sdk/x/slashing/internal/keeper"

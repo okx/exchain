@@ -7,16 +7,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/libs/log"
-	tmpubsub "github.com/tendermint/tendermint/libs/pubsub"
-	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
-	nm "github.com/tendermint/tendermint/node"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	"github.com/tendermint/tendermint/rpc/core"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpctypes "github.com/tendermint/tendermint/rpc/jsonrpc/types"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmpubsub "github.com/okex/exchain/dependence/tendermint/libs/pubsub"
+	tmquery "github.com/okex/exchain/dependence/tendermint/libs/pubsub/query"
+	nm "github.com/okex/exchain/dependence/tendermint/node"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	"github.com/okex/exchain/dependence/tendermint/rpc/core"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	rpctypes "github.com/okex/exchain/dependence/tendermint/rpc/jsonrpc/types"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 /*

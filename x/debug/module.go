@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/debug/types"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // check the implementation of the interface

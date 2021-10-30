@@ -5,7 +5,7 @@ import (
 
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/garyburd/redigo/redis"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 var unlockScript = redis.NewScript(1, `

@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/tendermint/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
 	dbm "github.com/tendermint/tm-db"
 )
 

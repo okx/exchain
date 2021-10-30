@@ -3,8 +3,8 @@ package keys
 import (
 	"fmt"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto/multisig"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"
 	"github.com/okex/exchain/dependence/cosmos-sdk/types"

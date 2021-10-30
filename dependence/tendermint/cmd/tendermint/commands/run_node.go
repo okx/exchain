@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	cfg "github.com/tendermint/tendermint/config"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	nm "github.com/tendermint/tendermint/node"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
+	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	nm "github.com/okex/exchain/dependence/tendermint/node"
 )
 
 var (

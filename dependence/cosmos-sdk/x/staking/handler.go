@@ -3,8 +3,8 @@ package staking
 import (
 	"time"
 
-	tmstrings "github.com/tendermint/tendermint/libs/strings"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmstrings "github.com/okex/exchain/dependence/tendermint/libs/strings"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"

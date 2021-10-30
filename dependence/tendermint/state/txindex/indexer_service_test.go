@@ -9,11 +9,11 @@ import (
 
 	db "github.com/tendermint/tm-db"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/state/txindex"
-	"github.com/tendermint/tendermint/state/txindex/kv"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/state/txindex"
+	"github.com/okex/exchain/dependence/tendermint/state/txindex/kv"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 func TestIndexerServiceIndexesBlocks(t *testing.T) {

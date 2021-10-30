@@ -10,7 +10,7 @@ import (
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestAppModule_InitGenesis(t *testing.T) {

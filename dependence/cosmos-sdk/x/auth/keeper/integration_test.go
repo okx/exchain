@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"

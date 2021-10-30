@@ -5,11 +5,11 @@ import (
 
 	"github.com/okex/exchain/x/evm/watcher"
 
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 

@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	cfg "github.com/tendermint/tendermint/config"
+	cfg "github.com/okex/exchain/dependence/tendermint/config"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/p2p"
-	"github.com/tendermint/tendermint/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/dependence/tendermint/p2p"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 // Mempool defines the mempool interface.

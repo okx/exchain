@@ -20,7 +20,7 @@ import (
 	"github.com/okex/exchain/x/common/monitor"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // Server defines a server that handles Ethereum websockets.

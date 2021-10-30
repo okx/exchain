@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/libs/bytes"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/dependence/tendermint/types"
 )
 
 //-----------------------------------------------------------------------------

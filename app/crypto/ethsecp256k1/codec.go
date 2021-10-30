@@ -1,7 +1,7 @@
 package ethsecp256k1
 
 import (
-	cryptoamino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	cryptoamino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"

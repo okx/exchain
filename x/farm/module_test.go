@@ -8,7 +8,7 @@ import (
 	"github.com/okex/exchain/x/farm/keeper"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestAppModule(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/token/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/dependence/tendermint/libs/log"
 )
 
 // NewTokenHandler returns a handler for "token" type messages.

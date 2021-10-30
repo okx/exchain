@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 	"github.com/okex/exchain/x/common"
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/dependence/tendermint/crypto"
 
 	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )

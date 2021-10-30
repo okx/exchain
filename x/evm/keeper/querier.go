@@ -11,7 +11,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/x/evm/types"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 // NewQuerier is the module level router for state queries

@@ -8,10 +8,10 @@ import (
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 	"github.com/spf13/viper"
-	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmquery "github.com/okex/exchain/dependence/tendermint/libs/pubsub/query"
+	rpcclient "github.com/okex/exchain/dependence/tendermint/rpc/client"
+	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

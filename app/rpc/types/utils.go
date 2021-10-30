@@ -18,8 +18,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
 )
 
 var (

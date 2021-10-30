@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"

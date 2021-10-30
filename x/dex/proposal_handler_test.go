@@ -9,7 +9,7 @@ import (
 	govTypes "github.com/okex/exchain/x/gov/types"
 	ordertypes "github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
 )
 
 func TestProposal_NewProposalHandler(t *testing.T) {

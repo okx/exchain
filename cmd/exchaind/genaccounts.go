@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/okex/exchain/dependence/tendermint/libs/cli"
 
 	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
