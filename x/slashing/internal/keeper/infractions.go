@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/okex/exchain/dependence/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/slashing/internal/types"
 )
 

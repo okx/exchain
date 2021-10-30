@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const ConstRedisURL = "redis://127.0.0.1:16379"

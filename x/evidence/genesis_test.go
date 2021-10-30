@@ -4,15 +4,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evidence/exported"
 	"github.com/okex/exchain/x/evidence/internal/types"

@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/gorilla/websocket"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
-	rpccli "github.com/okex/exchain/dependence/tendermint/rpc/client/http"
-	ctypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	rpccli "github.com/okex/exchain/libs/tendermint/rpc/client/http"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
 type Context struct {

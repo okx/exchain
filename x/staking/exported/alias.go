@@ -1,7 +1,7 @@
 package exported
 
 import (
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/staking/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/exported"
 )
 
 type (

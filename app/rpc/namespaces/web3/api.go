@@ -2,11 +2,11 @@ package web3
 
 import (
 	"fmt"
-	"github.com/okex/exchain/dependence/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/rpc/monitor"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // PublicWeb3API is the web3_ prefixed set of APIs in the Web3 JSON-RPC spec.

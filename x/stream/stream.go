@@ -2,24 +2,24 @@ package stream
 
 import (
 	"fmt"
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/x/stream/eureka"
 	"github.com/okex/exchain/x/stream/nacos"
 	"github.com/okex/exchain/x/stream/websocket"
 
-	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/google/uuid"
 	"github.com/okex/exchain/x/stream/distrlock"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/okex/exchain/x/stream/pushservice"
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (

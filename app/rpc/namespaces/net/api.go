@@ -3,10 +3,10 @@ package net
 import (
 	"fmt"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/app/rpc/monitor"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.

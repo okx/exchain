@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/common"
 	orderTypes "github.com/okex/exchain/x/order/types"
 	tokenTypes "github.com/okex/exchain/x/token/types"

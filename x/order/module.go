@@ -3,14 +3,14 @@ package order
 import (
 	"encoding/json"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
-	auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/order/client/cli"

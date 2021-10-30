@@ -8,13 +8,13 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine

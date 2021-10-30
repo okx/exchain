@@ -5,20 +5,20 @@ import (
 	"os"
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	tmlog "github.com/okex/exchain/dependence/tendermint/libs/log"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 
-	sdkcodec "github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/gov/types"
+	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/x/params"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"

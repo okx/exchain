@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/tendermint/crypto"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 )
 
 var (

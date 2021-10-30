@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	cryptoAmino "github.com/okex/exchain/dependence/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 
-	"github.com/okex/exchain/dependence/tendermint/crypto"
-	"github.com/okex/exchain/dependence/tendermint/libs/bech32"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/bech32"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 const (

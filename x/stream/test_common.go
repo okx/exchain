@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/mock"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/dex"
@@ -21,8 +21,8 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/okex/exchain/x/token"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 type MockApp struct {

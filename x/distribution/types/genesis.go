@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // DelegatorWithdrawInfo is the address for where distributions rewards are withdrawn to by default

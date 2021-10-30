@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/stretchr/testify/require"

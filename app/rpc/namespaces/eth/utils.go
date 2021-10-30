@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"strings"
 
-	sdkerror "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
+	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -15,8 +15,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/spf13/viper"

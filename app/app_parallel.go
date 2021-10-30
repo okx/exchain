@@ -1,11 +1,11 @@
 package app
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	authante "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )

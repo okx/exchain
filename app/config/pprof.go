@@ -3,14 +3,14 @@ package config
 import (
 	"path"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 
 	"github.com/okex/exchain/x/analyzer"
 
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/dependence/tendermint/libs/cli"
-	tmos "github.com/okex/exchain/dependence/tendermint/libs/os"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 )
 
 type PporfConfig struct {

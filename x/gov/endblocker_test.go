@@ -10,7 +10,7 @@ import (
 	paramsTypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/staking"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 

@@ -2,16 +2,16 @@ package cli
 
 import (
 	"encoding/json"
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/dependence/tendermint/libs/cli"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/x/genutil"
 )
 

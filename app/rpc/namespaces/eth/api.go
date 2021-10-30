@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 
-	cmserver "github.com/okex/exchain/dependence/cosmos-sdk/server"
+	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	lru "github.com/hashicorp/golang-lru"
@@ -31,10 +31,10 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto/merkle"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -42,13 +42,13 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	clientcontext "github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	authclient "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
-	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 const (

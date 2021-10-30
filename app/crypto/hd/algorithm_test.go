@@ -11,9 +11,9 @@ import (
 
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"
-	"github.com/okex/exchain/dependence/cosmos-sdk/tests"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"
+	"github.com/okex/exchain/libs/cosmos-sdk/tests"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"

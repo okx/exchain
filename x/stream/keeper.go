@@ -8,12 +8,12 @@ import (
 	"github.com/okex/exchain/x/dex"
 	"github.com/okex/exchain/x/stream/types"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/server/config"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/common/monitor"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // nolint

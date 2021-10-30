@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
 	"github.com/okex/exchain/app"
 	ethermint "github.com/okex/exchain/app/types"
@@ -21,7 +21,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	orderkeeper "github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
 	token "github.com/okex/exchain/x/token/types"

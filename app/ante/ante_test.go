@@ -9,10 +9,10 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/ante"

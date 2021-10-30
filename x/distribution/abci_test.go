@@ -5,7 +5,7 @@ import (
 
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestBeginBlocker(t *testing.T) {

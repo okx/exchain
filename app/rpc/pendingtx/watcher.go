@@ -3,13 +3,13 @@ package pendingtx
 import (
 	"fmt"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
-	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type Watcher struct {

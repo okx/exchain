@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"math"
 
-	storetypes "github.com/okex/exchain/dependence/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
+	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/willf/bitset"
 )
 

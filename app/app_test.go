@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
@@ -12,11 +12,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
 
 func TestOKExChainAppExport(t *testing.T) {

@@ -3,16 +3,16 @@ package token
 import (
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	dbm "github.com/tendermint/tm-db"
 )
 

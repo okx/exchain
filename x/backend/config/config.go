@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	okexchaincfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
+	okexchaincfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 )
 
 // nolint

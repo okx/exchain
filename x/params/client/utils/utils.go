@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 
 type (

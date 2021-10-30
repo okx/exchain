@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdkgenutiltypes "github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/types"
+	sdkgenutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
 )
 
 // const

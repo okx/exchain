@@ -7,7 +7,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
 // Subscription defines a wrapper for the private subscription

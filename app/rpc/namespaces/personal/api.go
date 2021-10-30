@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/mintkey"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"

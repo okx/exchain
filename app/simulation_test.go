@@ -9,24 +9,24 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/dependence/cosmos-sdk/simapp"
-	"github.com/okex/exchain/dependence/cosmos-sdk/simapp/helpers"
-	"github.com/okex/exchain/dependence/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	distr "github.com/okex/exchain/dependence/cosmos-sdk/x/distribution"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/mint"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/simulation"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/slashing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	"github.com/okex/exchain/x/staking"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 )
 
 func init() {

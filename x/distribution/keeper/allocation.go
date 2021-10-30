@@ -3,8 +3,8 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking/exported"

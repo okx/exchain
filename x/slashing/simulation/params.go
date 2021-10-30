@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/x/slashing/internal/types"
 )
 

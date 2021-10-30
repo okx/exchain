@@ -4,21 +4,21 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"math/big"
 	"strconv"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 var (

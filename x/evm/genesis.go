@@ -3,14 +3,14 @@ package evm
 import (
 	"fmt"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis

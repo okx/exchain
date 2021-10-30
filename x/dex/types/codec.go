@@ -1,6 +1,6 @@
 package types
 
-import "github.com/okex/exchain/dependence/cosmos-sdk/codec"
+import "github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {

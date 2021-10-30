@@ -3,9 +3,9 @@ package websocket
 import (
 	"sync"
 
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	pushservice "github.com/okex/exchain/x/stream/pushservice/types"
 	"github.com/okex/exchain/x/stream/types"
 )

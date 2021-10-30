@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/version"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	client "github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/farm/types"
 )
 

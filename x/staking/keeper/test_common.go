@@ -8,25 +8,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto"
-	"github.com/okex/exchain/dependence/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	//distr "github.com/okex/exchain/x/distribution"
 )
 

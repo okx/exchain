@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"

@@ -1,16 +1,16 @@
 package dex
 
 import (
-	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestAppModule_Smoke(t *testing.T) {

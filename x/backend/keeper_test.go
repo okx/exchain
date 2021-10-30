@@ -11,13 +11,13 @@ import (
 	"github.com/okex/exchain/x/dex"
 	orderTypes "github.com/okex/exchain/x/order/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
 	tokenTypes "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestKeeper_AllInOne_Smoke(t *testing.T) {

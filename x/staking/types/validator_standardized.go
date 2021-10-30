@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // Export returns the exported format of validator in genesis export

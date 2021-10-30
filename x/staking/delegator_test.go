@@ -9,7 +9,7 @@ import (
 
 	"github.com/okex/exchain/x/staking/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func TestValidatorSMProxyDelegationSmoke(t *testing.T) {

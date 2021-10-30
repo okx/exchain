@@ -11,15 +11,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evidence/exported"
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/dependence/tendermint/crypto"
-	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
-	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 )
 
 var (

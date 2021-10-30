@@ -3,13 +3,13 @@ package keeper
 import (
 	"fmt"
 
-	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/store/prefix"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/evidence/exported"
 	"github.com/okex/exchain/x/evidence/internal/types"
 	"github.com/okex/exchain/x/params"

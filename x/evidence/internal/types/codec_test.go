@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	tmbytes "github.com/okex/exchain/dependence/tendermint/libs/bytes"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evidence/exported"
 	"github.com/okex/exchain/x/evidence/internal/types"
 )

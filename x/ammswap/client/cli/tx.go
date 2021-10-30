@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	client "github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/spf13/cobra"
 )

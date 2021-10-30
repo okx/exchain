@@ -8,12 +8,12 @@ import (
 
 	"github.com/okex/exchain/x/dex/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/x/common"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/gorilla/mux"
 )
 

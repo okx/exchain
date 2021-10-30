@@ -14,13 +14,13 @@ import (
 
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/types"
-	cfg "github.com/okex/exchain/dependence/tendermint/config"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // GenAppStateFromConfig gets the genesis app state from the config

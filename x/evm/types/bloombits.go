@@ -17,7 +17,7 @@ package types
 
 import (
 	"encoding/binary"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 	"time"
 

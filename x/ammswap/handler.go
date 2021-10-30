@@ -6,7 +6,7 @@ import (
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/perf"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // NewHandler creates an sdk.Handler for all the ammswap type messages

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Engine

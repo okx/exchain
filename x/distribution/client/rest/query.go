@@ -6,9 +6,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
 	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"

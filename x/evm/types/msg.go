@@ -8,13 +8,13 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/dependence/tendermint/mempool"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 
 	"github.com/okex/exchain/app/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

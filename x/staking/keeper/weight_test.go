@@ -1,13 +1,13 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	//"github.com/stretchr/testify/require"
 	"testing"
 
-	"github.com/okex/exchain/dependence/tendermint/types/time"
+	"github.com/okex/exchain/libs/tendermint/types/time"
 )
 
 func TestDecay(t *testing.T) {

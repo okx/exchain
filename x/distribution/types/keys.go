@@ -1,6 +1,6 @@
 package types
 
-import sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 const (
 	// ModuleName is the module name constant used in many places

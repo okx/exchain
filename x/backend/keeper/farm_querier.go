@@ -7,11 +7,11 @@ import (
 
 	"github.com/okex/exchain/x/ammswap"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
 	farm "github.com/okex/exchain/x/farm/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // queryFarmPools returns pools of farm

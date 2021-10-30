@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func resetConfig(config *sdk.Config) {

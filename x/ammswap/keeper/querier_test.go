@@ -6,13 +6,13 @@ import (
 
 	"github.com/okex/exchain/x/common"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/mock"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func initQurierTest(t *testing.T) (*TestInput, mock.AddrKeysSlice, sdk.Context, Keeper, sdk.Querier) {

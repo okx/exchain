@@ -6,8 +6,8 @@ import (
 
 	"github.com/okex/exchain/x/token/types"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/common"
 )

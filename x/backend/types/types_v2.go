@@ -10,7 +10,7 @@ import (
 
 	"github.com/okex/exchain/x/dex"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 type MatchResult struct {

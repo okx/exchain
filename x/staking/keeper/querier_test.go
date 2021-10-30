@@ -3,11 +3,11 @@ package keeper
 import (
 	"testing"
 
-	types2 "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 func TestQueryValidators(t *testing.T) {

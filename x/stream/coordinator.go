@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (

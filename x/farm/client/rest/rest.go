@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/mux"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 )
 
 // RegisterRoutes registers farm-related REST handlers to a router

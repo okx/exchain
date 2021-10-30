@@ -11,9 +11,9 @@ import (
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/common"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/backend/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // querySwapWatchlist returns watchlist of swap

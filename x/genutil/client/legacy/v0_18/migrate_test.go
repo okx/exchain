@@ -1,8 +1,8 @@
 package v018
 
 import (
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/genutil"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
 	v018evm "github.com/okex/exchain/x/evm/legacy/v0_18"
 	v018staking "github.com/okex/exchain/x/staking/legacy/v0_18"
 	"github.com/stretchr/testify/require"

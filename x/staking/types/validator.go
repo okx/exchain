@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/crypto"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/exported"
 )
 

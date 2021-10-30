@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 

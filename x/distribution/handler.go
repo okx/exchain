@@ -1,7 +1,7 @@
 package distribution
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"

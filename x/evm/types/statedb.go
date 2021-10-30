@@ -6,13 +6,13 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/store/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

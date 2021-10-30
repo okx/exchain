@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
-	clientkeys "github.com/okex/exchain/dependence/cosmos-sdk/client/keys"
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/app/crypto/hd"
 )

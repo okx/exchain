@@ -3,7 +3,7 @@ package staking
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
 )

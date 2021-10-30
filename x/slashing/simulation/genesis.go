@@ -7,11 +7,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/simulation"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/x/slashing/internal/types"
 )
 

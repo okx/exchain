@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
 )
 
 type (

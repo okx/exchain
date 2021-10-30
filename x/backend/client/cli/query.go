@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/spf13/cobra"
-	"github.com/okex/exchain/dependence/tendermint/crypto/tmhash"
-	tmliteProxy "github.com/okex/exchain/dependence/tendermint/lite/proxy"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
 )
 
 // GetQueryCmd returns the cli query commands for this module

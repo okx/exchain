@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // ValidatorAccumulatedCommission is the accumulated commission for a validator

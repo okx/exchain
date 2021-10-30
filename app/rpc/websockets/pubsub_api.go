@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
-	coretypes "github.com/okex/exchain/dependence/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/dependence/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/eth/filters"

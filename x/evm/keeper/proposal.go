@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
 	sdkGov "github.com/okex/exchain/x/gov"
 	govKeeper "github.com/okex/exchain/x/gov/keeper"

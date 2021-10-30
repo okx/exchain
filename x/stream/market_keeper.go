@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/pushservice/conn"

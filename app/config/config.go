@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 
-	tmconfig "github.com/okex/exchain/dependence/tendermint/config"
+	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 
 	"github.com/spf13/viper"
 )

@@ -10,14 +10,14 @@ import (
 
 	"github.com/okex/exchain/x/common"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/order"
 	orderKeeper "github.com/okex/exchain/x/order/keeper"
 	tokenKeeper "github.com/okex/exchain/x/token"
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	"github.com/okex/exchain/dependence/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 func TestGenerateTx(t *testing.T) {

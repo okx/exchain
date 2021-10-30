@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/dependence/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 
 	ethermint "github.com/okex/exchain/app/types"
 )

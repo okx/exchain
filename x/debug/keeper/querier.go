@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/staking"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/debug/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // NewDebugger returns query handler for module debug

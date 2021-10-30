@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/Comcast/pulsar-client-go"
-	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/google/uuid"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/common/kline"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type PulsarProducer struct {

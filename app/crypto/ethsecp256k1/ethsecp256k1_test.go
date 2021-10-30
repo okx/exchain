@@ -8,7 +8,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethsecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
 
-	tmcrypto "github.com/okex/exchain/dependence/tendermint/crypto"
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 )
 
 func TestPrivKeyPrivKey(t *testing.T) {

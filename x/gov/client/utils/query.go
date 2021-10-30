@@ -3,9 +3,9 @@ package utils
 import (
 	"fmt"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/x/gov/types"
 )
 

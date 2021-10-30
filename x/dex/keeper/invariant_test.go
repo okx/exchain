@@ -3,7 +3,7 @@ package keeper
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"
 )

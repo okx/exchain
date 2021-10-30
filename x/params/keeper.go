@@ -1,9 +1,9 @@
 package params
 
 import (
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	sdkparams "github.com/okex/exchain/dependence/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 
 	"github.com/okex/exchain/x/params/types"
 )

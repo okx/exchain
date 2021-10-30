@@ -9,12 +9,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // type check to ensure the interface is properly implemented

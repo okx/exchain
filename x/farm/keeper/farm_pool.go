@@ -1,7 +1,7 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/farm/types"
 )

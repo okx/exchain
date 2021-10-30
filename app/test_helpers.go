@@ -1,11 +1,11 @@
 package app
 
 import (
-	abci "github.com/okex/exchain/dependence/tendermint/abci/types"
-	"github.com/okex/exchain/dependence/tendermint/libs/log"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
 
 // Setup initializes a new OKExChainApp. A Nop logger is set in OKExChainApp.

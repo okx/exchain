@@ -8,7 +8,7 @@ import (
 	"github.com/okex/exchain/x/dex"
 	orderkeeper "github.com/okex/exchain/x/order/keeper"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/order/types"

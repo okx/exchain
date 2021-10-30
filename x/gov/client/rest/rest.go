@@ -7,10 +7,10 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	gcutils "github.com/okex/exchain/x/gov/client/utils"
 	"github.com/okex/exchain/x/gov/types"
 )

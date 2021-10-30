@@ -9,9 +9,9 @@ import (
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params/types"
 
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
-	sdkparams "github.com/okex/exchain/dependence/cosmos-sdk/x/params"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 
 // NewParamChangeProposalHandler returns the rollback function of the param proposal handler

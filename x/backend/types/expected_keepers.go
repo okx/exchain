@@ -1,9 +1,9 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/mint"
-	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/ammswap"
 	ammswaptypes "github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/dex"

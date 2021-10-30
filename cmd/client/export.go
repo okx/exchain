@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/dependence/cosmos-sdk/client/input"
-	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 )
