@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	stakingexported "github.com/cosmos/cosmos-sdk/x/staking/exported"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	stakingexported "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/exported"
+	supplyexported "github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
 )
 
 // DistributionKeeper expected distribution keeper (noalias)

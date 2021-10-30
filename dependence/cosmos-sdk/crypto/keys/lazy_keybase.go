@@ -6,7 +6,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	tmos "github.com/tendermint/tendermint/libs/os"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 var _ Keybase = lazyKeybase{}

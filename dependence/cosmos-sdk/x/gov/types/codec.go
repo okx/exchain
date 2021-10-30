@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 )
 
 var ModuleCdc = codec.New()

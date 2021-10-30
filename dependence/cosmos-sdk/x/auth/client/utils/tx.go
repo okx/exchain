@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/input"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/input"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/keys"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 )
 
 // GasEstimateResponse defines a response definition for tx gas estimation.

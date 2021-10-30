@@ -11,9 +11,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 
-	bam "github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	bam "github.com/okex/exchain/dependence/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 // NewApp creates a simple mock kvstore app for testing. It should work

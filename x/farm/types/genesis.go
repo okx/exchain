@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 // used for import / export via genesis json

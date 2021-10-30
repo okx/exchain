@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 

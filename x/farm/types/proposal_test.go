@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	govTypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"

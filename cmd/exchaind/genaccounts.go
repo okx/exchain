@@ -10,14 +10,14 @@ import (
 
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	authvesting "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/vesting"
 	"github.com/okex/exchain/x/genutil"
 
 	okexchain "github.com/okex/exchain/app/types"

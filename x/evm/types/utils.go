@@ -2,9 +2,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"

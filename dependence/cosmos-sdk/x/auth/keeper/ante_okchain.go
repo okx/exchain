@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
 )
 
 type ValidateMsgHandler func(ctx sdk.Context, msgs []sdk.Msg) sdk.Result

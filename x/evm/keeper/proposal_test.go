@@ -3,7 +3,7 @@ package keeper_test
 import (
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/x/evm/types"
 	govtypes "github.com/okex/exchain/x/gov/types"

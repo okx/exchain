@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 // Plan specifies information about a planned upgrade and when it should occur

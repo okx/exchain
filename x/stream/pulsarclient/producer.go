@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Comcast/pulsar-client-go"
-	appCfg "github.com/cosmos/cosmos-sdk/server/config"
+	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	"github.com/google/uuid"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/exchain/x/backend"

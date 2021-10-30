@@ -5,7 +5,7 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	pushservice "github.com/okex/exchain/x/stream/pushservice/types"
 	"github.com/okex/exchain/x/stream/types"
 )

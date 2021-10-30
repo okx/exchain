@@ -1,10 +1,10 @@
 package cli
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/evidence/internal/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/evidence/internal/types"
 
 	"github.com/spf13/cobra"
 )

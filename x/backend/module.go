@@ -9,11 +9,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 

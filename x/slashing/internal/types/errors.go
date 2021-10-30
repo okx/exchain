@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 const BaseSlashingError = 5001

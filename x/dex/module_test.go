@@ -1,12 +1,12 @@
 package dex
 
 import (
-	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex/types"
 	"github.com/stretchr/testify/require"

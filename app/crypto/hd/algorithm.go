@@ -12,7 +12,7 @@ import (
 
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 )

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/ammswap/keeper"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/token"

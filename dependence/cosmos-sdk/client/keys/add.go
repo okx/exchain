@@ -11,10 +11,10 @@ import (
 
 	bip39 "github.com/bartekn/go-bip39"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/input"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/input"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

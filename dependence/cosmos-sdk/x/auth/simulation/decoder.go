@@ -6,9 +6,9 @@ import (
 
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 )
 
 // DecodeStore unmarshals the KVPair's Value to the corresponding auth type

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 
 	"github.com/stretchr/testify/suite"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
 
 	"github.com/okex/exchain/app"
 	ante "github.com/okex/exchain/app/ante"

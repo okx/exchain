@@ -19,11 +19,11 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/rootmulti"
-	store "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/rootmulti"
+	store "github.com/okex/exchain/dependence/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 var (

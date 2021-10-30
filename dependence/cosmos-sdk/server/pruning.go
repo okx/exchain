@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/store"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/types"
 	tmiavl "github.com/okex/exchain/dependence/iavl"
 
 )

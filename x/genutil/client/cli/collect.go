@@ -2,7 +2,7 @@ package cli
 
 import (
 	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -10,8 +10,8 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 	"github.com/okex/exchain/x/genutil"
 )
 

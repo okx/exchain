@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 
-	"github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 	"github.com/spf13/cobra"
 	cmn "github.com/tendermint/tendermint/libs/os"
 )

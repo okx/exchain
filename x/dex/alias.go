@@ -5,7 +5,7 @@
 package dex
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex/keeper"
 	"github.com/okex/exchain/x/dex/types"

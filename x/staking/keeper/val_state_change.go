@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

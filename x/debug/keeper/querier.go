@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/staking"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/debug/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

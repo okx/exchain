@@ -1,6 +1,6 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 const DefaultTestFeeAmountPerBlock = "0.000001" // okt
 

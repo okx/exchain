@@ -3,7 +3,7 @@ package pendingtx
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"

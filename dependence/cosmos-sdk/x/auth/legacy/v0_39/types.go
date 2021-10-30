@@ -11,10 +11,10 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	v034auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v0_34"
-	v038auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v0_38"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	v034auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/legacy/v0_34"
+	v038auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/legacy/v0_38"
 )
 
 const (

@@ -1,10 +1,10 @@
 package keeper
 
 import (
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	supplyexported "github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 // BankKeeper defines expected bank keeper

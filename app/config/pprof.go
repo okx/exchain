@@ -3,7 +3,7 @@ package config
 import (
 	"path"
 
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 
 	"github.com/okex/exchain/x/analyzer"
 

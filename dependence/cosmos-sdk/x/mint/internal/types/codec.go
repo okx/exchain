@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 )
 
 // ModuleCdc is a generic sealed codec to be used throughout this module

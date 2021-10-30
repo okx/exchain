@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 

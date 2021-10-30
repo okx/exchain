@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 

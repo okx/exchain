@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/ammswap/types"
 	"github.com/okex/exchain/x/common"

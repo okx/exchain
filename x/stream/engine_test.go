@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	appCfg "github.com/cosmos/cosmos-sdk/server/config"
+	appCfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/spf13/viper"

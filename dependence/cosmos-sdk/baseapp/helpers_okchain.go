@@ -1,7 +1,7 @@
 package baseapp
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 func (app *BaseApp) PushAnteHandler(ah sdk.AnteHandler) {

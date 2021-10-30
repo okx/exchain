@@ -12,7 +12,7 @@ import (
 
 	"github.com/shopspring/decimal"
 
-	okexchaincfg "github.com/cosmos/cosmos-sdk/server/config"
+	okexchaincfg "github.com/okex/exchain/dependence/cosmos-sdk/server/config"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"

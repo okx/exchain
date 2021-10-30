@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 	"strings"
 )
 

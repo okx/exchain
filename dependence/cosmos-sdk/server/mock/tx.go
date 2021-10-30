@@ -8,8 +8,8 @@ import (
 
 	"github.com/tendermint/tendermint/mempool"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 // An sdk.Tx which is its own sdk.Msg.

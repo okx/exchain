@@ -11,7 +11,7 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"

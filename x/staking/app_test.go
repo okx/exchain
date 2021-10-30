@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
 
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
@@ -16,9 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/mock"
+	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/mock"
 )
 
 // getMockApp returns an initialized mock application for this module.

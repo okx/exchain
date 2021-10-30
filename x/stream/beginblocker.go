@@ -1,7 +1,7 @@
 package stream
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 // BeginBlocker runs the logic of BeginBlocker with version 0.

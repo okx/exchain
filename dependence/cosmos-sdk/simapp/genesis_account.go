@@ -3,10 +3,10 @@ package simapp
 import (
 	"errors"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
 )
 
 var _ authexported.GenesisAccount = (*SimGenesisAccount)(nil)

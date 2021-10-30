@@ -3,9 +3,9 @@ package token
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
+	authTypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/common/version"

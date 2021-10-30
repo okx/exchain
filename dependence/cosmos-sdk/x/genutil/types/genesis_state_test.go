@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
+	stakingtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/types"
 )
 
 var (

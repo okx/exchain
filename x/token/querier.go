@@ -4,8 +4,8 @@ import (
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/token/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

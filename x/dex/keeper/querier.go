@@ -8,8 +8,8 @@ import (
 
 	"github.com/okex/exchain/x/dex/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

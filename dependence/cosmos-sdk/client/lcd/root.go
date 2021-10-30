@@ -17,13 +17,13 @@ import (
 	"github.com/tendermint/tendermint/rpc/client/local"
 	tmrpcserver "github.com/tendermint/tendermint/rpc/jsonrpc/server"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	keybase "github.com/cosmos/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	keybase "github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
 
 	// unnamed import of statik for swagger UI support
-	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
+	_ "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd/statik"
 )
 
 // RestServer represents the Light Client Rest server

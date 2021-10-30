@@ -9,9 +9,9 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
-	"github.com/cosmos/cosmos-sdk/tests"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/hd"
+	"github.com/okex/exchain/dependence/cosmos-sdk/tests"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 func TestLazyKeyManagementKeyRing(t *testing.T) {

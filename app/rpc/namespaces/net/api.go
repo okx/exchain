@@ -3,7 +3,7 @@ package net
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/okex/exchain/app/rpc/monitor"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/tendermint/libs/log"

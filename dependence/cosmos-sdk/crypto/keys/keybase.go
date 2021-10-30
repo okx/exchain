@@ -10,9 +10,9 @@ import (
 	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
-	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/keyerror"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/mintkey"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 var _ Keybase = dbKeybase{}

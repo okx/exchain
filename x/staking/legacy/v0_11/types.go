@@ -5,7 +5,7 @@ import (
 
 	"github.com/okex/exchain/x/staking/legacy/v0_10"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 const ModuleName = "staking"

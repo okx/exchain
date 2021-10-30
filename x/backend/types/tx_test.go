@@ -10,8 +10,8 @@ import (
 
 	"github.com/okex/exchain/x/common"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/order"
 	orderKeeper "github.com/okex/exchain/x/order/keeper"
 	tokenKeeper "github.com/okex/exchain/x/token"

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/prefix"
 )
 
 const (

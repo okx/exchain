@@ -10,16 +10,16 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/x/distribution/client/cli"
-	"github.com/cosmos/cosmos-sdk/x/distribution/client/rest"
-	"github.com/cosmos/cosmos-sdk/x/distribution/simulation"
-	"github.com/cosmos/cosmos-sdk/x/distribution/types"
-	sim "github.com/cosmos/cosmos-sdk/x/simulation"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types/module"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/client/cli"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/client/rest"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/simulation"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/distribution/types"
+	sim "github.com/okex/exchain/dependence/cosmos-sdk/x/simulation"
+	stakingkeeper "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/keeper"
 )
 
 var (

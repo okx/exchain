@@ -4,9 +4,9 @@ import (
 	"github.com/okex/exchain/x/common"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 
-	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
+	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"

@@ -6,10 +6,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/store/rootmulti"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/rootmulti"
 	"github.com/spf13/viper"
 
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
 	"github.com/okex/exchain/dependence/iavl"

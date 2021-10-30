@@ -1,9 +1,9 @@
 package crisis
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis/internal/keeper"
-	"github.com/cosmos/cosmos-sdk/x/crisis/internal/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/crisis/internal/keeper"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/crisis/internal/types"
 )
 
 // new crisis genesis

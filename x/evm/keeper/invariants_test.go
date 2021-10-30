@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"

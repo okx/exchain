@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 var (

@@ -1,11 +1,11 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingexported "github.com/cosmos/cosmos-sdk/x/staking/exported"
-	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/staking"
+	stakingexported "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/exported"
+	supplyexported "github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
 )
 
 // AccountKeeper defines the expected account keeper used for simulations (noalias)

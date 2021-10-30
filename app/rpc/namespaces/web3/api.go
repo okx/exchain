@@ -2,7 +2,7 @@ package web3
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/okex/exchain/dependence/cosmos-sdk/version"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/rpc/monitor"

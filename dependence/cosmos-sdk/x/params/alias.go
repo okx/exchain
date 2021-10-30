@@ -3,8 +3,8 @@ package params
 // nolint
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/params/subspace"
-	"github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/subspace"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/types"
 )
 
 const (

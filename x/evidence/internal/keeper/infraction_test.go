@@ -3,7 +3,7 @@ package keeper_test
 import (
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evidence/internal/types"
 	"github.com/okex/exchain/x/staking"
 	stakingtypes "github.com/okex/exchain/x/staking/types"

@@ -5,7 +5,7 @@ import (
 
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/types"
 )
 
 // Gets the first item.

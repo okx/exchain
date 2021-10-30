@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )

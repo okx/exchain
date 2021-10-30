@@ -1,10 +1,10 @@
 package v039
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	v038auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v0_38"
-	v039auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v0_39"
-	"github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	v038auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/legacy/v0_38"
+	v039auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/legacy/v0_39"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/types"
 )
 
 // Migrate migrates exported state from v0.38 to a v0.39 genesis state.

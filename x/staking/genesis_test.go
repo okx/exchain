@@ -7,9 +7,9 @@ import (
 
 	"github.com/okex/exchain/x/common"
 
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/exported"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/assert"

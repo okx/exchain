@@ -14,7 +14,7 @@
 //   -X github.com/cosmos/cosmos-sdk/version.ClientName=gaiacli \
 //   -X github.com/cosmos/cosmos-sdk/version.Version=1.0 \
 //   -X github.com/cosmos/cosmos-sdk/version.Commit=f0f7b7dab7e36c20b757cebce0e8f4fc5b95de60 \
-//   -X "github.com/cosmos/cosmos-sdk/version.BuildTags=linux darwin amd64"
+//   -X "github.com/okex/exchain/dependence/cosmos-sdk/version.BuildTags=linux darwin amd64"
 package version
 
 import (

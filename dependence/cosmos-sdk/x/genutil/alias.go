@@ -5,7 +5,7 @@
 package genutil
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/types"
 )
 
 const (

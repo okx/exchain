@@ -3,8 +3,8 @@ package upgrade
 // nolint
 
 import (
-	"github.com/cosmos/cosmos-sdk/x/upgrade/internal/keeper"
-	"github.com/cosmos/cosmos-sdk/x/upgrade/internal/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/upgrade/internal/keeper"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/upgrade/internal/types"
 )
 
 const (

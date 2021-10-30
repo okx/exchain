@@ -9,7 +9,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"
 	orderTypes "github.com/okex/exchain/x/order/types"

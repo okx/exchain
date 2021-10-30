@@ -12,9 +12,9 @@ import (
 
 	types2 "github.com/okex/exchain/x/dex/types"
 
-	"github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/cosmos/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/x/backend/client/cli"
 	"github.com/okex/exchain/x/backend/config"
 	"github.com/okex/exchain/x/backend/orm"
@@ -25,11 +25,11 @@ import (
 	ordertypes "github.com/okex/exchain/x/order/types"
 	tokentypes "github.com/okex/exchain/x/token/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/mock"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/mock"
 	"github.com/okex/exchain/x/common"
 
 	//"github.com/okex/exchain/x/gov"

@@ -2,7 +2,7 @@ package txpool
 
 import (
 	"fmt"
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 

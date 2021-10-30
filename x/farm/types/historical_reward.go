@@ -1,6 +1,6 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 // PoolHistoricalRewards records the reward ratio of one user in a pool
 type PoolHistoricalRewards struct {

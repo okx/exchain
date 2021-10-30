@@ -5,7 +5,7 @@ import (
 	"github.com/okex/exchain/x/common"
 	"github.com/tendermint/tendermint/crypto"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 // ensure Msg interface compliance at compile time

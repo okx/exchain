@@ -9,13 +9,13 @@ import (
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 	tmtime "github.com/tendermint/tendermint/types/time"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
-	keep "github.com/cosmos/cosmos-sdk/x/bank/internal/keeper"
-	"github.com/cosmos/cosmos-sdk/x/bank/internal/types"
-	"github.com/cosmos/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/dependence/cosmos-sdk/simapp"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth/vesting"
+	keep "github.com/okex/exchain/dependence/cosmos-sdk/x/bank/internal/keeper"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/supply"
 )
 
 func TestKeeper(t *testing.T) {

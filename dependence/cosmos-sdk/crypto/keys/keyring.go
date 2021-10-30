@@ -18,10 +18,10 @@ import (
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 
-	"github.com/cosmos/cosmos-sdk/client/input"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/mintkey"
-	"github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/input"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/keyerror"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys/mintkey"
+	"github.com/okex/exchain/dependence/cosmos-sdk/types"
 )
 
 const (

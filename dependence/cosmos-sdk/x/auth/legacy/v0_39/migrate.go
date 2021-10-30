@@ -3,7 +3,7 @@ package v039
 import (
 	"fmt"
 
-	v038auth "github.com/cosmos/cosmos-sdk/x/auth/legacy/v0_38"
+	v038auth "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/legacy/v0_38"
 )
 
 // Migrate accepts exported genesis state from v0.38 and migrates it to v0.39

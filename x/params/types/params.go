@@ -5,10 +5,10 @@ import (
 	"github.com/okex/exchain/x/common"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/x/params/subspace"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/params/subspace"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	sdkparams "github.com/okex/exchain/dependence/cosmos-sdk/x/params"
 )
 
 const (

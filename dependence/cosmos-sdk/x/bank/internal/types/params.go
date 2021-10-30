@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/params"
 )
 
 const (

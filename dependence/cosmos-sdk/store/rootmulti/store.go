@@ -15,13 +15,13 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/store/cachemulti"
-	"github.com/cosmos/cosmos-sdk/store/dbadapter"
-	"github.com/cosmos/cosmos-sdk/store/iavl"
-	"github.com/cosmos/cosmos-sdk/store/tracekv"
-	"github.com/cosmos/cosmos-sdk/store/transient"
-	"github.com/cosmos/cosmos-sdk/store/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/cachemulti"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/dbadapter"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/tracekv"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/transient"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/types"
+	sdkerrors "github.com/okex/exchain/dependence/cosmos-sdk/types/errors"
 )
 
 const (

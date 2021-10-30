@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	keep "github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"

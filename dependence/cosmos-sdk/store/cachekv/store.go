@@ -12,8 +12,8 @@ import (
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/store/tracekv"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/tracekv"
+	"github.com/okex/exchain/dependence/cosmos-sdk/store/types"
 )
 
 // If value is nil but deleted is false, it means the parent doesn't have the

@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 
-	cmserver "github.com/cosmos/cosmos-sdk/server"
+	cmserver "github.com/okex/exchain/dependence/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	lru "github.com/hashicorp/golang-lru"
@@ -42,13 +42,13 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	clientcontext "github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/auth"
+	authclient "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/okex/exchain/dependence/cosmos-sdk/x/auth/types"
 )
 
 const (

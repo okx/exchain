@@ -9,14 +9,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tendermint/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/version"
-	extypes "github.com/cosmos/cosmos-sdk/x/genutil"
-	v036 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v0_36"
-	v038 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v0_38"
-	v039 "github.com/cosmos/cosmos-sdk/x/genutil/legacy/v0_39"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/version"
+	extypes "github.com/okex/exchain/dependence/cosmos-sdk/x/genutil"
+	v036 "github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/legacy/v0_36"
+	v038 "github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/legacy/v0_38"
+	v039 "github.com/okex/exchain/dependence/cosmos-sdk/x/genutil/legacy/v0_39"
 )
 
 const (

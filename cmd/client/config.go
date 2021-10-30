@@ -10,7 +10,7 @@ import (
 
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
 
 	ethermint "github.com/okex/exchain/app/types"
 )

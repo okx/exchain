@@ -3,7 +3,7 @@ package distribution
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 )

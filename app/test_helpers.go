@@ -5,7 +5,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 )
 
 // Setup initializes a new OKExChainApp. A Nop logger is set in OKExChainApp.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"

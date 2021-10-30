@@ -6,7 +6,7 @@ import (
 
 	"github.com/okex/exchain/x/backend/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 
 	orderTypes "github.com/okex/exchain/x/order/types"
 )

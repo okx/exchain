@@ -3,9 +3,9 @@ package gov
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	cliLcd "github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	cliLcd "github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/rest"
 	"github.com/okex/exchain/x/gov/keeper"

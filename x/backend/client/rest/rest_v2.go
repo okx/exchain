@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/backend/types"
 	"github.com/okex/exchain/x/common"

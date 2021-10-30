@@ -7,10 +7,10 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	v034staking "github.com/cosmos/cosmos-sdk/x/staking/legacy/v0_34"
-	v036staking "github.com/cosmos/cosmos-sdk/x/staking/legacy/v0_36"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/dependence/cosmos-sdk/types"
+	v034staking "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/legacy/v0_34"
+	v036staking "github.com/okex/exchain/dependence/cosmos-sdk/x/staking/legacy/v0_36"
 )
 
 const (

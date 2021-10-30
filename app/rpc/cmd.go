@@ -1,9 +1,9 @@
 package rpc
 
 import (
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/lcd"
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/dependence/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/dependence/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 )
 

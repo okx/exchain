@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	keep "github.com/cosmos/cosmos-sdk/x/mint/internal/keeper"
-	"github.com/cosmos/cosmos-sdk/x/mint/internal/types"
+	keep "github.com/okex/exchain/dependence/cosmos-sdk/x/mint/internal/keeper"
+	"github.com/okex/exchain/dependence/cosmos-sdk/x/mint/internal/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
