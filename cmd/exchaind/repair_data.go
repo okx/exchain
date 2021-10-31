@@ -127,7 +127,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock, &types.Deltas{})
+		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock, &types.Deltas{}, &types.WatchData{})
 		panicError(err)
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
