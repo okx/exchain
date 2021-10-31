@@ -1,6 +1,5 @@
 module github.com/okex/exchain
 
-go 1.17
 
 require (
 	//cm
