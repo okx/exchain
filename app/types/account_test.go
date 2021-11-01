@@ -1,4 +1,4 @@
-package types_test
+package types
 
 import (
 	"bytes"
@@ -26,7 +26,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -39,15 +38,15 @@ func init() {
 type AccountTestSuite struct {
 	suite.Suite
 
-	account *types.EthAccount
+	account *EthAccount
 }
 
 func (suite *AccountTestSuite) SetupTest() {
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
 	baseAcc := auth.NewBaseAccount(addr, balance, pubkey, 10, 50)
-	suite.account = &types.EthAccount{
+	suite.account = &EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
 	}
@@ -63,7 +62,7 @@ func parsePosAndType(data byte) (pos int, aminoType amino.Typ3) {
 	return
 }
 
-func unmarshalEthAccountFromAmino(data []byte) (*types.EthAccount, error) {
+func unmarshalEthAccountFromAmino(data []byte) (*EthAccount, error) {
 	var typePrefix = []byte{0x4c, 0x96, 0xdf, 0xce}
 	if 0 != bytes.Compare(typePrefix, data[0:4]) {
 		return nil, errors.New("type error")
@@ -71,7 +70,7 @@ func unmarshalEthAccountFromAmino(data []byte) (*types.EthAccount, error) {
 	data = data[4:]
 
 	var dataLen uint64 = 0
-	account := &types.EthAccount{}
+	account := &EthAccount{}
 
 	for {
 		data = data[dataLen:]
@@ -244,7 +243,7 @@ func unmarshalPubKeyFromAmino(data []byte) (tmcrypto.PubKey, error) {
 func TestAccountAmino(t *testing.T) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
-	types.RegisterCodec(cdc)
+	RegisterCodec(cdc)
 
 	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
 	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
@@ -259,8 +258,8 @@ func TestAccountAmino(t *testing.T) {
 	addr := sdk.AccAddress(pubKey.Address())
 
 	// ak := mock.NewAddrKeys(addr, pubKey, privKey)
-	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}})
-	testAccount := types.EthAccount{
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}})
+	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
@@ -294,7 +293,7 @@ func TestAccountAmino(t *testing.T) {
 func BenchmarkAccountAmino(b *testing.B) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
-	types.RegisterCodec(cdc)
+	RegisterCodec(cdc)
 
 	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
 	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
@@ -309,8 +308,8 @@ func BenchmarkAccountAmino(b *testing.B) {
 	addr := sdk.AccAddress(pubKey.Address())
 
 	// ak := mock.NewAddrKeys(addr, pubKey, privKey)
-	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
-	testAccount := types.EthAccount{
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
+	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
 	}
@@ -349,10 +348,10 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 		initialCoins sdk.Coins
 		amount       sdk.Int
 	}{
-		{"positive diff", types.NativeToken, sdk.Coins{}, sdk.OneInt()},
-		{"zero diff, same coin", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(types.NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"negative diff", types.NativeToken, sdk.NewCoins(types.NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
+		{"positive diff", NativeToken, sdk.Coins{}, sdk.OneInt()},
+		{"zero diff, same coin", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"negative diff", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
 	}
 
 	for _, tc := range testCases {
@@ -375,7 +374,7 @@ func (suite *AccountTestSuite) TestEthermintAccountJSON() {
 	suite.Require().NoError(err)
 	suite.Require().Equal(string(bz1), string(bz))
 
-	var a types.EthAccount
+	var a EthAccount
 	suite.Require().NoError(a.UnmarshalJSON(bz))
 	suite.Require().Equal(suite.account.String(), a.String())
 	suite.Require().Equal(suite.account.PubKey, a.PubKey)
@@ -402,7 +401,7 @@ func (suite *AccountTestSuite) TestSecpPubKeyJSON() {
 
 func (suite *AccountTestSuite) TestEthermintAccount_String() {
 	config := sdk.GetConfig()
-	types.SetBech32Prefixes(config)
+	SetBech32Prefixes(config)
 
 	bech32pubkey, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, suite.account.PubKey)
 	suite.Require().NoError(err)
@@ -436,7 +435,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 	suite.Require().NoError(err)
 	suite.Require().Contains(string(bz), suite.account.EthAddress().String())
 
-	res := new(types.EthAccount)
+	res := new(EthAccount)
 	err = res.UnmarshalJSON(bz)
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account, res)
@@ -450,7 +449,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		suite.account.EthAddress().String(), bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().NoError(err)
 	suite.Require().Equal(suite.account.Address.String(), res.Address.String())
@@ -460,7 +459,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().Error(err, "should fail if both address are empty")
 
@@ -470,7 +469,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_MarshalJSON() {
 		suite.account.Address.String(), bech32pubkey,
 	)
 
-	res = new(types.EthAccount)
+	res = new(EthAccount)
 	err = res.UnmarshalJSON([]byte(jsonAcc))
 	suite.Require().Error(err, "should fail if addresses mismatch")
 }
