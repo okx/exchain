@@ -9,13 +9,18 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+const (
+	// MudulleAccountName is the amino encoding name for ModuleAccount
+	MudulleAccountName = "cosmos-sdk/ModuleAccount"
+)
+
 // RegisterCodec registers the account types and interface
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.ModuleAccountI)(nil), nil)
 	cdc.RegisterInterface((*exported.SupplyI)(nil), nil)
-	cdc.RegisterConcrete(&ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
-	cdc.RegisterConcreteUnmarshaller("cosmos-sdk/ModuleAccount", func(data []byte) (n int, v interface{}, err error) {
-		v, n, err = unmarshalMouduleAccountFromAmino(data)
+	cdc.RegisterConcrete(&ModuleAccount{}, MudulleAccountName, nil)
+	cdc.RegisterConcreteUnmarshaller(MudulleAccountName, func(data []byte) (n int, v interface{}, err error) {
+		v, n, err = UnmarshalMouduleAccountFromAmino(data)
 		return
 	})
 
@@ -38,7 +43,7 @@ func parsePosAndType(data byte) (pos int, aminoType amino.Typ3) {
 	return
 }
 
-func unmarshalMouduleAccountFromAmino(data []byte) (*ModuleAccount, int, error) {
+func UnmarshalMouduleAccountFromAmino(data []byte) (*ModuleAccount, int, error) {
 	var dataLen uint64 = 0
 	var read int
 	var err error
