@@ -50,7 +50,7 @@ require (
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.3-0.20211031113705-e5ad8a19dc10
-	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20211031113550-12ce41cc75f4
-	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20211031113743-9f31b451cb25
+	github.com/tendermint/iavl => github.com/okex/iavl v0.14.4-0.20211101022434-4d446fcf37b9
+	github.com/tendermint/tendermint => github.com/okex/tendermint v0.33.9-okexchain6.0.20211101021021-50df13812859
 	github.com/tendermint/tm-db => ./dependence/tm-db
 )
