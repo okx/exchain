@@ -19,8 +19,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.ModuleAccountI)(nil), nil)
 	cdc.RegisterInterface((*exported.SupplyI)(nil), nil)
 	cdc.RegisterConcrete(&ModuleAccount{}, MudulleAccountName, nil)
-	cdc.RegisterConcreteUnmarshaller(MudulleAccountName, func(data []byte) (n int, v interface{}, err error) {
-		v, n, err = UnmarshalMouduleAccountFromAmino(data)
+	cdc.RegisterConcreteUnmarshaller(MudulleAccountName, func(cdc *amino.Codec, data []byte) (v interface{}, n int, err error) {
+		v, n, err = UnmarshalMouduleAccountFromAmino(cdc, data)
 		return
 	})
 
@@ -37,13 +37,7 @@ func init() {
 	ModuleCdc = cdc.Seal()
 }
 
-func parsePosAndType(data byte) (pos int, aminoType amino.Typ3) {
-	aminoType = amino.Typ3(data & 0x07)
-	pos = int(data) >> 3
-	return
-}
-
-func UnmarshalMouduleAccountFromAmino(data []byte) (*ModuleAccount, int, error) {
+func UnmarshalMouduleAccountFromAmino(_ *amino.Codec, data []byte) (*ModuleAccount, int, error) {
 	var dataLen uint64 = 0
 	var read int
 	var err error
@@ -57,7 +51,7 @@ func UnmarshalMouduleAccountFromAmino(data []byte) (*ModuleAccount, int, error) 
 			break
 		}
 
-		pos, _ := parsePosAndType(data[0])
+		pos, _ := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		data = data[1:]
 		read += 1
 

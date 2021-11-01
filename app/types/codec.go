@@ -18,13 +18,13 @@ const (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&EthAccount{}, EthAccountName, nil)
 
-	cdc.RegisterConcreteUnmarshaller(EthAccountName, func(data []byte) (n int, v interface{}, err error) {
-		v, n, err = UnmarshalEthAccountFromAmino(data)
+	cdc.RegisterConcreteUnmarshaller(EthAccountName, func(cdc *amino.Codec, data []byte) (v interface{}, n int, err error) {
+		v, n, err = UnmarshalEthAccountFromAmino(cdc, data)
 		return
 	})
 }
 
-func UnmarshalEthAccountFromAmino(data []byte) (*EthAccount, int, error) {
+func UnmarshalEthAccountFromAmino(_ *amino.Codec, data []byte) (*EthAccount, int, error) {
 	var dataLen uint64 = 0
 	var read int
 	var err error
