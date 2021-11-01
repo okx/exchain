@@ -6,12 +6,12 @@ import (
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	"github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/state"
 	tmdb "github.com/tendermint/tm-db"
 )
 
