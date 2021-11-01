@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"testing"
 
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
+
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
@@ -100,4 +105,31 @@ func TestModuleAccountJSON(t *testing.T) {
 	var a ModuleAccount
 	require.NoError(t, json.Unmarshal(bz, &a))
 	require.Equal(t, acc.String(), a.String())
+}
+
+func TestModuleAccountUnmarshalAmino(t *testing.T) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*authexported.Account)(nil), nil)
+	RegisterCodec(cdc)
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	pubkey := secp256k1.GenPrivKey().PubKey()
+	addr := sdk.AccAddress(pubkey.Address())
+	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 5))
+	baseAcc := authtypes.NewBaseAccount(addr, coins, pubkey, 10, 50)
+	acc := NewModuleAccount(baseAcc, "test", "burner")
+
+	bz, err := cdc.MarshalBinaryBare(acc)
+	require.NoError(t, err)
+
+	var account authexported.Account
+	v, ok := cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(bz, &account)
+	require.True(t, ok)
+	require.EqualValues(t, acc, v)
 }
