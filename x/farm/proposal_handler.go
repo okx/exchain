@@ -1,7 +1,7 @@
 package farm
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/farm/types"
 	govTypes "github.com/okex/exchain/x/gov/types"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/x/stream/types"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type TaskConst int

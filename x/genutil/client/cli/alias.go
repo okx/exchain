@@ -1,7 +1,7 @@
 package cli
 
 import (
-	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	genutilcli "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/client/cli"
 )
 
 type (

@@ -3,9 +3,9 @@ package types
 import (
 	"encoding/json"
 	"github.com/okex/exchain/x/common"
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // ensure Msg interface compliance at compile time

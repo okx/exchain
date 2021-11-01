@@ -4,29 +4,31 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 	"math/big"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+
 	"errors"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/sr25519"
 	"testing"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
 
 	"github.com/stretchr/testify/suite"
 
-	tmcrypto "github.com/tendermint/tendermint/crypto"
-	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 func init() {
@@ -202,6 +204,7 @@ func unmarshalCoinFromAmino(data []byte) (coin sdk.DecCoin, err error) {
 var typePubKeySecp256k1Prefix = []byte{0xeb, 0x5a, 0xe9, 0x87}
 var typePubKeyEd25519Prefix = []byte{0x16, 0x24, 0xde, 0x64}
 var typePubKeySr25519Prefix = []byte{0x0d, 0xfb, 0x10, 0x05}
+
 func unmarshalPubKeyFromAmino(data []byte) (tmcrypto.PubKey, error) {
 	if data[0] == 0x00 {
 		return nil, errors.New("unmarshal pubkey with disamb do not implement")
@@ -259,7 +262,7 @@ func TestAccountAmino(t *testing.T) {
 	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}})
 	testAccount := types.EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
-		CodeHash: ethcrypto.Keccak256(nil),
+		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
 	data, err := cdc.MarshalBinaryBare(&testAccount)
@@ -309,7 +312,7 @@ func BenchmarkAccountAmino(b *testing.B) {
 	balance := sdk.NewCoins(types.NewPhotonCoin(sdk.OneInt()))
 	testAccount := types.EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
-		CodeHash: ethcrypto.Keccak256(nil),
+		CodeHash:    ethcrypto.Keccak256(nil),
 	}
 
 	data, _ := cdc.MarshalBinaryBare(&testAccount)
@@ -333,7 +336,7 @@ func BenchmarkAccountAmino(b *testing.B) {
 	b.Run("amino-direct", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
-			_, _ = cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(data,&account)
+			_, _ = cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(data, &account)
 		}
 	})
 }

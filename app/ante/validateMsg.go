@@ -1,6 +1,6 @@
 package ante
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 
 type ValidateMsgHandler func(ctx sdk.Context, msgs []sdk.Msg) error

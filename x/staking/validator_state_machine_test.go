@@ -6,7 +6,7 @@ import (
 
 	"github.com/okex/exchain/x/staking/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func TestValidatorSMCreateValidator(t *testing.T) {

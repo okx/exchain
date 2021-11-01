@@ -8,7 +8,7 @@ import (
 
 	"github.com/okex/exchain/x/backend"
 
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/x/stream/pushservice/types"
 	"github.com/okex/exchain/x/token"

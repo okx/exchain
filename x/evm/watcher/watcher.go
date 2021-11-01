@@ -6,14 +6,14 @@ import (
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type Watcher struct {

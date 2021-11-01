@@ -1,6 +1,6 @@
 package v0_10
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 const ModuleName = "order"
 

@@ -2,12 +2,12 @@ package txpool
 
 import (
 	"fmt"
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 
 	"github.com/okex/exchain/app/rpc/backend"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // PublicTxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.

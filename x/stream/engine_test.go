@@ -4,12 +4,12 @@ import (
 	"os"
 	"testing"
 
-	appCfg "github.com/cosmos/cosmos-sdk/server/config"
+	appCfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 
 	"github.com/okex/exchain/x/stream/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (
