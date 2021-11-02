@@ -32,7 +32,7 @@ func PprofStart() (*os.File, time.Time) {
 	startTime := time.Now()
 	p := getFilePath("")
 	if _, err := os.Stat(p); os.IsNotExist(err) {
-		err := os.Mkdir(p, 0755)
+		err := os.MkdirAll(p, 0755)
 		if err != nil {
 			log.Fatal(err)
 		}
