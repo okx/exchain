@@ -218,8 +218,8 @@ func (s *analyer) format() {
 		//----- DeliverTx
 		"DeliverTx",
 		"txDecoder",
-		"BaseApp-run",
-		//----- BaseApp-run
+		"app_run",
+		//----- app_run
 		"initCtx",
 		"valTxMsgs",
 		"anteHandler",

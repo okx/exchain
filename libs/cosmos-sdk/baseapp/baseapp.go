@@ -942,7 +942,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		msgEvents := sdk.Events{
 			sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyAction, msg.Type())),
 		}
-		app.pin("AppendEvents", true, mode)
+		//app.pin("AppendEvents", true, mode)
 
 		msgEvents = msgEvents.AppendEvents(msgResult.Events)
 
@@ -953,7 +953,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		events = events.AppendEvents(msgEvents)
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
-		app.pin("AppendEvents", false, mode)
+		//app.pin("AppendEvents", false, mode)
 
 	}
 
