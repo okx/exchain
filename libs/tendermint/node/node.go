@@ -185,13 +185,28 @@ type Node struct {
 	prometheusSrv    *http.Server
 }
 
-func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore, stateDB dbm.DB, err error) {
+func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore,
+	deltaStore *store.DeltaStore, watchStore *store.WatchStore, stateDB dbm.DB, err error) {
 	var blockStoreDB dbm.DB
 	blockStoreDB, err = dbProvider(&DBContext{"blockstore", config})
 	if err != nil {
 		return
 	}
 	blockStore = store.NewBlockStore(blockStoreDB)
+
+	var deltaStoreDB dbm.DB
+	deltaStoreDB, err = dbProvider(&DBContext{"deltastore", config})
+	if err != nil {
+		return
+	}
+	deltaStore = store.NewDeltaStore(deltaStoreDB)
+
+	var watchStoreDB dbm.DB
+	watchStoreDB, err = dbProvider(&DBContext{"watchstore", config})
+	if err != nil {
+		return
+	}
+	watchStore = store.NewWatchStore(watchStoreDB)
 
 	stateDB, err = dbProvider(&DBContext{"state", config})
 	if err != nil {
@@ -253,12 +268,14 @@ func doHandshake(
 	stateDB dbm.DB,
 	state sm.State,
 	blockStore sm.BlockStore,
+	deltaStore sm.DeltaStore,
+	watchStore sm.WatchStore,
 	genDoc *types.GenesisDoc,
 	eventBus types.BlockEventPublisher,
 	proxyApp proxy.AppConns,
 	consensusLogger log.Logger) error {
 
-	handshaker := cs.NewHandshaker(stateDB, state, blockStore, genDoc)
+	handshaker := cs.NewHandshaker(stateDB, state, blockStore, deltaStore, watchStore, genDoc)
 	handshaker.SetLogger(consensusLogger)
 	handshaker.SetEventBus(eventBus)
 	if err := handshaker.Handshake(proxyApp); err != nil {
@@ -340,16 +357,18 @@ func createBlockchainReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore *store.BlockStore,
+	deltaStore *store.DeltaStore,
+	watchStore *store.WatchStore,
 	fastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
 	switch config.FastSync.Version {
 	case "v0":
-		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
+		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, watchStore, fastSync)
 	case "v1":
-		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
+		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	case "v2":
-		bcReactor = bcv2.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
+		bcReactor = bcv2.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
 	default:
 		return nil, fmt.Errorf("unknown fastsync version %s", config.FastSync.Version)
 	}
@@ -362,6 +381,8 @@ func createConsensusReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
+	deltaStore sm.DeltaStore,
+	watchStore sm.WatchStore,
 	mempool *mempl.CListMempool,
 	evidencePool *evidence.Pool,
 	privValidator types.PrivValidator,
@@ -375,6 +396,8 @@ func createConsensusReactor(config *cfg.Config,
 		state.Copy(),
 		blockExec,
 		blockStore,
+		deltaStore,
+		watchStore,
 		mempool,
 		evidencePool,
 		cs.StateMetrics(csMetrics),
@@ -530,7 +553,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 			// blocks assuming 10s blocks ~ 28 hours.
 			// TODO (melekes): make it dynamic based on the actual block latencies
 			// from the live network.
-			// https://github.com/tendermint/tendermint/issues/3523
+			// https://github.com/okex/exchain/libs/tendermint/issues/3523
 			SeedDisconnectWaitPeriod:     28 * time.Hour,
 			PersistentPeersMaxDialPeriod: config.P2P.PersistentPeersMaxDialPeriod,
 		})
@@ -550,7 +573,7 @@ func NewNode(config *cfg.Config,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, stateDB, err := initDBs(config, dbProvider)
+	blockStore, deltasStore, watchStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -584,7 +607,7 @@ func NewNode(config *cfg.Config,
 	// Create the handshaker, which calls RequestInfo, sets the AppVersion on the state,
 	// and replays any blocks as necessary to sync tendermint with the app.
 	consensusLogger := logger.With("module", "consensus")
-	if err := doHandshake(stateDB, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
+	if err := doHandshake(stateDB, state, blockStore, deltasStore, watchStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
 		return nil, err
 	}
 
@@ -636,14 +659,14 @@ func NewNode(config *cfg.Config,
 	)
 
 	// Make BlockchainReactor
-	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, fastSync, logger)
+	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, watchStore, fastSync, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
-		config, state, blockExec, blockStore, mempool, evidencePool,
+		config, state, blockExec, blockStore, deltasStore, watchStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, eventBus, consensusLogger,
 	)
 
@@ -888,7 +911,7 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 	config.MaxOpenConnections = n.config.RPC.MaxOpenConnections
 	// If necessary adjust global WriteTimeout to ensure it's greater than
 	// TimeoutBroadcastTxCommit.
-	// See https://github.com/tendermint/tendermint/issues/3435
+	// See https://github.com/okex/exchain/libs/tendermint/issues/3435
 	if config.WriteTimeout <= n.config.RPC.TimeoutBroadcastTxCommit {
 		config.WriteTimeout = n.config.RPC.TimeoutBroadcastTxCommit + 1*time.Second
 	}
@@ -959,7 +982,7 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 		config.MaxOpenConnections = n.config.RPC.GRPCMaxOpenConnections
 		// If necessary adjust global WriteTimeout to ensure it's greater than
 		// TimeoutBroadcastTxCommit.
-		// See https://github.com/tendermint/tendermint/issues/3435
+		// See https://github.com/okex/exchain/libs/tendermint/issues/3435
 		if config.WriteTimeout <= n.config.RPC.TimeoutBroadcastTxCommit {
 			config.WriteTimeout = n.config.RPC.TimeoutBroadcastTxCommit + 1*time.Second
 		}

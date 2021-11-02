@@ -187,8 +187,8 @@ func (cli *grpcClient) QueryAsync(params types.RequestQuery) *ReqRes {
 	return cli.finishAsyncCall(req, &types.Response{Value: &types.Response_Query{Query: res}})
 }
 
-func (cli *grpcClient) CommitAsync() *ReqRes {
-	req := types.ToRequestCommit()
+func (cli *grpcClient) CommitAsync(params types.RequestCommit) *ReqRes {
+	req := types.ToRequestCommit(params)
 	res, err := cli.client.Commit(context.Background(), req.GetCommit(), grpc.WaitForReady(true))
 	if err != nil {
 		cli.StopForError(err)
@@ -296,8 +296,8 @@ func (cli *grpcClient) QuerySync(req types.RequestQuery) (*types.ResponseQuery, 
 	return reqres.Response.GetQuery(), cli.Error()
 }
 
-func (cli *grpcClient) CommitSync() (*types.ResponseCommit, error) {
-	reqres := cli.CommitAsync()
+func (cli *grpcClient) CommitSync(req types.RequestCommit) (*types.ResponseCommit, error) {
+	reqres := cli.CommitAsync(req)
 	return reqres.Response.GetCommit(), cli.Error()
 }
 
