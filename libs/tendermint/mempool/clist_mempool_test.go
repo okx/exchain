@@ -706,7 +706,7 @@ func TestAddAndSortTx(t *testing.T) {
 	mempool.Flush()
 	require.Equal(t, 0, mempool.txs.Len())
 	require.Equal(t, 0, mempool.bcTxsList.Len())
-	require.Equal(t, 0, mempool.addressRecord.GetAddressList())
+	require.Equal(t, 0, len(mempool.addressRecord.GetAddressList()))
 
 }
 
