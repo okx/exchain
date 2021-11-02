@@ -109,7 +109,7 @@ func SignCheckDeliver(
 	}
 
 	app.EndBlock(abci.RequestEndBlock{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	return gInfo, res, err
 }
