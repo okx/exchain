@@ -7,14 +7,14 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethcore "github.com/ethereum/go-ethereum/core"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/ethereum/go-ethereum/common"
-	ethcore "github.com/ethereum/go-ethereum/core"
-	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -122,7 +122,6 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, sdk.NewDecCoinFromDec(evmDenom, minFees)),
 		)
 	}
-
 	return next(ctx, tx, simulate)
 }
 
@@ -325,7 +324,6 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 			)
 		}
 	}
-
 	return next(ctx, tx, simulate)
 }
 

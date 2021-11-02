@@ -2,9 +2,8 @@ package cachemulti
 
 import (
 	"fmt"
-	"io"
-
 	dbm "github.com/tendermint/tm-db"
+	"io"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
@@ -115,11 +114,16 @@ func (cms Store) Write() {
 	}
 }
 
-func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) {
-	cms.db.IteratorCache(cb)
-	for _, store := range cms.stores {
-		store.IteratorCache(cb)
+func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
+	if !cms.db.IteratorCache(cb) {
+		return false
 	}
+	for _, store := range cms.stores {
+		if !store.IteratorCache(cb) {
+			return false
+		}
+	}
+	return true
 }
 
 // Implements CacheWrapper.

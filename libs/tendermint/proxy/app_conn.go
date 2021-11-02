@@ -19,9 +19,7 @@ type AppConnConsensus interface {
 	EndBlockSync(types.RequestEndBlock) (*types.ResponseEndBlock, error)
 	CommitSync() (*types.ResponseCommit, error)
 	SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes
-	PrepareParallelTxs(types.AsyncCallBack, [][]byte)
-	DeliverTxWithCache(types.RequestDeliverTx) types.ExecuteRes
-	EndParallelTxs() [][]byte
+	PrepareParallelTxs([][]byte) []*types.ResponseDeliverTx
 }
 
 type AppConnMempool interface {
@@ -134,16 +132,8 @@ func (app *appConnMempool) QuerySync(req types.RequestQuery) (*types.ResponseQue
 	return app.appConn.QuerySync(req)
 }
 
-func (app *appConnConsensus) PrepareParallelTxs(cb types.AsyncCallBack, txs [][]byte) {
-	app.appConn.PrepareParallelTxs(cb, txs)
-}
-
-func (app *appConnConsensus) DeliverTxWithCache(tx types.RequestDeliverTx) types.ExecuteRes {
-	return app.appConn.DeliverTxWithCache(tx)
-}
-
-func (app *appConnConsensus) EndParallelTxs() [][]byte {
-	return app.appConn.EndParallelTxs()
+func (app *appConnConsensus) PrepareParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
+	return app.appConn.PrepareParallelTxs(txs)
 }
 
 //------------------------------------------------
