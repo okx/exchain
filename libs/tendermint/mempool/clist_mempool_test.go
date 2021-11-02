@@ -681,9 +681,9 @@ func TestAddAndSortTx(t *testing.T) {
 	//Address:  18  , GasPrice:  2698  , Nonce:  1
 	//Address:  19  , GasPrice:  2484  , Nonce:  0
 
-	require.Equal(t, 3, len(mempool.addressRecord["1"]))
-	require.Equal(t, 1, len(mempool.addressRecord["15"]))
-	require.Equal(t, 2, len(mempool.addressRecord["18"]))
+	require.Equal(t, 3, mempool.addressRecord.GetAddressTxsCnt("1"))
+	require.Equal(t, 1, mempool.addressRecord.GetAddressTxsCnt("15"))
+	require.Equal(t, 2, mempool.addressRecord.GetAddressTxsCnt("18"))
 
 	require.Equal(t, "18", mempool.txs.Front().Address)
 	require.Equal(t, big.NewInt(9740), mempool.txs.Front().GasPrice)
@@ -695,7 +695,8 @@ func TestAddAndSortTx(t *testing.T) {
 
 	require.Equal(t, true, checkTx(mempool.txs.Front()))
 
-	for addr := range mempool.addressRecord {
+	addressList := mempool.GetAddressList()
+	for _, addr := range addressList {
 		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
 	}
 
@@ -705,7 +706,8 @@ func TestAddAndSortTx(t *testing.T) {
 	mempool.Flush()
 	require.Equal(t, 0, mempool.txs.Len())
 	require.Equal(t, 0, mempool.bcTxsList.Len())
-	require.Equal(t, 0, len(mempool.addressRecord))
+	require.Equal(t, 0, mempool.addressRecord.GetAddressList())
+
 }
 
 func TestReplaceTx(t *testing.T) {
@@ -747,7 +749,8 @@ func TestAddAndSortTxByRandom(t *testing.T) {
 	}
 
 	require.Equal(t, true, checkTx(mempool.txs.Front()))
-	for addr := range mempool.addressRecord {
+	addressList := mempool.addressRecord.GetAddressList()
+	for _, addr := range addressList {
 		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
 	}
 }
