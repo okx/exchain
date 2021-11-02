@@ -182,8 +182,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog("Bloomfilter")
 
 	StartTxLog("EmitEvents")
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -268,9 +266,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 	}
-
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
