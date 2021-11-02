@@ -154,6 +154,7 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 // RemovePeer implements Reactor.
 func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	memR.ids.Reclaim(peer)
+	GetGlobalRecord().DelPeer(peer)
 	// broadcast routine checks if peer is gone and returns
 }
 
@@ -203,6 +204,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
 		if !memR.IsRunning() || !peer.IsRunning() {
+
 			return
 		}
 		// This happens because the CElement we were looking at got garbage
@@ -231,10 +233,14 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			// different every time due to us using a map. Sometimes other reactors
 			// will be initialized before the consensus reactor. We should wait a few
 			// milliseconds and retry.
+
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
+		// 如果peer 落后太多区块就不发送该tx
 		if peerState.GetHeight() < memTx.Height()-1 { // Allow for a lag of 1 block
+			memR.Logger.Error("Error height: %s", GetGlobalRecord().Detail())
+			GetGlobalRecord().AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
@@ -245,9 +251,13 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			msg := &TxMessage{Tx: memTx.tx}
 			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
+				GetGlobalRecord().AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
+				memR.Logger.Error("Error peer.Send: %s", GetGlobalRecord().Detail())
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
+			GetGlobalRecord().AddPeer(peer, true, memTx.Height()-1, peerState.GetHeight())
+			//memR.Logger.Error("Success peer.Send: %s", GetGlobalRecord().Detail())
 		}
 
 		select {
