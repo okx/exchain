@@ -81,11 +81,11 @@ func (s *record) Detail() string {
 	var res string
 	for k, v := range s.body {
 		addr, _ := k.NodeInfo().NetAddress()
-		res += "peer : " + addr.String()
+		res += " <peer : " + addr.String()
 		res += fmt.Sprintf(" , SuccessSendCount : %d", v.SuccessSendCount)
 		res += fmt.Sprintf(" , FailSendCount : %d", v.FailSendCount)
 		res += fmt.Sprintf(" , TxHeight : %d", v.TxHeight)
-		res += fmt.Sprintf(" , PeerHeight : %d \n", v.PeerHeight)
+		res += fmt.Sprintf(" , PeerHeight : %d> ", v.PeerHeight)
 	}
 
 	return res
