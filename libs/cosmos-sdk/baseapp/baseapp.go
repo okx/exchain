@@ -10,13 +10,12 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/viper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -24,6 +23,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -685,14 +685,13 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 // returned if the tx does not run out of gas and if all the messages are valid
 // and execute successfully. An error is returned otherwise.
 func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
-	app.pin("BaseApp-run", true, mode)
-	defer app.pin("BaseApp-run", false, mode)
+
+	app.pin("initCtx", true, mode)
 
 	// NOTE: GasWanted should be returned by the AnteHandler. GasUsed is
 	// determined by the GasMeter. We need access to the context to get the gas
 	// meter so we initialize upfront.
 	var gasWanted uint64
-	app.pin("initCtx", true, mode)
 
 	var ctx sdk.Context
 	var runMsgCtx sdk.Context
@@ -713,7 +712,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		ctx = app.getContextForTx(mode, txBytes)
 	}
 
-	app.pin("initCtx", false, mode)
 
 	ms := ctx.MultiStore()
 
@@ -728,7 +726,11 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		startingGas = ctx.BlockGasMeter().GasConsumed()
 	}
 
+	app.pin("initCtx", false, mode)
+
 	defer func() {
+		app.pin("recover", true, mode)
+		defer app.pin("recover", false, mode)
 		if r := recover(); r != nil {
 			switch rType := r.(type) {
 			// TODO: Use ErrOutOfGas instead of ErrorOutOfGas which would allow us
@@ -764,6 +766,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	// NOTE: This must exist in a separate defer function for the above recovery
 	// to recover from this one.
 	defer func() {
+
+		app.pin("ConsumeGas", true, mode)
+		defer app.pin("ConsumeGas", false, mode)
 		if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
@@ -808,6 +813,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}
 	app.pin("valTxMsgs", false, mode)
 
+	app.pin("anteHandler", true, mode)
+
 	accountNonce := uint64(0)
 	if app.anteHandler != nil {
 		var anteCtx sdk.Context
@@ -821,9 +828,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// performance benefits, but it'll be more difficult to get right.
 		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-		app.pin("anteHandler", true, mode)
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
-		app.pin("anteHandler", false, mode)
 
 		accountNonce = newCtx.AccountNonce()
 		if !newCtx.IsZero() {
@@ -852,6 +857,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			msCacheAnte.Write()
 		}
 	}
+	app.pin("anteHandler", false, mode)
+
+	app.pin("runMsgs", true, mode)
 
 	// Create a new Context based off of the existing Context with a cache-wrapped
 	// MultiStore in case message processing fails. At this point, the MultiStore
@@ -867,13 +875,11 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	// Attempt to execute all messages and only update state if all messages pass
 	// and we're in DeliverTx. Note, runMsgs will never return a reference to a
 	// Result if any single message fails or does not have a registered Handler.
-	app.pin("runMsgs", true, mode)
 
 	result, err = app.runMsgs(runMsgCtx, msgs, mode)
 	if err == nil && (mode == runTxModeDeliver) {
 		msCache.Write()
 	}
-	app.pin("runMsgs", false, mode)
 
 	runMsgFinish = true
 
@@ -901,6 +907,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		}
 		return gInfo, result, msCacheAnte, err
 	}
+	app.pin("runMsgs", false, mode)
 	return gInfo, result, nil, err
 }
 

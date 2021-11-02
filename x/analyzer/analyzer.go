@@ -2,8 +2,8 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -214,11 +214,31 @@ func (s *analyer) format() {
 		}
 	}
 
-	var keys = []string{"DeliverTx", "txDecoder", "BaseApp-run",
-		"initCtx", "valTxMsgs", "anteHandler",
-		"runMsgs", "refund", "evmtx",
-		"ParseChainID", "VerifySig", "txhash",
-		"SaveTx", "TransitionDb", "EmitEvents", "AppendEvents"}
+	var keys = []string{
+		//----- DeliverTx
+		"DeliverTx",
+		"txDecoder",
+		"BaseApp-run",
+		//----- BaseApp-run
+		"initCtx",
+		"valTxMsgs",
+		"anteHandler",
+		"runMsgs",
+		"refund",
+		"ConsumeGas",
+		"recover",
+		//----- handler
+		"evmtx",
+		"ParseChainID",
+		"VerifySig",
+		"txhash",
+		"SaveTx",
+		"TransitionDb",
+		"Bloomfilter",
+		"EmitEvents",
+		"handler_defer",
+		//-----
+	}
 
 	for _, v := range keys {
 		format += fmt.Sprintf("%s<%dms>, ", v, record[v])
