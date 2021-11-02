@@ -237,10 +237,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
-		// 如果peer 落后太多区块就不发送该tx
+		//
 		if peerState.GetHeight() < memTx.Height()-1 { // Allow for a lag of 1 block
-			GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
-			memR.Logger.Error(fmt.Sprintf("Error height: %s", GetGlobalRecord(memR.Logger).Detail()))
+			//GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
+			//memR.Logger.Error(fmt.Sprintf("Error height: %s", GetGlobalRecord(memR.Logger).Detail()))
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
