@@ -1,15 +1,15 @@
 package evm
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -181,9 +181,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	StopTxLog("Bloomfilter")
 
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
-
 	StartTxLog("EmitEvents")
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -268,9 +265,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 	}
-
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
