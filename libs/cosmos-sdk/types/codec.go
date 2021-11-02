@@ -1,9 +1,10 @@
 package types
 
 import (
+	"math/big"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
-	"math/big"
 )
 
 // Register the sdk message type
@@ -38,7 +39,7 @@ func UnmarshalCoinFromAmino(data []byte) (coin DecCoin, err error) {
 		case 1:
 			coin.Denom = string(subData)
 		case 2:
-			amt := big.NewInt(0)
+			amt := new(big.Int)
 			err = amt.UnmarshalText(subData)
 			if err != nil {
 				return

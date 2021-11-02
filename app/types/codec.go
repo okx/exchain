@@ -60,7 +60,8 @@ func UnmarshalEthAccountFromAmino(_ *amino.Codec, data []byte) (*EthAccount, int
 			}
 			account.BaseAccount = baseAccount
 		case 2:
-			account.CodeHash = subData
+			account.CodeHash = make([]byte, len(subData))
+			copy(account.CodeHash, subData)
 		default:
 			return nil, read, fmt.Errorf("unexpect feild num %d", pos)
 		}
