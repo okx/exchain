@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -44,7 +45,7 @@ type commitEvent struct {
 
 
 
-func (tree *MutableTree) SaveVersionAsync(version int64) ([]byte, int64, error) {
+func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 	moduleName := tree.GetModuleName()
 	oldRoot, saved := tree.hasSaved(version)
 	if saved {
@@ -52,10 +53,20 @@ func (tree *MutableTree) SaveVersionAsync(version int64) ([]byte, int64, error) 
 	}
 
 	batch := tree.NewBatch()
-	tree.ndb.SaveOrphans(batch, version, tree.orphans)
 	if tree.root != nil {
-		tree.ndb.updateBranch(tree.root)
+		if useDeltas {
+			tree.updateBranchWithDelta(tree.root)
+		} else {
+			tree.ndb.updateBranch(tree.root, tree.savedNodes)
+		}
+
+		// generate state delta
+		delete(tree.savedNodes, hex.EncodeToString(tree.root.hash))
+		tree.savedNodes["root"] = tree.root
+		tree.GetDelta()
 	}
+
+	tree.ndb.SaveOrphans(batch, version, tree.orphans)
 
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
@@ -72,6 +83,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64) ([]byte, int64, error) 
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
 	tree.orphans = []*Node{}
+	tree.savedNodes = map[string]*Node{}
 
 	rootHash := tree.lastSaved.Hash()
 	tree.setHeightOrphansItem(version, rootHash)
@@ -258,6 +270,7 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
 				tree.commitOrphans[string(node.hash)] = node.version
+				tree.deltas.CommitOrphansDelta[hex.EncodeToString(node.hash)] = node.version
 			}
 		}
 
@@ -274,4 +287,33 @@ func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	}
 
 	return tree.versions.Clone()
+}
+
+func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
+	node.persisted = false
+	node.prePersisted = false
+
+	if node.leftHash != nil {
+		key := hex.EncodeToString(node.leftHash)
+		if tmp := tree.savedNodes[key]; tmp != nil {
+			node.leftHash = tree.updateBranchWithDelta(tree.savedNodes[key])
+		}
+	}
+	if node.rightHash != nil {
+		key := hex.EncodeToString(node.rightHash)
+		if tmp := tree.savedNodes[key]; tmp != nil {
+			node.rightHash = tree.updateBranchWithDelta(tree.savedNodes[key])
+		}
+	}
+
+	node._hash()
+	tree.ndb.saveNodeToPrePersistCache(node)
+
+	node.leftNode = nil
+	node.rightNode = nil
+
+	// TODO: handle magic number
+	tree.savedNodes[hex.EncodeToString(node.hash)] = node
+
+	return node.hash
 }
