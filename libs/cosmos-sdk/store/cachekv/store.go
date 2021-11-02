@@ -139,7 +139,7 @@ func (store *Store) Write() {
 		}
 	}
 
-	// clear the cache
+	// Clear the cache
 	store.cache = make(map[string]*cValue)
 	store.unsortedCache = make(map[string]struct{})
 	store.sortedCache = list.New()

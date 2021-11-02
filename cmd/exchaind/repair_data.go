@@ -9,8 +9,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/app"
+	"github.com/spf13/cobra"
 	"github.com/okex/exchain/libs/iavl"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -19,7 +20,6 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/cobra"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -134,7 +134,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
-		log.Println("Repaired app hash", fmt.Sprintf("%X", state.LastResultsHash))
 	}
 }
 

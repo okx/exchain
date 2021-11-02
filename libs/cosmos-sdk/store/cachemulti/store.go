@@ -2,8 +2,9 @@ package cachemulti
 
 import (
 	"fmt"
-	dbm "github.com/tendermint/tm-db"
 	"io"
+
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"

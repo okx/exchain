@@ -10,12 +10,13 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -23,7 +24,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -821,11 +821,10 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		// performance benefits, but it'll be more difficult to get right.
 		anteCtx, msCacheAnte = app.cacheTxContext(ctx, txBytes)
 		anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
-
 		app.pin("anteHandler", true, mode)
-		//beforeGasUsed := ctx.GasMeter().GasConsumed()
 		newCtx, err := app.anteHandler(anteCtx, tx, mode == runTxModeSimulate)
 		app.pin("anteHandler", false, mode)
+
 		accountNonce = newCtx.AccountNonce()
 		if !newCtx.IsZero() {
 			// At this point, newCtx.MultiStore() is cache-wrapped, or something else

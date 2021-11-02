@@ -1,7 +1,6 @@
 package ante
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -119,7 +118,6 @@ func (asd AccountSetupDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 		}
 	}
 
-	fmt.Println("ctx-AccountSetupDecorator", ctx.GasMeter().GasConsumed(), ctx.Index())
 	return next(ctx, tx, simulate)
 }
 

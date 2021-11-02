@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -158,7 +157,6 @@ func (app *BaseApp) deliverTxWithCache(req abci.RequestDeliverTx) *executeResult
 	mode = runTxModeDeliverInAsync
 	g, r, m, e := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
 	if e != nil {
-		fmt.Println("err", err, g.GasWanted, g.GasUsed)
 		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
 		resp = abci.ResponseDeliverTx{
