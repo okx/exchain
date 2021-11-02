@@ -154,7 +154,7 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 // RemovePeer implements Reactor.
 func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	memR.ids.Reclaim(peer)
-	GetGlobalRecord().DelPeer(peer)
+	GetGlobalRecord(memR.Logger).DelPeer(peer)
 	// broadcast routine checks if peer is gone and returns
 }
 
@@ -239,8 +239,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 		// 如果peer 落后太多区块就不发送该tx
 		if peerState.GetHeight() < memTx.Height()-1 { // Allow for a lag of 1 block
-			memR.Logger.Error("Error height: %s", GetGlobalRecord().Detail())
-			GetGlobalRecord().AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
+			memR.Logger.Error("Error height: %s", GetGlobalRecord(memR.Logger).Detail())
+			GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
@@ -251,12 +251,12 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			msg := &TxMessage{Tx: memTx.tx}
 			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
-				GetGlobalRecord().AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
-				memR.Logger.Error("Error peer.Send: %s", GetGlobalRecord().Detail())
+				GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
+				memR.Logger.Error("Error peer.Send: %s", GetGlobalRecord(memR.Logger).Detail())
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
-			GetGlobalRecord().AddPeer(peer, true, memTx.Height()-1, peerState.GetHeight())
+			GetGlobalRecord(memR.Logger).AddPeer(peer, true, memTx.Height()-1, peerState.GetHeight())
 			//memR.Logger.Error("Success peer.Send: %s", GetGlobalRecord().Detail())
 		}
 
