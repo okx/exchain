@@ -239,8 +239,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 		//
 		if peerState.GetHeight() < memTx.Height()-1 { // Allow for a lag of 1 block
-			//GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
-			//memR.Logger.Error(fmt.Sprintf("Error height: %s", GetGlobalRecord(memR.Logger).Detail()))
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
@@ -252,7 +250,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
 				GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
-				memR.Logger.Error(fmt.Sprintf("Error peer.Send: %s", GetGlobalRecord(memR.Logger).Detail()))
+				memR.Logger.Error(fmt.Sprintf("Error_peer_Send: %s", GetGlobalRecord(memR.Logger).Detail()))
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}

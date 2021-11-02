@@ -41,7 +41,7 @@ func (s *record) GoLog()  {
 	for {
 		select {
 		case <- ticker.C:
-			s.logger.Info(fmt.Sprintf("damoen log : %s"), s.Detail())
+			s.logger.Info(fmt.Sprintf("damoen log : %s",  s.Detail()))
 		}
 	}
 }
