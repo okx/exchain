@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
-	"github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/stream"
@@ -73,8 +72,4 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
 	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
-
-	cmd.Flags().BoolVar(&state.ApplyBlockPprof, state.FlagApplyBlockPprof, false, "Enable pprof when executing ApplyBlock")
-	cmd.Flags().IntVar(&state.ApplyBlockPprofTime, state.FlagApplyBlockPprofTime, 8000, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
-
 }

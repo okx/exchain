@@ -3,6 +3,7 @@ package state
 import (
 	"log"
 	"os"
+	"path"
 	"runtime"
 	"runtime/pprof"
 	"strconv"
@@ -19,7 +20,8 @@ var (
 
 	ApplyBlockPprof bool = false
 	ApplyBlockPprofTime  = 8000
-	tmpPprofDir = "tmp.cpu.pprof"
+	HomeDir = ""
+	tmpPprofName = "tmp.cpu.pprof"
 )
 
 func SetIgnoreSmbCheck(check bool) {
@@ -28,7 +30,15 @@ func SetIgnoreSmbCheck(check bool) {
 
 func PprofStart() (*os.File, time.Time) {
 	startTime := time.Now()
-	f, err := os.OpenFile(tmpPprofDir, os.O_RDWR|os.O_CREATE, 0644)
+	p := getFilePath("")
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		err := os.Mkdir(p, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	f, err := os.OpenFile(path.Join(p, tmpPprofName), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,9 +53,14 @@ func PprofEnd(height int, f *os.File, startTime time.Time) {
 	sec := time.Since(startTime).Milliseconds()
 	if int(sec) >= ApplyBlockPprofTime {
 		pprofName := "pprof." + strconv.Itoa(height) + "-" + strconv.Itoa(int(sec)) + "ms.bin"
-		os.Rename(tmpPprofDir, pprofName)
+		newDir := getFilePath(pprofName)
+		os.Rename(getFilePath(tmpPprofName), newDir)
 	} else {
-		os.Remove(tmpPprofDir)
+		os.Remove(getFilePath(tmpPprofName))
 	}
 
+}
+
+func getFilePath(fileName string) string {
+	return path.Join(HomeDir, "pprof", fileName)
 }
