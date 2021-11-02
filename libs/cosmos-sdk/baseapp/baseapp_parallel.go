@@ -9,7 +9,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
-func (app *BaseApp) PrepareParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k, v := range txs {
@@ -74,7 +74,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			deliverTxs[txIndex] = &txRs
 			res.Collect(asCache)
 			res.Commit()
-			if !app.parallelTxManage.isReRun(app.parallelTxManage.indexMapBytes[txIndex]) {
+			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 			if s.anteErr != nil {
@@ -92,8 +92,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	}
 
 	app.parallelTxManage.workgroup.cb = asyncCb
-
-	// Run txs of block.
 	for _, tx := range txs {
 		go app.DeliverTx(abci.RequestDeliverTx{Tx: tx})
 	}

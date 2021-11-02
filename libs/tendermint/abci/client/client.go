@@ -47,7 +47,7 @@ type Client interface {
 	InitChainSync(types.RequestInitChain) (*types.ResponseInitChain, error)
 	BeginBlockSync(types.RequestBeginBlock) (*types.ResponseBeginBlock, error)
 	EndBlockSync(types.RequestEndBlock) (*types.ResponseEndBlock, error)
-	PrepareParallelTxs([][]byte) []*types.ResponseDeliverTx
+	ParallelTxs([][]byte) []*types.ResponseDeliverTx
 }
 
 //----------------------------------------

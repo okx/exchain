@@ -223,7 +223,7 @@ func (cli *grpcClient) EndBlockAsync(params types.RequestEndBlock) *ReqRes {
 	return cli.finishAsyncCall(req, &types.Response{Value: &types.Response_EndBlock{EndBlock: res}})
 }
 
-func (cli *grpcClient) PrepareParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
+func (cli *grpcClient) ParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
 	return nil
 }
 

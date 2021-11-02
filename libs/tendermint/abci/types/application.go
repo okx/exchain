@@ -24,7 +24,7 @@ type Application interface {
 	EndBlock(RequestEndBlock) ResponseEndBlock       // Signals the end of a block, returns changes to the validator set
 	Commit() ResponseCommit                          // Commit the state and return the application Merkle root hash
 
-	PrepareParallelTxs(txs [][]byte) []*ResponseDeliverTx
+	ParallelTxs(txs [][]byte) []*ResponseDeliverTx
 }
 
 //-------------------------------------------------------
@@ -75,7 +75,7 @@ func (BaseApplication) EndBlock(req RequestEndBlock) ResponseEndBlock {
 	return ResponseEndBlock{}
 }
 
-func (a BaseApplication) PrepareParallelTxs(_ [][]byte) []*ResponseDeliverTx {
+func (a BaseApplication) ParallelTxs(_ [][]byte) []*ResponseDeliverTx {
 	return nil
 }
 

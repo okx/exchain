@@ -162,8 +162,10 @@ func (app *localClient) EndBlockAsync(req types.RequestEndBlock) *ReqRes {
 	)
 }
 
-func (app *localClient) PrepareParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
-	return app.Application.PrepareParallelTxs(txs)
+func (app *localClient) ParallelTxs(txs [][]byte) []*types.ResponseDeliverTx {
+	app.mtx.Lock()
+	defer app.mtx.Unlock()
+	return app.Application.ParallelTxs(txs)
 }
 
 //-------------------------------------------------------
