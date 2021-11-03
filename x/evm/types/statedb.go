@@ -18,7 +18,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/analyzer"
+	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/params"
 )
 

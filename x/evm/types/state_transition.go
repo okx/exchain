@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/okex/exchain/x/analyzer"
+	"github.com/okex/exchain/x/common/analyzer"
 )
 
 // StateTransition defines data to transitionDB in evm
