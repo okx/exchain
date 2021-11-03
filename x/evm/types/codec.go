@@ -35,6 +35,7 @@ func init() {
 // UnmarshalChainConfigFromAmino unmarshal a ChainConfig from an amino encoded byte slice
 func UnmarshalChainConfigFromAmino(_ *amino.Codec, data []byte) (*ChainConfig, int, error) {
 	var dataLen uint64 = 0
+	var subData []byte
 	var read int
 	var err error
 	config := &ChainConfig{}
@@ -47,19 +48,20 @@ func UnmarshalChainConfigFromAmino(_ *amino.Codec, data []byte) (*ChainConfig, i
 			break
 		}
 
-		pos, _ := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, aminoType := amino.ParseProtoPosAndTypeMustOneByte(data[0])
 		data = data[1:]
 		read += 1
 
-		var n int
-		dataLen, n, err = amino.DecodeUvarint(data)
-		if err != nil {
-			return nil, read, err
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return nil, read, err
+			}
+			data = data[n:]
+			read += n
+			subData = data[:dataLen]
 		}
-
-		data = data[n:]
-		read += n
-		subData := data[:dataLen]
 
 		switch pos {
 		case 1:
@@ -75,10 +77,11 @@ func UnmarshalChainConfigFromAmino(_ *amino.Codec, data []byte) (*ChainConfig, i
 			}
 			config.DAOForkBlock = integer
 		case 3:
-			if len(subData) != 1 {
-				return nil, read, fmt.Errorf("invalid DAO fork support flag")
+			if data[0] != 0 && data[0] != 1 {
+				return nil, read, fmt.Errorf("invalid DAO fork switch")
 			}
-			config.DAOForkSupport = subData[0] == 1
+			config.DAOForkSupport = data[0] == 1
+			dataLen = 1
 		case 4:
 			integer, err := sdk.NewIntFromAmino(subData)
 			if err != nil {
