@@ -27,11 +27,18 @@ func (ar *AddressRecord) AddItem(address string, txHash string, cElement *clist.
 	ar.items[address][txHash] = cElement
 }
 
-func (ar *AddressRecord) GetItem (address string) (item map[string]*clist.CElement, isExist bool) {
+func (ar *AddressRecord) GetItem (address string) (map[string]*clist.CElement, bool) {
 	ar.mtx.RLock()
 	defer ar.mtx.RUnlock()
-	item, isExist = ar.items[address]
-	return
+	item, isExist := ar.items[address]
+	if !isExist {
+		return nil, false
+	}
+	copyItem := make(map[string]*clist.CElement, len(item))
+	for key, value := range item {
+		copyItem[key] = value
+	}
+	return copyItem, true
 }
 
 func (ar *AddressRecord) DeleteItem(e *clist.CElement) {
