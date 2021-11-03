@@ -144,7 +144,6 @@ func (na *NetAddress) Equals(other interface{}) bool {
 	if o, ok := other.(*NetAddress); ok {
 		return na.String() == o.String()
 	}
-	fmt.Println("other IS NIL")
 	return false
 }
 
