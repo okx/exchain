@@ -59,8 +59,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	StartTxLog("evmtx")
-	defer StopTxLog("evmtx")
+	StartTxLog("evm_handler")
+	defer StopTxLog("evm_handler")
 
 	StartTxLog("ParseChainID")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())

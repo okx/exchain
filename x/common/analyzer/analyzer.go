@@ -218,8 +218,8 @@ func (s *analyer) format() {
 		//----- DeliverTx
 		"DeliverTx",
 		"txDecoder",
-		"app_run",
-		//----- app_run
+		"run_tx",
+		//----- run_tx
 		"initCtx",
 		"valTxMsgs",
 		"anteHandler",
@@ -228,7 +228,7 @@ func (s *analyer) format() {
 		"ConsumeGas",
 		"recover",
 		//----- handler
-		"evmtx",
+		"evm_handler",
 		"ParseChainID",
 		"VerifySig",
 		"txhash",
