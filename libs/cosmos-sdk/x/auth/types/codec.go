@@ -58,7 +58,7 @@ func UnmarshalBaseAccountFromAmino(data []byte) (*BaseAccount, error) {
 
 		switch pos {
 		case 1:
-			account.Address = make([]byte, len(subData), len(subData))
+			account.Address = make([]byte, len(subData))
 			copy(account.Address, subData)
 			// account.Address = subData
 		case 2:
@@ -74,18 +74,18 @@ func UnmarshalBaseAccountFromAmino(data []byte) (*BaseAccount, error) {
 			}
 			account.PubKey = pubkey
 		case 4:
-			uvarint, n, err := amino.DecodeUvarint(data)
+			var n int
+			account.AccountNumber, n, err = amino.DecodeUvarint(data)
 			if err != nil {
 				return nil, err
 			}
-			account.AccountNumber = uvarint
 			dataLen = uint64(n)
 		case 5:
-			uvarint, n, err := amino.DecodeUvarint(data)
+			var n int
+			account.Sequence, n, err = amino.DecodeUvarint(data)
 			if err != nil {
 				return nil, err
 			}
-			account.Sequence = uvarint
 			dataLen = uint64(n)
 		}
 	}
