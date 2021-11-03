@@ -60,6 +60,7 @@ func UnsafeDialPeers(ctx *rpctypes.Context, peers []string, persistent bool) (*c
 	}
 	env.Logger.Info("DialPeers", "peers", peers, "persistent", persistent)
 	if persistent {
+		env.Logger.Info("UnsafeDialPeers stack : %s ", string(debug.Stack()))
 		if err := env.P2PPeers.AddPersistentPeers(peers); err != nil {
 			return &ctypes.ResultDialPeers{}, err
 		}
