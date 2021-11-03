@@ -95,7 +95,6 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 // Misc.
 
 func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
-	// TODO : move this to cdc.UnmarshalBinaryBare so we don't have to call this explicit
 	val, ok := ak.cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(bz, &acc)
 	if ok {
 		acc = val.(exported.Account)
