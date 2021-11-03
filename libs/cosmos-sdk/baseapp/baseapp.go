@@ -712,7 +712,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		ctx = app.getContextForTx(mode, txBytes)
 	}
 
-
 	ms := ctx.MultiStore()
 
 	// only run the tx if there is block gas remaining
@@ -769,7 +768,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 
 		app.pin("ConsumeGas", true, mode)
 		defer app.pin("ConsumeGas", false, mode)
-		if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+		if mode == runTxModeDeliver || app.parallelTxManage.isReRun(string(txBytes)) {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)
@@ -800,7 +799,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			}
 			msCache.Write()
 			if mode == runTxModeDeliverInAsync {
-				app.parallelTxManage.SetRefundFee(string(txBytes), refundGas)
+				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
 		}
 
