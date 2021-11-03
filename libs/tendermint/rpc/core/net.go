@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,7 @@ func NetInfo(ctx *rpctypes.Context) (*ctypes.ResultNetInfo, error) {
 
 // UnsafeDialSeeds dials the given seeds (comma-separated id@IP:PORT).
 func UnsafeDialSeeds(ctx *rpctypes.Context, seeds []string) (*ctypes.ResultDialSeeds, error) {
+	debug.PrintStack()
 	if len(seeds) == 0 {
 		return &ctypes.ResultDialSeeds{}, errors.New("no seeds provided")
 	}

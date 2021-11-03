@@ -31,10 +31,10 @@ func GetGlobalRecord(l log.Logger) *record {
 	return globalRecord
 }
 
-func (s *record) DoLog(height int64) {
-	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s", height, s.Detail(height)))
+func (s *record) DoLog() {
+	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s",  s.Detail()))
 	//height is useless, delete it
-	s.body.Delete(height)
+	s.body.Delete(s.currentHeight)
 }
 
 func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64) {
@@ -51,10 +51,10 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 	}
 	addr, _ := peer.NodeInfo().NetAddress()
 	peerKey := addr.String()
-	if v, ok := s.body.Load(txHeight); !ok {
+	if v, ok := s.body.Load(s.currentHeight); !ok {
 		var peerMap sync.Map
 		peerMap.Store(peerKey, sendTmp)
-		s.body.Store(txHeight, peerMap)
+		s.body.Store(s.currentHeight, peerMap)
 	} else {
 		//txHeight exist
 		peerMap, ok := v.(sync.Map)
@@ -63,7 +63,7 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 		}
 		if sendInfoTmp, ok := peerMap.Load(peerKey); !ok {
 			//peer not exist, store
-			s.body.Store(txHeight, sendTmp)
+			s.body.Store(s.currentHeight, sendTmp)
 		} else {
 			sendInfo, ok := sendInfoTmp.(*sendStatus)
 			if !ok {
@@ -75,7 +75,7 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 			} else {
 				sendInfo.FailSendCount++
 			}
-			s.body.Store(txHeight, sendInfo)
+			s.body.Store(s.currentHeight, sendInfo)
 		}
 	}
 }
@@ -93,10 +93,10 @@ func (s *record) DelPeer(peer p2p.Peer) {
 	}
 }
 
-func (s *record) Detail(height int64) string {
+func (s *record) Detail() string {
 	var res string
-	if v, ok := s.body.Load(height); !ok {
-		res = fmt.Sprintf("log height : %d, mp height : %d has no tx broadcast info", height, s.currentHeight)
+	if v, ok := s.body.Load(s.currentHeight); !ok {
+		res = fmt.Sprintf("log record curret height : %d has no tx broadcast info", s.currentHeight)
 	} else {
 		peerMap, ok := v.(sync.Map)
 		if !ok {
@@ -117,7 +117,7 @@ func (s *record) Detail(height int64) string {
 			}
 			res += fmt.Sprintf(" , SuccessSendCount : %d", info.SuccessSendCount)
 			res += fmt.Sprintf(" , FailSendCount : %d", info.FailSendCount)
-			res += fmt.Sprintf(" , TxHeight : %d", height)
+			res += fmt.Sprintf(" , TxHeight : %d", s.currentHeight)
 			res += fmt.Sprintf(" , PeerHeight : %d> ", info.PeerHeight)
 			return true
 		})

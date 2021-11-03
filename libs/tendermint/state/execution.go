@@ -293,7 +293,7 @@ func (blockExec *BlockExecutor) Commit(
 			Key: "ResetCheckState",
 		})
 	}
-	mempl.GetGlobalRecord(blockExec.logger).DoLog(block.Height)
+	mempl.GetGlobalRecord(blockExec.logger).DoLog()
 	return res.Data, res.RetainHeight, err
 }
 
