@@ -60,6 +60,8 @@ func BenchmarkUnmarshalChainConfigFromAmino(b *testing.B) {
 		EWASMBlock:          sdk.OneInt(),
 	}
 	cdc := amino.NewCodec()
+	RegisterCodec(cdc)
+
 	data, _ := cdc.MarshalBinaryBare(config)
 
 	b.ResetTimer()
@@ -72,9 +74,11 @@ func BenchmarkUnmarshalChainConfigFromAmino(b *testing.B) {
 		}
 	})
 
-	b.Run("direct", func(b *testing.B) {
+	b.Run("unmarshaller", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _, _ = UnmarshalChainConfigFromAmino(cdc, data)
+			var config ChainConfig
+			_config, _ := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(data, &config)
+			config = *_config.(*ChainConfig)
 		}
 	})
 }
