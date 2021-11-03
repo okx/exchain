@@ -40,7 +40,7 @@ func init() {
 func UnmarshalMouduleAccountFromAmino(_ *amino.Codec, data []byte) (*ModuleAccount, int, error) {
 	var dataLen uint64 = 0
 	var read int
-	var err error
+
 	account := &ModuleAccount{}
 
 	for {
@@ -51,7 +51,10 @@ func UnmarshalMouduleAccountFromAmino(_ *amino.Codec, data []byte) (*ModuleAccou
 			break
 		}
 
-		pos, _ := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, 0, err
+		}
 		data = data[1:]
 		read += 1
 

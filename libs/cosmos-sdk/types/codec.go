@@ -24,7 +24,10 @@ func UnmarshalCoinFromAmino(data []byte) (coin DecCoin, err error) {
 			break
 		}
 
-		pos, aminoType := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return coin, err
+		}
 		data = data[1:]
 
 		if aminoType == amino.Typ3_ByteLength {
@@ -42,12 +45,12 @@ func UnmarshalCoinFromAmino(data []byte) (coin DecCoin, err error) {
 			amt := new(big.Int)
 			err = amt.UnmarshalText(subData)
 			if err != nil {
-				return
+				return coin, err
 			}
 			coin.Amount = Dec{
 				amt,
 			}
 		}
 	}
-	return
+	return coin, err
 }

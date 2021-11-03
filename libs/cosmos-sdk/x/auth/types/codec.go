@@ -42,7 +42,10 @@ func UnmarshalBaseAccountFromAmino(data []byte) (*BaseAccount, error) {
 			break
 		}
 
-		pos, aminoType := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, err
+		}
 		data = data[1:]
 
 		if aminoType == amino.Typ3_ByteLength {

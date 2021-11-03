@@ -27,7 +27,7 @@ func RegisterCodec(cdc *codec.Codec) {
 func UnmarshalEthAccountFromAmino(_ *amino.Codec, data []byte) (*EthAccount, int, error) {
 	var dataLen uint64 = 0
 	var read int
-	var err error
+
 	account := &EthAccount{}
 
 	for {
@@ -38,7 +38,10 @@ func UnmarshalEthAccountFromAmino(_ *amino.Codec, data []byte) (*EthAccount, int
 			break
 		}
 
-		pos, _ := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, _, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, read, err
+		}
 		data = data[1:]
 		read += 1
 

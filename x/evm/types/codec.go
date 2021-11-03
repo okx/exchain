@@ -37,7 +37,6 @@ func UnmarshalChainConfigFromAmino(_ *amino.Codec, data []byte) (*ChainConfig, i
 	var dataLen uint64 = 0
 	var subData []byte
 	var read int
-	var err error
 	config := &ChainConfig{}
 
 	for {
@@ -48,7 +47,10 @@ func UnmarshalChainConfigFromAmino(_ *amino.Codec, data []byte) (*ChainConfig, i
 			break
 		}
 
-		pos, aminoType := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return nil, read, err
+		}
 		data = data[1:]
 		read += 1
 
