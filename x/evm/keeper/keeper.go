@@ -106,7 +106,9 @@ func NewSimulateKeeper(
 }
 
 func (k Keeper) OnAccountUpdated(acc auth.Account) {
-	k.Watcher.DeleteAccount(acc.GetAddress())
+	account := acc.GetAddress()
+	k.Watcher.AddDirtyAccount(&account)
+	k.Watcher.DeleteAccount(account)
 }
 
 // Logger returns a module-specific logger.

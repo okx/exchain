@@ -1,7 +1,11 @@
 package watcher
 
 import (
+	"bytes"
+	jsoniter "github.com/json-iterator/go"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
@@ -14,7 +18,11 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
+	tmstate "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
+
+var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
 	store         *WatchStore
@@ -29,10 +37,14 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
+	// dirtyAccount, centerBatch for transfer in network
+	dirtyAccount []*sdk.AccAddress
+	centerBatch  []*Batch
 }
 
 var (
 	watcherEnable  = false
+	centerEnable   = false
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
@@ -45,6 +57,13 @@ func IsWatcherEnabled() bool {
 	return watcherEnable
 }
 
+func IsCenterEnabled() bool {
+	onceEnable.Do(func() {
+		centerEnable = viper.GetBool(tmtypes.FlagDataCenter)
+	})
+	return centerEnable
+}
+
 func GetWatchLruSize() int {
 	onceLru.Do(func() {
 		watcherLruSize = viper.GetInt(FlagFastQueryLru)
@@ -53,7 +72,9 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	return &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher.SetWatchDataFunc()
+	return watcher
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -83,6 +104,10 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+
+	// ResetTransferWatchData
+	w.dirtyAccount = nil
+	w.centerBatch = nil
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -168,6 +193,13 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.store.Delete(GetMsgAccountKey(addr.Bytes()))
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 	w.delayEraseKey = append(w.delayEraseKey, key)
+}
+
+func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
+	if w.dirtyAccount == nil {
+		w.dirtyAccount = []*sdk.AccAddress{}
+	}
+	w.dirtyAccount = append(w.dirtyAccount, addr)
 }
 
 func (w *Watcher) ExecuteDelayEraseKey() {
@@ -321,12 +353,129 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	go func() {
-		for _, b := range batch {
-			w.store.Set(b.GetKey(), []byte(b.GetValue()))
-			if b.GetType() == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.GetKey()), []byte(b.GetValue()))
-			}
+	go w.commitBatch(w.batch)
+
+	// get centerBatch for sending to DataCenter
+	centerBatch := make([]*Batch, len(batch))
+	for i, b := range batch {
+		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
+	}
+	w.centerBatch = centerBatch
+
+	if IsCenterEnabled() {
+		go w.SendToDatacenter(int64(w.height))
+	}
+}
+
+func (w *Watcher) CommitWatchData() {
+	if w.centerBatch != nil {
+		go w.commitCenterBatch(w.centerBatch)
+	}
+	if w.dirtyAccount != nil {
+		go w.delDirtyAccount(w.dirtyAccount)
+	}
+
+	if IsCenterEnabled() {
+		go w.SendToDatacenter(int64(w.height))
+	}
+}
+
+func (w *Watcher) commitBatch(batch []WatchMessage) {
+	for _, b := range batch {
+		key := b.GetKey()
+		value := []byte(b.GetValue())
+		typeValue := b.GetType()
+		w.store.Set(key, value)
+		if typeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(key), value)
 		}
-	}()
+	}
+}
+
+func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	for _, b := range batch {
+		w.store.Set(b.Key, b.Value)
+		if b.TypeValue == TypeState {
+			state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+		}
+	}
+}
+
+func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
+	for _, account := range accounts {
+		w.DeleteAccount(*account)
+	}
+}
+
+func (w *Watcher) SetWatchDataFunc() {
+	gcb := func(height int64) bool {
+		msg := tmstate.DataCenterMsg{Height: height}
+		msgBody, err := tmtypes.Json.Marshal(&msg)
+		if err != nil {
+			return false
+		}
+		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadBatch", "application/json", bytes.NewBuffer(msgBody))
+		if err != nil {
+			return false
+		}
+		defer response.Body.Close()
+		rlt, _ := ioutil.ReadAll(response.Body)
+		data := WatchData{}
+		if err = itjs.Unmarshal(rlt, &data); err != nil {
+			return false
+		}
+		if data.Account == nil || data.Batches == nil {
+			return false
+		}
+		w.centerBatch = data.Batches
+		w.dirtyAccount = data.Account
+		w.delayEraseKey = data.DelayEraseKey
+		return true
+	}
+
+	gwd := func() *tmtypes.WatchData {
+		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
+		valueByte, err := itjs.Marshal(&value)
+		if err != nil {
+			return nil
+		}
+		return &tmtypes.WatchData{WatchDataByte: valueByte, Height: int64(w.height)}
+	}
+
+	uwd := func(twd *tmtypes.WatchData) {
+		if twd.Size() != 0 {
+			wd := WatchData{}
+			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
+				return
+			}
+			w.dirtyAccount = wd.Account
+			w.centerBatch = wd.Batches
+			w.delayEraseKey = wd.DelayEraseKey
+		}
+
+		w.CommitWatchData()
+	}
+
+	tmstate.GetCenterBatch = gcb
+	tmstate.GetWatchData = gwd
+	tmstate.UseWatchData = uwd
+}
+
+// sendToDatacenter send bcBlockResponseMessage to DataCenter
+func (w *Watcher) SendToDatacenter(height int64) {
+	if w.centerBatch == nil && w.dirtyAccount == nil {
+		return
+	}
+	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
+	valueByte, err := itjs.Marshal(&value)
+	if err != nil {
+		return
+	}
+	msg := tmstate.DataCenterMsg{Height: height, Value: valueByte}
+	msgBody, err := tmtypes.Json.Marshal(&msg)
+	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"saveBatch", "application/json", bytes.NewBuffer(msgBody))
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
 }
