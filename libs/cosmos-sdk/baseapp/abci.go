@@ -234,6 +234,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	app.pin("txdecoder", false, runTxModeDeliver)
 
+	app.pin("run_tx", true, runTxModeDeliver)
+	defer app.pin("run_tx", false, runTxModeDeliver)
+
 	var (
 		gInfo  sdk.GasInfo
 		result *sdk.Result

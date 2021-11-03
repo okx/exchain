@@ -1,15 +1,15 @@
 package evm
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/analyzer"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -59,8 +59,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	StartTxLog("evmtx")
-	defer StopTxLog("evmtx")
+	StartTxLog("evm_handler")
+	defer StopTxLog("evm_handler")
 
 	StartTxLog("ParseChainID")
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
@@ -84,6 +84,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	ethHash := common.BytesToHash(txHash)
 	StopTxLog("txhash")
 
+	StartTxLog("SaveTx")
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,
 		Price:        msg.Data.Price,
@@ -102,7 +103,6 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	// then this will cause the txCount/stateDB of the node that ran the simulated tx to be different than the
 	// other nodes, causing a consensus error
 
-	StartTxLog("SaveTx")
 	if !st.Simulate {
 		k.Watcher.SaveEthereumTx(msg, common.BytesToHash(txHash), uint64(k.TxCount))
 		// Prepare db for logs
@@ -119,8 +119,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	StopTxLog("SaveTx")
 
 	defer func() {
-		StartTxLog("defer")
-		defer StopTxLog("defer")
+		StartTxLog("handler_defer")
+		defer StopTxLog("handler_defer")
 
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
@@ -181,10 +181,8 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 	StopTxLog("Bloomfilter")
 
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
-
 	StartTxLog("EmitEvents")
+
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEthereumTx,
@@ -268,9 +266,6 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		k.Bloom.Or(k.Bloom, executionResult.Bloom)
 		k.LogSize = st.Csdb.GetLogSize()
 	}
-
-	// log successful execution
-	k.Logger(ctx).Info(executionResult.Result.Log)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
