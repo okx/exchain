@@ -32,9 +32,14 @@ func GetGlobalRecord(l log.Logger) *record {
 }
 
 func (s *record) DoLog() {
-	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s",  s.currentHeight, s.Detail()))
+	if s.currentHeight == 0 {
+		s.logger.Info("damoen log current height is 0, no send info log")
+		return
+	}
+	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s", s.currentHeight, s.Detail()))
 	//height is useless, delete it
 	s.body.Delete(s.currentHeight)
+	s.currentHeight = 0
 }
 
 func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64) {
