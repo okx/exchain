@@ -712,6 +712,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		ctx = app.getContextForTx(mode, txBytes)
 	}
 
+
 	ms := ctx.MultiStore()
 
 	// only run the tx if there is block gas remaining
