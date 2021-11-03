@@ -5,7 +5,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 
-	"github.com/okex/exchain/x/analyzer"
+	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/mosn/holmes"
 	"github.com/spf13/viper"
