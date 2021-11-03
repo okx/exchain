@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -84,7 +85,8 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 			txIndex++
 			if txIndex == len(txs) {
-				app.logger.Info("Paralleled-tx", "len(txs)", len(txs), "Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx)
+				ParaLog.Update(uint64(app.deliverState.ctx.BlockHeight()), len(txs), rerunIdx)
+				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs), "Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx)
 				signal <- 0
 				return
 			}
@@ -357,4 +359,87 @@ func (a *asyncCache) Push(key, value []byte) {
 func (a *asyncCache) Has(key []byte) bool {
 	_, ok := a.mem[string(key)]
 	return ok
+}
+
+var (
+	ParaLog *LogForParallel
+)
+
+func init() {
+	ParaLog = NewLogForParallel()
+}
+
+type parallelBlockInfo struct {
+	height   uint64
+	txs      int
+	reRunCnt int
+}
+
+func (p parallelBlockInfo) bigger(n parallelBlockInfo) bool {
+	return 1-float64(p.reRunCnt)/float64(p.txs) > 1-float64(n.reRunCnt)/float64(n.txs)
+}
+
+func (p parallelBlockInfo) small(n parallelBlockInfo) bool {
+	return 1-float64(p.reRunCnt)/float64(p.txs) < 1-float64(n.reRunCnt)/float64(n.txs)
+}
+
+type LogForParallel struct {
+	init         bool
+	sumTx        int
+	reRunTx      int
+	blockNumbers int
+
+	bestBlock     parallelBlockInfo
+	terribleBlock parallelBlockInfo
+}
+
+func NewLogForParallel() *LogForParallel {
+	return &LogForParallel{
+		sumTx:        0,
+		reRunTx:      0,
+		blockNumbers: 0,
+		bestBlock: parallelBlockInfo{
+			height:   0,
+			txs:      0,
+			reRunCnt: 0,
+		},
+		terribleBlock: parallelBlockInfo{
+			height:   0,
+			txs:      0,
+			reRunCnt: 0,
+		},
+	}
+}
+
+func (l *LogForParallel) Update(height uint64, txs int, reRunCnt int) {
+	l.sumTx += txs
+	l.reRunTx += reRunCnt
+	l.blockNumbers++
+
+	if txs < 20 {
+		return
+	}
+
+	info := parallelBlockInfo{height: height, txs: txs, reRunCnt: reRunCnt}
+	if !l.init {
+		l.bestBlock = info
+		l.terribleBlock = info
+		l.init = true
+		return
+	}
+
+	if l.bestBlock.small(info) {
+		l.bestBlock = info
+	}
+	if l.terribleBlock.bigger(info) {
+		l.terribleBlock = info
+	}
+}
+
+func (l *LogForParallel) PrintLog() {
+	fmt.Println("BlockNumbers", l.blockNumbers)
+	fmt.Println("AllCnt", l.sumTx)
+	fmt.Println("ReRunCnt", l.reRunTx)
+	fmt.Println("BestBlock", l.bestBlock, "Concurrency Rate", 1-float64(l.bestBlock.reRunCnt)/float64(l.bestBlock.txs))
+	fmt.Println("TerribleBlock", l.terribleBlock, "Concurrency Rate", 1-float64(l.terribleBlock.reRunCnt)/float64(l.terribleBlock.txs))
 }
