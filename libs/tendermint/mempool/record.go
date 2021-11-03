@@ -27,11 +27,12 @@ func GetGlobalRecord(l log.Logger) *record {
 			logger: l,
 		}
 	}
+	globalRecord.logger = l
 	return globalRecord
 }
 
 func (s *record) DoLog(height int64) {
-	s.logger.Info(fmt.Sprintf("damoen log : %s", s.Detail(height)))
+	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s", height, s.Detail(height)))
 	//height is useless, delete it
 	s.body.Delete(height)
 }
@@ -95,7 +96,7 @@ func (s *record) DelPeer(peer p2p.Peer) {
 func (s *record) Detail(height int64) string {
 	var res string
 	if v, ok := s.body.Load(height); !ok {
-		res = fmt.Sprintf("height : %d has no tx broadcast info")
+		res = fmt.Sprintf("log height : %d, mp height : %d has no tx broadcast info", height, s.currentHeight)
 	} else {
 		peerMap, ok := v.(sync.Map)
 		if !ok {

@@ -555,8 +555,11 @@ func (sw *Switch) IsDialingOrExistingAddress(addr *NetAddress) bool {
 // ErrNetAddressLookup. However, if there are other errors, first encounter is
 // returned.
 func (sw *Switch) AddPersistentPeers(addrs []string) error {
+	fmt.Println("addrs ===>" , addrs)
 	sw.Logger.Info("Adding persistent peers", "addrs", addrs)
 	netAddrs, errs := NewNetAddressStrings(addrs)
+	fmt.Println("len(netAddrs)-->", len(netAddrs))
+	fmt.Println("len(errs)-->", len(errs))
 	// report all the errors
 	for _, err := range errs {
 		sw.Logger.Error("Error in peer's address", "err", err)
@@ -585,9 +588,13 @@ func (sw *Switch) AddUnconditionalPeerIDs(ids []string) error {
 }
 
 func (sw *Switch) IsPeerPersistent(na *NetAddress) bool {
+	fmt.Println("IsPeerPersistent-->" , na.String())
 	for _, pa := range sw.persistentPeersAddrs {
 		if pa.Equals(na) {
 			return true
+		}
+		if pa.Equals(nil) {
+			fmt.Println(" !!! pa.Equals(nil) ")
 		}
 	}
 	return false
