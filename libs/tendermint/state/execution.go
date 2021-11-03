@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/viper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
@@ -13,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -293,7 +293,7 @@ func (blockExec *BlockExecutor) Commit(
 			Key: "ResetCheckState",
 		})
 	}
-
+	mempl.GetGlobalRecord(blockExec.logger).DoLog(block.Height)
 	return res.Data, res.RetainHeight, err
 }
 

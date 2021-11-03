@@ -250,12 +250,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			success := peer.Send(MempoolChannel, cdc.MustMarshalBinaryBare(msg))
 			if !success {
 				GetGlobalRecord(memR.Logger).AddPeer(peer, false, memTx.Height()-1, peerState.GetHeight())
-				memR.Logger.Error(fmt.Sprintf("Error_peer_Send: %s", GetGlobalRecord(memR.Logger).Detail()))
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
 			GetGlobalRecord(memR.Logger).AddPeer(peer, true, memTx.Height()-1, peerState.GetHeight())
-			//memR.Logger.Error("Success peer.Send: %s", GetGlobalRecord().Detail())
 		}
 
 		select {

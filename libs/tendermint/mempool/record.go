@@ -2,10 +2,9 @@ package mempool
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/p2p"
 	"sync"
-	"time"
 )
 
 var globalRecord *record
@@ -13,80 +12,114 @@ var globalRecord *record
 type sendStatus struct {
 	SuccessSendCount int64
 	FailSendCount    int64
-	TxHeight         int64
 	PeerHeight       int64
 }
 
 type record struct {
-	lock   sync.RWMutex
-	logger log.Logger
-	body   map[p2p.Peer]*sendStatus `json:"detailInfo"`
+	logger        log.Logger
+	body          sync.Map
+	currentHeight int64
 }
 
 func GetGlobalRecord(l log.Logger) *record {
 	if globalRecord == nil {
 		globalRecord = &record{
-			logger : l,
-			body: make(map[p2p.Peer]*sendStatus),
+			logger: l,
 		}
-		//采取定期打印log的方式
-		go globalRecord.GoLog()
-
 	}
 	return globalRecord
 }
 
-func (s *record) GoLog()  {
-	ticker := time.NewTicker(2 * time.Second)
-	for {
-		select {
-		case <- ticker.C:
-			s.logger.Info(fmt.Sprintf("damoen log : %s",  s.Detail()))
-		}
-	}
+func (s *record) DoLog(height int64) {
+	s.logger.Info(fmt.Sprintf("damoen log : %s", s.Detail(height)))
+	//height is useless, delete it
+	s.body.Delete(height)
 }
 
 func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if _, ok := s.body[peer]; !ok {
-		s.body[peer] = &sendStatus{
-			TxHeight:   txHeight,
-			PeerHeight: peerHeight,
-		}
-	} else {
-		s.body[peer].TxHeight = txHeight
-		s.body[peer].PeerHeight = peerHeight
+	if txHeight > s.currentHeight {
+		s.currentHeight = txHeight
 	}
-
+	sendTmp := &sendStatus{
+		PeerHeight: peerHeight,
+	}
 	if success {
-		s.body[peer].SuccessSendCount++
+		sendTmp.SuccessSendCount++
 	} else {
-		s.body[peer].FailSendCount++
+		sendTmp.FailSendCount++
 	}
-
+	addr, _ := peer.NodeInfo().NetAddress()
+	peerKey := addr.String()
+	if v, ok := s.body.Load(txHeight); !ok {
+		var peerMap sync.Map
+		peerMap.Store(peerKey, sendTmp)
+		s.body.Store(txHeight, peerMap)
+	} else {
+		//txHeight exist
+		peerMap, ok := v.(sync.Map)
+		if !ok {
+			return
+		}
+		if sendInfoTmp, ok := peerMap.Load(peerKey); !ok {
+			//peer not exist, store
+			s.body.Store(txHeight, sendTmp)
+		} else {
+			sendInfo, ok := sendInfoTmp.(*sendStatus)
+			if !ok {
+				return
+			}
+			sendInfo.PeerHeight = peerHeight
+			if success {
+				sendInfo.SuccessSendCount++
+			} else {
+				sendInfo.FailSendCount++
+			}
+			s.body.Store(txHeight, sendInfo)
+		}
+	}
 }
 
 func (s *record) DelPeer(peer p2p.Peer) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if _, ok := s.body[peer]; !ok {
-		delete(s.body, peer)
+	//delete peer from current height
+	if v, ok := s.body.Load(s.currentHeight); ok {
+		peerMap, ok := v.(sync.Map)
+		if !ok {
+			return
+		}
+		addr, _ := peer.NodeInfo().NetAddress()
+		peerKey := addr.String()
+		peerMap.Delete(peerKey)
 	}
 }
 
-func (s *record) Detail() string {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+func (s *record) Detail(height int64) string {
 	var res string
-	for k, v := range s.body {
-		addr, _ := k.NodeInfo().NetAddress()
-		res += " <peer : " + addr.String()
-		res += fmt.Sprintf(" , SuccessSendCount : %d", v.SuccessSendCount)
-		res += fmt.Sprintf(" , FailSendCount : %d", v.FailSendCount)
-		res += fmt.Sprintf(" , TxHeight : %d", v.TxHeight)
-		res += fmt.Sprintf(" , PeerHeight : %d> ", v.PeerHeight)
+	if v, ok := s.body.Load(height); !ok {
+		res = fmt.Sprintf("height : %d has no tx broadcast info")
+	} else {
+		peerMap, ok := v.(sync.Map)
+		if !ok {
+			res = ""
+			return res
+		}
+		peerMap.Range(func(k, v interface{}) bool {
+			addr, ok := k.(string)
+			if !ok {
+				res += "peer addr is wrong"
+				return false
+			}
+			res += " <peer : " + addr
+			info, ok := v.(*sendStatus)
+			if !ok {
+				res += "peer sendInfo is wrong"
+				return false
+			}
+			res += fmt.Sprintf(" , SuccessSendCount : %d", info.SuccessSendCount)
+			res += fmt.Sprintf(" , FailSendCount : %d", info.FailSendCount)
+			res += fmt.Sprintf(" , TxHeight : %d", height)
+			res += fmt.Sprintf(" , PeerHeight : %d> ", info.PeerHeight)
+			return true
+		})
 	}
-
 	return res
 }
