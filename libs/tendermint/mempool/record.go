@@ -32,7 +32,7 @@ func GetGlobalRecord(l log.Logger) *record {
 }
 
 func (s *record) DoLog() {
-	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s",  s.Detail()))
+	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s",  s.currentHeight, s.Detail()))
 	//height is useless, delete it
 	s.body.Delete(s.currentHeight)
 }
