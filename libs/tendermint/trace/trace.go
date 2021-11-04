@@ -19,6 +19,12 @@ const (
 	Evm         = "Evm"
 	Iavl        = "Iavl"
 	DeliverTxs  = "DeliverTxs"
+
+
+	Abci       = "abci"
+	SaveResp   = "saveResp"
+	Persist    = "persist"
+	SaveState  = "saveState"
 )
 
 type IElapsedTimeInfos interface {

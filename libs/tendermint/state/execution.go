@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/viper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
@@ -13,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -160,7 +160,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
-	trc.Pin("abci")
+	trc.Pin(trace.Abci)
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
@@ -180,7 +180,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-	trc.Pin("saveResp")
+	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
 	SaveABCIResponses(blockExec.db, block.Height, abciResponses)
@@ -210,7 +210,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	trc.Pin("persist")
+	trc.Pin(trace.Persist)
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
@@ -226,7 +226,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-	trc.Pin("saveState")
+	trc.Pin(trace.SaveState)
 
 	// Update the app hash and save the state.
 	state.AppHash = appHash
