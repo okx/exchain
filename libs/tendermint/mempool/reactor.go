@@ -204,7 +204,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
 		if !memR.IsRunning() || !peer.IsRunning() {
-
 			return
 		}
 		// This happens because the CElement we were looking at got garbage
@@ -233,7 +232,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			// different every time due to us using a map. Sometimes other reactors
 			// will be initialized before the consensus reactor. We should wait a few
 			// milliseconds and retry.
-
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
