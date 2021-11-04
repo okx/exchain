@@ -143,7 +143,7 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block,
 ) (State, int64, error) {
-	if ApplyBlockPprof {
+	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}

@@ -153,8 +153,7 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 
-	cmd.Flags().Bool(state.FlagApplyBlockPprof, false, "Enable pprof when executing ApplyBlock")
-	cmd.Flags().Int(state.FlagApplyBlockPprofTime, 8000, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
+	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
@@ -332,7 +331,6 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
-	state.ApplyBlockPprof = viper.GetBool(state.FlagApplyBlockPprof)
 	state.HomeDir = viper.GetString(cli.HomeFlag)
 
 	abci.SetDisableQueryMutex(viper.GetBool(abci.FlagDisableQueryMutex))

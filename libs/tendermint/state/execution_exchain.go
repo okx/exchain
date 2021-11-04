@@ -11,15 +11,13 @@ import (
 )
 
 const (
-	FlagApplyBlockPprof = "applyblock-pprof"
 	FlagApplyBlockPprofTime = "applyblock-pprof-time"
 )
 
 var (
 	IgnoreSmbCheck bool = false
 
-	ApplyBlockPprof bool = false
-	ApplyBlockPprofTime  = 8000
+	ApplyBlockPprofTime  = -1
 	HomeDir = ""
 	tmpPprofName = "tmp.cpu.pprof"
 )
