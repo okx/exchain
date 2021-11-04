@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-var globalRecord *record
+var globalRecord *recorder
 
 type sendStatus struct {
 	PeerKey          string
@@ -17,15 +17,15 @@ type sendStatus struct {
 	FailSendCount    int64
 }
 
-type record struct {
+type recorder struct {
 	logger        log.Logger
 	body          sync.Map
 	currentHeight int64
 }
 
-func GetGlobalRecord(l log.Logger) *record {
+func GetGlobalRecord(l log.Logger) *recorder {
 	if globalRecord == nil {
-		globalRecord = &record{
+		globalRecord = &recorder{
 			logger: l,
 		}
 	}
@@ -33,7 +33,7 @@ func GetGlobalRecord(l log.Logger) *record {
 	return globalRecord
 }
 
-func (s *record) DoLog() {
+func (s *recorder) DoLog() {
 	if s.currentHeight == 0 {
 		s.logger.Info("mp broadcast log is empty, no mp tx broadcast send log")
 		return
@@ -45,7 +45,7 @@ func (s *record) DoLog() {
 	s.currentHeight = 0
 }
 
-func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64) {
+func (s *recorder) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64) {
 	if txHeight > s.currentHeight {
 		s.currentHeight = txHeight
 	}
@@ -93,7 +93,7 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 	}
 }
 
-func (s *record) DelPeer(peer p2p.Peer) {
+func (s *recorder) DelPeer(peer p2p.Peer) {
 	//delete peer from current height
 	if v, ok := s.body.Load(s.currentHeight); ok {
 		peerMap, ok := v.(sync.Map)
@@ -106,7 +106,7 @@ func (s *record) DelPeer(peer p2p.Peer) {
 	}
 }
 
-func (s *record) Detail() string {
+func (s *recorder) Detail() string {
 	var res string
 	var sends []sendStatus
 
@@ -132,10 +132,6 @@ func (s *record) Detail() string {
 				FailSendCount:    info.FailSendCount,
 			})
 
-			//res += fmt.Sprintf(" , SuccessSendCount : %d", info.SuccessSendCount)
-			//res += fmt.Sprintf(" , FailSendCount : %d", info.FailSendCount)
-			//res += fmt.Sprintf(" , TxHeight : %d", s.currentHeight)
-			//res += fmt.Sprintf(" , PeerHeight : %d> ", info.PeerHeight)
 			return true
 		})
 	}
