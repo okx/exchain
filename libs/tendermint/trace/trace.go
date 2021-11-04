@@ -27,6 +27,7 @@ const (
 	SaveState  = "saveState"
 
 	ApplyBlock = "ApplyBlock"
+	Consensus  = "Consensus"
 )
 
 type IElapsedTimeInfos interface {

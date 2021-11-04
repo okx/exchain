@@ -174,7 +174,7 @@ func NewState(
 		evpool:           evpool,
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
-		trc:              trace.NewTracer("Consensus"),
+		trc:              trace.NewTracer(trace.Consensus),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
