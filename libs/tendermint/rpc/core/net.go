@@ -2,8 +2,6 @@ package core
 
 import (
 	"fmt"
-	"runtime/debug"
-
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -41,7 +39,6 @@ func NetInfo(ctx *rpctypes.Context) (*ctypes.ResultNetInfo, error) {
 
 // UnsafeDialSeeds dials the given seeds (comma-separated id@IP:PORT).
 func UnsafeDialSeeds(ctx *rpctypes.Context, seeds []string) (*ctypes.ResultDialSeeds, error) {
-	debug.PrintStack()
 	if len(seeds) == 0 {
 		return &ctypes.ResultDialSeeds{}, errors.New("no seeds provided")
 	}
@@ -60,7 +57,6 @@ func UnsafeDialPeers(ctx *rpctypes.Context, peers []string, persistent bool) (*c
 	}
 	env.Logger.Info("DialPeers", "peers", peers, "persistent", persistent)
 	if persistent {
-		env.Logger.Info("UnsafeDialPeers stack : %s ", string(debug.Stack()))
 		if err := env.P2PPeers.AddPersistentPeers(peers); err != nil {
 			return &ctypes.ResultDialPeers{}, err
 		}
