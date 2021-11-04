@@ -41,8 +41,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	maxGas := app.getMaximumBlockGas()
-
-	sumGas := uint64(0)
+	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
 		if maxGas <= 0 {
 			return false
@@ -59,30 +58,29 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	txIndex := 0
 	txReps := make([]*executeResult, len(txs))
 	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
+
 	asyncCb := func(execRes *executeResult) {
 		txReps[execRes.GetCounter()] = execRes
 		for txReps[txIndex] != nil {
 			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
-
 			res := txReps[txIndex]
-			if res.Conflict(asCache) || overFlow(sumGas, txReps[txIndex].resp.GasUsed, maxGas) {
+			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				s.reRun = true
-				res = app.deliverTxWithCache(abci.RequestDeliverTx{Tx: txs[res.GetCounter()]})
+				res = app.deliverTxWithCache(abci.RequestDeliverTx{Tx: txs[txIndex]})
 
 			}
+
 			txRs := res.GetResponse()
 			deliverTxs[txIndex] = &txRs
 			res.Collect(asCache)
 			res.Commit()
+
 			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
-			if s.anteErr != nil {
-				app.logger.Error("paralleled-tx", "txIndex", txIndex, "anteErr", s.anteErr)
-			}
-			sumGas += uint64(res.resp.GasUsed)
 
+			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
 				ParaLog.Update(uint64(app.deliverState.ctx.BlockHeight()), len(txs), rerunIdx)
@@ -372,15 +370,15 @@ func init() {
 type parallelBlockInfo struct {
 	height   uint64
 	txs      int
-	reRunCnt int
+	reRunTxs int
 }
 
-func (p parallelBlockInfo) bigger(n parallelBlockInfo) bool {
-	return 1-float64(p.reRunCnt)/float64(p.txs) > 1-float64(n.reRunCnt)/float64(n.txs)
+func (p parallelBlockInfo) better(n parallelBlockInfo) bool {
+	return 1-float64(p.reRunTxs)/float64(p.txs) > 1-float64(n.reRunTxs)/float64(n.txs)
 }
 
-func (p parallelBlockInfo) small(n parallelBlockInfo) bool {
-	return 1-float64(p.reRunCnt)/float64(p.txs) < 1-float64(n.reRunCnt)/float64(n.txs)
+func (p parallelBlockInfo) string() string {
+	return fmt.Sprintf("Height:%d Txs %d ReRunTxs %d", p.height, p.txs, p.reRunTxs)
 }
 
 type LogForParallel struct {
@@ -401,12 +399,12 @@ func NewLogForParallel() *LogForParallel {
 		bestBlock: parallelBlockInfo{
 			height:   0,
 			txs:      0,
-			reRunCnt: 0,
+			reRunTxs: 0,
 		},
 		terribleBlock: parallelBlockInfo{
 			height:   0,
 			txs:      0,
-			reRunCnt: 0,
+			reRunTxs: 0,
 		},
 	}
 }
@@ -420,7 +418,7 @@ func (l *LogForParallel) Update(height uint64, txs int, reRunCnt int) {
 		return
 	}
 
-	info := parallelBlockInfo{height: height, txs: txs, reRunCnt: reRunCnt}
+	info := parallelBlockInfo{height: height, txs: txs, reRunTxs: reRunCnt}
 	if !l.init {
 		l.bestBlock = info
 		l.terribleBlock = info
@@ -428,18 +426,19 @@ func (l *LogForParallel) Update(height uint64, txs int, reRunCnt int) {
 		return
 	}
 
-	if l.bestBlock.small(info) {
+	if info.better(l.bestBlock) {
 		l.bestBlock = info
 	}
-	if l.terribleBlock.bigger(info) {
+	if l.terribleBlock.better(info) {
 		l.terribleBlock = info
 	}
 }
 
 func (l *LogForParallel) PrintLog() {
 	fmt.Println("BlockNumbers", l.blockNumbers)
-	fmt.Println("AllCnt", l.sumTx)
-	fmt.Println("ReRunCnt", l.reRunTx)
-	fmt.Println("BestBlock", l.bestBlock, "Concurrency Rate", 1-float64(l.bestBlock.reRunCnt)/float64(l.bestBlock.txs))
-	fmt.Println("TerribleBlock", l.terribleBlock, "Concurrency Rate", 1-float64(l.terribleBlock.reRunCnt)/float64(l.terribleBlock.txs))
+	fmt.Println("AllTxs", l.sumTx)
+	fmt.Println("ReRunTxs", l.reRunTx)
+	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
+	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
+	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
 }
