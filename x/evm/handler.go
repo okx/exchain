@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -59,32 +60,32 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}
 
 	// parse the chainID from a string to a base-10 integer
-	StartTxLog("evm_handler")
-	defer StopTxLog("evm_handler")
+	StartTxLog(bam.EvmHandler)
+	defer StopTxLog(bam.EvmHandler)
 
-	StartTxLog("ParseChainID")
+	StartTxLog(bam.ParseChainID)
 	chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err
 	}
-	StopTxLog("ParseChainID")
+	StopTxLog(bam.ParseChainID)
 
 	// Verify signature and retrieve sender address
 
-	StartTxLog("VerifySig")
+	StartTxLog(bam.VerifySig)
 	senderSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return nil, err
 	}
-	StopTxLog("VerifySig")
+	StopTxLog(bam.VerifySig)
 
-	StartTxLog("txhash")
+	StartTxLog(bam.Txhash)
 	sender := senderSigCache.GetFrom()
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
-	StopTxLog("txhash")
+	StopTxLog(bam.Txhash)
 
-	StartTxLog("SaveTx")
+	StartTxLog(bam.SaveTx)
 	st := types.StateTransition{
 		AccountNonce: msg.Data.AccountNonce,
 		Price:        msg.Data.Price,
@@ -116,11 +117,11 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	StopTxLog("SaveTx")
+	StopTxLog(bam.SaveTx)
 
 	defer func() {
-		StartTxLog("handler_defer")
-		defer StopTxLog("handler_defer")
+		StartTxLog(bam.HandlerDefer)
+		defer StopTxLog(bam.HandlerDefer)
 
 		if !st.Simulate && k.Watcher.Enabled() {
 			currentGasMeter := ctx.GasMeter()
@@ -146,7 +147,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 	}()
 
-	StartTxLog("TransitionDb")
+	StartTxLog(bam.TransitionDb)
 	executionResult, resultData, err := st.TransitionDb(ctx, config)
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
@@ -161,9 +162,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		}
 		return nil, err
 	}
-	StopTxLog("TransitionDb")
+	StopTxLog(bam.TransitionDb)
 
-	StartTxLog("Bloomfilter")
+	StartTxLog(bam.Bloomfilter)
 	if !st.Simulate {
 		// update block bloom filter
 		if !ctx.IsAsync() {
@@ -179,9 +180,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			})
 		}
 	}
-	StopTxLog("Bloomfilter")
+	StopTxLog(bam.Bloomfilter)
 
-	StartTxLog("EmitEvents")
+	StartTxLog(bam.EmitEvents)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -206,7 +207,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 
 	// set the events to the result
 	executionResult.Result.Events = ctx.EventManager().Events()
-	StopTxLog("EmitEvents")
+	StopTxLog(bam.EmitEvents)
 	return executionResult.Result, nil
 }
 
