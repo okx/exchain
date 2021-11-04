@@ -51,7 +51,7 @@ func (s *recorder) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int
 	}
 
 	addr, err := peer.NodeInfo().NetAddress()
-	if err != nil{
+	if err != nil {
 		return
 	}
 	peerKey := addr.String()
@@ -117,7 +117,10 @@ func (s *recorder) Detail() string {
 	if len(res) != 0 {
 		return res
 	}
-	sendsJ, _ := json.Marshal(sends)
+	sendsJ, err := json.Marshal(sends)
+	if err != nil {
+		return err.Error()
+	}
 	res = string(sendsJ)
 	return res
 }
