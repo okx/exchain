@@ -766,10 +766,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	// NOTE: This must exist in a separate defer function for the above recovery
 	// to recover from this one.
 	defer func() {
-
 		app.pin(ConsumeGas, true, mode)
 		defer app.pin(ConsumeGas, false, mode)
-		if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+		if mode == runTxModeDeliver || app.parallelTxManage.isReRun(string(txBytes)) {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)
@@ -800,7 +799,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			}
 			msCache.Write()
 			if mode == runTxModeDeliverInAsync {
-				app.parallelTxManage.SetRefundFee(string(txBytes), refundGas)
+				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
 		}
 

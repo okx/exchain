@@ -6,10 +6,10 @@ import (
 	"errors"
 	"strconv"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -261,6 +261,28 @@ func (q Querier) getTransactionByBlockAndIndex(block *EthBlock, idx uint) (*rpct
 		}
 	}
 	return nil, errors.New("no such transaction in target block")
+}
+
+func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*rpctypes.Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	block, err := q.GetBlockByNumber(number, true)
+	if err != nil {
+		return nil, err
+	}
+	if block.Transactions == nil {
+		return nil, errors.New("no such transaction in target block")
+	}
+
+	rawTxs := block.Transactions.([]rpctypes.Transaction)
+	var txs []*rpctypes.Transaction
+	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+		rawTx := rawTxs[idx]
+		txs = append(txs, &rawTx)
+	}
+
+	return txs, nil
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
