@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -32,6 +32,31 @@ func TestStdTx(t *testing.T) {
 
 	feePayer := tx.GetSigners()[0]
 	require.Equal(t, addr, feePayer)
+}
+
+func TestStdTxUnmarshalFromAmino(t *testing.T) {
+	cdc := ModuleCdc
+	sdk.RegisterCodec(cdc)
+	cdc.RegisterConcrete(sdk.TestMsg2{}, "cosmos-sdk/Test2", nil)
+
+	msgs := []sdk.Msg{sdk.NewTestMsg2(addr)}
+	fee := NewTestStdFee()
+	sigs := []StdSignature{}
+
+	tx := NewStdTx(msgs, fee, sigs, "")
+	txBytes, err := cdc.MarshalBinaryBare(tx)
+	require.NoError(t, err)
+
+	tx2 := StdTx{}
+	err = cdc.UnmarshalBinaryBare(txBytes, &tx2)
+	require.NoError(t, err)
+
+	tx3 := StdTx{}
+	v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(txBytes, &tx3)
+	require.NoError(t, err)
+	tx3 = *v.(*StdTx)
+
+	require.EqualValues(t, tx2, tx3)
 }
 
 func TestStdSignBytes(t *testing.T) {

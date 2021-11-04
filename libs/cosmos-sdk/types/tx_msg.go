@@ -86,3 +86,28 @@ func (msg *TestMsg) ValidateBasic() error { return nil }
 func (msg *TestMsg) GetSigners() []AccAddress {
 	return msg.signers
 }
+
+type TestMsg2 struct {
+	Signers []AccAddress
+}
+
+func NewTestMsg2(addrs ...AccAddress) *TestMsg2 {
+	return &TestMsg2{
+		Signers: addrs,
+	}
+}
+
+//nolint
+func (msg TestMsg2) Route() string { return "TestMsg" }
+func (msg TestMsg2) Type() string  { return "Test message" }
+func (msg TestMsg2) GetSignBytes() []byte {
+	bz, err := json.Marshal(msg.Signers)
+	if err != nil {
+		panic(err)
+	}
+	return MustSortJSON(bz)
+}
+func (msg TestMsg2) ValidateBasic() error { return nil }
+func (msg TestMsg2) GetSigners() []AccAddress {
+	return msg.Signers
+}
