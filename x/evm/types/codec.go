@@ -11,18 +11,36 @@ import (
 // ModuleCdc defines the evm module's codec
 var ModuleCdc = codec.New()
 
+const (
+	MsgEthereumTxName = "ethermint/MsgEthereumTx"
+	ChainConfigName   = "ethermint/ChainConfig"
+	MsgEthermintName  = "ethermint/MsgEthermint"
+	TxDataName        = "ethermint/TxData"
+
+	ManageContractDeploymentWhitelistProposalName = "okexchain/evm/ManageContractDeploymentWhitelistProposal"
+	ManageContractBlockedListProposalName         = "okexchain/evm/ManageContractBlockedListProposal"
+)
+
 // RegisterCodec registers all the necessary types and interfaces for the
 // evm module
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgEthereumTx{}, "ethermint/MsgEthereumTx", nil)
-	cdc.RegisterConcrete(MsgEthermint{}, "ethermint/MsgEthermint", nil)
-	cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
-	cdc.RegisterConcrete(ChainConfig{}, "ethermint/ChainConfig", nil)
-	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal", nil)
-	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal", nil)
+	cdc.RegisterConcrete(MsgEthereumTx{}, MsgEthereumTxName, nil)
+	cdc.RegisterConcrete(MsgEthermint{}, MsgEthermintName, nil)
+	cdc.RegisterConcrete(TxData{}, TxDataName, nil)
+	cdc.RegisterConcrete(ChainConfig{}, ChainConfigName, nil)
+	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, ManageContractDeploymentWhitelistProposalName, nil)
+	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, ManageContractBlockedListProposalName, nil)
 
-	cdc.RegisterConcreteUnmarshaller("ethermint/ChainConfig", func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
+	cdc.RegisterConcreteUnmarshaller(ChainConfigName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		return UnmarshalChainConfigFromAmino(c, bytes)
+	})
+	cdc.RegisterConcreteUnmarshaller(MsgEthereumTxName, func(_ *amino.Codec, bytes []byte) (interface{}, int, error) {
+		var msg MsgEthereumTx
+		err := msg.UnmarshalFromAmino(bytes)
+		if err != nil {
+			return nil, 0, err
+		}
+		return &msg, len(bytes), nil
 	})
 }
 

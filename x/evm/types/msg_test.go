@@ -3,17 +3,18 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
+
 	"github.com/stretchr/testify/require"
 
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -259,6 +260,58 @@ func TestMsgEthereumTxGetter(t *testing.T) {
 	require.True(t, expectedV.Cmp(v) == 0)
 	require.True(t, expectedR.Cmp(r) == 0)
 	require.True(t, expectedS.Cmp(s) == 0)
+}
+
+func TestMsgEthermintTxUnmarshal(t *testing.T) {
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
+	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
+	err := msg.Sign(big.NewInt(3), priv.ToECDSA())
+	require.NoError(t, err)
+
+	raw, err := ModuleCdc.MarshalBinaryBare(msg)
+	require.NoError(t, err)
+
+	var msg2 MsgEthereumTx
+	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
+	require.NoError(t, err)
+
+	var msg3 MsgEthereumTx
+	v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(raw, &msg3)
+	require.NoError(t, err)
+	msg3 = *v.(*MsgEthereumTx)
+	require.EqualValues(t, msg2, msg3)
+}
+
+func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
+	cdc := ModuleCdc
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
+	msg := NewMsgEthereumTx(0, &addr, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte("test"))
+	_ = msg.Sign(big.NewInt(3), priv.ToECDSA())
+
+	raw, _ := cdc.MarshalBinaryBare(msg)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.Run("amino", func(b *testing.B) {
+		var msg2 MsgEthereumTx
+		err := cdc.UnmarshalBinaryBare(raw, &msg2)
+		if err != nil {
+			b.Fatal(err)
+		}
+	})
+
+	b.Run("unmarshaller", func(b *testing.B) {
+		var msg3 MsgEthereumTx
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(raw, &msg3)
+		if err != nil {
+			b.Fatal(err)
+		}
+		msg3 = *v.(*MsgEthereumTx)
+	})
 }
 
 func TestMarshalAndUnmarshalLogs(t *testing.T) {

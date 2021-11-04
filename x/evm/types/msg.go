@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 
@@ -509,4 +511,46 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 // GetGasPrice return gas price
 func (msg MsgEthereumTx) GetGasPrice() *big.Int {
 	return msg.Data.Price
+}
+
+func (msg *MsgEthereumTx) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid tx data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			if err := msg.Data.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
