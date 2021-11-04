@@ -147,7 +147,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
-	trc := trace.NewTracer()
+	trc := trace.NewTracer(trace.ApplyBlock)
 
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.Height, fmt.Sprintf("%d", block.Height))

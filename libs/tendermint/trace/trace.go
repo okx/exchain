@@ -25,6 +25,8 @@ const (
 	SaveResp   = "saveResp"
 	Persist    = "persist"
 	SaveState  = "saveState"
+
+	ApplyBlock = "ApplyBlock"
 )
 
 type IElapsedTimeInfos interface {
@@ -46,14 +48,16 @@ func GetElapsedInfo() IElapsedTimeInfos {
 	return elapsedInfo
 }
 
-func NewTracer() *Tracer {
+func NewTracer(name string) *Tracer {
 	t := &Tracer{
 		startTime: time.Now().UnixNano(),
+		name: name,
 	}
 	return t
 }
 
 type Tracer struct {
+	name             string
 	startTime        int64
 	lastPin          string
 	lastPinStartTime int64
@@ -96,7 +100,8 @@ func (t *Tracer) Format() string {
 
 	now := time.Now().UnixNano()
 	t.elapsedTime = (now - t.startTime) / 1e6
-	info := fmt.Sprintf("%s<%dms>",
+	info := fmt.Sprintf("%s%s<%dms>",
+		t.name,
 		Elapsed,
 		t.elapsedTime,
 	)
