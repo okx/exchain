@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -10,9 +11,10 @@ import (
 var globalRecord *record
 
 type sendStatus struct {
+	PeerKey          string
+	PeerHeight       int64
 	SuccessSendCount int64
 	FailSendCount    int64
-	PeerHeight       int64
 }
 
 type record struct {
@@ -33,10 +35,11 @@ func GetGlobalRecord(l log.Logger) *record {
 
 func (s *record) DoLog() {
 	if s.currentHeight == 0 {
-		s.logger.Info("damoen log current height is 0, no send info log")
+		s.logger.Info("mp broadcast log is empty, no mp tx broadcast send log")
 		return
 	}
-	s.logger.Info(fmt.Sprintf("damoen log height :%d, detail : %s", s.currentHeight, s.Detail()))
+
+	s.logger.Info(fmt.Sprintf("mp broadcast log height :%d, detail : %s", s.currentHeight, s.Detail()))
 	//height is useless, delete it
 	s.body.Delete(s.currentHeight)
 	s.currentHeight = 0
@@ -46,7 +49,12 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 	if txHeight > s.currentHeight {
 		s.currentHeight = txHeight
 	}
+	var peerMap sync.Map
+	addr, _ := peer.NodeInfo().NetAddress()
+	peerKey := addr.String()
+
 	sendTmp := &sendStatus{
+		PeerKey:    peerKey,
 		PeerHeight: peerHeight,
 	}
 	if success {
@@ -54,11 +62,9 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 	} else {
 		sendTmp.FailSendCount++
 	}
-	addr, _ := peer.NodeInfo().NetAddress()
-	peerKey := addr.String()
+	peerMap.Store(peerKey, sendTmp)
+
 	if v, ok := s.body.Load(s.currentHeight); !ok {
-		var peerMap sync.Map
-		peerMap.Store(peerKey, sendTmp)
 		s.body.Store(s.currentHeight, peerMap)
 	} else {
 		//txHeight exist
@@ -67,8 +73,8 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 			return
 		}
 		if sendInfoTmp, ok := peerMap.Load(peerKey); !ok {
-			//peer not exist, store
-			s.body.Store(s.currentHeight, sendTmp)
+			peerMap.Store(peerKey, sendTmp)
+			s.body.Store(s.currentHeight, peerMap)
 		} else {
 			sendInfo, ok := sendInfoTmp.(*sendStatus)
 			if !ok {
@@ -80,7 +86,9 @@ func (s *record) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int64
 			} else {
 				sendInfo.FailSendCount++
 			}
-			s.body.Store(s.currentHeight, sendInfo)
+
+			peerMap.Store(peerKey, sendInfo)
+			s.body.Store(s.currentHeight, peerMap)
 		}
 	}
 }
@@ -100,32 +108,42 @@ func (s *record) DelPeer(peer p2p.Peer) {
 
 func (s *record) Detail() string {
 	var res string
+	var sends []sendStatus
+
 	if v, ok := s.body.Load(s.currentHeight); !ok {
 		res = fmt.Sprintf("log record curret height : %d has no tx broadcast info", s.currentHeight)
 	} else {
 		peerMap, ok := v.(sync.Map)
 		if !ok {
-			res = ""
+			res = "peerMap type wrong"
 			return res
 		}
 		peerMap.Range(func(k, v interface{}) bool {
-			addr, ok := k.(string)
-			if !ok {
-				res += "peer addr is wrong"
-				return false
-			}
-			res += " <peer : " + addr
 			info, ok := v.(*sendStatus)
 			if !ok {
 				res += "peer sendInfo is wrong"
 				return false
 			}
-			res += fmt.Sprintf(" , SuccessSendCount : %d", info.SuccessSendCount)
-			res += fmt.Sprintf(" , FailSendCount : %d", info.FailSendCount)
-			res += fmt.Sprintf(" , TxHeight : %d", s.currentHeight)
-			res += fmt.Sprintf(" , PeerHeight : %d> ", info.PeerHeight)
+
+			sends = append(sends, sendStatus{
+				PeerKey:          info.PeerKey,
+				PeerHeight:       s.currentHeight,
+				SuccessSendCount: info.SuccessSendCount,
+				FailSendCount:    info.FailSendCount,
+			})
+
+			//res += fmt.Sprintf(" , SuccessSendCount : %d", info.SuccessSendCount)
+			//res += fmt.Sprintf(" , FailSendCount : %d", info.FailSendCount)
+			//res += fmt.Sprintf(" , TxHeight : %d", s.currentHeight)
+			//res += fmt.Sprintf(" , PeerHeight : %d> ", info.PeerHeight)
 			return true
 		})
 	}
+
+	if len(res) != 0 {
+		return res
+	}
+	sendsJ, _ := json.Marshal(sends)
+	res = string(sendsJ)
 	return res
 }
