@@ -4,6 +4,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"os"
 	"runtime/pprof"
 
@@ -151,6 +152,9 @@ which accepts a path for the resulting pprof file.
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
+
+	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
+
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
 	viper.BindPFlag(FlagTrace, cmd.Flags().Lookup(FlagTrace))
@@ -325,6 +329,9 @@ func setExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
 	tmdb.LevelDBCacheSize = viper.GetInt(tmdb.FlagLevelDBCacheSize)
 	tmdb.LevelDBHandlersNum = viper.GetInt(tmdb.FlagLevelDBHandlersNum)
+
+	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
+	state.HomeDir = viper.GetString(cli.HomeFlag)
 
 	abci.SetDisableQueryMutex(viper.GetBool(abci.FlagDisableQueryMutex))
 	abci.SetDisableCheckTxMutex(viper.GetBool(abci.FlagDisableCheckTxMutex))
