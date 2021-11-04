@@ -35,7 +35,7 @@ func GetGlobalRecord(l log.Logger) *recorder {
 
 func (s *recorder) DoLog() {
 	if s.currentHeight == 0 {
-		s.logger.Info("mp broadcast log is empty, no mp tx broadcast send log")
+	//	s.logger.Info("mp broadcast log is empty, no mp tx broadcast send log")
 		return
 	}
 
