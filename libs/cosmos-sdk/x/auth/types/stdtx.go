@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	yaml "gopkg.in/yaml.v2"
@@ -29,6 +32,71 @@ type StdTx struct {
 	Fee        StdFee         `json:"fee" yaml:"fee"`
 	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
 	Memo       string         `json:"memo" yaml:"memo"`
+}
+
+func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid pbType: %v", pbType)
+		}
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid tx data")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			var msg sdk.Msg
+			v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(subData, &msg)
+			if err != nil {
+				err = cdc.UnmarshalBinaryBare(subData, &msg)
+				if err != nil {
+					return err
+				} else {
+					tx.Msgs = append(tx.Msgs, msg)
+				}
+			} else {
+				tx.Msgs = append(tx.Msgs, v.(sdk.Msg))
+			}
+		case 2:
+			if err := tx.Fee.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 3:
+			var sig StdSignature
+			if err := sig.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+			tx.Signatures = append(tx.Signatures, sig)
+		case 4:
+			tx.Memo = string(subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }
 
 func NewStdTx(msgs []sdk.Msg, fee StdFee, sigs []StdSignature, memo string) StdTx {
@@ -235,6 +303,56 @@ func (fee StdFee) GasPrices() sdk.DecCoins {
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
 }
 
+func (fee *StdFee) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+
+		data = data[1:]
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid tx data")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			coin, err := sdk.UnmarshalCoinFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			fee.Amount = append(fee.Amount, coin)
+		case 2:
+			var n int
+			fee.Gas, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 //__________________________________________________________
 
 // StdSignDoc is replay-prevention structure.
@@ -331,4 +449,52 @@ func (ss StdSignature) MarshalYAML() (interface{}, error) {
 	}
 
 	return string(bz), err
+}
+
+func (ss *StdSignature) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("invalid field type in StdSignature")
+		}
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid tx data")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			ss.PubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			if err != nil {
+				return err
+			}
+		case 2:
+			ss.Signature = make([]byte, dataLen)
+			copy(ss.Signature, subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
 }

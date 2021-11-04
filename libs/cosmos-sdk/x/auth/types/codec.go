@@ -17,6 +17,15 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
 	cdc.RegisterConcrete(&BaseAccount{}, "cosmos-sdk/Account", nil)
 	cdc.RegisterConcrete(StdTx{}, "cosmos-sdk/StdTx", nil)
+
+	cdc.RegisterConcreteUnmarshaller("cosmos-sdk/StdTx", func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
+		var tx StdTx
+		err := tx.UnmarshalFromAmino(c, bytes)
+		if err != nil {
+			return nil, 0, err
+		}
+		return &tx, len(bytes), nil
+	})
 }
 
 // RegisterAccountTypeCodec registers an external account type defined in
