@@ -100,9 +100,8 @@ func (t *Tracer) Format() string {
 
 	now := time.Now().UnixNano()
 	t.elapsedTime = (now - t.startTime) / 1e6
-	info := fmt.Sprintf("%s%s<%dms>",
+	info := fmt.Sprintf("%s<%dms>",
 		t.name,
-		Elapsed,
 		t.elapsedTime,
 	)
 	for i := range t.pins {
