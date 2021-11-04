@@ -244,7 +244,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		go func() {
 			txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
 			if !txStatus.isEvmTx {
-				asyncExe := NewExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
+				asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex)
 				app.parallelTxManage.workgroup.Push(asyncExe)
 				return
 			}
@@ -252,7 +252,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			var resp abci.ResponseDeliverTx
 			g, r, m, e := app.runTx(runTxModeDeliverInAsync, req.Tx, tx, LatestSimulateTxHeight)
 			if e != nil {
-				resp = sdkerrors.ResponseDeliverTx(e, 0, 0, app.trace)
+				resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 			} else {
 				resp = abci.ResponseDeliverTx{
 					GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
@@ -263,7 +263,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 				}
 			}
 
-			asyncExe := NewExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+			asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
 			asyncExe.err = e
 			app.parallelTxManage.workgroup.Push(asyncExe)
 		}()
