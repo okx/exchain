@@ -50,7 +50,10 @@ func (s *recorder) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int
 		s.currentHeight = txHeight
 	}
 
-	addr, _ := peer.NodeInfo().NetAddress()
+	addr, err := peer.NodeInfo().NetAddress()
+	if err != nil{
+		return
+	}
 	peerKey := addr.String()
 
 	sendTmp := &sendStatus{
@@ -82,7 +85,10 @@ func (s *recorder) AddPeer(peer p2p.Peer, success bool, txHeight, peerHeight int
 }
 
 func (s *recorder) DelPeer(peer p2p.Peer) {
-	addr, _ := peer.NodeInfo().NetAddress()
+	addr, err := peer.NodeInfo().NetAddress()
+	if err != nil {
+		return
+	}
 	peerKey := addr.String()
 	s.body.Delete(peerKey)
 }
