@@ -235,7 +235,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
-		//
+
 		if peerState.GetHeight() < memTx.Height()-1 { // Allow for a lag of 1 block
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
