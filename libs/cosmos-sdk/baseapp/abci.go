@@ -219,20 +219,20 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
 // gas execution context.
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-	app.pin("DeliverTx", true, runTxModeDeliver)
-	defer app.pin("DeliverTx", false, runTxModeDeliver)
+	app.pin(DeliverTx, true, runTxModeDeliver)
+	defer app.pin(DeliverTx, false, runTxModeDeliver)
 
-	app.pin("txdecoder", true, runTxModeDeliver)
+	app.pin(TxDecoder, true, runTxModeDeliver)
 
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 	}
 
-	app.pin("txdecoder", false, runTxModeDeliver)
+	app.pin(TxDecoder, false, runTxModeDeliver)
 
-	app.pin("run_tx", true, runTxModeDeliver)
-	defer app.pin("run_tx", false, runTxModeDeliver)
+	app.pin(RunTx, true, runTxModeDeliver)
+	defer app.pin(RunTx, false, runTxModeDeliver)
 
 	var (
 		gInfo  sdk.GasInfo
