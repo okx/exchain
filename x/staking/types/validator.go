@@ -6,6 +6,10 @@ import (
 	"strings"
 	"time"
 
+	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+
+	"github.com/tendermint/go-amino"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -245,6 +249,104 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		UnbondingCompletionTime: bv.UnbondingCompletionTime,
 		Commission:              bv.Commission,
 		MinSelfDelegation:       bv.MinSelfDelegation,
+	}
+	return nil
+}
+
+func (v *Validator) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+	var unbondingCompletionTimeUpdated bool
+
+	for {
+		data = data[dataLen:]
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			if len(data) < int(dataLen) {
+				return fmt.Errorf("invalid data len")
+			}
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			v.OperatorAddress = make([]byte, dataLen)
+			copy(v.OperatorAddress, subData)
+		case 2:
+			v.ConsPubKey, err = cryptoamino.UnmarshalPubKeyFromAminoWithTypePrefix(subData)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if data[0] == 0 {
+				v.Jailed = false
+			} else if data[0] == 1 {
+				v.Jailed = true
+			} else {
+				return fmt.Errorf("Validator : Jailed, invalid data")
+			}
+			dataLen = 1
+		case 4:
+			status, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			v.Status = sdk.BondStatus(status)
+			dataLen = uint64(n)
+		case 5:
+			if err = v.Tokens.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 6:
+			if err = v.DelegatorShares.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 7:
+			if err = v.Description.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 8:
+			u64, n, err := amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			v.UnbondingHeight = int64(u64)
+			dataLen = uint64(n)
+		case 9:
+			v.UnbondingCompletionTime, _, err = amino.DecodeTime(subData)
+			if err != nil {
+				return err
+			}
+			unbondingCompletionTimeUpdated = true
+		case 10:
+			if err = v.Commission.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		case 11:
+			if err = v.MinSelfDelegation.UnmarshalFromAmino(subData); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	if !unbondingCompletionTimeUpdated {
+		v.UnbondingCompletionTime = amino.ZeroTime
 	}
 	return nil
 }
