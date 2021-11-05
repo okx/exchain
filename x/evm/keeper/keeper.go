@@ -74,17 +74,18 @@ func NewKeeper(
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
-		cdc:            cdc,
-		storeKey:       storeKey,
-		accountKeeper:  ak,
-		paramSpace:     paramSpace,
-		supplyKeeper:   sk,
-		bankKeeper:     bk,
-		TxCount:        0,
-		Bloom:          big.NewInt(0),
-		LogSize:        0,
-		Watcher:        watcher.NewWatcher(),
-		Ada:            types.DefaultPrefixDb{},
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: ak,
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
+		TxCount:       0,
+		Bloom:         big.NewInt(0),
+		LogSize:       0,
+		Watcher:       watcher.NewWatcher(),
+		Ada:           types.DefaultPrefixDb{},
+
 		innerBlockData: defaultBlockInnerData(),
 	}
 	if k.Watcher.Enabled() {
