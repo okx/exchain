@@ -2,18 +2,19 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"math/big"
+	"strings"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
-	"math/big"
-	"strings"
 )
 
 // GenerateEthAddress generates an Ethereum address.
@@ -107,9 +108,14 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		// sdk.Tx is an interface. The concrete message types
 		// are registered by MakeTxCodec
 		// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-		err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+		v, err := cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx)
 		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+			if err != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+			}
+		} else {
+			tx = v.(sdk.Tx)
 		}
 
 		return tx, nil
