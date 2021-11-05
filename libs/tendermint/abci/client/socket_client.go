@@ -266,14 +266,7 @@ func (cli *socketClient) EndBlockAsync(req types.RequestEndBlock) *ReqRes {
 	return cli.queueRequest(types.ToRequestEndBlock(req))
 }
 
-func (cli *socketClient) PrepareParallelTxs(_ types.AsyncCallBack, _ [][]byte) {
-}
-
-func (cli *socketClient) DeliverTxWithCache(_ types.RequestDeliverTx) types.ExecuteRes {
-	return nil
-}
-
-func (cli *socketClient) EndParallelTxs() [][]byte {
+func (cli *socketClient) ParallelTxs(_ [][]byte) []*types.ResponseDeliverTx {
 	return nil
 }
 
