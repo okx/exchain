@@ -114,6 +114,6 @@ func (s *recorder) Detail() string {
 	if successNum+failedNum > 0 {
 		successRate = float64(successNum) / float64(successNum+failedNum)
 	}
-	res = fmt.Sprintf("peersNum : %d, broadTxNum : %d, successRate : %d", peersNum, successNum+failedNum, successRate)
+	res = fmt.Sprintf("peersNum : %d, broadTxNum : %d, successRate : %f", peersNum, successNum+failedNum, successRate)
 	return res
 }
