@@ -94,7 +94,7 @@ func (s *recorder) DelPeer(peer p2p.Peer) {
 
 func (s *recorder) Detail() string {
 	var res string
-	var peersCount, successCount, failedCount int64
+	var peersNum, successNum, failedNum int64
 	var successRate float64
 	s.body.Range(func(k, v interface{}) bool {
 		info, ok := v.(*sendStatus)
@@ -102,18 +102,18 @@ func (s *recorder) Detail() string {
 			res += "peer sendInfo type wrong"
 			return false
 		}
-		peersCount++
-		successCount += info.SuccessSendCount
-		failedCount += info.FailSendCount
+		peersNum++
+		successNum += info.SuccessSendCount
+		failedNum += info.FailSendCount
 		return true
 	})
 
 	if len(res) != 0 {
 		return res
 	}
-	if successCount + failedCount > 0{
-		successRate = float64(successCount) / float64(successCount + failedCount)
+	if successNum+failedNum > 0 {
+		successRate = float64(successNum) / float64(successNum+failedNum)
 	}
-	res = fmt.Sprintf("peersCount : %d, allSendCount : %d, successRate : %d", peersCount, successCount + failedCount, successRate)
+	res = fmt.Sprintf("peersNum : %d, broadTxNum : %d, successRate : %d", peersNum, successNum+failedNum, successRate)
 	return res
 }
