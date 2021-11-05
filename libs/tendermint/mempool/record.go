@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -95,32 +94,26 @@ func (s *recorder) DelPeer(peer p2p.Peer) {
 
 func (s *recorder) Detail() string {
 	var res string
-	var sends []sendStatus
-
+	var peersCount, successCount, failedCount int64
+	var successRate float64
 	s.body.Range(func(k, v interface{}) bool {
 		info, ok := v.(*sendStatus)
 		if !ok {
 			res += "peer sendInfo type wrong"
 			return false
 		}
-
-		sends = append(sends, sendStatus{
-			PeerKey:          info.PeerKey,
-			PeerHeight:       s.currentHeight,
-			SuccessSendCount: info.SuccessSendCount,
-			FailSendCount:    info.FailSendCount,
-		})
-
+		peersCount++
+		successCount += info.SuccessSendCount
+		failedCount += info.FailSendCount
 		return true
 	})
 
 	if len(res) != 0 {
 		return res
 	}
-	sendsJ, err := json.Marshal(sends)
-	if err != nil {
-		return err.Error()
+	if successCount + failedCount > 0{
+		successRate = float64(successCount) / float64(successCount + failedCount)
 	}
-	res = string(sendsJ)
+	res = fmt.Sprintf("peersCount : %d, allSendCount : %d, successRate : %d", peersCount, successCount + failedCount, successRate)
 	return res
 }
