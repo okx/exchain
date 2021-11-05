@@ -343,6 +343,54 @@ func (d Description) EnsureLength() (Description, error) {
 	return d, nil
 }
 
+func (d *Description) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, pbType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if pbType != amino.Typ3_ByteLength {
+			return fmt.Errorf("expect proto3 type 2")
+		}
+
+		var n int
+		dataLen, n, err = amino.DecodeUvarint(data)
+		if err != nil {
+			return err
+		}
+		data = data[n:]
+		if len(data) < int(dataLen) {
+			return fmt.Errorf("invalid data len")
+		}
+		subData = data[:dataLen]
+
+		switch pos {
+		case 1:
+			d.Moniker = string(subData)
+		case 2:
+			d.Identity = string(subData)
+		case 3:
+			d.Website = string(subData)
+		case 4:
+			d.Details = string(subData)
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
+	return nil
+}
+
 // ABCIValidatorUpdate returns an abci.ValidatorUpdate from a staking validator type
 // with the full validator power
 func (v Validator) ABCIValidatorUpdate() abci.ValidatorUpdate {
