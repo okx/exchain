@@ -72,6 +72,18 @@ func LoadStoreWithInitialVersion(db dbm.DB, id types.CommitID, lazyLoading bool,
 	}, nil
 }
 
+// LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
+// to the one given. Internally, it will load the store's version (id) from the
+// provided DB. An error is returned if the version fails to load.
+func LoadStoreWithInitialVersion123(db dbm.DB) (int64, error) {
+	//TODO
+	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: 0})
+	if err != nil {
+		return 0, err
+	}
+	return tree.LazyLoadVersion123(), nil
+}
+
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable
 // IAVL tree reference. It should only be used for testing purposes.
 //

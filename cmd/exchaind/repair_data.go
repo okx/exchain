@@ -3,16 +3,16 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	"github.com/spf13/viper"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
-	"github.com/spf13/cobra"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"github.com/okex/exchain/libs/iavl"
+	tmiavl "github.com/okex/exchain/libs/iavl"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -20,6 +20,8 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -54,7 +56,8 @@ func (app *repairApp) getLatestVersion() int64 {
 }
 
 func repairState(ctx *server.Context) {
-	// set ignore smb check
+	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
+	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
 	sm.SetIgnoreSmbCheck(true)
 	iavl.SetIgnoreVersionCheck(true)
 
@@ -64,7 +67,8 @@ func repairState(ctx *server.Context) {
 	latestBlockHeight := latestBlockHeight(dataDir)
 	startBlockHeight := types.GetStartBlockHeight()
 	if latestBlockHeight <= startBlockHeight+2 {
-		panic(fmt.Sprintf("There is no need to repair data. The latest block height is %d, start block height is %d", latestBlockHeight, startBlockHeight))
+		log.Println(fmt.Sprintf("There is no need to repair data. The latest block height is %d, start block height is %d", latestBlockHeight, startBlockHeight))
+		return
 	}
 
 	// create proxy app
@@ -87,12 +91,34 @@ func repairState(ctx *server.Context) {
 	if startVersion == 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
+
+	// get async commit version
+	tmiavl.EnableAsyncCommit = true
+	asyncVersion, err := repairApp.LoadVersion123()
+	log.Println(fmt.Sprintf("latestBlockHeight = %d \t startVersion = %d \t asyncVersion = %d", latestBlockHeight, startVersion, asyncVersion))
+	panicError(err)
+	tmiavl.EnableAsyncCommit = false
+
+	if asyncVersion == latestBlockHeight {
+		rmLockByDir(dataDir)
+		return
+	}
+	if asyncVersion < startVersion {
+		startVersion = asyncVersion
+	}
+
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
 	repairApp.StopStore()
+	rmLockByDir(dataDir)
+
+	//set original config
+	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
+	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
+	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
@@ -138,8 +164,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {
-	//rootDir := ctx.Config.RootDir
-	//dataDir := filepath.Join(rootDir, "data")
 	storeDB, err := openDB(blockStoreDB, dataDir)
 	defer storeDB.Close()
 	blockStore := store.NewBlockStore(storeDB)
@@ -155,4 +179,13 @@ func latestBlockHeight(dataDir string) int64 {
 	defer storeDB.Close()
 	blockStore := store.NewBlockStore(storeDB)
 	return blockStore.Height()
+}
+
+func rmLockByDir(dataDir string) {
+	files, _ := ioutil.ReadDir(dataDir)
+	for _, f := range files {
+		if f.IsDir() {
+			os.Remove(filepath.Join(dataDir, f.Name(), "LOCK"))
+		}
+	}
 }

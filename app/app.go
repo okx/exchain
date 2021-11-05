@@ -8,6 +8,11 @@ import (
 	"os"
 	"sync"
 
+	"github.com/okex/exchain/app/ante"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/refund"
+	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
@@ -21,11 +26,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/app/ante"
-	okexchaincodec "github.com/okex/exchain/app/codec"
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/refund"
-	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
 	commonversion "github.com/okex/exchain/x/common/version"
@@ -49,11 +54,6 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -129,7 +129,7 @@ var (
 
 	GlobalGpIndex = GasPriceIndex{}
 
-    onceLog sync.Once
+	onceLog sync.Once
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -191,7 +191,6 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-
 
 	// get config
 	appConfig, err := config.ParseConfig()
@@ -465,6 +464,9 @@ func NewOKExChainApp(
 func (app *OKExChainApp) LoadStartVersion(height int64) error {
 	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 }
+func (app *OKExChainApp) LoadStartVersion123() (int64, error) {
+	return app.LoadVersion123()
+}
 
 // Name returns the name of the App
 func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
@@ -484,7 +486,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
 	if tx, err := auth.DefaultTxDecoder(app.Codec())(txBytes); err == nil {
@@ -500,7 +501,6 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
-
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
@@ -508,7 +508,6 @@ func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain)
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
-
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {

@@ -16,8 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,6 +27,8 @@ import (
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -63,6 +63,7 @@ const (
 func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
+	repairState func(ctx *Context),
 	registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -92,6 +93,10 @@ which accepts a path for the resulting pprof file.
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			setExternalPackageValue(cmd)
 			_, err := GetPruningOptionsFromFlags()
+			//todo
+			if err == nil {
+				repairState(ctx)
+			}
 			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

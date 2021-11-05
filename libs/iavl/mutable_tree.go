@@ -15,6 +15,10 @@ func SetIgnoreVersionCheck(check bool) {
 	ignoreVersionCheck = check
 }
 
+func GetIgnoreVersionCheck() bool {
+	return ignoreVersionCheck
+}
+
 var (
 	ignoreVersionCheck = false
 )
@@ -28,23 +32,21 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-	*ImmutableTree                  // The current, working tree.
-	lastSaved      *ImmutableTree   // The most recently saved tree.
-	orphans        []*Node          // Nodes removed by changes to working tree.Will refresh after each block
-	commitOrphans  map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
-	versions       *SyncMap   // The previous, saved versions of the tree.
-	removedVersions   sync.Map      // The removed versions of the tree.
-	ndb            *nodeDB
+	*ImmutableTree                   // The current, working tree.
+	lastSaved       *ImmutableTree   // The most recently saved tree.
+	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
+	commitOrphans   map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
+	versions        *SyncMap         // The previous, saved versions of the tree.
+	removedVersions sync.Map         // The removed versions of the tree.
+	ndb             *nodeDB
 
-	committedHeightQueue  *list.List
-	committedHeightMap    map[int64]bool
-	historyStateNum int
+	committedHeightQueue *list.List
+	committedHeightMap   map[int64]bool
+	historyStateNum      int
 
-	commitCh chan commitEvent
+	commitCh          chan commitEvent
 	lastPersistHeight int64
 }
-
-
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
 func NewMutableTree(db dbm.DB, cacheSize int) (*MutableTree, error) {
@@ -69,11 +71,11 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 		versions:      NewSyncMap(),
 		ndb:           ndb,
 
-		committedHeightMap:    map[int64]bool{},
-		committedHeightQueue:  list.New(),
-		historyStateNum: MaxCommittedHeightNum,
+		committedHeightMap:   map[int64]bool{},
+		committedHeightQueue: list.New(),
+		historyStateNum:      MaxCommittedHeightNum,
 
-		commitCh: make(chan commitEvent),
+		commitCh:          make(chan commitEvent),
 		lastPersistHeight: initVersion,
 	}
 
@@ -327,7 +329,7 @@ func (tree *MutableTree) Load() (int64, error) {
 func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := tree.ndb.getLatestVersion()
 	if latestVersion < targetVersion {
-		return latestVersion, fmt.Errorf("wanted to load target %d but only found up to %d", targetVersion, latestVersion)
+		return latestVersion, fmt.Errorf("wanted to load target %d but only found up to %d, db = %s", targetVersion, latestVersion, tree.String())
 	}
 
 	// no versions have been saved if the latest version is non-positive
@@ -364,6 +366,18 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	return targetVersion, nil
 }
 
+// LazyLoadVersion attempts to lazy load only the specified target version
+// without loading previous roots/versions. Lazy loading should be used in cases
+// where only reads are expected. Any writes to a lazy loaded tree may result in
+// unexpected behavior. If the targetVersion is non-positive, the latest version
+// will be loaded by default. If the latest version is non-positive, this method
+// performs a no-op. Otherwise, if the root does not exist, an error will be
+// returned.
+func (tree *MutableTree) LazyLoadVersion123() int64 {
+	latestVersion := tree.ndb.getLatestVersion()
+	return latestVersion
+}
+
 // Returns the version number of the latest version found
 func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	roots, err := tree.ndb.getRoots()
@@ -391,8 +405,8 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	if !(targetVersion == 0 || latestVersion == targetVersion) {
-		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
-			targetVersion, latestVersion)
+		return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v, db = %s",
+			targetVersion, latestVersion, tree.String())
 	}
 
 	if firstVersion > 0 && firstVersion < int64(tree.ndb.opts.InitialVersion) {

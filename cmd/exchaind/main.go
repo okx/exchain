@@ -91,7 +91,7 @@ func main() {
 	)
 
 	// Tendermint node base commands
-	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators, registerRoutes, client.RegisterAppFlag)
+	server.AddCommands(ctx, cdc, rootCmd, newApp, closeApp, exportAppStateAndTMValidators, registerRoutes, repairState, client.RegisterAppFlag)
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
@@ -111,7 +111,7 @@ func closeApp(iApp abci.Application) {
 	rpc.CloseEthBackend()
 }
 
-func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) (abci.Application) {
+func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
 	pruningOpts, err := server.GetPruningOptionsFromFlags()
 	if err != nil {
 		panic(err)

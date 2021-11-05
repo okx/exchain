@@ -172,6 +172,7 @@ type CommitMultiStore interface {
 	// must be idempotent (return the same commit id). Otherwise the behavior is
 	// undefined.
 	LoadVersion(ver int64) error
+	LoadVersion123() (int64, error)
 
 	// Set an inter-block (persistent) cache that maintains a mapping from
 	// StoreKeys to CommitKVStores.

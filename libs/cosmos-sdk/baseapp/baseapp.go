@@ -364,6 +364,12 @@ func (app *BaseApp) LoadVersion(version int64, baseKey *sdk.KVStoreKey) error {
 	return app.initFromMainStore(baseKey)
 }
 
+// LoadVersion loads the BaseApp application version. It will panic if called
+// more than once on a running baseapp.
+func (app *BaseApp) LoadVersion123() (int64, error) {
+	return app.cms.LoadVersion123()
+}
+
 // LastCommitID returns the last CommitID of the multistore.
 func (app *BaseApp) LastCommitID() sdk.CommitID {
 	return app.cms.LastCommitID()
@@ -711,7 +717,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	} else {
 		ctx = app.getContextForTx(mode, txBytes)
 	}
-
 
 	ms := ctx.MultiStore()
 
