@@ -379,6 +379,21 @@ func (i *Int) UnmarshalAmino(text string) error {
 	return unmarshalAmino(i.i, text)
 }
 
+func (i *Int) UnmarshalFromAmino(data []byte) error {
+	if i.i == nil { // Necessary since default Int initialization has i.i as nil
+		i.i = new(big.Int)
+	}
+
+	if err := i.i.UnmarshalText(data); err != nil {
+		return err
+	}
+
+	if i.i.BitLen() > maxBitLen {
+		return fmt.Errorf("integer out of range: %s", string(data))
+	}
+	return nil
+}
+
 // MarshalJSON defines custom encoding scheme
 func (i Int) MarshalJSON() ([]byte, error) {
 	if i.i == nil { // Necessary since default Uint initialization has i.i as nil
