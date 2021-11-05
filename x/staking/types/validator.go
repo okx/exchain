@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -150,7 +152,31 @@ func MustUnmarshalValidator(cdc *codec.Codec, value []byte) Validator {
 
 // UnmarshalValidator unmarshals a validator from a store value
 func UnmarshalValidator(cdc *codec.Codec, value []byte) (validator Validator, err error) {
-	err = cdc.UnmarshalBinaryLengthPrefixed(value, &validator)
+	if len(value) == 0 {
+		err = errors.New("UnmarshalValidator cannot decode empty bytes")
+		return
+	}
+
+	// Read byte-length prefix.
+	u64, n := binary.Uvarint(value)
+	if n < 0 {
+		err = fmt.Errorf("Error reading msg byte-length prefix: got code %v", n)
+		return
+	}
+	if u64 > uint64(len(value)-n) {
+		err = fmt.Errorf("Not enough bytes to read in UnmarshalValidator, want %v more bytes but only have %v",
+			u64, len(value)-n)
+		return
+	} else if u64 < uint64(len(value)-n) {
+		err = fmt.Errorf("Bytes left over in UnmarshalValidator, should read %v more bytes but have %v",
+			u64, len(value)-n)
+		return
+	}
+	value = value[n:]
+
+	if err = validator.UnmarshalFromAmino(value); err != nil {
+		err = cdc.UnmarshalBinaryBare(value, &validator)
+	}
 	return validator, err
 }
 
