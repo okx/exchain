@@ -67,7 +67,7 @@ func TestMsgSendUnmarshalFromAmino(t *testing.T) {
 	var msg3 MsgSend
 	v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(data, &msg3)
 	require.NoError(t, err)
-	msg3 = *v.(*MsgSend)
+	msg3 = v.(MsgSend)
 
 	require.EqualValues(t, msg2, msg3)
 }

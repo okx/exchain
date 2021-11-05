@@ -230,7 +230,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	var config types.ChainConfig
 	_config, err := k.cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(bz, &config)
 	if err == nil {
-		config = *_config.(*types.ChainConfig)
+		config = _config.(types.ChainConfig)
 	} else {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}

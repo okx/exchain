@@ -32,7 +32,8 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, ManageContractBlockedListProposalName, nil)
 
 	cdc.RegisterConcreteUnmarshaller(ChainConfigName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
-		return UnmarshalChainConfigFromAmino(c, bytes)
+		config, n, err := UnmarshalChainConfigFromAmino(c, bytes)
+		return *config, n, err
 	})
 	cdc.RegisterConcreteUnmarshaller(MsgEthereumTxName, func(_ *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgEthereumTx
@@ -40,7 +41,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		if err != nil {
 			return nil, 0, err
 		}
-		return &msg, len(bytes), nil
+		return msg, len(bytes), nil
 	})
 	cdc.RegisterConcreteUnmarshaller(MsgEthermintName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var msg MsgEthermint
@@ -48,7 +49,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		if err != nil {
 			return nil, 0, err
 		}
-		return &msg, len(bytes), nil
+		return msg, len(bytes), nil
 	})
 	cdc.RegisterConcreteUnmarshaller(TxDataName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var tx TxData
@@ -56,7 +57,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		if err != nil {
 			return nil, 0, err
 		}
-		return &tx, len(bytes), nil
+		return tx, len(bytes), nil
 	})
 }
 

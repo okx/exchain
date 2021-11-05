@@ -280,7 +280,7 @@ func TestMsgEthermintTxUnmarshal(t *testing.T) {
 	var msg3 MsgEthereumTx
 	v, err := ModuleCdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(raw, &msg3)
 	require.NoError(t, err)
-	msg3 = *v.(*MsgEthereumTx)
+	msg3 = v.(MsgEthereumTx)
 	require.EqualValues(t, msg2, msg3)
 }
 
@@ -310,7 +310,7 @@ func BenchmarkMsgEthermintTxUnmarshal(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		msg3 = *v.(*MsgEthereumTx)
+		msg3 = v.(MsgEthereumTx)
 	})
 }
 

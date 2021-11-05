@@ -24,7 +24,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		if err != nil {
 			return nil, 0, err
 		}
-		return &tx, len(bytes), nil
+		return tx, len(bytes), nil
 	})
 }
 
