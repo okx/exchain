@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/ethereum/go-ethereum/common"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -48,6 +48,9 @@ type Keeper struct {
 	Ada     types.DbAdapter
 
 	LogsManages *LogsManager
+
+	// add inner block data
+	innerBlockData BlockInnerData
 }
 
 // NewKeeper generates new evm module keeper
@@ -59,6 +62,11 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
+	err := initInnerDB()
+	if err != nil {
+		panic(err)
+	}
+
 	if enable := types.GetEnableBloomFilter(); enable {
 		db := types.BloomDb()
 		types.InitIndexer(db)
@@ -66,17 +74,18 @@ func NewKeeper(
 
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		accountKeeper: ak,
-		paramSpace:    paramSpace,
-		supplyKeeper:  sk,
-		bankKeeper:    bk,
-		TxCount:       0,
-		Bloom:         big.NewInt(0),
-		LogSize:       0,
-		Watcher:       watcher.NewWatcher(),
-		Ada:           types.DefaultPrefixDb{},
+		cdc:            cdc,
+		storeKey:       storeKey,
+		accountKeeper:  ak,
+		paramSpace:     paramSpace,
+		supplyKeeper:   sk,
+		bankKeeper:     bk,
+		TxCount:        0,
+		Bloom:          big.NewInt(0),
+		LogSize:        0,
+		Watcher:        watcher.NewWatcher(),
+		Ada:            types.DefaultPrefixDb{},
+		innerBlockData: defaultBlockInnerData(),
 	}
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
