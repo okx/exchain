@@ -1,8 +1,6 @@
 package types
 
 import (
-	"math/big"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
 )
@@ -42,13 +40,9 @@ func UnmarshalCoinFromAmino(data []byte) (coin DecCoin, err error) {
 		case 1:
 			coin.Denom = string(subData)
 		case 2:
-			amt := new(big.Int)
-			err = amt.UnmarshalText(subData)
+			err = coin.Amount.UnmarshalFromAmino(subData)
 			if err != nil {
 				return coin, err
-			}
-			coin.Amount = Dec{
-				amt,
 			}
 		}
 	}
