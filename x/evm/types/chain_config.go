@@ -1,8 +1,11 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/tendermint/go-amino"
 
 	"gopkg.in/yaml.v2"
 
@@ -151,6 +154,121 @@ func (cc ChainConfig) Validate() error {
 		return sdkerrors.Wrap(err, "eWASMBlock")
 	}
 
+	return nil
+}
+
+func (config *ChainConfig) UnmarshalFromAmino(data []byte) error {
+	var dataLen uint64 = 0
+	var subData []byte
+
+	for {
+		data = data[dataLen:]
+
+		if len(data) == 0 {
+			break
+		}
+
+		pos, aminoType, err := amino.ParseProtoPosAndTypeMustOneByte(data[0])
+		if err != nil {
+			return err
+		}
+		data = data[1:]
+
+		if aminoType == amino.Typ3_ByteLength {
+			var n int
+			dataLen, n, err = amino.DecodeUvarint(data)
+			if err != nil {
+				return err
+			}
+			data = data[n:]
+			subData = data[:dataLen]
+		}
+
+		switch pos {
+		case 1:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.HomesteadBlock = integer
+		case 2:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.DAOForkBlock = integer
+		case 3:
+			if data[0] != 0 && data[0] != 1 {
+				return fmt.Errorf("invalid DAO fork switch")
+			}
+			config.DAOForkSupport = data[0] == 1
+			dataLen = 1
+		case 4:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.EIP150Block = integer
+		case 5:
+			config.EIP150Hash = string(subData)
+		case 6:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.EIP155Block = integer
+		case 7:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.EIP158Block = integer
+		case 8:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.ByzantiumBlock = integer
+		case 9:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.ConstantinopleBlock = integer
+		case 10:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.PetersburgBlock = integer
+		case 11:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.IstanbulBlock = integer
+		case 12:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.MuirGlacierBlock = integer
+		case 13:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.YoloV2Block = integer
+		case 14:
+			integer, err := sdk.NewIntFromAmino(subData)
+			if err != nil {
+				return err
+			}
+			config.EWASMBlock = integer
+		default:
+			return fmt.Errorf("unexpect feild num %d", pos)
+		}
+	}
 	return nil
 }
 

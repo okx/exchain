@@ -47,7 +47,7 @@ func UnmarshalBaseAccountFromAmino(data []byte) (*BaseAccount, error) {
 	for {
 		data = data[dataLen:]
 
-		if len(data) <= 0 {
+		if len(data) == 0 {
 			break
 		}
 
