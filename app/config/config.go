@@ -4,7 +4,9 @@ import (
 	"strconv"
 	"sync"
 
-	tmconfig "github.com/tendermint/tendermint/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+
+	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 
 	"github.com/spf13/viper"
 )
@@ -60,10 +62,13 @@ func NewOecConfig() *OecConfig {
 	return c
 }
 
-func RegisterDynamicConfig() {
+func RegisterDynamicConfig(context *server.Context) {
 	// set the dynamic config
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
+
+	//download pprof
+	PprofDownload(context)
 }
 
 func (c *OecConfig) loadFromConfig() {

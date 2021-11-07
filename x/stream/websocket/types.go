@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/stream/common"
 	pushservice "github.com/okex/exchain/x/stream/pushservice/types"
 	"github.com/okex/exchain/x/stream/types"

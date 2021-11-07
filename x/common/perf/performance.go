@@ -2,9 +2,9 @@ package perf
 
 import (
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common/monitor"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"sync"
 	"time"
 )
@@ -176,7 +176,7 @@ func newPerf() *performance {
 
 
 func (p *performance) InitChainer(logger log.Logger) {
-	p.logger = logger.With("module", "perf")
+	//p.logger = logger.With("module", "perf")
 }
 
 func (p *performance) EnableCheck() {

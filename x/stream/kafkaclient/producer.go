@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	appcfg "github.com/cosmos/cosmos-sdk/server/config"
+	appcfg "github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/okex/exchain/x/backend"
 	"github.com/okex/exchain/x/stream/common/kline"
 	"github.com/segmentio/kafka-go"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type KafkaProducer struct {

@@ -3,11 +3,12 @@ package types
 import (
 	"bytes"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 	"io"
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -15,11 +16,23 @@ import (
 	"github.com/okex/exchain/app/types"
 )
 
+const keccak256HashSize = 100000
+
 var (
 	_ StateObject = (*stateObject)(nil)
 
-	emptyCodeHash = ethcrypto.Keccak256(nil)
+	emptyCodeHash         = ethcrypto.Keccak256(nil)
+	keccak256HashCache, _ = lru.NewARC(keccak256HashSize)
 )
+
+func Keccak256HashWithCache(compositeKey []byte) ethcmn.Hash {
+	if value, ok := keccak256HashCache.Get(string(compositeKey)); ok {
+		return value.(ethcmn.Hash)
+	}
+	value := ethcrypto.Keccak256Hash(compositeKey)
+	keccak256HashCache.Add(string(compositeKey), value)
+	return value
+}
 
 // StateObject interface for interacting with state object
 type StateObject interface {
@@ -454,8 +467,7 @@ func (so stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
 
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
-
-	return ethcrypto.Keccak256Hash(compositeKey)
+	return Keccak256HashWithCache(compositeKey)
 }
 
 // stateEntry represents a single key value pair from the StateDB's stateObject mappindg.

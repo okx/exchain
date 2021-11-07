@@ -6,19 +6,20 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-
-	lru "github.com/hashicorp/golang-lru"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	lru "github.com/hashicorp/golang-lru"
+
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
+
+var errNotFound = errors.New("leveldb: not found")
 
 type Querier struct {
 	store *WatchStore
@@ -51,6 +52,9 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if e != nil {
 		return nil, e
 	}
+	if b == nil {
+		return nil, errNotFound
+	}
 	e = json.Unmarshal(b, &receipt)
 	if e != nil {
 		return nil, e
@@ -70,6 +74,10 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*EthBlock, error
 	if e != nil {
 		return nil, e
 	}
+	if b == nil {
+		return nil, errNotFound
+	}
+
 	e = json.Unmarshal(b, &block)
 	if e != nil {
 		return nil, e
@@ -110,6 +118,9 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if e != nil {
 		return common.Hash{}, e
 	}
+	if hash == nil {
+		return common.Hash{}, errNotFound
+	}
 	return common.HexToHash(string(hash)), e
 }
 
@@ -126,10 +137,13 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*EthBlock, error)
 		}
 	}
 	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
-
 	if e != nil {
 		return nil, e
 	}
+	if hash == nil {
+		return nil, errNotFound
+	}
+
 	return q.GetBlockByHash(common.HexToHash(string(hash)), fullTx)
 }
 
@@ -142,6 +156,10 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	if e != nil {
 		return nil, e
 	}
+	if info == nil {
+		return nil, errNotFound
+	}
+
 	e = json.Unmarshal(info, &codeInfo)
 	if e != nil {
 		return nil, e
@@ -167,6 +185,9 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
+	if code == nil {
+		return nil, errNotFound
+	}
 	q.lru.Add(common.BytesToHash(codeHash), code)
 	return code, nil
 }
@@ -178,6 +199,9 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
 	if e != nil {
 		return 0, e
+	}
+	if height == nil {
+		return 0, errNotFound
 	}
 	h, e := strconv.Atoi(string(height))
 	return uint64(h), e
@@ -191,6 +215,9 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*rpctypes.Transaction, 
 	transaction, e := q.store.Get(append(prefixTx, hash.Bytes()...))
 	if e != nil {
 		return nil, e
+	}
+	if transaction == nil {
+		return nil, errNotFound
 	}
 	e = json.Unmarshal(transaction, &tx)
 	if e != nil {
@@ -256,6 +283,9 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if e != nil {
 		return nil, e
 	}
+	if b == nil {
+		return nil, errNotFound
+	}
 	e = json.Unmarshal(b, &acc)
 	if e != nil {
 		return nil, e
@@ -273,6 +303,9 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
 	}
 	e = json.Unmarshal(b, &acc)
 	if e != nil {
@@ -315,6 +348,9 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
+	if b == nil {
+		return nil, errNotFound
+	}
 	return b, nil
 }
 
@@ -325,6 +361,9 @@ func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
 		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
 	}
 
 	return b, nil
@@ -344,6 +383,9 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	b, e := q.store.Get(prefixParams)
 	if e != nil {
 		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
 	}
 	var params evmtypes.Params
 	e = json.Unmarshal(b, &params)

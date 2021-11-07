@@ -13,27 +13,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keys"
-	cmserver "github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/merkle"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
+	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
@@ -47,6 +31,25 @@ import (
 	"github.com/okex/exchain/app/utils"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
+
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 const (
@@ -270,9 +273,9 @@ func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
-func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Big, error) {
+func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Big, error) {
 	monitor := monitor.GetMonitor("eth_getBalance", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("address", address, "block number", blockNum)
+	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
@@ -280,6 +283,11 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNum rpctyp
 			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 		}
 		return (*hexutil.Big)(balance), nil
+	}
+
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
 	}
 	clientCtx := api.clientCtx
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
@@ -384,9 +392,13 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.
-func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNrOrHash rpctypes.BlockNumberOrHash) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getStorageAt", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("address", address, "key", key, "block number", blockNum)
+	defer monitor.OnEnd("address", address, "key", key, "block number", blockNrOrHash)
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
 	return api.getStorageAt(address, common.HexToHash(key).Bytes(), blockNum, false)
 }
 
@@ -396,9 +408,14 @@ func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key [
 }
 
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
-func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNum rpctypes.BlockNumber) (*hexutil.Uint64, error) {
+func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("address", address, "block number", blockNum)
+	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
+
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
 	clientCtx := api.clientCtx
 	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
@@ -499,18 +516,23 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 }
 
 // GetCode returns the contract code at the given address and block number.
-func (api *PublicEthereumAPI) GetCode(address common.Address, blockNumber rpctypes.BlockNumber) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getCode", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("address", address, "block number", blockNumber)
-	height := blockNumber.Int64()
-	if blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber {
-		height, _ = api.backend.LatestBlockNumber()
+	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
+	blockNumber, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
 	}
-	code, err := api.wrappedBackend.GetCode(address, uint64(height))
+
+	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
 	if err == nil {
 		return code, nil
 	}
-	clientCtx := api.clientCtx.WithHeight(height)
+
+	clientCtx := api.clientCtx
+	if !(blockNumber == rpctypes.PendingBlockNumber || blockNumber == rpctypes.LatestBlockNumber) {
+		clientCtx = api.clientCtx.WithHeight(blockNumber.Int64())
+	}
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryCode, address.Hex()), nil)
 	if err != nil {
 		return nil, err
@@ -704,13 +726,17 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 }
 
 // Call performs a raw contract call.
-func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("args", args, "block number", blockNr)
+	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
 	key := api.buildKey(args)
 	cacheData, ok := api.getFromCallCache(key)
 	if ok {
 		return cacheData, nil
+	}
+	blockNr, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
 	}
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
 	if err != nil {
@@ -734,9 +760,10 @@ func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctyp
 	monitor := monitor.GetMonitor("eth_multiCall", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNr)
 
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(blockNr)
 	rets := make([]hexutil.Bytes, 0, len(args))
 	for _, arg := range args {
-		ret, err := api.Call(arg, blockNr, nil)
+		ret, err := api.Call(arg, blockNrOrHash, nil)
 		if err != nil {
 			return rets, err
 		}
@@ -1092,11 +1119,12 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height)
+	fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return nil, err
 	}
 
+	from := fromSigCache.GetFrom()
 	cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
 	if tx.Index != 0 {
 		cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
@@ -1174,10 +1202,14 @@ func (api *PublicEthereumAPI) GetUncleByBlockNumberAndIndex(number hexutil.Uint,
 }
 
 // GetProof returns an account object with proof and any storage proofs
-func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []string, block rpctypes.BlockNumber) (*rpctypes.AccountResult, error) {
-	api.logger.Debug("eth_getProof", "address", address, "keys", storageKeys, "number", block)
-
-	clientCtx := api.clientCtx.WithHeight(int64(block))
+func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []string, blockNrOrHash rpctypes.BlockNumberOrHash) (*rpctypes.AccountResult, error) {
+	monitor := monitor.GetMonitor("eth_getProof", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("address", address, "keys", storageKeys, "number", blockNrOrHash)
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+	clientCtx := api.clientCtx.WithHeight(int64(blockNum))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
 	// query eth account at block height
@@ -1196,7 +1228,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		req := abci.RequestQuery{
 			Path:   fmt.Sprintf("store/%s/key", evmtypes.StoreKey),
 			Data:   data,
-			Height: int64(block),
+			Height: int64(blockNum),
 			Prove:  true,
 		}
 
@@ -1225,7 +1257,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	req := abci.RequestQuery{
 		Path:   fmt.Sprintf("store/%s/key", auth.StoreKey),
 		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
-		Height: int64(block),
+		Height: int64(blockNum),
 		Prove:  true,
 	}
 

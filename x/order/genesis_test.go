@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/dex"
 	"github.com/okex/exchain/x/order/keeper"
 	"github.com/okex/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/types/time"
+	"github.com/okex/exchain/libs/tendermint/types/time"
 )
 
 func TestValidateGenesis(t *testing.T) {

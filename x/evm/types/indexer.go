@@ -2,12 +2,11 @@ package types
 
 import (
 	"encoding/binary"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/viper"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 	"path/filepath"
 	"sync"
@@ -25,13 +24,12 @@ type Keeper interface {
 	GetHeightHash(ctx sdk.Context, height uint64) common.Hash
 }
 
-func init() {
-	server.TrapSignal(func() {
-		if indexer != nil && indexer.backend.db != nil {
-			indexer.backend.db.Close()
-		}
-	})
+func CloseIndexer() {
+	if indexer != nil && indexer.backend.db != nil {
+		indexer.backend.db.Close()
+	}
 }
+
 
 func GetEnableBloomFilter() bool {
 	once.Do(func() {

@@ -8,13 +8,13 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/cosmos/cosmos-sdk/x/auth/ante"
-	"github.com/tendermint/tendermint/mempool"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 
 	"github.com/okex/exchain/app/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -135,7 +135,7 @@ func (msg MsgEthereumTx) GetFee() sdk.Coins {
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
-	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
+	_, err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return nil
 	}
@@ -143,11 +143,23 @@ func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	return msg.From()
 }
 
-// sigCache is used to cache the derived sender and contains the signer used
+// ethSigCache is used to cache the derived sender and contains the signer used
 // to derive it.
-type sigCache struct {
+type ethSigCache struct {
 	signer ethtypes.Signer
 	from   ethcmn.Address
+}
+
+func (s ethSigCache) GetFrom() ethcmn.Address {
+	return s.from
+}
+
+func (s ethSigCache) GetSigner() ethtypes.Signer {
+	return s.signer
+}
+
+func (s ethSigCache) EqualSiger(siger ethtypes.Signer) bool {
+	return s.signer.Equal(siger)
 }
 
 // NewMsgEthereumTx returns a reference to a new Ethereum transaction message.
@@ -343,24 +355,32 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
-func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Address, error) {
+func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64, sigCtx sdk.SigCache) (sdk.SigCache, error) {
 	var signer ethtypes.Signer
 	if isProtectedV(msg.Data.V) {
 		signer = ethtypes.NewEIP155Signer(chainID)
 	} else {
 		if sdk.HigherThanMercury(height) {
-			return ethcmn.Address{}, errors.New("deprecated support for homestead Signer")
+			return nil, errors.New("deprecated support for homestead Signer")
 		}
 
 		signer = ethtypes.HomesteadSigner{}
 	}
 
 	if sc := msg.from.Load(); sc != nil {
-		sigCache := sc.(sigCache)
+		sigCache := sc.(*ethSigCache)
 		// If the signer used to derive from in a previous call is not the same as
 		// used current, invalidate the cache.
 		if sigCache.signer.Equal(signer) {
-			return sigCache.from, nil
+			return sigCache, nil
+		}
+	} else if sigCtx != nil {
+		// If sig cache is exist in ctx,then need not to excute recover key and sign verify.
+		// PS: The msg from may be non-existent, then store it.
+		if sigCtx.EqualSiger(signer) {
+			sigCache := sigCtx.(*ethSigCache)
+			msg.from.Store(sigCache)
+			return sigCtx, nil
 		}
 	}
 
@@ -369,7 +389,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return ethcmn.Address{}, errors.New("chainID cannot be zero")
+			return nil, errors.New("chainID cannot be zero")
 		}
 
 		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
@@ -385,11 +405,11 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) (ethcmn.Addr
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
 	if err != nil {
-		return ethcmn.Address{}, err
+		return nil, err
 	}
-
-	msg.from.Store(sigCache{signer: signer, from: sender})
-	return sender, nil
+	sigCache := &ethSigCache{signer: signer, from: sender}
+	msg.from.Store(sigCache)
+	return sigCache, nil
 }
 
 // codes from go-ethereum/core/types/transaction.go:122
@@ -438,7 +458,7 @@ func (msg *MsgEthereumTx) From() sdk.AccAddress {
 		return nil
 	}
 
-	sigCache := sc.(sigCache)
+	sigCache := sc.(*ethSigCache)
 
 	if len(sigCache.from.Bytes()) == 0 {
 		return nil
@@ -474,13 +494,19 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 
 	// Verify signature and retrieve sender address
-	from, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
+	fromSigCache, err := msg.VerifySig(chainIDEpoch, ctx.BlockHeight(), ctx.SigCache())
 	if err != nil {
 		return exTxInfo
 	}
 
+	from := fromSigCache.GetFrom()
 	exTxInfo.Sender = from.String()
 	exTxInfo.GasPrice = msg.Data.Price
 
 	return exTxInfo
+}
+
+// GetGasPrice return gas price
+func (msg MsgEthereumTx) GetGasPrice() *big.Int {
+	return msg.Data.Price
 }

@@ -2,23 +2,25 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/common/analyzer"
 	"io"
 	"math/big"
 	"os"
+	"sync"
 
-	bam "github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/cosmos/cosmos-sdk/simapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-	"github.com/cosmos/cosmos-sdk/x/upgrade"
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
@@ -26,7 +28,6 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
-	"github.com/okex/exchain/x/common/perf"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
@@ -48,10 +49,11 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/stream"
 	"github.com/okex/exchain/x/token"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
-	tmos "github.com/tendermint/tendermint/libs/os"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -126,6 +128,8 @@ var (
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
+
+    onceLog sync.Once
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -187,6 +191,8 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
+
+
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
@@ -200,6 +206,8 @@ func NewOKExChainApp(
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
+	bApp.SetStartLogHandler(analyzer.StartTxLog)
+	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
@@ -425,6 +433,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -432,6 +441,24 @@ func NewOKExChainApp(
 			tmos.Exit(err.Error())
 		}
 	}
+
+	onceLog.Do(func() {
+		iavllog := logger.With("module", "iavl")
+		logFunc := func(level int, format string, args ...interface{}) {
+			switch level {
+			case iavl.IavlErr:
+				iavllog.Error(fmt.Sprintf(format, args...))
+			case iavl.IavlInfo:
+				iavllog.Info(fmt.Sprintf(format, args...))
+			case iavl.IavlDebug:
+				iavllog.Debug(fmt.Sprintf(format, args...))
+			default:
+				return
+			}
+		}
+		iavl.SetLogFunc(logFunc)
+	})
+
 	return app
 }
 
@@ -457,25 +484,6 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 	return app.mm.EndBlock(ctx, req)
 }
 
-func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
-
-	seq := perf.GetPerf().OnAppDeliverTxEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppDeliverTxExit(app.LastBlockHeight()+1, seq)
-
-	resp := app.BaseApp.DeliverTx(req)
-	if (app.BackendKeeper.Config.EnableBackend || app.StreamKeeper.AnalysisEnable()) && resp.IsOK() {
-		app.syncTx(req.Tx)
-	}
-
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
-		if err == nil {
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetTxInfo(app.GetDeliverStateCtx()).GasPrice)
-		}
-	}
-
-	return resp
-}
 
 func (app *OKExChainApp) syncTx(txBytes []byte) {
 
@@ -492,15 +500,15 @@ func (app *OKExChainApp) syncTx(txBytes []byte) {
 	}
 }
 
+
 // InitChainer updates at chain initialization
 func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-
-	perf.GetPerf().InitChainer(app.Logger())
 
 	var genesisState simapp.GenesisState
 	app.cdc.MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }
+
 
 // LoadHeight loads state at a particular height
 func (app *OKExChainApp) LoadHeight(height int64) error {
@@ -542,33 +550,6 @@ func (app *OKExChainApp) Codec() *codec.Codec {
 // NOTE: This is solely to be used for testing purposes.
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
-}
-
-// BeginBlock implements the Application interface
-func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
-	seq := perf.GetPerf().OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppBeginBlockExit(app.LastBlockHeight()+1, seq)
-
-	return app.BaseApp.BeginBlock(req)
-}
-
-// EndBlock implements the Application interface
-func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-
-	seq := perf.GetPerf().OnAppEndBlockEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnAppEndBlockExit(app.LastBlockHeight()+1, seq)
-
-	return app.BaseApp.EndBlock(req)
-}
-
-// Commit implements the Application interface
-func (app *OKExChainApp) Commit() abci.ResponseCommit {
-
-	seq := perf.GetPerf().OnCommitEnter(app.LastBlockHeight() + 1)
-	defer perf.GetPerf().OnCommitExit(app.LastBlockHeight()+1, seq, app.Logger())
-	res := app.BaseApp.Commit()
-	return res
 }
 
 // GetMaccPerms returns a copy of the module account permissions

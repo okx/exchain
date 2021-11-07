@@ -8,21 +8,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/rest"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/x/common"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
-	"github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -33,6 +33,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -201,5 +202,29 @@ func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 
 		rest.PostProcessResponseBare(w, cliCtx, res)
+	}
+}
+
+// QueryContractBlockedListHandlerFn defines evm contract blocked list handler
+func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractBlockedList)
+
+		bz, height, err := cliCtx.QueryWithData(path, nil)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		var blockedList evmtypes.AddressList
+		cliCtx.Codec.MustUnmarshalJSON(bz, &blockedList)
+
+		var ethAddrs []string
+		for _, accAddr := range blockedList {
+			ethAddrs = append(ethAddrs, ethcommon.BytesToAddress(accAddr.Bytes()).Hex())
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, ethAddrs)
 	}
 }

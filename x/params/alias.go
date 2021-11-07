@@ -1,7 +1,7 @@
 package params
 
 import (
-	sdkparams "github.com/cosmos/cosmos-sdk/x/params"
+	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/x/params/types"
 )
 

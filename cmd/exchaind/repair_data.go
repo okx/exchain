@@ -6,18 +6,25 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/app"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/iavl"
-	tmlog "github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/mock"
-	"github.com/tendermint/tendermint/node"
-	"github.com/tendermint/tendermint/proxy"
-	sm "github.com/tendermint/tendermint/state"
-	"github.com/tendermint/tendermint/store"
-	"github.com/tendermint/tendermint/types"
+	"github.com/okex/exchain/libs/iavl"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/mock"
+	"github.com/okex/exchain/libs/tendermint/node"
+	"github.com/okex/exchain/libs/tendermint/proxy"
+	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/okex/exchain/libs/tendermint/store"
+	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
+)
+
+const (
+	FlagStartHeight string = "start-height"
 )
 
 func repairStateCmd(ctx *server.Context) *cobra.Command {
@@ -31,7 +38,19 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- repair data success ---------")
 		},
 	}
+	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
+	cmd.Flags().Int64(FlagStartHeight, 0, "Set the start block height for repair")
 	return cmd
+}
+
+type repairApp struct {
+	db dbm.DB
+	*app.OKExChainApp
+}
+
+func (app *repairApp) getLatestVersion() int64 {
+	rs := rootmulti.NewStore(app.db)
+	return rs.GetLatestVersion()
 }
 
 func repairState(ctx *server.Context) {
@@ -51,9 +70,6 @@ func repairState(ctx *server.Context) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
-	// load start version
-	err = repairApp.LoadStartVersion(latestBlockHeight - 2)
-	panicError(err)
 
 	// load state
 	stateStoreDB, err := openDB(stateDB, dataDir)
@@ -62,11 +78,24 @@ func repairState(ctx *server.Context) {
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
 
+	// load start version
+	startVersion := viper.GetInt64(FlagStartHeight)
+	if startVersion == 0 {
+		latestVersion := repairApp.getLatestVersion()
+		startVersion = latestVersion - 2
+	}
+	if startVersion == 0 {
+		panic("height too low, please restart from height 0 with genesis file")
+	}
+	err = repairApp.LoadStartVersion(startVersion)
+	panicError(err)
+
 	// repair data by apply the latest two blocks
-	doRepair(ctx, state, stateStoreDB, proxyApp, latestBlockHeight, dataDir)
+	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+	repairApp.StopStore()
 }
 
-func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, error) {
+func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	db, err := openDB(applicationDB, dataDir)
@@ -79,25 +108,24 @@ func createRepairApp(ctx *server.Context) (proxy.AppConns, *app.OKExChainApp, er
 	return proxyApp, repairApp, err
 }
 
-func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *app.OKExChainApp {
-	return app.NewOKExChainApp(
+func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairApp {
+	return &repairApp{db, app.NewOKExChainApp(
 		logger,
 		db,
 		traceStore,
 		false,
 		map[int64]bool{},
 		0,
-	)
+	)}
 }
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
-	proxyApp proxy.AppConns, latestHeight int64, dataDir string) {
+	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
-	// replay the latest two blocks
-	height := latestHeight - 1
-	for i := 0; i < 2; i++ {
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
-		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 		state, _, err = blockExec.ApplyBlock(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
@@ -106,9 +134,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairedAppHash := res.LastBlockAppHash
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
-		height++
 	}
-
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {

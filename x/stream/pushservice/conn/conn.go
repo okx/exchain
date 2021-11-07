@@ -6,7 +6,7 @@ import (
 	// "github.com/apache/pulsar/pulsar-client-go/pulsar"
 
 	"github.com/go-redis/redis"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type Client struct {

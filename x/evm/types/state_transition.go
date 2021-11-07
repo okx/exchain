@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/okex/exchain/x/common/analyzer"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -105,6 +106,7 @@ func (st StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error) {
+
 	defer func() {
 		if e := recover(); e != nil {
 			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
@@ -140,6 +142,18 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	evmGasMeter := sdk.NewInfiniteGasMeter()
 	ctx = ctx.WithGasMeter(evmGasMeter)
 	csdb := st.Csdb.WithContext(ctx)
+
+	StartTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StartTxLog(tag)
+		}
+	}
+	StopTxLog := func(tag string) {
+		if !ctx.IsCheckTx() {
+			analyzer.StopTxLog(tag)
+		}
+	}
+
 
 	params := csdb.GetParams()
 
@@ -186,6 +200,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr)
 		}
 
+		StartTxLog(analyzer.EVMCORE)
+		defer StopTxLog(analyzer.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
@@ -195,7 +211,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
+		StartTxLog(analyzer.EVMCORE)
+		defer StopTxLog(analyzer.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+
 		recipientLog = fmt.Sprintf("recipient address %s", st.Recipient.String())
 	}
 

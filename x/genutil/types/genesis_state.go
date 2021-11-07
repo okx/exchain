@@ -7,7 +7,7 @@ import (
 
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 // GenesisState defines the raw genesis transaction in JSON

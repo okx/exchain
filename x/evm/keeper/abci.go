@@ -5,13 +5,13 @@ import (
 
 	"github.com/okex/exchain/x/evm/watcher"
 
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -39,6 +39,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
 	k.LogSize = 0
+	k.LogsManages = NewLogManager()
 	k.Bhash = common.BytesToHash(currentHash)
 
 	//that can make sure latest block has been committed

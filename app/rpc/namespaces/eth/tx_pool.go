@@ -9,18 +9,18 @@ import (
 	"sync"
 	"time"
 
-	clientcontext "github.com/cosmos/cosmos-sdk/client/context"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authclient "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -103,8 +103,8 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 		if int(tx.Data.AccountNonce) != txNonce {
 			return fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce)
 		}
-
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			return err
 		}
@@ -127,11 +127,12 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	from, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height)
+	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, sdk.EmptyContext().SigCache())
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+	from := fromSigCache.GetFrom()
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
@@ -144,7 +145,8 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
+	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 	if err != nil {
 		return err
 	}
@@ -318,8 +320,9 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			pool.logger.Error(err.Error())
 			continue
@@ -333,8 +336,9 @@ func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, rpctypes.PendingBlockNumber)
+		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 		if err != nil {
 			continue
 		}

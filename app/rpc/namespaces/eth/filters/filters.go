@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/spf13/viper"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 const FlagGetLogsHeightSpan = "logs-height-span"
