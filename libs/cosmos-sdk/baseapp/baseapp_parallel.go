@@ -39,6 +39,29 @@ func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 
 }
 
+func (app *BaseApp) fixFeeCollector(txString string) {
+	feeMap := app.parallelTxManage.getFeeMap()
+	refundMap := app.parallelTxManage.getRefundFeeMap()
+
+	if app.parallelTxManage.txStatus[txString].anteErr != nil {
+		return
+	}
+
+	v := feeMap[txString]
+	if refundFee, ok := refundMap[txString]; ok {
+		v = v.Sub(refundFee)
+	}
+
+	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(v...)
+	//fmt.Println("vvv", v.String(), app.parallelTxManage.currTxFee)
+
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
+		panic(err)
+	}
+	cache.Write()
+}
+
 func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
@@ -75,7 +98,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			deliverTxs[txIndex] = &txRs
 			res.Collect(asCache)
 			res.Commit()
-
+			app.fixFeeCollector(app.parallelTxManage.indexMapBytes[txIndex])
 			if !s.reRun {
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
@@ -111,23 +134,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 }
 
 func (app *BaseApp) endParallelTxs() [][]byte {
-	txFeeInBlock := sdk.Coins{}
-	feeMap := app.parallelTxManage.getFeeMap()
-	refundMap := app.parallelTxManage.getRefundFeeMap()
-	for tx, v := range feeMap {
-		if app.parallelTxManage.txStatus[tx].anteErr != nil {
-			continue
-		}
-		txFeeInBlock = txFeeInBlock.Add(v...)
-		if refundFee, ok := refundMap[tx]; ok {
-			txFeeInBlock = txFeeInBlock.Sub(refundFee)
-		}
-	}
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliverInAsync, []byte{}), []byte{})
-	if err := app.updateFeeCollectorAccHandler(ctx, txFeeInBlock); err != nil {
-		panic(err)
-	}
-	cache.Write()
 
 	txExecStats := make([][]string, 0)
 	for _, v := range app.parallelTxManage.indexMapBytes {
@@ -279,6 +285,8 @@ type parallelTxManager struct {
 
 	txStatus      map[string]*txStatus
 	indexMapBytes []string
+
+	currTxFee sdk.Coins
 }
 
 type txStatus struct {
@@ -309,6 +317,7 @@ func (f *parallelTxManager) clear() {
 
 	f.txStatus = make(map[string]*txStatus)
 	f.indexMapBytes = make([]string, 0)
+	f.currTxFee = sdk.Coins{}
 
 }
 func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
