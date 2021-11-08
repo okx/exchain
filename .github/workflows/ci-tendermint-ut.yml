@@ -1,4 +1,4 @@
-name: ut 
+name: tendermint-ut 
 
 on:
   push:
@@ -26,8 +26,5 @@ jobs:
       - name: Go Test tendermint/mempool/
         run: go test -count=1 ./libs/tendermint/mempool/...
 
-      - name: Go Test cosmos-sdk
-        run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock' 
-
-      - name: Go Test iavl 
-        run: go test ./libs/iavl/... -mod=readonly
+      - name: Go Test tendermint/consensus/
+        run: go test -count=1 ./libs/tendermint/consensus/...
