@@ -8,23 +8,10 @@ on:
 
 jobs:
 
-  build:
+  iavl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.14
-
-      - name: Go Test iavl 
-        run: go test ./libs/iavl/... -mod=readonly
-
-  iavl:
-    runs-on: ubuntu-latest
-    needs: Build
-    steps:
-      - uses: actions/setup-go@v2
-
-      - name: iavl 
-        run: go test ./libs/iavl/... -mod=readonly
+      - name: test & coverage report creation
+        run: |
+          go test ./libs/iavl/...
