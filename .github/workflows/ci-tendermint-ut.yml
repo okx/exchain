@@ -22,7 +22,7 @@ jobs:
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
       - uses: actions/checkout@v2.3.4
       - name: install
-        run: make install install_abci
+        run: cd ./libs/tendermint && make install install_abci
       # Cache bin
       - uses: actions/cache@v1
         with:
