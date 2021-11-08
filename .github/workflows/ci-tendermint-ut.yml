@@ -22,7 +22,7 @@ jobs:
           echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
       - uses: actions/checkout@v2.3.4
       - name: install
-        run: cd ./libs/tendermint && make install install_abci
+        run: cd ./libs/tendermint && make install install_abci && cd -
       # Cache bin
       - uses: actions/cache@v1
         with:
@@ -33,7 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: Build
     steps:
+      - uses: actions/checkout@v2
+
       - uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
 
       - name: test_tm_core
         run: |

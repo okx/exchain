@@ -1,4 +1,4 @@
-#! /bin/bash
+test.sh#! /bin/bash
 set -e
 
 # Get the root directory.
@@ -20,7 +20,6 @@ function testExample() {
 	sleep 2
 	abci-cli --log_level=error --verbose batch < "$INPUT" > "${INPUT}.out.new"
 	killall "$3"
-
 	pre=$(shasum < "${INPUT}.out")
 	post=$(shasum < "${INPUT}.out.new")
 
@@ -36,8 +35,8 @@ function testExample() {
 	rm "${INPUT}".out.new
 }
 
-testExample 1 ./libs/tendermint/abci/tests/test_cli/ex1.abci abci-cli kvstore
-testExample 2 ./libs/tendermint/abci/tests/test_cli/ex2.abci abci-cli counter
+testExample 1 tests/test_cli/ex1.abci abci-cli kvstore
+testExample 2 tests/test_cli/ex2.abci abci-cli counter
 
 echo ""
 echo "PASS"
