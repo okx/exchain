@@ -510,3 +510,14 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 func (msg MsgEthereumTx) GetGasPrice() *big.Int {
 	return msg.Data.Price
 }
+
+func (msg MsgEthereumTx) GetTxFnSignature() []byte {
+	if msg.Data.Recipient == nil || len(msg.Data.Payload) == 0 {
+		return nil
+	}
+
+	recipient := msg.Data.Recipient.Bytes()
+	methodId := msg.Data.Payload[0:4]
+
+	return append(recipient, methodId...)
+}

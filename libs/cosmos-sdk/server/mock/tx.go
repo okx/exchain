@@ -71,6 +71,10 @@ func (tx kvstoreTx) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
+func (tx kvstoreTx) GetTxFnSignature() []byte {
+	return nil
+}
+
 // takes raw transaction bytes and decodes them into an sdk.Tx. An sdk.Tx has
 // all the signatures and can be used to authenticate.
 func decodeTx(txBytes []byte) (sdk.Tx, error) {

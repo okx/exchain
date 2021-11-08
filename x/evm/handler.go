@@ -3,10 +3,11 @@ package evm
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -17,6 +18,33 @@ import (
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+		defer func() {
+			db := bam.InstanceOfGasUsedRecordDB()
+			msgFnSignature := getMsgCallFnSignature(msg)
+
+			if msgFnSignature == nil {
+				return
+			}
+
+			hisGu, err := db.Get(msgFnSignature)
+			if err != nil {
+				return
+			}
+
+			var avgGas int64
+			if hisGu != nil {
+				gu := common2.BytesToInt64(hisGu)
+				avgGas = (gu + int64(ctx.GasMeter().GasConsumed())) / 2
+			} else {
+				avgGas = int64(ctx.GasMeter().GasConsumed())
+			}
+
+			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
+			if err != nil {
+				return
+			}
+		}()
 
 		var handlerFun func() (*sdk.Result, error)
 		var name string
@@ -43,6 +71,15 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 
 		return result, err
+	}
+}
+
+func getMsgCallFnSignature(msg sdk.Msg) []byte{
+	switch msg := msg.(type) {
+	case types.MsgEthereumTx:
+		return msg.GetTxFnSignature()
+	default:
+		return nil
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	common2 "github.com/okex/exchain/x/common"
 	"math/big"
 	"strconv"
 	"sync"
@@ -883,6 +885,11 @@ func (api *PublicEthereumAPI) doCall(
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
+
+	if gas := getCallFnGasUsedHistory(args); gas > 0 {
+		return hexutil.Uint64(float64(gas) * 1.2), nil
+	}
+
 	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -894,6 +901,24 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	gas := estimatedGas + gasBuffer
 
 	return hexutil.Uint64(gas), nil
+}
+
+func getCallFnGasUsedHistory(args rpctypes.CallArgs) int64 {
+	if args.To == nil || args.Data == nil {
+		return -1
+	}
+
+	recipient := args.To.Bytes()
+	methodId := []byte(*args.Data)[0:4]
+	fnSignature := append(recipient, methodId...)
+
+	db := baseapp.InstanceOfGasUsedRecordDB()
+	data, err := db.Get(fnSignature)
+	if err != nil || len(data) == 0 {
+		return -1
+	}
+
+	return common2.BytesToInt64(data)
 }
 
 // GetBlockByHash returns the block identified by hash.

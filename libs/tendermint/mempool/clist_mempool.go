@@ -30,6 +30,7 @@ import (
 
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
+	GetTxHistoryGasUsed(tx types.Tx) int64
 }
 
 //--------------------------------------------------------------------------------
@@ -265,10 +266,17 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	var simuRes *SimulationResponse
 	var err error
+	var gasUsed int64
 	if mem.config.MaxGasUsedPerBlock > -1 {
-		simuRes, err = mem.simulateTx(tx)
+		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		if gasUsed < 0 {
+			simuRes, err := mem.simulateTx(tx)
+			if err != nil {
+				return err
+			}
+			gasUsed = int64(simuRes.GasWanted)
+		}
 	}
 
 	mem.updateMtx.RLock()
@@ -277,7 +285,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 	txSize := len(tx)
 
-	if err := mem.isFull(txSize); err != nil {
+	if err = mem.isFull(txSize); err != nil {
 		return err
 	}
 
@@ -289,7 +297,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	if mem.preCheck != nil {
-		if err := mem.preCheck(tx); err != nil {
+		if err = mem.preCheck(tx); err != nil {
 			return ErrPreCheck{err}
 		}
 	}
@@ -316,7 +324,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// WAL
 	if mem.wal != nil {
 		// TODO: Notify administrators when WAL fails
-		_, err := mem.wal.Write([]byte(tx))
+		_, err = mem.wal.Write([]byte(tx))
 		if err != nil {
 			mem.logger.Error("Error writing to WAL", "err", err)
 		}
@@ -328,7 +336,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// END WAL
 
 	// NOTE: proxyAppConn may error if tx buffer is full
-	if err := mem.proxyAppConn.Error(); err != nil {
+	if err = mem.proxyAppConn.Error(); err != nil {
 		return err
 	}
 
@@ -336,8 +344,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if mem.config.MaxGasUsedPerBlock > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok && err == nil {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, simuRes.GasUsed))
-			r.CheckTx.GasWanted = int64(simuRes.GasUsed)
+				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
+			r.CheckTx.GasWanted = gasUsed
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo.SenderID, txInfo.SenderP2PID, cb))

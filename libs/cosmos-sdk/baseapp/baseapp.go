@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1002,4 +1003,25 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	}
 
 	return app.GetTxInfo(app.checkState.ctx, tx)
+}
+
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
+	tx, err := app.txDecoder(rawTx)
+	if err != nil {
+		return -1
+	}
+
+	txFnSig := tx.GetTxFnSignature()
+	if txFnSig == nil {
+		return -1
+	}
+
+
+	db := InstanceOfGasUsedRecordDB()
+	data, err := db.Get(txFnSig)
+	if err != nil || len(data) == 0 {
+		return -1
+	}
+
+	return int64(binary.BigEndian.Uint64(data))
 }

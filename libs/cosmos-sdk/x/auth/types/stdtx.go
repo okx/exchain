@@ -190,6 +190,10 @@ func (tx StdTx) GetGasPrice() *big.Int {
 	return tx.Fee.GasPrices()[0].Amount.BigInt()
 }
 
+func (tx StdTx) GetTxFnSignature() []byte {
+	return nil
+}
+
 //__________________________________________________________
 
 // StdFee includes the amount of coins paid in fees and the maximum
