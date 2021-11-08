@@ -17,5 +17,11 @@ jobs:
         with:
           go-version: 1.14
 
-      - name: Go Test cosmos-sdk
+  cosmos-sdk:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/setup-go@v2
+
+      - name: cosmos-sdk 
         run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock' 
