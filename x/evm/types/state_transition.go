@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/common/analyzer"
 )
 
@@ -220,17 +220,23 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	gasConsumed := gasLimit - leftOverGas
 
-	result := &core.ExecutionResult{
-		UsedGas:    gasConsumed,
-		Err:        err,
-		ReturnData: ret,
-	}
-
 	defer func() {
 		// Consume gas from evm execution
 		// Out of gas check does not need to be done here since it is done within the EVM execution
 		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 	}()
+
+	defer func() {
+		if !st.Simulate && enableDebug {
+			result := &core.ExecutionResult{
+				UsedGas:    gasConsumed,
+				Err:        err,
+				ReturnData: ret,
+			}
+			saveTraceResult(ctx, tracer, result)
+		}
+	}()
+
 	if err != nil {
 		// Consume gas before returning
 		return exeRes, resData, newRevertError(ret, err)
@@ -268,12 +274,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			return
 		}
 	}
-
-	defer func() {
-		if !st.Simulate && enableDebug {
-			saveTraceResult(ctx, tracer, result)
-		}
-	}()
 
 	// Encode all necessary data into slice of bytes to return in sdk result
 	resData = &ResultData{
