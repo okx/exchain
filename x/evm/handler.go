@@ -3,8 +3,8 @@ package evm
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -148,7 +148,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	StartTxLog(bam.TransitionDb)
-	executionResult, resultData, err := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
 			ResultData: resultData,
@@ -163,6 +163,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 	StopTxLog(bam.TransitionDb)
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil {
+			k.AddContract(erc20s)
+		}
+	}
 
 	StartTxLog(bam.Bloomfilter)
 	if !st.Simulate {
@@ -257,9 +266,18 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err := st.TransitionDb(ctx, config)
+	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
+	}
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil {
+			k.AddContract(erc20s)
+		}
 	}
 
 	// update block bloom filter
