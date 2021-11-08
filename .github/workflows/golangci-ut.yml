@@ -18,9 +18,6 @@ jobs:
       with:
         go-version: 1.14
 
-    - name: Build
-      run: go build -v ./libs/...
-
     - name: Test
       run: go test -v ./libs/... 
       env:
