@@ -525,7 +525,7 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 	// 不能从old 放回new
 	// Sanity check
 	if ka.isOld() {
-		debug.PrintStack()
+		a.Logger.Error("Failed Sanity Check! stack :%s", string(debug.Stack()))
 		a.Logger.Error("Failed Sanity Check! Cant add old address to new bucket", "ka", ka, "bucket", bucketIdx)
 		return
 	}
