@@ -343,6 +343,7 @@ func createBlockchainReactor(config *cfg.Config,
 	fastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
+	fmt.Println("config.FastSync.Version---->", config.FastSync.Version)
 	switch config.FastSync.Version {
 	case "v0":
 		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)

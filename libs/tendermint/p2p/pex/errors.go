@@ -75,4 +75,5 @@ func (err ErrAddressBanned) Error() string {
 }
 
 // ErrUnsolicitedList is thrown when a peer provides a list of addresses that have not been asked for.
+// 所答非所问 的响应
 var ErrUnsolicitedList = errors.New("unsolicited pexAddrsMessage")

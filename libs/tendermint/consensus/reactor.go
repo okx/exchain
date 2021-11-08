@@ -850,6 +850,7 @@ func (conR *Reactor) peerStatsRoutine() {
 					conR.Switch.MarkPeerAsGood(peer)
 				}
 			case *BlockPartMessage:
+				//
 				if numParts := ps.RecordBlockPart(); numParts%blocksToContributeToBecomeGoodPeer == 0 {
 					conR.Switch.MarkPeerAsGood(peer)
 				}

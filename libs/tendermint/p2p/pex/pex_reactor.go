@@ -274,6 +274,7 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 
 		} else {
 			// Check we're not receiving requests too frequently.
+			//非seedMode  某个peer 发送的太频繁 ，标记bad
 			if err := r.receiveRequest(src); err != nil {
 				r.Switch.StopPeerForError(src, err)
 				r.book.MarkBad(src.SocketAddr(), defaultBanTime)
@@ -287,6 +288,7 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 		if err := r.ReceiveAddrs(msg.Addrs, src); err != nil {
 			r.Switch.StopPeerForError(src, err)
 			if err == ErrUnsolicitedList {
+				// 相应的
 				r.book.MarkBad(src.SocketAddr(), defaultBanTime)
 			}
 			return
@@ -348,6 +350,7 @@ func (r *Reactor) RequestAddrs(p Peer) {
 func (r *Reactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
 	id := string(src.ID())
 	if !r.requestsSent.Has(id) {
+		//
 		return ErrUnsolicitedList
 	}
 	r.requestsSent.Delete(id)
@@ -503,6 +506,7 @@ func (r *Reactor) ensurePeers() {
 
 	if r.book.NeedMoreAddrs() {
 		// Check if banned nodes can be reinstated
+		// 把禁止掉的bad PEERS 恢复
 		r.book.ReinstateBadPeers()
 	}
 
@@ -750,9 +754,11 @@ func (r *Reactor) attemptDisconnects() {
 func markAddrInBookBasedOnErr(addr *p2p.NetAddress, book AddrBook, err error) {
 	// TODO: detect more "bad peer" scenarios
 	switch err.(type) {
+	//
 	case p2p.ErrSwitchAuthenticationFailure:
 		book.MarkBad(addr, defaultBanTime)
 	default:
+		//默认就增加attempt 计数
 		book.MarkAttempt(addr)
 	}
 }

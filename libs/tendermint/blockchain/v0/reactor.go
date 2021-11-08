@@ -192,19 +192,22 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 
 	switch msg := msg.(type) {
 	case *bcBlockRequestMessage:
+		//请求指定Height 的block， 发送block 数据
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
+		//  针对bcBlockRequestMessage消息的返回。 接收返回的 block 数据
 		bcR.pool.AddBlock(src.ID(), msg.Block, len(msgBytes))
 	case *bcStatusRequestMessage:
-		// Send peer our state.
+		// Send peer our state. 发送该节点的数据状态
 		src.TrySend(BlockchainChannel, cdc.MustMarshalBinaryBare(&bcStatusResponseMessage{
 			Height: bcR.store.Height(),
 			Base:   bcR.store.Base(),
 		}))
 	case *bcStatusResponseMessage:
-		// Got a peer status. Unverified.
+		// Got a peer status. Unverified.  // 更新本地peer 统计状态
 		bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height)
 	case *bcNoBlockResponseMessage:
+		// 针对bcBlockRequestMessage消息的返回。 表示没有该block 数据
 		bcR.Logger.Debug("Peer does not have requested block", "peer", src, "height", msg.Height)
 	default:
 		bcR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
@@ -273,6 +276,7 @@ FOR_LOOP:
 				bcR.pool.Stop()
 				conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 				if ok {
+					//这里完成模式切换  从 fast-sync 到consenseus 共识追块
 					conR.SwitchToConsensus(state, blocksSynced)
 				}
 				// else {

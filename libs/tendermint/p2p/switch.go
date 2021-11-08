@@ -270,6 +270,7 @@ func (sw *Switch) Broadcast(chID byte, msgBytes []byte) chan bool {
 	for _, peer := range peers {
 		go func(p Peer) {
 			defer wg.Done()
+			//p2p 直发消息
 			success := p.Send(chID, msgBytes)
 			successChan <- success
 		}(peer)

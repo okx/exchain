@@ -48,6 +48,7 @@ func (ka *knownAddress) markAttempt() {
 	ka.Attempts++
 }
 
+//markGood 清空三个指标
 func (ka *knownAddress) markGood() {
 	now := time.Now()
 	ka.LastAttempt = now
@@ -62,9 +63,11 @@ func (ka *knownAddress) ban(banTime time.Duration) {
 }
 
 func (ka *knownAddress) isBanned() bool {
+	// 当前时间是否已经超过了 禁止时间
 	return ka.LastBanTime.After(time.Now())
 }
 
+//只能添加到一个bucket
 func (ka *knownAddress) addBucketRef(bucketIdx int) int {
 	for _, bucket := range ka.Buckets {
 		if bucket == bucketIdx {

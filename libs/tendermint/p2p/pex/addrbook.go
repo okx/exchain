@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -134,12 +135,12 @@ func NewAddrBook(filePath string, routabilityStrict bool) AddrBook {
 // When modifying this, don't forget to update loadFromFile()
 func (a *addrBook) init() {
 	a.key = crypto.CRandHex(24) // 24/2 * 8 = 96 bits
-	// New addr buckets
+	// New addr buckets 256个桶
 	a.bucketsNew = make([]map[string]*knownAddress, newBucketCount)
 	for i := range a.bucketsNew {
 		a.bucketsNew[i] = make(map[string]*knownAddress)
 	}
-	// Old addr buckets
+	// Old addr buckets 64个桶
 	a.bucketsOld = make([]map[string]*knownAddress, oldBucketCount)
 	for i := range a.bucketsOld {
 		a.bucketsOld[i] = make(map[string]*knownAddress)
@@ -176,7 +177,7 @@ func (a *addrBook) FilePath() string {
 
 //-------------------------------------------------------
 
-// AddOurAddress one of our addresses.
+// AddOurAddress one of our addresses. 本机的ip信息 防止自己调用自己
 func (a *addrBook) AddOurAddress(addr *p2p.NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -326,6 +327,7 @@ func (a *addrBook) MarkGood(id p2p.ID) {
 	}
 	ka.markGood()
 	if ka.isNew() {
+		//标记good的就从新bucket 移到old bucket
 		a.moveToOld(ka)
 	}
 }
@@ -345,9 +347,11 @@ func (a *addrBook) MarkAttempt(addr *p2p.NetAddress) {
 // MarkBad implements AddrBook. Kicks address out from book, places
 // the address in the badPeers pool.
 func (a *addrBook) MarkBad(addr *p2p.NetAddress, banTime time.Duration) {
+	debug.PrintStack()
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-
+	fmt.Println("MarkBad " , addr.String())
+	// 默认bad 时间是24小时 ，
 	if a.addBadPeer(addr, banTime) {
 		a.removeAddress(addr)
 	}
@@ -360,17 +364,18 @@ func (a *addrBook) ReinstateBadPeers() {
 	defer a.mtx.Unlock()
 
 	for _, ka := range a.badPeers {
+		// 是否超出禁止时间 ， 解禁了  从上次封禁已过24小时
 		if ka.isBanned() {
 			continue
 		}
-
+		// 计算新的bucket 桶位置
 		bucket, err := a.calcNewBucket(ka.Addr, ka.Src)
 		if err != nil {
 			a.Logger.Error("Failed to calculate new bucket (bad peer won't be reinstantiated)",
 				"addr", ka.Addr, "err", err)
 			continue
 		}
-
+		// 把ka 放到新的bucket  这里有个问题  bad peer 是否是旧的
 		a.addToNewBucket(ka, bucket)
 		delete(a.badPeers, ka.ID())
 
@@ -517,8 +522,10 @@ func (a *addrBook) getBucket(bucketType byte, bucketIdx int) map[string]*knownAd
 // Adds ka to new bucket. Returns false if it couldn't do it cuz buckets full.
 // NOTE: currently it always returns true.
 func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
+	// 不能从old 放回new
 	// Sanity check
 	if ka.isOld() {
+		debug.PrintStack()
 		a.Logger.Error("Failed Sanity Check! Cant add old address to new bucket", "ka", ka, "bucket", bucketIdx)
 		return
 	}
@@ -526,12 +533,12 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 	addrStr := ka.Addr.String()
 	bucket := a.getBucket(bucketTypeNew, bucketIdx)
 
-	// Already exists?
+	// Already exists? 直接返回
 	if _, ok := bucket[addrStr]; ok {
 		return
 	}
 
-	// Enforce max addresses.
+	// Enforce max addresses. 每个bucket 存储最多64个
 	if len(bucket) > newBucketSize {
 		a.Logger.Info("new bucket is full, expiring new")
 		a.expireNew(bucketIdx)
@@ -568,7 +575,7 @@ func (a *addrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 		return true
 	}
 
-	// Enforce max addresses.
+	// Enforce max addresses. 超过64个
 	if len(bucket) > oldBucketSize {
 		return false
 	}
@@ -579,7 +586,7 @@ func (a *addrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 		a.nOld++
 	}
 
-	// Ensure in addrLookup
+	// Ensure in addrLookup  更新缓存
 	a.addrLookup[ka.ID()] = ka
 
 	return true
@@ -604,6 +611,7 @@ func (a *addrBook) removeFromBucket(ka *knownAddress, bucketType byte, bucketIdx
 
 func (a *addrBook) removeFromAllBuckets(ka *knownAddress) {
 	for _, bucketIdx := range ka.Buckets {
+		//一个 ka 可能对应多个bucket ？？？ ！！！！   应该只能对应一个bucket
 		bucket := a.getBucket(ka.BucketType, bucketIdx)
 		delete(bucket, ka.Addr.String())
 	}
@@ -630,9 +638,10 @@ func (a *addrBook) pickOldest(bucketType byte, bucketIdx int) *knownAddress {
 }
 
 // adds the address to a "new" bucket. if its already in one,
-// it only adds it probabilistically
+// it only adds it probabilistically 概率的
 func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if addr == nil || src == nil {
+		//合法的地址结构
 		return ErrAddrBookNilAddr{addr, src}
 	}
 
@@ -657,6 +666,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 		return ErrAddrBookSelf{addr}
 	}
 
+	//可路由限制
 	if a.routabilityStrict && !addr.Routable() {
 		return ErrAddrBookNonRoutable{addr}
 	}
@@ -665,6 +675,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if ka != nil {
 		// If its already old and the addr is the same, ignore it.
 		if ka.isOld() && ka.Addr.Equals(addr) {
+			// 旧的addr 直接返回 ， 不会放入new
 			return nil
 		}
 		// Already in max new buckets.
@@ -684,6 +695,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if err != nil {
 		return err
 	}
+	//
 	a.addToNewBucket(ka, bucket)
 	return nil
 }
@@ -740,6 +752,7 @@ func (a *addrBook) expireNew(bucketIdx int) {
 
 	// If we haven't thrown out a bad entry, throw out the oldest entry
 	oldest := a.pickOldest(bucketTypeNew, bucketIdx)
+	//直接删除也不保留了
 	a.removeFromBucket(oldest, bucketTypeNew, bucketIdx)
 }
 
@@ -747,7 +760,7 @@ func (a *addrBook) expireNew(bucketIdx int) {
 // demote the oldest one to a "new" bucket.
 // TODO: Demote more probabilistically?
 func (a *addrBook) moveToOld(ka *knownAddress) error {
-	// Sanity check
+	// Sanity check 如果是旧的addr 就直接返回 说白了只能放新的
 	if ka.isOld() {
 		a.Logger.Error(fmt.Sprintf("Cannot promote address that is already old %v", ka))
 		return nil
@@ -767,15 +780,17 @@ func (a *addrBook) moveToOld(ka *knownAddress) error {
 	if err != nil {
 		return err
 	}
+
 	added := a.addToOldBucket(ka, oldBucketIdx)
 	if !added {
-		// No room; move the oldest to a new bucket
+		// No room; move the oldest to a new bucket  这不是把一个
 		oldest := a.pickOldest(bucketTypeOld, oldBucketIdx)
 		a.removeFromBucket(oldest, bucketTypeOld, oldBucketIdx)
 		newBucketIdx, err := a.calcNewBucket(oldest.Addr, oldest.Src)
 		if err != nil {
 			return err
 		}
+		// 这里肯定会触发报错 ？？？？
 		a.addToNewBucket(oldest, newBucketIdx)
 
 		// Finally, add our ka to old bucket again.
@@ -797,7 +812,7 @@ func (a *addrBook) removeAddress(addr *p2p.NetAddress) {
 }
 
 func (a *addrBook) addBadPeer(addr *p2p.NetAddress, banTime time.Duration) bool {
-	// check it exists in addrbook
+	// check it exists in addrbook  addrLookup 本地过滤器
 	ka := a.addrLookup[addr.ID]
 	// check address is not already there
 	if ka == nil {
@@ -827,6 +842,7 @@ func (a *addrBook) calcNewBucket(addr, src *p2p.NetAddress) (int, error) {
 		return 0, err
 	}
 	hash64 := binary.BigEndian.Uint64(hash1)
+	// 对 64 取模
 	hash64 %= newBucketsPerGroup
 	var hashbuf [8]byte
 	binary.BigEndian.PutUint64(hashbuf[:], hash64)
