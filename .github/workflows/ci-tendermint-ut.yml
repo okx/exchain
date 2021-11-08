@@ -16,15 +16,61 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.14
+      - uses: actions/setup-go@v2
+      - name: Set GOBIN
+        run: |
+          echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
+      - uses: actions/checkout@v2.3.4
+      - name: install
+        run: make install install_abci
+      # Cache bin
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tm-binary
 
-      - name: Go Test tendermint/libs/async
-        run: go test -count=1 -ldflags -s $(go list ./libs/tendermint/... | grep libs/async)
+  tm-core:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/setup-go@v2
 
-      - name: Go Test tendermint/lite/
-        run: go test -count=1 ./libs/tendermint/lite/...
+      - name: test_tm_core
+        run: | 
+       	  go test -count=1 -ldflags -s $(go list ./libs/tendermint/... | grep libs/async) 
+          go test -count=1 ./libs/tendermint/lite/...
+          go test -count=1 ./libs/tendermint/mempool/...
+          go test -count=1 ./libs/tendermint/consensus/...
 
-      - name: Go Test tendermint/mempool/
-        run: go test -count=1 ./libs/tendermint/mempool/...
+  test_abci_apps:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/setup-go@v2
+      - name: Set GOBIN
+        run: |
+          echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
+      - uses: actions/checkout@v2.3.4
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tm-binary
+      - name: test_abci_apps
+        run: ./libs/tendermint/abci/tests/test_app/test.sh
+        shell: bash
 
-      - name: Go Test tendermint/consensus/
-        run: go test -count=1 ./libs/tendermint/consensus/...
+  test_abci_cli:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - uses: actions/setup-go@v2
+      - name: Set GOBIN
+        run: |
+          echo "GOBIN=$(go env GOPATH)/bin" >> $GITHUB_ENV
+      - uses: actions/checkout@v2.3.4
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tm-binary
+      - run: ./libs/tendermint/abci/tests/test_cli/test.sh
+        shell: bash
