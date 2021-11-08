@@ -20,9 +20,9 @@ jobs:
 
     - name: Test
       run: | 
-	go test -v ./libs/cosmod-sdk/... 
- 	go test ./libs/iavl/... -mod=readonly -timeout 15m -short -race -coverprofile=coverage.txt -covermode=atomic
-	go test ./libs/iavl/... -mod=readonly -timeout 15m
-	go test -v ./libs/tendermint/... 
+        go test -v ./libs/cosmod-sdk/... 
+        go test ./libs/iavl/... -mod=readonly -timeout 15m -short -race -coverprofile=coverage.txt -covermode=atomic
+        go test ./libs/iavl/... -mod=readonly -timeout 15m
+        go test -v ./libs/tendermint/... 
       env:
         LEDGER_ENABLED : true
