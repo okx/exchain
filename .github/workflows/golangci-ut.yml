@@ -13,22 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.14
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
 
-    - name: Go Test tendermint/libs/async
-      run: go test -count=1 -ldflags -s $(go list ./libs/tendermint/... | grep libs/async)
+      - name: Go Test tendermint/libs/async
+        run: go test -count=1 -ldflags -s $(go list ./libs/tendermint/... | grep libs/async)
 
-    - name: Go Test tendermint/lite/
-      run: go test -count=1 ./libs/tendermint/lite/...
+      - name: Go Test tendermint/lite/
+        run: go test -count=1 ./libs/tendermint/lite/...
 
-    - name: Go Test tendermint/mempool/
-      run: go test -count=1 ./libs/tendermint/mempool/...
+      - name: Go Test tendermint/mempool/
+        run: go test -count=1 ./libs/tendermint/mempool/...
 
-    - name: Go Test cosmos-sdk
-      run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock' 
+      - name: Go Test cosmos-sdk
+        run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock' 
 
-    - name: Go Test iavl 
-      run: go test ./libs/iavl/... -mod=readonly
+      - name: Go Test iavl 
+        run: go test ./libs/iavl/... -mod=readonly
