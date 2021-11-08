@@ -525,7 +525,7 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 	// 不能从old 放回new
 	// Sanity check
 	if ka.isOld() {
-		a.Logger.Error("Failed Sanity Check! stack :%s", string(debug.Stack()))
+		a.Logger.Error("Failed Sanity Check! imp stack : ", string(debug.Stack()))
 		a.Logger.Error("Failed Sanity Check! Cant add old address to new bucket", "ka", ka, "bucket", bucketIdx)
 		return
 	}
@@ -678,6 +678,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 			// 旧的addr 直接返回 ， 不会放入new
 			return nil
 		}
+		a.Logger.Error("Failed Sanity Check! :", "ka.isOld() : " , ka.isOld(), "ka.name : " , ka.Addr.String(), "addr" , addr.String())
 		// Already in max new buckets.
 		if len(ka.Buckets) == maxNewBucketsPerAddress {
 			return nil
