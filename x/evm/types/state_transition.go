@@ -250,13 +250,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	if !st.Simulate {
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
-		if err = csdb.Finalise(true); err != nil {
+		if _, err = csdb.IntermediateRoot(true); err != nil {
 			return
 		}
 
-		if _, err = csdb.Commit(true); err != nil {
-			return
-		}
+		//if _, err = csdb.Commit(true); err != nil {
+		//	return
+		//}
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

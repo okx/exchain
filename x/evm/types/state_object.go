@@ -7,13 +7,13 @@ import (
 	"io"
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 const keccak256HashSize = 100000
@@ -476,4 +476,18 @@ type stateEntry struct {
 	// address key of the state object
 	address     ethcmn.Address
 	stateObject *stateObject
+}
+
+func (s *stateObject) UpdateAccInfo() {
+	accProto := s.stateDB.accountKeeper.GetAccount(s.stateDB.ctx, s.account.Address)
+	if accProto != nil {
+		ethAccount, ok := accProto.(*types.EthAccount)
+		if !ok {
+			return
+		}
+
+		// only need to update these field
+		s.account.Coins = ethAccount.Coins
+		s.account.Sequence = ethAccount.Sequence
+	}
 }

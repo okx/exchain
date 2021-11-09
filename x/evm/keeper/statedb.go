@@ -18,14 +18,14 @@ import (
 func (k *Keeper) SetBalance(ctx sdk.Context, addr ethcmn.Address, amount *big.Int) {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	csdb.SetBalance(addr, amount)
-	_ = csdb.Finalise(false)
+	csdb.IntermediateRoot(false)
 }
 
 // SetNonce calls CommitStateDB.SetNonce using the passed in context
 func (k *Keeper) SetNonce(ctx sdk.Context, addr ethcmn.Address, nonce uint64) {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	csdb.SetNonce(addr, nonce)
-	_ = csdb.Finalise(false)
+	csdb.IntermediateRoot(false)
 }
 
 // ----------------------------------------------------------------------------

@@ -12,12 +12,12 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/params"
 )
@@ -121,6 +121,8 @@ type CommitStateDB struct {
 	codeCache map[ethcmn.Address]CacheCode
 
 	dbAdapter DbAdapter
+
+	updatedStateObjectAcc map[ethcmn.Address]struct{} // will destroy every block
 }
 
 type StoreProxy interface {
@@ -158,23 +160,22 @@ func newCommitStateDB(
 		bankKeeper:           bk,
 		Watcher:              watcher,
 		stateObjects:         []stateEntry{},
-		addressToObjectIndex: make(map[ethcmn.Address]int),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            DefaultPrefixDb{},
+		addressToObjectIndex:  make(map[ethcmn.Address]int),
+		stateObjectsDirty:     make(map[ethcmn.Address]struct{}),
+		preimages:             []preimageEntry{},
+		hashToPreimageIndex:   make(map[ethcmn.Hash]int),
+		journal:               newJournal(),
+		validRevisions:        []revision{},
+		accessList:            newAccessList(),
+		logs:                  []*ethtypes.Log{},
+		codeCache:             make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:             DefaultPrefixDb{},
+		updatedStateObjectAcc: make(map[ethcmn.Address]struct{}),
 	}
 }
 
-func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
+func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	return &CommitStateDB{
-		ctx: ctx,
-
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
 		accountKeeper: csdbParams.AccountKeeper,
@@ -184,17 +185,22 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logSize:              0,
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            csdbParams.Ada,
+		stateObjectsDirty:     make(map[ethcmn.Address]struct{}),
+		preimages:             []preimageEntry{},
+		hashToPreimageIndex:   make(map[ethcmn.Hash]int),
+		journal:               newJournal(),
+		validRevisions:        []revision{},
+		accessList:            newAccessList(),
+		logSize:               0,
+		logs:                  []*ethtypes.Log{},
+		codeCache:             make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:             csdbParams.Ada,
+		updatedStateObjectAcc: make(map[ethcmn.Address]struct{}),
 	}
+}
+
+func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
+	return NewCommitStateDB(csdbParams).WithContext(ctx)
 }
 
 func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
@@ -741,6 +747,8 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
 	defer csdb.clearJournalAndRefund()
 
+	csdb.Finalise(deleteEmptyObjects)
+
 	// remove dirty state object entries based on the journal
 	for _, dirty := range csdb.journal.dirties {
 		csdb.stateObjectsDirty[dirty.address] = struct{}{}
@@ -1164,6 +1172,11 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 				return nil
 			}
 
+			if _, ok := csdb.updatedStateObjectAcc[addr]; ok {
+				so.UpdateAccInfo()
+				delete(csdb.updatedStateObjectAcc, addr)
+			}
+
 			return so
 		}
 	}
@@ -1308,4 +1321,10 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
 	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	return bs.Has(contractAddr)
+}
+
+func (csdb *CommitStateDB) MarkUpdatedAcc(addList []ethcmn.Address) {
+	for _, addr := range addList {
+		csdb.updatedStateObjectAcc[addr] = struct{}{}
+	}
 }
