@@ -6,10 +6,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"net"
 	"os"
 	"path/filepath"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/app/crypto/hd"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -24,20 +28,17 @@ import (
 	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/app/crypto/hd"
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/genutil"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/genutil"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -253,6 +254,7 @@ func InitTestnet(
 		genAccounts = append(genAccounts, ethermint.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
+			StateRoot:   ethcmn.Hash{},
 		})
 
 		msg := stakingtypes.NewMsgCreateValidator(

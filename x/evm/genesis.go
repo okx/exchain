@@ -3,14 +3,14 @@ package evm
 import (
 	"fmt"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // InitGenesis initializes genesis state based on exported genesis
@@ -82,15 +82,9 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 
 	logger.Debug("Import finished", "code", codeCount, "storage", storageCount)
 
-	// set state objects and code to store
-	_, err := csdb.Commit(false)
-	if err != nil {
-		panic(err)
-	}
-
 	// set storage to store
 	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = csdb.Finalise(false)
+	_, err := csdb.Commit(false)
 	if err != nil {
 		panic(err)
 	}

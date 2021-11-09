@@ -1,44 +1,49 @@
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-)
 
-var ripemd = ethcmn.HexToAddress("0000000000000000000000000000000000000003")
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // journalEntry is a modification entry in the state change journal that can be
 // reverted on demand.
 type journalEntry interface {
 	// revert undoes the changes introduced by this journal entry.
-	revert(*CommitStateDB)
+	revert(db *CommitStateDB)
 
 	// dirtied returns the Ethereum address modified by this journal entry.
-	dirtied() *ethcmn.Address
+	dirtied() *common.Address
 }
 
 // journal contains the list of state modifications applied since the last state
 // commit. These are tracked to be able to be reverted in case of an execution
 // exception or revertal request.
 type journal struct {
-	entries               []journalEntry         // Current changes tracked by the journal
-	dirties               []dirty                // Dirty accounts and the number of changes
-	addressToJournalIndex map[ethcmn.Address]int // map from address to the index of the dirties slice
-}
-
-// dirty represents a single key value pair of the journal dirties, where the
-// key correspons to the account address and the value to the number of
-// changes for that account.
-type dirty struct {
-	address ethcmn.Address
-	changes int
+	entries []journalEntry         // Current changes tracked by the journal
+	dirties map[common.Address]int // Dirty accounts and the number of changes
 }
 
 // newJournal create a new initialized journal.
 func newJournal() *journal {
 	return &journal{
-		dirties:               []dirty{},
-		addressToJournalIndex: make(map[ethcmn.Address]int),
+		dirties: make(map[common.Address]int),
 	}
 }
 
@@ -46,7 +51,7 @@ func newJournal() *journal {
 func (j *journal) append(entry journalEntry) {
 	j.entries = append(j.entries, entry)
 	if addr := entry.dirtied(); addr != nil {
-		j.addDirty(*addr)
+		j.dirties[*addr]++
 	}
 }
 
@@ -59,9 +64,8 @@ func (j *journal) revert(statedb *CommitStateDB, snapshot int) {
 
 		// Drop any dirty tracking induced by the change
 		if addr := j.entries[i].dirtied(); addr != nil {
-			j.substractDirty(*addr)
-			if j.getDirty(*addr) == 0 {
-				j.deleteDirty(*addr)
+			if j.dirties[*addr]--; j.dirties[*addr] == 0 {
+				delete(j.dirties, *addr)
 			}
 		}
 	}
@@ -71,8 +75,8 @@ func (j *journal) revert(statedb *CommitStateDB, snapshot int) {
 // dirty explicitly sets an address to dirty, even if the change entries would
 // otherwise suggest it as clean. This method is an ugly hack to handle the RIPEMD
 // precompile consensus exception.
-func (j *journal) dirty(addr ethcmn.Address) {
-	j.addDirty(addr)
+func (j *journal) dirty(addr common.Address) {
+	j.dirties[addr]++
 }
 
 // length returns the current number of entries in the journal.
@@ -80,150 +84,68 @@ func (j *journal) length() int {
 	return len(j.entries)
 }
 
-// getDirty returns the dirty count for a given address. If the address is not
-// found it returns 0.
-func (j *journal) getDirty(addr ethcmn.Address) int {
-	idx, found := j.addressToJournalIndex[addr]
-	if !found {
-		return 0
-	}
-
-	return j.dirties[idx].changes
-}
-
-// addDirty adds 1 to the dirty count of an address. If the dirty entry is not
-// found it creates it.
-func (j *journal) addDirty(addr ethcmn.Address) {
-	idx, found := j.addressToJournalIndex[addr]
-	if !found {
-		j.dirties = append(j.dirties, dirty{address: addr, changes: 0})
-		idx = len(j.dirties) - 1
-		j.addressToJournalIndex[addr] = idx
-	}
-
-	j.dirties[idx].changes++
-}
-
-// substractDirty subtracts 1 to the dirty count of an address. It performs a
-// no-op if the address is not found.
-func (j *journal) substractDirty(addr ethcmn.Address) {
-	idx, found := j.addressToJournalIndex[addr]
-	if !found {
-		return
-	}
-
-	if j.dirties[idx].changes == 0 {
-		return
-	}
-	j.dirties[idx].changes--
-}
-
-// deleteDirty deletes a dirty entry from the jounal's dirties slice. If the
-// entry is not found it performs a no-op.
-func (j *journal) deleteDirty(addr ethcmn.Address) {
-	idx, found := j.addressToJournalIndex[addr]
-	if !found {
-		return
-	}
-
-	j.dirties = append(j.dirties[:idx], j.dirties[idx+1:]...)
-	delete(j.addressToJournalIndex, addr)
-}
-
 type (
 	// Changes to the account trie.
 	createObjectChange struct {
-		account *ethcmn.Address
+		account *common.Address
 	}
-
 	resetObjectChange struct {
-		prev *stateObject
+		prev         *stateObject
+		prevdestruct bool
 	}
-
 	suicideChange struct {
-		account     *ethcmn.Address
+		account     *common.Address
 		prev        bool // whether account had already suicided
-		prevBalance sdk.Dec
+		prevbalance sdk.Dec
 	}
 
 	// Changes to individual accounts.
 	balanceChange struct {
-		account *ethcmn.Address
+		account *common.Address
 		prev    sdk.Dec
 	}
-
 	nonceChange struct {
-		account *ethcmn.Address
+		account *common.Address
 		prev    uint64
 	}
-
 	storageChange struct {
-		account        *ethcmn.Address
-		key, prevValue ethcmn.Hash
+		account       *common.Address
+		key, prevalue common.Hash
 	}
-
 	codeChange struct {
-		account            *ethcmn.Address
-		prevCode, prevHash []byte
+		account            *common.Address
+		prevcode, prevhash []byte
 	}
 
 	// Changes to other state values.
 	refundChange struct {
 		prev uint64
 	}
-
 	addLogChange struct {
-		txhash ethcmn.Hash
+		txhash common.Hash
 	}
-
 	addPreimageChange struct {
-		hash ethcmn.Hash
+		hash common.Hash
 	}
-
 	touchChange struct {
-		account *ethcmn.Address
-		// prev      bool
-		// prevDirty bool
+		account *common.Address
 	}
+	// Changes to the access list
 	accessListAddAccountChange struct {
-		address *ethcmn.Address
+		address *common.Address
 	}
 	accessListAddSlotChange struct {
-		address *ethcmn.Address
-		slot    *ethcmn.Hash
+		address *common.Address
+		slot    *common.Hash
 	}
 )
 
 func (ch createObjectChange) revert(s *CommitStateDB) {
+	delete(s.stateObjects, *ch.account)
 	delete(s.stateObjectsDirty, *ch.account)
-
-	idx, exists := s.addressToObjectIndex[*ch.account]
-	if !exists {
-		// perform no-op
-		return
-	}
-
-	// remove from the slice
-	delete(s.addressToObjectIndex, *ch.account)
-
-	// if the slice contains one element, delete it
-	if len(s.stateObjects) == 1 {
-		s.stateObjects = []stateEntry{}
-		return
-	}
-
-	// move the elements one position left on the array
-	for i := idx + 1; i < len(s.stateObjects); i++ {
-		s.stateObjects[i-1] = s.stateObjects[i]
-		// the new index is i - 1
-		s.addressToObjectIndex[s.stateObjects[i].address] = i - 1
-	}
-
-	//  finally, delete the last element of the slice to account for the removed object
-	s.stateObjects = s.stateObjects[:len(s.stateObjects)-1]
 }
 
-func (ch createObjectChange) dirtied() *ethcmn.Address {
+func (ch createObjectChange) dirtied() *common.Address {
 	return ch.account
 }
 
@@ -231,26 +153,28 @@ func (ch resetObjectChange) revert(s *CommitStateDB) {
 	s.setStateObject(ch.prev)
 }
 
-func (ch resetObjectChange) dirtied() *ethcmn.Address {
+func (ch resetObjectChange) dirtied() *common.Address {
 	return nil
 }
 
 func (ch suicideChange) revert(s *CommitStateDB) {
-	so := s.getStateObject(*ch.account)
-	if so != nil {
-		so.suicided = ch.prev
-		so.setBalance(sdk.DefaultBondDenom, ch.prevBalance)
+	obj := s.getStateObject(*ch.account)
+	if obj != nil {
+		obj.suicided = ch.prev
+		obj.setBalance(sdk.DefaultBondDenom, ch.prevbalance)
 	}
 }
 
-func (ch suicideChange) dirtied() *ethcmn.Address {
+func (ch suicideChange) dirtied() *common.Address {
 	return ch.account
 }
+
+var ripemd = common.HexToAddress("0000000000000000000000000000000000000003")
 
 func (ch touchChange) revert(s *CommitStateDB) {
 }
 
-func (ch touchChange) dirtied() *ethcmn.Address {
+func (ch touchChange) dirtied() *common.Address {
 	return ch.account
 }
 
@@ -258,7 +182,7 @@ func (ch balanceChange) revert(s *CommitStateDB) {
 	s.getStateObject(*ch.account).setBalance(sdk.DefaultBondDenom, ch.prev)
 }
 
-func (ch balanceChange) dirtied() *ethcmn.Address {
+func (ch balanceChange) dirtied() *common.Address {
 	return ch.account
 }
 
@@ -266,23 +190,23 @@ func (ch nonceChange) revert(s *CommitStateDB) {
 	s.getStateObject(*ch.account).setNonce(ch.prev)
 }
 
-func (ch nonceChange) dirtied() *ethcmn.Address {
+func (ch nonceChange) dirtied() *common.Address {
 	return ch.account
 }
 
 func (ch codeChange) revert(s *CommitStateDB) {
-	s.getStateObject(*ch.account).setCode(ethcmn.BytesToHash(ch.prevHash), ch.prevCode)
+	s.getStateObject(*ch.account).setCode(common.BytesToHash(ch.prevhash), ch.prevcode)
 }
 
-func (ch codeChange) dirtied() *ethcmn.Address {
+func (ch codeChange) dirtied() *common.Address {
 	return ch.account
 }
 
 func (ch storageChange) revert(s *CommitStateDB) {
-	s.getStateObject(*ch.account).setState(ch.key, ch.prevValue)
+	s.getStateObject(*ch.account).setState(ch.key, ch.prevalue)
 }
 
-func (ch storageChange) dirtied() *ethcmn.Address {
+func (ch storageChange) dirtied() *common.Address {
 	return ch.account
 }
 
@@ -290,11 +214,19 @@ func (ch refundChange) revert(s *CommitStateDB) {
 	s.refund = ch.prev
 }
 
-func (ch refundChange) dirtied() *ethcmn.Address {
+func (ch refundChange) dirtied() *common.Address {
 	return nil
 }
 
 func (ch addLogChange) revert(s *CommitStateDB) {
+	//logs := s.logs[ch.txhash]
+	//if len(logs) == 1 {
+	//	delete(s.logs, ch.txhash)
+	//} else {
+	//	s.logs[ch.txhash] = logs[:len(logs)-1]
+	//}
+	//s.logSize--
+
 	logs, err := s.GetLogs(ch.txhash)
 	if err != nil {
 		// panic on unmarshal error
@@ -312,39 +244,15 @@ func (ch addLogChange) revert(s *CommitStateDB) {
 	s.logSize--
 }
 
-func (ch addLogChange) dirtied() *ethcmn.Address {
+func (ch addLogChange) dirtied() *common.Address {
 	return nil
 }
 
 func (ch addPreimageChange) revert(s *CommitStateDB) {
-	idx, exists := s.hashToPreimageIndex[ch.hash]
-	if !exists {
-		// perform no-op
-		return
-	}
-
-	// remove from the slice
-	delete(s.hashToPreimageIndex, ch.hash)
-
-	// if the slice contains one element, delete it
-	if len(s.preimages) == 1 {
-		s.preimages = []preimageEntry{}
-		return
-	}
-
-	// move the elements one position left on the array
-	for i := idx + 1; i < len(s.preimages); i++ {
-		s.preimages[i-1] = s.preimages[i]
-		// the new index is i - 1
-		s.hashToPreimageIndex[s.preimages[i].hash] = i - 1
-	}
-
-	//  finally, delete the last element
-
-	s.preimages = s.preimages[:len(s.preimages)-1]
+	delete(s.preimages, ch.hash)
 }
 
-func (ch addPreimageChange) dirtied() *ethcmn.Address {
+func (ch addPreimageChange) dirtied() *common.Address {
 	return nil
 }
 
@@ -361,7 +269,7 @@ func (ch accessListAddAccountChange) revert(s *CommitStateDB) {
 	s.accessList.DeleteAddress(*ch.address)
 }
 
-func (ch accessListAddAccountChange) dirtied() *ethcmn.Address {
+func (ch accessListAddAccountChange) dirtied() *common.Address {
 	return nil
 }
 
@@ -369,6 +277,6 @@ func (ch accessListAddSlotChange) revert(s *CommitStateDB) {
 	s.accessList.DeleteSlot(*ch.address, *ch.slot)
 }
 
-func (ch accessListAddSlotChange) dirtied() *ethcmn.Address {
+func (ch accessListAddSlotChange) dirtied() *common.Address {
 	return nil
 }

@@ -243,20 +243,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			return
 		}
 
+		csdb.DeleteLogs(*st.TxHash)
+
 		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	if !st.Simulate {
-		// Finalise state if not a simulated transaction
-		// TODO: change to depend on config
-		if err = csdb.Finalise(true); err != nil {
-			return
-		}
-
-		if _, err = csdb.Commit(true); err != nil {
-			return
-		}
+		csdb.IntermediateRoot(false)
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

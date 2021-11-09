@@ -51,6 +51,9 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	UpdatedAccount []ethcmn.Address
+	EvmStateDb     *types.CommitStateDB
 }
 
 // NewKeeper generates new evm module keeper
@@ -87,10 +90,14 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
+		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
 	}
+
+	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
+	ak.SetObserverKeeper(k)
 
 	return k
 }
@@ -115,8 +122,12 @@ func NewSimulateKeeper(
 	}
 }
 
-func (k Keeper) OnAccountUpdated(acc auth.Account) {
-	k.Watcher.DeleteAccount(acc.GetAddress())
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
+	if k.Watcher.Enabled() {
+		k.Watcher.DeleteAccount(acc.GetAddress())
+	}
+
+	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))
 }
 
 // Logger returns a module-specific logger.

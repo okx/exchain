@@ -18,6 +18,11 @@ func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
+		if !ctx.IsCheckTx() {
+			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
+			k.UpdatedAccount = k.UpdatedAccount[:0]
+		}
+
 		var handlerFun func() (*sdk.Result, error)
 		var name string
 		switch msg := msg.(type) {
@@ -98,6 +103,9 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
+	}
+	if !ctx.IsCheckTx() {
+		st.Csdb = k.EvmStateDb.WithContext(ctx)
 	}
 
 	// since the txCount is used by the stateDB, and a simulated tx is run only on the node it's submitted to,
@@ -247,6 +255,9 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		TxHash:       &ethHash,
 		Sender:       common.BytesToAddress(msg.From.Bytes()),
 		Simulate:     ctx.IsCheckTx(),
+	}
+	if !ctx.IsCheckTx() {
+		st.Csdb = k.EvmStateDb.WithContext(ctx)
 	}
 
 	if msg.Recipient != nil {
