@@ -11,14 +11,14 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/status-im/keycard-go/hexutils"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 var (
@@ -72,6 +72,7 @@ type WatchData struct {
 	Account       []*sdk.AccAddress `json:"account"`
 	Batches       []*Batch          `json:"batches"`
 	DelayEraseKey [][]byte          `json:"delay_erase_key"`
+	BloomData     []*types.KV       `json:"bloom_data"`
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {

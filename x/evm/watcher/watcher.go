@@ -12,14 +12,14 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/spf13/viper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/viper"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -40,6 +40,7 @@ type Watcher struct {
 	// dirtyAccount, centerBatch for transfer in network
 	dirtyAccount []*sdk.AccAddress
 	centerBatch  []*Batch
+	bloomData    []*evmtypes.KV
 }
 
 var (
@@ -108,6 +109,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.dirtyAccount = nil
 	w.centerBatch = nil
+	w.bloomData = nil
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -196,9 +198,6 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	if w.dirtyAccount == nil {
-		w.dirtyAccount = []*sdk.AccAddress{}
-	}
 	w.dirtyAccount = append(w.dirtyAccount, addr)
 }
 
@@ -374,6 +373,9 @@ func (w *Watcher) CommitWatchData() {
 	if w.dirtyAccount != nil {
 		go w.delDirtyAccount(w.dirtyAccount)
 	}
+	if w.bloomData != nil {
+		go w.commitBloomData(w.bloomData)
+	}
 
 	if IsCenterEnabled() {
 		go w.SendToDatacenter(int64(w.height))
@@ -407,6 +409,13 @@ func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	}
 }
 
+func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
+	db := evmtypes.GetIndexer().GetDB()
+	for _, bd := range bloomData {
+		db.Set(bd.Key, bd.Value)
+	}
+}
+
 func (w *Watcher) SetWatchDataFunc() {
 	gcb := func(height int64) bool {
 		msg := tmstate.DataCenterMsg{Height: height}
@@ -434,7 +443,7 @@ func (w *Watcher) SetWatchDataFunc() {
 	}
 
 	gwd := func() *tmtypes.WatchData {
-		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
+		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData}
 		valueByte, err := itjs.Marshal(&value)
 		if err != nil {
 			return nil
@@ -451,6 +460,7 @@ func (w *Watcher) SetWatchDataFunc() {
 			w.dirtyAccount = wd.Account
 			w.centerBatch = wd.Batches
 			w.delayEraseKey = wd.DelayEraseKey
+			w.bloomData = wd.BloomData
 		}
 
 		w.CommitWatchData()
@@ -466,7 +476,7 @@ func (w *Watcher) SendToDatacenter(height int64) {
 	if w.centerBatch == nil && w.dirtyAccount == nil {
 		return
 	}
-	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey}
+	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData}
 	valueByte, err := itjs.Marshal(&value)
 	if err != nil {
 		return
@@ -478,4 +488,8 @@ func (w *Watcher) SendToDatacenter(height int64) {
 		return
 	}
 	defer response.Body.Close()
+}
+
+func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
+	return &w.bloomData
 }

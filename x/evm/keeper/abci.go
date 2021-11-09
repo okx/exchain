@@ -71,7 +71,7 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 			} else {
 				interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
 				if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks {
-					go types.GetIndexer().ProcessSection(ctx, k, interval)
+					go types.GetIndexer().ProcessSection(ctx, k, interval, k.Watcher.GetBloomDataPoint())
 				}
 			}
 		}

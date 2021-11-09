@@ -16,6 +16,11 @@ import (
 	"strings"
 )
 
+type KV struct {
+	Key   []byte `json:"key"`
+	Value []byte `json:"value"`
+}
+
 // GenerateEthAddress generates an Ethereum address.
 func GenerateEthAddress() ethcmn.Address {
 	priv, err := ethsecp256k1.GenerateKey()
