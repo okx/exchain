@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 )
 
 var singleAnalys *analyer
@@ -216,27 +217,27 @@ func (s *analyer) format() {
 
 	var keys = []string{
 		//----- DeliverTx
-		"DeliverTx",
-		"txDecoder",
-		"run_tx",
+		bam.DeliverTx,
+		bam.TxDecoder,
+		bam.RunTx,
 		//----- run_tx
-		"initCtx",
-		"valTxMsgs",
-		"anteHandler",
-		"runMsgs",
-		"refund",
-		"ConsumeGas",
-		"recover",
+		bam.InitCtx,
+		bam.ValTxMsgs,
+		bam.AnteHandler,
+		bam.RunMsgs,
+		bam.Refund,
+		bam.ConsumeGas,
+		bam.Recover,
 		//----- handler
-		"evm_handler",
-		"ParseChainID",
-		"VerifySig",
-		"txhash",
-		"SaveTx",
-		"TransitionDb",
-		"Bloomfilter",
-		"EmitEvents",
-		"handler_defer",
+		bam.EvmHandler,
+		bam.ParseChainID,
+		bam.VerifySig,
+		bam.Txhash,
+		bam.SaveTx,
+		bam.TransitionDb,
+		bam.Bloomfilter,
+		bam.EmitEvents,
+		bam.HandlerDefer,
 		//-----
 	}
 

@@ -217,7 +217,7 @@ type KVStore interface {
 }
 
 type CacheManager interface {
-	IteratorCache(cb func(key, value []byte, isDirty bool) bool)
+	IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool
 }
 
 // Alias iterator to db's Iterator for convenience.

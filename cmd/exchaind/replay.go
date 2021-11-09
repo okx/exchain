@@ -10,13 +10,12 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/app/config"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -26,6 +25,8 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -125,6 +126,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	if viper.GetBool(sm.FlagParalleledTx) {
+		baseapp.ParaLog.PrintLog()
+	}
 }
 
 // panic if error is not nil

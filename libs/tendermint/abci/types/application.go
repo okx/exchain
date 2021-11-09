@@ -1,23 +1,8 @@
 package types // nolint: goimports
 
 import (
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
-
-type AsyncCacheInterface interface {
-	Push(key, value []byte)
-	Has(key []byte) bool
-}
-
-type ExecuteRes interface {
-	GetResponse() ResponseDeliverTx
-	Conflict(AsyncCacheInterface) bool
-	GetCounter() uint32
-	Commit()
-	Collect(AsyncCacheInterface)
-}
-
-type AsyncCallBack func(ExecuteRes)
 
 // Application is an interface that enables any finite, deterministic state machine
 // to be driven by a blockchain-based replication engine via the ABCI.
@@ -37,10 +22,9 @@ type Application interface {
 	BeginBlock(RequestBeginBlock) ResponseBeginBlock // Signals the beginning of a block
 	DeliverTx(RequestDeliverTx) ResponseDeliverTx    // Deliver a tx for full processing
 	EndBlock(RequestEndBlock) ResponseEndBlock       // Signals the end of a block, returns changes to the validator set
+
 	Commit(RequestCommit) ResponseCommit             // Commit the state and return the application Merkle root hash
-	PrepareParallelTxs(cb AsyncCallBack, txs [][]byte)
-	DeliverTxWithCache(RequestDeliverTx) ExecuteRes
-	EndParallelTxs() [][]byte
+	ParallelTxs(txs [][]byte) []*ResponseDeliverTx
 }
 
 //-------------------------------------------------------
@@ -91,14 +75,7 @@ func (BaseApplication) EndBlock(req RequestEndBlock) ResponseEndBlock {
 	return ResponseEndBlock{}
 }
 
-func (a BaseApplication) PrepareParallelTxs(_ AsyncCallBack, _ [][]byte) {
-}
-
-func (a BaseApplication) DeliverTxWithCache(_ RequestDeliverTx) ExecuteRes {
-	return nil
-}
-
-func (a BaseApplication) EndParallelTxs() [][]byte {
+func (a BaseApplication) ParallelTxs(_ [][]byte) []*ResponseDeliverTx {
 	return nil
 }
 

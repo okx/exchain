@@ -3,14 +3,14 @@ package types_test
 import (
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/evm/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 func (suite *StateDBTestSuite) TestGetHashFn() {
@@ -271,7 +271,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		_, _, err = tc.state.TransitionDb(suite.ctx, types.DefaultChainConfig())
+		_, _, err, _, _ = tc.state.TransitionDb(suite.ctx, types.DefaultChainConfig())
 
 		if tc.expPass {
 			suite.Require().NoError(err, tc.name)

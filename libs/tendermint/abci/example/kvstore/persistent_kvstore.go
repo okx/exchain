@@ -144,14 +144,7 @@ func (app *PersistentKVStoreApplication) EndBlock(req types.RequestEndBlock) typ
 	return types.ResponseEndBlock{ValidatorUpdates: app.ValUpdates}
 }
 
-func (app *PersistentKVStoreApplication) PrepareParallelTxs(_ types.AsyncCallBack, _ [][]byte) {
-}
-
-func (app *PersistentKVStoreApplication) DeliverTxWithCache(_ types.RequestDeliverTx) types.ExecuteRes {
-	return nil
-}
-
-func (app *PersistentKVStoreApplication) EndParallelTxs() [][]byte {
+func (app *PersistentKVStoreApplication) ParallelTxs(_ [][]byte) []*types.ResponseDeliverTx {
 	return nil
 }
 

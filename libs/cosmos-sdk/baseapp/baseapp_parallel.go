@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,8 +10,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
-func (app *BaseApp) PrepareParallelTxs(cb abci.AsyncCallBack, txs [][]byte) {
-	app.parallelTxManage.workgroup.Cb = cb
+func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k, v := range txs {
@@ -29,17 +29,91 @@ func (app *BaseApp) PrepareParallelTxs(cb abci.AsyncCallBack, txs [][]byte) {
 		}
 
 		vString := string(v)
-		app.parallelTxManage.SetFee(vString, fee)
+		app.parallelTxManage.setFee(vString, fee)
 
 		app.parallelTxManage.txStatus[vString] = t
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
 	}
+
+	return app.runTxs(txs)
+
 }
 
-func (app *BaseApp) EndParallelTxs() [][]byte {
+func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	maxGas := app.getMaximumBlockGas()
+	currentGas := uint64(0)
+	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
+		if maxGas <= 0 {
+			return false
+		}
+		if sumGas+uint64(currGas) >= maxGas { // TODO : fix later
+			return true
+		}
+		return false
+	}
+
+	asCache := newAsyncCache()
+	signal := make(chan int, 1)
+	rerunIdx := 0
+	txIndex := 0
+	txReps := make([]*executeResult, len(txs))
+	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
+
+	asyncCb := func(execRes *executeResult) {
+		txReps[execRes.GetCounter()] = execRes
+		for txReps[txIndex] != nil {
+			s := app.parallelTxManage.txStatus[app.parallelTxManage.indexMapBytes[txIndex]]
+			res := txReps[txIndex]
+			if res.Conflict(asCache) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+				rerunIdx++
+				s.reRun = true
+				res = app.deliverTxWithCache(abci.RequestDeliverTx{Tx: txs[txIndex]})
+
+			}
+
+			txRs := res.GetResponse()
+			deliverTxs[txIndex] = &txRs
+			res.Collect(asCache)
+			res.Commit()
+
+			if !s.reRun {
+				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
+			}
+
+			currentGas += uint64(res.resp.GasUsed)
+			txIndex++
+			if txIndex == len(txs) {
+				ParaLog.Update(uint64(app.deliverState.ctx.BlockHeight()), len(txs), rerunIdx)
+				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs), "Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx)
+				signal <- 0
+				return
+			}
+		}
+	}
+
+	app.parallelTxManage.workgroup.cb = asyncCb
+	for _, tx := range txs {
+		go app.DeliverTx(abci.RequestDeliverTx{Tx: tx})
+	}
+
+	if len(txs) > 0 {
+		//waiting for call back
+		<-signal
+		receiptsLogs := app.endParallelTxs()
+		for index, v := range receiptsLogs {
+			if len(v) != 0 { // only update evm tx result
+				deliverTxs[index].Data = v
+			}
+		}
+
+	}
+	return deliverTxs
+}
+
+func (app *BaseApp) endParallelTxs() [][]byte {
 	txFeeInBlock := sdk.Coins{}
-	feeMap := app.parallelTxManage.GetFeeMap()
-	refundMap := app.parallelTxManage.GetRefundFeeMap()
+	feeMap := app.parallelTxManage.getFeeMap()
+	refundMap := app.parallelTxManage.getRefundFeeMap()
 	for tx, v := range feeMap {
 		if app.parallelTxManage.txStatus[tx].anteErr != nil {
 			continue
@@ -63,26 +137,25 @@ func (app *BaseApp) EndParallelTxs() [][]byte {
 		}
 		txExecStats = append(txExecStats, []string{v, errMsg})
 	}
-	app.parallelTxManage.Clear()
+	app.parallelTxManage.clear()
 	return app.logFix(txExecStats)
 }
 
 //we reuse the nonce that changed by the last async call
 //if last ante handler has been failed, we need rerun it ? or not?
-func (app *BaseApp) DeliverTxWithCache(req abci.RequestDeliverTx) abci.ExecuteRes {
+func (app *BaseApp) deliverTxWithCache(req abci.RequestDeliverTx) *executeResult {
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return nil
 	}
 	var (
-		gInfo sdk.GasInfo
-		resp  abci.ResponseDeliverTx
-		mode  runTxMode
+		resp abci.ResponseDeliverTx
+		mode runTxMode
 	)
 	mode = runTxModeDeliverInAsync
 	g, r, m, e := app.runTx(mode, req.Tx, tx, LatestSimulateTxHeight)
 	if e != nil {
-		resp = sdkerrors.ResponseDeliverTx(e, gInfo.GasWanted, gInfo.GasUsed, app.trace)
+		resp = sdkerrors.ResponseDeliverTx(e, g.GasWanted, g.GasUsed, app.trace)
 	} else {
 		resp = abci.ResponseDeliverTx{
 			GasWanted: int64(g.GasWanted), // TODO: Should type accept unsigned ints?
@@ -94,33 +167,34 @@ func (app *BaseApp) DeliverTxWithCache(req abci.RequestDeliverTx) abci.ExecuteRe
 	}
 
 	txStatus := app.parallelTxManage.txStatus[string(req.Tx)]
-	asyncExe := NewExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
+	asyncExe := newExecuteResult(resp, m, txStatus.indexInBlock, txStatus.evmIndex)
 	asyncExe.err = e
 	return asyncExe
 }
 
-type ExecuteResult struct {
-	Resp       abci.ResponseDeliverTx
-	Ms         sdk.CacheMultiStore
-	Counter    uint32
+type executeResult struct {
+	resp       abci.ResponseDeliverTx
+	ms         sdk.CacheMultiStore
+	counter    uint32
 	err        error
 	evmCounter uint32
 }
 
-func (e ExecuteResult) GetResponse() abci.ResponseDeliverTx {
-	return e.Resp
+func (e executeResult) GetResponse() abci.ResponseDeliverTx {
+	return e.resp
 }
 
-func (e ExecuteResult) Conflict(cache abci.AsyncCacheInterface) bool {
+func (e executeResult) Conflict(cache *asyncCache) bool {
 	rerun := false
-	if e.Ms == nil {
+	if e.ms == nil {
 		return true //TODO fix later
 	}
 
-	e.Ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 		//the key we have read was wrote by pre txs
 		if cache.Has(key) && !whiteAccountList[hex.EncodeToString(key)] {
 			rerun = true
+			return false // break
 		}
 		return true
 	})
@@ -133,11 +207,11 @@ var (
 	}
 )
 
-func (e ExecuteResult) Collect(cache abci.AsyncCacheInterface) {
-	if e.Ms == nil {
+func (e executeResult) Collect(cache *asyncCache) {
+	if e.ms == nil {
 		return
 	}
-	e.Ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	e.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 		if isDirty {
 			//push every data we have written in current tx
 			cache.Push(key, value)
@@ -146,49 +220,49 @@ func (e ExecuteResult) Collect(cache abci.AsyncCacheInterface) {
 	})
 }
 
-func (e ExecuteResult) GetCounter() uint32 {
-	return e.Counter
+func (e executeResult) GetCounter() uint32 {
+	return e.counter
 }
 
-func (e ExecuteResult) Commit() {
-	if e.Ms == nil {
+func (e executeResult) Commit() {
+	if e.ms == nil {
 		return
 	}
-	e.Ms.Write()
+	e.ms.Write()
 }
 
-func NewExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) ExecuteResult {
-	return ExecuteResult{
-		Resp:       r,
-		Ms:         ms,
-		Counter:    counter,
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32) *executeResult {
+	return &executeResult{
+		resp:       r,
+		ms:         ms,
+		counter:    counter,
 		evmCounter: evmCounter,
 	}
 }
 
-type AsyncWorkGroup struct {
-	WorkCh chan ExecuteResult
-	Cb     abci.AsyncCallBack
+type asyncWorkGroup struct {
+	workCh chan *executeResult
+	cb     func(*executeResult)
 }
 
-func NewAsyncWorkGroup() *AsyncWorkGroup {
-	return &AsyncWorkGroup{
-		WorkCh: make(chan ExecuteResult, 64),
-		Cb:     nil,
+func newAsyncWorkGroup() *asyncWorkGroup {
+	return &asyncWorkGroup{
+		workCh: make(chan *executeResult, 64),
+		cb:     nil,
 	}
 }
 
-func (a *AsyncWorkGroup) Push(item ExecuteResult) {
-	a.WorkCh <- item
+func (a *asyncWorkGroup) Push(item *executeResult) {
+	a.workCh <- item
 }
 
-func (a *AsyncWorkGroup) Start() {
+func (a *asyncWorkGroup) Start() {
 	go func() {
 		for {
 			select {
-			case exec := <-a.WorkCh:
-				if a.Cb != nil {
-					a.Cb(exec)
+			case exec := <-a.workCh:
+				if a.cb != nil {
+					a.cb(exec)
 				}
 			}
 		}
@@ -198,7 +272,7 @@ func (a *AsyncWorkGroup) Start() {
 type parallelTxManager struct {
 	mu               sync.RWMutex
 	isAsyncDeliverTx bool
-	workgroup        *AsyncWorkGroup
+	workgroup        *asyncWorkGroup
 
 	fee       map[string]sdk.Coins
 	refundFee map[string]sdk.Coins
@@ -208,6 +282,7 @@ type parallelTxManager struct {
 }
 
 type txStatus struct {
+	reRun        bool
 	isEvmTx      bool
 	evmIndex     uint32
 	indexInBlock uint32
@@ -217,7 +292,7 @@ type txStatus struct {
 func newParallelTxManager() *parallelTxManager {
 	return &parallelTxManager{
 		isAsyncDeliverTx: false,
-		workgroup:        NewAsyncWorkGroup(),
+		workgroup:        newAsyncWorkGroup(),
 		fee:              make(map[string]sdk.Coins),
 		refundFee:        make(map[string]sdk.Coins),
 
@@ -226,7 +301,7 @@ func newParallelTxManager() *parallelTxManager {
 	}
 }
 
-func (f *parallelTxManager) Clear() {
+func (f *parallelTxManager) clear() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.fee = make(map[string]sdk.Coins)
@@ -236,25 +311,134 @@ func (f *parallelTxManager) Clear() {
 	f.indexMapBytes = make([]string, 0)
 
 }
-func (f *parallelTxManager) SetFee(key string, value sdk.Coins) {
+func (f *parallelTxManager) setFee(key string, value sdk.Coins) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.fee[key] = value
 }
 
-func (f *parallelTxManager) GetFeeMap() map[string]sdk.Coins {
+func (f *parallelTxManager) getFeeMap() map[string]sdk.Coins {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.fee
 }
-func (f *parallelTxManager) SetRefundFee(key string, value sdk.Coins) {
+func (f *parallelTxManager) setRefundFee(key string, value sdk.Coins) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.refundFee[key] = value
 }
 
-func (f *parallelTxManager) GetRefundFeeMap() map[string]sdk.Coins {
+func (f *parallelTxManager) getRefundFeeMap() map[string]sdk.Coins {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.refundFee
+}
+
+func (f *parallelTxManager) isReRun(tx string) bool {
+	data, ok := f.txStatus[tx]
+	if !ok {
+		return false
+	}
+	return data.reRun
+}
+
+type asyncCache struct {
+	mem map[string][]byte
+}
+
+func newAsyncCache() *asyncCache {
+	return &asyncCache{mem: make(map[string][]byte)}
+}
+
+func (a *asyncCache) Push(key, value []byte) {
+	a.mem[string(key)] = value
+}
+
+func (a *asyncCache) Has(key []byte) bool {
+	_, ok := a.mem[string(key)]
+	return ok
+}
+
+var (
+	ParaLog *LogForParallel
+)
+
+func init() {
+	ParaLog = NewLogForParallel()
+}
+
+type parallelBlockInfo struct {
+	height   uint64
+	txs      int
+	reRunTxs int
+}
+
+func (p parallelBlockInfo) better(n parallelBlockInfo) bool {
+	return 1-float64(p.reRunTxs)/float64(p.txs) > 1-float64(n.reRunTxs)/float64(n.txs)
+}
+
+func (p parallelBlockInfo) string() string {
+	return fmt.Sprintf("Height:%d Txs %d ReRunTxs %d", p.height, p.txs, p.reRunTxs)
+}
+
+type LogForParallel struct {
+	init         bool
+	sumTx        int
+	reRunTx      int
+	blockNumbers int
+
+	bestBlock     parallelBlockInfo
+	terribleBlock parallelBlockInfo
+}
+
+func NewLogForParallel() *LogForParallel {
+	return &LogForParallel{
+		sumTx:        0,
+		reRunTx:      0,
+		blockNumbers: 0,
+		bestBlock: parallelBlockInfo{
+			height:   0,
+			txs:      0,
+			reRunTxs: 0,
+		},
+		terribleBlock: parallelBlockInfo{
+			height:   0,
+			txs:      0,
+			reRunTxs: 0,
+		},
+	}
+}
+
+func (l *LogForParallel) Update(height uint64, txs int, reRunCnt int) {
+	l.sumTx += txs
+	l.reRunTx += reRunCnt
+	l.blockNumbers++
+
+	if txs < 20 {
+		return
+	}
+
+	info := parallelBlockInfo{height: height, txs: txs, reRunTxs: reRunCnt}
+	if !l.init {
+		l.bestBlock = info
+		l.terribleBlock = info
+		l.init = true
+		return
+	}
+
+	if info.better(l.bestBlock) {
+		l.bestBlock = info
+	}
+	if l.terribleBlock.better(info) {
+		l.terribleBlock = info
+	}
+}
+
+func (l *LogForParallel) PrintLog() {
+	fmt.Println("BlockNumbers", l.blockNumbers)
+	fmt.Println("AllTxs", l.sumTx)
+	fmt.Println("ReRunTxs", l.reRunTx)
+	fmt.Println("All Concurrency Rate", float64(l.reRunTx)/float64(l.sumTx))
+	fmt.Println("BestBlock", l.bestBlock.string(), "Concurrency Rate", 1-float64(l.bestBlock.reRunTxs)/float64(l.bestBlock.txs))
+	fmt.Println("TerribleBlock", l.terribleBlock.string(), "Concurrency Rate", 1-float64(l.terribleBlock.reRunTxs)/float64(l.terribleBlock.txs))
 }
