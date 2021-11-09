@@ -1,0 +1,80 @@
+name: circle-ut
+
+on:
+  push:
+    branch: [dev]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Cache go modules
+        run:
+          make go-mod-cache
+      - name: Build
+        run:
+          make build
+
+  exchain:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Run tests with coverage and upload codecov
+        run: |
+          set -ex
+          echo "--> Run tests with coverage:"
+          export VERSION="$(git describe --tags --long | sed 's/v\(.*\)/\1/')"
+          export GO111MODULE=on
+          mkdir -p /tmp/logs /tmp/workspace/profiles
+
+          excluded_packages_expr="(exchain/x/.*/client)|(x/simulation)|(exchain/app/rpc)"
+          included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/ammswap" "./x/token" "./x/farm" "./x/evm")
+          serial_exec_packages=("./app")
+          norace_exec_packages=("./x/evm")
+          for pkg in ${included_packages[@]}; do
+            package_lines=`go list ${pkg}/... | grep -v -E "${excluded_packages_expr}"`
+            echo "${package_lines[@]}"
+            cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+            packages=`echo ${package_lines[@]}`
+            id=`echo "${package_lines}" | head -n 1 | sed 's|[/.]|_|g'`
+            SERIAL=
+            found=`echo "${serial_exec_packages[@]}" | grep -wq "${pkg}" &&  echo "Yes" || echo "No"`
+            if [ ${found} = "Yes" ]; then
+              SERIAL=`echo "-p 1"`
+            fi
+            RACE=`echo "-race"`
+            found=`echo "${norace_exec_packages[@]}" | grep -wq "${pkg}" &&  echo "Yes" || echo "No"`
+            if [ ${found} = "Yes" ]; then
+              RACE=
+            fi
+            echo ${RACE}
+            go test -mod=readonly -timeout 8m ${RACE} ${SERIAL} -coverprofile=/tmp/workspace/profiles/$id.out -coverpkg=${cover_pkgs} -covermode=atomic  -tags='ledger test_ledger_mock' ${packages} | tee "/tmp/logs/$id-$RANDOM.log"
+          done
+
+          echo "--> Gather coverage:"
+          ls /tmp/workspace/profiles/
+          echo "mode: atomic" > coverage.txt
+          for prof in $(ls /tmp/workspace/profiles/); do
+            tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+          done
+
+          echo "--> Filter out DONTCOVER:"
+          excludelist="$(find . -type f -name '*.go' | xargs grep -l 'DONTCOVER')"
+          for filename in ${excludelist}; do
+            filename=$(echo $filename | sed 's/^./github.com\/okex\/exchain/g')
+            echo "Excluding ${filename} from coverage report..."
+            sed -i.bak "/$(echo $filename | sed 's/\//\\\//g')/d" coverage.txt
+          done
+
+          echo "--> upload codecov:"
+          bash <(curl -s https://codecov.io/bash) -f coverage.txt
