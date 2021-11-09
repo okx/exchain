@@ -12,12 +12,12 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/params"
 )
@@ -79,8 +79,7 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects         []stateEntry
-	addressToObjectIndex map[ethcmn.Address]int // map from address to the index of the state objects slice
+	stateObjects         map[ethcmn.Address]*stateEntry
 	stateObjectsDirty    map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
@@ -157,8 +156,7 @@ func newCommitStateDB(
 		supplyKeeper:         sk,
 		bankKeeper:           bk,
 		Watcher:              watcher,
-		stateObjects:         []stateEntry{},
-		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjects:         make(map[ethcmn.Address]*stateEntry),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
@@ -182,8 +180,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
 
-		stateObjects:         []stateEntry{},
-		addressToObjectIndex: make(map[ethcmn.Address]int),
+		stateObjects:         make(map[ethcmn.Address]*stateEntry),
 		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
 		preimages:            []preimageEntry{},
 		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
@@ -586,6 +583,10 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		panic(addr)
 	}
 
+	if code := csdb.GetCacheCode(addr); code != nil {
+		return code.Code
+	}
+
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		return so.Code(nil)
@@ -783,7 +784,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 	for _, dirty := range csdb.journal.dirties {
-		idx, exist := csdb.addressToObjectIndex[dirty.address]
+		stateEntry, exist := csdb.stateObjects[dirty.address]
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx:
 			// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
@@ -797,7 +798,6 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 			continue
 		}
 
-		stateEntry := csdb.stateObjects[idx]
 		if stateEntry.stateObject.suicided || (deleteEmptyObjects && stateEntry.stateObject.empty()) {
 			csdb.deleteStateObject(stateEntry.stateObject)
 		} else {
@@ -994,8 +994,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // the underlying account mapper and store keys to avoid reloading data for the
 // next operations.
 func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
-	csdb.stateObjects = []stateEntry{}
-	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
+	csdb.stateObjects = make(map[ethcmn.Address]*stateEntry)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
 	csdb.bhash = ethcmn.Hash{}
@@ -1033,8 +1032,7 @@ func (csdb *CommitStateDB) UpdateAccounts() {
 
 // ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
 func (csdb *CommitStateDB) ClearStateObjects() {
-	csdb.stateObjects = []stateEntry{}
-	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
+	csdb.stateObjects = make(map[ethcmn.Address]*stateEntry)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
 
@@ -1157,9 +1155,9 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
-	if idx, found := csdb.addressToObjectIndex[addr]; found {
+	if v, found := csdb.stateObjects[addr]; found {
 		// prefer 'live' (cached) objects
-		if so := csdb.stateObjects[idx].stateObject; so != nil {
+		if so := v.stateObject; so != nil {
 			if so.deleted {
 				return nil
 			}
@@ -1183,20 +1181,19 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	if idx, found := csdb.addressToObjectIndex[so.Address()]; found {
+	if _, found := csdb.stateObjects[so.Address()]; found {
 		// update the existing object
-		csdb.stateObjects[idx].stateObject = so
+		csdb.stateObjects[so.Address()].stateObject = so
 		return
 	}
 
 	// append the new state object to the stateObjects slice
-	se := stateEntry{
+	se := &stateEntry{
 		address:     so.Address(),
 		stateObject: so,
 	}
 
-	csdb.stateObjects = append(csdb.stateObjects, se)
-	csdb.addressToObjectIndex[se.address] = len(csdb.stateObjects) - 1
+	csdb.stateObjects[se.address] = se
 }
 
 // RawDump returns a raw state dump.
