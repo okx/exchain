@@ -13,7 +13,7 @@ COPY . .
 RUN make build-linux
 
 # Final image
-FROM golang:1.14 as final
+FROM golang:1.17 as final
 
 WORKDIR /okexchaind
 # Copy over binaries from the build-env
@@ -25,4 +25,3 @@ EXPOSE 26656 26657
 ENTRYPOINT ["/usr/bin/wrapper.sh"]
 CMD ["start"]
 STOPSIGNAL SIGTERM
-
