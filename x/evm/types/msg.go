@@ -512,7 +512,7 @@ func (msg MsgEthereumTx) GetGasPrice() *big.Int {
 }
 
 func (msg MsgEthereumTx) GetTxFnSignature() []byte {
-	if msg.Data.Recipient == nil || len(msg.Data.Payload) == 0 {
+	if msg.Data.Recipient == nil || len(msg.Data.Payload) == 0 || len(msg.Data.Payload) < 4 {
 		return nil
 	}
 

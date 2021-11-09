@@ -904,7 +904,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 func getCallFnGasUsedHistory(args rpctypes.CallArgs) int64 {
-	if args.To == nil || args.Data == nil {
+	if args.To == nil || args.Data == nil || len([]byte(*args.Data)) < 4{
 		return -1
 	}
 
