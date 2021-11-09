@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"os"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"io/ioutil"
 )
 
 // ManageWhiteListProposalJSON defines a ManageWhiteListProposalJSON with a deposit used to parse manage white list
@@ -19,7 +20,7 @@ type ManageWhiteListProposalJSON struct {
 // ParseManageWhiteListProposalJSON parse json from proposal file to ManageWhiteListProposalJSON struct
 func ParseManageWhiteListProposalJSON(cdc *codec.Codec, proposalFilePath string) (proposal ManageWhiteListProposalJSON,
 	err error) {
-	contents, err := ioutil.ReadFile(proposalFilePath)
+	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return
 	}

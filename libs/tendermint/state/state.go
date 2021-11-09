@@ -3,7 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -200,7 +200,7 @@ func MakeGenesisStateFromFile(genDocFile string) (State, error) {
 
 // MakeGenesisDocFromFile reads and unmarshals genesis doc from the given file.
 func MakeGenesisDocFromFile(genDocFile string) (*types.GenesisDoc, error) {
-	genDocJSON, err := ioutil.ReadFile(genDocFile)
+	genDocJSON, err := os.ReadFile(genDocFile)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't read GenesisDoc file: %v", err)
 	}

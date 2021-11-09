@@ -2,7 +2,6 @@ package distrlock
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sync"
 
@@ -61,7 +60,7 @@ func (s *LocalStateService) GetDistState(stateKey string) (state string, err err
 		return "", nil
 	}
 
-	bytes, err := ioutil.ReadFile(stateFilePath)
+	bytes, err := os.ReadFile(stateFilePath)
 	if err == nil {
 		state = string(bytes)
 	}
@@ -74,7 +73,7 @@ func (s *LocalStateService) SetDistState(stateKey string, stateValue string) err
 	defer s.mutex.Unlock()
 
 	stateFilePath := s.getFullPath(stateKey)
-	err := ioutil.WriteFile(stateFilePath, []byte(stateValue), 0600)
+	err := os.WriteFile(stateFilePath, []byte(stateValue), 0600)
 
 	return err
 }

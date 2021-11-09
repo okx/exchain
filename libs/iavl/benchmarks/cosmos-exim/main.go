@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -155,7 +154,7 @@ func runImport(version int64, exports map[string][]*iavl.ExportNode) error {
 	totalStats := Stats{}
 
 	for _, name := range stores {
-		tempdir, err := ioutil.TempDir("", name)
+		tempdir, err := os.MkdirTemp("", name)
 		if err != nil {
 			return err
 		}

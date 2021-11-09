@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -22,7 +22,7 @@ func BroadcastTxRequest(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req BroadcastReq
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

@@ -5,6 +5,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"log"
+	"math/big"
+	"os"
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -14,11 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/okex/exchain-ethereum-compatible/utils"
-
-	"io/ioutil"
-	"log"
-	"math/big"
-	"time"
 )
 
 const (
@@ -45,13 +45,13 @@ func newContract(name, address, abiFile string, byteCodeFile string) *Contract {
 		address: address,
 	}
 
-	bin, err := ioutil.ReadFile(byteCodeFile)
+	bin, err := os.ReadFile(byteCodeFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.byteCode = common.Hex2Bytes(string(bin))
 
-	abiByte, err := ioutil.ReadFile(abiFile)
+	abiByte, err := os.ReadFile(abiFile)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,16 +1,14 @@
 package watcher
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"math/big"
 	"sync"
 
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"

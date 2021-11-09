@@ -4,12 +4,11 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -46,7 +45,7 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 					return err
 				}
 
-				genesis, err := ioutil.ReadFile(config.GenesisFile())
+				genesis, err := os.ReadFile(config.GenesisFile())
 				if err != nil {
 					return err
 				}

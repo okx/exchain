@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -20,11 +19,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // GenTxCmd builds the application's gentx command
@@ -206,7 +205,7 @@ func makeOutputFilepath(rootDir, nodeID string) (string, error) {
 
 func readUnsignedGenTxFile(cdc *codec.Codec, r io.Reader) (auth.StdTx, error) {
 	var stdTx auth.StdTx
-	bytes, err := ioutil.ReadAll(r)
+	bytes, err := io.ReadAll(r)
 	if err != nil {
 		return stdTx, err
 	}

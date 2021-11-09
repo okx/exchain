@@ -1,7 +1,6 @@
 package client
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +39,7 @@ func Test_runConfigCmdTwiceWithShorterNodeValue(t *testing.T) {
 }
 
 func tmpDir(t *testing.T) (string, func()) {
-	dir, err := ioutil.TempDir("", t.Name()+"_")
+	dir, err := os.MkdirTemp("", t.Name()+"_")
 	require.NoError(t, err)
 	return dir, func() { _ = os.RemoveAll(dir) }
 }

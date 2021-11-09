@@ -3,7 +3,6 @@ package keys
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -63,7 +62,7 @@ func runMigrateCmd(cmd *cobra.Command, args []string) error {
 	)
 
 	if viper.GetBool(flags.FlagDryRun) {
-		tmpDir, err = ioutil.TempDir("", "keybase-migrate-dryrun")
+		tmpDir, err = os.MkdirTemp("", "keybase-migrate-dryrun")
 		if err != nil {
 			return errors.Wrap(err, "failed to create temporary directory for dryrun migration")
 		}

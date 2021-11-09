@@ -2,7 +2,6 @@ package lite_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	stdlog "log"
 	"os"
 	"testing"
@@ -23,7 +22,7 @@ func ExampleClient_Update() {
 	// give Tendermint time to generate some blocks
 	time.Sleep(5 * time.Second)
 
-	dbDir, err := ioutil.TempDir("", "lite-client-example")
+	dbDir, err := os.MkdirTemp("", "lite-client-example")
 	if err != nil {
 		stdlog.Fatal(err)
 	}
@@ -92,7 +91,7 @@ func ExampleClient_VerifyHeaderAtHeight() {
 	// give Tendermint time to generate some blocks
 	time.Sleep(5 * time.Second)
 
-	dbDir, err := ioutil.TempDir("", "lite-client-example")
+	dbDir, err := os.MkdirTemp("", "lite-client-example")
 	if err != nil {
 		stdlog.Fatal(err)
 	}

@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -138,7 +137,7 @@ func loadConfigFile(cfgFile string) (*toml.Tree, error) {
 		return toml.Load(``)
 	}
 
-	bz, err := ioutil.ReadFile(cfgFile)
+	bz, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return nil, err
 	}

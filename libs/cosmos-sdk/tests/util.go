@@ -2,17 +2,17 @@ package tests
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmjsonrpc "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/client"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
@@ -112,7 +112,7 @@ func waitForHeight(height int64, url string) {
 			panic(err)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -163,7 +163,7 @@ func WaitForStart(url string) {
 		if err != nil || res == nil {
 			continue
 		}
-		//		body, _ := ioutil.ReadAll(res.Body)
+		//		body, _ := io.ReadAll(res.Body)
 		//		fmt.Println("BODY", string(body))
 		err = res.Body.Close()
 		if err != nil {
@@ -214,7 +214,7 @@ func ExtractPortFromAddress(listenAddress string) string {
 // Returns the directory path and a cleanup function.
 // nolint: errcheck
 func NewTestCaseDir(t *testing.T) (string, func()) {
-	dir, err := ioutil.TempDir("", t.Name()+"_")
+	dir, err := os.MkdirTemp("", t.Name()+"_")
 	require.NoError(t, err)
 	return dir, func() { os.RemoveAll(dir) }
 }

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
@@ -55,7 +54,7 @@ func TestMaxOpenConnections(t *testing.T) {
 				return
 			}
 			defer r.Body.Close()
-			io.Copy(ioutil.Discard, r.Body)
+			io.Copy(io.Discard, r.Body)
 		}()
 	}
 	wg.Wait()
@@ -88,7 +87,7 @@ func TestServeTLS(t *testing.T) {
 	defer res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	assert.Equal(t, []byte("some body"), body)
 }

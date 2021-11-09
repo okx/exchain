@@ -1,7 +1,6 @@
 package cli_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,12 +14,12 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	genutilcli "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/client/cli"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -74,7 +73,7 @@ func TestMigrateGenesis(t *testing.T) {
 
 	// Noop migration with minimal genesis
 	emptyGenesis := []byte(`{"chain_id":"test","app_state":{}}`)
-	err = ioutil.WriteFile(genesisPath, emptyGenesis, 0600)
+	err = os.WriteFile(genesisPath, emptyGenesis, 0600)
 	require.Nil(t, err)
 	cmd := setupCmd("", "test2")
 	require.NoError(t, genutilcli.MigrateGenesisCmd(ctx, cdc).RunE(cmd, []string{target, genesisPath}))

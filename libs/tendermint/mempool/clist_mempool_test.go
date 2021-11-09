@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
 	"os"
@@ -381,7 +380,7 @@ func TestSerialReap(t *testing.T) {
 
 func TestMempoolCloseWAL(t *testing.T) {
 	// 1. Create the temporary directory for mempool and WAL testing.
-	rootDir, err := ioutil.TempDir("", "mempool-test")
+	rootDir, err := os.MkdirTemp("", "mempool-test")
 	require.Nil(t, err, "expecting successful tmpdir creation")
 
 	// 2. Ensure that it doesn't contain any elements -- Sanity check
@@ -617,7 +616,7 @@ func checksumIt(data []byte) string {
 }
 
 func checksumFile(p string, t *testing.T) string {
-	data, err := ioutil.ReadFile(p)
+	data, err := os.ReadFile(p)
 	require.Nil(t, err, "expecting successful read of %q", p)
 	return checksumIt(data)
 }

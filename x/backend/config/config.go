@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -67,7 +66,7 @@ func SafeLoadMaintainConfig(configDir string) (conf *Config, err error) {
 }
 
 func mustReadFile(filePath string) []byte {
-	fileBytes, err := ioutil.ReadFile(filePath)
+	fileBytes, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Printf(fmt.Sprintf("mustReadFile failed: %v\n", err))
 		os.Exit(1)
@@ -77,7 +76,7 @@ func mustReadFile(filePath string) []byte {
 }
 
 func mustWriteFile(filePath string, contents []byte, mode os.FileMode) {
-	err := ioutil.WriteFile(filePath, contents, mode)
+	err := os.WriteFile(filePath, contents, mode)
 	if err != nil {
 		fmt.Printf(fmt.Sprintf("mustWriteFile failed: %v\n", err))
 		os.Exit(1)

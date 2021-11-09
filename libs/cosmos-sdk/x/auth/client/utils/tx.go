@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/pkg/errors"
@@ -222,9 +222,9 @@ func ReadStdTxFromFile(cdc *codec.Codec, filename string) (stdTx authtypes.StdTx
 	var bytes []byte
 
 	if filename == "-" {
-		bytes, err = ioutil.ReadAll(os.Stdin)
+		bytes, err = io.ReadAll(os.Stdin)
 	} else {
-		bytes, err = ioutil.ReadFile(filename)
+		bytes, err = os.ReadFile(filename)
 	}
 
 	if err != nil {

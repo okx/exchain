@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -72,7 +72,7 @@ func getAllInstance(serverURL string) (*Applications, error) {
 		return nil, fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func GetOneInstance(serverURL string, appName string) (*Application, error) {
 		return nil, fmt.Errorf("status code is %d, require 200", resp.StatusCode)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

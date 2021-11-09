@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -69,7 +69,7 @@ func TestRPCParams(t *testing.T) {
 		defer res.Body.Close()
 		// Always expecting back a JSONRPCResponse
 		assert.True(t, statusOK(res.StatusCode), "#%d: should always return 2XX", i)
-		blob, err := ioutil.ReadAll(res.Body)
+		blob, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Errorf("#%d: err reading body: %v", i, err)
 			continue
@@ -116,7 +116,7 @@ func TestJSONRPCID(t *testing.T) {
 		res := rec.Result()
 		// Always expecting back a JSONRPCResponse
 		assert.True(t, statusOK(res.StatusCode), "#%d: should always return 2XX", i)
-		blob, err := ioutil.ReadAll(res.Body)
+		blob, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Errorf("#%d: err reading body: %v", i, err)
 			continue
@@ -146,7 +146,7 @@ func TestRPCNotification(t *testing.T) {
 
 	// Always expecting back a JSONRPCResponse
 	require.True(t, statusOK(res.StatusCode), "should always return 2XX")
-	blob, err := ioutil.ReadAll(res.Body)
+	blob, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	require.Nil(t, err, "reading from the body should not give back an error")
 	require.Equal(t, len(blob), 0, "a notification SHOULD NOT be responded to by the server")
@@ -182,7 +182,7 @@ func TestRPCNotificationInBatch(t *testing.T) {
 		res := rec.Result()
 		// Always expecting back a JSONRPCResponse
 		assert.True(t, statusOK(res.StatusCode), "#%d: should always return 2XX", i)
-		blob, err := ioutil.ReadAll(res.Body)
+		blob, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Errorf("#%d: err reading body: %v", i, err)
 			continue

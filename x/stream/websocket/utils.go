@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 )
 
@@ -37,5 +37,5 @@ func gzipDecode(in []byte) ([]byte, error) {
 	reader := flate.NewReader(bytes.NewReader(in))
 	defer reader.Close()
 
-	return ioutil.ReadAll(reader)
+	return io.ReadAll(reader)
 }

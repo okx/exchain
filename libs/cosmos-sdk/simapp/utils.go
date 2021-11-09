@@ -3,7 +3,7 @@ package simapp
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -34,7 +34,7 @@ func SetupSimulation(dirPrefix, dbName string) (simulation.Config, dbm.DB, strin
 		logger = log.NewNopLogger()
 	}
 
-	dir, err := ioutil.TempDir("", dirPrefix)
+	dir, err := os.MkdirTemp("", dirPrefix)
 	if err != nil {
 		return simulation.Config{}, nil, "", nil, false, err
 	}
@@ -56,7 +56,7 @@ func SimulationOperations(app App, cdc *codec.Codec, config simulation.Config) [
 	}
 
 	if config.ParamsFile != "" {
-		bz, err := ioutil.ReadFile(config.ParamsFile)
+		bz, err := os.ReadFile(config.ParamsFile)
 		if err != nil {
 			panic(err)
 		}
@@ -81,7 +81,7 @@ func CheckExportSimulation(
 			return err
 		}
 
-		if err := ioutil.WriteFile(config.ExportStatePath, []byte(appState), 0600); err != nil {
+		if err := os.WriteFile(config.ExportStatePath, []byte(appState), 0600); err != nil {
 			return err
 		}
 	}
@@ -93,7 +93,7 @@ func CheckExportSimulation(
 			return err
 		}
 
-		if err := ioutil.WriteFile(config.ExportParamsPath, paramsBz, 0600); err != nil {
+		if err := os.WriteFile(config.ExportParamsPath, paramsBz, 0600); err != nil {
 			return err
 		}
 	}

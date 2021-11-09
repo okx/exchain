@@ -3,10 +3,8 @@ package consensus
 import (
 	"bytes"
 	"crypto/rand"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-
 	// "sync"
 	"testing"
 	"time"
@@ -29,9 +27,7 @@ const (
 func TestWALTruncate(t *testing.T) {
 	//need to fix wal nil
 	return
-	walDir, err := ioutil.TempDir("", "wal")
-	require.NoError(t, err)
-	defer os.RemoveAll(walDir)
+	walDir := t.TempDir()
 
 	walFile := filepath.Join(walDir, "wal")
 
@@ -107,9 +103,7 @@ func TestWALEncoderDecoder(t *testing.T) {
 }
 
 func TestWALWrite(t *testing.T) {
-	walDir, err := ioutil.TempDir("", "wal")
-	require.NoError(t, err)
-	defer os.RemoveAll(walDir)
+	walDir := t.TempDir()
 	walFile := filepath.Join(walDir, "wal")
 
 	wal, err := NewWAL(walFile)
@@ -174,9 +168,7 @@ func TestWALSearchForEndHeight(t *testing.T) {
 func TestWALPeriodicSync(t *testing.T) {
 	//need to fix wal nil
 	return
-	walDir, err := ioutil.TempDir("", "wal")
-	require.NoError(t, err)
-	defer os.RemoveAll(walDir)
+	walDir := t.TempDir()
 
 	walFile := filepath.Join(walDir, "wal")
 	wal, err := NewWAL(walFile, autofile.GroupCheckDuration(1*time.Millisecond))

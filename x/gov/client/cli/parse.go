@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	govutils "github.com/okex/exchain/x/gov/client/utils"
 	"github.com/spf13/viper"
@@ -27,7 +27,7 @@ func parseSubmitProposalFlags() (*proposal, error) {
 		}
 	}
 
-	contents, err := ioutil.ReadFile(file)
+	contents, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -154,7 +153,7 @@ func makeMultiSignCmd(cdc *codec.Codec) func(cmd *cobra.Command, args []string) 
 
 func readAndUnmarshalStdSignature(cdc *codec.Codec, filename string) (stdSig types.StdSignature, err error) {
 	var bytes []byte
-	if bytes, err = ioutil.ReadFile(filename); err != nil {
+	if bytes, err = os.ReadFile(filename); err != nil {
 		return
 	}
 	if err = cdc.UnmarshalJSON(bytes, &stdSig); err != nil {

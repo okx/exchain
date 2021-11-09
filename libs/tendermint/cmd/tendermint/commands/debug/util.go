@@ -2,7 +2,7 @@ package debug
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -74,10 +74,10 @@ func dumpProfile(dir, addr, profile string, debug int) error {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s profile response body", profile)
 	}
 
-	return ioutil.WriteFile(path.Join(dir, fmt.Sprintf("%s.out", profile)), body, os.ModePerm)
+	return os.WriteFile(path.Join(dir, fmt.Sprintf("%s.out", profile)), body, os.ModePerm)
 }

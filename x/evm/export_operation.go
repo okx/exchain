@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,11 +11,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/x/evm/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/evm/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -297,7 +296,7 @@ func syncReadCodeFromFile(ctx sdk.Context, logger log.Logger, k Keeper, address 
 	codeFilePath := filepath.Join(codePath, address.String()+codeFileSuffix)
 	if pathExist(codeFilePath) {
 		logger.Debug("start loading code", "filename", address.String()+codeFileSuffix)
-		bin, err := ioutil.ReadFile(codeFilePath)
+		bin, err := os.ReadFile(codeFilePath)
 		if err != nil {
 			panic(err)
 		}

@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -22,7 +22,7 @@ type (
 func ParseCommunityPoolSpendProposalJSON(cdc *codec.Codec, proposalFile string) (CommunityPoolSpendProposalJSON, error) {
 	proposal := CommunityPoolSpendProposalJSON{}
 
-	contents, err := ioutil.ReadFile(proposalFile)
+	contents, err := os.ReadFile(proposalFile)
 	if err != nil {
 		return proposal, err
 	}

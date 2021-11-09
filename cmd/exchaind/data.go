@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -23,13 +22,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/ammswap"
@@ -259,7 +258,7 @@ func dbConvertCmd(ctx *server.Context) *cobra.Command {
 				}
 			}
 
-			fromFs, err := ioutil.ReadDir(fromDir)
+			fromFs, err := os.ReadDir(fromDir)
 			if err != nil {
 				return err
 			}

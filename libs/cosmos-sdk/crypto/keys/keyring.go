@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,9 +13,9 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/crypto/bcrypt"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/tendermint/crypto/bcrypt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/keyerror"
@@ -544,7 +543,7 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 		_, err := os.Stat(keyhashFilePath)
 		switch {
 		case err == nil:
-			keyhash, err = ioutil.ReadFile(keyhashFilePath)
+			keyhash, err = os.ReadFile(keyhashFilePath)
 			if err != nil {
 				return "", fmt.Errorf("failed to read %s: %v", keyhashFilePath, err)
 			}
@@ -598,7 +597,7 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 				continue
 			}
 
-			if err := ioutil.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
+			if err := os.WriteFile(dir+"/keyhash", passwordHash, 0555); err != nil {
 				return "", err
 			}
 

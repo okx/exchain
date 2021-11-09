@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/okex/exchain/libs/iavl"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"sync"
@@ -189,7 +188,7 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
 	// write a renamer to a file
-	f, err := ioutil.TempFile("", "upgrade-*.json")
+	f, err := os.CreateTemp("", "upgrade-*.json")
 	require.NoError(t, err)
 	data := []byte(`{"renamed":[{"old_key": "bnk", "new_key": "banker"}]}`)
 	_, err = f.Write(data)

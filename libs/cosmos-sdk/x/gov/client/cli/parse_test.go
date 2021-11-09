@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseSubmitProposalFlags(t *testing.T) {
-	okJSON, err := ioutil.TempFile("", "proposal")
+	okJSON, err := os.CreateTemp("", "proposal")
 	require.Nil(t, err, "unexpected error")
 	okJSON.WriteString(`
 {
@@ -20,7 +20,7 @@ func TestParseSubmitProposalFlags(t *testing.T) {
 }
 `)
 
-	badJSON, err := ioutil.TempFile("", "proposal")
+	badJSON, err := os.CreateTemp("", "proposal")
 	require.Nil(t, err, "unexpected error")
 	badJSON.WriteString("bad json")
 

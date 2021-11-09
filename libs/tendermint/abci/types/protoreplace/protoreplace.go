@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -5,7 +6,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -21,7 +21,7 @@ func main() {
 	bytePattern := regexp.MustCompile("[[][]]byte")
 	const oldPath = "types/types.pb.go"
 	const tmpPath = "types/types.pb.new"
-	content, err := ioutil.ReadFile(oldPath)
+	content, err := os.ReadFile(oldPath)
 	if err != nil {
 		panic("cannot read " + oldPath)
 		os.Exit(1)

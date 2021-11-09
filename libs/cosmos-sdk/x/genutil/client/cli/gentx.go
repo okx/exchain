@@ -6,18 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -204,7 +203,7 @@ func makeOutputFilepath(rootDir, nodeID string) (string, error) {
 
 func readUnsignedGenTxFile(cdc *codec.Codec, r io.Reader) (auth.StdTx, error) {
 	var stdTx auth.StdTx
-	bytes, err := ioutil.ReadAll(r)
+	bytes, err := io.ReadAll(r)
 	if err != nil {
 		return stdTx, err
 	}

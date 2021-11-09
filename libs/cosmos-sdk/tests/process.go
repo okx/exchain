@@ -2,7 +2,6 @@ package tests
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
@@ -103,13 +102,13 @@ func (proc *Process) Wait() {
 	proc.EndTime = time.Now() // TODO make this goroutine-safe
 }
 
-// ReadAll calls ioutil.ReadAll on the StdoutPipe and StderrPipe.
+// ReadAll calls io.ReadAll on the StdoutPipe and StderrPipe.
 func (proc *Process) ReadAll() (stdout []byte, stderr []byte, err error) {
-	outbz, err := ioutil.ReadAll(proc.StdoutPipe)
+	outbz, err := io.ReadAll(proc.StdoutPipe)
 	if err != nil {
 		return nil, nil, err
 	}
-	errbz, err := ioutil.ReadAll(proc.StderrPipe)
+	errbz, err := io.ReadAll(proc.StderrPipe)
 	if err != nil {
 		return nil, nil, err
 	}

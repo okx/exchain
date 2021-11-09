@@ -3,12 +3,12 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -254,7 +254,7 @@ func getCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
 			}
 
 			if transfersFile != "" {
-				transferBytes, err := ioutil.ReadFile(transfersFile)
+				transferBytes, err := os.ReadFile(transfersFile)
 				if err != nil {
 					return err
 				}

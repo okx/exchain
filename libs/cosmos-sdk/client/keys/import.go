@@ -2,7 +2,7 @@ package keys
 
 import (
 	"bufio"
-	"io/ioutil"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,7 +31,7 @@ func runImportCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	bz, err := ioutil.ReadFile(args[1])
+	bz, err := os.ReadFile(args[1])
 	if err != nil {
 		return err
 	}

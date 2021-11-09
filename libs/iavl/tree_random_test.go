@@ -3,7 +3,6 @@ package iavl
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"sort"
@@ -96,7 +95,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 	}
 
 	// Use the same on-disk database for the entire run.
-	tempdir, err := ioutil.TempDir("", "iavl")
+	tempdir, err := os.MkdirTemp("", "iavl")
 	require.NoError(t, err)
 	defer os.RemoveAll(tempdir)
 

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -191,7 +191,7 @@ func (c *Client) Call(method string, params map[string]interface{}, result inter
 	}
 	defer httpResponse.Body.Close() // nolint: errcheck
 
-	responseBytes, err := ioutil.ReadAll(httpResponse.Body)
+	responseBytes, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read response body")
 	}
@@ -238,7 +238,7 @@ func (c *Client) sendBatch(requests []*jsonRPCBufferedRequest) ([]interface{}, e
 	}
 	defer httpResponse.Body.Close() // nolint: errcheck
 
-	responseBytes, err := ioutil.ReadAll(httpResponse.Body)
+	responseBytes, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read response body")
 	}

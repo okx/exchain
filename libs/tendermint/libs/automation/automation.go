@@ -3,11 +3,12 @@ package automation
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/spf13/viper"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -59,7 +60,8 @@ func LoadTestCase(log log.Logger) {
 
 	tlog = log
 
-	content, err := ioutil.ReadFile(confFilePath)
+	content, err := os.ReadFile(confFilePath)
+
 	if err != nil {
 		panic(fmt.Sprintf("read file : %s fail err : %s", confFilePath, err))
 	}

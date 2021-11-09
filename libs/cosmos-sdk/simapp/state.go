@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
@@ -51,7 +51,7 @@ func AppStateFn(cdc *codec.Codec, simManager *module.SimulationManager) simulati
 
 		case config.ParamsFile != "":
 			appParams := make(simulation.AppParams)
-			bz, err := ioutil.ReadFile(config.ParamsFile)
+			bz, err := os.ReadFile(config.ParamsFile)
 			if err != nil {
 				panic(err)
 			}
@@ -126,7 +126,7 @@ func AppStateRandomizedFn(
 // AppStateFromGenesisFileFn util function to generate the genesis AppState
 // from a genesis.json file.
 func AppStateFromGenesisFileFn(r io.Reader, cdc *codec.Codec, genesisFile string) (tmtypes.GenesisDoc, []simulation.Account) {
-	bytes, err := ioutil.ReadFile(genesisFile)
+	bytes, err := os.ReadFile(genesisFile)
 	if err != nil {
 		panic(err)
 	}

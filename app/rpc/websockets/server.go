@@ -4,23 +4,23 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/common/monitor"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Server defines a server that handles Ethereum websockets.
@@ -266,7 +266,7 @@ func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("could not read body from response; %s", err)
 	}

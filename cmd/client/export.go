@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -16,12 +15,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/crypto/hd"
 )
 
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
@@ -181,7 +180,7 @@ func exportKeyStoreFile(ethKey *keystore.Key, encryptPassword, fileName string) 
 	}
 
 	// Write to keystore file
-	err = ioutil.WriteFile(fileName, content, os.ModePerm)
+	err = os.WriteFile(fileName, content, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to write keystore: %s", err.Error())
 	}

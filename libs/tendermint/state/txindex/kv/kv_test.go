@@ -3,7 +3,6 @@ package kv
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -318,7 +317,7 @@ func txResultWithEvents(events []abci.Event) *types.TxResult {
 }
 
 func benchmarkTxIndex(txsCount int64, b *testing.B) {
-	dir, err := ioutil.TempDir("", "tx_index_db")
+	dir, err := os.MkdirTemp("", "tx_index_db")
 	if err != nil {
 		b.Fatal(err)
 	}

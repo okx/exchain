@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -211,7 +210,7 @@ func latestBlockHeight(dataDir string) int64 {
 }
 
 func rmLockByDir(dataDir string) {
-	files, _ := ioutil.ReadDir(dataDir)
+	files, _ := os.ReadDir(dataDir)
 	for _, f := range files {
 		if f.IsDir() {
 			os.Remove(filepath.Join(dataDir, f.Name(), "LOCK"))

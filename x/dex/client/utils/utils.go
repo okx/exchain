@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -19,7 +19,7 @@ type DelistProposalJSON struct {
 
 // ParseDelistProposalJSON parse json from proposal file to DelistProposalJSON struct
 func ParseDelistProposalJSON(cdc *codec.Codec, proposalFilePath string) (proposal DelistProposalJSON, err error) {
-	contents, err := ioutil.ReadFile(proposalFilePath)
+	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return proposal, err
 	}

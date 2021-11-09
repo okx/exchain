@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -144,7 +143,7 @@ func compareEncoders(t *testing.T, expected sdk.TxEncoder, actual sdk.TxEncoder)
 }
 
 func writeToNewTempFile(t *testing.T, data string) *os.File {
-	fp, err := ioutil.TempFile(os.TempDir(), "client_tx_test")
+	fp, err := os.CreateTemp(os.TempDir(), "client_tx_test")
 	require.NoError(t, err)
 
 	_, err = fp.WriteString(data)

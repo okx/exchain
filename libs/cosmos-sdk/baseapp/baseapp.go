@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime/debug"
@@ -335,7 +334,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		}
 
 		// there is a migration file, let's execute
-		data, err := ioutil.ReadFile(upgradeInfoPath)
+		data, err := os.ReadFile(upgradeInfoPath)
 		if err != nil {
 			return fmt.Errorf("cannot read upgrade file %s: %v", upgradeInfoPath, err)
 		}

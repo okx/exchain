@@ -3,7 +3,6 @@ package iavl
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestRepair013Orphans(t *testing.T) {
-	dir, err := ioutil.TempDir("", "test-iavl-repair")
+	dir, err := os.MkdirTemp("", "test-iavl-repair")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
@@ -161,7 +160,7 @@ func assertVersion(t *testing.T, tree *MutableTree, version int64) {
 
 // copyDB makes a shallow copy of the source database directory.
 func copyDB(src, dest string) error {
-	entries, err := ioutil.ReadDir(src)
+	entries, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}

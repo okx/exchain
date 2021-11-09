@@ -1,7 +1,7 @@
 package iavl
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,5 +16,5 @@ func TestWriteDOTGraph(t *testing.T) {
 		key := []byte{ikey}
 		tree.Set(key, key)
 	}
-	WriteDOTGraph(ioutil.Discard, tree.ImmutableTree, []PathToLeaf{})
+	WriteDOTGraph(io.Discard, tree.ImmutableTree, []PathToLeaf{})
 }

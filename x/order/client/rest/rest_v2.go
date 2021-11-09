@@ -2,15 +2,15 @@ package rest
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/gorilla/mux"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/order/keeper"
 	ordertype "github.com/okex/exchain/x/order/types"
@@ -81,7 +81,7 @@ func broadcastPlaceOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req BroadcastReq
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
@@ -109,7 +109,6 @@ func broadcastPlaceOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 		//TODO: OrderID needs to be obtained when the new version of the interface is developed
 		orderID := ""
 
-
 		res2 := placeCancelOrderResponse{
 			res,
 			orderID,
@@ -133,7 +132,7 @@ func broadcastCancelOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req BroadcastReq
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

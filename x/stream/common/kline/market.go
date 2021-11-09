@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/okex/exchain/x/stream/nacos"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/stream/nacos"
 )
 
 func GetMarketServiceURL(urls string, nameSpace string, param vo.SelectOneHealthInstanceParam) (string, error) {
@@ -61,7 +61,7 @@ func RegisterNewTokenPair(tokenPairID int64, tokenPairName string, marketService
 		return errors.New(fmt.Sprintf("failed to send data to market server. error: %s", err.Error()))
 	}
 	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 
 	if resp.Status != "200 " || err != nil {
 		return errors.New(fmt.Sprintf("the response status code is %s (expecet: 200), receiveData: %s. error: %s", resp.Status, string(bodyBytes), err.Error()))

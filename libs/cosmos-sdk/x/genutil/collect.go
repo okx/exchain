@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -70,8 +69,7 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 	genDoc tmtypes.GenesisDoc, genAccIterator types.GenesisAccountsIterator,
 ) (appGenTxs []authtypes.StdTx, persistentPeers string, err error) {
 
-	var fos []os.FileInfo
-	fos, err = ioutil.ReadDir(genTxsDir)
+	fos, err := os.ReadDir(genTxsDir)
 	if err != nil {
 		return appGenTxs, persistentPeers, err
 	}
@@ -102,7 +100,7 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 
 		// get the genStdTx
 		var jsonRawTx []byte
-		if jsonRawTx, err = ioutil.ReadFile(filename); err != nil {
+		if jsonRawTx, err = os.ReadFile(filename); err != nil {
 			return appGenTxs, persistentPeers, err
 		}
 		var genStdTx authtypes.StdTx

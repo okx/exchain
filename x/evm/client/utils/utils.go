@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"github.com/okex/exchain/x/evm/types"
-	"io/ioutil"
+	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 type (
@@ -47,7 +47,7 @@ type (
 // struct
 func ParseManageContractDeploymentWhitelistProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageContractDeploymentWhitelistProposalJSON, err error) {
-	contents, err := ioutil.ReadFile(proposalFilePath)
+	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return
 	}
@@ -59,7 +59,7 @@ func ParseManageContractDeploymentWhitelistProposalJSON(cdc *codec.Codec, propos
 // ParseManageContractBlockedListProposalJSON parses json from proposal file to ManageContractBlockedListProposalJSON struct
 func ParseManageContractBlockedListProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageContractBlockedListProposalJSON, err error) {
-	contents, err := ioutil.ReadFile(proposalFilePath)
+	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return
 	}
@@ -71,7 +71,7 @@ func ParseManageContractBlockedListProposalJSON(cdc *codec.Codec, proposalFilePa
 // ParseManageContractMethodBlockedListProposalJSON parses json from proposal file to ManageContractBlockedListProposalJSON struct
 func ParseManageContractMethodBlockedListProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageContractMethodBlockedListProposalJSON, err error) {
-	contents, err := ioutil.ReadFile(proposalFilePath)
+	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return
 	}

@@ -4,15 +4,14 @@ package rest
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -213,7 +212,7 @@ func runPostProcessResponse(t *testing.T, ctx context.CLIContext, obj interface{
 	require.Equal(t, http.StatusOK, w.Code, w.Body)
 	resp := w.Result()
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	require.Nil(t, err)
 	require.Equal(t, expectedBody, body)
 
@@ -231,7 +230,7 @@ func runPostProcessResponse(t *testing.T, ctx context.CLIContext, obj interface{
 	require.Equal(t, http.StatusOK, w.Code, w.Body)
 	resp = w.Result()
 	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	require.Nil(t, err)
 	require.Equal(t, expectedBody, body)
 }

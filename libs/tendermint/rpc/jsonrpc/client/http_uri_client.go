@@ -1,7 +1,7 @@
 package client
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -69,7 +69,7 @@ func (c *URIClient) Call(method string, params map[string]interface{}, result in
 	}
 	defer resp.Body.Close() // nolint: errcheck
 
-	responseBytes, err := ioutil.ReadAll(resp.Body)
+	responseBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read response body")
 	}

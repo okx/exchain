@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/spf13/viper"
 
@@ -28,7 +28,7 @@ func parseSubmitProposalFlags() (*proposal, error) {
 		}
 	}
 
-	contents, err := ioutil.ReadFile(proposalFile)
+	contents, err := os.ReadFile(proposalFile)
 	if err != nil {
 		return nil, err
 	}

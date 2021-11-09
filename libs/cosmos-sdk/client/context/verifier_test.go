@@ -1,7 +1,7 @@
 package context_test
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateVerifier(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "example")
+	tmpDir, err := os.MkdirTemp("", "example")
 	require.NoError(t, err)
 
 	testCases := []struct {
