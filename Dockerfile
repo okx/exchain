@@ -4,7 +4,7 @@
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind start
 FROM golang:alpine AS build-env
 
-# Install minimum necessary dependencies, remove packages
+# Install minimum necessary dependencies, remove packages (add rocksdb dependency libs)
 RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev libstdc++ g++ bzip2-dev gflags-dev lz4-dev snappy-dev zlib-dev zstd-dev perl
 
 # Set working directory for the build
