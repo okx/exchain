@@ -92,9 +92,6 @@ func NewKeeper(
 		innerBlockData: defaultBlockInnerData(),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 	}
-	if k.Watcher.Enabled() {
-		ak.SetObserverKeeper(k)
-	}
 
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 	ak.SetObserverKeeper(k)
