@@ -275,7 +275,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			if err != nil {
 				return err
 			}
-			gasUsed = int64(simuRes.GasWanted)
+			gasUsed = int64(simuRes.GasUsed)
 		}
 	}
 
