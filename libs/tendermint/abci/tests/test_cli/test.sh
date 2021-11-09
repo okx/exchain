@@ -1,4 +1,4 @@
-test.sh#! /bin/bash
+#! /bin/bash
 set -e
 
 # Get the root directory.
