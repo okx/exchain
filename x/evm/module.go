@@ -20,6 +20,7 @@ import (
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 var _ module.AppModule = AppModule{}
+const factor float64 = 0.5
 
 // AppModuleBasic struct
 type AppModuleBasic struct{}

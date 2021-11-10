@@ -506,9 +506,12 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	return exTxInfo
 }
 
-// GetGasPrice return gas price
-func (msg MsgEthereumTx) GetGasPrice() *big.Int {
-	return msg.Data.Price
+// GetGasPrice return gas price and gas limit
+func (msg MsgEthereumTx) GetGasPriceInfo() mempool.GasPriceInfo {
+	return mempool.GasPriceInfo{
+		GasPrice: msg.Data.Price,
+		GasLimit: msg.Data.GasLimit,
+	}
 }
 
 func (msg MsgEthereumTx) GetTxFnSignature() []byte {

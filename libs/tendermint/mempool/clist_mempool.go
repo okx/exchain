@@ -31,6 +31,7 @@ import (
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 	GetTxHistoryGasUsed(tx types.Tx) int64
+	GetTxGasPriceInfo(tx types.Tx) GasPriceInfo
 }
 
 //--------------------------------------------------------------------------------
@@ -270,13 +271,26 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if mem.config.MaxGasUsedPerBlock > -1 {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		gasLimit := mem.txInfoparser.GetTxGasPriceInfo(tx).GasLimit
+
+		simuRes, err := mem.simulateTx(tx)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(fmt.Sprintf("[Compare] history gas used is: %v, gas limit is: %v, simulate gas used is: %v", gasUsed, gasLimit, simuRes.GasUsed))
+
 		if gasUsed < 0 {
-			simuRes, err := mem.simulateTx(tx)
-			if err != nil {
-				return err
-			}
 			gasUsed = int64(simuRes.GasUsed)
 		}
+
+		//if gasUsed < 0 {
+		//	simuRes, err := mem.simulateTx(tx)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	gasUsed = int64(simuRes.GasUsed)
+		//}
 	}
 
 	mem.updateMtx.RLock()

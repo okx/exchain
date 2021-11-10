@@ -35,7 +35,12 @@ func NewHandler(k *Keeper) sdk.Handler {
 			var avgGas int64
 			if hisGu != nil {
 				gu := common2.BytesToInt64(hisGu)
-				avgGas = (gu + int64(ctx.GasMeter().GasConsumed())) / 2
+				gc := int64(ctx.GasMeter().GasConsumed())
+				if gc > 2*gu {
+					gc = int64(float64(gc) * factor)
+				}
+
+				avgGas = (gu + gc) / 2
 			} else {
 				avgGas = int64(ctx.GasMeter().GasConsumed())
 			}
@@ -74,7 +79,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 	}
 }
 
-func getMsgCallFnSignature(msg sdk.Msg) []byte{
+func getMsgCallFnSignature(msg sdk.Msg) []byte {
 	switch msg := msg.(type) {
 	case types.MsgEthereumTx:
 		return msg.GetTxFnSignature()

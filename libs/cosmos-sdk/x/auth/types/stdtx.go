@@ -181,13 +181,20 @@ func (tx StdTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	return exInfo
 }
 
-// GetGasPrice return gas price
-func (tx StdTx) GetGasPrice() *big.Int {
+// GetGasPrice return gas price and gas limit
+func (tx StdTx) GetGasPriceInfo() mempool.GasPriceInfo {
 	gasPrices := tx.Fee.GasPrices()
 	if len(gasPrices) == 0 {
-		return big.NewInt(0)
+		return mempool.GasPriceInfo{
+			GasPrice: big.NewInt(0),
+			GasLimit: 0,
+		}
 	}
-	return tx.Fee.GasPrices()[0].Amount.BigInt()
+
+	return mempool.GasPriceInfo{
+		GasPrice: tx.Fee.GasPrices()[0].Amount.BigInt(),
+		GasLimit: tx.Fee.Gas,
+	}
 }
 
 func (tx StdTx) GetTxFnSignature() []byte {

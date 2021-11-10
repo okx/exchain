@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"reflect"
 	"runtime/debug"
@@ -1024,4 +1025,16 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
+}
+
+func (app *BaseApp) GetTxGasPriceInfo(rawTx tmtypes.Tx) mempool.GasPriceInfo {
+	tx, err := app.txDecoder(rawTx)
+	if err != nil {
+		return mempool.GasPriceInfo{
+			GasPrice: big.NewInt(0),
+			GasLimit: 0,
+		}
+	}
+
+	return tx.GetGasPriceInfo()
 }
