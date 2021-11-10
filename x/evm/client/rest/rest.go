@@ -4,10 +4,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/x/evm/client/utils"
 	"net/http"
 	"strings"
 	"time"
 
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/gorilla/mux"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -15,14 +19,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/gorilla/mux"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/common"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
-	"github.com/okex/exchain/libs/tendermint/rpc/client"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
@@ -34,6 +35,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
+
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -192,6 +195,11 @@ func ManageContractBlockedListProposalRESTHandler(context.CLIContext) govRest.Pr
 	return govRest.ProposalRESTHandler{}
 }
 
+// ManageContractMethodBlockedListProposalRESTHandler defines evm proposal handler
+func ManageContractMethodBlockedListProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+
 func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", evmtypes.RouterKey, evmtypes.QuerySection))
@@ -226,5 +234,31 @@ func QueryContractBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFu
 
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, ethAddrs)
+	}
+}
+
+// QueryContractMethodBlockedListHandlerFn defines evm contract method blocked list handler
+func QueryContractMethodBlockedListHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryContractMethodBlockedList)
+
+		bz, height, err := cliCtx.QueryWithData(path, nil)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+
+		var blockedList evmtypes.BlockedContractList
+		cliCtx.Codec.MustUnmarshalJSON(bz, &blockedList)
+
+		results := make([]utils.ResponseBlockContract, 0)
+		for i, _ := range blockedList {
+			ethAddr := ethcommon.BytesToAddress(blockedList[i].Address.Bytes()).Hex()
+			result := utils.ResponseBlockContract{Address: ethAddr, BlockMethods: blockedList[i].BlockMethods}
+			results = append(results, result)
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, results)
 	}
 }

@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/x/evm/client/utils"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -75,8 +77,14 @@ $ %s query evm contract-blocked-list
 
 			var blockedList types.BlockedContractList
 			cdc.MustUnmarshalJSON(bz, &blockedList)
-			//TODO 0X prefix
-			return cliCtx.PrintOutput(blockedList)
+
+			results := make([]utils.ResponseBlockContract, 0)
+			for i, _ := range blockedList {
+				ethAddr := ethcommon.BytesToAddress(blockedList[i].Address.Bytes()).Hex()
+				result := utils.ResponseBlockContract{Address: ethAddr, BlockMethods: blockedList[i].BlockMethods}
+				results = append(results, result)
+			}
+			return cliCtx.PrintOutput(results)
 		},
 	}
 }

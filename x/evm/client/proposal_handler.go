@@ -20,6 +20,6 @@ var (
 	)
 	ManageContractMethodBlockedListProposalHandler = govcli.NewProposalHandler(
 		cli.GetCmdManageContractMethodBlockedListProposal,
-		rest.ManageContractBlockedListProposalRESTHandler,
+		rest.ManageContractMethodBlockedListProposalRESTHandler,
 	)
 )
