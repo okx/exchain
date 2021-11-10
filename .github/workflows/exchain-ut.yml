@@ -7,8 +7,9 @@ on:
     branches: [dev]
 
 jobs:
-  build:
+  exchain-build:
     runs-on: ubuntu-latest
+    needs: [golangci-lint,cosmos-sdk,iavl,tm-core,test_abci_apps,test_abci_cli]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -23,7 +24,7 @@ jobs:
 
   exchain:
     runs-on: ubuntu-latest
-    needs: build
+    needs: exchain-build
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
