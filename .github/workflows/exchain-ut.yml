@@ -1,8 +1,6 @@
 name: exchain-ut
 
 on:
-  push:
-    branch: [dev]
   pull_request:
     branches: [dev]
 

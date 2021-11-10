@@ -59,8 +59,8 @@ jobs:
           no_output_timeout: 30m
           command: |
             echo 'noop'
-            touch corverage.txt
-            bash <(curl -s https://codecov.io/bash) -f coverage.txt
+            #touch coverage.txt
+            #bash <(curl -s https://codecov.io/bash) -f coverage.txt
 #            ("./app" "./x/dex" "./x/backend"   "./x/order"  "./x/token" "./x/ammswap" "./x/farm"  "./x/backend")
 #            included_packages=("./app" "./x/backend" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/dex" "./x/ammswap" "./x/token" "./x/order" "./x/farm" "./x/evm")
 
