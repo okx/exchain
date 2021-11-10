@@ -32,6 +32,12 @@ type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 }
 
+const (
+	FlagRecheck         = "mempool.recheck"
+	FlagForceRecheckGap = "mempool.force_recheck_gap"
+	FlagSize            = "mempool.size"
+)
+
 //--------------------------------------------------------------------------------
 
 // CListMempool is an ordered in-memory pool for transactions before they are
@@ -481,7 +487,6 @@ func (mem *CListMempool) isFull(txSize int) error {
 		memSize  = mem.Size()
 		txsBytes = mem.TxsBytes()
 	)
-
 	if memSize >= cfg.DynamicConfig.GetMempoolSize() || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
 		return ErrMempoolIsFull{
 			memSize, cfg.DynamicConfig.GetMempoolSize(),

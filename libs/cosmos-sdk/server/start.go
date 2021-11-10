@@ -4,9 +4,10 @@ package server
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"os"
 	"runtime/pprof"
+
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -17,8 +18,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -30,6 +29,8 @@ import (
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -64,7 +65,8 @@ const (
 func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
-	registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
+	registerAppFlagFn func(cmd *cobra.Command),
+	appPreRun func(ctx *Context)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -91,7 +93,11 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set external package flags
 			setExternalPackageValue(cmd)
+			// app pre run
+			appPreRun(ctx)
+			// pruning options
 			_, err := GetPruningOptionsFromFlags()
 			return err
 		},
