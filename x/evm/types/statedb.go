@@ -54,6 +54,8 @@ type Watcher interface {
 	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
 	DeleteContractBlockedList(addr sdk.AccAddress)
 	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
+	SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods ContractMethods)
+	DeleteContractMethodBlockedList(addr sdk.AccAddress, methods ContractMethods)
 }
 
 type CacheCode struct {
@@ -1344,22 +1346,19 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 }
 
 func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
-	//TODO LIST
-	//if csdb.Watcher.Enabled() {
-	//	for i := 0; i < len(addrList); i++ {
-	//		csdb.Watcher.SaveContractBlockedListItem(addrList[i])
-	//	}
-	//}
+	watcherEnable := csdb.Watcher.Enabled()
 
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
-		if bc != nil && bc.IsAllMethodBlocked() {
-			return ErrOperation
-		} else if bc != nil {
+		if bc != nil {
 			bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
-			csdb.SetContractMethodBlocked(*bc)
 		} else {
-			csdb.SetContractMethodBlocked(contractList[i])
+			bc = &contractList[i]
+		}
+
+		csdb.SetContractMethodBlocked(*bc)
+		if watcherEnable {
+			csdb.Watcher.SaveContractMethodBlockedListItem(bc.Address, bc.BlockMethods)
 		}
 	}
 
@@ -1367,31 +1366,28 @@ func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedCont
 }
 
 func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
-	//TODO LIST
-	//if csdb.Watcher.Enabled() {
-	//	for i := 0; i < len(addrList); i++ {
-	//		csdb.Watcher.SaveContractBlockedListItem(addrList[i])
-	//	}
-	//}
+	watcherEnable := csdb.Watcher.Enabled()
 
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
-		if bc != nil && bc.IsAllMethodBlocked() {
-			return ErrOperation
-		} else if bc != nil {
+		if bc != nil {
 			bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
 			//if block contract method delete empty then remove contract from blocklist
 			if len(bc.BlockMethods) == 0 {
 				addressList := AddressList{}
-				addressList = append(addressList, contractList[i].Address)
+				addressList = append(addressList, bc.Address)
 				csdb.DeleteContractBlockedList(addressList)
+				if watcherEnable {
+					csdb.Watcher.DeleteContractMethodBlockedList(bc.Address, bc.BlockMethods)
+				}
 			} else {
 				csdb.SetContractMethodBlocked(*bc)
+				if watcherEnable {
+					csdb.Watcher.SaveContractMethodBlockedListItem(bc.Address, bc.BlockMethods)
+				}
 			}
 		}
-
 	}
-
 	return nil
 }
 
