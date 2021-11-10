@@ -80,7 +80,7 @@ func (st StateTransition) newEVM(
 	gasLimit uint64,
 	gasPrice *big.Int,
 	config ChainConfig,
-	extraEIPs []int,
+	vmConfig vm.Config,
 ) *vm.EVM {
 	// Create context for evm
 	blockCtx := vm.BlockContext{
@@ -97,10 +97,6 @@ func (st StateTransition) newEVM(
 	txCtx := vm.TxContext{
 		Origin:   st.Sender,
 		GasPrice: gasPrice,
-	}
-
-	vmConfig := vm.Config{
-		ExtraEips: extraEIPs,
 	}
 
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
@@ -159,7 +155,22 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs)
+	var tracer vm.Tracer
+	tracer = vm.NewStructLogger(evmLogConfig)
+
+	to := ""
+	if st.Recipient != nil {
+		to = st.Recipient.String()
+	}
+	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
+
+	vmConfig := vm.Config{
+		ExtraEips: params.ExtraEIPs,
+		Debug:     enableDebug,
+		Tracer:    tracer,
+	}
+
+	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, vmConfig)
 
 	var (
 		ret             []byte
@@ -221,6 +232,18 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		// Out of gas check does not need to be done here since it is done within the EVM execution
 		ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 	}()
+
+	defer func() {
+		if !st.Simulate && enableDebug {
+			result := &core.ExecutionResult{
+				UsedGas:    gasConsumed,
+				Err:        err,
+				ReturnData: ret,
+			}
+			saveTraceResult(ctx, tracer, result)
+		}
+	}()
+
 	if err != nil {
 		// Consume gas before returning
 		return exeRes, resData, newRevertError(ret, err), innerTxs, erc20Contracts
