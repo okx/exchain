@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
 	"sync"
@@ -12,12 +13,12 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/params"
 )
@@ -41,6 +42,8 @@ type CommitStateDBParams struct {
 	Watcher       Watcher
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
+	// Amino codec
+	Cdc *codec.Codec
 }
 
 type Watcher interface {
@@ -121,6 +124,9 @@ type CommitStateDB struct {
 	codeCache map[ethcmn.Address]CacheCode
 
 	dbAdapter DbAdapter
+
+	// Amino codec
+	cdc *codec.Codec
 }
 
 type StoreProxy interface {
@@ -148,7 +154,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // key/value space matters in determining the merkle root.
 func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
-) *CommitStateDB {
+	cdc *codec.Codec) *CommitStateDB {
 	return &CommitStateDB{
 		ctx:                  ctx,
 		storeKey:             storeKey,
@@ -168,6 +174,7 @@ func newCommitStateDB(
 		logs:                 []*ethtypes.Log{},
 		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:            DefaultPrefixDb{},
+		cdc:                  cdc,
 	}
 }
 
@@ -181,6 +188,7 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
+		cdc:           csdbParams.Cdc,
 
 		stateObjects:         []stateEntry{},
 		addressToObjectIndex: make(map[ethcmn.Address]int),
@@ -583,7 +591,8 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 
 	// check for the contract calling from blocked list if contract blocked list is enabled
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
-		panic(addr)
+		err := ErrContractBlockedVerify{fmt.Sprintf("failed. the contract %s is not allowed to invoke", addr.Hex())}
+		panic(err)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -1306,6 +1315,123 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 
 // IsContractInBlockedList checks whether the contract address is in the blocked list
 func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) bool {
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
-	return bs.Has(contractAddr)
+	bc := csdb.GetContractMethodBlockedByAddress(contractAddr)
+	if bc == nil {
+		//contractAddr is not blocked
+		return false
+	}
+	// check contractAddr whether block full-method and special-method
+	return bc.IsAllMethodBlocked()
+}
+
+func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	vaule := store.Get(GetContractBlockedListMemberKey(contractAddr))
+	if vaule == nil {
+		// address is not exist
+		return nil
+	} else {
+		methods := ContractMethods{}
+		if len(vaule) == 0 {
+			//address is exist,but the blocked is old version.
+			return NewBlockContract(contractAddr, methods)
+		} else {
+			//address is exist,but the blocked is new version.
+			csdb.cdc.MustUnmarshalJSON(vaule, &methods)
+			return NewBlockContract(contractAddr, methods)
+		}
+	}
+}
+
+func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+	//TODO LIST
+	//if csdb.Watcher.Enabled() {
+	//	for i := 0; i < len(addrList); i++ {
+	//		csdb.Watcher.SaveContractBlockedListItem(addrList[i])
+	//	}
+	//}
+
+	for i := 0; i < len(contractList); i++ {
+		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
+		if bc != nil && bc.IsAllMethodBlocked() {
+			return ErrOperation
+		} else if bc != nil {
+			bc.BlockMethods.InsertContractMethods(contractList[i].BlockMethods)
+			csdb.SetContractMethodBlocked(*bc)
+		} else {
+			csdb.SetContractMethodBlocked(contractList[i])
+		}
+	}
+
+	return nil
+}
+
+func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+	//TODO LIST
+	//if csdb.Watcher.Enabled() {
+	//	for i := 0; i < len(addrList); i++ {
+	//		csdb.Watcher.SaveContractBlockedListItem(addrList[i])
+	//	}
+	//}
+
+	for i := 0; i < len(contractList); i++ {
+		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
+		if bc != nil && bc.IsAllMethodBlocked() {
+			return ErrOperation
+		} else if bc != nil {
+			bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
+			//if block contract method delete empty then remove contract from blocklist
+			if len(bc.BlockMethods) == 0 {
+				addressList := AddressList{}
+				addressList = append(addressList, contractList[i].Address)
+				csdb.DeleteContractBlockedList(addressList)
+			} else {
+				csdb.SetContractMethodBlocked(*bc)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		addr := sdk.AccAddress(splitBlockedContractAddress(iterator.Key()))
+		value := iterator.Value()
+		methods := ContractMethods{}
+		if len(value) != 0 {
+			csdb.cdc.MustUnmarshalJSON(value, &methods)
+		}
+		bc := NewBlockContract(addr, methods)
+		blockedContractList = append(blockedContractList, *bc)
+	}
+	return
+}
+
+// IsContractBlockedSpecial checks whether the contract address is blocked to Special Method
+func (csdb *CommitStateDB) IsContractMethodBlocked(contractAddr sdk.AccAddress, method string) bool {
+	bc := csdb.GetContractMethodBlockedByAddress(contractAddr)
+	if bc == nil {
+		//contractAddr is not blocked
+		return false
+	}
+	// it maybe happens,because ok_verifier verify called before getCode, for executing old logic follow code is return false
+	if bc.IsAllMethodBlocked() {
+		return false
+	}
+	// check contractAddr whether block full-method and special-method
+	return bc.IsMethodBlocked(method)
+}
+
+func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
+	key := GetContractBlockedListMemberKey(contract.Address)
+	value := csdb.cdc.MustMarshalJSON(contract.BlockMethods)
+	value = sdk.MustSortJSON(value)
+	store := csdb.ctx.KVStore(csdb.storeKey)
+	store.Set(key, value)
 }

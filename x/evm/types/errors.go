@@ -3,9 +3,9 @@ package types
 import (
 	"fmt"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ethcmn "github.com/ethereum/go-ethereum/common"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.
@@ -44,6 +44,12 @@ var (
 	// ErrDuplicatedAddr returns an error if the address is duplicated in address list
 	ErrDuplicatedAddr = sdkerrors.Register(ModuleName, 12, "Duplicated address in address list")
 
+	// ErrDuplicatedAddr returns an error if the address is duplicated in address list
+	ErrOperation = sdkerrors.Register(ModuleName, 16, "Special contract method blocked operation can not change blocked contract list")
+
+	// ErrDuplicatedMethod returns an error if the contract method is duplicated
+	ErrDuplicatedMethod = sdkerrors.Register(ModuleName, 17, "Duplicated contract method in address list")
+
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"
@@ -70,12 +76,16 @@ func ErrUnauthorizedAccount(distributorAddr sdk.AccAddress) sdk.EnvelopedErr {
 }
 
 // ErrCallBlockedContract returns an error when the blocked contract is invoked
-func ErrCallBlockedContract(contractAddr ethcmn.Address) sdk.EnvelopedErr {
+func ErrCallBlockedContract(descriptor string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
 			15,
-			fmt.Sprintf("failed. the contract %s is not allowed to invoke", contractAddr.Hex()),
+			descriptor,
 		),
 	}
+}
+
+type ErrContractBlockedVerify struct {
+	Descriptor string
 }

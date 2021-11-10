@@ -138,3 +138,74 @@ Where proposal.json contains:
 		},
 	}
 }
+
+// GetCmdManageContractMethodBlockedListProposal implements a command handler for submitting a manage contract blocked list
+// proposal transaction
+func GetCmdManageContractMethodBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "update-contract-method-blocked-list [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an update contract method blocked list proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an update method contract blocked list proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal update-contract-blocked-list <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+    "title":"update contract blocked list proposal with a contract address list",
+    "description":"add a contract address list into the blocked list",
+    "contract_addresses":[
+        {
+            "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
+            "block_methods":{
+                "0x7472616e":""
+            }
+        },
+        {
+            "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
+            "block_methods":{
+                "0x7472616e":""
+            }
+        }
+    ],
+    "is_added":true,
+    "deposit":[
+        {
+            "denom":"%s",
+            "amount":"100.000000000000000000"
+        }
+    ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageContractMethodBlockedListProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageContractMethodBlockedListProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.ContractList,
+				proposal.IsAdded,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}

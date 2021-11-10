@@ -16,7 +16,7 @@ var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 // GetMinDeposit returns min deposit
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal, types.ManageContractMethodBlockedListProposal:
 		minDeposit = k.govKeeper.GetDepositParams(ctx).MinDeposit
 	}
 
@@ -26,7 +26,7 @@ func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDepos
 // GetMaxDepositPeriod returns max deposit period
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (maxDepositPeriod time.Duration) {
 	switch content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal, types.ManageContractMethodBlockedListProposal:
 		maxDepositPeriod = k.govKeeper.GetDepositParams(ctx).MaxDepositPeriod
 	}
 
@@ -36,7 +36,7 @@ func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (ma
 // GetVotingPeriod returns voting period
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (votingPeriod time.Duration) {
 	switch content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal, types.ManageContractMethodBlockedListProposal:
 		votingPeriod = k.govKeeper.GetVotingParams(ctx).VotingPeriod
 	}
 
@@ -46,7 +46,7 @@ func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (voting
 // CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	switch content := msg.Content.(type) {
-	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal:
+	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal, types.ManageContractMethodBlockedListProposal:
 		// whole target address list will be added/deleted to/from the contract deployment whitelist/contract blocked list.
 		// It's not necessary to check the existence in CheckMsgSubmitProposal
 		return nil

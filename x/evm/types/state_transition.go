@@ -80,7 +80,7 @@ func (st StateTransition) newEVM(
 	gasLimit uint64,
 	gasPrice *big.Int,
 	config ChainConfig,
-	extraEIPs []int,
+	params Params,
 ) *vm.EVM {
 	// Create context for evm
 	blockCtx := vm.BlockContext{
@@ -100,7 +100,8 @@ func (st StateTransition) newEVM(
 	}
 
 	vmConfig := vm.Config{
-		ExtraEips: extraEIPs,
+		ExtraEips:  params.ExtraEIPs,
+		OKVerifier: NewContractVerifier(params),
 	}
 
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
@@ -112,12 +113,12 @@ func (st StateTransition) newEVM(
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
 	defer func() {
 		if e := recover(); e != nil {
-			// if the msg recovered can be asserted into type 'common.Address', it must be captured by the panics of blocked
+			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
 			// contract calling
-			if blockedContractAddr, ok := e.(common.Address); ok {
-				err = ErrCallBlockedContract(blockedContractAddr)
-			} else {
-				// unexpected and unknown panic from lower part
+			switch rType := e.(type) {
+			case ErrContractBlockedVerify:
+				err = ErrCallBlockedContract(rType.Descriptor)
+			default:
 				panic(e)
 			}
 		}
@@ -159,7 +160,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	params := csdb.GetParams()
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params.ExtraEIPs)
+	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, config, params)
 
 	var (
 		ret             []byte
