@@ -32,12 +32,6 @@ type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 }
 
-const (
-	FlagRecheck         = "mempool.recheck"
-	FlagForceRecheckGap = "mempool.force_recheck_gap"
-	FlagSize            = "mempool.size"
-)
-
 //--------------------------------------------------------------------------------
 
 // CListMempool is an ordered in-memory pool for transactions before they are

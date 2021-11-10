@@ -26,6 +26,7 @@ func SetNodeConfig(context *server.Context) {
 	case types.ArchiveNode:
 		setArchiveConfig()
 	case "":
+		context.Logger.Info("The node mode is not set for this node")
 	default:
 		context.Logger.Error(
 			fmt.Sprintf("Wrong value (%s) is set for %s, the correct value should be one of %s, %s, and %s",
