@@ -1,20 +1,34 @@
-name: circle-ut
+name: exchain-ut
 
 on:
   push:
     branch: [dev]
   pull_request:
     branches: [dev]
+  workflow_run:
+    workflows:
+      - Lint
+      - tendermint-ut
+      - iavl-ut
+      - cosmos-sdk-ut
+    branches: [dev]
+    types:
+      - completed
 
 jobs:
+
   exchain-build:
     runs-on: ubuntu-latest
-    needs: [golangci-lint,cosmos-sdk,iavl,tm-core,test_abci_apps,test_abci_cli]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
+      - name: exchain-build
+        uses: actions/checkout@v2
+        with:
+          running-workflow-name: exchain-build
+          wait-interval: 10
       - name: Cache go modules
         run:
           make go-mod-cache
@@ -30,6 +44,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
+
       - name: Run tests with coverage and upload codecov
         run: |
           set -ex

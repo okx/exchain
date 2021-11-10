@@ -1,0 +1,7 @@
+version: 2.1
+
+jobs:
+  noop-job:
+    executor: my-executor
+    steps:
+      - run: echo 'this is noop job' 
