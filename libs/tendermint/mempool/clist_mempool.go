@@ -481,7 +481,6 @@ func (mem *CListMempool) isFull(txSize int) error {
 		memSize  = mem.Size()
 		txsBytes = mem.TxsBytes()
 	)
-
 	if memSize >= cfg.DynamicConfig.GetMempoolSize() || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
 		return ErrMempoolIsFull{
 			memSize, cfg.DynamicConfig.GetMempoolSize(),

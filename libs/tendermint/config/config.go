@@ -682,19 +682,19 @@ type MempoolConfig struct {
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
 func DefaultMempoolConfig() *MempoolConfig {
 	return &MempoolConfig{
-		Recheck:   true,
+		Recheck:   false,
 		Broadcast: true,
 		WalPath:   "",
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
-		Size:                       2000,               // exchain memory pool size(max tx num)
+		Size:                       10000,              // exchain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
 		CacheSize:                  10000,
 		MaxTxBytes:                 1024 * 1024, // 1MB
 		MaxTxNumPerBlock:           300,
 		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,
-		ForceRecheckGap:            200,
+		ForceRecheckGap:            2000,
 		TxPriceBump:                10,
 		PendingPoolSize:            50000,
 		PendingPoolPeriod:          3,
@@ -818,7 +818,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrevoteDelta:         500 * time.Millisecond,
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               1000 * time.Millisecond,
+		TimeoutCommit:               3000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
 		CreateEmptyBlocksInterval:   0 * time.Second,

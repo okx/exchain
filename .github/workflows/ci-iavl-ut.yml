@@ -1,0 +1,17 @@
+name: iavl-ut 
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+
+  iavl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: test & coverage report creation
+        run: |
+          go test ./libs/iavl/...

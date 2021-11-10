@@ -6,7 +6,6 @@ import (
 
 // AddNodeFlags exposes some common configuration options on the command-line
 // These are exposed for convenience of commands embedding a tendermint node
-
 func addMoreFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("p2p.addr_book_strict", config.P2P.AddrBookStrict,
 		"Set true for strict address routability rules, Set false for private or local networks")

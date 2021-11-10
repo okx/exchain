@@ -12,11 +12,13 @@ import (
 
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{trace.Evm, "Iavl", "DeliverTxs", trace.Round, trace.CommitRound, trace.Produce}
+	CUSTOM_PRINT = []string{trace.Evm, trace.Iavl, trace.DeliverTxs, trace.Round, trace.CommitRound, trace.Produce}
+
+	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
+		trace.Evm, trace.Iavl, trace.DeliverTxs, trace.Round, trace.CommitRound, trace.Produce)
 )
 
 const (
-	DefaultElapsedSchemas = "Evm=1,Iavl=1,DeliverTxs=1,Round=0,CommitRound=0,Produce=0"
 	Elapsed = "elapsed"
 )
 
