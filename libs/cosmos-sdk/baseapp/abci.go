@@ -300,8 +300,8 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 	app.deliverState.ms.Write()
 	commitID := app.cms.Commit()
 
-	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, savenode<%d>",
-		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), app.cms.GetDBWriteCount()))
+	trace.GetElapsedInfo().AddInfo("Iavl", fmt.Sprintf("getnode<%d>, rdb<%d>, rdbTs<%dms>, savenode<%d>",
+		app.cms.GetNodeReadCount(), app.cms.GetDBReadCount(), app.cms.GetDBReadTime(), app.cms.GetDBWriteCount()))
 
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
