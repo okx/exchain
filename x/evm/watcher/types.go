@@ -73,6 +73,7 @@ type WatchData struct {
 	Batches       []*Batch          `json:"batches"`
 	DelayEraseKey [][]byte          `json:"delay_erase_key"`
 	BloomData     []*types.KV       `json:"bloom_data"`
+	List          [][]byte          `json:"list"`
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {

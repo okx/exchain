@@ -37,8 +37,9 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
-	// dirtyAccount, centerBatch for transfer in network
+	// for transfer in network
 	dirtyAccount []*sdk.AccAddress
+	dirtyList    [][]byte
 	centerBatch  []*Batch
 	bloomData    []*evmtypes.KV
 }
@@ -108,6 +109,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 
 	// ResetTransferWatchData
 	w.dirtyAccount = nil
+	w.dirtyList = nil
 	w.centerBatch = nil
 	w.bloomData = nil
 }
@@ -286,7 +288,9 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	}
 	wMsg := NewMsgContractBlockedListItem(addr)
 	if wMsg != nil {
-		w.store.Delete(wMsg.GetKey())
+		key := wMsg.GetKey()
+		w.store.Delete(key)
+		w.dirtyList = append(w.dirtyList, key)
 	}
 }
 
@@ -296,7 +300,9 @@ func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
 	}
 	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
 	if wMsg != nil {
-		w.store.Delete(wMsg.GetKey())
+		key := wMsg.GetKey()
+		w.store.Delete(key)
+		w.dirtyList = append(w.dirtyList, key)
 	}
 }
 
@@ -373,6 +379,9 @@ func (w *Watcher) CommitWatchData() {
 	if w.dirtyAccount != nil {
 		go w.delDirtyAccount(w.dirtyAccount)
 	}
+	if w.dirtyList != nil {
+		go w.delDirtyList(w.dirtyList)
+	}
 	if w.bloomData != nil {
 		go w.commitBloomData(w.bloomData)
 	}
@@ -409,6 +418,12 @@ func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
 	}
 }
 
+func (w *Watcher) delDirtyList(list [][]byte) {
+	for _, key := range list {
+		w.store.Delete(key)
+	}
+}
+
 func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	db := evmtypes.GetIndexer().GetDB()
 	for _, bd := range bloomData {
@@ -438,12 +453,14 @@ func (w *Watcher) SetWatchDataFunc() {
 		}
 		w.centerBatch = data.Batches
 		w.dirtyAccount = data.Account
+		w.dirtyList = data.List
 		w.delayEraseKey = data.DelayEraseKey
+		w.bloomData = data.BloomData
 		return true
 	}
 
 	gwd := func() *tmtypes.WatchData {
-		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData}
+		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData, w.dirtyList}
 		valueByte, err := itjs.Marshal(&value)
 		if err != nil {
 			return nil
@@ -458,6 +475,7 @@ func (w *Watcher) SetWatchDataFunc() {
 				return
 			}
 			w.dirtyAccount = wd.Account
+			w.dirtyList = wd.List
 			w.centerBatch = wd.Batches
 			w.delayEraseKey = wd.DelayEraseKey
 			w.bloomData = wd.BloomData
@@ -476,7 +494,7 @@ func (w *Watcher) SendToDatacenter(height int64) {
 	if w.centerBatch == nil && w.dirtyAccount == nil {
 		return
 	}
-	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData}
+	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData, w.dirtyList}
 	valueByte, err := itjs.Marshal(&value)
 	if err != nil {
 		return
