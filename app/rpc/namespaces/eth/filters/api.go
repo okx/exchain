@@ -4,25 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/monitor"
-	"golang.org/x/time/rate"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/bloombits"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-
+	"github.com/okex/exchain/app/rpc/monitor"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+
+	"golang.org/x/time/rate"
 )
 
 var ErrServerBusy = errors.New("server is too busy")
@@ -243,10 +242,9 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 			select {
 			case ev := <-headersCh:
 				data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
-				header := rpctypes.EthHeaderFromTendermint(data.Header)
 				api.filtersMu.Lock()
 				if f, found := api.filters[headerSub.ID()]; found {
-					f.hashes = append(f.hashes, header.Hash())
+					f.hashes = append(f.hashes, common.BytesToHash(data.Header.Hash()))
 				}
 				api.filtersMu.Unlock()
 			case <-errCh:
