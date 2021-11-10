@@ -4,8 +4,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const FlagConsensusTimeoutCommit = "consensus.timeout_commit"
-
 // AddNodeFlags exposes some common configuration options on the command-line
 // These are exposed for convenience of commands embedding a tendermint node
 func addMoreFlags(cmd *cobra.Command) {
@@ -19,5 +17,5 @@ func addMoreFlags(cmd *cobra.Command) {
 	cmd.Flags().String("prof_laddr", config.ProfListenAddress,
 		"Node listen address. (0.0.0.0:0 means any interface, any port)")
 
-	cmd.Flags().Duration(FlagConsensusTimeoutCommit, config.Consensus.TimeoutCommit, "Set node block interval time")
+	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit, "Set node block interval time")
 }
