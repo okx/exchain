@@ -239,7 +239,7 @@ func (w *Watcher) SaveContractBlockedListItem(addr sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods evmtypes.ContractMethods) {
+func (w *Watcher) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) {
 	if !w.Enabled() {
 		return
 	}
@@ -264,16 +264,6 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 		return
 	}
 	wMsg := NewMsgContractBlockedListItem(addr)
-	if wMsg != nil {
-		w.store.Delete(wMsg.GetKey())
-	}
-}
-
-func (w *Watcher) DeleteContractMethodBlockedList(addr sdk.AccAddress, methods evmtypes.ContractMethods) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgContractMethodBlockedListItem(addr, nil)
 	if wMsg != nil {
 		w.store.Delete(wMsg.GetKey())
 	}

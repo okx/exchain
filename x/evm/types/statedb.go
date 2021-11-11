@@ -54,8 +54,7 @@ type Watcher interface {
 	SaveContractDeploymentWhitelistItem(addr sdk.AccAddress)
 	DeleteContractBlockedList(addr sdk.AccAddress)
 	DeleteContractDeploymentWhitelist(addr sdk.AccAddress)
-	SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods ContractMethods)
-	DeleteContractMethodBlockedList(addr sdk.AccAddress, methods ContractMethods)
+	SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte)
 }
 
 type CacheCode struct {
@@ -1330,8 +1329,9 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	vaule := store.Get(GetContractBlockedListMemberKey(contractAddr))
+	//use dbAdapter for watchdb or prefixdb
+	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	vaule := bs.Get(contractAddr)
 	if vaule == nil {
 		// address is not exist
 		return nil
@@ -1350,8 +1350,6 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 
 // SetContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) {
-	watcherEnable := csdb.Watcher.Enabled()
-
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
@@ -1361,34 +1359,26 @@ func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedCont
 		}
 
 		csdb.SetContractMethodBlocked(*bc)
-		if watcherEnable {
-			csdb.Watcher.SaveContractMethodBlockedListItem(bc.Address, bc.BlockMethods)
-		}
 	}
 
 }
 
 // DeleteContractMethodBlockedList delete the list of contract method blocked  from blocked list store
 func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) {
-	watcherEnable := csdb.Watcher.Enabled()
 
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
 			bc.BlockMethods.DeleteContractMethodMap(contractList[i].BlockMethods)
-			//if block contract method delete empty then remove contract from blocklist
+			//if block contract method delete empty then remove contract from blocklist.
 			if len(bc.BlockMethods) == 0 {
 				addressList := AddressList{}
 				addressList = append(addressList, bc.Address)
+				//in watchdb contract blocked and contract method blocked use same prefix
+				//so delete contract method blocked is can use function of delete contract blocked
 				csdb.DeleteContractBlockedList(addressList)
-				if watcherEnable {
-					csdb.Watcher.DeleteContractMethodBlockedList(bc.Address, bc.BlockMethods)
-				}
 			} else {
 				csdb.SetContractMethodBlocked(*bc)
-				if watcherEnable {
-					csdb.Watcher.SaveContractMethodBlockedListItem(bc.Address, bc.BlockMethods)
-				}
 			}
 		}
 	}
@@ -1436,4 +1426,9 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	value = sdk.MustSortJSON(value)
 	store := csdb.ctx.KVStore(csdb.storeKey)
 	store.Set(key, value)
+
+	watcherEnable := csdb.Watcher.Enabled()
+	if watcherEnable {
+		csdb.Watcher.SaveContractMethodBlockedListItem(contract.Address, value)
+	}
 }

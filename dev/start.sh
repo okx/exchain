@@ -89,6 +89,8 @@ cat $HOME_SERVER/config/genesis.json | jq '.app_state["mint"]["params"]["mint_de
 # Enable EVM
 sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
 sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
+sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
+
 
 # Allocate genesis accounts (cosmos formatted addresses)
 exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okt --home $HOME_SERVER

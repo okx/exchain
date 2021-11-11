@@ -161,15 +161,29 @@ Where proposal.json contains:
     "contract_addresses":[
         {
             "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
-            "block_methods":{
-                "0x7472616e":""
-            }
+            "block_methods": [
+                {
+                    "Name": "0x371303c0",
+                    "Extra": "inc()"
+                },
+                {
+                    "Name": "0x579be378",
+                    "Extra": "onc()"
+                }
+            ]
         },
         {
             "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
-            "block_methods":{
-                "0x7472616e":""
-            }
+            "block_methods": [
+                {
+                    "Name": "0x371303c0",
+                    "Extra": "inc()"
+                },
+                {
+                    "Name": "0x579be378",
+                    "Extra": "onc()"
+                }
+            ]
         }
     ],
     "is_added":true,
