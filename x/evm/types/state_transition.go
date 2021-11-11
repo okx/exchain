@@ -165,9 +165,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	enableDebug := checkTracesSegment(ctx.BlockHeight(), st.Sender.String(), to)
 
 	vmConfig := vm.Config{
-		ExtraEips: params.ExtraEIPs,
-		Debug:     enableDebug,
-		Tracer:    tracer,
+		ExtraEips:  params.ExtraEIPs,
+		Debug:      enableDebug,
+		Tracer:     tracer,
 		OKVerifier: NewContractVerifier(params),
 	}
 
