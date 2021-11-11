@@ -183,31 +183,35 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	centerMode := viper.GetBool(types.FlagDataCenter)
 	batchOK := true
 	useDeltas := false
-	if fastQuery && deltaMode == types.ConsumeDelta {
-		if wd.Size() == 0 {
-			if centerMode {
-				// GetBatch get watchDB batch data from DataCenter in exchain.watcher
-				batchOK = GetCenterBatch(block.Height)
-			} else {
-				batchOK = false
-			}
-		}
 
-	}
-	// only when getting batch success, can use deltas
-	// otherwise, do deliverTx
-	if batchOK {
-		// if len(deltas) != 0, use deltas from p2p
-		// otherwise, get state-deltas from DataCenter
-		if deltas.Size() == 0 && centerMode && deltaMode == types.ConsumeDelta {
-			if bd, err := getDataFromDatacenter(blockExec.logger, block.Height); err == nil {
-				deltas = bd.Deltas
+	if deltaMode == types.ConsumeDelta {
+		// only when it's consumer, can use deltas
+		if fastQuery {
+			if wd.Size() == 0 {
+				if centerMode {
+					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
+					batchOK = GetCenterBatch(block.Height)
+				} else {
+					batchOK = false
+				}
 			}
+
 		}
-		// when deltas not empty, use deltas
+		// only when getting batch success, can use deltas
 		// otherwise, do deliverTx
-		if deltas.Size() != 0 && deltaMode == types.ConsumeDelta {
-			useDeltas = true
+		if batchOK {
+			// if len(deltas) != 0, use deltas from p2p
+			// otherwise, get state-deltas from DataCenter
+			if deltas.Size() == 0 && centerMode {
+				if bd, err := getDataFromDatacenter(blockExec.logger, block.Height); err == nil {
+					deltas = bd.Deltas
+				}
+			}
+			// when deltas not empty, use deltas
+			// otherwise, do deliverTx
+			if deltas.Size() != 0 {
+				useDeltas = true
+			}
 		}
 	}
 
@@ -284,6 +288,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
+	// fastQuery is the flag if the watchdb is available
 	if !fastQuery {
 		wd = nil
 	} else {
