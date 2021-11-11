@@ -294,29 +294,25 @@ func (suite *JournalTestSuite) TestJournal_preimage_revert() {
 func (suite *JournalTestSuite) TestJournal_createObjectChange_revert() {
 	addr := ethcmn.BytesToAddress([]byte("addr"))
 
-	suite.stateDB.stateObjects = []stateEntry{
-		{
+	suite.stateDB.stateObjects = map[ethcmn.Address]*stateEntry{
+		addr: {
 			address: addr,
 			stateObject: &stateObject{
 				address: addr,
 			},
 		},
-		{
+		ethcmn.BytesToAddress([]byte("addr1")): {
 			address: ethcmn.BytesToAddress([]byte("addr1")),
 			stateObject: &stateObject{
 				address: ethcmn.BytesToAddress([]byte("addr1")),
 			},
 		},
-		{
+		ethcmn.BytesToAddress([]byte("addr2")): {
 			address: ethcmn.BytesToAddress([]byte("addr2")),
 			stateObject: &stateObject{
 				address: ethcmn.BytesToAddress([]byte("addr2")),
 			},
 		},
-	}
-
-	for i, so := range suite.stateDB.stateObjects {
-		suite.stateDB.addressToObjectIndex[so.address] = i
 	}
 
 	change := createObjectChange{
@@ -326,13 +322,12 @@ func (suite *JournalTestSuite) TestJournal_createObjectChange_revert() {
 	// delete first entry
 	change.revert(suite.stateDB)
 	suite.Require().Len(suite.stateDB.stateObjects, 2)
-	suite.Require().Equal(len(suite.stateDB.stateObjects), len(suite.stateDB.addressToObjectIndex))
+	suite.Require().Equal(len(suite.stateDB.stateObjects), len(suite.stateDB.stateObjects))
 
-	for i, entry := range suite.stateDB.stateObjects {
-		suite.Require().Equal(ethcmn.BytesToAddress([]byte(fmt.Sprintf("addr%d", i+1))).String(), entry.address.String())
-		idx, found := suite.stateDB.addressToObjectIndex[entry.address]
+	for k, entry := range suite.stateDB.stateObjects {
+		suite.Require().Equal(k.String(), entry.address.String())
+		_, found := suite.stateDB.stateObjects[entry.address]
 		suite.Require().True(found)
-		suite.Require().Equal(i, idx)
 	}
 }
 
