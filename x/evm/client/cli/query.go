@@ -93,7 +93,7 @@ $ %s query evm contract-blocked-list
 func GetCmdQueryContractBlockedList(storeName string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "contract-blocked-list",
-		Short: "Query the contract blocked list",
+		Short: "Query the contract blocked list.Deprecated",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query the current blocked list of contract addresses during evm calling.
 
