@@ -111,7 +111,7 @@ func closeApp(iApp abci.Application) {
 	rpc.CloseEthBackend()
 }
 
-func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) (abci.Application) {
+func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
 	pruningOpts, err := server.GetPruningOptionsFromFlags()
 	if err != nil {
 		panic(err)

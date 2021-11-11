@@ -1309,7 +1309,9 @@ func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		blockedList = append(blockedList, splitBlockedContractAddress(iterator.Key()))
+		if len(iterator.Value()) == 0 {
+			blockedList = append(blockedList, splitBlockedContractAddress(iterator.Key()))
+		}
 	}
 
 	return
@@ -1345,7 +1347,7 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 	}
 }
 
-func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedContractList) {
 	watcherEnable := csdb.Watcher.Enabled()
 
 	for i := 0; i < len(contractList); i++ {
@@ -1362,10 +1364,9 @@ func (csdb *CommitStateDB) SetContractMethodBlockedList(contractList BlockedCont
 		}
 	}
 
-	return nil
 }
 
-func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) {
 	watcherEnable := csdb.Watcher.Enabled()
 
 	for i := 0; i < len(contractList); i++ {
@@ -1388,7 +1389,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 			}
 		}
 	}
-	return nil
+	return
 }
 
 func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {

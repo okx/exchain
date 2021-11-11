@@ -71,9 +71,11 @@ func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper, 
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if manageContractMethodBlockedListProposal.IsAdded {
 		// add contract method into blocked list
-		return csdb.SetContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+		csdb.SetContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+		return nil
 	}
 
 	// remove contract method from blocked list
-	return csdb.DeleteContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+	csdb.DeleteContractMethodBlockedList(manageContractMethodBlockedListProposal.ContractList)
+	return nil
 }
