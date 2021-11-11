@@ -1,7 +1,6 @@
 package iavl
 
 import (
-	"fmt"
 	"github.com/okex/exchain/libs/iavl/trace"
 	"sync"
 )
