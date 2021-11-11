@@ -188,7 +188,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 	}()
 
 	StartTxLog(bam.TransitionDb)
-	executionResult, resultData, err := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if ctx.IsAsync() {
 		k.LogsManages.Set(string(ctx.TxBytes()), keeper.TxResult{
 			ResultData: resultData,
@@ -203,6 +203,15 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 		return nil, err
 	}
 	StopTxLog(bam.TransitionDb)
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil {
+			k.AddContract(erc20s)
+		}
+	}
 
 	StartTxLog(bam.Bloomfilter)
 	if !st.Simulate {
@@ -297,9 +306,18 @@ func handleMsgEthermint(ctx sdk.Context, k *Keeper, msg types.MsgEthermint) (*sd
 		return nil, types.ErrChainConfigNotFound
 	}
 
-	executionResult, _, err := st.TransitionDb(ctx, config)
+	executionResult, _, err, innerTxs, erc20s := st.TransitionDb(ctx, config)
 	if err != nil {
 		return nil, err
+	}
+
+	if !st.Simulate {
+		if innerTxs != nil {
+			k.AddInnerTx(st.TxHash.Hex(), innerTxs)
+		}
+		if erc20s != nil {
+			k.AddContract(erc20s)
+		}
 	}
 
 	// update block bloom filter
