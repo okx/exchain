@@ -47,7 +47,7 @@ jobs:
           included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/ammswap" "./x/token" "./x/farm" "./x/evm")
           serial_exec_packages=("./app")
           norace_exec_packages=("./x/evm")
-          thread_num=4
+          thread_num=2
           mkfifo tmp
           exec 9<>tmp
           for ((i=0;i<$thread_num;i++))
