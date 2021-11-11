@@ -1,4 +1,4 @@
-name: exchain-ut
+name: x-evm-ut
 
 on:
   pull_request:
@@ -23,7 +23,7 @@ jobs:
         run:
           make build
 
-  exchain:
+  evm:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -44,10 +44,10 @@ jobs:
           mkdir -p /tmp/logs /tmp/workspace/profiles
 
           excluded_packages_expr="(exchain/x/.*/client)|(x/simulation)|(exchain/app/rpc)"
-          included_packages=("./app" "./x/common" "./x/params" "./x/distribution" "./x/staking" "./x/gov" "./x/ammswap" "./x/token" "./x/farm")
+          included_packages=("./x/evm")
           serial_exec_packages=("./app")
           norace_exec_packages=("./x/evm")
-          thread_num=2
+          thread_num=1
           mkfifo tmp
           exec 9<>tmp
           for ((i=0;i<$thread_num;i++))
