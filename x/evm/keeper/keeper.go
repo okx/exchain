@@ -62,6 +62,7 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
+	types.InitTxTraces()
 	err := initInnerDB()
 	if err != nil {
 		panic(err)
