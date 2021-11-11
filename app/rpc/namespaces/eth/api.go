@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1553,6 +1554,25 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
+}
+
+// GetTxTrace returns the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
+	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
+}
+
+// DeleteTxTrace delete the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
+	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
+		return "delete trace failed"
+	}
+	return "delete trace succeed"
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

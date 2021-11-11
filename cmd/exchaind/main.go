@@ -140,9 +140,9 @@ func exportAppStateAndTMValidators(
 
 		if err := ethermintApp.LoadHeight(height); err != nil {
 			return nil, nil, err
-		} else {
-			ethermintApp = app.NewOKExChainApp(logger, db, traceStore, true, map[int64]bool{}, 0)
 		}
+	} else {
+		ethermintApp = app.NewOKExChainApp(logger, db, traceStore, true, map[int64]bool{}, 0)
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
