@@ -583,10 +583,6 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 		panic(addr)
 	}
 
-	if code := csdb.GetCacheCode(addr); code != nil {
-		return code.Code
-	}
-
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		return so.Code(nil)
