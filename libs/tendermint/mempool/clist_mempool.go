@@ -267,13 +267,14 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	// CACHE
+	if !mem.cache.Push(tx) {
+		return ErrTxInCache
+	}
+
 	var err error
 	var gasUsed int64
 	if mem.config.MaxGasUsedPerBlock > -1 {
-		if mem.cache.Exist(tx) {
-			return ErrTxInCache
-		}
-
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 		gasLimit := mem.txInfoparser.GetTxGasPriceInfo(tx).GasLimit
 
@@ -321,21 +322,16 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	// CACHE
-	if !mem.cache.Push(tx) {
-		// Record a new sender for a tx we've already seen.
-		// Note it's possible a tx is still in the cache but no longer in the mempool
-		// (eg. after committing a block, txs are removed from mempool but not cache),
-		// so we only record the sender for txs still in the mempool.
-		if e, ok := mem.txsMap.Load(txKey(tx)); ok {
-			memTx := e.(*clist.CElement).Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
-			// TODO: consider punishing peer for dups,
-			// its non-trivial since invalid txs can become valid,
-			// but they can spam the same tx with little cost to them atm.
-
-		}
-
-		return ErrTxInCache
+	// Record a new sender for a tx we've already seen.
+	// Note it's possible a tx is still in the cache but no longer in the mempool
+	// (eg. after committing a block, txs are removed from mempool but not cache),
+	// so we only record the sender for txs still in the mempool.
+	if e, ok := mem.txsMap.Load(txKey(tx)); ok {
+		memTx := e.(*clist.CElement).Value.(*mempoolTx)
+		memTx.senders.LoadOrStore(txInfo.SenderID, true)
+		// TODO: consider punishing peer for dups,
+		// its non-trivial since invalid txs can become valid,
+		// but they can spam the same tx with little cost to them atm.
 	}
 	// END CACHE
 
@@ -1037,7 +1033,6 @@ type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
 	Remove(tx types.Tx)
-	Exist(tx types.Tx) bool
 }
 
 // mapTxCache maintains a LRU cache of transactions. This only stores the hash
@@ -1107,17 +1102,6 @@ func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.mtx.Unlock()
 }
 
-func (cache *mapTxCache) Exist(tx types.Tx) bool {
-	cache.mtx.Lock()
-	defer cache.mtx.Unlock()
-
-	// Use the tx hash in the cache
-	txHash := txKey(tx)
-
-	_, exists := cache.cacheMap[txHash]
-	return exists
-}
-
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
@@ -1125,7 +1109,7 @@ var _ txCache = (*nopTxCache)(nil)
 func (nopTxCache) Reset()             {}
 func (nopTxCache) Push(types.Tx) bool { return true }
 func (nopTxCache) Remove(types.Tx)    {}
-func (nopTxCache) Exist(tx types.Tx) bool { return false }
+
 //--------------------------------------------------------------------------------
 
 // txKey is the fixed length array sha256 hash used as the key in maps.
