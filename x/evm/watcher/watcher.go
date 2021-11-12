@@ -37,11 +37,8 @@ type Watcher struct {
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
-	// for transfer in network
-	dirtyAccount []*sdk.AccAddress
-	dirtyList    [][]byte
-	centerBatch  []*Batch
-	bloomData    []*evmtypes.KV
+	// for state delta transfering in network
+	watchData *WatchData
 }
 
 var (
@@ -74,7 +71,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher() *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0)}
+	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}}
 	watcher.SetWatchDataFunc()
 	return watcher
 }
@@ -108,10 +105,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.blockTxs = []common.Hash{}
 
 	// ResetTransferWatchData
-	w.dirtyAccount = nil
-	w.dirtyList = nil
-	w.centerBatch = nil
-	w.bloomData = nil
+	w.watchData = &WatchData{}
 }
 
 func (w *Watcher) SaveEthereumTx(msg evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -200,7 +194,7 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 }
 
 func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	w.dirtyAccount = append(w.dirtyAccount, addr)
+	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
 }
 
 func (w *Watcher) ExecuteDelayEraseKey() {
@@ -290,7 +284,7 @@ func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
 	if wMsg != nil {
 		key := wMsg.GetKey()
 		w.store.Delete(key)
-		w.dirtyList = append(w.dirtyList, key)
+		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
 	}
 }
 
@@ -302,7 +296,7 @@ func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
 	if wMsg != nil {
 		key := wMsg.GetKey()
 		w.store.Delete(key)
-		w.dirtyList = append(w.dirtyList, key)
+		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
 	}
 }
 
@@ -365,7 +359,7 @@ func (w *Watcher) Commit() {
 	for i, b := range batch {
 		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
 	}
-	w.centerBatch = centerBatch
+	w.watchData.Batches = centerBatch
 
 	if IsCenterEnabled() {
 		go w.SendToDatacenter(int64(w.height))
@@ -373,17 +367,20 @@ func (w *Watcher) Commit() {
 }
 
 func (w *Watcher) CommitWatchData() {
-	if w.centerBatch != nil {
-		go w.commitCenterBatch(w.centerBatch)
+	if w.watchData.Size() == 0 {
+		return
 	}
-	if w.dirtyAccount != nil {
-		go w.delDirtyAccount(w.dirtyAccount)
+	if w.watchData.Batches != nil {
+		go w.commitCenterBatch(w.watchData.Batches)
 	}
-	if w.dirtyList != nil {
-		go w.delDirtyList(w.dirtyList)
+	if w.watchData.DirtyAccount != nil {
+		go w.delDirtyAccount(w.watchData.DirtyAccount)
 	}
-	if w.bloomData != nil {
-		go w.commitBloomData(w.bloomData)
+	if w.watchData.DirtyList != nil {
+		go w.delDirtyList(w.watchData.DirtyList)
+	}
+	if w.watchData.BloomData != nil {
+		go w.commitBloomData(w.watchData.BloomData)
 	}
 
 	if IsCenterEnabled() {
@@ -448,20 +445,18 @@ func (w *Watcher) SetWatchDataFunc() {
 		if err = itjs.Unmarshal(rlt, &data); err != nil {
 			return false
 		}
-		if data.Account == nil || data.Batches == nil {
+		if data.Size() == 0 {
 			return false
 		}
-		w.centerBatch = data.Batches
-		w.dirtyAccount = data.Account
-		w.dirtyList = data.List
+		w.watchData = &data
 		w.delayEraseKey = data.DelayEraseKey
-		w.bloomData = data.BloomData
 		return true
 	}
 
 	gwd := func() *tmtypes.WatchData {
-		value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData, w.dirtyList}
-		valueByte, err := itjs.Marshal(&value)
+		value := w.watchData
+		value.DelayEraseKey = w.delayEraseKey
+		valueByte, err := itjs.Marshal(value)
 		if err != nil {
 			return nil
 		}
@@ -474,11 +469,8 @@ func (w *Watcher) SetWatchDataFunc() {
 			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
 				return
 			}
-			w.dirtyAccount = wd.Account
-			w.dirtyList = wd.List
-			w.centerBatch = wd.Batches
+			w.watchData = &wd
 			w.delayEraseKey = wd.DelayEraseKey
-			w.bloomData = wd.BloomData
 		}
 
 		w.CommitWatchData()
@@ -491,11 +483,12 @@ func (w *Watcher) SetWatchDataFunc() {
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
 func (w *Watcher) SendToDatacenter(height int64) {
-	if w.centerBatch == nil && w.dirtyAccount == nil {
+	if w.watchData.Size() == 0 {
 		return
 	}
-	value := WatchData{w.dirtyAccount, w.centerBatch, w.delayEraseKey, w.bloomData, w.dirtyList}
-	valueByte, err := itjs.Marshal(&value)
+	value := w.watchData
+	value.DelayEraseKey = w.delayEraseKey
+	valueByte, err := itjs.Marshal(value)
 	if err != nil {
 		return
 	}
@@ -509,5 +502,5 @@ func (w *Watcher) SendToDatacenter(height int64) {
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
-	return &w.bloomData
+	return &w.watchData.BloomData
 }

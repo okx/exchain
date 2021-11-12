@@ -69,11 +69,18 @@ type Batch struct {
 }
 
 type WatchData struct {
-	Account       []*sdk.AccAddress `json:"account"`
+	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
 	Batches       []*Batch          `json:"batches"`
 	DelayEraseKey [][]byte          `json:"delay_erase_key"`
 	BloomData     []*types.KV       `json:"bloom_data"`
-	List          [][]byte          `json:"list"`
+	DirtyList     [][]byte          `json:"dirty_list"`
+}
+
+func (w *WatchData) Size() int {
+	if w == nil {
+		return 0
+	}
+	return len(w.DirtyAccount) + len(w.Batches) + len(w.DelayEraseKey) + len(w.BloomData) + len(w.DirtyList)
 }
 
 func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
