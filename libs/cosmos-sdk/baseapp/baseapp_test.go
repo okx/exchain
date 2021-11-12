@@ -109,13 +109,13 @@ func TestLoadVersion(t *testing.T) {
 	// execute a block, collect commit ID
 	header := abci.Header{Height: 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-	res := app.Commit()
+	res := app.Commit(abci.RequestCommit{})
 	commitID1 := sdk.CommitID{Version: 1, Hash: res.Data}
 
 	// execute a block, collect commit ID
 	header = abci.Header{Height: 2}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-	res = app.Commit()
+	res = app.Commit(abci.RequestCommit{})
 	commitID2 := sdk.CommitID{Version: 2, Hash: res.Data}
 
 	// reload with LoadLatestVersion
@@ -133,7 +133,7 @@ func TestLoadVersion(t *testing.T) {
 	require.Nil(t, err)
 	testLoadVersionHelper(t, app, int64(1), commitID1)
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	testLoadVersionHelper(t, app, int64(2), commitID2)
 }
 
@@ -166,7 +166,7 @@ func initStore(t *testing.T, db dbm.DB, storeKey string, k, v []byte) {
 	kv, _ := rs.GetStore(key).(store.KVStore)
 	require.NotNil(t, kv)
 	kv.Set(k, v)
-	commitID, _ := rs.Commit(&iavl.TreeDelta{})
+	commitID, _, _ := rs.Commit(&iavl.TreeDelta{}, nil)
 	require.Equal(t, int64(1), commitID.Version)
 }
 
@@ -261,7 +261,7 @@ func TestSetLoader(t *testing.T) {
 
 			// "execute" one block
 			app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-			res := app.Commit()
+			res := app.Commit(abci.RequestCommit{})
 			require.NotNil(t, res.Data)
 
 			// check db is properly updated
@@ -313,7 +313,7 @@ func TestLoadVersionInvalid(t *testing.T) {
 
 	header := abci.Header{Height: 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-	res := app.Commit()
+	res := app.Commit(abci.RequestCommit{})
 	commitID1 := sdk.CommitID{Version: 1, Hash: res.Data}
 
 	// create a new app with the stores mounted under the same cap key
@@ -362,7 +362,7 @@ func TestLoadVersionPruning(t *testing.T) {
 	// (keep recent) and 3 (keep every).
 	for i := int64(1); i <= 7; i++ {
 		app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: i}})
-		res := app.Commit()
+		res := app.Commit(abci.RequestCommit{})
 		lastCommitID = sdk.CommitID{Version: i, Hash: res.Data}
 	}
 
@@ -533,7 +533,7 @@ func TestInitChainer(t *testing.T) {
 	chainID = app.checkState.ctx.ChainID()
 	require.Equal(t, "test-chain-id", chainID, "ChainID in checkState not set correctly in InitChain")
 
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	res = app.Query(query)
 	require.Equal(t, int64(1), app.LastBlockHeight())
 	require.Equal(t, value, res.Value)
@@ -553,7 +553,7 @@ func TestInitChainer(t *testing.T) {
 	// commit and ensure we can still query
 	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	res = app.Query(query)
 	require.Equal(t, value, res.Value)
@@ -801,7 +801,7 @@ func TestCheckTx(t *testing.T) {
 	header := abci.Header{Height: 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 	app.EndBlock(abci.RequestEndBlock{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 
 	checkStateStore = app.checkState.ctx.KVStore(capKey1)
 	storedBytes := checkStateStore.Get(counterKey)
@@ -847,7 +847,7 @@ func TestDeliverTx(t *testing.T) {
 		}
 
 		app.EndBlock(abci.RequestEndBlock{})
-		app.Commit()
+		app.Commit(abci.RequestCommit{})
 	}
 }
 
@@ -995,7 +995,7 @@ func TestSimulateTx(t *testing.T) {
 		require.Equal(t, result.Events, simRes.Result.Events)
 		require.True(t, bytes.Equal(result.Data, simRes.Result.Data))
 		app.EndBlock(abci.RequestEndBlock{})
-		app.Commit()
+		app.Commit(abci.RequestCommit{})
 	}
 }
 
@@ -1359,7 +1359,7 @@ func TestBaseAppAnteHandler(t *testing.T) {
 
 	// commit
 	app.EndBlock(abci.RequestEndBlock{})
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 }
 
 func TestGasConsumptionBadTx(t *testing.T) {
@@ -1486,7 +1486,7 @@ func TestQuery(t *testing.T) {
 	require.Equal(t, 0, len(res.Value))
 
 	// query returns correct value after Commit
-	app.Commit()
+	app.Commit(abci.RequestCommit{})
 	res = app.Query(query)
 	require.Equal(t, value, res.Value)
 }
@@ -1595,6 +1595,6 @@ func TestWithRouter(t *testing.T) {
 		}
 
 		app.EndBlock(abci.RequestEndBlock{})
-		app.Commit()
+		app.Commit(abci.RequestCommit{})
 	}
 }

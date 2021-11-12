@@ -55,7 +55,7 @@ func TestSaveVersion(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	oldVersion := tree.version
 	tree.Set([]byte(k1), []byte(modifiedValue))
@@ -64,7 +64,7 @@ func TestSaveVersion(t *testing.T) {
 	tree.Remove([]byte(k1))
 	delete(modifiedData, k1)
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	oldTree, err := tree.GetImmutable(oldVersion)
@@ -76,11 +76,11 @@ func TestSaveVersion(t *testing.T) {
 	testTree(modifiedData, newTree)
 
 	for i := 0; i < 10; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 	for i := 0; i < 200; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 		for j := 0; j < 8; j++ {
 			tree, err := tree.GetImmutable(tree.version - int64(j))
@@ -100,28 +100,28 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	}()
 	tree := newTestTree(t, false, 10000, "test")
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.Set([]byte(k2), []byte("k22"))
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 
 	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache)+len(tree.ndb.nodeCache))
 	require.Equal(t, 3, len(tree.ndb.orphanNodeCache))
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.NoError(t, err)
 	for i := 0; i < 96; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(tree.ndb.prePersistNodeCache))
 	require.Equal(t, 0, len(tree.ndb.orphanNodeCache))
@@ -129,11 +129,11 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	//require.Equal(t, 5, len(tree.ndb.nodeCache)+len(tree.ndb.tempPrePersistNodeCache))
 	tree.Set([]byte("k5"), []byte("5555555555"))
 	for i := 0; i < 98; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 }
@@ -162,7 +162,7 @@ func TestConcurrentGetNode(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	wg := sync.WaitGroup{}
 	const num = 50
@@ -199,7 +199,7 @@ func TestConcurrentGetNode(t *testing.T) {
 			tree.Set([]byte(key), []byte(value))
 
 		}
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 
 	}
@@ -217,16 +217,16 @@ func TestShareNode(t *testing.T) {
 
 	tree := newTestTree(t, false, 10000, "test")
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, oldVersion, err := tree.SaveVersion()
+	_, oldVersion, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.Set([]byte(k2), []byte("k2new"))
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 
 	oldTree, err := tree.GetImmutable(oldVersion)
 	require.NoError(t, err)
@@ -238,7 +238,7 @@ func TestShareNode(t *testing.T) {
 	require.Equal(t, oldK1Node, nodeDBK1Node)
 
 	for i := 0; i < 10; i++ {
-		_, _, err = tree.SaveVersion()
+		_, _, _, err = tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 	oldK1Node = oldTree.root.getLeftNode(oldTree)
@@ -272,14 +272,14 @@ func TestPruningHistoryState(t *testing.T) {
 	keys, _ := initSetTree(tree)
 	_, k2, _ := keys[0], keys[1], keys[2]
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	batchSaveVersion(t, tree, int(CommitIntervalHeight))
 
 	v2New := []byte("v22")
 	tree.Set(k2, v2New)
-	_, _, err = tree.SaveVersion()
+	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	batchSaveVersion(t, tree, minHistoryStateNum * int(CommitIntervalHeight) - 2)
@@ -311,7 +311,7 @@ func TestPruningHistoryState(t *testing.T) {
 
 func batchSaveVersion(t *testing.T, tree *MutableTree, n int) {
 	for i := 0; i < n; i++ {
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 }
@@ -338,12 +338,12 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	keys, _ := initSetTree(tree)
 	k1, k2, k3 := keys[0], keys[1], keys[2]
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 
 	for i := 0; i < 10000; i++ {
 		tree.Set(k2, randBytes(i % 64 + 1))
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -366,7 +366,7 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 		tree.Set(k1, randBytes(i % 64 + 1))
 		tree.Set(k2, randBytes(i % 64 + 1))
 		tree.Set(k3, randBytes(i % 64 + 1))
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 
@@ -408,7 +408,7 @@ func TestConcurrentQuery(t *testing.T) {
 	for k, v := range originData {
 		tree.Set([]byte(k), []byte(v))
 	}
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	const num = 1000000
 	queryEnd := false
@@ -444,7 +444,7 @@ func TestConcurrentQuery(t *testing.T) {
 				originData[key] = value
 				tree.Set([]byte(key), []byte(value))
 			}
-			_, _, err = tree.SaveVersion()
+			_, _, _, err = tree.SaveVersion(false)
 			require.NoError(t, err)
 			if queryEnd {
 				break
@@ -465,7 +465,7 @@ func TestStopTree(t *testing.T) {
 	tree := newTestTree(t, false, 10000, "test")
 	initSetTree(tree)
 
-	_, _, err := tree.SaveVersion()
+	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.StopTree()
 	require.Equal(t, 5, len(tree.ndb.nodeCache))
@@ -528,7 +528,7 @@ func TestCommitSchedule(t *testing.T) {
 	initSetTree(tree)
 
 	for i:=0; i < int(CommitIntervalHeight); i++ {
-		_, _, err := tree.SaveVersion()
+		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
 

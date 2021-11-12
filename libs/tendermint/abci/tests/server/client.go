@@ -41,7 +41,7 @@ func SetOption(client abcicli.Client, key, value string) error {
 }
 
 func Commit(client abcicli.Client, hashExp []byte) error {
-	res, err := client.CommitSync()
+	res, err := client.CommitSync(types.RequestCommit{})
 	data := res.Data
 	if err != nil {
 		fmt.Println("Failed test: Commit")

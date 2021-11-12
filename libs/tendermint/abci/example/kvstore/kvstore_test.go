@@ -31,7 +31,7 @@ func testKVStore(t *testing.T, app types.Application, tx []byte, key, value stri
 	ar = app.DeliverTx(req)
 	require.False(t, ar.IsErr(), ar)
 	// commit
-	app.Commit()
+	app.Commit(types.RequestCommit{})
 
 	info := app.Info(types.RequestInfo{})
 	require.NotZero(t, info.LastBlockHeight)
@@ -108,7 +108,7 @@ func TestPersistentKVStoreInfo(t *testing.T) {
 	}
 	kvstore.BeginBlock(types.RequestBeginBlock{Hash: hash, Header: header})
 	kvstore.EndBlock(types.RequestEndBlock{Height: header.Height})
-	kvstore.Commit()
+	kvstore.Commit(types.RequestCommit{})
 
 	resInfo = kvstore.Info(types.RequestInfo{})
 	if resInfo.LastBlockHeight != height {
@@ -204,7 +204,7 @@ func makeApplyBlock(
 		}
 	}
 	resEndBlock := kvstore.EndBlock(types.RequestEndBlock{Height: header.Height})
-	kvstore.Commit()
+	kvstore.Commit(types.RequestCommit{})
 
 	valsEqual(t, diff, resEndBlock.ValidatorUpdates)
 
@@ -310,7 +310,7 @@ func testClient(t *testing.T, app abcicli.Client, tx []byte, key, value string) 
 	require.NoError(t, err)
 	require.False(t, ar.IsErr(), ar)
 	// commit
-	_, err = app.CommitSync()
+	_, err = app.CommitSync(types.RequestCommit{})
 	require.NoError(t, err)
 
 	info, err := app.InfoSync(types.RequestInfo{})
