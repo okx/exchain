@@ -3,8 +3,6 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/big"
-
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -119,11 +117,6 @@ type TxInfo struct {
 	SenderID uint16
 	// SenderP2PID is the actual p2p.ID of the sender, used e.g. for logging.
 	SenderP2PID p2p.ID
-}
-
-type GasPriceInfo struct {
-	GasPrice *big.Int
-	GasLimit uint64
 }
 
 //--------------------------------------------------------------------------------

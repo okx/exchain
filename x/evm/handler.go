@@ -20,6 +20,10 @@ func NewHandler(k *Keeper) sdk.Handler {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		defer func() {
+			if err != nil {
+				return
+			}
+
 			db := bam.InstanceOfGasUsedRecordDB()
 			msgFnSignature := getMsgCallFnSignature(msg)
 
