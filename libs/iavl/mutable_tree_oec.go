@@ -168,6 +168,8 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 
 func (tree *MutableTree) StopTree() {
 	tree.log(IavlInfo, "stopping iavl, commit height %d", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl, commit height %d completed", tree.version)
+
 	if !EnableAsyncCommit {
 		return
 	}
@@ -190,7 +192,6 @@ func (tree *MutableTree) StopTree() {
 
 	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg}
 	wg.Wait()
-	tree.log(IavlInfo, "stopping iavl down")
 }
 
 func (tree *MutableTree) log(level int, format string, args ...interface{}) {
