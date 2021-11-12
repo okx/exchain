@@ -270,6 +270,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var err error
 	var gasUsed int64
 	if mem.config.MaxGasUsedPerBlock > -1 {
+		if mem.cache.Exist(tx) {
+			return ErrTxInCache
+		}
+
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 		gasLimit := mem.txInfoparser.GetTxGasPriceInfo(tx).GasLimit
 
@@ -278,7 +282,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			return err
 		}
 
-		fmt.Println(fmt.Sprintf("[Compare] history gas used is: %v, gas limit is: %v, simulate gas used is: %v", gasUsed, gasLimit, simuRes.GasUsed))
+		fmt.Println(fmt.Sprintf("[Compare] tx id: %v, history gas used is: %v, gas limit is: %v, simulate gas used is: %v", txID(tx), gasUsed, gasLimit, simuRes.GasUsed))
 
 		if gasUsed < 0 {
 			gasUsed = int64(simuRes.GasUsed)
@@ -1033,6 +1037,7 @@ type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
 	Remove(tx types.Tx)
+	Exist(tx types.Tx) bool
 }
 
 // mapTxCache maintains a LRU cache of transactions. This only stores the hash
@@ -1102,6 +1107,17 @@ func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.mtx.Unlock()
 }
 
+func (cache *mapTxCache) Exist(tx types.Tx) bool {
+	cache.mtx.Lock()
+	defer cache.mtx.Unlock()
+
+	// Use the tx hash in the cache
+	txHash := txKey(tx)
+
+	_, exists := cache.cacheMap[txHash]
+	return exists
+}
+
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
@@ -1109,7 +1125,7 @@ var _ txCache = (*nopTxCache)(nil)
 func (nopTxCache) Reset()             {}
 func (nopTxCache) Push(types.Tx) bool { return true }
 func (nopTxCache) Remove(types.Tx)    {}
-
+func (nopTxCache) Exist(tx types.Tx) bool { return false }
 //--------------------------------------------------------------------------------
 
 // txKey is the fixed length array sha256 hash used as the key in maps.

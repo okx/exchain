@@ -14,8 +14,6 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 )
 
-const factor float64 = 0.9
-
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
@@ -38,7 +36,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 			if hisGu != nil {
 				hgu := common2.BytesToInt64(hisGu)
 				gc := int64(ctx.GasMeter().GasConsumed())
-				avgGas = int64(factor * float64(gc) + (1.0 - factor) * float64(hgu))
+				avgGas = int64(bam.GasUsedFactor * float64(gc) + (1.0 - bam.GasUsedFactor) * float64(hgu))
 			} else {
 				avgGas = int64(ctx.GasMeter().GasConsumed())
 			}
