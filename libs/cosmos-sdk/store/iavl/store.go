@@ -317,6 +317,10 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return res
 }
 
+func (st *Store) GetDBReadTime() int {
+	return st.tree.GetDBReadTime()
+}
+
 func (st *Store) GetDBWriteCount() int {
 	return st.tree.GetDBWriteCount()
 }

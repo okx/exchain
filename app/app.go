@@ -15,6 +15,7 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -33,6 +34,7 @@ import (
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/backend"
+	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/debug"
 	"github.com/okex/exchain/x/dex"
@@ -191,7 +193,22 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-
+	onceLog.Do(func() {
+		iavllog := logger.With("module", "iavl")
+		logFunc := func(level int, format string, args ...interface{}) {
+			switch level {
+			case iavl.IavlErr:
+				iavllog.Error(fmt.Sprintf(format, args...))
+			case iavl.IavlInfo:
+				iavllog.Info(fmt.Sprintf(format, args...))
+			case iavl.IavlDebug:
+				iavllog.Debug(fmt.Sprintf(format, args...))
+			default:
+				return
+			}
+		}
+		iavl.SetLogFunc(logFunc)
+	})
 	// get config
 	appConfig, err := config.ParseConfig()
 	if err != nil {
@@ -441,23 +458,6 @@ func NewOKExChainApp(
 		}
 	}
 
-	onceLog.Do(func() {
-		iavllog := logger.With("module", "iavl")
-		logFunc := func(level int, format string, args ...interface{}) {
-			switch level {
-			case iavl.IavlErr:
-				iavllog.Error(fmt.Sprintf(format, args...))
-			case iavl.IavlInfo:
-				iavllog.Info(fmt.Sprintf(format, args...))
-			case iavl.IavlDebug:
-				iavllog.Debug(fmt.Sprintf(format, args...))
-			default:
-				return
-			}
-		}
-		iavl.SetLogFunc(logFunc)
-	})
-
 	return app
 }
 
@@ -604,4 +604,15 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	) uint64 {
 		return ak.GetAccount(ctx, addr).GetSequence()
 	}
+}
+
+func PreRun(context *server.Context) {
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig()
+
+	// set config by node mode
+	SetNodeConfig(context)
+
+	//download pprof
+	appconfig.PprofDownload(context)
 }

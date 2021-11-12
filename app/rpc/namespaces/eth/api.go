@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,15 +12,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/config"
-
-	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -28,27 +32,20 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 const (
@@ -1026,8 +1023,8 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 
 // GetTransactionByBlockNumberAndIndex returns the transaction identified by number and index.
 func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpctypes.BlockNumber, idx hexutil.Uint) (*rpctypes.Transaction, error) {
-	api.logger.Debug("eth_getTransactionByBlockNumberAndIndex", "number", blockNum, "index", idx)
-
+	monitor := monitor.GetMonitor("eth_getTransactionByBlockNumberAndIndex", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("blockNum", blockNum, "index", idx)
 	tx, e := api.wrappedBackend.GetTransactionByBlockNumberAndIndex(uint64(blockNum), uint(idx))
 	if e == nil && tx != nil {
 		return tx, nil
@@ -1089,8 +1086,59 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	return rpctypes.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
+// GetTransactionsByBlock returns some transactions identified by number or hash.
+func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*rpctypes.Transaction, error) {
+	monitor := monitor.GetMonitor("eth_getTransactionsByBlock", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
+
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+
+	txs, e := api.wrappedBackend.GetTransactionsByBlockNumber(uint64(blockNum), uint64(offset), uint64(limit))
+	if e == nil && txs != nil {
+		return txs, nil
+	}
+
+	height := blockNum.Int64()
+	switch blockNum {
+	case rpctypes.PendingBlockNumber:
+		// get all the EVM pending txs
+		pendingTxs, err := api.backend.PendingTransactions()
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case len(pendingTxs) <= int(offset):
+			return nil, nil
+		case len(pendingTxs) < int(offset+limit):
+			return pendingTxs[offset:], nil
+		default:
+			return pendingTxs[offset : offset+limit], nil
+		}
+	case rpctypes.LatestBlockNumber:
+		height, err = api.backend.LatestBlockNumber()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	resBlock, err := api.clientCtx.Client.Block(&height)
+	if err != nil {
+		return nil, err
+	}
+	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
+		tx, _ := api.getTransactionByBlockAndIndex(resBlock.Block, idx)
+		if tx != nil {
+			txs = append(txs, tx)
+		}
+	}
+	return txs, nil
+}
+
 // GetTransactionReceipt returns the transaction receipt identified by hash.
-func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface{}, error) {
+func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.TransactionReceipt, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
@@ -1130,11 +1178,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 	}
 
 	// Set status codes based on tx result
-	var status hexutil.Uint
+	var status hexutil.Uint64
 	if tx.TxResult.IsOK() {
-		status = hexutil.Uint(1)
+		status = hexutil.Uint64(1)
 	} else {
-		status = hexutil.Uint(0)
+		status = hexutil.Uint64(0)
 	}
 
 	txData := tx.TxResult.GetData()
@@ -1152,30 +1200,113 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (interface
 		contractAddr = nil
 	}
 
-	receipt := map[string]interface{}{
-		// Consensus fields: These fields are defined by the Yellow Paper
-		"status":            status,
-		"cumulativeGasUsed": hexutil.Uint64(cumulativeGasUsed),
-		"logsBloom":         data.Bloom,
-		"logs":              data.Logs,
-
-		// Implementation fields: These fields are added by geth when processing a transaction.
-		// They are stored in the chain database.
-		"transactionHash": hash,
-		"contractAddress": contractAddr,
-		"gasUsed":         hexutil.Uint64(tx.TxResult.GasUsed),
-
-		// Inclusion information: These fields provide information about the inclusion of the
-		// transaction corresponding to this receipt.
-		"blockHash":        blockHash,
-		"blockNumber":      hexutil.Uint64(tx.Height),
-		"transactionIndex": hexutil.Uint64(tx.Index),
-
-		// sender and receiver (contract or EOA) addresses
-		"from": from,
-		"to":   ethTx.To(),
+	receipt := &watcher.TransactionReceipt{
+		Status:            status,
+		CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+		LogsBloom:         data.Bloom,
+		Logs:              data.Logs,
+		TransactionHash:   hash.String(),
+		ContractAddress:   contractAddr,
+		GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
+		BlockHash:         blockHash.String(),
+		BlockNumber:       hexutil.Uint64(tx.Height),
+		TransactionIndex:  hexutil.Uint64(tx.Index),
+		From:              from.String(),
+		To:                ethTx.To(),
 	}
+
 	return receipt, nil
+}
+
+// GetTransactionReceiptsByBlock returns the transaction receipt identified by block hash or number.
+func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.TransactionReceipt, error) {
+	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
+
+	txs, err := api.GetTransactionsByBlock(blockNrOrHash, offset, limit)
+	if err != nil || len(txs) == 0 {
+		return nil, err
+	}
+
+	var receipts []*watcher.TransactionReceipt
+	for _, tx := range txs {
+		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
+		if res != nil {
+			receipts = append(receipts, res)
+			continue
+		}
+
+		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
+		if err != nil {
+			// Return nil for transaction when not found
+			return nil, nil
+		}
+
+		// Query block for consensus hash
+		block, err := api.clientCtx.Client.Block(&tx.Height)
+		if err != nil {
+			return nil, err
+		}
+
+		blockHash := common.BytesToHash(block.Block.Hash())
+
+		// Convert tx bytes to eth transaction
+		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+		if err != nil {
+			return nil, err
+		}
+
+		fromSigCache, err := ethTx.VerifySig(ethTx.ChainID(), tx.Height, sdk.EmptyContext().SigCache())
+		if err != nil {
+			return nil, err
+		}
+
+		from := fromSigCache.GetFrom()
+		cumulativeGasUsed := uint64(tx.TxResult.GasUsed)
+		if tx.Index != 0 {
+			cumulativeGasUsed += rpctypes.GetBlockCumulativeGas(api.clientCtx.Codec, block.Block, int(tx.Index))
+		}
+
+		// Set status codes based on tx result
+		var status hexutil.Uint64
+		if tx.TxResult.IsOK() {
+			status = hexutil.Uint64(1)
+		} else {
+			status = hexutil.Uint64(0)
+		}
+
+		txData := tx.TxResult.GetData()
+		data, err := evmtypes.DecodeResultData(txData)
+		if err != nil {
+			status = 0 // transaction failed
+		}
+
+		if len(data.Logs) == 0 {
+			data.Logs = []*ethtypes.Log{}
+		}
+		contractAddr := &data.ContractAddress
+		if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
+			contractAddr = nil
+		}
+
+		receipt := &watcher.TransactionReceipt{
+			Status:            status,
+			CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+			LogsBloom:         data.Bloom,
+			Logs:              data.Logs,
+			TransactionHash:   common.BytesToHash(tx.Hash.Bytes()).String(),
+			ContractAddress:   contractAddr,
+			GasUsed:           hexutil.Uint64(tx.TxResult.GasUsed),
+			BlockHash:         blockHash.String(),
+			BlockNumber:       hexutil.Uint64(tx.Height),
+			TransactionIndex:  hexutil.Uint64(tx.Index),
+			From:              from.String(),
+			To:                ethTx.To(),
+		}
+		receipts = append(receipts, receipt)
+	}
+
+	return receipts, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
@@ -1423,6 +1554,25 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
+}
+
+// GetTxTrace returns the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
+	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
+}
+
+// DeleteTxTrace delete the trace of tx execution by txhash.
+func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
+	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd("hash", txHash)
+
+	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
+		return "delete trace failed"
+	}
+	return "delete trace succeed"
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

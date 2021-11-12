@@ -637,6 +637,13 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
 	}
 }
+func (rs *Store) GetDBReadTime() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetDBReadTime()
+	}
+	return count
+}
 
 func (rs *Store) loadCommitStoreFromParams123(params storeParams) (int64, error) {
 	var db dbm.DB

@@ -10,13 +10,12 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/app/config"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/mock"
@@ -26,6 +25,8 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -69,7 +70,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
-	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
+	cmd.Flags().String(config.FlagPprofCollectInterval, "30s", "Interval for pprof dump loop")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")
@@ -122,6 +123,9 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	if viper.GetBool(sm.FlagParalleledTx) {
+		baseapp.ParaLog.PrintLog()
+	}
 }
 
 // panic if error is not nil

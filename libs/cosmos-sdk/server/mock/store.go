@@ -99,6 +99,10 @@ func (ms multiStore) SetInterBlockCache(_ sdk.MultiStorePersistentCache) {
 	panic("not implemented")
 }
 
+func (ms multiStore) GetDBReadTime() int {
+	return 0
+}
+
 func (ms multiStore) GetDBWriteCount() int {
 	return 0
 }

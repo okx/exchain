@@ -692,7 +692,7 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 // and execute successfully. An error is returned otherwise.
 func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int64) (gInfo sdk.GasInfo, result *sdk.Result, msCacheList sdk.CacheMultiStore, err error) {
 
-	app.pin("initCtx", true, mode)
+	app.pin(InitCtx, true, mode)
 
 	// NOTE: GasWanted should be returned by the AnteHandler. GasUsed is
 	// determined by the GasMeter. We need access to the context to get the gas
@@ -731,11 +731,11 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		startingGas = ctx.BlockGasMeter().GasConsumed()
 	}
 
-	app.pin("initCtx", false, mode)
+	app.pin(InitCtx, false, mode)
 
 	defer func() {
-		app.pin("recover", true, mode)
-		defer app.pin("recover", false, mode)
+		app.pin(Recover, true, mode)
+		defer app.pin(Recover, false, mode)
 		if r := recover(); r != nil {
 			switch rType := r.(type) {
 			// TODO: Use ErrOutOfGas instead of ErrorOutOfGas which would allow us
@@ -771,10 +771,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	// NOTE: This must exist in a separate defer function for the above recovery
 	// to recover from this one.
 	defer func() {
-
-		app.pin("ConsumeGas", true, mode)
-		defer app.pin("ConsumeGas", false, mode)
-		if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+		app.pin(ConsumeGas, true, mode)
+		defer app.pin(ConsumeGas, false, mode)
+		if mode == runTxModeDeliver || app.parallelTxManage.isReRun(string(txBytes)) {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)
@@ -786,8 +785,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	}()
 
 	defer func() {
-		app.pin("refund", true, mode)
-		defer app.pin("refund", false, mode)
+		app.pin(Refund, true, mode)
+		defer app.pin(Refund, false, mode)
 		if (mode == runTxModeDeliver || mode == runTxModeDeliverInAsync) && app.GasRefundHandler != nil {
 			var GasRefundCtx sdk.Context
 			if mode == runTxModeDeliver {
@@ -805,20 +804,20 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			}
 			msCache.Write()
 			if mode == runTxModeDeliverInAsync {
-				app.parallelTxManage.SetRefundFee(string(txBytes), refundGas)
+				app.parallelTxManage.setRefundFee(string(txBytes), refundGas)
 			}
 		}
 
 	}()
-	app.pin("valTxMsgs", true, mode)
+	app.pin(ValTxMsgs, true, mode)
 
 	msgs := tx.GetMsgs()
 	if err := validateBasicTxMsgs(msgs); err != nil {
 		return sdk.GasInfo{}, nil, nil, err
 	}
-	app.pin("valTxMsgs", false, mode)
+	app.pin(ValTxMsgs, false, mode)
 
-	app.pin("anteHandler", true, mode)
+	app.pin(AnteHandler, true, mode)
 
 	accountNonce := uint64(0)
 	if app.anteHandler != nil {
@@ -862,9 +861,9 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 			msCacheAnte.Write()
 		}
 	}
-	app.pin("anteHandler", false, mode)
+	app.pin(AnteHandler, false, mode)
 
-	app.pin("runMsgs", true, mode)
+	app.pin(RunMsgs, true, mode)
 
 	// Create a new Context based off of the existing Context with a cache-wrapped
 	// MultiStore in case message processing fails. At this point, the MultiStore
@@ -912,7 +911,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 		}
 		return gInfo, result, msCacheAnte, err
 	}
-	app.pin("runMsgs", false, mode)
+	app.pin(RunMsgs, false, mode)
 	return gInfo, result, nil, err
 }
 
