@@ -6,6 +6,7 @@ import (
 	crand "crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math"
 	"net"
@@ -90,18 +91,22 @@ func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*
 	)
 
 	// Generate ephemeral keys for perfect forward secrecy.
+	//生成 pub private key
 	locEphPub, locEphPriv := genEphKeys()
 
 	// Write local ephemeral pubkey and receive one too.
 	// NOTE: every 32-byte string is accepted as a Curve25519 public key (see
 	// DJB's Curve25519 paper: http://cr.yp.to/ecdh/curve25519-20060209.pdf)
+	// 把本地公钥发过去  返回远程的公钥
 	remEphPub, err := shareEphPubKey(conn, locEphPub)
 	if err != nil {
 		return nil, err
 	}
 
+	// 两个公钥排序
 	// Sort by lexical order.
 	loEphPub, hiEphPub := sort32(locEphPub, remEphPub)
+
 
 	transcript := merlin.NewTranscript("TENDERMINT_SECRET_CONNECTION_TRANSCRIPT_HASH")
 
@@ -113,16 +118,18 @@ func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*
 	locIsLeast := bytes.Equal(locEphPub[:], loEphPub[:])
 
 	// Compute common diffie hellman secret using X25519.
+	//  使用本地私钥对 远程公钥做个加密
 	dhSecret, err := computeDHSecret(remEphPub, locEphPriv)
 	if err != nil {
 		return nil, err
 	}
-
+	// transcript  已经包含 两个公钥  一个加密后的签名
 	transcript.AppendMessage(labelDHSecret, dhSecret[:])
 
 	// Generate the secret used for receiving, sending, challenge via HKDF-SHA2
 	// on the transcript state (which itself also uses HKDF-SHA2 to derive a key
 	// from the dhSecret).
+	// 接收 发送的 密钥
 	recvSecret, sendSecret := deriveSecrets(dhSecret, locIsLeast)
 
 	const challengeSize = 32
@@ -150,14 +157,16 @@ func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*
 	}
 
 	// Sign the challenge bytes for authentication.
+	// 生成本地签名 返回类型是byte切片
 	locSignature := signChallenge(&challenge, locPrivKey)
 
 	// Share (in secret) each other's pubkey & challenge signature
+	// 通过sc 发送本地公钥和签名
 	authSigMsg, err := shareAuthSignature(sc, locPubKey, locSignature)
 	if err != nil {
 		return nil, err
 	}
-
+	//得到远端的pubkEY 和 remSignature
 	remPubKey, remSignature := authSigMsg.Key, authSigMsg.Sig
 	if _, ok := remPubKey.(ed25519.PubKeyEd25519); !ok {
 		return nil, errors.Errorf("expected ed25519 pubkey, got %T", remPubKey)
@@ -166,8 +175,9 @@ func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*
 		return nil, errors.New("challenge verification failed")
 	}
 
-	// We've authorized.
+	// We've authorized.  把远端peers 授予的remPubKey 赋值到sc 的remPubKey ， 并返回加密连接
 	sc.remPubKey = remPubKey
+	//fmt.Println("remPubKey--->" , string(remPubKey.Bytes()))
 	return sc, nil
 }
 
@@ -184,6 +194,7 @@ func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 
 	for 0 < len(data) {
 		if err := func() error {
+			//
 			var sealedFrame = pool.Get(aeadSizeOverhead + totalFrameSize)
 			var frame = pool.Get(totalFrameSize)
 			defer func() {
@@ -191,22 +202,34 @@ func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 				pool.Put(frame)
 			}()
 			var chunk []byte
+			//fmt.Println("LEN(DATA)--->", len(data))
 			if dataMaxSize < len(data) {
 				chunk = data[:dataMaxSize]
+				// 超出1024 字节的数据截取 下个循环再发送
 				data = data[dataMaxSize:]
 			} else {
 				chunk = data
 				data = nil
 			}
+			fmt.Println("LEN(chunk)--->", len(chunk))
+			//chunk 就是每次发送的具体数据
 			chunkLength := len(chunk)
+			// 把chunk 长度写入头四个字节 byte
+			//fmt.Println("chunkLength--->", chunkLength)
 			binary.LittleEndian.PutUint32(frame, uint32(chunkLength))
+
+			//再把 frame 0 - 3 chunk 长度
 			copy(frame[dataLenSize:], chunk)
 
 			// encrypt the frame
+			//fmt.Println("SECRET_CONN--sealedFrame ", sealedFrame , sealedFrame[:0])
+			//fmt.Println("SECRET_CONN--sendNonce ", sc.sendNonce)
+			//fmt.Println("SECRET_CONN--frame ", frame)
+
 			sc.sendAead.Seal(sealedFrame[:0], sc.sendNonce[:], frame, nil)
 			incrNonce(sc.sendNonce)
 			// end encryption
-
+			///sealedFrame 是加密后的字符串  里面包含了 nonce 实际发送的内容。因为frame 是复用的所以根据长度截取想要的内容
 			_, err = sc.conn.Write(sealedFrame)
 			if err != nil {
 				return err
@@ -217,6 +240,7 @@ func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 			return n, err
 		}
 	}
+	// n 是最后发送的数据长度
 	return n, err
 }
 
@@ -296,6 +320,7 @@ func shareEphPubKey(conn io.ReadWriter, locEphPub *[32]byte) (remEphPub *[32]byt
 	// Send our pubkey and receive theirs in tandem.
 	var trs, _ = async.Parallel(
 		func(_ int) (val interface{}, abort bool, err error) {
+			//把本地公钥发过去
 			var _, err1 = cdc.MarshalBinaryLengthPrefixedWriter(conn, locEphPub)
 			if err1 != nil {
 				return nil, true, err1 // abort
@@ -303,6 +328,7 @@ func shareEphPubKey(conn io.ReadWriter, locEphPub *[32]byte) (remEphPub *[32]byt
 			return nil, false, nil
 		},
 		func(_ int) (val interface{}, abort bool, err error) {
+			//接收远程公钥
 			var _remEphPub [32]byte
 			var _, err2 = cdc.UnmarshalBinaryLengthPrefixedReader(conn, &_remEphPub, 1024*1024) // TODO
 			if err2 != nil {
@@ -312,13 +338,13 @@ func shareEphPubKey(conn io.ReadWriter, locEphPub *[32]byte) (remEphPub *[32]byt
 		},
 	)
 
-	// If error:
+	// If error: 有错报错
 	if trs.FirstError() != nil {
 		err = trs.FirstError()
 		return
 	}
 
-	// Otherwise:
+	// Otherwise:  无错返回公钥
 	var _remEphPub = trs.FirstValue().([32]byte)
 	return &_remEphPub, nil
 }

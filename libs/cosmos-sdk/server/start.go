@@ -16,8 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/abci/server"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -29,6 +27,8 @@ import (
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	tmdb "github.com/tendermint/tm-db"
 )
 
@@ -236,6 +236,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 	app := appCreator(ctx.Logger, db, traceWriter)
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
+
 	if err != nil {
 		return nil, err
 	}

@@ -87,6 +87,7 @@ type Provider func(*cfg.Config, log.Logger) (*Node, error)
 // PrivValidator, ClientCreator, GenesisDoc, and DBProvider.
 // It implements NodeProvider.
 func DefaultNewNode(config *cfg.Config, logger log.Logger) (*Node, error) {
+	fmt.Println("cacacacaca")
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load or gen node key %s: %w", config.NodeKeyFile(), err)
@@ -343,7 +344,7 @@ func createBlockchainReactor(config *cfg.Config,
 	fastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
-	fmt.Println("config.FastSync.Version---->", config.FastSync.Version)
+	//fmt.Println("config.FastSync.Version---->", config.FastSync.Version)
 	switch config.FastSync.Version {
 	case "v0":
 		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
@@ -507,6 +508,8 @@ func createAddrBookAndSetOnSwitch(config *cfg.Config, sw *p2p.Switch,
 		addrBook.AddOurAddress(addr)
 	}
 	if config.P2P.ListenAddress != "" {
+		//启动配置的
+		fmt.Println("config.P2P.ListenAddress--->", config.P2P.ListenAddress)
 		addr, err := p2p.NewNetAddressString(p2p.IDAddressString(nodeKey.ID(), config.P2P.ListenAddress))
 		if err != nil {
 			return nil, errors.Wrap(err, "p2p.laddr is incorrect")
@@ -551,6 +554,7 @@ func NewNode(config *cfg.Config,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
+	//debug.PrintStack()
 	blockStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err
@@ -787,6 +791,7 @@ func (n *Node) OnStart() error {
 	}
 
 	// Always connect to persistent peers
+	fmt.Println("n.config.P2P.PersistentPeers===>", n.config.P2P.PersistentPeers)
 	err = n.sw.DialPeersAsync(splitAndTrimEmpty(n.config.P2P.PersistentPeers, ",", " "))
 	if err != nil {
 		return errors.Wrap(err, "could not dial peers from persistent_peers field")

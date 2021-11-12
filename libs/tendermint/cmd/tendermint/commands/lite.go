@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -82,6 +83,7 @@ func init() {
 	LiteCmd.Flags().Int64Var(&trustedHeight, "height", 1, "Trusted header's height")
 	LiteCmd.Flags().BytesHexVar(&trustedHash, "hash", []byte{}, "Trusted header's hash")
 	LiteCmd.Flags().BoolVar(&verbose, "verbose", false, "Verbose output")
+	fmt.Println("listenAddr--->", listenAddr)
 }
 
 func runProxy(cmd *cobra.Command, args []string) error {

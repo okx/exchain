@@ -529,9 +529,11 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 // ErrCurrentlyDialingOrExistingAddress is returned.
 func (sw *Switch) DialPeerWithAddress(addr *NetAddress) error {
 	if sw.IsDialingOrExistingAddress(addr) {
+		sw.Logger.Error("Error IsDialingOrExistingAddress", "addr.String() ", addr.String())
 		return ErrCurrentlyDialingOrExistingAddress{addr.String()}
 	}
-
+	sw.Logger.Info("IsDialingOrExistingAddress, success ", "addr.String() ", addr.String())
+	fmt.Println("IsDialingOrExistingAddress, success ", "addr.String() ", addr.String())
 	sw.dialing.Set(string(addr.ID), addr)
 	defer sw.dialing.Delete(string(addr.ID))
 
@@ -650,6 +652,7 @@ func (sw *Switch) acceptRoutine() {
 			break
 		}
 
+		fmt.Println("accept-->" , p.String())
 		if !sw.IsPeerUnconditional(p.NodeInfo().ID()) {
 			// Ignore connection if we already have enough peers.
 			_, in, _ := sw.NumPeers()
@@ -667,7 +670,7 @@ func (sw *Switch) acceptRoutine() {
 			}
 
 		}
-
+		// 接收到的p 保存到本地switch
 		if err := sw.addPeer(p); err != nil {
 			sw.transport.Cleanup(p)
 			if p.IsRunning() {
@@ -707,6 +710,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		metrics:      sw.metrics,
 	})
 	if err != nil {
+
 		if e, ok := err.(ErrRejected); ok {
 			if e.IsSelf() {
 				// Remove the given address from the address book and add to our addresses
@@ -734,7 +738,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		}
 		return err
 	}
-
+	fmt.Println("success addOutboundPeerWithConfig", addr.String())
 	return nil
 }
 
@@ -769,6 +773,8 @@ func (sw *Switch) filterPeer(p Peer) error {
 // addPeer starts up the Peer and adds it to the Switch. Error is returned if
 // the peer is filtered out or failed to start or can't be added.
 func (sw *Switch) addPeer(p Peer) error {
+	//debug.PrintStack()
+	//fmt.Println("addPeer-->", p.String())
 	if err := sw.filterPeer(p); err != nil {
 		return err
 	}

@@ -267,6 +267,7 @@ func (a *addrBook) Empty() bool {
 // and determines how biased we are to pick an address from a new bucket.
 // PickAddress returns nil if the AddrBook is empty or if we try to pick
 // from an empty bucket.
+//只返回一个地址 NetAddress
 func (a *addrBook) PickAddress(biasTowardsNewAddrs int) *p2p.NetAddress {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -286,11 +287,13 @@ func (a *addrBook) PickAddress(biasTowardsNewAddrs int) *p2p.NetAddress {
 	}
 
 	// Bias between new and old addresses.
+	// nOld = 4 nNew = 9 2 * （100 - 10）= 180  3 * 10 = 30
 	oldCorrelation := math.Sqrt(float64(a.nOld)) * (100.0 - float64(biasTowardsNewAddrs))
 	newCorrelation := math.Sqrt(float64(a.nNew)) * float64(biasTowardsNewAddrs)
 
 	// pick a random peer from a random bucket
 	var bucket map[string]*knownAddress
+	//(180 + 30 )    180
 	pickFromOldBucket := (newCorrelation+oldCorrelation)*a.rand.Float64() < oldCorrelation
 	if (pickFromOldBucket && a.nOld == 0) ||
 		(!pickFromOldBucket && a.nNew == 0) {
@@ -299,8 +302,10 @@ func (a *addrBook) PickAddress(biasTowardsNewAddrs int) *p2p.NetAddress {
 	// loop until we pick a random non-empty bucket
 	for len(bucket) == 0 {
 		if pickFromOldBucket {
+			//随机返回一个oldBucket
 			bucket = a.bucketsOld[a.rand.Intn(len(a.bucketsOld))]
 		} else {
+			//随机返回一个newBucket
 			bucket = a.bucketsNew[a.rand.Intn(len(a.bucketsNew))]
 		}
 	}
@@ -308,6 +313,7 @@ func (a *addrBook) PickAddress(biasTowardsNewAddrs int) *p2p.NetAddress {
 	randIndex := a.rand.Intn(len(bucket))
 	for _, ka := range bucket {
 		if randIndex == 0 {
+			//返回第randIndex 循环的结果  随机 + 随机
 			return ka.Addr
 		}
 		randIndex--
@@ -347,7 +353,7 @@ func (a *addrBook) MarkAttempt(addr *p2p.NetAddress) {
 // MarkBad implements AddrBook. Kicks address out from book, places
 // the address in the badPeers pool.
 func (a *addrBook) MarkBad(addr *p2p.NetAddress, banTime time.Duration) {
-	debug.PrintStack()
+	//debug.PrintStack()
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 	fmt.Println("MarkBad " , addr.String())
@@ -538,7 +544,7 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 		return
 	}
 
-	// Enforce max addresses. 每个bucket 存储最多64个
+	// Enforce max addresses. 每个bucket 存储最多64个  删除一个最旧的
 	if len(bucket) > newBucketSize {
 		a.Logger.Info("new bucket is full, expiring new")
 		a.expireNew(bucketIdx)
@@ -551,7 +557,6 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 		a.nNew++
 	}
 
-	// Add it to addrLookup
 	a.addrLookup[ka.ID()] = ka
 }
 
@@ -563,6 +568,7 @@ func (a *addrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 		return false
 	}
 	if len(ka.Buckets) != 0 {
+		// old ka 的Buckets 只能为1  对应1个idx  不为0 的话就直接返回了
 		a.Logger.Error(fmt.Sprintf("Cannot add already old address to another old bucket: %v", ka))
 		return false
 	}
@@ -586,7 +592,6 @@ func (a *addrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 		a.nOld++
 	}
 
-	// Ensure in addrLookup  更新缓存
 	a.addrLookup[ka.ID()] = ka
 
 	return true
@@ -611,11 +616,14 @@ func (a *addrBook) removeFromBucket(ka *knownAddress, bucketType byte, bucketIdx
 
 func (a *addrBook) removeFromAllBuckets(ka *knownAddress) {
 	for _, bucketIdx := range ka.Buckets {
-		//一个 ka 可能对应多个bucket ？？？ ！！！！   应该只能对应一个bucket
+		//一个 ka 可能对应多个bucket ？？？
 		bucket := a.getBucket(ka.BucketType, bucketIdx)
+		//把所有Buckets对应的map 中自己的信息删除
 		delete(bucket, ka.Addr.String())
 	}
+	//清空自己的Buckets
 	ka.Buckets = nil
+	// 根据类型更新计数
 	if ka.BucketType == bucketTypeNew {
 		a.nNew--
 	} else {
@@ -678,14 +686,15 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 			// 旧的addr 直接返回 ， 不会放入new
 			return nil
 		}
-		a.Logger.Error("Failed Sanity Check! :", "ka.isOld() : " , ka.isOld(), "ka.name : " , ka.Addr.String(), "addr" , addr.String())
-		// Already in max new buckets.
+		//a.Logger.Error("Failed Sanity Check! :", "ka.isOld() : " , ka.isOld(), "ka.name : " , ka.Addr.String(), "addr" , addr.String())
+		// Already in max new buckets.  4  新的addr 最多占4个 bucket 绑定
 		if len(ka.Buckets) == maxNewBucketsPerAddress {
 			return nil
 		}
 		// The more entries we have, the less likely we are to add more.
 		factor := int32(2 * len(ka.Buckets))
 		if a.rand.Int31n(factor) != 0 {
+			// 没到4 假如是2  那么 factor = 4  有1/4 概率新增
 			return nil
 		}
 	} else {
@@ -767,6 +776,7 @@ func (a *addrBook) moveToOld(ka *knownAddress) error {
 		return nil
 	}
 	if len(ka.Buckets) == 0 {
+		//Buckets 记录新bucket的下标？？
 		a.Logger.Error(fmt.Sprintf("Cannot promote address that isn't in any new buckets %v", ka))
 		return nil
 	}

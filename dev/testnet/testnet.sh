@@ -84,20 +84,39 @@ run() {
 
   LOG_LEVEL=main:info,*:error
 
-  echorun nohup exchaind start \
-    --home cache/node${index}/exchaind \
-    --p2p.seed_mode=$seed_mode \
-    --p2p.allow_duplicate_ip \
-    --p2p.pex=false \
-    --p2p.addr_book_strict=false \
-    $p2p_seed_opt $p2p_seed_arg \
-    --p2p.laddr tcp://${IP}:${p2pport} \
-    --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 3s \
-    --log_level ${LOG_LEVEL} \
-    --chain-id ${CHAIN_ID} \
-    --rest.laddr tcp://localhost:8545 \
-    --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
+
+  if $seed_mode; then
+    echorun nohup exchaind start \
+        --home cache/node${index}/exchaind \
+        --p2p.seeds "e926c8154a2af4390de02303f0977802f15eafe2@3.16.103.80:26656" \
+        --p2p.seed_mode=$seed_mode \
+        --p2p.allow_duplicate_ip \
+        --p2p.pex=true \
+        --p2p.addr_book_strict=false \
+        $p2p_seed_opt $p2p_seed_arg \
+        --p2p.laddr tcp://${IP}:${p2pport} \
+        --rpc.laddr tcp://${IP}:${rpcport} \
+        --consensus.timeout_commit 3s \
+        --log_level ${LOG_LEVEL} \
+        --chain-id ${CHAIN_ID} \
+        --rest.laddr tcp://localhost:8545 \
+        --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
+  else
+    echorun nohup exchaind start \
+        --home cache/node${index}/exchaind \
+        --p2p.seed_mode=$seed_mode \
+        --p2p.allow_duplicate_ip \
+        --p2p.pex=false \
+        --p2p.addr_book_strict=false \
+        $p2p_seed_opt $p2p_seed_arg \
+        --p2p.laddr tcp://${IP}:${p2pport} \
+        --rpc.laddr tcp://${IP}:${rpcport} \
+        --consensus.timeout_commit 3s \
+        --log_level ${LOG_LEVEL} \
+        --chain-id ${CHAIN_ID} \
+        --rest.laddr tcp://localhost:8545 \
+        --keyring-backend test >cache/exchaind.${index}.log 2>&1 &
+  fi
 
 #     --iavl-enable-async-commit \
 }

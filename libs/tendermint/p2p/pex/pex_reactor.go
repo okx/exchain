@@ -246,14 +246,14 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 
 	switch msg := msg.(type) {
 	case *pexRequestMessage:
-
-		// NOTE: this is a prime candidate for amplification attacks,
+		//REQUESTmASSAGE不会把src peer 放入本地
+		// NOTE: this is a prime candidate for amplification attacks, 这是放大攻击的主要对象
 		// so it's important we
-		// 1) restrict how frequently peers can request
-		// 2) limit the output size
+		// 1) restrict how frequently peers can request  严格限制peer的请求频率
+		// 2) limit the output size  显示输出大小 size
 
-		// If we're a seed and this is an inbound peer,
-		// respond once and disconnect.
+		// If we're a seed and this is an inbound peer,  如果我们是seed 模式 并且有inbound peer
+		// respond once and disconnect. 回复后尽快断开
 		if r.config.SeedMode && !src.IsOutbound() {
 			id := string(src.ID())
 			v := r.lastReceivedRequests.Get(id)
@@ -271,10 +271,9 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 				src.FlushStop()
 				r.Switch.StopPeerGracefully(src)
 			}()
-
 		} else {
 			// Check we're not receiving requests too frequently.
-			//非seedMode  某个peer 发送的太频繁 ，标记bad
+			//非seedMode  某个peer 发送的太频繁 ，标记bad  不是seed mode 或者
 			if err := r.receiveRequest(src); err != nil {
 				r.Switch.StopPeerForError(src, err)
 				r.book.MarkBad(src.SocketAddr(), defaultBanTime)
@@ -284,7 +283,7 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 		}
 
 	case *pexAddrsMessage:
-		// If we asked for addresses, add them to the book
+		// If we asked for addresses, add them to the book  把获取到的地址持久化到 addrbOOK
 		if err := r.ReceiveAddrs(msg.Addrs, src); err != nil {
 			r.Switch.StopPeerForError(src, err)
 			if err == ErrUnsolicitedList {
@@ -348,6 +347,7 @@ func (r *Reactor) RequestAddrs(p Peer) {
 // request for this peer and deletes the open request.
 // If there's no open request for the src peer, it returns an error.
 func (r *Reactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
+	fmt.Println("ReceiveAddrs--->", addrs, src.String())
 	id := string(src.ID())
 	if !r.requestsSent.Has(id) {
 		//
@@ -515,7 +515,10 @@ func (r *Reactor) ensurePeers() {
 		// 1) Pick a random peer and ask for more.
 		peers := r.Switch.Peers().List()
 		peersCount := len(peers)
+		//如果addrBook 为空，  这里从seeds 节点要一些数据 seeds persistense_peers
+		fmt.Println("peersCount-->", peersCount , len(toDial))
 		if peersCount > 0 {
+			//随机选个peer dial
 			peer := peers[tmrand.Int()%peersCount]
 			r.Logger.Info("We need more addresses. Sending pexRequest to random peer", "peer", peer)
 			r.RequestAddrs(peer)
@@ -525,7 +528,7 @@ func (r *Reactor) ensurePeers() {
 		// This is done in addition to asking a peer for addresses to work-around
 		// peers not participating in PEX.
 		if len(toDial) == 0 {
-			r.Logger.Info("No addresses to dial. Falling back to seeds")
+			r.Logger.Error("No addresses to dial. Falling back to seeds")
 			r.dialSeeds()
 		}
 	}
@@ -615,17 +618,20 @@ func (r *Reactor) checkSeeds() (numOnline int, netAddrs []*p2p.NetAddress, err e
 
 // randomly dial seeds until we connect to one or exhaust them
 func (r *Reactor) dialSeeds() {
+	r.Switch.Logger.Info("seedAddrs-->" , r.seedAddrs)
+	fmt.Println("seedAddrs-->" , r.seedAddrs)
 	perm := tmrand.Perm(len(r.seedAddrs))
 	// perm := r.Switch.rng.Perm(lSeeds)
 	for _, i := range perm {
 		// dial a random seed
 		seedAddr := r.seedAddrs[i]
-		err := r.Switch.DialPeerWithAddress(seedAddr)
 
+		err := r.Switch.DialPeerWithAddress(seedAddr)
 		switch err.(type) {
 		case nil, p2p.ErrCurrentlyDialingOrExistingAddress:
 			return
 		}
+
 		r.Switch.Logger.Error("Error dialing seed", "err", err, "seed", seedAddr)
 	}
 	// do not write error message if there were no seeds specified in config
@@ -696,6 +702,7 @@ func (r *Reactor) crawlPeers(addrs []*p2p.NetAddress) {
 		peerInfo, ok := r.crawlPeerInfos[addr.ID]
 
 		// Do not attempt to connect with peers we recently crawled.
+		// 避免连接最近已经连接的peer
 		if ok && now.Sub(peerInfo.LastCrawled) < minTimeBetweenCrawls {
 			continue
 		}

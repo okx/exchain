@@ -99,6 +99,7 @@ func (conR *Reactor) OnStop() {
 
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
+// 切换到共识模式下显示调用state start 方法
 func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) {
 	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
@@ -846,11 +847,12 @@ func (conR *Reactor) peerStatsRoutine() {
 			}
 			switch msg.Msg.(type) {
 			case *VoteMessage:
+				// 对应pre vote 投票？？
 				if numVotes := ps.RecordVote(); numVotes%votesToContributeToBecomeGoodPeer == 0 {
 					conR.Switch.MarkPeerAsGood(peer)
 				}
 			case *BlockPartMessage:
-				//
+				// 对应 precommit for block 投票？？？ 如果peer 收到了 10000的倍数次投票  标记good  底层放入pld bucket
 				if numParts := ps.RecordBlockPart(); numParts%blocksToContributeToBecomeGoodPeer == 0 {
 					conR.Switch.MarkPeerAsGood(peer)
 				}

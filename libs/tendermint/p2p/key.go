@@ -41,6 +41,7 @@ func (nodeKey *NodeKey) PubKey() crypto.PubKey {
 // PubKeyToID returns the ID corresponding to the given PubKey.
 // It's the hex-encoding of the pubKey.Address().
 func PubKeyToID(pubKey crypto.PubKey) ID {
+	// 把地址转成十六进制的数
 	return ID(hex.EncodeToString(pubKey.Address()))
 }
 

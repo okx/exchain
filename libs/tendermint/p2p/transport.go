@@ -208,21 +208,25 @@ func (mt *MultiplexTransport) Dial(
 	addr NetAddress,
 	cfg peerConfig,
 ) (Peer, error) {
+	//创建一个conn  一个基于流式存储的网络连接 接口
 	c, err := addr.DialTimeout(mt.dialTimeout)
 	if err != nil {
 		return nil, err
 	}
 
+
 	// TODO(xla): Evaluate if we should apply filters if we explicitly dial.
 	if err := mt.filterConn(c); err != nil {
 		return nil, err
 	}
-
+	// 对c 做个加密升级
+	fmt.Println("HERE upgrade" , addr.String())
 	secretConn, nodeInfo, err := mt.upgrade(c, &addr)
 	if err != nil {
 		return nil, err
 	}
 
+	//主动call的  所以为真
 	cfg.outbound = true
 
 	p := mt.wrapPeer(secretConn, nodeInfo, cfg, &addr)
@@ -243,6 +247,7 @@ func (mt *MultiplexTransport) Close() error {
 
 // Listen implements transportLifecycle.
 func (mt *MultiplexTransport) Listen(addr NetAddress) error {
+	//原生net listen 监听 tcp 端口
 	ln, err := net.Listen("tcp", addr.DialString())
 	if err != nil {
 		return err
@@ -262,6 +267,7 @@ func (mt *MultiplexTransport) Listen(addr NetAddress) error {
 
 func (mt *MultiplexTransport) acceptPeers() {
 	for {
+		// 监听接收到的 conn
 		c, err := mt.listener.Accept()
 		if err != nil {
 			// If Close() has been called, silently exit.
@@ -309,6 +315,7 @@ func (mt *MultiplexTransport) acceptPeers() {
 
 			err := mt.filterConn(c)
 			if err == nil {
+				//
 				secretConn, nodeInfo, err = mt.upgrade(c, nil)
 				if err == nil {
 					addr := c.RemoteAddr()
@@ -394,6 +401,7 @@ func (mt *MultiplexTransport) upgrade(
 			_ = mt.cleanup(c)
 		}
 	}()
+	//返回一个加密连接
 
 	secretConn, err = upgradeSecretConn(c, mt.handshakeTimeout, mt.nodeKey.PrivKey)
 	if err != nil {
@@ -405,8 +413,11 @@ func (mt *MultiplexTransport) upgrade(
 	}
 
 	// For outgoing conns, ensure connection key matches dialed key.
+	// connID 就是远程联机peer 返回的 remPubKey
 	connID := PubKeyToID(secretConn.RemotePubKey())
 	if dialedAddr != nil {
+		//主动dial 的话走这里  不为空
+		// 验证连接的addr ID
 		if dialedID := dialedAddr.ID; connID != dialedID {
 			return nil, nil, ErrRejected{
 				conn: c,
@@ -420,7 +431,8 @@ func (mt *MultiplexTransport) upgrade(
 			}
 		}
 	}
-
+	// 主动dial的话就用第一步建立的加密连接交换nodeInfo
+	// 被动 accept 就用net 原生conn 做握手连接
 	nodeInfo, err = handshake(secretConn, mt.handshakeTimeout, mt.nodeInfo)
 	if err != nil {
 		return nil, nil, ErrRejected{
@@ -454,6 +466,7 @@ func (mt *MultiplexTransport) upgrade(
 
 	// Reject self.
 	if mt.nodeInfo.ID() == nodeInfo.ID() {
+		//我发给我自己了
 		return nil, nil, ErrRejected{
 			addr:   *NewNetAddress(nodeInfo.ID(), c.RemoteAddr()),
 			conn:   c,
@@ -462,6 +475,7 @@ func (mt *MultiplexTransport) upgrade(
 		}
 	}
 
+	// 检查网络是否互通
 	if err := mt.nodeInfo.CompatibleWith(nodeInfo); err != nil {
 		return nil, nil, ErrRejected{
 			conn:           c,
@@ -470,7 +484,7 @@ func (mt *MultiplexTransport) upgrade(
 			isIncompatible: true,
 		}
 	}
-
+	// 返回的3个参数 加密连接 远程nodeinfo
 	return secretConn, nodeInfo, nil
 }
 
@@ -484,11 +498,17 @@ func (mt *MultiplexTransport) wrapPeer(
 	persistent := false
 	if cfg.isPersistent != nil {
 		if cfg.outbound {
+			// 主动call的接口， 并且这个peer是persistent
+			//fmt.Println("cfg.outbound-->", socketAddr.String())
 			persistent = cfg.isPersistent(socketAddr)
 		} else {
+			//解析nodeInfo 的地址， 被动call 进来的peer
 			selfReportedAddr, err := ni.NetAddress()
+
 			if err == nil {
+				//
 				persistent = cfg.isPersistent(selfReportedAddr)
+				//fmt.Println("selfReportedAddr--->", selfReportedAddr.String() , persistent)
 			}
 		}
 	}
@@ -513,6 +533,7 @@ func (mt *MultiplexTransport) wrapPeer(
 	return p
 }
 
+//
 func handshake(
 	c net.Conn,
 	timeout time.Duration,
@@ -530,10 +551,12 @@ func handshake(
 	)
 
 	go func(errc chan<- error, c net.Conn) {
+		//发送本机nodeinfo
 		_, err := cdc.MarshalBinaryLengthPrefixedWriter(c, ourNodeInfo)
 		errc <- err
 	}(errc, c)
 	go func(errc chan<- error, c net.Conn) {
+		// 接收peer DefaultNodeInfo结构类型的 peerNodeInfo
 		_, err := cdc.UnmarshalBinaryLengthPrefixedReader(
 			c,
 			&peerNodeInfo,
@@ -570,11 +593,12 @@ func upgradeSecretConn(
 }
 
 func resolveIPs(resolver IPResolver, c net.Conn) ([]net.IP, error) {
+	//fmt.Println("c.RemoteAddr().String()===>", c.RemoteAddr().String())
 	host, _, err := net.SplitHostPort(c.RemoteAddr().String())
 	if err != nil {
 		return nil, err
 	}
-
+	//fmt.Println("c.RemoteAddr().String() host ===>", host)
 	addrs, err := resolver.LookupIPAddr(context.Background(), host)
 	if err != nil {
 		return nil, err
