@@ -63,7 +63,9 @@ const (
 func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
-	registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
+	registerAppFlagFn func(cmd *cobra.Command),
+	appPreRun func(ctx *Context),
+	repairState func(ctx *Context)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
