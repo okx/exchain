@@ -30,6 +30,7 @@ var (
 )
 
 var big8 = big.NewInt(8)
+var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
 // message type and route constants
 const (
@@ -506,21 +507,23 @@ func (msg MsgEthereumTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	return exTxInfo
 }
 
-// GetGasPrice return gas price and gas limit
-func (msg MsgEthereumTx) GetGasPriceInfo() mempool.GasPriceInfo {
-	return mempool.GasPriceInfo{
-		GasPrice: msg.Data.Price,
-		GasLimit: msg.Data.GasLimit,
-	}
+// GetGasPrice return gas price
+func (msg MsgEthereumTx) GetGasPrice() *big.Int {
+	return msg.Data.Price
 }
 
 func (msg MsgEthereumTx) GetTxFnSignature() []byte {
-	if msg.Data.Recipient == nil || len(msg.Data.Payload) == 0 || len(msg.Data.Payload) < 4 {
+	// deploy contract
+	if msg.Data.Recipient == nil {
 		return nil
+	} else {
+		// most case is send erc20 coin
+		if len(msg.Data.Payload) < 4 {
+			return DefaultSendCoinFnSignature
+		}
 	}
 
 	recipient := msg.Data.Recipient.Bytes()
 	methodId := msg.Data.Payload[0:4]
-
 	return append(recipient, methodId...)
 }

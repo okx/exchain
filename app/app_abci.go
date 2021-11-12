@@ -30,7 +30,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		tx, err := evm.TxDecoder(app.Codec())(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPriceInfo().GasPrice)
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
 		}
 	}
 

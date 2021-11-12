@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	"math/big"
 )
 
 // Transactions messages must fulfill the Msg
@@ -43,8 +44,8 @@ type Tx interface {
 	// Return tx sender and gas price
 	GetTxInfo(ctx Context) mempool.ExTxInfo
 
-	// Return tx gas price and gas limit
-	GetGasPriceInfo() mempool.GasPriceInfo
+	// Return tx gas price
+	GetGasPrice() *big.Int
 
 	// Return tx call function signature
 	GetTxFnSignature() []byte

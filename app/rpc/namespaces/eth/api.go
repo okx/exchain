@@ -905,21 +905,28 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 func getCallFnGasUsedHistory(args rpctypes.CallArgs) int64 {
-	if args.To == nil || args.Data == nil || len([]byte(*args.Data)) < 4{
+	// deploy contract
+	if args.To == nil {
 		return -1
+	} else {
+		var fnSignature []byte
+		// most case is send erc20 coin
+		if len([]byte(*args.Data)) < 4 {
+			fnSignature = evmtypes.DefaultSendCoinFnSignature
+		} else {
+			recipient := args.To.Bytes()
+			methodId := []byte(*args.Data)[0:4]
+			fnSignature = append(recipient, methodId...)
+		}
+
+		db := baseapp.InstanceOfGasUsedRecordDB()
+		data, err := db.Get(fnSignature)
+		if err != nil || len(data) == 0 {
+			return -1
+		}
+
+		return common2.BytesToInt64(data)
 	}
-
-	recipient := args.To.Bytes()
-	methodId := []byte(*args.Data)[0:4]
-	fnSignature := append(recipient, methodId...)
-
-	db := baseapp.InstanceOfGasUsedRecordDB()
-	data, err := db.Get(fnSignature)
-	if err != nil || len(data) == 0 {
-		return -1
-	}
-
-	return common2.BytesToInt64(data)
 }
 
 // GetBlockByHash returns the block identified by hash.

@@ -587,11 +587,8 @@ func (tx txTest) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
 	}
 }
 
-func (tx txTest) GetGasPriceInfo() mempool.GasPriceInfo {
-	return mempool.GasPriceInfo{
-		GasPrice: big.NewInt(0),
-		GasLimit: 0,
-	}
+func (tx txTest) GetGasPrice() *big.Int {
+	return big.NewInt(0)
 }
 
 func (tx txTest) GetTxFnSignature() []byte {
