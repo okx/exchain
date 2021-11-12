@@ -64,6 +64,7 @@ func (rs RoundStepType) String() string {
 // RoundState defines the internal consensus state.
 // NOTE: Not thread safe. Should only be manipulated by functions downstream
 // of the cs.receiveRoutine
+// RoundState 定义自己参与共识状态的必要数据
 type RoundState struct {
 	Height    int64         `json:"height"` // Height we are working on
 	Round     int           `json:"round"`

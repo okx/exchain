@@ -107,7 +107,9 @@ type State struct {
 
 	// state changes may be triggered by: msgs from peers,
 	// msgs from ourself, or by timeouts
+	// 部节点收到的消息,主要包括三种:proposal,blockPartMsg,voteMsg
 	peerMsgQueue     chan msgInfo
+	// 自己内部给自己发送的消息,同样包括上述三种.
 	internalMsgQueue chan msgInfo
 	timeoutTicker    TimeoutTicker
 
@@ -349,7 +351,7 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 		}
 	}
 
-	// now start the receiveRoutine
+	// now start the receiveRoutine 维护状态机
 	go cs.receiveRoutine(0)
 
 	// schedule the first round!
@@ -502,9 +504,11 @@ func (cs *State) sendInternalMessage(mi msgInfo) {
 }
 
 // Reconstruct LastCommit from SeenCommit, which we saved along with the block,
-// (which happens even before saving the state)
+// 从可见的Commit重建最后一次Commit 块
+//(which happens even before saving the state)
 func (cs *State) reconstructLastCommit(state sm.State) {
 	if state.LastBlockHeight == types.GetStartBlockHeight() {
+		//
 		return
 	}
 	seenCommit := cs.blockStore.LoadSeenCommit(state.LastBlockHeight)
@@ -512,6 +516,7 @@ func (cs *State) reconstructLastCommit(state sm.State) {
 		panic(fmt.Sprintf("Failed to reconstruct LastCommit: seen commit for height %v not found",
 			state.LastBlockHeight))
 	}
+
 	lastPrecommits := types.CommitToVoteSet(state.ChainID, seenCommit, state.LastValidators)
 	if !lastPrecommits.HasTwoThirdsMajority() {
 		panic("Failed to reconstruct LastCommit: Does not have +2/3 maj")
@@ -834,6 +839,7 @@ func (cs *State) handleTxsAvailable() {
 // Enter: +2/3 precommits for nil at (height,round-1)
 // Enter: +2/3 prevotes any or +2/3 precommits for block or any from (height, round)
 // NOTE: cs.StartTime was already set for height.
+//
 func (cs *State) enterNewRound(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 
@@ -848,18 +854,22 @@ func (cs *State) enterNewRound(height int64, round int) {
 		return
 	}
 
+	// 打点 统计功能 与主流程无关
 	cs.trc.Pin("NewRound-%d", round)
-
+	// 打点 统计功能 与主流程无关
 	track.setTrace(height, cstypes.RoundStepNewRound, true)
 	if now := tmtime.Now(); cs.StartTime.After(now) {
+		//
 		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
 	}
 
 	logger.Info(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	// Increment validators if necessary
+	// 获取 v 集合
 	validators := cs.Validators
 	if cs.Round < round {
+		//发生vc 会走到这？ 假设 round  = 1 cs.Round  = 0
 		validators = validators.Copy()
 		validators.IncrementProposerPriority(round - cs.Round)
 	}
@@ -867,6 +877,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
+	// 更新cs 的 轮数和step 阶段
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators = validators
 	if round == 0 {
@@ -890,11 +901,13 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// we may need an empty "proof" block, and enterPropose immediately.
 	waitForTxs := cs.config.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
 	if waitForTxs {
+		//
 		if cs.config.CreateEmptyBlocksInterval > 0 {
 			cs.scheduleTimeout(cs.config.CreateEmptyBlocksInterval, height, round,
 				cstypes.RoundStepNewRound)
 		}
 	} else {
+		// round != 0 ?? 立刻进入propose
 		cs.enterPropose(height, round)
 	}
 }

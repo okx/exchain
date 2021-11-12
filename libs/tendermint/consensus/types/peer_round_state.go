@@ -12,6 +12,7 @@ import (
 
 // PeerRoundState contains the known state of a peer.
 // NOTE: Read-only when returned by PeerState.GetRoundState().
+// 记录当前自己连接的peer的参与共识状态的必要数据.
 type PeerRoundState struct {
 	Height int64         `json:"height"` // Height peer is at
 	Round  int           `json:"round"`  // Round peer is at, -1 if unknown.

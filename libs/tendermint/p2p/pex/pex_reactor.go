@@ -450,12 +450,19 @@ func (r *Reactor) ensurePeers() {
 		out, in, dial = r.Switch.NumPeers()
 		numToDial     = r.Switch.MaxNumOutboundPeers() - (out + dial)
 	)
+
+	peers := r.Switch.Peers().List()
+	var peersStr string
+	for i := 0 ; i < len(peers); i++{
+		peersStr += peers[i].String() + " , "
+	}
 	r.Logger.Info(
 		"Ensure peers",
 		"numOutPeers", out,
 		"numInPeers", in,
 		"numDialing", dial,
 		"numToDial", numToDial,
+		"peers", peersStr,
 	)
 
 	if numToDial <= 0 {

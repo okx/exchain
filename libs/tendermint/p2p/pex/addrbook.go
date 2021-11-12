@@ -646,7 +646,7 @@ func (a *addrBook) pickOldest(bucketType byte, bucketIdx int) *knownAddress {
 }
 
 // adds the address to a "new" bucket. if its already in one,
-// it only adds it probabilistically 概率的
+// it only adds it probabilistically 概率
 func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if addr == nil || src == nil {
 		//合法的地址结构
@@ -674,7 +674,6 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 		return ErrAddrBookSelf{addr}
 	}
 
-	//可路由限制
 	if a.routabilityStrict && !addr.Routable() {
 		return ErrAddrBookNonRoutable{addr}
 	}
@@ -683,10 +682,11 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if ka != nil {
 		// If its already old and the addr is the same, ignore it.
 		if ka.isOld() && ka.Addr.Equals(addr) {
+			//  ka.isOld() true  ka.Addr.Equals(addr) false
 			// 旧的addr 直接返回 ， 不会放入new
 			return nil
 		}
-		//a.Logger.Error("Failed Sanity Check! :", "ka.isOld() : " , ka.isOld(), "ka.name : " , ka.Addr.String(), "addr" , addr.String())
+
 		// Already in max new buckets.  4  新的addr 最多占4个 bucket 绑定
 		if len(ka.Buckets) == maxNewBucketsPerAddress {
 			return nil
@@ -705,7 +705,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	if err != nil {
 		return err
 	}
-	//
+	// bucket -->  ka.Buckets 更新
 	a.addToNewBucket(ka, bucket)
 	return nil
 }
