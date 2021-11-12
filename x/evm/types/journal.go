@@ -1,8 +1,8 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 var ripemd = ethcmn.HexToAddress("0000000000000000000000000000000000000003")
@@ -197,30 +197,20 @@ type (
 func (ch createObjectChange) revert(s *CommitStateDB) {
 	delete(s.stateObjectsDirty, *ch.account)
 
-	idx, exists := s.addressToObjectIndex[*ch.account]
+	_, exists := s.stateObjects[*ch.account]
 	if !exists {
 		// perform no-op
 		return
 	}
 
 	// remove from the slice
-	delete(s.addressToObjectIndex, *ch.account)
+	delete(s.stateObjects, *ch.account)
 
 	// if the slice contains one element, delete it
 	if len(s.stateObjects) == 1 {
-		s.stateObjects = []stateEntry{}
+		s.stateObjects = make(map[ethcmn.Address]*stateEntry)
 		return
 	}
-
-	// move the elements one position left on the array
-	for i := idx + 1; i < len(s.stateObjects); i++ {
-		s.stateObjects[i-1] = s.stateObjects[i]
-		// the new index is i - 1
-		s.addressToObjectIndex[s.stateObjects[i].address] = i - 1
-	}
-
-	//  finally, delete the last element of the slice to account for the removed object
-	s.stateObjects = s.stateObjects[:len(s.stateObjects)-1]
 }
 
 func (ch createObjectChange) dirtied() *ethcmn.Address {

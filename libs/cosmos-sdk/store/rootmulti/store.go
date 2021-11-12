@@ -8,13 +8,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	iavltree "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
@@ -634,6 +634,13 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
 	}
 }
+func (rs *Store) GetDBReadTime() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetDBReadTime()
+	}
+	return count
+}
 
 func (rs *Store) GetDBWriteCount() int {
 	count := 0
@@ -642,7 +649,6 @@ func (rs *Store) GetDBWriteCount() int {
 	}
 	return count
 }
-
 
 func (rs *Store) GetDBReadCount() int {
 	count := 0

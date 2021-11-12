@@ -73,7 +73,7 @@ func replayCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(server.FlagPruning, storetypes.PruningOptionNothing, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(server.FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
-	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
+	cmd.Flags().String(config.FlagPprofCollectInterval, "30s", "Interval for pprof dump loop")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentDiff, 50, "TriggerPercentDiff of cpu to dump pprof")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentAbs, 50, "TriggerPercentAbs of cpu to dump pprof")

@@ -9,8 +9,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -38,7 +38,7 @@ var (
 )
 
 type nodeDB struct {
-	mtx            sync.RWMutex       // Read/write lock.
+	mtx            sync.RWMutex     // Read/write lock.
 	db             dbm.DB           // Persistent node storage.
 	opts           Options          // Options to customize for pruning/writing
 	versionReaders map[int64]uint32 // Number of active version readers
@@ -46,7 +46,7 @@ type nodeDB struct {
 	latestVersion  int64
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList               // LRU queue of cache elements. Used for deletion.
+	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -57,6 +57,7 @@ type nodeDB struct {
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 
+	dbReadTime    int64
 	dbReadCount   int64
 	nodeReadCount int64
 	dbWriteCount  int64
@@ -80,7 +81,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		latestVersion:           0, // initially invalid
 		nodeCache:               make(map[string]*list.Element),
 		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:         newSyncList(),
+		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
 		orphanNodeCache:         make(map[string]*Node),
 		heightOrphansCacheQueue: list.New(),
@@ -90,6 +91,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		tppMap:                  make(map[int64]*tppItem),
 		tppVersionList:          list.New(),
 		dbReadCount:             0,
+		dbReadTime:              0,
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
 	}
@@ -125,7 +127,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		}
 
 		return nil
-	} ()
+	}()
 
 	if res != nil {
 		return res
