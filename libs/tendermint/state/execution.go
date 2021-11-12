@@ -171,14 +171,18 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		abciResponses, err = execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 	}
 
+
+	blockExec.logger.Info("175 here  ")
+
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
+	blockExec.logger.Info("181 here  ")
 
 	fail.Fail() // XXX
 
 	trc.Pin("saveResp")
-
+	blockExec.logger.Info("185 here  ")
 	// Save the results before we commit.
 	SaveABCIResponses(blockExec.db, block.Height, abciResponses)
 
@@ -371,7 +375,7 @@ func execBlockOnProxyApp(
 		return nil, err
 	}
 
-	logger.Info("Executed block", "height", block.Height, "validTxs", validTxs, "invalidTxs", invalidTxs)
+	logger.Info("Executed-block", "height", block.Height, "validTxs", validTxs, "invalidTxs", invalidTxs)
 
 	return abciResponses, nil
 }
