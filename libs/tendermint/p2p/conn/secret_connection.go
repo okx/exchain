@@ -6,7 +6,6 @@ import (
 	crand "crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math"
 	"net"
@@ -211,7 +210,7 @@ func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 				chunk = data
 				data = nil
 			}
-			fmt.Println("LEN(chunk)--->", len(chunk))
+			//fmt.Println("LEN(chunk)--->", len(chunk))
 			//chunk 就是每次发送的具体数据
 			chunkLength := len(chunk)
 			// 把chunk 长度写入头四个字节 byte
