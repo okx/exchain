@@ -195,6 +195,7 @@ func NewBaseApp(
 	if app.interBlockCache != nil {
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
+	app.cms.SetLogger(app.logger)
 
 	app.parallelTxManage.workgroup.Start()
 
