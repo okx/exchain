@@ -28,10 +28,11 @@ run() {
       --log_level $LOG_LEVEL \
       --consensus.timeout_commit 600ms \
       --iavl-enable-async-commit \
-      --iavl-commit-interval-height 2 \
+      --iavl-enable-gid \
+      --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=1,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
-      --elapsed DeliverTxs=1 \
+      --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > oec.log 2>&1 &
 
 # --iavl-commit-interval-height \
