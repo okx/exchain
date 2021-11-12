@@ -385,10 +385,14 @@ func (rs *Store) pruneStores() {
 		return
 	}
 
-	rs.logger.Info("pruning start", "pruning-count", pruneCnt, "curr-height", rs.lastCommitInfo.Version+1)
-	rs.logger.Debug("pruning", "pruning-heights", rs.pruneHeights)
+	if rs.logger != nil {
+		rs.logger.Info("pruning start", "pruning-count", pruneCnt, "curr-height", rs.lastCommitInfo.Version+1)
+		rs.logger.Debug("pruning", "pruning-heights", rs.pruneHeights)
+	}
 	defer func() {
-		rs.logger.Info("pruning end")
+		if rs.logger != nil {
+			rs.logger.Info("pruning end")
+		}
 	}()
 	for key, store := range rs.stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
