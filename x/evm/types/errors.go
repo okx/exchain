@@ -50,6 +50,12 @@ var (
 	// ErrDuplicatedMethod returns an error if the contract method is duplicated
 	ErrDuplicatedMethod = sdkerrors.Register(ModuleName, 17, "Duplicated contract method in address list")
 
+	// ErrEmptyMethod returns an error if the contract method is empty
+	ErrEmptyMethod = sdkerrors.Register(ModuleName, 18, "Empty contract method blocked is not allowed")
+
+	// ErrEmptyAddressBlockedContract returns an error if the contract method is empty
+	ErrEmptyAddressBlockedContract = sdkerrors.Register(ModuleName, 19, "Empty address in contract method blocked list is not allowed")
+
 	CodeSpaceEvmCallFailed = uint32(7)
 
 	ErrorHexData = "HexData"

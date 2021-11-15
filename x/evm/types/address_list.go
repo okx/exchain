@@ -80,6 +80,9 @@ func NewBlockContract(addr sdk.AccAddress, methods ContractMethods) *BlockedCont
 
 // ValidateBasic validates BlockedContract
 func (bc BlockedContract) ValidateBasic() sdk.Error {
+	if len(bc.Address) == 0 {
+		return ErrEmptyAddressBlockedContract
+	}
 	return bc.BlockMethods.ValidateBasic()
 }
 
@@ -125,6 +128,9 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 	for i, _ := range cms {
 		if _, ok := methodMap[cms[i].Sign]; ok {
 			return ErrDuplicatedMethod
+		}
+		if len(cms[i].Sign) == 0 {
+			return ErrEmptyMethod
 		}
 		methodMap[cms[i].Sign] = cms[i]
 	}
