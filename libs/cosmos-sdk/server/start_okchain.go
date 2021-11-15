@@ -158,8 +158,8 @@ func StopServe(cleanupFunc func()) {
 				// pass the request to the mux
 				if cleanupFunc != nil {
 					cleanupFunc()
-					exitCode := 128
-					os.Exit(exitCode)
+					// 128 + syscall.SIGINT
+					os.Exit(130)
 				}
 				return
 			} else {
