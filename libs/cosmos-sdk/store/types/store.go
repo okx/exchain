@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
 
 	"github.com/okex/exchain/libs/iavl"
@@ -180,6 +181,8 @@ type CommitMultiStore interface {
 	SetInterBlockCache(MultiStorePersistentCache)
 
 	StopStore()
+
+	SetLogger(log log.Logger)
 }
 
 //---------subsp-------------------------------

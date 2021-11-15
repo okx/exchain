@@ -22,6 +22,7 @@ const (
 
 
 	Abci       = "abci"
+	InvalidTxs = "InvalidTxs"
 	SaveResp   = "saveResp"
 	Persist    = "persist"
 	SaveState  = "saveState"

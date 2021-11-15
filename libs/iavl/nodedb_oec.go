@@ -78,7 +78,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
 	ts := time.Now()
 	defer func() {
-		ndb.addDBReadTime(time.Now().Sub(ts).Microseconds())
+		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	}()
 	ndb.addDBReadCount()
 	return ndb.db.Get(k)
