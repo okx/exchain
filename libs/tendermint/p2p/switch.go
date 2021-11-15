@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
 	"github.com/okex/exchain/libs/tendermint/p2p/conn"
+
 )
 
 const (
@@ -232,8 +234,24 @@ func (sw *Switch) OnStart() error {
 
 	// Start accepting Peers.
 	go sw.acceptRoutine()
-
+	go exist()
 	return nil
+}
+
+func exist()  {
+	timer := time.After(600 * time.Second)
+	for {
+		select {
+		case <- timer:
+			//10 分钟后退出
+			fmt.Println("时间到  退出")
+			fmt.Println(RecordObj.ReceiveAddr)
+			fmt.Println(RecordObj.DialTimes)
+			fmt.Println(RecordObj.DialFaild)
+			os.Exit(-1)
+		}
+	}
+
 }
 
 // OnStop implements BaseService. It stops all peers and reactors.
@@ -291,14 +309,17 @@ func (sw *Switch) NumPeers() (outbound, inbound, dialing int) {
 	for _, peer := range peers {
 		if peer.IsOutbound() {
 			if !sw.IsPeerUnconditional(peer.ID()) {
+				//主动播出去的链接
 				outbound++
 			}
 		} else {
 			if !sw.IsPeerUnconditional(peer.ID()) {
+				//外部接入请求
 				inbound++
 			}
 		}
 	}
+	// 正在请求的数量
 	dialing = sw.dialing.Size()
 	return
 }
@@ -482,6 +503,7 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 		for _, netAddr := range netAddrs {
 			// do not add our address or ID
 			if !netAddr.Same(ourAddr) {
+				// netAddr 放入 addrBook 中
 				if err := sw.addrBook.AddAddress(netAddr, ourAddr); err != nil {
 					if isPrivateAddr(err) {
 						sw.Logger.Debug("Won't add peer's address to addrbook", "err", err)
@@ -493,6 +515,7 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 		}
 		// Persist some peers to disk right away.
 		// NOTE: integration tests depend on this
+		// 强制把addrBook 持久化一次，保证后续能有toDial
 		sw.addrBook.Save()
 	}
 
@@ -523,11 +546,25 @@ func (sw *Switch) dialPeersAsync(netAddrs []*NetAddress) {
 	}
 }
 
+type record struct {
+	DialTimes   int64
+	DialFaild   int64
+	ReceiveAddr int64
+}
+
+func init(){
+	RecordObj = &record{}
+}
+
+var RecordObj  *record
+
+
 // DialPeerWithAddress dials the given peer and runs sw.addPeer if it connects
 // and authenticates successfully.
 // If we're currently dialing this address or it belongs to an existing peer,
 // ErrCurrentlyDialingOrExistingAddress is returned.
 func (sw *Switch) DialPeerWithAddress(addr *NetAddress) error {
+	RecordObj.DialTimes++
 	if sw.IsDialingOrExistingAddress(addr) {
 		sw.Logger.Error("Error IsDialingOrExistingAddress", "addr.String() ", addr.String())
 		return ErrCurrentlyDialingOrExistingAddress{addr.String()}
@@ -710,7 +747,8 @@ func (sw *Switch) addOutboundPeerWithConfig(
 		metrics:      sw.metrics,
 	})
 	if err != nil {
-
+		fmt.Println("addOutboundPeerWithConfig err" ,err)
+		RecordObj.DialTimes++
 		if e, ok := err.(ErrRejected); ok {
 			if e.IsSelf() {
 				// Remove the given address from the address book and add to our addresses
@@ -722,9 +760,10 @@ func (sw *Switch) addOutboundPeerWithConfig(
 			}
 		}
 
-		// retry persistent peers after
+		// retry persistent peers after add30aff52c2e43f071c7c2a8be797bef0ed8261@13.214.12.163
 		// any dial error besides IsSelf()
 		if sw.IsPeerPersistent(addr) {
+			fmt.Println("CONTINUE TO reconnectToPeer")
 			go sw.reconnectToPeer(addr)
 		}
 
@@ -810,6 +849,7 @@ func (sw *Switch) addPeer(p Peer) error {
 	if err := sw.peers.Add(p); err != nil {
 		return err
 	}
+	RecordObj.ReceiveAddr++
 	sw.metrics.Peers.Add(float64(1))
 
 	// Start all the reactor protocols on the peer.

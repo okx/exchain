@@ -539,7 +539,8 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 	addrStr := ka.Addr.String()
 	bucket := a.getBucket(bucketTypeNew, bucketIdx)
 
-	// Already exists? 直接返回
+	// Already exists? 直接返回:q
+
 	if _, ok := bucket[addrStr]; ok {
 		return
 	}

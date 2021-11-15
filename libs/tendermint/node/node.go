@@ -790,7 +790,7 @@ func (n *Node) OnStart() error {
 		return err
 	}
 
-	// Always connect to persistent peers
+	// Always connect to persistent peers 异步调用persistense  顺便持久化
 	fmt.Println("n.config.P2P.PersistentPeers===>", n.config.P2P.PersistentPeers)
 	err = n.sw.DialPeersAsync(splitAndTrimEmpty(n.config.P2P.PersistentPeers, ",", " "))
 	if err != nil {
