@@ -516,11 +516,11 @@ func (a *addrBook) getBucket(bucketType byte, bucketIdx int) map[string]*knownAd
 
 // Adds ka to new bucket. Returns false if it couldn't do it cuz buckets full.
 // NOTE: currently it always returns true.
-func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
+func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) error {
 	// Sanity check
 	if ka.isOld() {
 		a.Logger.Error("Failed Sanity Check! Cant add old address to new bucket", "ka", ka, "bucket", bucketIdx)
-		return
+		return errAddrBookOldAddressNewBucket{ka.Addr, bucketIdx}
 	}
 
 	addrStr := ka.Addr.String()
@@ -528,7 +528,7 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 
 	// Already exists?
 	if _, ok := bucket[addrStr]; ok {
-		return
+		return nil
 	}
 
 	// Enforce max addresses.
@@ -546,6 +546,7 @@ func (a *addrBook) addToNewBucket(ka *knownAddress, bucketIdx int) {
 
 	// Add it to addrLookup
 	a.addrLookup[ka.ID()] = ka
+	return nil
 }
 
 // Adds ka to old bucket. Returns false if it couldn't do it cuz buckets full.
