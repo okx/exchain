@@ -275,27 +275,13 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if mem.config.MaxGasUsedPerBlock > -1 {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-
-		simuRes, err := mem.simulateTx(tx)
-		if err != nil {
-			return err
-		}
-
-		if gasUsed > 0 {
-			fmt.Println(fmt.Sprintf("[Compare] tx id: %v, history gas used is: %v, simulate gas used is: %v", txID(tx), gasUsed, simuRes.GasUsed))
-		}
-
 		if gasUsed < 0 {
+			simuRes, err := mem.simulateTx(tx)
+			if err != nil {
+				return err
+			}
 			gasUsed = int64(simuRes.GasUsed)
 		}
-
-		//if gasUsed < 0 {
-		//	simuRes, err := mem.simulateTx(tx)
-		//	if err != nil {
-		//		return err
-		//	}
-		//	gasUsed = int64(simuRes.GasUsed)
-		//}
 	}
 
 	mem.updateMtx.RLock()

@@ -17,9 +17,11 @@ const (
 	FlagGasUsedFactor = "gu_factor"
 )
 
-var once sync.Once
-var guDB db.DB
-var GasUsedFactor = 0.9
+var (
+	once sync.Once
+	guDB db.DB
+	GasUsedFactor = 0.4
+)
 
 func InstanceOfGasUsedRecordDB() db.DB {
 	once.Do(func() {

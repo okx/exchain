@@ -187,7 +187,6 @@ func (tx StdTx) GetGasPrice() *big.Int {
 	if len(gasPrices) == 0 {
 		return big.NewInt(0)
 	}
-
 	return tx.Fee.GasPrices()[0].Amount.BigInt()
 }
 
