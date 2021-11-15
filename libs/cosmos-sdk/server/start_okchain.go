@@ -1,19 +1,18 @@
 package server
 
 import (
-	"bufio"
 	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
+	"os"
+	"reflect"
+	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/spf13/cobra"
-	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
 )
 
 // exchain full-node start flags
@@ -62,6 +61,10 @@ const (
 	FlagStreamPushservicePulsarPrivateTopic = "stream.pushservice_pulsar_private_topic"
 	FlagStreamPushservicePulsarDepthTopic   = "stream.pushservice_pulsar_depth_topic"
 	FlagStreamRedisRequirePass              = "stream.redis_require_pass"
+
+	stopServiceName  = "stop"
+	stopServiceLaddr = "localhost:9000"
+	stopServiceProto = "tcp"
 )
 
 const (
@@ -120,21 +123,57 @@ func callHooker(flag string, args ...interface{}) error {
 	return nil
 }
 
-//end of hook
+func getRealAddr(r *http.Request) net.IP {
+	var	remoteIP net.IP
+	// the default is the originating ip. but we try to find better options because this is almost
+	// never the right IP
+	if parts := strings.Split(r.RemoteAddr, ":"); len(parts) == 2 {
+		remoteIP = net.ParseIP(parts[0])
+	}
+	// If we have a forwarded-for header, take the address from there
+	if xff := strings.Trim(r.Header.Get("X-Forwarded-For"), ","); len(xff) > 0 {
+		addrs := strings.Split(xff, ",")
+		lastFwd := addrs[len(addrs)-1]
+		if ip := net.ParseIP(lastFwd); ip != nil {
+			remoteIP = ip
+		}
+		// parse X-Real-Ip header
+	} else if xri := r.Header.Get("X-Real-Ip"); len(xri) > 0 {
+		if ip := net.ParseIP(xri); ip != nil {
+			remoteIP = ip
+		}
+	}
+	return remoteIP
+}
 
-func setPID(ctx *Context) {
-	pid := os.Getpid()
-	f, err := os.OpenFile(filepath.Join(ctx.Config.RootDir, "config", "pid"), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		cmn.Exit(err.Error())
+func StopServe(cleanupFunc func()) {
+	srv := &http.Server{
+		Addr: stopServiceLaddr,
+		Handler: http.HandlerFunc( func(w http.ResponseWriter, req *http.Request) {
+			// get the real IP of the user, see below
+			addr := getRealAddr(req)
+
+			// the actual vaildation - replace with whatever you want
+			if addr.IsLoopback()  {
+				// pass the request to the mux
+				if cleanupFunc != nil {
+					cleanupFunc()
+					exitCode := 128
+					os.Exit(exitCode)
+				}
+				return
+			} else {
+				http.Error(w, "Blocked", 401)
+				return
+			}
+		}),
 	}
-	defer f.Close()
-	writer := bufio.NewWriter(f)
-	_, err = writer.WriteString(strconv.Itoa(pid))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	writer.Flush()
+	go func() {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			// Error starting or closing listener:
+			log.Fatal("ListenAndServe error:", err)
+		}
+	}()
 }
 
 // StopCmd stop the node gracefully
@@ -144,28 +183,16 @@ func StopCmd(ctx *Context) *cobra.Command {
 		Use:   "stop",
 		Short: "Stop the node gracefully",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			f, err := os.Open(filepath.Join(ctx.Config.RootDir, "config", "pid"))
+			client, err := rpc.DialHTTP(stopServiceProto, stopServiceLaddr)
 			if err != nil {
-				errStr := fmt.Sprintf("%s Please finish the process of exchaind through kill -2 pid to stop gracefully", err.Error())
-				cmn.Exit(errStr)
+				log.Fatal("dialing:", err)
 			}
-			defer f.Close()
-			in := bufio.NewScanner(f)
-			in.Scan()
-			pid, err := strconv.Atoi(in.Text())
+
+			var reply string
+			err = client.Call("StopService.Stop", "stop", &reply)
 			if err != nil {
-				errStr := fmt.Sprintf("%s Please finish the process of exchaind through kill -2 pid to stop gracefully", err.Error())
-				cmn.Exit(errStr)
+				log.Fatal(err)
 			}
-			process, err := os.FindProcess(pid)
-			if err != nil {
-				cmn.Exit(err.Error())
-			}
-			err = process.Signal(os.Interrupt)
-			if err != nil {
-				cmn.Exit(err.Error())
-			}
-			fmt.Println("pid", pid, "has been sent SIGINT")
 			return nil
 		},
 	}

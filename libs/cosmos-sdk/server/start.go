@@ -107,7 +107,6 @@ which accepts a path for the resulting pprof file.
 
 			ctx.Logger.Info("starting ABCI with Tendermint")
 
-			setPID(ctx)
 			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
 			if err != nil {
 				tmos.Exit(err.Error())
@@ -288,7 +287,7 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		}
 	}
 
-	TrapSignal(func() {
+	cleanFunc := func() {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
 		}
@@ -299,7 +298,9 @@ func startInProcess(ctx *Context, cdc *codec.Codec, appCreator AppCreator, appSt
 		}
 
 		ctx.Logger.Info("exiting...")
-	})
+	}
+	TrapSignal(cleanFunc)
+	StopServe(cleanFunc)
 
 	if registerRoutesFn != nil {
 		go lcd.StartRestServer(cdc, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
