@@ -1,9 +1,11 @@
 package state
 
 import (
+	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
+	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 )
@@ -54,6 +56,7 @@ func execBlockOnProxyAppAsync(
 	}
 
 	logger.Info("Executed block", "height", block.Height, "validTxs", validTxs, "invalidTxs", invalidTxs)
+	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
 }

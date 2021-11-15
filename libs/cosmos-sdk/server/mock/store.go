@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
 
 	dbm "github.com/tendermint/tm-db"
@@ -99,6 +100,10 @@ func (ms multiStore) SetInterBlockCache(_ sdk.MultiStorePersistentCache) {
 	panic("not implemented")
 }
 
+func (ms multiStore) GetDBReadTime() int {
+	return 0
+}
+
 func (ms multiStore) GetDBWriteCount() int {
 	return 0
 }
@@ -181,5 +186,9 @@ func NewCommitMultiStore() sdk.CommitMultiStore {
 }
 
 func (ms multiStore) StopStore() {
+	panic("not implemented")
+}
+
+func (ms multiStore) SetLogger(log log.Logger) {
 	panic("not implemented")
 }

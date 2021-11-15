@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -26,6 +27,7 @@ type Committer interface {
 }
 
 type Analyser interface {
+	GetDBReadTime() int
 	GetDBWriteCount() int
 	GetDBReadCount() int
 	GetNodeReadCount() int
@@ -178,6 +180,8 @@ type CommitMultiStore interface {
 	SetInterBlockCache(MultiStorePersistentCache)
 
 	StopStore()
+
+	SetLogger(log log.Logger)
 }
 
 //---------subsp-------------------------------

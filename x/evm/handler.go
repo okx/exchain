@@ -2,6 +2,7 @@ package evm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -170,8 +171,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg types.MsgEthereumTx) (*
 			pm := k.GenerateCSDBParams()
 			infCtx := ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
 			sendAcc := pm.AccountKeeper.GetAccount(infCtx, sender.Bytes())
+			//fix sender's balance in watcher with refund fees
+			gasConsumed := ctx.GasMeter().GasConsumed()
+			fixedFees := refund.CaculateRefundFees(ctx, gasConsumed, msg.GetFee(), msg.Data.Price)
+			coins := sendAcc.GetCoins().Add2(fixedFees)
+			_ = sendAcc.SetCoins(coins)
 			if sendAcc != nil {
-				pm.Watcher.SaveAccount(sendAcc, true)
+				pm.Watcher.SaveAccount(sendAcc, false)
 			}
 			ctx.WithGasMeter(currentGasMeter)
 		}
