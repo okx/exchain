@@ -1,9 +1,20 @@
 package types
 
 import (
-	"strings"
-
+	"crypto/sha256"
+	lru "github.com/hashicorp/golang-lru"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"strings"
+)
+
+const (
+	ContractMethodBlockedCacheSize = 10000
+)
+
+var (
+	// Map for quick access to contract method blocked.
+	// txsMap: address.String() -> BlockedContract{}
+	contractMethodBlockedCache = NewContractMethodBlockedCache() //Contract Method Blocked Cache
 )
 
 // AddressList is the type alias for []sdk.AccAddress
@@ -112,10 +123,10 @@ func (cms ContractMethods) String() string {
 func (cms ContractMethods) ValidateBasic() sdk.Error {
 	methodMap := make(map[string]ContractMethod)
 	for i, _ := range cms {
-		if _, ok := methodMap[cms[i].Name]; ok {
+		if _, ok := methodMap[cms[i].Sign]; ok {
 			return ErrDuplicatedMethod
 		}
-		methodMap[cms[i].Name] = cms[i]
+		methodMap[cms[i].Sign] = cms[i]
 	}
 	return nil
 }
@@ -123,7 +134,7 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 // IsContain return true if the method of contract contains ContractMethods.
 func (cms ContractMethods) IsContain(method string) bool {
 	for i, _ := range cms {
-		if strings.Compare(method, cms[i].Name) == 0 {
+		if strings.Compare(method, cms[i].Sign) == 0 {
 			return true
 		}
 	}
@@ -134,7 +145,7 @@ func (cms ContractMethods) IsContain(method string) bool {
 func (cms ContractMethods) GetContractMethodsMap() map[string]ContractMethod {
 	methodMap := make(map[string]ContractMethod)
 	for i, _ := range cms {
-		methodMap[cms[i].Name] = cms[i]
+		methodMap[cms[i].Sign] = cms[i]
 	}
 	return methodMap
 }
@@ -144,7 +155,7 @@ func (cms ContractMethods) GetContractMethodsMap() map[string]ContractMethod {
 func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
-		methodName := methods[i].Name
+		methodName := methods[i].Sign
 		methodMap[methodName] = methods[i]
 	}
 	*cms = (*cms)[0:0]
@@ -158,7 +169,7 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) {
 func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) {
 	methodMap := cms.GetContractMethodsMap()
 	for i, _ := range methods {
-		delete(methodMap, methods[i].Name)
+		delete(methodMap, methods[i].Sign)
 	}
 	*cms = (*cms)[0:0]
 	for k, _ := range methodMap {
@@ -170,16 +181,41 @@ func (cms *ContractMethods) DeleteContractMethodMap(methods ContractMethods) {
 // Name is method  name
 // Extra is a extend data is useless
 type ContractMethod struct {
-	Name  string
-	Extra string
+	Sign  string `json:"sign" yaml:"sign"`
+	Extra string `json:"extra" yaml:"extra"`
 }
 
 func (cm ContractMethod) String() string {
 	var b strings.Builder
-	b.WriteString("Name: ")
-	b.WriteString(cm.Name)
+	b.WriteString("Sign: ")
+	b.WriteString(cm.Sign)
 	b.WriteString("Extra: ")
 	b.WriteString(cm.Extra)
 	b.WriteString("\n")
 	return strings.TrimSpace(b.String())
+}
+
+type ContractMethodBlockedCache struct {
+	cache *lru.ARCCache
+}
+
+func NewContractMethodBlockedCache() *ContractMethodBlockedCache {
+	cache, _ := lru.NewARC(ContractMethodBlockedCacheSize)
+	return &ContractMethodBlockedCache{cache: cache}
+}
+
+func (cmbc *ContractMethodBlockedCache) GetContractMethod(keyData []byte) (BlockedContract, bool) {
+	key := sha256.Sum256(keyData)
+	value, success := cmbc.cache.Get(key)
+
+	if success {
+		bc, ok := value.(BlockedContract)
+		return bc, ok
+	}
+	return BlockedContract{}, success
+}
+
+func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc BlockedContract) {
+	key := sha256.Sum256(keyData)
+	cmbc.cache.Add(key, bc)
 }

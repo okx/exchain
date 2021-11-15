@@ -1337,14 +1337,27 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 		return nil
 	} else {
 		methods := ContractMethods{}
+		var bc *BlockedContract
 		if len(vaule) == 0 {
 			//address is exist,but the blocked is old version.
-			return NewBlockContract(contractAddr, methods)
+			bc = NewBlockContract(contractAddr, methods)
 		} else {
+			// get block contract from cache without anmio
+			if contractMethodBlockedCache != nil {
+				if bc, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
+					return &bc
+				}
+			}
 			//address is exist,but the blocked is new version.
 			csdb.cdc.MustUnmarshalJSON(vaule, &methods)
-			return NewBlockContract(contractAddr, methods)
+			bc = NewBlockContract(contractAddr, methods)
+
+			// write block contract into cache
+			if contractMethodBlockedCache != nil {
+				contractMethodBlockedCache.SetContractMethod(vaule, *bc)
+			}
 		}
+		return bc
 	}
 }
 

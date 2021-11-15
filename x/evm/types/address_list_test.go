@@ -34,8 +34,8 @@ func TestBlockMethod(t *testing.T) {
 	cmm := ContractMethods{}
 	method1 := []byte("transfer")[:4]
 	method2 := []byte("approve")[:4]
-	cm1 := ContractMethod{Name: hexutil.Encode(method1), Extra: "test1"}
-	cm2 := ContractMethod{Name: hexutil.Encode(method2), Extra: "test1"}
+	cm1 := ContractMethod{Sign: hexutil.Encode(method1), Extra: "test1"}
+	cm2 := ContractMethod{Sign: hexutil.Encode(method2), Extra: "test1"}
 	cmm = append(cmm, cm1, cm2)
 	bc1 := BlockedContract{Address: accAddr1, BlockMethods: cmm}
 	bc2 := BlockedContract{Address: accAddr2, BlockMethods: cmm}
@@ -46,4 +46,25 @@ func TestBlockMethod(t *testing.T) {
 	t.Log(string(buff))
 	nbcl := BlockedContractList{}
 	ModuleCdc.MustUnmarshalJSON(buff, &nbcl)
+}
+
+func TestContractMethodBlockedCache_SetContractMethod(t *testing.T) {
+	cmbl := NewContractMethodBlockedCache()
+
+	accAddr, err := sdk.AccAddressFromBech32(addr)
+	require.NoError(t, err)
+	cmm := ContractMethods{}
+	method1 := []byte("transfer")[:4]
+	method2 := []byte("approve")[:4]
+	cm1 := ContractMethod{Sign: hexutil.Encode(method1), Extra: "test1"}
+	cm2 := ContractMethod{Sign: hexutil.Encode(method2), Extra: "test1"}
+	cmm = append(cmm, cm1, cm2)
+	bc := BlockedContract{Address: accAddr, BlockMethods: cmm}
+
+	data := ModuleCdc.MustMarshalJSON(bc)
+	cmbl.SetContractMethod(data, bc)
+	resultBc, ok := cmbl.GetContractMethod(data)
+	require.True(t, ok)
+	atcalData := ModuleCdc.MustMarshalJSON(resultBc)
+	require.Equal(t, data, atcalData)
 }
