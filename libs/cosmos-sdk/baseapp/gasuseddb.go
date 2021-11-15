@@ -11,8 +11,8 @@ import (
 const (
 	FlagDBBackend    = "db_backend"
 
-	WatchDbDir  = "data"
-	WatchDBName = "gas"
+	HistoryGasUsedDbDir  = "data"
+	HistoryGasUsedDBName = "hgu"
 
 	FlagGasUsedFactor = "gu_factor"
 )
@@ -32,11 +32,11 @@ func InstanceOfGasUsedRecordDB() db.DB {
 
 func initDb() db.DB {
 	homeDir := viper.GetString(flags.FlagHome)
-	dbPath := filepath.Join(homeDir, WatchDbDir)
+	dbPath := filepath.Join(homeDir, HistoryGasUsedDbDir)
 	backend := viper.GetString(FlagDBBackend)
 	if backend == "" {
 		backend = string(db.GoLevelDBBackend)
 	}
 
-	return db.NewDB(WatchDBName, db.BackendType(backend), dbPath)
+	return db.NewDB(HistoryGasUsedDBName, db.BackendType(backend), dbPath)
 }
