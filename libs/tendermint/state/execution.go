@@ -312,7 +312,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = appHash
 	SaveState(blockExec.db, state)
-
+	blockExec.logger.Debug("SaveState", "state", fmt.Sprintf("%+v", state))
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.

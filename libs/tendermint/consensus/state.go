@@ -602,7 +602,6 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastCommit = lastPrecommits
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
-
 	cs.state = state
 
 	// Finally, broadcast RoundState
