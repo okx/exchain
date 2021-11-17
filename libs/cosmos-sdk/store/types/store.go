@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -179,6 +180,8 @@ type CommitMultiStore interface {
 	SetInterBlockCache(MultiStorePersistentCache)
 
 	StopStore()
+
+	SetLogger(log log.Logger)
 }
 
 //---------subsp-------------------------------
