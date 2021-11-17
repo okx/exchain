@@ -210,18 +210,56 @@ func NewContractMethodBlockedCache() *ContractMethodBlockedCache {
 	return &ContractMethodBlockedCache{cache: cache}
 }
 
-func (cmbc *ContractMethodBlockedCache) GetContractMethod(keyData []byte) (BlockedContract, bool) {
+func (cmbc *ContractMethodBlockedCache) GetContractMethod(keyData []byte) (ContractMethods, bool) {
 	key := sha256.Sum256(keyData)
 	value, success := cmbc.cache.Get(key)
 
 	if success {
-		bc, ok := value.(BlockedContract)
-		return bc, ok
+		cm, ok := value.(ContractMethods)
+		return cm, ok
 	}
-	return BlockedContract{}, success
+	return ContractMethods{}, success
 }
 
-func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc BlockedContract) {
+func (cmbc *ContractMethodBlockedCache) SetContractMethod(keyData []byte, bc ContractMethods) {
 	key := sha256.Sum256(keyData)
 	cmbc.cache.Add(key, bc)
+}
+
+func BlockedContractListIsEqual(src, dst BlockedContractList) bool {
+	expectedMap := make(map[string]ContractMethods, 0)
+	actuallyMap := make(map[string]ContractMethods, 0)
+	for i := range src {
+		expectedMap[src[i].Address.String()] = src[i].BlockMethods
+		actuallyMap[dst[i].Address.String()] = dst[i].BlockMethods
+	}
+	if len(expectedMap) != len(actuallyMap) {
+		return false
+	}
+
+	for k, expected := range expectedMap {
+		v, ok := actuallyMap[k]
+		if !ok {
+			return false
+		}
+		if !ContractMethodsIsEqual(expected, v) {
+			return false
+		}
+	}
+	return true
+}
+
+func ContractMethodsIsEqual(src, dst ContractMethods) bool {
+	if len(src) != len(dst) {
+		return false
+	}
+	srcMap := src.GetContractMethodsMap()
+	for i, _ := range dst {
+		if _, ok := srcMap[dst[i].Sign]; !ok {
+			return false
+		} else {
+			delete(srcMap, dst[i].Sign)
+		}
+	}
+	return true
 }

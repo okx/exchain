@@ -61,8 +61,8 @@ func TestContractMethodBlockedCache_SetContractMethod(t *testing.T) {
 	cmm = append(cmm, cm1, cm2)
 	bc := BlockedContract{Address: accAddr, BlockMethods: cmm}
 
-	data := ModuleCdc.MustMarshalJSON(bc)
-	cmbl.SetContractMethod(data, bc)
+	data := ModuleCdc.MustMarshalJSON(bc.BlockMethods)
+	cmbl.SetContractMethod(data, bc.BlockMethods)
 	resultBc, ok := cmbl.GetContractMethod(data)
 	require.True(t, ok)
 	atcalData := ModuleCdc.MustMarshalJSON(resultBc)
@@ -82,11 +82,11 @@ func TestContractMethodBlockedCache_GetContractMethod(t *testing.T) {
 	cmm = append(cmm, cm1, cm2)
 	bc := BlockedContract{Address: accAddr, BlockMethods: cmm}
 
-	data := ModuleCdc.MustMarshalJSON(bc)
-	cmbl.SetContractMethod(data, bc)
+	data := ModuleCdc.MustMarshalJSON(bc.BlockMethods)
+	cmbl.SetContractMethod(data, bc.BlockMethods)
 	resultBc, ok := cmbl.GetContractMethod(data)
 	require.True(t, ok)
-	require.Equal(t, bc, resultBc)
+	require.Equal(t, bc.BlockMethods, resultBc)
 }
 
 func TestNewBlockContract(t *testing.T) {
@@ -215,8 +215,8 @@ func TestBlockedContractList_ValidateBasic(t *testing.T) {
 	accAddr1, err := sdk.AccAddressFromBech32(addr)
 	require.NoError(t, err)
 	cmm1 := ContractMethods{}
-	method1 := []byte("aaaa")[:4]
-	method2 := []byte("bbbb")[:4]
+	method1 := []byte("transfer")[:4]
+	method2 := []byte("allow")[:4]
 	cm1 := ContractMethod{Sign: hexutil.Encode(method1), Extra: "test1"}
 	cm2 := ContractMethod{Sign: hexutil.Encode(method2), Extra: "test1"}
 	cmm1 = append(cmm1, cm1, cm2)
@@ -263,8 +263,8 @@ func TestBlockedContractList_ValidateBasic(t *testing.T) {
 }
 
 func TestContractMethods_InsertContractMethods(t *testing.T) {
-	method1 := hexutil.Encode([]byte("aaaa")[:4])
-	method2 := hexutil.Encode([]byte("bbbb")[:4])
+	method1 := hexutil.Encode([]byte("transfer")[:4])
+	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
 	cm2 := ContractMethod{Sign: method2, Extra: "test2"}
 
@@ -275,7 +275,7 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected = append(expected, cm...)
 	expected = append(expected, method3)
 	cm.InsertContractMethods(ContractMethods{method3})
-	require.Equal(t, expected, cm)
+	require.True(t, ContractMethodsIsEqual(cm, expected))
 
 	//success,insert multi methods
 	cm = ContractMethods{cm1, cm2}
@@ -285,48 +285,47 @@ func TestContractMethods_InsertContractMethods(t *testing.T) {
 	expected = append(expected, cm...)
 	expected = append(expected, method4, method5)
 	cm.InsertContractMethods(ContractMethods{method4, method5})
-	require.Equal(t, expected, cm)
+	require.True(t, ContractMethodsIsEqual(cm, expected))
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm.InsertContractMethods(ContractMethods{cm1})
-	require.Equal(t, ContractMethods{cm1, cm2}, cm)
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm.InsertContractMethods(ContractMethods{cm1})
-	require.Equal(t, ContractMethods{cm1, cm2}, cm)
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 	//success,insert duplicated methods
 	cm = ContractMethods{cm1, cm2}
 	cm.InsertContractMethods(ContractMethods{cm1, cm2})
-	require.Equal(t, ContractMethods{cm1, cm2}, cm)
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 }
 func TestContractMethods_DeleteContractMethodMap(t *testing.T) {
-	method1 := hexutil.Encode([]byte("aaaa")[:4])
-	method2 := hexutil.Encode([]byte("bbbb")[:4])
+	method1 := hexutil.Encode([]byte("transfer")[:4])
+	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
 	cm2 := ContractMethod{Sign: method2, Extra: "test2"}
 
 	//success,delete one methods
 	cm := ContractMethods{cm1, cm2}
 	cm.DeleteContractMethodMap(ContractMethods{cm2})
-	require.Equal(t, string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(ContractMethods{cm1}))), string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(cm))))
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1}))
 
 	//success,delete multi methods
 	cm = ContractMethods{cm1, cm2}
 	cm.DeleteContractMethodMap(ContractMethods{cm2, cm1})
-	require.Equal(t, string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(ContractMethods{}))), string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(cm))))
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{}))
 
 	//success,delete uncontains methods
 	cm = ContractMethods{cm1, cm2}
 	method3 := ContractMethod{Sign: hexutil.Encode([]byte("cccc")), Extra: "test3"}
 	cm.DeleteContractMethodMap(ContractMethods{method3})
-	require.Equal(t, string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(ContractMethods{cm1, cm2}))), string(sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(cm))))
-
+	require.True(t, ContractMethodsIsEqual(cm, ContractMethods{cm1, cm2}))
 }
 func TestContractMethods_GetContractMethodsMap(t *testing.T) {
-	method1 := hexutil.Encode([]byte("aaaa")[:4])
-	method2 := hexutil.Encode([]byte("bbbb")[:4])
+	method1 := hexutil.Encode([]byte("transfer")[:4])
+	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
 	cm2 := ContractMethod{Sign: method2, Extra: "test2"}
 	cm := ContractMethods{cm1, cm2}
@@ -336,8 +335,8 @@ func TestContractMethods_GetContractMethodsMap(t *testing.T) {
 	require.Equal(t, expected, cm.GetContractMethodsMap())
 }
 func TestContractMethods_IsContain(t *testing.T) {
-	method1 := hexutil.Encode([]byte("aaaa")[:4])
-	method2 := hexutil.Encode([]byte("bbbb")[:4])
+	method1 := hexutil.Encode([]byte("transfer")[:4])
+	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
 	cm2 := ContractMethod{Sign: method2, Extra: "test2"}
 
@@ -349,8 +348,8 @@ func TestContractMethods_IsContain(t *testing.T) {
 	require.False(t, cm.IsContain(method3))
 }
 func TestContractMethods_ValidateBasic(t *testing.T) {
-	method1 := hexutil.Encode([]byte("aaaa")[:4])
-	method2 := hexutil.Encode([]byte("bbbb")[:4])
+	method1 := hexutil.Encode([]byte("transfer")[:4])
+	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
 	cm2 := ContractMethod{Sign: method2, Extra: "test2"}
 
