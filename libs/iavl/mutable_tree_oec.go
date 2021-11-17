@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	minHistoryStateNum                = 30
-	FlagIavlCommitIntervalHeight      = "iavl-commit-interval-height"
-	FlagIavlMinCommitItemCount        = "iavl-min-commit-item-count"
-	FlagIavlHeightOrphansCacheSize    = "iavl-height-orphans-cache-size"
-	FlagIavlMaxCommittedHeightNum     = "iavl-max-committed-height-num"
-	FlagIavlEnableAsyncCommit         = "iavl-enable-async-commit"
+	minHistoryStateNum             = 30
+	FlagIavlCommitIntervalHeight   = "iavl-commit-interval-height"
+	FlagIavlMinCommitItemCount     = "iavl-min-commit-item-count"
+	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
+	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
+	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
+	FlagIavlEnableGid              = "iavl-enable-gid"
 )
 
 var (
@@ -31,18 +32,16 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
+	EnableGid                       = false
 )
 
-
 type commitEvent struct {
-	version int64
+	version  int64
 	versions map[int64]bool
-	batch   dbm.Batch
-	tpp     map[string]*Node
-	wg      *sync.WaitGroup
+	batch    dbm.Batch
+	tpp      map[string]*Node
+	wg       *sync.WaitGroup
 }
-
-
 
 func (tree *MutableTree) SaveVersionAsync(version int64) ([]byte, int64, error) {
 	moduleName := tree.GetModuleName()
@@ -155,7 +154,7 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.log(IavlErr, "failed to get versions from db: %s", err.Error())
 	}
 	versionSlice := make([]int64, 0, len(versions))
-	for version, _ := range versions {
+	for version := range versions {
 		versionSlice = append(versionSlice, version)
 	}
 	sort.Slice(versionSlice, func(i, j int) bool {
@@ -170,6 +169,9 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 }
 
 func (tree *MutableTree) StopTree() {
+	tree.log(IavlInfo, "stopping iavl, commit height %d", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl, commit height %d completed", tree.version)
+
 	if !EnableAsyncCommit {
 		return
 	}
@@ -190,7 +192,7 @@ func (tree *MutableTree) StopTree() {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions,batch, tpp, &wg}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg}
 	wg.Wait()
 }
 
@@ -224,6 +226,9 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 	}
 }
 
+func (tree *MutableTree) GetDBReadTime() int {
+	return tree.ndb.getDBReadTime()
+}
 
 func (tree *MutableTree) GetDBReadCount() int {
 	return tree.ndb.getDBReadCount()

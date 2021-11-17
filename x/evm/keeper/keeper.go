@@ -48,6 +48,9 @@ type Keeper struct {
 	Ada     types.DbAdapter
 
 	LogsManages *LogsManager
+
+	// add inner block data
+	innerBlockData BlockInnerData
 }
 
 // NewKeeper generates new evm module keeper
@@ -57,6 +60,12 @@ func NewKeeper(
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	types.InitTxTraces()
+	err := initInnerDB()
+	if err != nil {
+		panic(err)
 	}
 
 	if enable := types.GetEnableBloomFilter(); enable {
@@ -77,6 +86,8 @@ func NewKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(),
 		Ada:           types.DefaultPrefixDb{},
+
+		innerBlockData: defaultBlockInnerData(),
 	}
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)

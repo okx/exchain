@@ -198,7 +198,6 @@ func NewState(
 
 // SetLogger implements Service.
 func (cs *State) SetLogger(l log.Logger) {
-	track.l = l.With("module", "OKTracker")
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
 }
@@ -591,7 +590,6 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastCommit = lastPrecommits
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
-
 	cs.state = state
 
 	// Finally, broadcast RoundState
@@ -850,7 +848,6 @@ func (cs *State) enterNewRound(height int64, round int) {
 
 	cs.trc.Pin("NewRound-%d", round)
 
-	track.setTrace(height, cstypes.RoundStepNewRound, true)
 	if now := tmtime.Now(); cs.StartTime.After(now) {
 		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
 	}
@@ -934,9 +931,6 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	track.setTrace(height, cstypes.RoundStepNewRound, false)
-	cs.calcProcessingTime(height, cstypes.RoundStepNewRound)
-	track.setTrace(height, cstypes.RoundStepPropose, true)
 	defer func() {
 		// Done enterPropose:
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
@@ -974,9 +968,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 
-	track.setBlockProposer(height, cs.Validators.GetProposer().Address.String())
 	if cs.isProposer(address) {
-		track.setIsProposer(height, true)
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
 			address,
@@ -984,7 +976,6 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.privValidator)
 		cs.decideProposal(height, round)
 	} else {
-		track.setIsProposer(height, false)
 		logger.Info("enterPropose: Not our turn to propose",
 			"proposer",
 			cs.Validators.GetProposer().Address,
@@ -1105,10 +1096,6 @@ func (cs *State) enterPrevote(height int64, round int) {
 	}
 	cs.trc.Pin("Prevote-%d", round)
 
-	track.setTrace(height, cstypes.RoundStepPropose, false)
-	cs.calcProcessingTime(height, cstypes.RoundStepPropose)
-
-	track.setTrace(height, cstypes.RoundStepPrevote, true)
 	defer func() {
 		// Done enterPrevote:
 		cs.updateRoundStep(round, cstypes.RoundStepPrevote)
@@ -1173,7 +1160,6 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}
 	cs.trc.Pin("PrevoteWait-%d", round)
 
-	track.setTrace(height, cstypes.RoundStepPrevoteWait, true)
 	if !cs.Votes.Prevotes(round).HasTwoThirdsAny() {
 		panic(fmt.Sprintf("enterPrevoteWait(%v/%v), but Prevotes does not have any +2/3 votes", height, round))
 	}
@@ -1213,10 +1199,6 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	track.setTrace(height, cstypes.RoundStepPrevote, false)
-	cs.calcProcessingTime(height, cstypes.RoundStepPrevote)
-
-	track.setTrace(height, cstypes.RoundStepPrecommit, true)
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
@@ -1316,7 +1298,6 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 	}
 	cs.trc.Pin("PrecommitWait-%d", round)
 
-	track.setTrace(height, cstypes.RoundStepPrecommitWait, true)
 	if !cs.Votes.Precommits(round).HasTwoThirdsAny() {
 		panic(fmt.Sprintf("enterPrecommitWait(%v/%v), but Precommits does not have any +2/3 votes", height, round))
 	}
@@ -1351,10 +1332,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
-	track.setTrace(height, cstypes.RoundStepPrecommit, false)
-	cs.calcProcessingTime(height, cstypes.RoundStepPrecommit)
-
-	track.setTrace(height, cstypes.RoundStepCommit, true)
 	defer func() {
 		// Done enterCommit:
 		// keep cs.Round the same, commitRound points to the right Precommits set.
@@ -1524,10 +1501,6 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 		return
 	}
-
-	track.setTrace(height, cstypes.RoundStepCommit, false)
-	cs.calcProcessingTime(height, cstypes.RoundStepCommit)
-	track.display(height)
 
 	fail.Fail() // XXX
 
@@ -1882,7 +1855,6 @@ func (cs *State) addVote(
 	case types.PrevoteType:
 		prevotes := cs.Votes.Prevotes(vote.Round)
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
-		track.increaseCount(height, types.PrevoteType, vote.ValidatorAddress.String())
 
 		// If +2/3 prevotes for a block or nil for *any* round:
 		if blockID, ok := prevotes.TwoThirdsMajority(); ok {
@@ -1952,7 +1924,6 @@ func (cs *State) addVote(
 	case types.PrecommitType:
 		precommits := cs.Votes.Precommits(vote.Round)
 		cs.Logger.Info("Added to precommit", "vote", vote, "precommits", precommits.StringShort())
-		track.increaseCount(height, types.PrecommitType, vote.ValidatorAddress.String())
 
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
