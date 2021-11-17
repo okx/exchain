@@ -927,7 +927,14 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
-	cs.trc.Pin("Propose-%d", round)
+	address := cs.privValidatorPubKey.Address()
+
+	isBp := "n"
+	if cs.isProposer != nil && cs.isProposer(address) {
+		isBp = "y"
+	}
+
+	cs.trc.Pin("Propose-%d-%s", round, isBp)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -960,7 +967,6 @@ func (cs *State) enterPropose(height int64, round int) {
 		logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
 		return
 	}
-	address := cs.privValidatorPubKey.Address()
 
 	// if not a validator, we're done
 	if !cs.Validators.HasAddress(address) {
