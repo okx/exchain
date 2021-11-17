@@ -91,11 +91,11 @@ var typePubKeySecp256k1Prefix = []byte{0xeb, 0x5a, 0xe9, 0x87}
 var typePubKeyEd25519Prefix = []byte{0x16, 0x24, 0xde, 0x64}
 var typePubKeySr25519Prefix = []byte{0x0d, 0xfb, 0x10, 0x05}
 
+const typePrefixAndSizeLen = 4 + 1
+
 // UnmarshalPubKeyFromAminoWithTypePrefix decode pubkey from amino bytes,
 // bytes should start with type prefix
 func UnmarshalPubKeyFromAminoWithTypePrefix(data []byte) (crypto.PubKey, error) {
-	const typePrefixAndSizeLen = 4 + 1
-
 	if data[0] == 0x00 {
 		return nil, errors.New("unmarshal pubkey with disamb do not implement")
 	}
@@ -145,4 +145,31 @@ func UnmarshalPubKeyFromAminoWithTypePrefix(data []byte) (crypto.PubKey, error) 
 	} else {
 		return nil, errors.New("unknown pubkey type")
 	}
+}
+
+func MarshalPubKeyToAminoWithTypePrefix(key crypto.PubKey) (data []byte, err error) {
+	switch key.(type) {
+	case secp256k1.PubKeySecp256k1:
+		data = make([]byte, 0, secp256k1.PubKeySecp256k1Size+typePrefixAndSizeLen)
+		data = append(data, typePubKeySecp256k1Prefix...)
+		data = append(data, byte(secp256k1.PubKeySecp256k1Size))
+		keyData := key.(secp256k1.PubKeySecp256k1)
+		data = append(data, keyData[:]...)
+		return data, nil
+	case ed25519.PubKeyEd25519:
+		data = make([]byte, 0, ed25519.PubKeyEd25519Size+typePrefixAndSizeLen)
+		data = append(data, typePubKeyEd25519Prefix...)
+		data = append(data, byte(ed25519.PubKeyEd25519Size))
+		keyData := key.(ed25519.PubKeyEd25519)
+		data = append(data, keyData[:]...)
+		return data, nil
+	case sr25519.PubKeySr25519:
+		data = make([]byte, 0, sr25519.PubKeySr25519Size+typePrefixAndSizeLen)
+		data = append(data, typePubKeySr25519Prefix...)
+		data = append(data, byte(sr25519.PubKeySr25519Size))
+		keyData := key.(sr25519.PubKeySr25519)
+		data = append(data, keyData[:]...)
+		return data, nil
+	}
+	return nil, errors.New("unknown pubkey type")
 }
