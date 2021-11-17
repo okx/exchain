@@ -22,6 +22,15 @@ func RegisterCodec(cdc *codec.Codec) {
 		v, n, err = UnmarshalEthAccountFromAmino(cdc, data)
 		return
 	})
+	cdc.RegisterConcreteMarshaller(EthAccountName, func(cdc *amino.Codec, v interface{}) ([]byte, error) {
+		if acc, ok := v.(*EthAccount); ok {
+			return acc.MarshalToAmino()
+		} else if acc, ok := v.(EthAccount); ok {
+			return acc.MarshalToAmino()
+		} else {
+			return nil, fmt.Errorf("%T is not an EthAccount", v)
+		}
+	})
 }
 
 func UnmarshalEthAccountFromAmino(_ *amino.Codec, data []byte) (*EthAccount, int, error) {
