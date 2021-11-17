@@ -129,7 +129,7 @@ func TestModuleAccountUnmarshalAmino(t *testing.T) {
 	require.NoError(t, err)
 
 	var account authexported.Account
-	v, ok := cdc.TryUnmarshalBinaryBareInterfaceWithRegisteredUbmarshaller(bz, &account)
-	require.True(t, ok)
+	v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(bz, &account)
+	require.NoError(t, err)
 	require.EqualValues(t, acc, v)
 }
