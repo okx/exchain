@@ -368,7 +368,7 @@ FOR_LOOP:
 				blocksSynced++
 
 				// persists the given deltas to the underlying db.
-				if deltaMode != types.NoDelta && len(deltas.DeltasBytes) > 0 {
+				if deltaMode != types.NoDelta && deltas.Size() > 0 {
 					deltas.Height = first.Height
 					bcR.dstore.SaveDeltas(deltas, first.Height)
 				}

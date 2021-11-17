@@ -1554,7 +1554,7 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	if deltaMode != types.NoDelta && len(deltas.DeltasBytes) > 0 {
+	if deltaMode != types.NoDelta && deltas.Size() > 0 {
 		deltas.Height = block.Height
 		cs.deltaStore.SaveDeltas(deltas, block.Height)
 	}
