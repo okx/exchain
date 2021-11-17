@@ -22,6 +22,9 @@ func (a *addrBook) saveToFile(filePath string) {
 	a.Logger.Info("Saving AddrBook to file", "size", a.size())
 
 	addrs := make([]*knownAddress, 0, len(a.addrLookup))
+
+	fmt.Println("addrLookup--->" , len(a.addrLookup))
+
 	for _, ka := range a.addrLookup {
 		addrs = append(addrs, ka)
 	}

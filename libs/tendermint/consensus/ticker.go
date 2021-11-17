@@ -13,6 +13,7 @@ var (
 
 // TimeoutTicker is a timer that schedules timeouts
 // conditional on the height/round/step in the timeoutInfo.
+//  块高  轮数  阶段
 // The timeoutInfo.Duration may be non-positive.
 type TimeoutTicker interface {
 	Start() error
@@ -77,6 +78,7 @@ func (t *timeoutTicker) ScheduleTimeout(ti timeoutInfo) {
 //-------------------------------------------------------------
 
 // stop the timer and drain if necessary
+// 看起来什么作用也没有
 func (t *timeoutTicker) stopTimer() {
 	// Stop() returns false if it was already fired or was stopped
 	if !t.timer.Stop() {

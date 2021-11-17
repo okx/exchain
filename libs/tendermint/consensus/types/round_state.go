@@ -146,6 +146,7 @@ func (rs *RoundState) NewRoundEvent() types.EventDataNewRound {
 }
 
 // CompleteProposalEvent returns information about a proposed block as an event.
+//返回一个完整block 的关键信息  块hash
 func (rs *RoundState) CompleteProposalEvent() types.EventDataCompleteProposal {
 	// We must construct BlockID from ProposalBlock and ProposalBlockParts
 	// cs.Proposal is not guaranteed to be set when this function is called

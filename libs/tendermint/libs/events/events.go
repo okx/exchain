@@ -80,16 +80,18 @@ func (evsw *eventSwitch) AddListenerForEvent(listenerID, event string, cb EventC
 	eventCell := evsw.eventCells[event]
 	if eventCell == nil {
 		eventCell = newEventCell()
+
 		evsw.eventCells[event] = eventCell
 	}
 	listener := evsw.listeners[listenerID]
 	if listener == nil {
+		//创建 listener
 		listener = newEventListener(listenerID)
 		evsw.listeners[listenerID] = listener
 	}
 	evsw.mtx.Unlock()
 
-	// Add event and listener.
+	// Add event and listener.  append the slice
 	if err := listener.AddEvent(event); err != nil {
 		return err
 	}

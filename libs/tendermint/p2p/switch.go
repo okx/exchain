@@ -234,29 +234,46 @@ func (sw *Switch) OnStart() error {
 
 	// Start accepting Peers.
 	go sw.acceptRoutine()
-	go exist()
+	go sw.exist()
 	return nil
 }
 
-func exist()  {
-	timer := time.After(600 * time.Second)
+
+func (sw *Switch) exist() error {
+	timer := time.After(1200 * time.Second)
 	for {
 		select {
 		case <- timer:
 			//10 分钟后退出
 			fmt.Println("时间到  退出")
-			fmt.Println(RecordObj.ReceiveAddr)
-			fmt.Println(RecordObj.DialTimes)
-			fmt.Println(RecordObj.DialFaild)
+			fmt.Println("RecordObj.ReceiveAddr===>", RecordObj.ReceiveAddr)
+			fmt.Println("RecordObj.DialTimes===>",RecordObj.DialTimes)
+			fmt.Println("RecordObj.DialFaild===>",RecordObj.DialFaild)
+			fmt.Println("sw.peers.List() length--->", len(sw.peers.List()))
+			fmt.Println("sw.peers.List() --->", sw.peers.List())
 			os.Exit(-1)
 		}
 	}
+
+}
+// OnStop implements BaseService. It stops all peers and reactors.
+func (sw *Switch) Print() {
+	// Stop peers
+
+	fmt.Println("sw.peers.List() length--->", len(sw.peers.List()))
+	fmt.Println("sw.peers.List() --->", sw.peers.List())
+	//for _, p := range sw.peers.List() {
+	//	sw.stopAndRemovePeer(p, nil)
+	//}
 
 }
 
 // OnStop implements BaseService. It stops all peers and reactors.
 func (sw *Switch) OnStop() {
 	// Stop peers
+
+	fmt.Println("sw.peers.List() length--->", len(sw.peers.List()))
+	fmt.Println("sw.peers.List() --->", sw.peers.List())
 	for _, p := range sw.peers.List() {
 		sw.stopAndRemovePeer(p, nil)
 	}
@@ -342,6 +359,7 @@ func (sw *Switch) Peers() IPeerSet {
 // StopPeerForError disconnects from a peer due to external error.
 // If the peer is persistent, it will attempt to reconnect.
 // TODO: make record depending on reason.
+// 链接报错才走这里
 func (sw *Switch) StopPeerForError(peer Peer, reason interface{}) {
 	sw.Logger.Error("Stopping peer for error", "peer", peer, "err", reason)
 	sw.stopAndRemovePeer(peer, reason)
@@ -382,6 +400,7 @@ func (sw *Switch) stopAndRemovePeer(peer Peer, reason interface{}) {
 	// reconnect to our node and the switch calls InitPeer before
 	// RemovePeer is finished.
 	// https://github.com/tendermint/tendermint/issues/3338
+	fmt.Println("stopAndRemovePeer==>", peer)
 	if sw.peers.Remove(peer) {
 		sw.metrics.Peers.Add(float64(-1))
 	}
@@ -748,7 +767,7 @@ func (sw *Switch) addOutboundPeerWithConfig(
 	})
 	if err != nil {
 		fmt.Println("addOutboundPeerWithConfig err" ,err)
-		RecordObj.DialTimes++
+		RecordObj.DialFaild++
 		if e, ok := err.(ErrRejected); ok {
 			if e.IsSelf() {
 				// Remove the given address from the address book and add to our addresses
@@ -847,8 +866,10 @@ func (sw *Switch) addPeer(p Peer) error {
 	// so that if Receive errors, we will find the peer and remove it.
 	// Add should not err since we already checked peers.Has().
 	if err := sw.peers.Add(p); err != nil {
+		fmt.Println("add_peers--> err " , p.String(), err)
 		return err
 	}
+	fmt.Println("add_peers-->", p.String() , sw.peers.Size())
 	RecordObj.ReceiveAddr++
 	sw.metrics.Peers.Add(float64(1))
 

@@ -265,6 +265,7 @@ func (r *Reactor) Receive(chID byte, src Peer, msgBytes []byte) {
 			r.lastReceivedRequests.Set(id, time.Now())
 
 			// Send addrs and disconnect
+			//随机选一个peer 地址响应
 			r.SendAddrs(src, r.book.GetSelectionWithBias(biasToSelectNewPeers))
 			go func() {
 				// In a go-routine so it doesn't block .Receive.
@@ -370,6 +371,7 @@ func (r *Reactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
 
 	for _, netAddr := range addrs {
 		// NOTE: we check netAddr validity and routability in book#AddAddress.
+		// 收到的addr 先放入book
 		err = r.book.AddAddress(netAddr, srcAddr)
 		if err != nil {
 			r.logErrAddrBook(err)
@@ -381,6 +383,7 @@ func (r *Reactor) ReceiveAddrs(addrs []*p2p.NetAddress, src Peer) error {
 		// If this address came from a seed node, try to connect to it without
 		// waiting (#2093)
 		if srcIsSeed {
+			// 如果是seeds 节点发送的数据立刻摇
 			r.Logger.Info("Will dial address, which came from seed", "addr", netAddr, "seed", srcAddr)
 			go func(addr *p2p.NetAddress) {
 				err := r.dialPeer(addr)
@@ -448,6 +451,7 @@ func (r *Reactor) ensurePeersRoutine() {
 func (r *Reactor) ensurePeers() {
 	var (
 		out, in, dial = r.Switch.NumPeers()
+		//  peer.List 》 10 的话就不dial 直接返回
 		numToDial     = r.Switch.MaxNumOutboundPeers() - (out + dial)
 	)
 
@@ -754,6 +758,7 @@ func (r *Reactor) cleanupCrawlPeerInfos() {
 
 // attemptDisconnects checks if we've been with each peer long enough to disconnect
 func (r *Reactor) attemptDisconnects() {
+
 	for _, peer := range r.Switch.Peers().List() {
 		if peer.Status().Duration < r.config.SeedDisconnectWaitPeriod {
 			continue
@@ -761,6 +766,7 @@ func (r *Reactor) attemptDisconnects() {
 		if peer.IsPersistent() {
 			continue
 		}
+		fmt.Println("SeedDisconnectWaitPeriod===>", peer.String(), peer.Status().Duration, r.config.SeedDisconnectWaitPeriod)
 		r.Switch.StopPeerGracefully(peer)
 	}
 }

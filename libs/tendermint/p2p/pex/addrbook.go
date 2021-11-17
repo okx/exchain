@@ -682,7 +682,7 @@ func (a *addrBook) addAddress(addr, src *p2p.NetAddress) error {
 	ka := a.addrLookup[addr.ID]
 	if ka != nil {
 		// If its already old and the addr is the same, ignore it.
-		if ka.isOld() && ka.Addr.Equals(addr) {
+		if ka.isOld() && (ka.Addr.Equals(addr) || ka.Addr.ID == addr.ID) {
 			//  ka.isOld() true  ka.Addr.Equals(addr) false
 			// 旧的addr 直接返回 ， 不会放入new
 			return nil

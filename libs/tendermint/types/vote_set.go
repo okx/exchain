@@ -553,6 +553,7 @@ func (voteSet *VoteSet) sumTotalFrac() (int64, int64, float64) {
 // Panics if the vote type is not PrecommitType or if there's no +2/3 votes for
 // a single block.
 func (voteSet *VoteSet) MakeCommit() *Commit {
+	// 进入到这之前signedMsgType 肯定被设置为  	PrecommitType SignedMsgType = 0x02   并且  maj23 已经达成了一个区块的共识
 	if voteSet.signedMsgType != PrecommitType {
 		panic("Cannot MakeCommit() unless VoteSet.Type is PrecommitType")
 	}
@@ -567,14 +568,16 @@ func (voteSet *VoteSet) MakeCommit() *Commit {
 	// For every validator, get the precommit
 	commitSigs := make([]CommitSig, len(voteSet.votes))
 	for i, v := range voteSet.votes {
+		//循环所有v 节点
 		commitSig := v.CommitSig()
 		// if block ID exists but doesn't match, exclude sig
 		if commitSig.ForBlock() && !v.BlockID.Equals(*voteSet.maj23) {
+			//
 			commitSig = NewCommitSigAbsent()
 		}
 		commitSigs[i] = commitSig
 	}
-
+	//返回Commit 结果，包含块高。
 	return NewCommit(voteSet.GetHeight(), voteSet.GetRound(), *voteSet.maj23, commitSigs)
 }
 

@@ -403,12 +403,15 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
+//发起新一轮共识
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
 	nrsMsg := makeRoundStepMessage(rs)
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
 }
 
+//广播合法block 消息
 func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
+	// 是一个整块数据还是部分数据？？？
 	csMsg := &NewValidBlockMessage{
 		Height:           rs.Height,
 		Round:            rs.Round,
@@ -420,6 +423,7 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 }
 
 // Broadcasts HasVoteMessage to peers that care.
+// 广播已经收到投票信息
 func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 	msg := &HasVoteMessage{
 		Height: vote.Height,
@@ -824,6 +828,7 @@ OUTER_LOOP:
 	}
 }
 
+// 状态消息
 func (conR *Reactor) peerStatsRoutine() {
 	for {
 		if !conR.IsRunning() {
@@ -832,6 +837,7 @@ func (conR *Reactor) peerStatsRoutine() {
 		}
 
 		select {
+		//
 		case msg := <-conR.conS.statsMsgQueue:
 			// Get peer
 			peer := conR.Switch.Peers().Get(msg.PeerID)
@@ -840,7 +846,7 @@ func (conR *Reactor) peerStatsRoutine() {
 					"peer", msg.PeerID)
 				continue
 			}
-			// Get peer state
+			// Get peer state  peer有个 sync.Map 共识层面 每个peer 有一个 PeerState
 			ps, ok := peer.Get(types.PeerStateKey).(*PeerState)
 			if !ok {
 				panic(fmt.Sprintf("Peer %v has no state", peer))
@@ -1594,6 +1600,7 @@ func (m *VoteMessage) String() string {
 //-------------------------------------
 
 // HasVoteMessage is sent to indicate that a particular vote has been received.
+// 响应收到投票信息
 type HasVoteMessage struct {
 	Height int64
 	Round  int
