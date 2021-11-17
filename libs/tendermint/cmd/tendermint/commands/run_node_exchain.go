@@ -16,6 +16,19 @@ func addMoreFlags(cmd *cobra.Command) {
 	//pprof flags
 	cmd.Flags().String("prof_laddr", config.ProfListenAddress,
 		"Node listen address. (0.0.0.0:0 means any interface, any port)")
-
-	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit, "Set node block interval time")
+	
+	cmd.Flags().Duration("consensus.timeout_propose", config.Consensus.TimeoutPropose,
+		"Set TimeoutPropose")
+	cmd.Flags().Duration("consensus.timeout_propose_delta", config.Consensus.TimeoutProposeDelta,
+		"Set TimeoutProposeDelta")
+	cmd.Flags().Duration("consensus.timeout_prevote", config.Consensus.TimeoutPrevote,
+		"Set TimeoutPrevote")
+	cmd.Flags().Duration("consensus.timeout_prevote_delta", config.Consensus.TimeoutPrevoteDelta,
+		"Set TimeoutPrevoteDelta")
+	cmd.Flags().Duration("consensus.timeout_precommit", config.Consensus.TimeoutPrecommit,
+		"Set TimeoutPrecommit")
+	cmd.Flags().Duration("consensus.timeout_precommit_delta", config.Consensus.TimeoutPrecommitDelta,
+		"Set TimeoutPrecommitDelta")
+	cmd.Flags().Duration("consensus.timeout_commit", config.Consensus.TimeoutCommit,
+		"Set TimeoutCommit")
 }
