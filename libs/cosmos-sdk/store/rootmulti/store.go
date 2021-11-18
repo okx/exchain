@@ -11,6 +11,7 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 	dbm "github.com/tendermint/tm-db"
@@ -49,6 +50,8 @@ type Store struct {
 	traceContext types.TraceContext
 
 	interBlockCache types.MultiStorePersistentCache
+
+	logger tmlog.Logger
 }
 
 var (
@@ -384,10 +387,20 @@ func (rs *Store) Commit() types.CommitID {
 // pruneStores will batch delete a list of heights from each mounted sub-store.
 // Afterwards, pruneHeights is reset.
 func (rs *Store) pruneStores() {
-	if len(rs.pruneHeights) == 0 {
+	pruneCnt := len(rs.pruneHeights)
+	if pruneCnt == 0 {
 		return
 	}
 
+	if rs.logger != nil {
+		rs.logger.Info("pruning start", "pruning-count", pruneCnt, "curr-height", rs.lastCommitInfo.Version+1)
+		rs.logger.Debug("pruning", "pruning-heights", rs.pruneHeights)
+	}
+	defer func() {
+		if rs.logger != nil {
+			rs.logger.Info("pruning end")
+		}
+	}()
 	for key, store := range rs.stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			// If the store is wrapped with an inter-block cache, we must first unwrap
@@ -1066,4 +1079,8 @@ func (rs *Store) StopStore() {
 		}
 	}
 
+}
+
+func (rs *Store) SetLogger(log tmlog.Logger) {
+	rs.logger = log.With("module", "root-multi")
 }

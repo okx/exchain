@@ -144,6 +144,10 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	var err error
+	// construct state for repair
+	state = constructStartState(state, stateStoreDB, startHeight)
+
+	// repair state
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	for height := startHeight + 1; height <= latestHeight; height++ {
@@ -157,6 +161,23 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
+}
+
+func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
+	stateCopy := state.Copy()
+	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
+	panicError(err)
+	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
+	panicError(err)
+	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+1)
+	panicError(err)
+	consensusParams, err := sm.LoadConsensusParams(stateStoreDB, startHeight+1)
+	panicError(err)
+	stateCopy.Validators = validators
+	stateCopy.LastValidators = lastValidators
+	stateCopy.NextValidators = nextValidators
+	stateCopy.ConsensusParams = consensusParams
+	return stateCopy
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {
