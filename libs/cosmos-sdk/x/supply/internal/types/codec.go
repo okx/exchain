@@ -11,17 +11,26 @@ import (
 
 const (
 	// MudulleAccountName is the amino encoding name for ModuleAccount
-	MudulleAccountName = "cosmos-sdk/ModuleAccount"
+	MuduleAccountName = "cosmos-sdk/ModuleAccount"
 )
 
 // RegisterCodec registers the account types and interface
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*exported.ModuleAccountI)(nil), nil)
 	cdc.RegisterInterface((*exported.SupplyI)(nil), nil)
-	cdc.RegisterConcrete(&ModuleAccount{}, MudulleAccountName, nil)
-	cdc.RegisterConcreteUnmarshaller(MudulleAccountName, func(cdc *amino.Codec, data []byte) (v interface{}, n int, err error) {
+	cdc.RegisterConcrete(&ModuleAccount{}, MuduleAccountName, nil)
+	cdc.RegisterConcreteUnmarshaller(MuduleAccountName, func(cdc *amino.Codec, data []byte) (v interface{}, n int, err error) {
 		v, n, err = UnmarshalMouduleAccountFromAmino(cdc, data)
 		return
+	})
+	cdc.RegisterConcreteMarshaller(MuduleAccountName, func(cdc *amino.Codec, v interface{}) ([]byte, error) {
+		if m, ok := v.(*ModuleAccount); ok {
+			return m.MarshalToAmino()
+		} else if m, ok := v.(ModuleAccount); ok {
+			return m.MarshalToAmino()
+		} else {
+			return nil, fmt.Errorf("%T is not a ModuleAccount", v)
+		}
 	})
 
 	cdc.RegisterConcrete(&Supply{}, "cosmos-sdk/Supply", nil)
