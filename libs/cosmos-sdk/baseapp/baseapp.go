@@ -195,6 +195,7 @@ func NewBaseApp(
 	if app.interBlockCache != nil {
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
+	app.cms.SetLogger(app.logger)
 
 	app.parallelTxManage.workgroup.Start()
 
@@ -770,7 +771,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx, height int6
 	defer func() {
 		app.pin(ConsumeGas, true, mode)
 		defer app.pin(ConsumeGas, false, mode)
-		if mode == runTxModeDeliver || app.parallelTxManage.isReRun(string(txBytes)) {
+		if mode == runTxModeDeliver || (mode == runTxModeDeliverInAsync && app.parallelTxManage.isReRun(string(txBytes))) {
 			ctx.BlockGasMeter().ConsumeGas(
 				ctx.GasMeter().GasConsumedToLimit(), "block gas meter",
 			)

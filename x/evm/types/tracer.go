@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	json "github.com/json-iterator/go"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
@@ -45,12 +44,10 @@ var (
 	evmLogConfig *vm.LogConfig
 )
 
-func init() {
-	server.TrapSignal(func() {
-		if tracesDB != nil {
-			tracesDB.Close()
-		}
-	})
+func CloseTracer() {
+	if tracesDB != nil {
+		tracesDB.Close()
+	}
 }
 
 func InitTxTraces() {
