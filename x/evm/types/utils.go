@@ -316,7 +316,29 @@ func (rd ResultData) String() string {
 // EncodeResultData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
 func EncodeResultData(data ResultData) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
+	var buf = new(bytes.Buffer)
+
+	bz, err := data.MarshalToAmino()
+	if err != nil {
+		bz, err = ModuleCdc.MarshalBinaryBare(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Write uvarint(len(bz)).
+	err = amino.EncodeUvarint(buf, uint64(len(bz)))
+	if err != nil {
+		return nil, err
+	}
+
+	// Write bz.
+	_, err = buf.Write(bz)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
