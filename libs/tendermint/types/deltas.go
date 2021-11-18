@@ -22,12 +22,6 @@ const (
 	FlagFastQuery = "fast-query"
 )
 
-type BlockDelta struct {
-	Block  *Block  `json:"block"`
-	Deltas *Deltas `json:"deltas"`
-	Height int64   `json:"height"`
-}
-
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
 	ABCIRsp     []byte `json:"abci_rsp"`
@@ -38,7 +32,7 @@ type Deltas struct {
 // Size returns size of the deltas in bytes.
 func (d *Deltas) Size() int {
 	if d == nil {
-		return 0
+		return -1
 	}
 	return len(d.ABCIRsp) + len(d.DeltasBytes)
 }
@@ -55,8 +49,6 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 
 // WatchData defines the batch in watchDB and accounts for delete
 type WatchData struct {
-	//DirtyAccount []byte `json:"dirty_account"`
-	//Batches      []byte `json:"batches"`
 	WatchDataByte []byte `json:"watch_data_byte"`
 	Height        int64  `json:"height"`
 }
@@ -64,18 +56,7 @@ type WatchData struct {
 // Size returns size of the deltas in bytes.
 func (wd *WatchData) Size() int {
 	if wd == nil {
-		return 0
+		return -1
 	}
-	//	return len(wd.DirtyAccount) + len(wd.Batches)
 	return len(wd.WatchDataByte)
-}
-
-// Marshal returns the amino encoding.
-func (wd *WatchData) Marshal() ([]byte, error) {
-	return cdc.MarshalBinaryBare(wd)
-}
-
-// Unmarshal deserializes from amino encoded form.
-func (wd *WatchData) Unmarshal(bs []byte) error {
-	return cdc.UnmarshalBinaryBare(bs, wd)
 }

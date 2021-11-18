@@ -21,8 +21,10 @@ import (
 
 // DataCenterMsg is the format of Data send to DataCenter
 type DataCenterMsg struct {
-	Height	int64	`json:"height"`
-	Value	[]byte	`json:"value"`
+	Height    int64  `json:"height"`
+	Block     []byte `json:"block"`
+	Delta     []byte `json:"delta"`
+	WatchData []byte `json:"watch_data"`
 }
 
 //-----------------------------------------------------------------------------
@@ -187,7 +189,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if deltaMode == types.ConsumeDelta {
 		// only when it's consumer, can use deltas
 		if fastQuery {
-			if wd.Size() == 0 {
+			if wd.Size() <= 0 {
 				if centerMode {
 					// GetBatch get watchDB batch data from DataCenter in exchain.watcher
 					batchOK = GetCenterBatch(block.Height)
@@ -202,14 +204,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		if batchOK {
 			// if len(deltas) != 0, use deltas from p2p
 			// otherwise, get state-deltas from DataCenter
-			if deltas.Size() == 0 && centerMode {
-				if bd, err := getDataFromDatacenter(blockExec.logger, block.Height); err == nil {
-					deltas = bd.Deltas
+			if deltas.Size() <= 0 && centerMode {
+				if delta, err := getDeltaFromDatacenter(blockExec.logger, block.Height); err == nil {
+					deltas = delta
 				}
 			}
 			// when deltas not empty, use deltas
 			// otherwise, do deliverTx
-			if deltas.Size() != 0 {
+			if deltas.Size() > 0 {
 				useDeltas = true
 			}
 		}
@@ -288,6 +290,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
+	fmt.Println("fsc:test:    ", wd.Size())
 	// fastQuery is the flag if the watchdb is available
 	if !fastQuery {
 		wd = nil
@@ -300,6 +303,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			UseWatchData(wd)
 		}
 	}
+
+	fmt.Println("fsc:test:    ", wd.Size())
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
@@ -320,26 +325,37 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 
 	if viper.GetBool(types.FlagDataCenter) {
-		go sendToDatacenter(blockExec.logger, block, deltas)
+		go sendToDatacenter(blockExec.logger, block, deltas, wd)
 	}
 
 	return state, retainHeight, nil
 }
 
 // sendToDatacenter send bcBlockResponseMessage to DataCenter
-func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas) {
-	value := types.BlockDelta{Block: block, Deltas: deltas, Height: block.Height}
-	valueByte, err := types.Json.Marshal(&value)
-	if  err != nil {
-		return
+func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Deltas, wd *types.WatchData) {
+	var blockBytes, deltaBytes, wdBytes []byte
+	var err error
+	if block != nil {
+		if blockBytes, err = block.Marshal(); err != nil {
+			return
+		}
 	}
-	msg := DataCenterMsg{block.Height, valueByte}
+	if deltas != nil {
+		if deltaBytes, err = deltas.Marshal(); err != nil {
+			return
+		}
+	}
+	if wd != nil && wd.Size() > 0{
+		wdBytes = wd.WatchDataByte
+	}
+
+	msg := DataCenterMsg{block.Height, blockBytes, deltaBytes, wdBytes}
 	msgBody, err := types.Json.Marshal(&msg)
-	if  err != nil {
+	if err != nil {
 		return
 	}
 
-	response, err := http.Post(viper.GetString(types.DataCenterUrl) + "save", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"save", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("sendToDatacenter err ,", err)
 		return
@@ -348,13 +364,13 @@ func sendToDatacenter(logger log.Logger, block *types.Block, deltas *types.Delta
 }
 
 // getDataFromDatacenter send bcBlockResponseMessage to DataCenter
-func getDataFromDatacenter(logger log.Logger, height int64) (*types.BlockDelta, error) {
+func getDeltaFromDatacenter(logger log.Logger, height int64) (*types.Deltas, error) {
 	msg := DataCenterMsg{Height: height}
 	msgBody, err := types.Json.Marshal(&msg)
-	if  err != nil {
+	if err != nil {
 		return nil, err
 	}
-	response, err := http.Post(viper.GetString(types.DataCenterUrl) + "load", "application/json", bytes.NewBuffer(msgBody))
+	response, err := http.Post(viper.GetString(types.DataCenterUrl)+"loadDelta", "application/json", bytes.NewBuffer(msgBody))
 	if err != nil {
 		logger.Error("getDataFromDatacenter err ,", err)
 		return nil, err
@@ -364,11 +380,12 @@ func getDataFromDatacenter(logger log.Logger, height int64) (*types.BlockDelta, 
 	rlt, _ := ioutil.ReadAll(response.Body)
 	logger.Info("GetDataFromDatacenter", "height", height, "len", len(rlt))
 
-	value := types.BlockDelta{}
-	if err = types.Json.Unmarshal(rlt, &value); err != nil {
+	delta := &types.Deltas{}
+	if delta.Unmarshal(rlt) != nil {
 		return nil, err
 	}
-	return &value, nil
+
+	return delta, nil
 }
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the

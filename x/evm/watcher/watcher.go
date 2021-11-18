@@ -360,10 +360,6 @@ func (w *Watcher) Commit() {
 		centerBatch[i] = &Batch{b.GetKey(), []byte(b.GetValue()), b.GetType()}
 	}
 	w.watchData.Batches = centerBatch
-
-	if IsCenterEnabled() {
-		go w.SendToDatacenter(int64(w.height))
-	}
 }
 
 func (w *Watcher) CommitWatchData() {
@@ -381,10 +377,6 @@ func (w *Watcher) CommitWatchData() {
 	}
 	if w.watchData.BloomData != nil {
 		go w.commitBloomData(w.watchData.BloomData)
-	}
-
-	if IsCenterEnabled() {
-		go w.SendToDatacenter(int64(w.height))
 	}
 }
 
@@ -435,7 +427,7 @@ func (w *Watcher) SetWatchDataFunc() {
 		if err != nil {
 			return false
 		}
-		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadBatch", "application/json", bytes.NewBuffer(msgBody))
+		response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"loadWatch", "application/json", bytes.NewBuffer(msgBody))
 		if err != nil {
 			return false
 		}
@@ -446,7 +438,7 @@ func (w *Watcher) SetWatchDataFunc() {
 			return false
 		}
 		if data.Size() == 0 {
-			return false
+			return true
 		}
 		w.watchData = &data
 		w.delayEraseKey = data.DelayEraseKey
@@ -464,7 +456,7 @@ func (w *Watcher) SetWatchDataFunc() {
 	}
 
 	uwd := func(twd *tmtypes.WatchData) {
-		if twd.Size() != 0 {
+		if twd.Size() > 0 {
 			wd := WatchData{}
 			if err := itjs.Unmarshal(twd.WatchDataByte, &wd); err != nil {
 				return
@@ -479,26 +471,6 @@ func (w *Watcher) SetWatchDataFunc() {
 	tmstate.GetCenterBatch = gcb
 	tmstate.GetWatchData = gwd
 	tmstate.UseWatchData = uwd
-}
-
-// sendToDatacenter send bcBlockResponseMessage to DataCenter
-func (w *Watcher) SendToDatacenter(height int64) {
-	if w.watchData.Size() == 0 {
-		return
-	}
-	value := w.watchData
-	value.DelayEraseKey = w.delayEraseKey
-	valueByte, err := itjs.Marshal(value)
-	if err != nil {
-		return
-	}
-	msg := tmstate.DataCenterMsg{Height: height, Value: valueByte}
-	msgBody, err := tmtypes.Json.Marshal(&msg)
-	response, err := http.Post(viper.GetString(tmtypes.DataCenterUrl)+"saveBatch", "application/json", bytes.NewBuffer(msgBody))
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
