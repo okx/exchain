@@ -524,12 +524,6 @@ func (r *Reactor) ensurePeers() {
 			r.Logger.Info("No addresses to dial. Falling back to seeds")
 			r.dialSeeds()
 		}
-
-		// 3) Dial seeds if toDial not connect any one
-		if len(toDial) != 0 && r.Switch.Peers().Size() == 0 {
-			r.Logger.Info("toDial attempt failed, Falling back to seeds")
-			r.dialSeeds()
-		}
 	}
 }
 
