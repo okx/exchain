@@ -328,7 +328,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if so != nil {
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
-			CodeHash: so.CodeHash(),
+			CodeHash: hash.Bytes(),
 			Code:     code,
 		}
 	}
