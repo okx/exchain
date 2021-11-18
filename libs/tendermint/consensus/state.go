@@ -974,8 +974,8 @@ func (cs *State) enterPropose(height int64, round int) {
 		logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
 		return
 	}
-
 	address := cs.privValidatorPubKey.Address()
+	
 	// if not a validator, we're done
 	if !cs.Validators.HasAddress(address) {
 		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
