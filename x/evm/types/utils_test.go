@@ -1,15 +1,17 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEvmDataEncoding(t *testing.T) {
@@ -128,4 +130,52 @@ func TestTxDecoder(t *testing.T) {
 
 	_, err = txDecoder(txbytes[1:])
 	require.Error(t, err)
+}
+
+func TestResultDataAmino(t *testing.T) {
+	addr := ethcmn.HexToAddress("0x5dE8a020088a2D6d0a23c204FFbeD02790466B49")
+	bloom := ethtypes.BytesToBloom([]byte{0x1, 0x3, 0x5, 0x7})
+	ret := []byte{0x5, 0x8}
+
+	cdc := codec.New()
+	cdc.RegisterInterface((*sdk.Tx)(nil), nil)
+	RegisterCodec(cdc)
+
+	testDataSet := []ResultData{
+		{
+			ContractAddress: addr,
+			Bloom:           bloom,
+			Logs: []*ethtypes.Log{
+				{
+					Data:        []byte{1, 2, 3, 4},
+					BlockNumber: 17,
+					Index:       10,
+				}},
+			Ret:    ret,
+			TxHash: ethcmn.HexToHash("0x00"),
+		},
+		{},
+		{
+			ContractAddress: addr,
+			Bloom:           bloom,
+			Logs: []*ethtypes.Log{
+				nil,
+				{
+					Removed: true,
+				},
+			},
+			Ret:    ret,
+			TxHash: ethcmn.HexToHash("0x00"),
+		},
+	}
+
+	for i, data := range testDataSet {
+		expect, err := cdc.MarshalBinaryBare(data)
+		require.NoError(t, err)
+
+		actual, err := data.MarshalToAmino()
+		require.NoError(t, err)
+		require.EqualValues(t, expect, actual)
+		t.Log(fmt.Sprintf("%d pass\n", i))
+	}
 }
