@@ -10,26 +10,54 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
+type extraDataForTx struct {
+	fee       sdk.Coins
+	isEvm     bool
+	signCache sdk.SigCache
+}
+
+func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
+	res := make([]*extraDataForTx, len(txs), len(txs))
+	var wg sync.WaitGroup
+	for index, txBytes := range txs {
+		wg.Add(1)
+		index := index
+		txBytes := txBytes
+		go func() {
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				panic(err)
+			}
+			coin, isEvm, s := app.getTxFee(app.getContextForTx(runTxModeDeliverInAsync, txBytes), tx)
+			res[index] = &extraDataForTx{
+				fee:       coin,
+				isEvm:     isEvm,
+				signCache: s,
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return res
+}
+
 func (app *BaseApp) ParallelTxs(txs [][]byte) []*abci.ResponseDeliverTx {
+	extraData := app.getExtraDataByTxs(txs)
 	app.parallelTxManage.isAsyncDeliverTx = true
 	evmIndex := uint32(0)
 	for k, v := range txs {
-		tx, err := app.txDecoder(v)
-		if err != nil {
-			panic(err)
-		}
 		t := &txStatus{
 			indexInBlock: uint32(k),
+			signCache:    extraData[k].signCache,
 		}
-		fee, isEvm := app.getTxFee(tx)
-		if isEvm {
+		if extraData[k].isEvm {
 			t.evmIndex = evmIndex
 			t.isEvmTx = true
 			evmIndex++
 		}
 
 		vString := string(v)
-		app.parallelTxManage.setFee(vString, fee)
+		app.parallelTxManage.setFee(vString, extraData[k].fee)
 
 		app.parallelTxManage.txStatus[vString] = t
 		app.parallelTxManage.indexMapBytes = append(app.parallelTxManage.indexMapBytes, vString)
@@ -290,6 +318,7 @@ type txStatus struct {
 	evmIndex     uint32
 	indexInBlock uint32
 	anteErr      error
+	signCache    sdk.SigCache
 }
 
 func newParallelTxManager() *parallelTxManager {

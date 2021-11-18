@@ -262,7 +262,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		startDumpPprof()
 		defer stopDumpPprof()
 	}
-	needSaveBlock := viper.GetBool(saveBlock) || viper.GetBool(sm.FlagParalleledTx)
+	needSaveBlock := viper.GetBool(saveBlock)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
