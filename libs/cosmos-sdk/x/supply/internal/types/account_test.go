@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
@@ -107,7 +108,7 @@ func TestModuleAccountJSON(t *testing.T) {
 	require.Equal(t, acc.String(), a.String())
 }
 
-func TestModuleAccountUnmarshalAmino(t *testing.T) {
+func TestModuleAccountAmino(t *testing.T) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*authexported.Account)(nil), nil)
 	RegisterCodec(cdc)
@@ -121,15 +122,72 @@ func TestModuleAccountUnmarshalAmino(t *testing.T) {
 
 	pubkey := secp256k1.GenPrivKey().PubKey()
 	addr := sdk.AccAddress(pubkey.Address())
-	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 5))
-	baseAcc := authtypes.NewBaseAccount(addr, coins, pubkey, 10, 50)
-	acc := NewModuleAccount(baseAcc, "test", "burner")
 
-	bz, err := cdc.MarshalBinaryBare(acc)
-	require.NoError(t, err)
+	accounts := []ModuleAccount{
+		{
+			authtypes.NewBaseAccount(
+				addr,
+				sdk.NewCoins(sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}}),
+				pubkey,
+				1,
+				1,
+			),
+			"name",
+			[]string{"perm1", "perm2"},
+		},
+		{
+			authtypes.NewBaseAccount(
+				addr,
+				sdk.NewCoins(sdk.NewInt64Coin("test", 5), sdk.NewInt64Coin("ok", 100000)),
+				pubkey,
+				9098,
+				1000,
+			),
+			"name",
+			[]string{"perm1", "perm2"},
+		},
+		{
+			authtypes.NewBaseAccount(
+				nil,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			"",
+			[]string{""},
+		},
+		{
+			authtypes.NewBaseAccount(
+				nil,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			"",
+			nil,
+		},
+	}
 
-	var account authexported.Account
-	v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(bz, &account)
-	require.NoError(t, err)
-	require.EqualValues(t, acc, v)
+	for _, acc := range accounts {
+		var iacc authexported.Account = acc
+		bz, err := cdc.MarshalBinaryBare(iacc)
+		require.NoError(t, err)
+
+		var accountExpect authexported.Account
+		err = cdc.UnmarshalBinaryBare(bz, &accountExpect)
+		require.NoError(t, err)
+
+		var account authexported.Account
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(bz, &account)
+		require.NoError(t, err)
+		accountActual, ok := v.(authexported.Account)
+		require.True(t, ok)
+		require.EqualValues(t, accountExpect, accountActual)
+
+		nbz, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(iacc)
+		require.NoError(t, err)
+		require.EqualValues(t, bz, nbz)
+	}
 }
