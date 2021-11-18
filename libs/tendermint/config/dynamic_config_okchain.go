@@ -4,6 +4,8 @@ type IDynamicConfig interface {
 	GetMempoolRecheck() bool
 	GetMempoolForceRecheckGap() int64
 	GetMempoolSize() int
+	GetMaxTxNumPerBlock() int64
+	GetMaxGasUsedPerBlock() int64
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -16,13 +18,21 @@ type MockDynamicConfig struct {
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
-	return true
+	return DefaultMempoolConfig().Recheck
 }
 
 func (d MockDynamicConfig) GetMempoolForceRecheckGap() int64 {
-	return 200
+	return DefaultMempoolConfig().ForceRecheckGap
 }
 
 func (d MockDynamicConfig) GetMempoolSize() int {
-	return 2000
+	return DefaultMempoolConfig().Size
+}
+
+func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
+	return DefaultMempoolConfig().MaxTxNumPerBlock
+}
+
+func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
+	return DefaultMempoolConfig().MaxGasUsedPerBlock
 }

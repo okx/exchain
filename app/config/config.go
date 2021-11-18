@@ -16,6 +16,10 @@ type OecConfig struct {
 	mempoolForceRecheckGap int64
 	// mempool.size
 	mempoolSize int
+	// max tx num per block
+	maxTxNumPerBlock int64
+	// max gas used per block
+	maxGasUsedPerBlock int64
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -31,6 +35,8 @@ const (
 	FlagMempoolRecheck         = "mempool.recheck"
 	FlagMempoolForceRecheckGap = "mempool.force_recheck_gap"
 	FlagMempoolSize            = "mempool.size"
+	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
+	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
@@ -70,6 +76,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
+	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
@@ -101,6 +109,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMempoolSize(r)
+	case FlagMaxTxNumPerBlock:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetMaxTxNumPerBlock(r)
+	case FlagMaxGasUsedPerBlock:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetMaxGasUsedPerBlock(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -150,6 +170,28 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
+}
+
+func (c *OecConfig) GetMaxTxNumPerBlock() int64 {
+	return c.maxTxNumPerBlock
+}
+
+func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
+	if value < 0 {
+		return
+	}
+	c.maxTxNumPerBlock = value
+}
+
+func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
+	return c.maxGasUsedPerBlock
+}
+
+func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
+	if value < 0 {
+		return
+	}
+	c.maxGasUsedPerBlock = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {

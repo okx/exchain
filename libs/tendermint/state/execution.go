@@ -114,8 +114,8 @@ func (blockExec *BlockExecutor) CreateProposalBlock(
 
 	// Fetch a limited amount of valid txs
 	maxDataBytes := types.MaxDataBytes(maxBytes, state.Validators.Size(), len(evidence))
-	if blockExec.mempool.GetConfig().MaxGasUsedPerBlock > -1 {
-		maxGas = blockExec.mempool.GetConfig().MaxGasUsedPerBlock
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
+		maxGas = cfg.DynamicConfig.GetMaxGasUsedPerBlock()
 	}
 	txs := blockExec.mempool.ReapMaxBytesMaxGas(maxDataBytes, maxGas)
 
