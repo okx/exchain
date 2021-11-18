@@ -51,6 +51,8 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	Cache *types.Cache
 }
 
 // NewKeeper generates new evm module keeper
@@ -88,6 +90,7 @@ func NewKeeper(
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
+		Cache:          types.NewCache(5000),
 	}
 	if k.Watcher.Enabled() {
 		ak.SetObserverKeeper(k)
@@ -130,6 +133,7 @@ func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		BankKeeper:    k.bankKeeper,
 		Watcher:       k.Watcher,
 		Ada:           k.Ada,
+		Cache:         k.Cache,
 	}
 }
 

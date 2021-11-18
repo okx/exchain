@@ -41,6 +41,7 @@ type CommitStateDBParams struct {
 	Watcher       Watcher
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
+	Cache         *Cache
 }
 
 type Watcher interface {
@@ -79,8 +80,8 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects         map[ethcmn.Address]*stateEntry
-	stateObjectsDirty    map[ethcmn.Address]struct{}
+	stateObjects      map[ethcmn.Address]*stateEntry
+	stateObjectsDirty map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -118,6 +119,7 @@ type CommitStateDB struct {
 	params *Params
 
 	codeCache map[ethcmn.Address]CacheCode
+	cache     *Cache
 
 	dbAdapter DbAdapter
 }
@@ -149,23 +151,23 @@ func newCommitStateDB(
 	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
 ) *CommitStateDB {
 	return &CommitStateDB{
-		ctx:                  ctx,
-		storeKey:             storeKey,
-		paramSpace:           paramSpace,
-		accountKeeper:        ak,
-		supplyKeeper:         sk,
-		bankKeeper:           bk,
-		Watcher:              watcher,
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            DefaultPrefixDb{},
+		ctx:                 ctx,
+		storeKey:            storeKey,
+		paramSpace:          paramSpace,
+		accountKeeper:       ak,
+		supplyKeeper:        sk,
+		bankKeeper:          bk,
+		Watcher:             watcher,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		dbAdapter:           DefaultPrefixDb{},
 	}
 }
 
@@ -180,17 +182,18 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 		bankKeeper:    csdbParams.BankKeeper,
 		Watcher:       csdbParams.Watcher,
 
-		stateObjects:         make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:    make(map[ethcmn.Address]struct{}),
-		preimages:            []preimageEntry{},
-		hashToPreimageIndex:  make(map[ethcmn.Hash]int),
-		journal:              newJournal(),
-		validRevisions:       []revision{},
-		accessList:           newAccessList(),
-		logSize:              0,
-		logs:                 []*ethtypes.Log{},
-		codeCache:            make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:            csdbParams.Ada,
+		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
+		preimages:           []preimageEntry{},
+		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		journal:             newJournal(),
+		validRevisions:      []revision{},
+		accessList:          newAccessList(),
+		logSize:             0,
+		logs:                []*ethtypes.Log{},
+		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
+		cache:               csdbParams.Cache,
+		dbAdapter:           csdbParams.Ada,
 	}
 }
 
@@ -325,7 +328,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if so != nil {
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
-			CodeHash: hash.Bytes(),
+			CodeHash: so.CodeHash(),
 			Code:     code,
 		}
 	}
@@ -582,10 +585,23 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
 		panic(addr)
 	}
+	cacheCode := csdb.cache.Get(addr)
+	if cacheCode != nil {
+		value, ok := cacheCode.(CacheCode)
+		if ok {
+			return value.Code
+		}
+	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.Code(nil)
+		code := so.Code(nil)
+		csdb.cache.Set(addr, CacheCode{
+			CodeHash: so.CodeHash(),
+			Code:     code,
+		})
+
+		return code
 	}
 
 	return nil
@@ -627,13 +643,25 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 		analyzer.StartTxLog(funcName)
 		defer analyzer.StopTxLog(funcName)
 	}
+	cacheCode := csdb.cache.Get(addr)
+	if cacheCode != nil {
+		value, ok := cacheCode.(CacheCode)
+		if ok {
+			return ethcmn.BytesToHash(value.CodeHash)
+		}
+	}
 
 	so := csdb.getStateObject(addr)
 	if so == nil {
 		return ethcmn.Hash{}
 	}
+	hash := ethcmn.BytesToHash(so.CodeHash())
+	csdb.cache.Set(addr, CacheCode{
+		CodeHash: so.CodeHash(),
+		Code:     so.Code(nil),
+	})
 
-	return ethcmn.BytesToHash(so.CodeHash())
+	return hash
 }
 
 // GetState retrieves a value from the given account's storage store.

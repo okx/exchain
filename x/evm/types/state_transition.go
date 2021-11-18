@@ -32,6 +32,7 @@ type StateTransition struct {
 	TxHash   *common.Hash
 	Sender   common.Address
 	Simulate bool // i.e CheckTx execution
+	Cache    *Cache
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
