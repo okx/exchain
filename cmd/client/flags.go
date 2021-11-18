@@ -83,6 +83,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int64(config.FlagPprofAbciElapsed, 5000, "Elapsed time of abci in millisecond for pprof dump")
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
-	cmd.Flags().Bool(tmdb.FlagRocksdbEnableStatistics, false, "Enable statistics for rocksdb")
+	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4096,block_cache=1073741824,statistics=true)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 }
