@@ -7,7 +7,7 @@ if [ ! -d rocksdb ]; then
 fi
 
 cd rocksdb
-git checkout v6.15.5
+git checkout v6.26.0
 make shared_lib
 make install-shared
 
