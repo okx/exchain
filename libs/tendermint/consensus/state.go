@@ -855,6 +855,7 @@ func (cs *State) handleTxsAvailable() {
 // NOTE: cs.StartTime was already set for height.
 //
 func (cs *State) enterNewRound(height int64, round int) {
+	debug.PrintStack()
 	logger := cs.Logger.With("height", height, "round", round)
 
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight) {

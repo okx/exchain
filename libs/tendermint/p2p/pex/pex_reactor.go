@@ -430,7 +430,7 @@ func (r *Reactor) ensurePeersRoutine() {
 	// ensures we dial the seeds right away if the book is empty
 	r.ensurePeers()
 
-	// fire periodically
+	// fire periodically  30s  周期整一次
 	ticker := time.NewTicker(r.ensurePeersPeriod)
 	for {
 		select {
@@ -482,6 +482,7 @@ func (r *Reactor) ensurePeers() {
 	// Try maxAttempts times to pick numToDial addresses to dial
 	maxAttempts := numToDial * 3
 
+	//fmt.Println()
 	for i := 0; i < maxAttempts && len(toDial) < numToDial; i++ {
 		try := r.book.PickAddress(newBias)
 		if try == nil {
@@ -542,6 +543,12 @@ func (r *Reactor) ensurePeers() {
 			r.Logger.Error("No addresses to dial. Falling back to seeds")
 			r.dialSeeds()
 		}
+		//
+		if len(toDial) != 0 && r.Switch.Peers().Size() == 0{
+			// toDial 不为空但实际连接数量为0 则尝试连接seeds
+			r.dialSeeds()
+		}
+
 	}
 }
 
@@ -629,8 +636,8 @@ func (r *Reactor) checkSeeds() (numOnline int, netAddrs []*p2p.NetAddress, err e
 
 // randomly dial seeds until we connect to one or exhaust them
 func (r *Reactor) dialSeeds() {
-	r.Switch.Logger.Info("seedAddrs-->" , r.seedAddrs)
-	fmt.Println("seedAddrs-->" , r.seedAddrs)
+	r.Switch.Logger.Info("ysw_seedAddrs-->" , r.seedAddrs)
+	fmt.Println("ysw_seedAddrs-->" , r.seedAddrs)
 	perm := tmrand.Perm(len(r.seedAddrs))
 	// perm := r.Switch.rng.Perm(lSeeds)
 	for _, i := range perm {

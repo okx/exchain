@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -95,6 +96,7 @@ func (t *timeoutTicker) stopTimer() {
 // timeouts of 0 on the tickChan will be immediately relayed to the tockChan
 func (t *timeoutTicker) timeoutRoutine() {
 	t.Logger.Debug("Starting timeout routine")
+	fmt.Println("Starting timeout routine !!!!")
 	var ti timeoutInfo
 	for {
 		select {
