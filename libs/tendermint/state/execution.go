@@ -290,7 +290,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	fmt.Println("fsc:test:    ", wd.Size())
 	// fastQuery is the flag if the watchdb is available
 	if !fastQuery {
 		wd = nil
@@ -303,8 +302,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			UseWatchData(wd)
 		}
 	}
-
-	fmt.Println("fsc:test:    ", wd.Size())
 
 	trc.Pin("evpool")
 	// Update evpool with the block and state.
