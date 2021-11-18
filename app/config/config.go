@@ -23,8 +23,6 @@ type OecConfig struct {
 	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
-	// enable-evm-codecache
-	enableEvmCodeCache bool
 }
 
 const (
@@ -36,7 +34,6 @@ const (
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
-	FlagEvmCodeCache           = "evm-code-cache"
 )
 
 var oecConfig *OecConfig
@@ -76,7 +73,6 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
-	c.SetEvmCodeCache(viper.GetBool(FlagEvmCodeCache))
 }
 
 func (c *OecConfig) loadFromApollo() bool {
@@ -180,11 +176,4 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 		value = 100
 	}
 	c.dynamicGpWeight = value
-}
-func (c *OecConfig) SetEvmCodeCache(value bool) {
-	c.enableEvmCodeCache = value
-}
-
-func (c *OecConfig) GetEvmCodeCacheStatus() bool {
-	return c.enableEvmCodeCache
 }

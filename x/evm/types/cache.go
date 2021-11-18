@@ -2,22 +2,30 @@ package types
 
 import (
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/spf13/viper"
 )
+
+const (
+	FlagEvmCodeCache = "evm-code-cache"
+	CodeCacheSize    = 500000
+)
+
+var isEvmCacheCode = viper.GetBool(FlagEvmCodeCache)
 
 type Cache struct {
 	enable bool
 	cache  *lru.Cache
 }
 
-func NewCache(size int, enable bool) *Cache {
-	c, err := lru.New(size)
+func NewCache() *Cache {
+	c, err := lru.New(CodeCacheSize)
 	if err != nil {
 		return nil
 	}
 
 	return &Cache{
 		cache:  c,
-		enable: enable,
+		enable: isEvmCacheCode,
 	}
 }
 
