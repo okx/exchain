@@ -12,7 +12,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"github.com/okex/exchain/libs/iavl"
-	tmiavl "github.com/okex/exchain/libs/iavl"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -93,11 +92,9 @@ func repairState(ctx *server.Context) {
 	}
 
 	// get async commit version
-	tmiavl.EnableAsyncCommit = true
 	asyncVersion, err := repairApp.LoadVersion123()
 	log.Println(fmt.Sprintf("latestBlockHeight = %d \t startVersion = %d \t asyncVersion = %d", latestBlockHeight, startVersion, asyncVersion))
 	panicError(err)
-	tmiavl.EnableAsyncCommit = false
 
 	if asyncVersion == latestBlockHeight {
 		rmLockByDir(dataDir)
@@ -116,7 +113,6 @@ func repairState(ctx *server.Context) {
 	rmLockByDir(dataDir)
 
 	//set original config
-	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 }
