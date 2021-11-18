@@ -703,6 +703,14 @@ func (d *Dec) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
+func (d Dec) MarshalToAmino() ([]byte, error) {
+	if d.Int == nil {
+		return []byte(nilAmino), nil
+	}
+	bz, err := d.Int.MarshalText()
+	return bz, err
+}
+
 // MarshalJSON marshals the decimal
 func (d Dec) MarshalJSON() ([]byte, error) {
 	if d.Int == nil {

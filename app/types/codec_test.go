@@ -54,6 +54,20 @@ func TestUnmarshalEthAccount(t *testing.T) {
 			),
 			ethcrypto.Keccak256(nil),
 		},
+		{
+			nil,
+			nil,
+		},
+		{
+			auth.NewBaseAccount(
+				nil,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			ethcrypto.Keccak256(nil),
+		},
 	}
 
 	for _, testAccount := range accounts {
@@ -76,6 +90,10 @@ func TestUnmarshalEthAccount(t *testing.T) {
 		require.True(t, ok)
 
 		require.EqualValues(t, accountFromAmino, accountFromUnmarshaller)
+
+		dataFromMarshaller, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+		require.NoError(t, err)
+		require.EqualValues(t, data, dataFromMarshaller)
 	}
 }
 
@@ -118,6 +136,47 @@ func BenchmarkUnmarshalEthAccount(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUbmarshaller(data, &account)
+		}
+	})
+}
+
+func BenchmarkMarshalEthAccount(b *testing.B) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*exported.Account)(nil), nil)
+	RegisterCodec(cdc)
+
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
+	testAccount := EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	b.Run("amino", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			data, _ := cdc.MarshalBinaryBare(&testAccount)
+			_ = data
+		}
+	})
+
+	b.Run("marshaller", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			data, _ := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+			_ = data
 		}
 	})
 }
