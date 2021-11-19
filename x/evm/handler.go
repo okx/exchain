@@ -7,6 +7,7 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/common/analyzer"
@@ -21,7 +22,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		defer func() {
-			if bam.GetGlobalMempool().GetConfig().MaxGasUsedPerBlock < 0 {
+			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
 				return
 			}
 
@@ -44,13 +45,13 @@ func NewHandler(k *Keeper) sdk.Handler {
 			gc := int64(ctx.GasMeter().GasConsumed())
 			if toDeployContractSize > 0 {
 				// calculate average gas consume for deploy contract case
-				gc = gc/int64(toDeployContractSize)
+				gc = gc / int64(toDeployContractSize)
 			}
 
 			var avgGas int64
 			if hisGu != nil {
 				hgu := common2.BytesToInt64(hisGu)
-				avgGas = int64(bam.GasUsedFactor * float64(gc) + (1.0 - bam.GasUsedFactor) * float64(hgu))
+				avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
 			} else {
 				avgGas = gc
 			}
