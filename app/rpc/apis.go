@@ -6,14 +6,14 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"golang.org/x/time/rate"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -160,7 +160,7 @@ func makeMonitorMetrics(namespace string, service interface{}) {
 				Subsystem: MetricsSubsystem,
 				Name:      fmt.Sprintf("%s_duration", name),
 				Help:      fmt.Sprintf("Request duration of %s method.", name),
-				Buckets:   []float64{.001, .005, .01, .025, .05, .1, .3, .5, 1, 3, 5, 10},
+				Buckets:   []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 1, 3, 5, 8, 10},
 			}, nil),
 		}
 
