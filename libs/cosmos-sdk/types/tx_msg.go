@@ -48,7 +48,7 @@ type Tx interface {
 	GetGasPrice() *big.Int
 
 	// Return tx call function signature
-	GetTxFnSignature() []byte
+	GetTxFnSignatureInfo() ([]byte, int)
 }
 
 //__________________________________________________________

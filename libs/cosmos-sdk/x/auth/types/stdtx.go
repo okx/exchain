@@ -190,8 +190,8 @@ func (tx StdTx) GetGasPrice() *big.Int {
 	return tx.Fee.GasPrices()[0].Amount.BigInt()
 }
 
-func (tx StdTx) GetTxFnSignature() []byte {
-	return nil
+func (tx StdTx) GetTxFnSignatureInfo() ([]byte, int) {
+	return nil, 0
 }
 
 //__________________________________________________________

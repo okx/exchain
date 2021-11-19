@@ -26,7 +26,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 			}
 
 			db := bam.InstanceOfGasUsedRecordDB()
-			msgFnSignature := getMsgCallFnSignature(msg)
+			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
 
 			if msgFnSignature == nil {
 				return
@@ -37,13 +37,18 @@ func NewHandler(k *Keeper) sdk.Handler {
 				return
 			}
 
+			gc := int64(ctx.GasMeter().GasConsumed())
+			if toDeployContractSize > 0 {
+				// calculate average gas consume for deploy contract case
+				gc = gc/int64(toDeployContractSize)
+			}
+
 			var avgGas int64
 			if hisGu != nil {
 				hgu := common2.BytesToInt64(hisGu)
-				gc := int64(ctx.GasMeter().GasConsumed())
 				avgGas = int64(bam.GasUsedFactor * float64(gc) + (1.0 - bam.GasUsedFactor) * float64(hgu))
 			} else {
-				avgGas = int64(ctx.GasMeter().GasConsumed())
+				avgGas = gc
 			}
 
 			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
@@ -80,12 +85,12 @@ func NewHandler(k *Keeper) sdk.Handler {
 	}
 }
 
-func getMsgCallFnSignature(msg sdk.Msg) []byte {
+func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {
 	switch msg := msg.(type) {
 	case types.MsgEthereumTx:
-		return msg.GetTxFnSignature()
+		return msg.GetTxFnSignatureInfo()
 	default:
-		return nil
+		return nil, 0
 	}
 }
 

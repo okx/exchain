@@ -591,8 +591,8 @@ func (tx txTest) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
-func (tx txTest) GetTxFnSignature() []byte {
-	return nil
+func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
+	return nil, 0
 }
 
 const (

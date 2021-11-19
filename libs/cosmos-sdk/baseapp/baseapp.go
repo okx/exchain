@@ -1014,7 +1014,7 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 		return -1
 	}
 
-	txFnSig := tx.GetTxFnSignature()
+	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
 	if txFnSig == nil {
 		return -1
 	}
@@ -1023,6 +1023,11 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	data, err := db.Get(txFnSig)
 	if err != nil || len(data) == 0 {
 		return -1
+	}
+
+	if toDeployContractSize > 0 {
+		// if deploy contract case, the history gas used value is unit gas used
+		return int64(binary.BigEndian.Uint64(data)) * int64(toDeployContractSize)
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
