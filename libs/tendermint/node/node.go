@@ -51,6 +51,10 @@ import (
 
 //------------------------------------------------------------------------------
 
+var (
+	NetEnv string
+)
+
 // DBContext specifies config information for loading a new DB.
 type DBContext struct {
 	ID     string
@@ -524,7 +528,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	// TODO persistent peers ? so we can have their DNS addrs saved
 	pexReactor := pex.NewReactor(addrBook,
 		&pex.ReactorConfig{
-			Seeds:    splitAndTrimEmpty(config.P2P.Seeds, ",", " "),
+			Seeds:    splitAndTrimEmpty(convertSeeds(config.P2P.Seeds, NetEnv), ",", " "),
 			SeedMode: config.P2P.SeedMode,
 			// See consensus/reactor.go: blocksToContributeToBecomeGoodPeer 10000
 			// blocks assuming 10s blocks ~ 28 hours.
@@ -539,6 +543,21 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	return pexReactor
 }
 
+func convertSeeds(seeds, net string) string {
+	switch net {
+	case "mainnet":
+		if seeds == "" {
+			seeds = p2p.MAIN_SEEDS
+		}
+	case "testnet":
+		if seeds == "" {
+			seeds = p2p.TEST_SEEDS
+		}
+	default:
+	}
+	return seeds
+}
+
 // NewNode returns a new, ready to go, Tendermint Node.
 func NewNode(config *cfg.Config,
 	privValidator types.PrivValidator,
@@ -549,7 +568,6 @@ func NewNode(config *cfg.Config,
 	metricsProvider MetricsProvider,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
-
 	blockStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err

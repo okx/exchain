@@ -533,7 +533,6 @@ func (sw *Switch) DialPeerWithAddress(addr *NetAddress) error {
 
 	sw.dialing.Set(string(addr.ID), addr)
 	defer sw.dialing.Delete(string(addr.ID))
-
 	return sw.addOutboundPeerWithConfig(addr, sw.config)
 }
 
