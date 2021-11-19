@@ -64,7 +64,7 @@ func StartCmd(ctx *Context,
 	cdc *codec.Codec, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context)) *cobra.Command {
+	appPreRun func(ctx *Context) error) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
@@ -94,10 +94,7 @@ which accepts a path for the resulting pprof file.
 			// set external package flags
 			setExternalPackageValue(cmd)
 			// app pre run
-			appPreRun(ctx)
-			// pruning options
-			_, err := GetPruningOptionsFromFlags()
-			return err
+			return appPreRun(ctx)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !viper.GetBool(flagWithTendermint) {

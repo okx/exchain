@@ -45,19 +45,21 @@ func (app *repairApp) getLatestVersion() int64 {
 func repairStateOnStart(ctx *server.Context) {
 	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
-	RepairState(ctx)
+	RepairState(ctx, true)
 	//set original config
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
+	// load latest block height
+	dataDir := filepath.Join(ctx.Config.RootDir, "data")
+	rmLockByDir(dataDir)
 }
 
-func RepairState(ctx *server.Context) {
+func RepairState(ctx *server.Context, onStart bool) {
 	sm.SetIgnoreSmbCheck(true)
 	iavl.SetIgnoreVersionCheck(true)
 
 	// load latest block height
-	rootDir := ctx.Config.RootDir
-	dataDir := filepath.Join(rootDir, "data")
+	dataDir := filepath.Join(ctx.Config.RootDir, "data")
 	latestBlockHeight := latestBlockHeight(dataDir)
 	startBlockHeight := types.GetStartBlockHeight()
 	if latestBlockHeight <= startBlockHeight+2 {
@@ -68,6 +70,16 @@ func RepairState(ctx *server.Context) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
+
+	// get async commit version
+	commitVersion, err := repairApp.GetCommitVersion()
+	log.Println(fmt.Sprintf("latestBlockHeight = %d \t commitVersion = %d", latestBlockHeight, commitVersion))
+	panicError(err)
+
+	if onStart && commitVersion == latestBlockHeight {
+		log.Println("no need to repair state on start")
+		return
+	}
 
 	// load state
 	stateStoreDB, err := openDB(stateDB, dataDir)
@@ -86,17 +98,8 @@ func RepairState(ctx *server.Context) {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
 
-	// get async commit version
-	asyncVersion, err := repairApp.GetCommitVersion()
-	log.Println(fmt.Sprintf("latestBlockHeight = %d \t startVersion = %d \t asyncVersion = %d", latestBlockHeight, startVersion, asyncVersion))
-	panicError(err)
-
-	if asyncVersion == latestBlockHeight {
-		rmLockByDir(dataDir)
-		return
-	}
-	if asyncVersion < startVersion {
-		startVersion = asyncVersion
+	if commitVersion < startVersion {
+		startVersion = commitVersion
 	}
 
 	err = repairApp.LoadStartVersion(startVersion)
@@ -104,7 +107,6 @@ func RepairState(ctx *server.Context) {
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
-	rmLockByDir(dataDir)
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

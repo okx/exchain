@@ -602,7 +602,7 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) {
+func PreRun(ctx *server.Context) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig()
 
@@ -612,6 +612,12 @@ func PreRun(ctx *server.Context) {
 	//download pprof
 	appconfig.PprofDownload(ctx)
 
+	// pruning options
+	_, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		return err
+	}
 	// repair state on start
 	repairStateOnStart(ctx)
+	return nil
 }

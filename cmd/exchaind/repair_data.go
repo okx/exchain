@@ -16,7 +16,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- repair data start ---------")
 
-			app.RepairState(ctx)
+			app.RepairState(ctx, false)
 			log.Println("--------- repair data success ---------")
 		},
 	}

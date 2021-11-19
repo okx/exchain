@@ -171,10 +171,20 @@ func (rs *Store) LoadVersion(ver int64) error {
 }
 
 func (rs *Store) GetCommitVersion() (int64, error) {
+	var minVersion int64 = 1<<63 - 1
 	for _, storeParams := range rs.storesParams {
-		return rs.getCommitVersionFromParams(storeParams)
+		if storeParams.typ != types.StoreTypeIAVL {
+			continue
+		}
+		commitVersion, err := rs.getCommitVersionFromParams(storeParams)
+		if err != nil {
+			return 0, err
+		}
+		if commitVersion < minVersion {
+			minVersion = commitVersion
+		}
 	}
-	return 0, nil
+	return minVersion, nil
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
