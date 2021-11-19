@@ -1080,3 +1080,74 @@ func (mp *PacketMsg) UnmarshalFromAmino(data []byte) error {
 	return nil
 }
 
+var (
+	PacketPingTypePrefix = []byte{0x15, 0xC3, 0xD2, 0x89}
+	PacketPongTypePrefix = []byte{0x8A, 0x79, 0x7F, 0xE2}
+	PacketMsgTypePrefix  = []byte{0xB0, 0x5B, 0x4F, 0x2C}
+)
+
+func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
+	if maxSize < 0 {
+		panic("maxSize cannot be negative.")
+	}
+
+	// Read byte-length prefix.
+	var l int64
+	var buf [binary.MaxVarintLen64]byte
+	for i := 0; i < len(buf); i++ {
+		_, err = r.Read(buf[i : i+1])
+		if err != nil {
+			return
+		}
+		n += 1
+		if buf[i]&0x80 == 0 {
+			break
+		}
+		if n >= maxSize {
+			err = fmt.Errorf("Read overflow, maxSize is %v but uvarint(length-prefix) is itself greater than maxSize.", maxSize)
+		}
+	}
+	u64, _ := binary.Uvarint(buf[:])
+	if err != nil {
+		return
+	}
+	if maxSize > 0 {
+		if uint64(maxSize) < u64 {
+			err = fmt.Errorf("Read overflow, maxSize is %v but this amino binary object is %v bytes.", maxSize, u64)
+			return
+		}
+		if (maxSize - n) < int64(u64) {
+			err = fmt.Errorf("Read overflow, maxSize is %v but this length-prefixed amino binary object is %v+%v bytes.", maxSize, n, u64)
+			return
+		}
+	}
+	l = int64(u64)
+	if l < 0 {
+		err = fmt.Errorf("Read overflow, this implementation can't read this because, why would anyone have this much data? Hello from 2018.")
+	}
+
+	// Read that many bytes.
+	var bz = make([]byte, l, l)
+	_, err = io.ReadFull(r, bz)
+	if err != nil {
+		return
+	}
+	n += l
+
+	if bytes.Equal(PacketPingTypePrefix, bz) {
+		packet = PacketPing{}
+		return
+	} else if bytes.Equal(PacketPongTypePrefix, bz) {
+		packet = PacketPong{}
+		return
+	} else if bytes.Equal(PacketMsgTypePrefix, bz[0:4]) {
+		msg := PacketMsg{}
+		err = msg.UnmarshalFromAmino(bz[4:])
+		if err == nil {
+			packet = msg
+			return
+		}
+	}
+	err = cdc.UnmarshalBinaryBare(bz, &packet)
+	return
+}
