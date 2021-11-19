@@ -617,6 +617,7 @@ func (r *Reactor) dialSeeds() {
 		// dial a random seed
 		seedAddr := r.seedAddrs[i]
 		err := r.Switch.DialPeerWithAddress(seedAddr)
+
 		switch err.(type) {
 		case nil, p2p.ErrCurrentlyDialingOrExistingAddress:
 			return
