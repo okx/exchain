@@ -65,17 +65,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
-	gasFees := make(sdk.Coins, len(fees))
-
-	for i, fee := range fees {
-		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
-		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
-		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
-		gasRefund := fee.Sub(gasCost)
-
-		gasFees[i] = gasRefund
-	}
-
+	gasFees := caculateRefundFees(ctx, gasUsed, gas, fees)
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
@@ -93,4 +83,25 @@ func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.Gas
 	return func(ctx sdk.Context, tx sdk.Tx) (refund sdk.Coins, err error) {
 		return chandler.GasRefund(ctx, tx)
 	}
+}
+
+func caculateRefundFees(ctx sdk.Context, gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
+
+	refundFees := make(sdk.Coins, len(fees))
+	for i, fee := range fees {
+		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
+		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
+		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
+		gasRefund := fee.Sub(gasCost)
+
+		refundFees[i] = gasRefund
+	}
+	return refundFees
+}
+
+// CaculateRefundFees provides the way to calculate the refunded gas with gasUsed, fees and gasPrice,
+// as refunded gas = fees - gasPrice * gasUsed
+func CaculateRefundFees(ctx sdk.Context, gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
+	gas := new(big.Int).Div(fees[0].Amount.BigInt(), gasPrice).Uint64()
+	return caculateRefundFees(ctx, gasUsed, gas, fees)
 }
