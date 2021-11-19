@@ -463,9 +463,6 @@ func NewOKExChainApp(
 func (app *OKExChainApp) LoadStartVersion(height int64) error {
 	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
 }
-func (app *OKExChainApp) LoadStartVersion123() (int64, error) {
-	return app.LoadVersion123()
-}
 
 // Name returns the name of the App
 func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
@@ -605,13 +602,16 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	}
 }
 
-func PreRun(context *server.Context) {
+func PreRun(ctx *server.Context) {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig()
 
 	// set config by node mode
-	SetNodeConfig(context)
+	SetNodeConfig(ctx)
 
 	//download pprof
-	appconfig.PprofDownload(context)
+	appconfig.PprofDownload(ctx)
+
+	// repair state on start
+	repairStateOnStart(ctx)
 }

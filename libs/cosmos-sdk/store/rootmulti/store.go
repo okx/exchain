@@ -170,9 +170,9 @@ func (rs *Store) LoadVersion(ver int64) error {
 	return rs.loadVersion(ver, nil)
 }
 
-func (rs *Store) LoadVersion123() (int64, error) {
+func (rs *Store) GetCommitVersion() (int64, error) {
 	for _, storeParams := range rs.storesParams {
-		return rs.loadCommitStoreFromParams123(storeParams)
+		return rs.getCommitVersionFromParams(storeParams)
 	}
 	return 0, nil
 }
@@ -658,7 +658,7 @@ func (rs *Store) GetDBReadTime() int {
 	return count
 }
 
-func (rs *Store) loadCommitStoreFromParams123(params storeParams) (int64, error) {
+func (rs *Store) getCommitVersionFromParams(params storeParams) (int64, error) {
 	var db dbm.DB
 
 	if params.db != nil {
@@ -668,7 +668,7 @@ func (rs *Store) loadCommitStoreFromParams123(params storeParams) (int64, error)
 		db = dbm.NewPrefixDB(rs.db, []byte(prefix))
 	}
 
-	return iavl.LoadStoreWithInitialVersion123(db)
+	return iavl.GetCommitVersion(db)
 }
 
 func (rs *Store) GetDBWriteCount() int {

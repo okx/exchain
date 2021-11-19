@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -174,7 +175,7 @@ type CommitMultiStore interface {
 	// must be idempotent (return the same commit id). Otherwise the behavior is
 	// undefined.
 	LoadVersion(ver int64) error
-	LoadVersion123() (int64, error)
+	GetCommitVersion() (int64, error)
 
 	// Set an inter-block (persistent) cache that maintains a mapping from
 	// StoreKeys to CommitKVStores.

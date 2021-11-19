@@ -365,10 +365,9 @@ func (app *BaseApp) LoadVersion(version int64, baseKey *sdk.KVStoreKey) error {
 	return app.initFromMainStore(baseKey)
 }
 
-// LoadVersion loads the BaseApp application version. It will panic if called
-// more than once on a running baseapp.
-func (app *BaseApp) LoadVersion123() (int64, error) {
-	return app.cms.LoadVersion123()
+// GetCommitVersion loads the latest committed version.
+func (app *BaseApp) GetCommitVersion() (int64, error) {
+	return app.cms.GetCommitVersion()
 }
 
 // LastCommitID returns the last CommitID of the multistore.

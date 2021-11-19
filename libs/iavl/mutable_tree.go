@@ -63,20 +63,25 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 	} else {
 		initVersion = 0
 	}
-	tree := &MutableTree{
-		ImmutableTree: head,
-		lastSaved:     head.clone(),
-		orphans:       []*Node{},
-		commitOrphans: map[string]int64{},
-		versions:      NewSyncMap(),
-		ndb:           ndb,
+	var tree *MutableTree
+	if savedTree, ok := treeMap.getTree(ndb.name); ok {
+		tree = savedTree
+	} else {
+		tree = &MutableTree{
+			ImmutableTree: head,
+			lastSaved:     head.clone(),
+			orphans:       []*Node{},
+			commitOrphans: map[string]int64{},
+			versions:      NewSyncMap(),
+			ndb:           ndb,
 
-		committedHeightMap:   map[int64]bool{},
-		committedHeightQueue: list.New(),
-		historyStateNum:      MaxCommittedHeightNum,
+			committedHeightMap:   map[int64]bool{},
+			committedHeightQueue: list.New(),
+			historyStateNum:      MaxCommittedHeightNum,
 
-		commitCh:          make(chan commitEvent),
-		lastPersistHeight: initVersion,
+			commitCh:          make(chan commitEvent),
+			lastPersistHeight: initVersion,
+		}
 	}
 
 	if tree.historyStateNum < minHistoryStateNum {
@@ -366,14 +371,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	return targetVersion, nil
 }
 
-// LazyLoadVersion attempts to lazy load only the specified target version
-// without loading previous roots/versions. Lazy loading should be used in cases
-// where only reads are expected. Any writes to a lazy loaded tree may result in
-// unexpected behavior. If the targetVersion is non-positive, the latest version
-// will be loaded by default. If the latest version is non-positive, this method
-// performs a no-op. Otherwise, if the root does not exist, an error will be
-// returned.
-func (tree *MutableTree) LazyLoadVersion123() int64 {
+func (tree *MutableTree) GetCommitVersion() int64 {
 	latestVersion := tree.ndb.getLatestVersion()
 	return latestVersion
 }
