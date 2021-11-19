@@ -1199,3 +1199,15 @@ func BlockIDFromProto(bID *tmproto.BlockID) (*BlockID, error) {
 
 	return blockID, blockID.ValidateBasic()
 }
+
+// 2322600 is mainnet GenesisHeight
+func IsMainNet() bool {
+	return startBlockHeightStr == "2322600"
+}
+
+// 1121818 is testnet GenesisHeight
+func IsTestNet() bool {
+	return startBlockHeightStr == "1121818"
+}
+
+

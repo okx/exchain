@@ -51,11 +51,6 @@ import (
 
 //------------------------------------------------------------------------------
 
-var (
-	GenesisHeight = "0"
-	MercuryHeight = "0"
-)
-
 // DBContext specifies config information for loading a new DB.
 type DBContext struct {
 	ID     string
@@ -1253,17 +1248,16 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 	return nonEmptyStrings
 }
 
-// this method will work if seeds is null and GenesisHeight in (2322600, 5150000) OR (1121818, 5300000)
+// this method will work if seeds is null and judge net is main or test
 func setDefaultSeeds(seeds string) string {
 	if seeds == "" {
-		if GenesisHeight == "2322600" && MercuryHeight == "5150000" {
+		if types.IsMainNet() {
 			seeds = p2p.MAIN_NET_SEEDS
 		}
 
-		if GenesisHeight == "1121818" && MercuryHeight == "5300000" {
+		if types.IsTestNet() {
 			seeds = p2p.TEST_NET_SEEDS
 		}
 	}
-
 	return seeds
 }
