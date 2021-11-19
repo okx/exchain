@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"io"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	dbm "github.com/tendermint/tm-db"
 
@@ -190,5 +191,9 @@ func (ms multiStore) StopStore() {
 }
 
 func (ms multiStore) SetLogger(log log.Logger) {
+	panic("not implemented")
+}
+
+func (ms multiStore) GetCommitVersion() (int64, error) {
 	panic("not implemented")
 }
