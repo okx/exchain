@@ -578,7 +578,8 @@ FOR_LOOP:
 		var packet Packet
 		var _n int64
 		var err error
-		_n, err = cdc.UnmarshalBinaryLengthPrefixedReader(c.bufConnReader, &packet, int64(c._maxPacketMsgSize))
+		// _n, err = cdc.UnmarshalBinaryLengthPrefixedReader(c.bufConnReader, &packet, int64(c._maxPacketMsgSize))
+		packet, _n, err = unmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
 		c.recvMonitor.Update(int(_n))
 
 		if err != nil {
