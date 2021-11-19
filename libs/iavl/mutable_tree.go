@@ -502,7 +502,7 @@ func (tree *MutableTree) SaveVersion() ([]byte, int64, error) {
 	if version == 1 && tree.ndb.opts.InitialVersion > 0 {
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
-
+	tree.log(IavlInfo, "module<%s>, block height<%d>, iavl height<%d>",tree.GetModuleName(), version, tree.Height())
 	if !ignoreVersionCheck && tree.versions.Get(version) {
 		// If the version already exists, return an error as we're attempting to overwrite.
 		// However, the same hash means idempotent (i.e. no-op).
