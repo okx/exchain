@@ -52,7 +52,8 @@ import (
 //------------------------------------------------------------------------------
 
 var (
-	NetEnv string
+	GenesisHeight = "0"
+	MercuryHeight = "0"
 )
 
 // DBContext specifies config information for loading a new DB.
@@ -528,7 +529,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 	// TODO persistent peers ? so we can have their DNS addrs saved
 	pexReactor := pex.NewReactor(addrBook,
 		&pex.ReactorConfig{
-			Seeds:    splitAndTrimEmpty(setDefaultSeeds(config.P2P.Seeds, NetEnv), ",", " "),
+			Seeds:    splitAndTrimEmpty(setDefaultSeeds(config.P2P.Seeds), ",", " "),
 			SeedMode: config.P2P.SeedMode,
 			// See consensus/reactor.go: blocksToContributeToBecomeGoodPeer 10000
 			// blocks assuming 10s blocks ~ 28 hours.
@@ -1252,18 +1253,17 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 	return nonEmptyStrings
 }
 
-// this method will work if seeds is null and net in (mainnet, testnet)
-func setDefaultSeeds(seeds, net string) string {
-	switch net {
-	case "mainnet":
-		if seeds == "" {
-			seeds = p2p.MAIN_SEEDS
+// this method will work if seeds is null and GenesisHeight in (2322600, 5150000) OR (1121818, 5300000)
+func setDefaultSeeds(seeds string) string {
+	if seeds == "" {
+		if GenesisHeight == "2322600" && MercuryHeight == "5150000" {
+			seeds = p2p.MAIN_NET_SEEDS
 		}
-	case "testnet":
-		if seeds == "" {
-			seeds = p2p.TEST_SEEDS
+
+		if GenesisHeight == "1121818" && MercuryHeight == "5300000" {
+			seeds = p2p.TEST_NET_SEEDS
 		}
-	default:
 	}
+
 	return seeds
 }
